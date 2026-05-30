@@ -31,13 +31,7 @@ export const BiddingRules: BidRule[] = [
     calls: ['1H', '1S'],
     callCategory: ['natural'],
     priority: { rank: 90 },
-    appliesWhen: {
-      totalPoints: { min: 12, max: 21 },
-      anySuitLength: [
-        { suit: 'H', min: 5 },
-        { suit: 'S', min: 5 },
-      ],
-    },
+    appliesWhen: { totalPoints: { min: 12, max: 21 }, suitLengths: [ { suit: 'major', min: 5 } ] },
     meaning: 'Open 1H or 1S with a five-card or longer major suit and opening values.',
     guidance: ['With two five-card or longer suits, open the higher-ranking suit.'],
     certainty: 'high',
@@ -79,6 +73,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Open 2C with strong artificial opening values',
     context: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['2C'],
+    style: 'partnershipAgreement',
     callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 22 } },
     guidance: ['Seeing nine or more tricks but fewer than 22 points is ok with any shape.'],
@@ -107,7 +102,7 @@ export const BiddingRules: BidRule[] = [
     context: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['3C', '3D', '3H', '3S'],
     callCategory: ['invitational'],
-    appliesWhen: { hcp: { text: 'Less than one-level opening bid' }, suitLengths: [{ min: 7 }] },
+    appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 7 }] },
     guidance: ['Good suit', 'can see 6 tricks.'],
     meaning: 'Preemptive opening with a good seven-card suit.',
     certainty: 'high',
@@ -120,7 +115,7 @@ export const BiddingRules: BidRule[] = [
     context: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['4C', '4D', '4H', '4S'],
     callCategory: ['invitational'],
-    appliesWhen: { hcp: { text: 'Less than one-level opening bid' }, suitLengths: [{ min: 8 }] },
+    appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
     guidance: ['Good suit', 'can see 7 tricks.'],
     meaning: 'Preemptive opening with a good eight-card suit.',
     certainty: 'high',
@@ -132,6 +127,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Rare 4NT opening as Blackwood',
     context: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['4NT'],
+    style: 'partnershipAgreement',
     callCategory: ['conventional'],
     appliesWhen: { hcp: { min: 25 } },
     meaning: 'Blackwood ace-asking opening; marked rare.',
@@ -140,7 +136,7 @@ export const BiddingRules: BidRule[] = [
   // Responding to one of a minor
   //
   {
-    id: 'respond-minor-new-suit-one-level-priority',
+    id: 'respond-to-minor-w/-new-suit-one-level-priority',
     kind: 'responseBid',
     title: 'After 1C or 1D, bid a new suit at the one level first',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -156,8 +152,9 @@ export const BiddingRules: BidRule[] = [
                   'four-card or longer diamond suit to bid a four-card major.'],
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-1nt',
+    id: 'respond-to-minor-w/-1nt',
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 1NT with minimum balanced values and no four-card major',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -168,8 +165,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Balanced minimum response with no four-card major.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-2nt',
+    id: 'respond-to-minor-w/-2nt',
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 2NT with invitational balanced values and no four-card major',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -180,8 +178,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Balanced invitational response with no four-card major.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-3nt',
+    id: 'respond-to-minor-w/-3nt',
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 3NT with game-going balanced values and no four-card major',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -192,33 +191,39 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Balanced game response with no four-card major.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-raise-to-two',
+    id: 'respond-to-minor-w/-raise-to-two',
     kind: 'responseBid',
     title: 'Raise opener minor to two with 6-10 and support',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
     calls: ['2C', '2D'],
     callCategory: ['invitational'],
     priority: { rank: 40 },
-    appliesWhen: { hcp: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 5, text: 'usually five-card support per table' }, shape: { noFourCardMajor: true } },
-    meaning: 'Minimum raise of opener minor, usually with five-card or longer support and no four-card major.',
+    appliesWhen: { hcp: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
+    guidance: ['Usually this means five-card support if convenient minor has three cards.'],
+    meaning: 'Minimum raise of opener minor, usually with five-card or longer support and no ' +
+             'four-card major.',
     certainty: 'medium',
-    reviewNotes: ['Page footnote says some partnerships treat single minor-suit raise as strong and jump raise as weak; this rule records the displayed default table.'],
   },
+  //
   {
-    id: 'respond-minor-limit-raise',
+    id: 'respond-to-minor-w/-limit-raise',
     kind: 'responseBid',
     title: 'Raise opener minor to three with 11-12 and support',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
     calls: ['3C', '3D'],
     callCategory: ['invitational'],
     priority: { rank: 45 },
-    appliesWhen: { hcp: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
+    appliesWhen: { hcp: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
     meaning: 'Limit raise of opener minor.',
     certainty: 'medium',
   },
+  //
   {
-    id: 'respond-minor-13plus-start-new-suit',
+    id: 'respond-to-minor-w/-13plus-start-new-suit',
     kind: 'responseBid',
     title: 'With 13+ and minor support, start with a new suit',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -230,8 +235,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Start with a new suit and plan to show the minor support later.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-weak-jump-shift-modern',
+    id: 'respond-to-minor-w/-weak-jump-shift-modern',
     kind: 'responseBid',
     title: 'Modern weak jump shift after one of a minor',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -242,8 +248,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Weak hand with a six-card suit, preemptive.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-minor-strong-jump-shift-classic',
+    id: 'respond-to-minor-w/-strong-jump-shift-classic',
     kind: 'styleVariant',
     title: 'Classic strong jump shift after one of a minor',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
@@ -255,69 +262,78 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Classic Standard treats jump shifts as strong.',
     certainty: 'high',
   },
-
-  // Responding to one of a major with/without support, pages 6-7.
+  // Responding to one of a major with/without support.
+  //
   {
-    id: 'respond-major-support-pass-0-5',
+    id: 'respond-to-major-w/-support-pass-0-5',
     kind: 'responseBid',
     title: 'Pass with support and 0-5',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { dummyPoints: { min: 0, max: 5 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 3 } },
+    appliesWhen: { totalPoints: { min: 0, max: 5 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 3 } },
     meaning: 'Game is unlikely.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-support-simple-raise',
+    id: 'respond-to-major-w/-support-simple-raise',
     kind: 'responseBid',
     title: 'Simple raise with 6-10 and major support',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['2H', '2S'],
     callCategory: ['forcing'],
-    appliesWhen: { dummyPoints: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 3 } },
+    appliesWhen: { totalPoints: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 3 } },
     meaning: 'Raise partner major to the two level.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-support-limit-raise-four-card',
+    id: 'respond-to-major-w/-support-limit-raise-four-card',
     kind: 'responseBid',
     title: 'Limit raise with four-card support and 11-12',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['3H', '3S'],
     callCategory: ['invitational'],
-    appliesWhen: { dummyPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 4 } },
+    appliesWhen: { totalPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 4 } },
     meaning: 'Jump to the three level as a limit raise with four-card or longer support.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-support-limit-raise-three-card',
+    id: 'respond-to-major-w/-support-limit-raise-three-card',
     kind: 'responseBid',
     title: 'Three-card support, 11-12: bid 1NT then raise',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['1NT'],
     callCategory: ['forcing'],
     style: 'twoOverOne',
-    appliesWhen: { dummyPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 3, max: 3 } },
-    meaning: 'With exactly three-card support and limit-raise values, bid 1NT first and then raise to the three level.',
+    appliesWhen: { totalPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
+                   supportLength: { min: 3, max: 3 } },
+    meaning: 'With exactly three-card support and limit-raise values, bid 1NT first and then ' +
+             'raise to the three level.',
     certainty: 'high',
-    reviewNotes: ['Footnote 7 distinguishes 2/1 1NT forcing/semi-forcing from Standard non-forcing 1NT.'],
   },
+  //
   {
-    id: 'respond-major-support-13plus-bid-new-suit-then-raise',
+    id: 'respond-to-major-w/-support-13plus-bid-new-suit-then-raise',
     kind: 'responseBid',
     title: 'With 13+ and major support, bid a new suit then raise to game',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['1S', '2C', '2D', '2H'],
     callCategory: ['forcing'],
-    appliesWhen: { dummyPoints: { min: 13 }, supportFor: 'partnersOpenedSuit', 
+    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit', 
                    supportLength: { min: 3 } },
     guidance: ['Bid a new suit and then raise to at least game.'],
     meaning: 'Game-forcing support path in the basic treatment.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-support-jacoby-2nt-agreement',
+    id: 'respond-to-major-w/-support-jacoby-2nt-agreement',
     kind: 'styleVariant',
     title: 'Jacoby 2NT partnership agreement',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -325,11 +341,13 @@ export const BiddingRules: BidRule[] = [
     callCategory: ['conventional', 'partnershipAgreement'],
     style: 'partnershipAgreement',
     appliesWhen: { hcp: { min: 13 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 4 } },
-    meaning: 'Some partnerships use 2NT as artificial Jacoby 2NT, showing four-card or longer support and 13+ points.',
+    meaning: 'Some partnerships use 2NT as artificial Jacoby 2NT, showing four-card or longer ' +
+             'support and 13+ points.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-without-support-new-suit-one-level',
+    id: 'respond-to-major-w/o-support-new-suit-one-level',
     kind: 'responseBid',
     title: 'Without support, bid a new suit at the one level with 6+',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -340,8 +358,9 @@ export const BiddingRules: BidRule[] = [
     guidance: ["Use a new suit at the one level to show no support for partner's major."],
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-without-support-new-suit-two-level',
+    id: 'respond-to-major-w/o-support-new-suit-two-level',
     kind: 'responseBid',
     title: 'Without support, bid a new suit at the two level with 13+',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -355,8 +374,9 @@ export const BiddingRules: BidRule[] = [
              ' and next hand passes.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-without-support-1nt',
+    id: 'respond-to-major-w/o-support-1nt-twooverone',
     kind: 'responseBid',
     title: 'Without support, respond 1NT with 6-12',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -369,8 +389,9 @@ export const BiddingRules: BidRule[] = [
     meaning: '1NT response to a major in 2/1 style.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-without-support-1nt-standard',
+    id: 'respond-to-major-w/o-support-1nt-standard',
     kind: 'styleVariant',
     title: 'Standard style 1NT response to a major',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -381,8 +402,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Playing Standard, 1NT over a major shows 6-10 and is non-forcing.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-without-support-3nt',
+    id: 'respond-to-major-w/o-support-3nt',
     kind: 'responseBid',
     title: 'Without support, respond 3NT with 13-15 balanced',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -392,8 +414,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Balanced game response without support.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-major-weak-jump-shift-modern',
+    id: 'respond-to-major-w-weak-jump-shift-modern',
     kind: 'responseBid',
     title: 'Modern weak jump shift after one of a major',
     context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
@@ -404,10 +427,10 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Weak hand with a six-card suit, preemptive.',
     certainty: 'high',
   },
-
-  // Responding to notrump and opener rebid, pages 8-9.
+  // Responding to notrump
+  //
   {
-    id: 'respond-1nt-pass-0-7-balanced',
+    id: 'respond-to-1nt-w/-pass-0-7-balanced',
     kind: 'responseBid',
     title: 'Pass 1NT with 0-7 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -417,8 +440,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Partscore decision.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-2nt-8-9-balanced',
+    id: 'respond-to-1nt-w/-2nt-8-9-balanced',
     kind: 'responseBid',
     title: 'Invite game over 1NT with 8-9 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -428,8 +452,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Invitational raise to 2NT.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-3nt-10-15-balanced',
+    id: 'respond-to-1nt-w/-3nt-10-15-balanced',
     kind: 'responseBid',
     title: 'Bid game over 1NT with 10-15 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -439,19 +464,21 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Place the contract in game.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-4nt-16-17-balanced',
+    id: 'respond-to-1nt-w/-4nt-16-17-balanced',
     kind: 'responseBid',
     title: 'Invite small slam over 1NT with 16-17 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['4NT'],
-    callCategory: ['invitational'],
+    callCategory: ['invitational', "conventional"],
     appliesWhen: { hcp: { min: 16, max: 17 }, shape: { balanced: true } },
     meaning: 'Quantitative invitation to small slam.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-6nt-18-19-balanced',
+    id: 'respond-to-1nt-w/-6nt-18-19-balanced',
     kind: 'responseBid',
     title: 'Bid small slam over 1NT with 18-19 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -461,8 +488,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Place the contract in small slam.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-5nt-20-21-balanced',
+    id: 'respond-to-1nt-w/-5nt-20-21-balanced',
     kind: 'responseBid',
     title: 'Invite grand slam over 1NT with 20-21 balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -472,8 +500,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Grand slam invitation.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-7nt-22plus-balanced',
+    id: 'respond-to-1nt-w/-7nt-22plus-balanced',
     kind: 'responseBid',
     title: 'Bid grand slam over 1NT with 22+ balanced',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
@@ -483,89 +512,98 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Place the contract in grand slam.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-stayman',
+    id: 'respond-to-1nt-w/-stayman',
     kind: 'responseBid',
     title: 'Stayman over 1NT',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2C'],
+    style: 'partnershipAgreement',
     callCategory: ['forcing', 'conventional'],
-    appliesWhen: { hcp: { min: 8 }, suitLengths: [{ suit: 'H', min: 4, text: 'or S min 4' }] },
-    guidance: ['Stayman asks opener for a four-card major.'],
-    meaning: 'Stayman asks opener for a four-card major.',
+    appliesWhen: { hcp: { min: 8 }, suitLengths: [{ suit: 'major', min: 4 } ] },
+    guidance: ['Stayman asks opener for a four-card major.', 'Can be used even if short in clubs.'],
     certainty: 'high',
-    reviewNotes: ['Footnote says Stayman may be used with 0-7 when short in clubs and planning to pass opener rebid.'],
   },
+  //
   {
-    id: 'respond-1nt-transfer-to-hearts',
+    id: 'respond-to-1nt-w/-transfer-to-hearts',
     kind: 'responseBid',
     title: 'Transfer to hearts over 1NT',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2D'],
+    style: 'partnershipAgreement',
     callCategory: ['conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
-    meaning: 'Transfer to 2H; responder has five or more hearts.',
+    guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-transfer-to-spades',
+    id: 'respond-to-1nt-w/-transfer-to-spades',
     kind: 'responseBid',
     title: 'Transfer to spades over 1NT',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2H'],
+    style: 'partnershipAgreement',
     callCategory: ['conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
-    meaning: 'Transfer to 2S; responder has five or more spades.',
+    guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-minor-suit-relay',
+    id: 'respond-to-1nt-w/-minor-suit-transfer',
     kind: 'responseBid',
-    title: 'Relay to 3C over 1NT for long minor',
+    title: 'Transfer to 3C over 1NT for long minor',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2S'],
-    callCategory: ['conventional'],
-    appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'C', min: 6, text: 'or D min 6' }] },
-    meaning: 'Relay to 3C with six or more clubs or diamonds.',
+    style: 'partnershipAgreement',
+    callCategory: ['conventional', 'partnershipAgreement'],
+    appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'minor', min: 6 }] },
+    guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'medium',
-    reviewNotes: ['This row appears in the 1NT table; exact partnership treatment after relay needs later-page support.'],
   },
+  //
   {
-    id: 'respond-1nt-3c-natural-invitational',
+    id: 'respond-to-1nt-w/-3c-natural-invitational',
     kind: 'responseBid',
     title: '3C over 1NT with good six-card clubs and 8-9',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['3C'],
-    callCategory: ['invitational'],
+    callCategory: ['invitational', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 8, max: 9 }, suitLengths: [{ suit: 'C', min: 6 }]},
     guidance: ['good six-card club suit'],
     meaning: 'Invitational natural club bid.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-3h-3s-slam-interest',
+    id: 'respond-to-1nt-w/-3h-3s-slam-interest',
     kind: 'responseBid',
     title: '3H or 3S over 1NT with slam interest',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['3H', '3S'],
     callCategory: ['forcing'],
-    appliesWhen: { hcp: { min: 16 }, suitLengths: [{ suit: 'H', min: 6, text: 'or S min 6' }]},
+    appliesWhen: { hcp: { min: 16 }, suitLengths: [{ min: 6 }]},
     meaning: 'Natural major-suit bid with slam interest.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-1nt-4c-gerber',
+    id: 'respond-to-1nt-w/-4c-gerber',
     kind: 'responseBid',
     title: 'Gerber over 1NT',
     context: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['4C'],
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 18 } },
     meaning: 'Gerber ace-asking convention.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-pass-0-3-balanced',
+    id: 'respond-to-2nt-w/-pass-0-3-balanced',
     kind: 'responseBid',
     title: 'Pass 2NT with 0-3 balanced',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
@@ -575,8 +613,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Partscore decision over 20-21 balanced opener.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-3nt-4-10-balanced',
+    id: 'respond-to-2nt-w/-3nt-4-10-balanced',
     kind: 'responseBid',
     title: 'Bid 3NT over 2NT with 4-10 balanced',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
@@ -586,8 +625,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Game in notrump.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-4nt-11-12-balanced',
+    id: 'respond-to-2nt-w/-4nt-11-12-balanced',
     kind: 'responseBid',
     title: 'Invite slam over 2NT with 11-12 balanced',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
@@ -597,8 +637,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Invite opener to bid slam.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-6nt-13-15-balanced',
+    id: 'respond-to-2nt-w/-6nt-13-15-balanced',
     kind: 'responseBid',
     title: 'Bid 6NT over 2NT with 13-15 balanced',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
@@ -608,8 +649,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Small slam in notrump.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-5nt-16-balanced',
+    id: 'respond-to-2nt-w/-5nt-16-balanced',
     kind: 'responseBid',
     title: 'Invite grand slam over 2NT with 16 balanced',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
@@ -619,37 +661,40 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Grand slam invitation.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-stayman',
+    id: 'respond-to-2nt-w/-stayman',
     kind: 'responseBid',
     title: 'Stayman over 2NT',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3C'],
-    callCategory: ['forcing', 'conventional'],
-    appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'H', min: 4, text: 'or S min 4' }] },
+    callCategory: ['forcing', 'conventional', 'partnershipAgreement'],
+    appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'major', min: 4 }] },
     meaning: 'Stayman asking for a major suit.',
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-transfer-to-hearts',
+    id: 'respond-to-2nt-w/-transfer-to-hearts',
     kind: 'responseBid',
     title: 'Transfer to hearts over 2NT',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3D'],
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
-    meaning: 'Transfer to 3H; responder has five or more hearts.',
+    guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'high',
   },
+  //
   {
-    id: 'respond-2nt-transfer-to-spades',
+    id: 'respond-to-2nt-w/-transfer-to-spades',
     kind: 'responseBid',
     title: 'Transfer to spades over 2NT',
     context: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3H'],
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
-    meaning: 'Transfer to 3S; responder has five or more spades.',
+    guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'high',
   },
 ];
@@ -700,16 +745,10 @@ export const BiddingNotes: BidRule[] = [
     kind: 'priority',
     title: 'Responder objective after 1C or 1D',
     context: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
-    meaning: 'Responder first looks for an eight-card or longer major-suit fit. Major-suit contracts are preferred over minor-suit contracts. Without a major fit, responder next considers notrump. Notrump is generally preferred to minor-suit contracts because 3NT needs fewer tricks than 5C or 5D.',
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'major-response-support-evaluation',
-    kind: 'concept',
-    title: 'Evaluate support for partner major with dummy points',
-    context: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
-    meaning: 'With three-card or longer support for partner major, revalue with dummy points: void=5, singleton=3, doubleton=1.',
+    meaning: 'Responder first looks for an eight-card or longer major-suit fit. Major-suit ' +
+             'contracts are preferred over minor-suit contracts. Without a major fit, responder ' +
+             'next considers notrump. Notrump is generally preferred to minor-suit contracts ' +
+             'because 3NT needs fewer tricks than 5C or 5D.',
     certainty: 'high',
   },
   //

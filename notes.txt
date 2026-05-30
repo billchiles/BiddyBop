@@ -1,0 +1,56 @@
+
+I’d make the first GUI target very narrow:
+  Random deal
+  Show all four hands
+  North opens or passes, so only accept deals if one had has opening and make it N
+  South responds if North opened one-level or NT
+  Ignore opponents
+  Ignore competitive bidding
+  Display matching rule(s) and suggested call
+
+NEXT SEED ...
+
+I’m building a bridge trainer project.  We're currently at the explorator phase of how to represent bidding rules, meta notes, etc., and how to use that in a bidding guidance and training app.
+
+Please read the uploaded files, always ground code gen against actual sources, and let's conclude and fully agree on design  before suggesting code.  The project is a Vite React TypeScript app. I want a narrow browser-only vertical slice first, not Electron yet.
+
+Important code conventions:
+- Use TypeScript.
+- Use suit letters only: C, D, H, S, NT. No suit glyphs.
+- Use line-oriented comments only.
+- Use /// at top level and // inside indented code.
+- Do not use block comments.
+- Use explicit checks for undefined, null, 0, empty string, and empty arrays.
+- Do not rely on implicit falsy conversions.
+- Define types/functions before later types/functions that refer to them.
+- Prefer tight diffs and minimal speculative architecture.
+
+Current bridge model decisions:
+- Suit includes C, D, H, S, NT.
+- SuitBid is a template-string call like 1C, 1H, 3NT.
+- Call is SuitBid | Pass | Double | Redouble.
+- Rules use calls: Call[] only, never call: Call.
+- BiddingRules contains executable or near-executable rules.
+- BiddingNotes contains non-executable teaching notes.
+- appliesWhen should contain machine-testable constraints only.
+- guidance contains human explanation.
+- meaning is optional and mostly for conventional/non-obvious calls.
+- Rule IDs are not control flow.
+
+First implementation goal:
+Build a minimum punch-through GUI that:
+1. Generates a random deal.
+2. Shows all four hands.
+3. Assumes North is dealer, and assigns North a hand that has opening points.
+4. Suggests/evaluates North’s opening call using BiddingRules.
+5. If North opens, suggests/evaluates South’s response.
+6. Ignores opponent interference, doubles, overcalls, scoring, DDS, and simulation.
+7. Shows matching rule(s), suggested call(s), and guidance text.
+
+Please first review the uploaded files and let's discuss the punch through implementation plan before generating code.
+
+
+
+
+
+

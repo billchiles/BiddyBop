@@ -38,16 +38,14 @@ export type RuleKind =
 export interface PointRange {
   min?: number;
   max?: number;
-  text?: string;
 }
 
 /// MAYBE DELETE
 export interface SuitLengthConstraint {
-  suit?: Suit;
+  suit?: Suit | 'major' | 'minor';
   min?: number;
   max?: number;
   exact?: number;
-  text?: string;
 }
 
 export interface HandShapeConstraint {
