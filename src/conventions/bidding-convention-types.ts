@@ -87,7 +87,6 @@ export interface BidRule {
   kind: RuleKind;
   title: string;
   context?: AuctionContext;
-  call?: Call;
   calls?: Call[];
   callCategory?: CallCategory[];
   priority?: {

@@ -10,7 +10,7 @@ I’d make the first GUI target very narrow:
 
 NEXT SEED ...
 
-I’m building a bridge trainer project.  We're currently at the explorator phase of how to represent bidding rules, meta notes, etc., and how to use that in a bidding guidance and training app.
+I’m building a bridge trainer project.  We're currently at the explorator phase of how to represent bidding rules, meta notes, etc., and how to use that in a bidding guidance and training app.  I'm learning subtleties of typecript and everything about react, so explain mechanisms and choices in code gen, including commenting code for meaning and why using certain mechanisms.  I do have advanced general programming and career experience, so don't need obvious code commented.
 
 Please read the uploaded files, always ground code gen against actual sources, and let's conclude and fully agree on design  before suggesting code.  The project is a Vite React TypeScript app. I want a narrow browser-only vertical slice first, not Electron yet.
 

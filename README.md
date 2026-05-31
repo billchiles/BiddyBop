@@ -1,73 +1,35 @@
-# React + TypeScript + Vite
+# Bridge Trainer Punch-Through Source Drop
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This zip is structured as source files to copy into a Vite React TypeScript project.
 
-Currently, two official plugins are available:
+## File layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+  App.css
+  App.tsx
+  main.tsx
+  components/
+    BidPanel.tsx
+    DealCompass.tsx
+    HandView.tsx
+    TelemetryPanel.tsx
+  data/
+    bidding-rules.ts
+  models/
+    bidding-convention-types.ts
+    biddingEvaluation.ts
+    cards.ts
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Notes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `src/data/bidding-rules.ts` is copied from the uploaded `bidding-rules(2).ts` and has one intentional punch-through edit: `open-convenient-minor` now includes `suitLengths: [{ suit: 'major', max: 4 }]` in addition to `shape: { noFiveCardMajor: true }`.
+- `src/models/bidding-convention-types.ts` is copied from the uploaded type file with `call?: Call` removed, matching the project decision that rules use `calls: Call[]` only.
+- The UI uses Unicode suit glyphs only in presentation. Rules, calls, telemetry, and user input still use suit letters such as `1H`, `1S`, and `1NT`.
+- The evaluator is descriptive. It shows rules satisfied by the user's entered call and all candidate rules that currently apply. It does not rank, choose best calls, or provide final bidding judgment yet.
+- Deal generation deals random hands, finds the first hand in `N, E, S, W` order with at least 12 HCP, rotates that hand to North, and redeals only when no hand has 12+ HCP.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Integration
+
+If your existing app already has `src/main.tsx`, compare before replacing it. The important files for the punch-through are `App.tsx`, `App.css`, `components`, `models`, and `data`.

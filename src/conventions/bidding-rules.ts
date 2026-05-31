@@ -45,7 +45,8 @@ export const BiddingRules: BidRule[] = [
     calls: ['1C', '1D'],
     callCategory: ['natural'],
     priority: { rank: 70 },
-    appliesWhen: { totalPoints: { min: 12, max: 21 }, shape: { noFiveCardMajor: true }},
+    appliesWhen: { totalPoints: { min: 12, max: 21 }, shape: { noFiveCardMajor: true }, 
+                   suitLengths: [{ suit: 'major', max: 4 }]},
     meaning: 'Open 1C or 1D with nothing else to do. Open 1D with four cards in both minor suits; ' +
              'open 1C with three cards in both minor suits.',
     guidance: ['No balanced 15-17 1NT opening.', 'No five-card major.', 
