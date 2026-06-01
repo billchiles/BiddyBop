@@ -17,7 +17,7 @@ textarea {
 .appShell {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 12px;
 }
 
 .appHeader {
@@ -25,12 +25,12 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .appHeader h1 {
   margin: 0 0 6px 0;
-  font-size: 28px;
+  font-size: 22px;
 }
 
 .appHeader p {
@@ -55,14 +55,15 @@ textarea {
 
 .dealCompass {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.15fr) minmax(220px, 1fr);
+  grid-template-columns: 150px 170px 150px;
   grid-template-areas:
     ". north ."
     "west . east"
     ". south .";
-  gap: 18px 28px;
+  gap: 6px 10px;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: center;
+  margin-bottom: 12px;
 }
 
 .northSeat {
@@ -82,35 +83,36 @@ textarea {
 }
 
 .handCard {
-  min-width: 220px;
+  width: 150px;
+  min-width: 0;
   border: 1px solid #c7d0dc;
-  border-radius: 14px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 5px 7px;
   background: white;
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.08);
 }
 
 .handTitle {
-  margin: 0 0 8px 0;
-  font-size: 18px;
+  margin: 0 0 4px 0;
+  font-size: 14px;
   text-align: center;
 }
 
 .handRows {
   display: grid;
-  gap: 4px;
+  gap: 1px;
 }
 
 .suitRow {
   display: grid;
-  grid-template-columns: 30px 10px 1fr;
+  grid-template-columns: 24px 6px 1fr;
   align-items: baseline;
-  gap: 6px;
-  min-height: 28px;
+  gap: 4px;
+  min-height: 19px;
 }
 
 .suitGlyph {
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1;
   font-weight: 700;
   text-align: center;
@@ -130,15 +132,15 @@ textarea {
 
 .rankText {
   font-family: Consolas, "Courier New", monospace;
-  font-size: 18px;
-  letter-spacing: 0.03em;
+  font-size: 14px;
+  letter-spacing: 0.01em;
 }
 
 .bidPanel {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .bidForm,

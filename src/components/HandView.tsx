@@ -1,7 +1,10 @@
-import type { Suit } from '../models/bidding-convention-types';
-import { getCardsForSuit, getHandFacts, type Hand, type Seat } from '../models/cards';
-
 /// HandView renders compact bridge hand text with styled suit glyph presentation only.
+
+import { getCardsForSuit, getHandFacts, type Hand, type Seat,
+         type Suit } from '../models/cards';
+
+
+/// HandViewProps is the return type of the HandView rendering function.
 export interface HandViewProps {
   seat: Seat;
   hand: Hand;
@@ -27,9 +30,8 @@ const seatNames: Record<Seat, string> = {
   W: 'West',
 };
 
-export function HandView({ seat, hand }: HandViewProps) {
+export function HandView ({ seat, hand }: HandViewProps) {
   const facts = getHandFacts(hand);
-
   return (
     <section className="handCard" aria-label={`${seatNames[seat]} hand`}>
       <h2 className="handTitle">
@@ -40,7 +42,6 @@ export function HandView({ seat, hand }: HandViewProps) {
           const cards = getCardsForSuit(hand, suitDisplay.suit);
           const ranksText = cards.map((card) => card.rank).join(' ');
           const shownRanksText = ranksText === '' ? '—' : ranksText;
-
           return (
             <div className="suitRow" key={suitDisplay.suit}>
               <span className={`suitGlyph ${suitDisplay.colorClassName}`}>{suitDisplay.glyph}</span>

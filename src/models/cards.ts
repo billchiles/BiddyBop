@@ -1,12 +1,12 @@
 /// Representation for cards and hands.
 ////
 
-import type { Call, Suit, SuitBid } from './bidding-convention-types';
+import type { Call, Strain, SuitBid } from './bidding-convention-types';
 
 
-
-const suits: Suit[] = ['S', 'H', 'D', 'C'];
-
+/// These may not be used, but we distinguish suit from strain for now in case we need just suits.
+const suits = ['S', 'H', 'D', 'C'] as const;
+export type Suit = typeof suits[number];
 
 /// Card rank order is display order, high to low.
 const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'] as const;
@@ -16,18 +16,16 @@ export type Rank = typeof ranks[number];
 const seats = ['N', 'E', 'S', 'W'] as const;
 export type Seat = typeof seats[number];
 
-/// A physical card in the generated deal.
+/// A physical card representation in the generated deal.
 export interface Card {
   suit: Suit;
   rank: Rank;
 }
 
-/// A bridge hand is exactly thirteen cards after deal generation.
 export interface Hand {
   cards: Card[];
 }
 
-/// A deal always stores hands by seat after any rotation.
 export interface Deal {
   N: Hand;
   E: Hand;
@@ -35,7 +33,7 @@ export interface Deal {
   W: Hand;
 }
 
-/// Facts are intentionally simple and evaluator-oriented for the first punch-through.
+/// HandFacts represent various attributes of a hand used for bidding.
 export interface HandFacts {
   hcp: number;
   totalPoints: number;
@@ -51,34 +49,34 @@ export interface HandFacts {
 }
 
 /// Deal generation returns telemetry because the trainer UI is partly a rule-debugging UI.
-export interface GeneratedDealResult {
+export interface DealWTelemetry {
   deal: Deal;
   telemetryLines: string[];
 }
 
+/// maxDealAttempts is probably silly and will be removed eventually, but for now, let's make sure
+/// openable hands come along within a couple of deals
 const maxDealAttempts = 100;
 
-export function generateOpenableNorthDeal(): GeneratedDealResult {
+export function generateOpenableNorthDeal (): DealWTelemetry {
+  // Collect any debugging or app analysis info
   const telemetryLines: string[] = [];
-
+  // loop until we have a hand with opening points
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
-    const rawDeal = dealRandomHands();
-    const rawHcpBySeat = getHcpBySeat(rawDeal);
+    let deal = dealRandomHands();
+    const rawHcpBySeat = getHcpBySeat(deal);
     const firstOpenableSeat = findFirstOpenableSeat(rawHcpBySeat);
-
-    telemetryLines.push(
-      `Deal attempt ${attemptIndex}: HCP N=${rawHcpBySeat.N} E=${rawHcpBySeat.E} S=${rawHcpBySeat.S} W=${rawHcpBySeat.W}.`,
-    );
-
     if (firstOpenableSeat !== null) {
-      const deal = rotateDealToNorth(rawDeal, firstOpenableSeat);
-      telemetryLines.push(`First 12+ HCP hand was ${firstOpenableSeat}; rotated it to North.`);
+      telemetryLines.push(
+        `Deal attempt ${attemptIndex}: HCP N=${rawHcpBySeat.N} E=${rawHcpBySeat.E} ' +
+        'S=${rawHcpBySeat.S} W=${rawHcpBySeat.W}.`);
+      if (firstOpenableSeat !== 'N') {
+        deal = rotateOpeningToNorth(deal, firstOpenableSeat);
+        telemetryLines.push(`First 12+ HCP hand was ${firstOpenableSeat}; rotated it to North.`);
+      }
       return { deal, telemetryLines };
     }
-
-    telemetryLines.push('No hand had 12+ HCP; redealing.');
-  }
-
+  } // for
   const fallbackDeal = dealRandomHands();
   telemetryLines.push(`No 12+ HCP hand found after ${maxDealAttempts} attempts; using final random deal.`);
   return { deal: fallbackDeal, telemetryLines };
@@ -96,7 +94,6 @@ export function getHandFacts(hand: Hand): HandFacts {
   const semiBalanced = voidCount === 0 && singletonCount <= 1;
   const hasFourCardMajor = lengths.H >= 4 || lengths.S >= 4;
   const hasFiveCardMajor = lengths.H >= 5 || lengths.S >= 5;
-
   return {
     hcp,
     totalPoints: hcp + distributionPoints,
@@ -137,37 +134,32 @@ export function normalizeCallInput(input: string): Call | null {
     return 'Redouble';
   }
 
-  if (isSuitBid(trimmed as Call)) {
+  if (isContractBid(trimmed as Call)) {
     return trimmed as Call;
   }
 
   return null;
 }
 
-export function isSuitBid(call: Call): call is SuitBid {
+/// isContractBid takes a Call and returns whether it is 1C..7NT and further declares the call
+/// is also a SuitBid (not pass, double, etc.).
+///
+export function isContractBid (call: Call): call is SuitBid {
   if (call.length !== 2 && call.length !== 3) {
     return false;
   }
-
   const levelText = call.substring(0, 1);
   const suitText = call.substring(1);
   const level = Number(levelText);
-
-  if (Number.isInteger(level) !== true || level < 1 || level > 7) {
+  // test isInteger due to user input, quick and dirty safety check
+  if (! Number.isInteger(level) || level < 1 || level > 7) {
     return false;
   }
-
   return suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT';
 }
 
-export function getSuitFromSuitBid(call: SuitBid): Suit {
-  const suitText = call.substring(1);
-
-  if (suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT') {
-    return suitText;
-  }
-
-  throw new Error(`Invalid suit bid suit: ${call}`);
+export function getStrainFromSuitBid(call: SuitBid): Strain {
+  return call.substring(1) as Strain;
 }
 
 function dealRandomHands(): Deal {
@@ -228,13 +220,14 @@ function findFirstOpenableSeat(hcpBySeat: Record<Seat, number>): Seat | null {
   return null;
 }
 
-function rotateDealToNorth(deal: Deal, firstOpenableSeat: Seat): Deal {
+/// rotateOpeningToNorth might be useful indefinitely, but for not it is just for the initial
+/// punch throughs to try out bidding logic and rules data.
+///
+function rotateOpeningToNorth (deal: Deal, firstOpenableSeat: Seat): Deal {
   const openableIndex = seats.indexOf(firstOpenableSeat);
-
   if (openableIndex < 0) {
     throw new Error(`Unknown seat: ${firstOpenableSeat}`);
   }
-
   return {
     N: deal[seats[openableIndex]],
     E: deal[seats[(openableIndex + 1) % seats.length]],
@@ -262,7 +255,7 @@ function getHighCardPoints(hand: Hand): number {
 }
 
 function getSuitLengths(hand: Hand): Record<Suit, number> {
-  const lengths: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0, NT: 0 };
+  const lengths: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0 };
 
   for (const card of hand.cards) {
     lengths[card.suit] += 1;

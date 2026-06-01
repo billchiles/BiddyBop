@@ -2,10 +2,10 @@
 ///
 
 
-/// A denomination is the thing named in a contract or suit bid.
-export type Suit = 'C' | 'D' | 'H' | 'S' | 'NT';
+/// A Strain is a suit or NT.
+export type Strain = 'C' | 'D' | 'H' | 'S' | 'NT';
 /// A suit bid is a level plus denomination, such as 1C, 1H, or 3NT.
-export type SuitBid = `${1 | 2 | 3 | 4 | 5 | 6 | 7}${Suit}`;
+export type SuitBid = `${1 | 2 | 3 | 4 | 5 | 6 | 7}${Strain}`;
 /// A call is anything a player can say on their turn in the auction.
 export type Call =
   | SuitBid
@@ -42,7 +42,7 @@ export interface PointRange {
 
 /// MAYBE DELETE
 export interface SuitLengthConstraint {
-  suit?: Suit | 'major' | 'minor';
+  suit?: Strain | 'major' | 'minor';
   min?: number;
   max?: number;
   exact?: number;
@@ -68,7 +68,7 @@ export interface HandConstraint {
   suitLengths?: SuitLengthConstraint[];
   anySuitLength?: SuitLengthConstraint[];
   shape?: HandShapeConstraint;
-  supportFor?: Suit | 'partnersOpenedSuit';
+  supportFor?: Strain | 'partnersOpenedSuit';
   supportLength?: PointRange;
   stoppers?: string[];
 }
@@ -78,7 +78,7 @@ export interface AuctionContext {
   auction: Call[];
   description?: string;
   assumesUncontested?: boolean;
-  openerStrain?: Suit | 'minor' | 'major';
+  openerStrain?: Strain | 'minor' | 'major';
   responderHasPassedInitially?: boolean;
 }
 

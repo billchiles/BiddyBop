@@ -1,5 +1,6 @@
-import type { AuctionContext, BidRule, Call, HandConstraint, PointRange, Suit, SuitLengthConstraint } from './bidding-convention-types';
-import { getSuitFromSuitBid, isSuitBid, type Hand, type HandFacts } from './cards';
+import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,  
+              SuitLengthConstraint } from './bidding-convention-types';
+import { getStrainFromSuitBid, isContractBid, type Hand, type HandFacts, type Suit } from './cards';
 
 /// Rule evaluation context carries only facts the first punch-through can evaluate.
 export interface RuleEvaluationContext {
@@ -37,7 +38,7 @@ export interface UserBidEvaluationResult {
 
 export function evaluateUserCall(inputCall: Call | null, rules: BidRule[], context: RuleEvaluationContext): UserBidEvaluationResult {
   const ruleResults = evaluateRules(rules, context);
-  const applicableRules = ruleResults.filter((result) => result.pass === true).map((result) => result.rule);
+  const applicableRules = ruleResults.filter((result) => result.pass).map((result) => result.rule);
   const matchingRulesForUserCall: BidRule[] = [];
   const telemetryLines: string[] = [];
 
@@ -52,7 +53,7 @@ export function evaluateUserCall(inputCall: Call | null, rules: BidRule[], conte
 
     if (inputCall !== null) {
       const matchingCandidate = ruleResult.candidates.find(
-        (candidate) => candidate.pass === true && candidate.call === inputCall,
+        (candidate) => candidate.pass && candidate.call === inputCall,
       );
 
       if (matchingCandidate !== undefined) {
@@ -83,7 +84,7 @@ export function evaluateUserCall(inputCall: Call | null, rules: BidRule[], conte
 export function evaluateRules(rules: BidRule[], context: RuleEvaluationContext): RuleEvaluationResult[] {
   return rules
     .filter((rule) => rule.kind === 'openingBid' || rule.kind === 'responseBid')
-    .filter((rule) => contextMatches(rule.context, context) === true)
+    .filter((rule) => contextMatches(rule.context, context))
     .map((rule) => evaluateRule(rule, context));
 }
 
@@ -92,7 +93,7 @@ export function getApplicableCandidateCalls(result: UserBidEvaluationResult): Ca
 
   for (const ruleResult of result.ruleResults) {
     for (const candidate of ruleResult.candidates) {
-      if (candidate.pass === true) {
+      if (candidate.pass) {
         candidates.push(candidate);
       }
     }
@@ -124,9 +125,9 @@ function evaluateRule(rule: BidRule, context: RuleEvaluationContext): RuleEvalua
     }
   }
 
-  const pass = candidates.some((candidate) => candidate.pass === true);
+  const pass = candidates.some((candidate) => candidate.pass);
 
-  if (pass === true) {
+  if (pass) {
     telemetryLines.push(`  PASS: at least one call candidate matched.`);
   } else {
     telemetryLines.push(`  FAIL: no call candidate matched.`);
@@ -149,7 +150,7 @@ function evaluateCandidateCall(rule: BidRule, call: Call, context: RuleEvaluatio
   const constraintResult = evaluateHandConstraint(constraint, call, context);
   telemetryLines.push(...constraintResult.telemetryLines);
 
-  if (constraintResult.pass === true) {
+  if (constraintResult.pass) {
     telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
@@ -258,43 +259,39 @@ function suitLengthMatches(constraint: SuitLengthConstraint, call: Call, handFac
   return { pass: false, telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
 }
 
+/// Returns the suit(s) that a suit-length constraint applies to.  If the rule specifies a specific 
+/// suit, use that suit.  If the rule omits the suit, apply the constraint to the candidate call's 
+/// suit.
+///
 function getTargetSuitsForLengthConstraint(constraint: SuitLengthConstraint, call: Call): Suit[] {
   if (constraint.suit === 'major') {
-    if (isSuitBid(call) === true) {
-      const callSuit = getSuitFromSuitBid(call);
-
+    if (isContractBid(call)) {
+      const callSuit = getStrainFromSuitBid(call);
       if (callSuit === 'H' || callSuit === 'S') {
         return [callSuit];
       }
     }
-
     return ['H', 'S'];
   }
-
   if (constraint.suit === 'minor') {
-    if (isSuitBid(call) === true) {
-      const callSuit = getSuitFromSuitBid(call);
-
+    if (isContractBid(call)) {
+      const callSuit = getStrainFromSuitBid(call);
       if (callSuit === 'C' || callSuit === 'D') {
         return [callSuit];
       }
     }
-
     return ['C', 'D'];
   }
-
   if (constraint.suit !== undefined) {
+    if (constraint.suit === 'NT') return [];
     return [constraint.suit];
   }
-
-  if (isSuitBid(call) === true) {
-    const callSuit = getSuitFromSuitBid(call);
-
+  if (isContractBid(call)) {
+    const callSuit = getStrainFromSuitBid(call);
     if (callSuit !== 'NT') {
       return [callSuit];
     }
   }
-
   return [];
 }
 
@@ -304,49 +301,49 @@ function shapeMatches(shape: NonNullable<HandConstraint['shape']>, call: Call, h
 
   if (shape.balanced !== undefined) {
     const thisPass = handFacts.balanced === shape.balanced;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: balanced is ${handFacts.balanced}.`);
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balanced is ${handFacts.balanced}.`);
     pass = pass && thisPass;
   }
 
   if (shape.semiBalanced !== undefined) {
     const thisPass = handFacts.semiBalanced === shape.semiBalanced;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: semiBalanced is ${handFacts.semiBalanced}.`);
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: semiBalanced is ${handFacts.semiBalanced}.`);
     pass = pass && thisPass;
   }
 
   if (shape.noVoid !== undefined) {
-    const thisPass = shape.noVoid === true ? handFacts.voidCount === 0 : true;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: void count is ${handFacts.voidCount}.`);
+    const thisPass = shape.noVoid ? handFacts.voidCount === 0 : true;
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: void count is ${handFacts.voidCount}.`);
     pass = pass && thisPass;
   }
 
   if (shape.noSingleton !== undefined) {
-    const thisPass = shape.noSingleton === true ? handFacts.singletonCount === 0 : true;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: singleton count is ${handFacts.singletonCount}.`);
+    const thisPass = shape.noSingleton ? handFacts.singletonCount === 0 : true;
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: singleton count is ${handFacts.singletonCount}.`);
     pass = pass && thisPass;
   }
 
   if (shape.maxDoubletons !== undefined) {
     const thisPass = handFacts.doubletonCount <= shape.maxDoubletons;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: doubleton count is ${handFacts.doubletonCount}.`);
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: doubleton count is ${handFacts.doubletonCount}.`);
     pass = pass && thisPass;
   }
 
   if (shape.noFourCardMajor !== undefined) {
-    const thisPass = shape.noFourCardMajor === true ? handFacts.hasFourCardMajor === false : true;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: hasFourCardMajor is ${handFacts.hasFourCardMajor}.`);
+    const thisPass = shape.noFourCardMajor ? handFacts.hasFourCardMajor === false : true;
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFourCardMajor is ${handFacts.hasFourCardMajor}.`);
     pass = pass && thisPass;
   }
 
   if (shape.noFourCardOtherMajor !== undefined) {
     const thisPass = noFourCardOtherMajorMatches(call, handFacts);
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: noFourCardOtherMajor for ${call}.`);
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: noFourCardOtherMajor for ${call}.`);
     pass = pass && thisPass;
   }
 
   if (shape.noFiveCardMajor !== undefined) {
-    const thisPass = shape.noFiveCardMajor === true ? handFacts.hasFiveCardMajor === false : true;
-    telemetryLines.push(`${thisPass === true ? 'PASS' : 'FAIL'}: hasFiveCardMajor is ${handFacts.hasFiveCardMajor}.`);
+    const thisPass = shape.noFiveCardMajor ? handFacts.hasFiveCardMajor === false : true;
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFiveCardMajor is ${handFacts.hasFiveCardMajor}.`);
     pass = pass && thisPass;
   }
 
@@ -358,61 +355,65 @@ function shapeMatches(shape: NonNullable<HandConstraint['shape']>, call: Call, h
   return { pass, telemetryLines };
 }
 
-function noFourCardOtherMajorMatches(call: Call, handFacts: HandFacts): boolean {
-  if (isSuitBid(call) !== true) {
+function noFourCardOtherMajorMatches (call: Call, handFacts: HandFacts): boolean {
+  if (! isContractBid(call)) {
     return handFacts.hasFourCardMajor === false;
   }
-
-  const callSuit = getSuitFromSuitBid(call);
-
+  const callSuit = getStrainFromSuitBid(call);
   if (callSuit === 'H') {
     return handFacts.lengths.S < 4;
   }
-
   if (callSuit === 'S') {
     return handFacts.lengths.H < 4;
   }
-
   return handFacts.hasFourCardMajor === false;
 }
 
-function supportMatches(supportFor: HandConstraint['supportFor'], supportLength: PointRange | undefined, context: RuleEvaluationContext): { pass: boolean; telemetryLine: string } {
+/// supportMatches determines whether the responder satisfies a support requirement from a bidding  
+/// rule.  A rule may require support for opener's suit and may require a minimum support length.
+/// supportLength may be undefined because it comes from a declared rule that may omit the property.
+///
+function supportMatches (supportFor: HandConstraint['supportFor'], 
+                         supportLength: PointRange | undefined, 
+                         context: RuleEvaluationContext): { pass: boolean; telemetryLine: string } {
+  // Use suit, NT-oriented rules should use shape or balanced-hand constraints instead.
   const supportSuit = getSupportSuit(supportFor, context.partnerOpeningCall);
-
-  if (supportSuit === null) {
-    return { pass: false, telemetryLine: 'FAIL: could not determine support suit.' };
+  if (supportSuit === null) { // support Strain was NT or undefined
+    return { pass: false, telemetryLine: 'supportFor hand constraint undefined or NT.' };
   }
-
   if (supportLength === undefined) {
     return { pass: true, telemetryLine: `PASS: support suit ${supportSuit} is available.` };
   }
-
   const length = context.handFacts.lengths[supportSuit];
   const result = pointRangeMatches(length, supportLength, `${supportSuit} support length`);
   return { pass: result.pass, telemetryLine: result.telemetryLine };
 }
 
-function getSupportSuit(supportFor: HandConstraint['supportFor'], partnerOpeningCall: Call | null): Suit | null {
-  if (supportFor === undefined) {
+/// getSupportSuit resolves a rule support target to a specific suit.  This returns null for NT 
+/// so callers can distinguish.  
+///
+function getSupportSuit (supportFor: HandConstraint['supportFor'], 
+                         partnerOpeningCall: Call | null): Suit | null {
+  if (supportFor === undefined) { // no required suit constraint
     return null;
   }
-
   if (supportFor !== 'partnersOpenedSuit') {
+    if (supportFor === 'NT') return null;
     return supportFor;
   }
-
-  if (partnerOpeningCall === null) {
+  if (partnerOpeningCall === null || ! isContractBid(partnerOpeningCall)) {
+    // If partner bid doesn't exist or is not a contract bid, then no suit to support.
     return null;
   }
-
-  if (isSuitBid(partnerOpeningCall) !== true) {
+  const partnerOpeningStrain = getStrainFromSuitBid(partnerOpeningCall);
+  if (partnerOpeningStrain === 'NT') {
     return null;
   }
-
-  return getSuitFromSuitBid(partnerOpeningCall);
+  return partnerOpeningStrain;
 }
 
-function contextMatches(ruleContext: AuctionContext | undefined, evaluationContext: RuleEvaluationContext): boolean {
+function contextMatches (ruleContext: AuctionContext | undefined, 
+                         evaluationContext: RuleEvaluationContext): boolean {
   if (ruleContext === undefined) {
     return true;
   }
@@ -437,7 +438,8 @@ function contextMatches(ruleContext: AuctionContext | undefined, evaluationConte
       continue;
     }
 
-    if (index === 0 && ruleContext.openerStrain !== undefined && openerStrainMatches(ruleContext.openerStrain, actualCall) === true) {
+    if (index === 0 && ruleContext.openerStrain !== undefined && 
+        openerStrainMatches(ruleContext.openerStrain, actualCall)) {
       continue;
     }
 
@@ -452,11 +454,11 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
     return false;
   }
 
-  if (isSuitBid(call) !== true) {
+  if (isContractBid(call) !== true) {
     return false;
   }
 
-  const callSuit = getSuitFromSuitBid(call);
+  const callSuit = getStrainFromSuitBid(call);
 
   if (openerStrain === 'major') {
     return callSuit === 'H' || callSuit === 'S';

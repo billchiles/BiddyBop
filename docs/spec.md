@@ -26,8 +26,14 @@ The app should help the user practice bidding decisions using structured convent
 - Do not use block comments.
 - Use explicit tests for `undefined`, `null`, `0`, empty string, and empty arrays.
 - Do not rely on implicit falsy conversions.
+- Do not rely on implicit truthiness for values whose type is not exactly boolean.
+- For boolean values, use direct boolean checks such as `if (isBalanced)` or `if (!isBalanced)`.
+- Do not write `prop?: T | undefined`; use `prop?: T`.
+- Use `prop: T | undefined` only when the property must always exist but may hold undefined.
 - Define types and functions before other later types/functions that refer to the earlier definitions.
 - Prefer readable, explicit domain code over clever abstractions.
+- Most functions should have comments that explain purpose, domain meaning, inputs, outputs, and important invariants.  Very small functions whose names say it all, usually don't need comments.
+- Do not emit comments that merely restate the code.
 
 ## Bidding Terminology
 

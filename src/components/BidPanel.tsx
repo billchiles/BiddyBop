@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { BiddingRules } from '../conventions/bidding-rules';
+import { BiddingRules } from '../models/bidding-rules';
 import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext, type UserBidEvaluationResult } from '../models/biddingEvaluation';
 import { getHandFacts, normalizeCallInput, type Deal } from '../models/cards';
 
