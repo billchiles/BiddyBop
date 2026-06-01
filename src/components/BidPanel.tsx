@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BiddingRules } from '../models/bidding-rules';
-import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext, type UserBidEvaluationResult } from '../models/biddingEvaluation';
-import { getHandFacts, normalizeCallInput, type Deal } from '../models/cards';
+import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext, 
+         type UserBidEvaluationResult, normalizeCallInput,  } from '../models/biddingEvaluation';
+import { getHandFacts, type Deal } from '../models/cards';
 
 /// BidPanel evaluates the user's North opening, then optionally South's response.
 export interface BidPanelProps {
@@ -133,7 +134,7 @@ function ResultSummary({ title, result, candidates }: ResultSummaryProps) {
       <h3>{title}</h3>
       <p>Normalized call: {result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}</p>
       <h4>Rules satisfied by user call</h4>
-      <RuleList ruleIds={result.matchingRulesForUserCall.map((rule) => rule.id)} emptyText="No rule satisfied by this call." />
+      <RuleList ruleIds={result.userCallMatchingRules.map((rule) => rule.id)} emptyText="No rule satisfied by this call." />
       <h4>All applicable candidate rules</h4>
       {candidates.length === 0 ? (
         <p>No applicable candidate calls.</p>

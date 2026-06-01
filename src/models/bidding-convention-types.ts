@@ -75,6 +75,8 @@ export interface HandConstraint {
 
 export interface AuctionContext {
   role: Role;
+  // Rule auction contexts are incomplete for the first punch-through.
+  // Responder contexts record opener's call only and omit opponent passes or interference.
   auction: Call[];
   description?: string;
   assumesUncontested?: boolean;
@@ -86,7 +88,7 @@ export interface BidRule {
   id: string;
   kind: RuleKind;
   title: string;
-  context?: AuctionContext;
+  auctionContext?: AuctionContext;
   calls?: Call[];
   callCategory?: CallCategory[];
   priority?: {

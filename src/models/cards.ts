@@ -1,7 +1,7 @@
 /// Representation for cards and hands.
-////
+///
 
-import type { Call, Strain, SuitBid } from './bidding-convention-types';
+//import type { Call, Strain, SuitBid } from './bidding-convention-types';
 
 
 /// These may not be used, but we distinguish suit from strain for now in case we need just suits.
@@ -22,22 +22,20 @@ export interface Card {
   rank: Rank;
 }
 
-export interface Hand {
-  cards: Card[];
-}
+///
+//// Hands and Characteristics
+///
 
-export interface Deal {
-  N: Hand;
-  E: Hand;
-  S: Hand;
-  W: Hand;
+export interface Hand {
+  cards: Card[]; // Totally sorted S, H, D, C and by rank within suits.
 }
 
 /// HandFacts represent various attributes of a hand used for bidding.
 export interface HandFacts {
   hcp: number;
   totalPoints: number;
-  distributionPoints: number;
+  lengthPoints: number;
+  shortPoints: number;
   lengths: Record<Suit, number>;
   balanced: boolean;
   semiBalanced: boolean;
@@ -46,6 +44,62 @@ export interface HandFacts {
   doubletonCount: number;
   hasFourCardMajor: boolean;
   hasFiveCardMajor: boolean;
+}
+
+export function getHandFacts (hand: Hand): HandFacts {
+  // Count card lenghts
+  const lengths: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0 };
+  for (const card of hand.cards) { lengths[card.suit] += 1; }
+  const hcp = getHcp(hand);
+  // Count long suits
+  let lengthPoints = 0;
+  for (const suit of suits) {
+    const length = lengths[suit];
+    if (length >= 5) {
+      lengthPoints += length - 4;
+    }
+  }
+  // Count short suits
+  const sortedLengths = suits.map((suit) => lengths[suit]).sort((a, b) => a - b);
+  const voidCount = sortedLengths.filter((length) => length === 0).length;
+  const singletonCount = sortedLengths.filter((length) => length === 1).length;
+  const doubletonCount = sortedLengths.filter((length) => length === 2).length;
+  const shortPoints = voidCount * 3 + singletonCount;
+  // Characterize distribution
+  const balanced = voidCount === 0 && singletonCount === 0 && doubletonCount <= 1;
+  const semiBalanced = voidCount === 0 && singletonCount <= 1;
+  const hasFourCardMajor = lengths.H >= 4 || lengths.S >= 4;
+  const hasFiveCardMajor = lengths.H >= 5 || lengths.S >= 5;
+  return {
+    hcp,
+    totalPoints: hcp + lengthPoints,
+    lengthPoints: lengthPoints,
+    shortPoints: shortPoints,
+    lengths,
+    balanced,
+    semiBalanced,
+    voidCount,
+    singletonCount,
+    doubletonCount,
+    hasFourCardMajor,
+    hasFiveCardMajor,
+  };
+}
+
+export function getCardsForSuit (hand: Hand, suit: Suit): Card[] {
+  return hand.cards.filter((card) => card.suit === suit);
+    //.sort((a, b) => ranks.indexOf(a.rank) - ranks.indexOf(b.rank));
+}
+
+///
+//// Dealing Hands
+///
+
+export interface Deal {
+  N: Hand;
+  E: Hand;
+  S: Hand;
+  W: Hand;
 }
 
 /// Deal generation returns telemetry because the trainer UI is partly a rule-debugging UI.
@@ -65,8 +119,8 @@ export function generateOpenableNorthDeal (): DealWTelemetry {
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
     let deal = dealRandomHands();
     const rawHcpBySeat = getHcpBySeat(deal);
-    const firstOpenableSeat = findFirstOpenableSeat(rawHcpBySeat);
-    if (firstOpenableSeat !== null) {
+    const firstOpenableSeat = seats.find(s => rawHcpBySeat[s] >= 12);
+    if (firstOpenableSeat !== undefined) {
       telemetryLines.push(
         `Deal attempt ${attemptIndex}: HCP N=${rawHcpBySeat.N} E=${rawHcpBySeat.E} ' +
         'S=${rawHcpBySeat.S} W=${rawHcpBySeat.W}.`);
@@ -82,142 +136,67 @@ export function generateOpenableNorthDeal (): DealWTelemetry {
   return { deal: fallbackDeal, telemetryLines };
 }
 
-export function getHandFacts(hand: Hand): HandFacts {
-  const lengths = getSuitLengths(hand);
-  const hcp = getHighCardPoints(hand);
-  const distributionPoints = getLengthDistributionPoints(lengths);
-  const sortedLengths = suits.map((suit) => lengths[suit]).sort((a, b) => a - b);
-  const voidCount = sortedLengths.filter((length) => length === 0).length;
-  const singletonCount = sortedLengths.filter((length) => length === 1).length;
-  const doubletonCount = sortedLengths.filter((length) => length === 2).length;
-  const balanced = voidCount === 0 && singletonCount === 0 && doubletonCount <= 1;
-  const semiBalanced = voidCount === 0 && singletonCount <= 1;
-  const hasFourCardMajor = lengths.H >= 4 || lengths.S >= 4;
-  const hasFiveCardMajor = lengths.H >= 5 || lengths.S >= 5;
-  return {
-    hcp,
-    totalPoints: hcp + distributionPoints,
-    distributionPoints,
-    lengths,
-    balanced,
-    semiBalanced,
-    voidCount,
-    singletonCount,
-    doubletonCount,
-    hasFourCardMajor,
-    hasFiveCardMajor,
-  };
-}
-
-export function getCardsForSuit(hand: Hand, suit: Suit): Card[] {
-  return hand.cards
-    .filter((card) => card.suit === suit)
-    .sort((a, b) => ranks.indexOf(a.rank) - ranks.indexOf(b.rank));
-}
-
-export function normalizeCallInput(input: string): Call | null {
-  const trimmed = input.trim().toUpperCase();
-
-  if (trimmed === '') {
-    return null;
-  }
-
-  if (trimmed === 'P' || trimmed === 'PASS') {
-    return 'Pass';
-  }
-
-  if (trimmed === 'X' || trimmed === 'DOUBLE') {
-    return 'Double';
-  }
-
-  if (trimmed === 'XX' || trimmed === 'REDOUBLE') {
-    return 'Redouble';
-  }
-
-  if (isContractBid(trimmed as Call)) {
-    return trimmed as Call;
-  }
-
-  return null;
-}
-
-/// isContractBid takes a Call and returns whether it is 1C..7NT and further declares the call
-/// is also a SuitBid (not pass, double, etc.).
+/// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a
+/// dealPracticeHands that chooses deals with hands that have judgment call point values or hand
+/// characteristics.
 ///
-export function isContractBid (call: Call): call is SuitBid {
-  if (call.length !== 2 && call.length !== 3) {
-    return false;
-  }
-  const levelText = call.substring(0, 1);
-  const suitText = call.substring(1);
-  const level = Number(levelText);
-  // test isInteger due to user input, quick and dirty safety check
-  if (! Number.isInteger(level) || level < 1 || level > 7) {
-    return false;
-  }
-  return suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT';
-}
-
-export function getStrainFromSuitBid(call: SuitBid): Strain {
-  return call.substring(1) as Strain;
-}
-
-function dealRandomHands(): Deal {
-  const deck = buildDeck();
-  shuffleCards(deck);
-
-  return {
-    N: { cards: deck.slice(0, 13) },
-    E: { cards: deck.slice(13, 26) },
-    S: { cards: deck.slice(26, 39) },
-    W: { cards: deck.slice(39, 52) },
-  };
-}
-
-function buildDeck(): Card[] {
+function dealRandomHands (): Deal {
+  // Make a deck
   const cards: Card[] = [];
-
   for (const suit of suits) {
     for (const rank of ranks) {
       cards.push({ suit, rank });
     }
   }
-
-  return cards;
-}
-
-function shuffleCards(cards: Card[]): void {
+  // Shuffle
   for (let index = cards.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     const originalCard = cards[index];
     const swapCard = cards[swapIndex];
-
     if (originalCard === undefined || swapCard === undefined) {
       throw new Error('Shuffle attempted to access a missing card.');
     }
-
     cards[index] = swapCard;
     cards[swapIndex] = originalCard;
   }
+  return {
+    N: { cards: cards.slice(0, 13).sort(compareCards) },
+    E: { cards: cards.slice(13, 26).sort(compareCards) },
+    S: { cards: cards.slice(26, 39).sort(compareCards) },
+    W: { cards: cards.slice(39, 52).sort(compareCards) },
+  };
+}
+
+/// compareCards used with array.sort to totally order hands.
+///
+function compareCards (left: Card, right: Card): number {
+  const suitCompare = suits.indexOf(left.suit) - suits.indexOf(right.suit);
+  return suitCompare !== 0 ? suitCompare : (ranks.indexOf(left.rank) - ranks.indexOf(right.rank));
 }
 
 function getHcpBySeat(deal: Deal): Record<Seat, number> {
   return {
-    N: getHighCardPoints(deal.N),
-    E: getHighCardPoints(deal.E),
-    S: getHighCardPoints(deal.S),
-    W: getHighCardPoints(deal.W),
+    N: getHcp(deal.N),
+    E: getHcp(deal.E),
+    S: getHcp(deal.S),
+    W: getHcp(deal.W),
   };
 }
 
-function findFirstOpenableSeat(hcpBySeat: Record<Seat, number>): Seat | null {
-  for (const seat of seats) {
-    if (hcpBySeat[seat] >= 12) {
-      return seat;
+function getHcp (hand: Hand): number {
+  let total = 0;
+  for (const card of hand.cards) {
+    if (card.rank === 'A') {
+      total += 4;
+    } else if (card.rank === 'K') {
+      total += 3;
+    } else if (card.rank === 'Q') {
+      total += 2;
+    } else if (card.rank === 'J') {
+      total += 1;
     }
   }
-
-  return null;
+  return total;
 }
 
 /// rotateOpeningToNorth might be useful indefinitely, but for not it is just for the initial
@@ -236,44 +215,4 @@ function rotateOpeningToNorth (deal: Deal, firstOpenableSeat: Seat): Deal {
   };
 }
 
-function getHighCardPoints(hand: Hand): number {
-  let total = 0;
 
-  for (const card of hand.cards) {
-    if (card.rank === 'A') {
-      total += 4;
-    } else if (card.rank === 'K') {
-      total += 3;
-    } else if (card.rank === 'Q') {
-      total += 2;
-    } else if (card.rank === 'J') {
-      total += 1;
-    }
-  }
-
-  return total;
-}
-
-function getSuitLengths(hand: Hand): Record<Suit, number> {
-  const lengths: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0 };
-
-  for (const card of hand.cards) {
-    lengths[card.suit] += 1;
-  }
-
-  return lengths;
-}
-
-function getLengthDistributionPoints(lengths: Record<Suit, number>): number {
-  let total = 0;
-
-  for (const suit of suits) {
-    const length = lengths[suit];
-
-    if (length >= 5) {
-      total += length - 4;
-    }
-  }
-
-  return total;
-}

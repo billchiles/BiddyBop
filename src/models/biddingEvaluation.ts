@@ -1,8 +1,70 @@
+/// User input and given a hand, auction context, user call, and rules, explain which rules apply 
+/// and whether the user call is accepted by any of them.
+///
 import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,  
-              SuitLengthConstraint } from './bidding-convention-types';
-import { getStrainFromSuitBid, isContractBid, type Hand, type HandFacts, type Suit } from './cards';
+              SuitLengthConstraint, Strain, SuitBid } from './bidding-convention-types';
+import { type Hand, type HandFacts, type Suit } from './cards';
 
-/// Rule evaluation context carries only facts the first punch-through can evaluate.
+
+/// user input -> normalize to Call -> build RuleEvaluationContext
+///   -> filter rules by auction context applicability -> filter rules for finer-grain applicability
+///   -> expand each rule into candidate calls -> evaluate appliesWhen constraints for each call
+///   -> report:
+///        handMatchingRules
+///        userCallMatchingRules
+///        candidate calls
+///        telemetry
+
+///
+//// Bidding Input
+///
+
+export function normalizeCallInput (input: string): Call | null {
+  const trimmed = input.trim().toUpperCase();
+  if (trimmed === '') return null;
+  if (trimmed === 'P' || trimmed === 'PASS') {
+    return 'Pass';
+  }
+  if (trimmed === 'X' || trimmed === 'DOUBLE') {
+    return 'Double';
+  }
+  if (trimmed === 'XX' || trimmed === 'REDOUBLE') {
+    return 'Redouble';
+  }
+  if (isContractBid(trimmed as Call)) {
+    return trimmed as Call;
+  }
+  return null;
+}
+
+/// isContractBid takes a Call and returns whether it is 1C..7NT and further declares the call
+/// is also a SuitBid (not pass, double, etc.).
+///
+export function isContractBid (call: Call): call is SuitBid {
+  if (call.length !== 2 && call.length !== 3) {
+    return false;
+  }
+  const levelText = call.substring(0, 1);
+  const suitText = call.substring(1);
+  const level = Number(levelText);
+  // test isInteger due to user input, quick and dirty safety check
+  if (! Number.isInteger(level) || level < 1 || level > 7) {
+    return false;
+  }
+  return suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT';
+}
+
+export function getStrainFromSuitBid(call: SuitBid): Strain {
+  return call.substring(1) as Strain;
+}
+
+///
+//// Public Evaluation API
+///
+
+/// Rule evaluation context is the bridge state plus hand characterization facts used by the
+/// first punch-through evaluator.  It only contains facts this evaluator can test mechanically.
+///
 export interface RuleEvaluationContext {
   role: 'opener' | 'responder';
   auction: Call[];
@@ -11,98 +73,100 @@ export interface RuleEvaluationContext {
   partnerOpeningCall: Call | null;
 }
 
-/// A candidate is one possible call from one rule.
+/// UserBidEvaluationResult is the result type for evaluateUserCall, and it represents the bid
+/// relative to rules and hand, not the best-bid judgment.
+/// 
+export interface UserBidEvaluationResult {
+  normalizedCall: Call | null;
+  userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
+  handMatchingRules: BidRule[]; // Rules that match the hand, ruleResults elt.ruleApplies is true
+  ruleResults: RuleEvaluationResult[]; // one element for every rule in rule DB
+  telemetryLines: string[];
+}
+
+/// Represents (possibly) multiple call candidates from a matching rule because a rule can contain
+/// several calls.
+///
+export interface RuleEvaluationResult {
+  rule: BidRule;
+  candidates: CandidateCallMatch[]; // Each possible call from the rule and whether it applies.
+  ruleApplies: boolean;
+  telemetryLines: string[];
+}
+
+/// A candidate is one possible call from one rule in an evaluation result.
 export interface CandidateCallMatch {
   rule: BidRule;
   call: Call;
-  pass: boolean;
+  ruleApplies: boolean;
   telemetryLines: string[];
 }
 
-/// Rule evaluation returns per-call candidates because one rule can contain several calls.
-export interface RuleEvaluationResult {
-  rule: BidRule;
-  candidates: CandidateCallMatch[];
-  pass: boolean;
-  telemetryLines: string[];
-}
 
-/// User bid evaluation is intentionally descriptive, not best-bid judgment.
-export interface UserBidEvaluationResult {
-  normalizedCall: Call | null;
-  matchingRulesForUserCall: BidRule[];
-  applicableRules: BidRule[];
-  ruleResults: RuleEvaluationResult[];
-  telemetryLines: string[];
-}
-
-export function evaluateUserCall(inputCall: Call | null, rules: BidRule[], context: RuleEvaluationContext): UserBidEvaluationResult {
-  const ruleResults = evaluateRules(rules, context);
-  const applicableRules = ruleResults.filter((result) => result.pass).map((result) => result.rule);
-  const matchingRulesForUserCall: BidRule[] = [];
-  const telemetryLines: string[] = [];
-
-  if (inputCall === null) {
-    telemetryLines.push('No valid user call entered yet.');
-  } else {
-    telemetryLines.push(`User call: ${inputCall}.`);
-  }
-
-  for (const ruleResult of ruleResults) {
-    telemetryLines.push(...ruleResult.telemetryLines);
-
-    if (inputCall !== null) {
-      const matchingCandidate = ruleResult.candidates.find(
-        (candidate) => candidate.pass && candidate.call === inputCall,
-      );
-
-      if (matchingCandidate !== undefined) {
-        matchingRulesForUserCall.push(ruleResult.rule);
-      }
-    }
-  }
-
-  if (inputCall !== null && matchingRulesForUserCall.length === 0) {
-    telemetryLines.push(`User call ${inputCall} did not satisfy any currently applicable rule.`);
-  }
-
-  if (inputCall !== null && matchingRulesForUserCall.length > 0) {
-    telemetryLines.push(`User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`);
-  }
-
-  telemetryLines.push(`Applicable rule count: ${applicableRules.length}.`);
-
-  return {
-    normalizedCall: inputCall,
-    matchingRulesForUserCall,
-    applicableRules,
-    ruleResults,
-    telemetryLines,
-  };
-}
-
-export function evaluateRules(rules: BidRule[], context: RuleEvaluationContext): RuleEvaluationResult[] {
-  return rules
-    .filter((rule) => rule.kind === 'openingBid' || rule.kind === 'responseBid')
-    .filter((rule) => contextMatches(rule.context, context))
-    .map((rule) => evaluateRule(rule, context));
-}
-
-export function getApplicableCandidateCalls(result: UserBidEvaluationResult): CandidateCallMatch[] {
+/// getApplicableCandidateCalls is an entry point for the bidding panel in the GUI.  It maps the
+/// user's bid evaluation result to concrete calls allowed by rules that apply to the current 
+/// hand/context.
+///
+export function getApplicableCandidateCalls (result: UserBidEvaluationResult): CandidateCallMatch[] {
   const candidates: CandidateCallMatch[] = [];
-
   for (const ruleResult of result.ruleResults) {
     for (const candidate of ruleResult.candidates) {
-      if (candidate.pass) {
+      if (candidate.ruleApplies) {
         candidates.push(candidate);
       }
     }
   }
-
   return candidates;
 }
 
-function evaluateRule(rule: BidRule, context: RuleEvaluationContext): RuleEvaluationResult {
+
+/// evaluateUserCall evaluates one user-entered call against the currently relevant bidding rules.
+/// This does not choose the best bid.  It reports which rules apply to the hand/context
+/// and which of those rules, if any, match the user's call.
+///
+export function evaluateUserCall (inputCall: Call, rules: BidRule[], 
+                                  context: RuleEvaluationContext): UserBidEvaluationResult {
+  const telemetryLines: string[] = [];
+  telemetryLines.push(`evaluateUserCall: User call is ${inputCall}.`);
+  // Find applicable bidding rules
+  const ruleResults = evaluateRules(rules, context);
+  const applicableRules = ruleResults.filter((result) => result.ruleApplies).map((result) => result.rule);
+  const matchingRulesForUserCall: BidRule[] = [];
+  // Report rule eval telemetry and collect matching candidate calls
+  for (const ruleResult of ruleResults) {
+    telemetryLines.push(...ruleResult.telemetryLines);
+    const matchingCandidate = ruleResult.candidates.find(
+      (candidate) => candidate.ruleApplies && candidate.call === inputCall);
+    if (matchingCandidate !== undefined) {
+      matchingRulesForUserCall.push(ruleResult.rule);
+    }
+  }
+  if (matchingRulesForUserCall.length === 0) {
+    telemetryLines.push(`User call ${inputCall} did not satisfy any currently applicable rule.`);
+  } else {
+    telemetryLines.push(`User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`);
+  }
+  telemetryLines.push(`Applicable rule count: ${applicableRules.length}.`);
+  return {
+    normalizedCall: inputCall,
+    userCallMatchingRules: matchingRulesForUserCall,
+    handMatchingRules: applicableRules,
+    ruleResults,
+    telemetryLines,
+  };
+} //evaluateUserCall()
+
+/// evaluateRules filters all opening/responding rules to matching rules in the current auction 
+/// context, then evaluates each remaining rule against the current hand.
+///
+export function evaluateRules (rules: BidRule[], context: RuleEvaluationContext): RuleEvaluationResult[] {
+  return rules
+    .filter((rule) => rule.kind === 'openingBid' || rule.kind === 'responseBid')
+    .filter((rule) => auctionContextMatches(rule.auctionContext, context))
+    .map((rule) => evaluateRule(rule, context));
+}
+
+function evaluateRule (rule: BidRule, context: RuleEvaluationContext): RuleEvaluationResult {
   const calls = getRuleCalls(rule);
   const telemetryLines: string[] = [];
   const candidates: CandidateCallMatch[] = [];
@@ -111,7 +175,7 @@ function evaluateRule(rule: BidRule, context: RuleEvaluationContext): RuleEvalua
 
   if (calls.length === 0) {
     telemetryLines.push('  FAIL: rule has no calls.');
-    return { rule, candidates, pass: false, telemetryLines };
+    return { rule, candidates, ruleApplies: false, telemetryLines };
   }
 
   telemetryLines.push(`  Rule has ${calls.length} call(s): ${calls.join(', ')}.`);
@@ -125,7 +189,7 @@ function evaluateRule(rule: BidRule, context: RuleEvaluationContext): RuleEvalua
     }
   }
 
-  const pass = candidates.some((candidate) => candidate.pass);
+  const pass = candidates.some((candidate) => candidate.ruleApplies);
 
   if (pass) {
     telemetryLines.push(`  PASS: at least one call candidate matched.`);
@@ -133,33 +197,43 @@ function evaluateRule(rule: BidRule, context: RuleEvaluationContext): RuleEvalua
     telemetryLines.push(`  FAIL: no call candidate matched.`);
   }
 
-  return { rule, candidates, pass, telemetryLines };
+  return { rule, candidates, ruleApplies: pass, telemetryLines };
 }
 
-function evaluateCandidateCall(rule: BidRule, call: Call, context: RuleEvaluationContext): CandidateCallMatch {
+/// evaluateCandidateCall evaluates one concrete call from one rule.  If no appliesWhen:, then the
+/// rule applies at any point in an auction.
+///
+function evaluateCandidateCall (rule: BidRule, call: Call, 
+                                context: RuleEvaluationContext): CandidateCallMatch {
   const telemetryLines: string[] = [];
+  telemetryLines.push(`evaluateCandidateCall: Candidate ${call}.`);
   const constraint = rule.appliesWhen;
-
-  telemetryLines.push(`Candidate ${call}.`);
-
   if (constraint === undefined) {
     telemetryLines.push('PASS: no appliesWhen constraint.');
-    return { rule, call, pass: true, telemetryLines };
+    return { rule, call, ruleApplies: true, telemetryLines };
   }
-
+  // check appliesWhen
   const constraintResult = evaluateHandConstraint(constraint, call, context);
   telemetryLines.push(...constraintResult.telemetryLines);
-
   if (constraintResult.pass) {
     telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
-
-  return { rule, call, pass: constraintResult.pass, telemetryLines };
+  return { rule, call, ruleApplies: constraintResult.pass, telemetryLines };
 }
 
-function evaluateHandConstraint(constraint: HandConstraint, call: Call, context: RuleEvaluationContext): { pass: boolean; telemetryLines: string[] } {
+///
+//// Evaluate Hand Constraints against Calls
+///
+
+/// evaluateHandConstraint evaluates rule.appliesWhen's HandConstraint against a call.
+/// Fields not supported by the first punch-through fail closed so unsupported
+/// rule data does not silently produce advice.
+///
+function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
+                                 context: RuleEvaluationContext)
+                                : { pass: boolean; telemetryLines: string[] } {
   const telemetryLines: string[] = [];
   let pass = true;
 
@@ -176,7 +250,7 @@ function evaluateHandConstraint(constraint: HandConstraint, call: Call, context:
   }
 
   if (constraint.distributionPoints !== undefined) {
-    const result = pointRangeMatches(context.handFacts.distributionPoints, constraint.distributionPoints, 'distribution points');
+    const result = pointRangeMatches(context.handFacts.lengthPoints, constraint.distributionPoints, 'distribution points');
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
@@ -217,7 +291,7 @@ function evaluateHandConstraint(constraint: HandConstraint, call: Call, context:
   }
 
   return { pass, telemetryLines };
-}
+} //evaluateHandConstraint()
 
 function pointRangeMatches(value: number, range: PointRange, label: string): { pass: boolean; telemetryLine: string } {
   if (range.min !== undefined && value < range.min) {
@@ -412,7 +486,12 @@ function getSupportSuit (supportFor: HandConstraint['supportFor'],
   return partnerOpeningStrain;
 }
 
-function contextMatches (ruleContext: AuctionContext | undefined, 
+///
+//// Rule Testing Utilities -- interpreting rule declarations in context of actual hands, etc.
+///
+
+/// BETTERNAME
+function auctionContextMatches (ruleContext: AuctionContext | undefined, 
                          evaluationContext: RuleEvaluationContext): boolean {
   if (ruleContext === undefined) {
     return true;
