@@ -36,6 +36,12 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
 
   function evaluateNorthBid(): void {
     const normalizedCall = normalizeCallInput(northBidText);
+    if (normalizedCall === null) {
+      setNorthResult(null);
+      setSouthResult(null);
+      onTelemetry([`Invalid North opening input: "${northBidText}".`]);
+      return;
+    }
     const result = evaluateUserCall(normalizedCall, BiddingRules, northContext);
 
     setNorthResult(result);
@@ -61,6 +67,14 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       handFacts: getHandFacts(deal.S),
       partnerOpeningCall: northCall,
     };
+
+    if (southCall === null) {
+      const lines = [`Invalid South response input: "${southBidText}".`];
+      setSouthResult(null);
+      onTelemetry(lines);
+      return;
+    }
+
     const result = evaluateUserCall(southCall, BiddingRules, southContext);
 
     setSouthResult(result);

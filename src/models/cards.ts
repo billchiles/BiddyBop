@@ -33,9 +33,10 @@ export interface Hand {
 /// HandFacts represent various attributes of a hand used for bidding.
 export interface HandFacts {
   hcp: number;
-  totalPoints: number;
+  totalPointsWLength: number;
   lengthPoints: number;
   shortPoints: number;
+  totalPointsWShortage: number;
   lengths: Record<Suit, number>;
   balanced: boolean;
   semiBalanced: boolean;
@@ -72,9 +73,10 @@ export function getHandFacts (hand: Hand): HandFacts {
   const hasFiveCardMajor = lengths.H >= 5 || lengths.S >= 5;
   return {
     hcp,
-    totalPoints: hcp + lengthPoints,
+    totalPointsWLength: hcp + lengthPoints,
     lengthPoints: lengthPoints,
     shortPoints: shortPoints,
+    totalPointsWShortage: hcp + shortPoints,
     lengths,
     balanced,
     semiBalanced,

@@ -1,5 +1,5 @@
 
-I’d make the first GUI target very narrow:
+I'd make the first GUI target very narrow:
   Random deal
   Show all four hands
   North opens or passes, so only accept deals if one had has opening and make it N
@@ -8,9 +8,33 @@ I’d make the first GUI target very narrow:
   Ignore competitive bidding
   Display matching rule(s) and suggested call
 
+
+NEXT SEED:
+
+Iâ€™m continuing my Vite React TypeScript bridge trainer project. Iâ€™ll upload a fresh source zip. Please ground all code suggestions in the uploaded sources and give tight diffs only.
+
+Current goals:
+1. Move the deal compass to the left.
+2. Add an auction grid and explanation area to the right.
+3. Keep a separate lower telemetry/debug area.
+4. Replace separate North/South bid panels with one bid input line; Enter evaluates the next expected call.
+5. Fix responder/support evaluation so totalPoints can consider HCP + shortagePoints when HCP + lengthPoints fails, at least for now.
+6. Review naming/comments as we touch code.
+
+
+
+
+
+
+
+
+
+
+
+
 NEXT SEED ...
 
-I’m building a bridge trainer project.  We're currently at the explorator phase of how to represent bidding rules, meta notes, etc., and how to use that in a bidding guidance and training app.  I'm learning subtleties of typecript and everything about react, so explain mechanisms and choices in code gen, including commenting code for meaning and why using certain mechanisms.  I do have advanced general programming and career experience, so don't need obvious code commented.
+I'm building a bridge trainer project.  We're currently at the explorator phase of how to represent bidding rules, meta notes, etc., and how to use that in a bidding guidance and training app.  I'm learning subtleties of typecript and everything about react, so explain mechanisms and choices in code gen, including commenting code for meaning and why using certain mechanisms.  I do have advanced general programming and career experience, so don't need obvious code commented.
 
 Please read the uploaded files, always ground code gen against actual sources, and let's conclude and fully agree on design  before suggesting code.  The project is a Vite React TypeScript app. I want a narrow browser-only vertical slice first, not Electron yet.
 
@@ -42,8 +66,8 @@ Build a minimum punch-through GUI that:
 1. Generates a random deal.
 2. Shows all four hands.
 3. Assumes North is dealer, and assigns North a hand that has opening points.
-4. Suggests/evaluates North’s opening call using BiddingRules.
-5. If North opens, suggests/evaluates South’s response.
+4. Suggests/evaluates Northï¿½s opening call using BiddingRules.
+5. If North opens, suggests/evaluates Southï¿½s response.
 6. Ignores opponent interference, doubles, overcalls, scoring, DDS, and simulation.
 7. Shows matching rule(s), suggested call(s), and guidance text.
 

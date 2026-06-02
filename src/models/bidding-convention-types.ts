@@ -40,7 +40,6 @@ export interface PointRange {
   max?: number;
 }
 
-/// MAYBE DELETE
 export interface SuitLengthConstraint {
   suit?: Strain | 'major' | 'minor';
   min?: number;
@@ -62,9 +61,9 @@ export interface HandShapeConstraint {
 
 export interface HandConstraint {
   hcp?: PointRange;
-  totalPoints?: PointRange;
+  pointsWLen?: PointRange;
   dummyPoints?: PointRange;
-  distributionPoints?: PointRange;
+  pointsWShorts?: PointRange;
   suitLengths?: SuitLengthConstraint[];
   anySuitLength?: SuitLengthConstraint[];
   shape?: HandShapeConstraint;

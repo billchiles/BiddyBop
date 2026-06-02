@@ -2,7 +2,8 @@
 /// and whether the user call is accepted by any of them.
 ///
 import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,  
-              SuitLengthConstraint, Strain, SuitBid } from './bidding-convention-types';
+              SuitLengthConstraint, Strain, SuitBid, 
+              HandShapeConstraint} from './bidding-convention-types';
 import { type Hand, type HandFacts, type Suit } from './cards';
 
 
@@ -54,7 +55,7 @@ export function isContractBid (call: Call): call is SuitBid {
   return suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT';
 }
 
-export function getStrainFromSuitBid(call: SuitBid): Strain {
+export function getStrainFromSuitBid (call: SuitBid): Strain {
   return call.substring(1) as Strain;
 }
 
@@ -236,218 +237,196 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                                 : { pass: boolean; telemetryLines: string[] } {
   const telemetryLines: string[] = [];
   let pass = true;
-
   if (constraint.hcp !== undefined) {
-    const result = pointRangeMatches(context.handFacts.hcp, constraint.hcp, 'HCP');
+    const result = testPointRange(context.handFacts.hcp, constraint.hcp, 'HCP');
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-
-  if (constraint.totalPoints !== undefined) {
-    const result = pointRangeMatches(context.handFacts.totalPoints, constraint.totalPoints, 'total points');
+  if (constraint.pointsWLen !== undefined) {
+    const result = testPointRange(context.handFacts.totalPointsWLength, constraint.pointsWLen, 
+                                  'total points');
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-
-  if (constraint.distributionPoints !== undefined) {
-    const result = pointRangeMatches(context.handFacts.lengthPoints, constraint.distributionPoints, 'distribution points');
+  if (constraint.pointsWShorts !== undefined) {
+    const result = testPointRange(context.handFacts.lengthPoints, constraint.pointsWShorts, 
+                                  'distribution points');
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-
   if (constraint.dummyPoints !== undefined) {
     telemetryLines.push('UNSUPPORTED: dummyPoints is not evaluated in the first punch-through.');
     pass = false;
   }
-
   if (constraint.suitLengths !== undefined) {
     for (const suitLength of constraint.suitLengths) {
-      const result = suitLengthMatches(suitLength, call, context.handFacts);
+      const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
       pass = pass && result.pass;
     }
   }
-
   if (constraint.anySuitLength !== undefined) {
     telemetryLines.push('UNSUPPORTED: anySuitLength is not evaluated in the first punch-through.');
     pass = false;
   }
-
   if (constraint.shape !== undefined) {
-    const result = shapeMatches(constraint.shape, call, context.handFacts);
+    const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
     pass = pass && result.pass;
   }
-
   if (constraint.supportFor !== undefined || constraint.supportLength !== undefined) {
-    const result = supportMatches(constraint.supportFor, constraint.supportLength, context);
+    const result = testSupportFor(constraint.supportFor, constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-
   if (constraint.stoppers !== undefined) {
     telemetryLines.push('UNSUPPORTED: stoppers is not evaluated in the first punch-through.');
     pass = false;
   }
-
   return { pass, telemetryLines };
 } //evaluateHandConstraint()
 
-function pointRangeMatches(value: number, range: PointRange, label: string): { pass: boolean; telemetryLine: string } {
+function testPointRange (value: number, range: PointRange, label: string)
+                           : { pass: boolean; telemetryLine: string } {
   if (range.min !== undefined && value < range.min) {
     return { pass: false, telemetryLine: `FAIL: ${label} ${value} < minimum ${range.min}.` };
   }
-
   if (range.max !== undefined && value > range.max) {
     return { pass: false, telemetryLine: `FAIL: ${label} ${value} > maximum ${range.max}.` };
   }
-
   return { pass: true, telemetryLine: `PASS: ${label} ${value} is in range.` };
 }
 
-function suitLengthMatches(constraint: SuitLengthConstraint, call: Call, handFacts: HandFacts): { pass: boolean; telemetryLine: string } {
-  const targetSuits = getTargetSuitsForLengthConstraint(constraint, call);
-
+/// testSuitLengths takes a suit constraint length for a bidding rule and compares it to the
+/// partner's call and the bidder's hand.  NOTE, if their are no targets suits, then no suit was
+/// specified, and partners call was NT.
+///
+function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFacts: HandFacts)
+                         : { pass: boolean; telemetryLine: string } {
+  const targetSuits = getSuitsForLengthTesting(constraint, call);
   if (targetSuits.length === 0) {
     return { pass: false, telemetryLine: `FAIL: no target suit for suit length constraint on call ${call}.` };
   }
-
+  // See if hand has length is listed suits
   for (const suit of targetSuits) {
     const length = handFacts.lengths[suit];
-
     if (constraint.exact !== undefined && length !== constraint.exact) {
       continue;
     }
-
     if (constraint.min !== undefined && length < constraint.min) {
       continue;
     }
-
     if (constraint.max !== undefined && length > constraint.max) {
       continue;
     }
-
     return { pass: true, telemetryLine: `PASS: ${suit} length ${length} satisfies suit length constraint.` };
   }
-
   return { pass: false, telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
 }
 
 /// Returns the suit(s) that a suit-length constraint applies to.  If the rule specifies a specific 
 /// suit, use that suit.  If the rule omits the suit, apply the constraint to the candidate call's 
-/// suit.
+/// suit.  This is usually used for a response rule, so the suit length constraint is about the
+/// partner's suit.  There an anySuitLength rule property for those semantics.
 ///
-function getTargetSuitsForLengthConstraint(constraint: SuitLengthConstraint, call: Call): Suit[] {
-  if (constraint.suit === 'major') {
-    if (isContractBid(call)) {
-      const callSuit = getStrainFromSuitBid(call);
-      if (callSuit === 'H' || callSuit === 'S') {
-        return [callSuit];
-      }
-    }
-    return ['H', 'S'];
-  }
-  if (constraint.suit === 'minor') {
-    if (isContractBid(call)) {
-      const callSuit = getStrainFromSuitBid(call);
-      if (callSuit === 'C' || callSuit === 'D') {
-        return [callSuit];
-      }
-    }
-    return ['C', 'D'];
-  }
-  if (constraint.suit !== undefined) {
-    if (constraint.suit === 'NT') return [];
+function getSuitsForLengthTesting (constraint: SuitLengthConstraint, call: Call): Suit[] {
+  if (constraint.suit === 'major') return ['H', 'S'];
+  if (constraint.suit === 'minor') return ['C', 'D'];
+  if (constraint.suit !== undefined) { // there is a specified suit
+    if (constraint.suit === 'NT') return []; // probably an erroneous rule
     return [constraint.suit];
   }
   if (isContractBid(call)) {
     const callSuit = getStrainFromSuitBid(call);
-    if (callSuit !== 'NT') {
+    if (callSuit !== 'NT') { // Can't specify lengths for NT, so likely erroneous rule
       return [callSuit];
     }
   }
   return [];
 }
 
-function shapeMatches(shape: NonNullable<HandConstraint['shape']>, call: Call, handFacts: HandFacts): { pass: boolean; telemetryLines: string[] } {
+/// testHandShapeMatches checks the handFacts against the shape constraints -- balanced, lengths, etc.
+///
+function testHandShape (shape: HandShapeConstraint, call: Call, 
+                        handFacts: HandFacts): { pass: boolean; telemetryLines: string[] } {
   const telemetryLines: string[] = [];
   let pass = true;
-
   if (shape.balanced !== undefined) {
     const thisPass = handFacts.balanced === shape.balanced;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balanced is ${handFacts.balanced}.`);
     pass = pass && thisPass;
   }
-
   if (shape.semiBalanced !== undefined) {
     const thisPass = handFacts.semiBalanced === shape.semiBalanced;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: semiBalanced is ${handFacts.semiBalanced}.`);
     pass = pass && thisPass;
   }
-
   if (shape.noVoid !== undefined) {
     const thisPass = shape.noVoid ? handFacts.voidCount === 0 : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: void count is ${handFacts.voidCount}.`);
     pass = pass && thisPass;
   }
-
   if (shape.noSingleton !== undefined) {
     const thisPass = shape.noSingleton ? handFacts.singletonCount === 0 : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: singleton count is ${handFacts.singletonCount}.`);
     pass = pass && thisPass;
   }
-
   if (shape.maxDoubletons !== undefined) {
     const thisPass = handFacts.doubletonCount <= shape.maxDoubletons;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: doubleton count is ${handFacts.doubletonCount}.`);
     pass = pass && thisPass;
   }
-
   if (shape.noFourCardMajor !== undefined) {
-    const thisPass = shape.noFourCardMajor ? handFacts.hasFourCardMajor === false : true;
+    const thisPass = shape.noFourCardMajor ? ! handFacts.hasFourCardMajor : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFourCardMajor is ${handFacts.hasFourCardMajor}.`);
     pass = pass && thisPass;
   }
-
   if (shape.noFourCardOtherMajor !== undefined) {
-    const thisPass = noFourCardOtherMajorMatches(call, handFacts);
+    let noOther = ! handFacts.hasFourCardMajor;
+    if (isContractBid(call)) {
+      const callSuit = getStrainFromSuitBid(call); // isContractBid propagates call is SuitBid
+      if (callSuit === 'H') {
+        noOther = handFacts.lengths.S < 4;
+      } else if (callSuit === 'S') {
+        noOther = handFacts.lengths.H < 4;
+      }
+    }
+    const thisPass = noOther;
+    // const thisPass = noFourCardOtherMajorMatches(call, handFacts);
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: noFourCardOtherMajor for ${call}.`);
     pass = pass && thisPass;
   }
-
   if (shape.noFiveCardMajor !== undefined) {
-    const thisPass = shape.noFiveCardMajor ? handFacts.hasFiveCardMajor === false : true;
+    const thisPass = shape.noFiveCardMajor ? ! handFacts.hasFiveCardMajor : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFiveCardMajor is ${handFacts.hasFiveCardMajor}.`);
     pass = pass && thisPass;
   }
-
   if (shape.text !== undefined && shape.text !== '') {
     telemetryLines.push('UNSUPPORTED: shape.text is not evaluated in the first punch-through.');
     pass = false;
   }
-
   return { pass, telemetryLines };
-}
+} //testHandShape()
 
-function noFourCardOtherMajorMatches (call: Call, handFacts: HandFacts): boolean {
-  if (! isContractBid(call)) {
-    return handFacts.hasFourCardMajor === false;
-  }
-  const callSuit = getStrainFromSuitBid(call);
-  if (callSuit === 'H') {
-    return handFacts.lengths.S < 4;
-  }
-  if (callSuit === 'S') {
-    return handFacts.lengths.H < 4;
-  }
-  return handFacts.hasFourCardMajor === false;
-}
+// function noFourCardOtherMajorMatches (call: Call, handFacts: HandFacts): boolean {
+//   if (! isContractBid(call)) {
+//     return handFacts.hasFourCardMajor === false;
+//   }
+//   const callSuit = getStrainFromSuitBid(call);
+//   if (callSuit === 'H') {
+//     return handFacts.lengths.S < 4;
+//   }
+//   if (callSuit === 'S') {
+//     return handFacts.lengths.H < 4;
+//   }
+//   return handFacts.hasFourCardMajor === false;
+// }
 
 /// supportMatches determines whether the responder satisfies a support requirement from a bidding  
 /// rule.  A rule may require support for opener's suit and may require a minimum support length.
 /// supportLength may be undefined because it comes from a declared rule that may omit the property.
 ///
-function supportMatches (supportFor: HandConstraint['supportFor'], 
+function testSupportFor (supportFor: HandConstraint['supportFor'], 
                          supportLength: PointRange | undefined, 
                          context: RuleEvaluationContext): { pass: boolean; telemetryLine: string } {
   // Use suit, NT-oriented rules should use shape or balanced-hand constraints instead.
@@ -459,7 +438,7 @@ function supportMatches (supportFor: HandConstraint['supportFor'],
     return { pass: true, telemetryLine: `PASS: support suit ${supportSuit} is available.` };
   }
   const length = context.handFacts.lengths[supportSuit];
-  const result = pointRangeMatches(length, supportLength, `${supportSuit} support length`);
+  const result = testPointRange(length, supportLength, `${supportSuit} support length`);
   return { pass: result.pass, telemetryLine: result.telemetryLine };
 }
 
