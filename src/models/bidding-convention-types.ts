@@ -61,9 +61,8 @@ export interface HandShapeConstraint {
 
 export interface HandConstraint {
   hcp?: PointRange;
-  pointsWLen?: PointRange;
+  totalPoints?: PointRange;
   dummyPoints?: PointRange;
-  pointsWShorts?: PointRange;
   suitLengths?: SuitLengthConstraint[];
   anySuitLength?: SuitLengthConstraint[];
   shape?: HandShapeConstraint;

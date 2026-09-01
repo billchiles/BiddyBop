@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import './App.css';
 import { BidPanel } from './components/BidPanel';
-import { DealCompass } from './components/DealCompass';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateOpenableNorthDeal, type Deal } from './models/cards';
 
@@ -51,7 +50,6 @@ export default function App() {
         <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
       </header>
 
-      <DealCompass deal={state.deal} />
       <BidPanel deal={state.deal} onTelemetry={appendTelemetry} />
       <TelemetryPanel lines={state.telemetryLines} />
     </main>

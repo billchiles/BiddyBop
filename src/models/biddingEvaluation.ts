@@ -242,22 +242,15 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-  if (constraint.pointsWLen !== undefined) {
-    const result = testPointRange(context.handFacts.totalPointsWLength, constraint.pointsWLen, 
-                                  'total points');
-    telemetryLines.push(result.telemetryLine);
+  if (constraint.totalPoints !== undefined) {
+    const result = testTotalPointsRange(context, constraint, constraint.totalPoints);
+    telemetryLines.push(...result.telemetryLines);
     pass = pass && result.pass;
   }
-  if (constraint.pointsWShorts !== undefined) {
-    const result = testPointRange(context.handFacts.lengthPoints, constraint.pointsWShorts, 
-                                  'distribution points');
-    telemetryLines.push(result.telemetryLine);
-    pass = pass && result.pass;
-  }
-  if (constraint.dummyPoints !== undefined) {
-    telemetryLines.push('UNSUPPORTED: dummyPoints is not evaluated in the first punch-through.');
-    pass = false;
-  }
+  // if (constraint.dummyPoints !== undefined) {
+  //   telemetryLines.push('UNSUPPORTED: dummyPoints is not evaluated in the first punch-through.');
+  //   pass = false;
+  // }
   if (constraint.suitLengths !== undefined) {
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
@@ -295,6 +288,26 @@ function testPointRange (value: number, range: PointRange, label: string)
     return { pass: false, telemetryLine: `FAIL: ${label} ${value} > maximum ${range.max}.` };
   }
   return { pass: true, telemetryLine: `PASS: ${label} ${value} is in range.` };
+}
+
+function testTotalPointsRange (context: RuleEvaluationContext, constraint: HandConstraint, range: PointRange)
+                              : { pass: boolean; telemetryLines: string[] } {
+  const lengthResult = testPointRange(context.handFacts.totalPointsWLength, range,
+                                      'total points with length');
+  const telemetryLines = [lengthResult.telemetryLine];
+  if (lengthResult.pass) {
+    return { pass: true, telemetryLines };
+  }
+  if (context.role !== 'responder') {
+    return { pass: false, telemetryLines };
+  }
+  if (constraint.supportFor === undefined && constraint.supportLength === undefined) {
+    return { pass: false, telemetryLines };
+  }
+  const shortageResult = testPointRange(context.handFacts.totalPointsWShortage, range,
+                                        'total points with shortage');
+  telemetryLines.push(shortageResult.telemetryLine);
+  return { pass: shortageResult.pass, telemetryLines };
 }
 
 /// testSuitLengths takes a suit constraint length for a bidding rule and compares it to the

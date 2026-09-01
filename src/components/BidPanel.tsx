@@ -1,20 +1,31 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useMemo, useState, type FormEvent } from 'react';
 import { BiddingRules } from '../models/bidding-rules';
-import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext, 
-         type UserBidEvaluationResult, normalizeCallInput,  } from '../models/biddingEvaluation';
+import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext,
+         type UserBidEvaluationResult, normalizeCallInput } from '../models/biddingEvaluation';
 import { getHandFacts, type Deal } from '../models/cards';
+import { type Call } from '../models/bidding-convention-types';
+import { DealCompass } from './DealCompass';
 
-/// BidPanel evaluates the user's North opening, then optionally South's response.
+/// BidPanel owns the visible auction practice area while App keeps telemetry separate.
 export interface BidPanelProps {
   deal: Deal;
   onTelemetry: (lines: string[]) => void;
 }
 
+type BidSeat = 'N' | 'E' | 'S' | 'W';
+
+interface AuctionCall {
+  seat: BidSeat;
+  call: Call;
+}
+
 export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
-  const [northBidText, setNorthBidText] = useState('');
-  const [southBidText, setSouthBidText] = useState('');
+  const [bidText, setBidText] = useState('');
+  const [auctionCalls, setAuctionCalls] = useState<AuctionCall[]>([]);
   const [northResult, setNorthResult] = useState<UserBidEvaluationResult | null>(null);
   const [southResult, setSouthResult] = useState<UserBidEvaluationResult | null>(null);
+  const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
+  const explanationRef = useRef<HTMLPreElement | null>(null);
 
   const northContext = useMemo<RuleEvaluationContext>(() => {
     return {
@@ -26,36 +37,76 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
     };
   }, [deal]);
 
-
   useEffect(() => {
-    setNorthBidText('');
-    setSouthBidText('');
+    setBidText('');
+    setAuctionCalls([]);
     setNorthResult(null);
     setSouthResult(null);
+    setExplanationLines(['No evaluation yet.']);
   }, [deal]);
 
-  function evaluateNorthBid(): void {
-    const normalizedCall = normalizeCallInput(northBidText);
-    if (normalizedCall === null) {
-      setNorthResult(null);
-      setSouthResult(null);
-      onTelemetry([`Invalid North opening input: "${northBidText}".`]);
+  useEffect(() => {
+    if (explanationRef.current === null) {
       return;
     }
+    explanationRef.current.scrollTop = explanationRef.current.scrollHeight;
+  }, [explanationLines]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    if (northResult === null) {
+      evaluateNorthBid();
+      return;
+    }
+    if (southResult === null) {
+      evaluateSouthBid();
+      return;
+    }
+    onTelemetry(['Only North opening and South response are evaluated in the first punch-through.']);
+  }
+
+  function evaluateNorthBid(): void {
+    const normalizedCall = normalizeCallInput(bidText);
+    if (normalizedCall === null) {
+      const lines = [`Invalid North opening input: "${bidText}".`];
+      setNorthResult(null);
+      setSouthResult(null);
+      setExplanationLines(lines);
+      onTelemetry(lines);
+      return;
+    }
+
     const result = evaluateUserCall(normalizedCall, BiddingRules, northContext);
+    const nextAuctionCalls: AuctionCall[] = [
+      { seat: 'N', call: normalizedCall },
+      { seat: 'E', call: 'Pass' },
+    ];
 
     setNorthResult(result);
     setSouthResult(null);
+    setAuctionCalls(nextAuctionCalls);
+    setBidText('');
+    setExplanationLines((current) => [...current, '',
+                                      ...buildExplanationLines('North opening', result), ]);
     onTelemetry(['Evaluating North opening.', ...result.telemetryLines]);
   }
 
   function evaluateSouthBid(): void {
-    const northCall = normalizeCallInput(northBidText);
-    const southCall = normalizeCallInput(southBidText);
+    const northCall = getNorthCall();
+    const southCall = normalizeCallInput(bidText);
 
     if (northCall === null) {
       const lines = ['Cannot evaluate South response until North has a valid opening call.'];
       setSouthResult(null);
+      setExplanationLines(lines);
+      onTelemetry(lines);
+      return;
+    }
+
+    if (southCall === null) {
+      const lines = [`Invalid South response input: "${bidText}".`];
+      setSouthResult(null);
+      setExplanationLines(lines);
       onTelemetry(lines);
       return;
     }
@@ -67,114 +118,171 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       handFacts: getHandFacts(deal.S),
       partnerOpeningCall: northCall,
     };
-
-    if (southCall === null) {
-      const lines = [`Invalid South response input: "${southBidText}".`];
-      setSouthResult(null);
-      onTelemetry(lines);
-      return;
-    }
-
     const result = evaluateUserCall(southCall, BiddingRules, southContext);
+    const nextAuctionCalls: AuctionCall[] = [
+      ...auctionCalls,
+      { seat: 'S', call: southCall },
+      { seat: 'W', call: 'Pass' },
+    ];
 
     setSouthResult(result);
+    setAuctionCalls(nextAuctionCalls);
+    setBidText('');
+    setExplanationLines((current) => [...current, '',
+                                      ...buildExplanationLines('South response', result), ]);
     onTelemetry(['Evaluating South response.', ...result.telemetryLines]);
   }
 
-  function handleNorthSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    evaluateNorthBid();
+  function getNorthCall(): Call | null {
+    if (northResult === null) {
+      return null;
+    }
+    return northResult.normalizedCall;
   }
 
-  function handleSouthSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    evaluateSouthBid();
-  }
-
-  const northCandidates = northResult === null ? [] : getApplicableCandidateCalls(northResult);
-  const southCandidates = southResult === null ? [] : getApplicableCandidateCalls(southResult);
+  const nextBidLabel = getNextBidLabel(northResult, southResult);
+  const auctionRows = buildAuctionRows(auctionCalls);
 
   return (
     <section className="bidPanel" aria-label="Bid evaluation">
-      <form className="bidForm" onSubmit={handleNorthSubmit}>
-        <label className="bidLabel" htmlFor="northBidInput">North opening</label>
-        <input
-          id="northBidInput"
-          className="bidInput"
-          value={northBidText}
-          onChange={(event) => setNorthBidText(event.target.value)}
-          placeholder="1H, 1NT, Pass"
-        />
-        <button className="bidButton" type="submit">Evaluate North</button>
-      </form>
+      <section className="trainerWorkspace">
+        <section className="trainerLeftColumn">
+          <DealCompass deal={deal} />
+          <form className="bidForm" onSubmit={handleSubmit}>
+            <label className="bidLabel" htmlFor="bidInput">{nextBidLabel}</label>
+            <input
+              id="bidInput"
+              className="bidInput"
+              value={bidText}
+              onChange={(event) => setBidText(event.target.value)}
+              placeholder="1H, 1NT, Pass"
+            />
+            <button className="bidButton" type="submit">Commit</button>
+          </form>
+        </section>
 
-      <ResultSummary title="North result" result={northResult} candidates={northCandidates} />
-
-      <form className="bidForm" onSubmit={handleSouthSubmit}>
-        <label className="bidLabel" htmlFor="southBidInput">South response</label>
-        <input
-          id="southBidInput"
-          className="bidInput"
-          value={southBidText}
-          onChange={(event) => setSouthBidText(event.target.value)}
-          placeholder="2H, 1NT, Pass"
-        />
-        <button className="bidButton" type="submit">Evaluate South</button>
-      </form>
-
-      <ResultSummary title="South result" result={southResult} candidates={southCandidates} />
-    </section>
-  );
-}
-
-interface ResultSummaryProps {
-  title: string;
-  result: UserBidEvaluationResult | null;
-  candidates: ReturnType<typeof getApplicableCandidateCalls>;
-}
-
-function ResultSummary({ title, result, candidates }: ResultSummaryProps) {
-  if (result === null) {
-    return (
-      <section className="resultSummary">
-        <h3>{title}</h3>
-        <p>No evaluation yet.</p>
+        <section className="trainerRightColumn">
+          <AuctionGrid rows={auctionRows} />
+          <ExplanationPanel lines={explanationLines} explanationRef={explanationRef} />
+        </section>
       </section>
-    );
-  }
-
-  return (
-    <section className="resultSummary">
-      <h3>{title}</h3>
-      <p>Normalized call: {result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}</p>
-      <h4>Rules satisfied by user call</h4>
-      <RuleList ruleIds={result.userCallMatchingRules.map((rule) => rule.id)} emptyText="No rule satisfied by this call." />
-      <h4>All applicable candidate rules</h4>
-      {candidates.length === 0 ? (
-        <p>No applicable candidate calls.</p>
-      ) : (
-        <ul>
-          {candidates.map((candidate) => (
-            <li key={`${candidate.rule.id}-${candidate.call}`}>
-              <strong>{candidate.call}</strong>: {candidate.rule.id}
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }
 
-function RuleList({ ruleIds, emptyText }: { ruleIds: string[]; emptyText: string }) {
-  if (ruleIds.length === 0) {
-    return <p>{emptyText}</p>;
+function getNextBidLabel(northResult: UserBidEvaluationResult | null,
+                         southResult: UserBidEvaluationResult | null): string {
+  if (northResult === null) {
+    return 'North:';
+  }
+  if (southResult === null) {
+    return 'South:';
+  }
+  return 'West:';
+}
+
+function buildExplanationLines(title: string, result: UserBidEvaluationResult): string[] {
+  const lines: string[] = [];
+  const candidates = getApplicableCandidateCalls(result);
+
+  lines.push(title);
+  lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
+
+  if (result.userCallMatchingRules.length === 0) {
+    lines.push('No rule satisfied by this call.');
+  } else {
+    lines.push('Rules satisfied by user call:');
+    for (const rule of result.userCallMatchingRules) {
+      lines.push(`- ${rule.id}: ${rule.title}`);
+      if (rule.meaning !== undefined && rule.meaning !== '') {
+        lines.push(`  Meaning: ${rule.meaning}`);
+      }
+      if (rule.guidance !== undefined && rule.guidance.length !== 0) {
+        for (const guidanceLine of rule.guidance) {
+          lines.push(`  ${guidanceLine}`);
+        }
+      }
+    }
   }
 
+  lines.push('');
+  lines.push('All applicable candidate calls:');
+  if (candidates.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const candidate of candidates) {
+      lines.push(`- ${candidate.call}: ${candidate.rule.id}`);
+    }
+  }
+
+  return lines;
+}
+
+function buildAuctionRows(auctionCalls: AuctionCall[]): AuctionCall[][] {
+  const rows: AuctionCall[][] = [];
+  let currentRow: AuctionCall[] = [];
+
+  for (const auctionCall of auctionCalls) {
+    currentRow.push(auctionCall);
+    if (currentRow.length === 4) {
+      rows.push(currentRow);
+      currentRow = [];
+    }
+  }
+
+  if (currentRow.length !== 0) {
+    rows.push(currentRow);
+  }
+
+  if (rows.length === 0) {
+    rows.push([]);
+  }
+
+  return rows;
+}
+
+function AuctionGrid({ rows }: { rows: AuctionCall[][] }) {
   return (
-    <ul>
-      {ruleIds.map((ruleId) => (
-        <li key={ruleId}>{ruleId}</li>
-      ))}
-    </ul>
+    <section className="auctionPanel" aria-label="Auction">
+      <h3>Auction</h3>
+      <table className="auctionGrid">
+        <thead>
+          <tr>
+            <th>N</th>
+            <th>E</th>
+            <th>S</th>
+            <th>W</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              <td>{getAuctionCell(row, 'N')}</td>
+              <td>{getAuctionCell(row, 'E')}</td>
+              <td>{getAuctionCell(row, 'S')}</td>
+              <td>{getAuctionCell(row, 'W')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function getAuctionCell(row: AuctionCall[], seat: BidSeat): string {
+  const matchingCall = row.find((auctionCall) => auctionCall.seat === seat);
+  if (matchingCall === undefined) {
+    return '';
+  }
+  return matchingCall.call;
+}
+
+function ExplanationPanel ({ lines, explanationRef }: 
+                          {lines: string[]; explanationRef: React.RefObject<HTMLPreElement | null>;}) {
+    return (
+    <section className="resultSummary" aria-label="Explanation and app output">
+      <h3>Explanation</h3>
+      <pre ref={explanationRef} className="explanationText">{lines.join('\n')}</pre>
+    </section>
   );
 }
