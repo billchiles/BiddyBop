@@ -1,10 +1,13 @@
 import { useEffect, useRef, useMemo, useState, type FormEvent } from 'react';
 import { BiddingRules } from '../models/bidding-rules';
+import {  getActiveBiddingRules } from '../models/biddingEvaluation';
 import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext,
          type UserBidEvaluationResult, normalizeCallInput } from '../models/biddingEvaluation';
 import { getHandFacts, type Deal } from '../models/cards';
-import { type Call } from '../models/bidding-convention-types';
+import { type Call, defaultBiddingSystem } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
+
+const activeBiddingRules = getActiveBiddingRules(BiddingRules, defaultBiddingSystem);
 
 /// BidPanel owns the visible auction practice area while App keeps telemetry separate.
 export interface BidPanelProps {
@@ -76,7 +79,7 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       return;
     }
 
-    const result = evaluateUserCall(normalizedCall, BiddingRules, northContext);
+    const result = evaluateUserCall(normalizedCall, activeBiddingRules, northContext);
     const nextAuctionCalls: AuctionCall[] = [
       { seat: 'N', call: normalizedCall },
       { seat: 'E', call: 'Pass' },
@@ -118,7 +121,7 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       handFacts: getHandFacts(deal.S),
       partnerOpeningCall: northCall,
     };
-    const result = evaluateUserCall(southCall, BiddingRules, southContext);
+    const result = evaluateUserCall(southCall, activeBiddingRules, southContext);
     const nextAuctionCalls: AuctionCall[] = [
       ...auctionCalls,
       { seat: 'S', call: southCall },

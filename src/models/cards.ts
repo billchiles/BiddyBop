@@ -1,7 +1,7 @@
 /// Representation for cards and hands.
 ///
 
-//import type { Call, Strain, SuitBid } from './bidding-convention-types';
+//import type { Call, Strain, SuitBid } from './bidding-types';
 
 
 /// These may not be used, but we distinguish suit from strain for now in case we need just suits.

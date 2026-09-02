@@ -1,13 +1,13 @@
 /// Bidding rules characterizations and bidding notes.  Not sure yet what is needed or how it will
 /// be used, so iterating toward a design with some punch through code on bidding.
 
-import type { BidRule } from './bidding-convention-types';
+import type { BidRule } from './bidding-types';
 
 ///
 //// Bidding Rules
 ///
 
-export const BiddingRules: BidRule[] = [
+export const OpeningBidRules: BidRule[] = [ 
   // Basic one bids
   //
   {
@@ -17,9 +17,25 @@ export const BiddingRules: BidRule[] = [
     auctionContext: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['1NT'],
     callCategory: ['natural'],
+    agreement: { setting: 'oneNtOpening', value: '15-17' },
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 15, max: 17 }, shape: { balanced: true }, 
                    }, //suitLengths: [{ suit: 'H', max: 4 }, { suit: 'S', max: 4 }] },
+    meaning: 'Balanced hand in the 1NT range.',
+    guidance: ['You can bid 1NT with a 5-card major.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'open-1nt-balanced-16-18',
+    kind: 'openingBid',
+    title: 'Open 1NT with balanced 16-18',
+    auctionContext: { role: 'opener', auction: [], assumesUncontested: true },
+    calls: ['1NT'],
+    callCategory: ['natural'],
+    agreement: { setting: 'oneNtOpening', value: '16-18' },
+    priority: { rank: 100 },
+    appliesWhen: { hcp: { min: 16, max: 18 }, shape: { balanced: true } },
     meaning: 'Balanced hand in the 1NT range.',
     guidance: ['You can bid 1NT with a 5-card major.'],
     certainty: 'high',
@@ -93,20 +109,22 @@ export const BiddingRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 10 }, suitLengths: [{ min: 6 }] },
-    guidance: ['Good suit', 'can see 5 tricks.'],
+    guidance: ['Good suit with 5 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
+               'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Descriptive and obstructive weak two-bid.',
     certainty: 'high',
   },
   //
   {
-    id: 'open-three-level-preempt',
+    id: 'open-weak-three',
     kind: 'openingBid',
     title: 'Open at the three level with a preemptive hand',
     auctionContext: { role: 'opener', auction: [], assumesUncontested: true },
     calls: ['3C', '3D', '3H', '3S'],
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 7 }] },
-    guidance: ['Good suit', 'can see 6 tricks.'],
+    guidance: ['Good suit with 6 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
+               'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Preemptive opening with a good seven-card suit.',
     certainty: 'high',
   },
@@ -119,7 +137,8 @@ export const BiddingRules: BidRule[] = [
     calls: ['4C', '4D', '4H', '4S'],
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
-    guidance: ['Good suit', 'can see 7 tricks.'],
+    guidance: ['Good suit with 7 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
+               'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Preemptive opening with a good eight-card suit.',
     certainty: 'high',
   },
@@ -136,6 +155,9 @@ export const BiddingRules: BidRule[] = [
     meaning: 'Blackwood ace-asking opening; marked rare.',
     certainty: 'high',
   },
+ ]; // OpeningBidRules
+
+export const ResponseBidRules: BidRule[] = [ 
   // Responding to one of a minor
   //
   {
@@ -151,8 +173,8 @@ export const BiddingRules: BidRule[] = [
     guidance: ['Bid the longest suit.', 
                'With a choice of five-card or six-card suits, bid the higher-ranking suit.', 
                'With a choice of four-card suits, bid the lowest-ranking suit, bidding up the line.',
-               'After 1D with about 6-10 points and a longer diamond suit, some bypass a ' +
-                  'four-card or longer diamond suit to bid a four-card major.'],
+               'After 1C with about 6-10 points some prefer to bypass a 4+ diamond suit to bid ' +
+                  'a four-card major.'],
     certainty: 'high',
   },
   //
@@ -222,6 +244,7 @@ export const BiddingRules: BidRule[] = [
     appliesWhen: { hcp: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
                    supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
     meaning: 'Limit raise of opener minor.',
+    guidance: ['Some play inverted minors, where single raise is strong, and jump is weak.'],
     certainty: 'medium',
   },
   //
@@ -246,7 +269,7 @@ export const BiddingRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
     calls: ['2D', '2H', '2S', '3C', '3D'],
     callCategory: ['invitational'],
-    style: 'modern',
+    agreement: { setting: 'minorJumpShift', value: 'weak' },
     appliesWhen: { hcp: { max: 6 }, suitLengths: [{ min: 6 }] },
     meaning: 'Weak hand with a six-card suit, preemptive.',
     certainty: 'high',
@@ -254,12 +277,12 @@ export const BiddingRules: BidRule[] = [
   //
   {
     id: 'respond-to-minor-w/-strong-jump-shift-classic',
-    kind: 'styleVariant',
+    kind: 'responseBid',
     title: 'Classic strong jump shift after one of a minor',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor', assumesUncontested: true },
     calls: ['2D', '2H', '2S', '3C', '3D'],
     callCategory: ['gameForcing'],
-    style: 'classic',
+    agreement: { setting: 'minorJumpShift', value: 'strong' },
     appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
     guidance: ['With a good five-card or longer suit and 18-19 points, jump-shift to new suit.'],
     meaning: 'Classic Standard treats jump shifts as strong.',
@@ -322,7 +345,6 @@ export const BiddingRules: BidRule[] = [
     title: 'Simple raise with 6-10 and major support',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['2H', '2S'],
-    callCategory: ['forcing'],
     appliesWhen: { totalPoints: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', 
                    supportLength: { min: 3 } },
     meaning: 'Raise partner major to the two level.',
@@ -358,27 +380,42 @@ export const BiddingRules: BidRule[] = [
   },
   //
   {
-    id: 'respond-to-major-w/-support-13plus-bid-new-suit-then-raise',
+    id: 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise',
     kind: 'responseBid',
-    title: 'With 13+ and major support, bid a new suit then raise to game',
+    title: 'With 13+ and three-card major support, bid a new suit then raise to game',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['1S', '2C', '2D', '2H'],
     callCategory: ['forcing'],
-    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit', 
-                   supportLength: { min: 3 } },
+    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit',
+                   supportLength: { min: 3, max: 3 } },
     guidance: ['Bid a new suit and then raise to at least game.'],
-    meaning: 'Game-forcing support path in the basic treatment.',
+    meaning: 'Game-forcing support path with three-card support.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise',
+    kind: 'responseBid',
+    title: 'With 13+ and four-card major support, bid a new suit then raise to game',
+    auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
+    calls: ['1S', '2C', '2D', '2H'],
+    callCategory: ['forcing'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise' },
+    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit',
+                   supportLength: { min: 4 } },
+    guidance: ['Bid a new suit and then raise to at least game.'],
+    meaning: 'Game-forcing support path when not using Jacoby 2NT.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-major-w/-support-jacoby-2nt-agreement',
-    kind: 'styleVariant',
+    kind: 'responseBid',
     title: 'Jacoby 2NT partnership agreement',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['2NT'],
     callCategory: ['conventional', 'partnershipAgreement'],
-    style: 'partnershipAgreement',
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
     appliesWhen: { hcp: { min: 13 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 4 } },
     meaning: 'Some partnerships use 2NT as artificial Jacoby 2NT, showing four-card or longer ' +
              'support and 13+ points.',
@@ -421,7 +458,7 @@ export const BiddingRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['1NT'],
     callCategory: ['forcing'],
-    style: 'twoOverOne',
+    agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
     appliesWhen: { hcp: { min: 6, max: 12 }, supportLength: { max: 2 } },
     guidance: ['No available preferred suit response.', 
                'Forcing if responder has not passed and opponents have not interfered.'],
@@ -431,12 +468,12 @@ export const BiddingRules: BidRule[] = [
   //
   {
     id: 'respond-to-major-w/o-support-1nt-standard',
-    kind: 'styleVariant',
+    kind: 'responseBid',
     title: 'Standard style 1NT response to a major',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major', assumesUncontested: true },
     calls: ['1NT'],
     callCategory: ['signoff'],
-    style: 'standard',
+    agreement: { setting: 'majorOneNtResponse', value: 'nonForcing' },
     appliesWhen: { hcp: { min: 6, max: 10 }, supportLength: { max: 2 } },
     meaning: 'Playing Standard, 1NT over a major shows 6-10 and is non-forcing.',
     certainty: 'high',
@@ -558,7 +595,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Stayman over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2C'],
-    style: 'partnershipAgreement',
+    agreement: { setting: 'stayman', value: true },
     callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 8 }, suitLengths: [{ suit: 'major', min: 4 } ] },
     guidance: ['Stayman asks opener for a four-card major.', 'Can be used even if short in clubs.'],
@@ -571,7 +608,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Transfer to hearts over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2D'],
-    style: 'partnershipAgreement',
+    agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
     guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
@@ -584,7 +621,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Transfer to spades over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'], assumesUncontested: true },
     calls: ['2H'],
-    style: 'partnershipAgreement',
+    agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
     guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
@@ -707,6 +744,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Stayman over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3C'],
+    agreement: { setting: 'stayman', value: true },
     callCategory: ['forcing', 'conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'major', min: 4 }] },
     meaning: 'Stayman asking for a major suit.',
@@ -719,6 +757,7 @@ export const BiddingRules: BidRule[] = [
     title: 'Transfer to hearts over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3D'],
+    agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
     guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
@@ -731,11 +770,19 @@ export const BiddingRules: BidRule[] = [
     title: 'Transfer to spades over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'], assumesUncontested: true },
     calls: ['3H'],
+    agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional', 'partnershipAgreement'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
     guidance: ['Use transfers to have the partner with the consealed points bid the contract.'],
     certainty: 'high',
   },
+ ];
+
+export const OvercallRules: BidRule[] = [  ];
+export const AdvanceRules: BidRule[] = [  ];
+export const OpenerRebidRules: BidRule[] = [  ];
+
+export const BiddingRules: BidRule[] = [
 ];
 
 ///

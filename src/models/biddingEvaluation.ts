@@ -2,8 +2,8 @@
 /// and whether the user call is accepted by any of them.
 ///
 import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,  
-              SuitLengthConstraint, Strain, SuitBid, 
-              HandShapeConstraint} from './bidding-convention-types';
+              SuitLengthConstraint, Strain, SuitBid, BiddingSystem, BiddingAgreement,
+              HandShapeConstraint} from './bidding-types';
 import { type Hand, type HandFacts, type Suit } from './cards';
 
 
@@ -171,16 +171,12 @@ function evaluateRule (rule: BidRule, context: RuleEvaluationContext): RuleEvalu
   const calls = getRuleCalls(rule);
   const telemetryLines: string[] = [];
   const candidates: CandidateCallMatch[] = [];
-
   telemetryLines.push(`Rule ${rule.id}: ${rule.title}.`);
-
   if (calls.length === 0) {
     telemetryLines.push('  FAIL: rule has no calls.');
     return { rule, candidates, ruleApplies: false, telemetryLines };
   }
-
   telemetryLines.push(`  Rule has ${calls.length} call(s): ${calls.join(', ')}.`);
-
   for (const call of calls) {
     const candidate = evaluateCandidateCall(rule, call, context);
     candidates.push(candidate);
@@ -189,17 +185,52 @@ function evaluateRule (rule: BidRule, context: RuleEvaluationContext): RuleEvalu
       telemetryLines.push(`  ${line}`);
     }
   }
-
   const pass = candidates.some((candidate) => candidate.ruleApplies);
-
   if (pass) {
     telemetryLines.push(`  PASS: at least one call candidate matched.`);
   } else {
     telemetryLines.push(`  FAIL: no call candidate matched.`);
   }
-
   return { rule, candidates, ruleApplies: pass, telemetryLines };
 }
+
+
+/// Returns the rules enabled by the current bidding agreements.  Rules without an agreement are
+/// always enabled.  The bidding evaluator should receive this active rule set rather than decide
+/// between agreement variants while evaluating a hand.
+///
+export function getActiveBiddingRules (rules: BidRule[], system: BiddingSystem): BidRule[] {
+  return rules.filter((rule) => ruleIsEnabled(rule, system));
+}
+
+function ruleIsEnabled (rule: BidRule, system: BiddingSystem): boolean {
+  if (rule.agreement === undefined) {
+    return true;
+  }
+  return agreementMatchesSystem(rule.agreement, system);
+}
+
+function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSystem): boolean {
+  switch (agreement.setting) {
+    case 'oneNtOpening':
+      return system.oneNtOpening === agreement.value;
+    case 'minorJumpShift':
+      return system.minorJumpShift === agreement.value;
+    case 'majorOneNtResponse':
+      return system.majorOneNtResponse === agreement.value;
+    case 'majorGameForceWithSupport':
+      return system.majorGameForceWithSupport === agreement.value;
+    case 'stayman':
+      return system.stayman === agreement.value;
+    case 'jacobyTransfers':
+      return system.jacobyTransfers === agreement.value;
+  }
+}
+
+
+
+
+
 
 /// evaluateCandidateCall evaluates one concrete call from one rule.  If no appliesWhen:, then the
 /// rule applies at any point in an auction.
@@ -247,10 +278,6 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(...result.telemetryLines);
     pass = pass && result.pass;
   }
-  // if (constraint.dummyPoints !== undefined) {
-  //   telemetryLines.push('UNSUPPORTED: dummyPoints is not evaluated in the first punch-through.');
-  //   pass = false;
-  // }
   if (constraint.suitLengths !== undefined) {
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
@@ -292,22 +319,14 @@ function testPointRange (value: number, range: PointRange, label: string)
 
 function testTotalPointsRange (context: RuleEvaluationContext, constraint: HandConstraint, range: PointRange)
                               : { pass: boolean; telemetryLines: string[] } {
+  if (constraint.supportFor !== undefined) {
+    const shortageResult = testPointRange(context.handFacts.totalPointsWShortage, range,
+                                          'total points with shortage');
+    return { pass: shortageResult.pass, telemetryLines: [shortageResult.telemetryLine] };
+  }
   const lengthResult = testPointRange(context.handFacts.totalPointsWLength, range,
                                       'total points with length');
-  const telemetryLines = [lengthResult.telemetryLine];
-  if (lengthResult.pass) {
-    return { pass: true, telemetryLines };
-  }
-  if (context.role !== 'responder') {
-    return { pass: false, telemetryLines };
-  }
-  if (constraint.supportFor === undefined && constraint.supportLength === undefined) {
-    return { pass: false, telemetryLines };
-  }
-  const shortageResult = testPointRange(context.handFacts.totalPointsWShortage, range,
-                                        'total points with shortage');
-  telemetryLines.push(shortageResult.telemetryLine);
-  return { pass: shortageResult.pass, telemetryLines };
+  return { pass: lengthResult.pass, telemetryLines: [lengthResult.telemetryLine] };
 }
 
 /// testSuitLengths takes a suit constraint length for a bidding rule and compares it to the

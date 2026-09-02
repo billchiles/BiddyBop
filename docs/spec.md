@@ -47,6 +47,9 @@ The app should help the user practice bidding decisions using structured convent
 ## Rule Data Policy
 
 - `BiddingRules` contains executable or near-executable bidding rules.
+- `BiddingSystem` is the configurable set of bidding agreements for the current practice session.
+- A rule's optional `agreement` selects whether the whole rule is active in the current `BiddingSystem`.
+- Keep `appliesWhen` concrete and literal; represent system variations as alternative rules rather than indirect system-valued constraints.
 - `BiddingNotes` contains teaching notes, concepts, priorities, and guidance not directly matched as bid rules.
 - `appliesWhen` should contain only constraints the code can evaluate.
 - Human explanation belongs in `guidance`.
@@ -58,6 +61,8 @@ The app should help the user practice bidding decisions using structured convent
 ## Constraint Semantics
 
 - `appliesWhen` fields are conjunctive by default.
+- `totalPoints` is semantic: ordinary rules use HCP plus length points; support rules use HCP plus shortage points.
+- Use `shortPoints`, "short points", or "shortage points". Do not use "dummy points".
 - `suitLengths` entries are conjunctive.
 - If a `suitLengths` entry specifies a concrete suit, test that suit.
 - If a `suitLengths` entry omits the suit, apply it to the suit of the candidate call currently being evaluated.
