@@ -1,10 +1,11 @@
 /// User input and given a hand, auction context, user call, and rules, explain which rules apply 
 /// and whether the user call is accepted by any of them.
 ///
-import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,  
+import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,
               SuitLengthConstraint, Strain, SuitBid, BiddingSystem, BiddingAgreement,
-              HandShapeConstraint} from './bidding-types';
-import { type Hand, type HandFacts, type Suit } from './cards';
+              HandShapeConstraint, RuleEvaluationContext, AppliesWhenResult } from './bidding-types';
+import { type HandFacts, type Suit } from './cards';
+import { OpeningBidRules, ResponseBidRules } from './bidding-rules';
 
 
 /// user input -> normalize to Call -> build RuleEvaluationContext
@@ -63,21 +64,10 @@ export function getStrainFromSuitBid (call: SuitBid): Strain {
 //// Public Evaluation API
 ///
 
-/// Rule evaluation context is the bridge state plus hand characterization facts used by the
-/// first punch-through evaluator.  It only contains facts this evaluator can test mechanically.
-///
-export interface RuleEvaluationContext {
-  role: 'opener' | 'responder';
-  auction: Call[];
-  hand: Hand;
-  handFacts: HandFacts;
-  partnerOpeningCall: Call | null;
-}
-
-/// UserBidEvaluationResult is the result type for evaluateUserCall, and it represents the bid
+/// BidEvalResult is the result type for evaluateUserCall, and it represents the bid
 /// relative to rules and hand, not the best-bid judgment.
 /// 
-export interface UserBidEvaluationResult {
+export interface BidEvalResult {
   normalizedCall: Call | null;
   userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
   handMatchingRules: BidRule[]; // Rules that match the hand, ruleResults elt.ruleApplies is true
@@ -108,7 +98,7 @@ export interface CandidateCallMatch {
 /// user's bid evaluation result to concrete calls allowed by rules that apply to the current 
 /// hand/context.
 ///
-export function getApplicableCandidateCalls (result: UserBidEvaluationResult): CandidateCallMatch[] {
+export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCallMatch[] {
   const candidates: CandidateCallMatch[] = [];
   for (const ruleResult of result.ruleResults) {
     for (const candidate of ruleResult.candidates) {
@@ -125,12 +115,14 @@ export function getApplicableCandidateCalls (result: UserBidEvaluationResult): C
 /// This does not choose the best bid.  It reports which rules apply to the hand/context
 /// and which of those rules, if any, match the user's call.
 ///
-export function evaluateUserCall (inputCall: Call, rules: BidRule[], 
-                                  context: RuleEvaluationContext): UserBidEvaluationResult {
+export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContext,
+                                  system: BiddingSystem): BidEvalResult {
   const telemetryLines: string[] = [];
   telemetryLines.push(`evaluateUserCall: User call is ${inputCall}.`);
-  // Find applicable bidding rules
-  const ruleResults = evaluateRules(rules, context);
+  // Select the rule bucket from the current auction state, then apply partnership agreements.
+  const stageRules = getRulesForAuctionState(context);
+  const activeRules = getActiveBiddingRules(stageRules, system);
+  const ruleResults = evaluateRules(activeRules, context, system);
   const applicableRules = ruleResults.filter((result) => result.ruleApplies).map((result) => result.rule);
   const matchingRulesForUserCall: BidRule[] = [];
   // Report rule eval telemetry and collect matching candidate calls
@@ -157,28 +149,42 @@ export function evaluateUserCall (inputCall: Call, rules: BidRule[],
   };
 } //evaluateUserCall()
 
-/// evaluateRules filters all opening/responding rules to matching rules in the current auction 
-/// context, then evaluates each remaining rule against the current hand.
-///
-export function evaluateRules (rules: BidRule[], context: RuleEvaluationContext): RuleEvaluationResult[] {
-  return rules
-    .filter((rule) => rule.kind === 'openingBid' || rule.kind === 'responseBid')
-    .filter((rule) => auctionContextMatches(rule.auctionContext, context))
-    .map((rule) => evaluateRule(rule, context));
+/// getRulesForAuctionState chooses the relevant rule family before hand evaluation.  The first
+/// punch-through only recognizes opening and response states; later stages already have buckets.
+export function getRulesForAuctionState (context: RuleEvaluationContext): BidRule[] {
+  if (context.role === 'opener' && context.auction.length === 0) {
+    return OpeningBidRules;
+  }
+  if (context.role === 'responder' && context.auction.length === 1) {
+    return ResponseBidRules;
+  }
+
+  return [];
 }
 
-function evaluateRule (rule: BidRule, context: RuleEvaluationContext): RuleEvaluationResult {
-  const calls = getRuleCalls(rule);
+/// evaluateRules filters the already-selected stage rules by auction context and evaluates the hand.
+export function evaluateRules (rules: BidRule[], context: RuleEvaluationContext,
+                               system: BiddingSystem): RuleEvaluationResult[] {
+  return rules
+    .filter((rule) => auctionContextMatches(rule.auctionContext, context))
+    .map((rule) => evaluateRule(rule, context, system));
+}
+
+function evaluateRule (rule: BidRule, context: RuleEvaluationContext,
+                       system: BiddingSystem): RuleEvaluationResult {
+  const callResult = getRuleCalls(rule, context, system);
+  const calls = callResult.calls;
   const telemetryLines: string[] = [];
   const candidates: CandidateCallMatch[] = [];
   telemetryLines.push(`Rule ${rule.id}: ${rule.title}.`);
+  telemetryLines.push(...callResult.telemetryLines.map((line) => `  ${line}`));
   if (calls.length === 0) {
-    telemetryLines.push('  FAIL: rule has no calls.');
+    telemetryLines.push('  FAIL: rule has no calls after call refinement.');
     return { rule, candidates, ruleApplies: false, telemetryLines };
   }
-  telemetryLines.push(`  Rule has ${calls.length} call(s): ${calls.join(', ')}.`);
+  telemetryLines.push(`  Rule has ${calls.length} candidate call(s): ${calls.join(', ')}.`);
   for (const call of calls) {
-    const candidate = evaluateCandidateCall(rule, call, context);
+    const candidate = evaluateCandidateCall(rule, call, context, system);
     candidates.push(candidate);
 
     for (const line of candidate.telemetryLines) {
@@ -187,9 +193,9 @@ function evaluateRule (rule: BidRule, context: RuleEvaluationContext): RuleEvalu
   }
   const pass = candidates.some((candidate) => candidate.ruleApplies);
   if (pass) {
-    telemetryLines.push(`  PASS: at least one call candidate matched.`);
+    telemetryLines.push('  PASS: at least one call candidate matched.');
   } else {
-    telemetryLines.push(`  FAIL: no call candidate matched.`);
+    telemetryLines.push('  FAIL: no call candidate matched.');
   }
   return { rule, candidates, ruleApplies: pass, telemetryLines };
 }
@@ -214,8 +220,12 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
   switch (agreement.setting) {
     case 'oneNtOpening':
       return system.oneNtOpening === agreement.value;
-    case 'minorJumpShift':
-      return system.minorJumpShift === agreement.value;
+    case 'oneNtFiveCardLengthUpgrade':
+      return system.oneNtFiveCardLengthUpgrade === agreement.value;
+    case 'jumpShift':
+      return system.jumpShift === agreement.value;
+    case 'twoLevelNewSuitResponse':
+      return system.twoLevelNewSuitResponse === agreement.value;
     case 'majorOneNtResponse':
       return system.majorOneNtResponse === agreement.value;
     case 'majorGameForceWithSupport':
@@ -224,6 +234,10 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
       return system.stayman === agreement.value;
     case 'jacobyTransfers':
       return system.jacobyTransfers === agreement.value;
+    case 'splinters':
+      return system.splinters === agreement.value;
+    case 'texasTransfers':
+      return system.texasTransfers === agreement.value;
   }
 }
 
@@ -235,24 +249,29 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
 /// evaluateCandidateCall evaluates one concrete call from one rule.  If no appliesWhen:, then the
 /// rule applies at any point in an auction.
 ///
-function evaluateCandidateCall (rule: BidRule, call: Call, 
-                                context: RuleEvaluationContext): CandidateCallMatch {
+function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluationContext,
+                                system: BiddingSystem): CandidateCallMatch {
   const telemetryLines: string[] = [];
   telemetryLines.push(`evaluateCandidateCall: Candidate ${call}.`);
-  const constraint = rule.appliesWhen;
-  if (constraint === undefined) {
+  const appliesWhen = rule.appliesWhen;
+  if (appliesWhen === undefined) {
     telemetryLines.push('PASS: no appliesWhen constraint.');
     return { rule, call, ruleApplies: true, telemetryLines };
   }
-  // check appliesWhen
-  const constraintResult = evaluateHandConstraint(constraint, call, context);
-  telemetryLines.push(...constraintResult.telemetryLines);
-  if (constraintResult.pass) {
+
+  let result: AppliesWhenResult;
+  if (typeof appliesWhen === 'function') {
+    result = appliesWhen(call, context, system);
+  } else {
+    result = evaluateHandConstraint(appliesWhen, call, context);
+  }
+  telemetryLines.push(...result.telemetryLines);
+  if (result.pass) {
     telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
-  return { rule, call, ruleApplies: constraintResult.pass, telemetryLines };
+  return { rule, call, ruleApplies: result.pass, telemetryLines };
 }
 
 ///
@@ -265,7 +284,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call,
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
                                  context: RuleEvaluationContext)
-                                : { pass: boolean; telemetryLines: string[] } {
+                                : AppliesWhenResult {
   const telemetryLines: string[] = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -319,7 +338,7 @@ function testPointRange (value: number, range: PointRange, label: string)
 
 function testTotalPointsRange (context: RuleEvaluationContext, constraint: HandConstraint, range: PointRange)
                               : { pass: boolean; telemetryLines: string[] } {
-  if (constraint.supportFor !== undefined) {
+  if (constraint.supportFor !== undefined || constraint.supportLength !== undefined) {
     const shortageResult = testPointRange(context.handFacts.totalPointsWShortage, range,
                                           'total points with shortage');
     return { pass: shortageResult.pass, telemetryLines: [shortageResult.telemetryLine] };
@@ -462,7 +481,8 @@ function testSupportFor (supportFor: HandConstraint['supportFor'],
                          supportLength: PointRange | undefined, 
                          context: RuleEvaluationContext): { pass: boolean; telemetryLine: string } {
   // Use suit, NT-oriented rules should use shape or balanced-hand constraints instead.
-  const supportSuit = getSupportSuit(supportFor, context.partnerOpeningCall);
+  const effectiveSupportFor = supportFor ?? 'partnersOpenedSuit';
+  const supportSuit = getSupportSuit(effectiveSupportFor, context.partnerOpeningCall);
   if (supportSuit === null) { // support Strain was NT or undefined
     return { pass: false, telemetryLine: 'supportFor hand constraint undefined or NT.' };
   }
@@ -561,10 +581,13 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   return callSuit === openerStrain;
 }
 
-function getRuleCalls(rule: BidRule): Call[] {
+function getRuleCalls (rule: BidRule, context: RuleEvaluationContext,
+                       system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
   if (rule.calls === undefined) {
-    return [];
+    return { calls: [], telemetryLines: [] };
   }
-
-  return rule.calls;
+  if (rule.callRefinement === undefined) {
+    return { calls: rule.calls, telemetryLines: [] };
+  }
+  return rule.callRefinement(rule.calls, context, system);
 }

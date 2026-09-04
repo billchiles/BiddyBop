@@ -1,13 +1,10 @@
 import { useEffect, useRef, useMemo, useState, type FormEvent } from 'react';
-import { BiddingRules } from '../models/bidding-rules';
-import {  getActiveBiddingRules } from '../models/biddingEvaluation';
-import { evaluateUserCall, getApplicableCandidateCalls, type RuleEvaluationContext,
-         type UserBidEvaluationResult, normalizeCallInput } from '../models/biddingEvaluation';
+import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult,
+         normalizeCallInput } from '../models/biddingEvaluation';
 import { getHandFacts, type Deal } from '../models/cards';
-import { type Call, defaultBiddingSystem } from '../models/bidding-types';
+import { type Call, defaultBiddingSystem, type RuleEvaluationContext } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
-const activeBiddingRules = getActiveBiddingRules(BiddingRules, defaultBiddingSystem);
 
 /// BidPanel owns the visible auction practice area while App keeps telemetry separate.
 export interface BidPanelProps {
@@ -25,8 +22,8 @@ interface AuctionCall {
 export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [auctionCalls, setAuctionCalls] = useState<AuctionCall[]>([]);
-  const [northResult, setNorthResult] = useState<UserBidEvaluationResult | null>(null);
-  const [southResult, setSouthResult] = useState<UserBidEvaluationResult | null>(null);
+  const [northResult, setNorthResult] = useState<BidEvalResult | null>(null);
+  const [southResult, setSouthResult] = useState<BidEvalResult | null>(null);
   const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
   const explanationRef = useRef<HTMLPreElement | null>(null);
 
@@ -78,8 +75,7 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       onTelemetry(lines);
       return;
     }
-
-    const result = evaluateUserCall(normalizedCall, activeBiddingRules, northContext);
+    const result = evaluateUserCall(normalizedCall, northContext, defaultBiddingSystem);
     const nextAuctionCalls: AuctionCall[] = [
       { seat: 'N', call: normalizedCall },
       { seat: 'E', call: 'Pass' },
@@ -121,7 +117,7 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
       handFacts: getHandFacts(deal.S),
       partnerOpeningCall: northCall,
     };
-    const result = evaluateUserCall(southCall, activeBiddingRules, southContext);
+    const result = evaluateUserCall(southCall, southContext, defaultBiddingSystem);
     const nextAuctionCalls: AuctionCall[] = [
       ...auctionCalls,
       { seat: 'S', call: southCall },
@@ -173,8 +169,8 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
   );
 }
 
-function getNextBidLabel(northResult: UserBidEvaluationResult | null,
-                         southResult: UserBidEvaluationResult | null): string {
+function getNextBidLabel(northResult: BidEvalResult | null,
+                         southResult: BidEvalResult | null): string {
   if (northResult === null) {
     return 'North:';
   }
@@ -184,7 +180,7 @@ function getNextBidLabel(northResult: UserBidEvaluationResult | null,
   return 'West:';
 }
 
-function buildExplanationLines(title: string, result: UserBidEvaluationResult): string[] {
+function buildExplanationLines(title: string, result: BidEvalResult): string[] {
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
 

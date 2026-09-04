@@ -65,7 +65,7 @@ export function getHandFacts (hand: Hand): HandFacts {
   const voidCount = sortedLengths.filter((length) => length === 0).length;
   const singletonCount = sortedLengths.filter((length) => length === 1).length;
   const doubletonCount = sortedLengths.filter((length) => length === 2).length;
-  const shortPoints = voidCount * 3 + singletonCount;
+  const shortPoints = voidCount * 5 + singletonCount * 3 + doubletonCount;
   // Characterize distribution
   const balanced = voidCount === 0 && singletonCount === 0 && doubletonCount <= 1;
   const semiBalanced = voidCount === 0 && singletonCount <= 1;
@@ -115,27 +115,54 @@ export interface DealWTelemetry {
 const maxDealAttempts = 100;
 
 export function generateOpenableNorthDeal (): DealWTelemetry {
-  // Collect any debugging or app analysis info
   const telemetryLines: string[] = [];
-  // loop until we have a hand with opening points
+  // This is only a deal-generation shortcut, not the bidding evaluator.  Include the common ways
+  // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
     let deal = dealRandomHands();
-    const rawHcpBySeat = getHcpBySeat(deal);
-    const firstOpenableSeat = seats.find(s => rawHcpBySeat[s] >= 12);
+    const firstOpenableSeat = seats.find((seat) => isPracticeOpeningHand(getHandFacts(deal[seat])));
     if (firstOpenableSeat !== undefined) {
+      const hcpBySeat = getHcpBySeat(deal);
       telemetryLines.push(
-        `Deal attempt ${attemptIndex}: HCP N=${rawHcpBySeat.N} E=${rawHcpBySeat.E} ' +
-        'S=${rawHcpBySeat.S} W=${rawHcpBySeat.W}.`);
+        `Deal attempt ${attemptIndex}: HCP N=${hcpBySeat.N} E=${hcpBySeat.E} ` +
+        `S=${hcpBySeat.S} W=${hcpBySeat.W}.`);
       if (firstOpenableSeat !== 'N') {
         deal = rotateOpeningToNorth(deal, firstOpenableSeat);
-        telemetryLines.push(`First 12+ HCP hand was ${firstOpenableSeat}; rotated it to North.`);
+        telemetryLines.push(`First practice-opening hand was ${firstOpenableSeat}; rotated it to North.`);
       }
       return { deal, telemetryLines };
     }
   } // for
   const fallbackDeal = dealRandomHands();
-  telemetryLines.push(`No 12+ HCP hand found after ${maxDealAttempts} attempts; using final random deal.`);
+  telemetryLines.push(
+    `No practice-opening hand found after ${maxDealAttempts} attempts; using final random deal.`);
   return { deal: fallbackDeal, telemetryLines };
+}
+
+/// isPracticeOpeningHand keeps random deal generation from waiting only for a 12-HCP hand.  The
+/// actual evaluator remains authoritative about which opening calls match.
+function isPracticeOpeningHand (facts: HandFacts): boolean {
+  if (facts.totalPointsWLength >= 12) {
+    return true;
+  }
+
+  const twoLongestSuitLengths = Object.values(facts.lengths).sort((a, b) => b - a).slice(0, 2);
+  const ruleOf20Value = facts.hcp + (twoLongestSuitLengths[0] ?? 0) + (twoLongestSuitLengths[1] ?? 0);
+  if (ruleOf20Value >= 20) {
+    return true;
+  }
+
+  if (facts.hcp >= 5 && facts.hcp <= 10 &&
+      (facts.lengths.D >= 6 || facts.lengths.H >= 6 || facts.lengths.S >= 6)) {
+    return true;
+  }
+
+  if (facts.hcp >= 5 && facts.hcp <= 12 &&
+      Math.max(facts.lengths.C, facts.lengths.D, facts.lengths.H, facts.lengths.S) >= 7) {
+    return true;
+  }
+
+  return false;
 }
 
 /// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a

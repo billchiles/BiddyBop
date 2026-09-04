@@ -1,71 +1,120 @@
-/// Core types for the first bridge-trainer convention-data spike.
+/// Core types and current bidding-system settings for the bridge trainer.
 ///
 
+import type { Hand, HandFacts } from './cards';
+
+///
+//// Baisic card, suit, bid types
+///
 
 /// A Strain is a suit or NT.
 export type Strain = 'C' | 'D' | 'H' | 'S' | 'NT';
+/// strainOrder helps with determining next lowest possible bid
+export const strainOrder: Strain[] = ['C', 'D', 'H', 'S', 'NT'];
 /// A suit bid is a level plus denomination, such as 1C, 1H, or 3NT.
 export type SuitBid = `${1 | 2 | 3 | 4 | 5 | 6 | 7}${Strain}`;
 /// A call is anything a player can say on their turn in the auction.
 export type Call =
   | SuitBid
-  | "Pass"
-  | "Double"
-  | "Redouble";
+  | 'Pass'
+  | 'Double'
+  | 'Redouble';
 export type Role = 'opener' | 'responder';
 
+///
+//// Bidding System conventions and agreements types
+///
+
 export type OneNtOpeningAgreement = '15-17' | '16-18';
-export type MinorJumpShiftAgreement = 'weak' | 'strong';
+export type JumpShiftAgreement = 'weak' | 'strong';
 export type MajorOneNtResponseAgreement = 'forcing' | 'nonForcing';
+export type TwoLevelNewSuitResponseAgreement = 'standard' | 'twoOverOne';
 export type MajorGameForceWithSupportAgreement = 'newSuitThenRaise' | 'jacoby2NT';
 
+/// BiddingSystem is the set of partnership agreements used for the current practice session.
+/// It is intentionally a palette of independent choices, not a named-system preset.
+///
 export interface BiddingSystem {
+  // Normal balanced 1NT opening range.
   oneNtOpening: OneNtOpeningAgreement;
-  minorJumpShift: MinorJumpShiftAgreement;
+  // If true, a balanced hand one HCP below the normal 1NT range can upgrade with a five-card suit.
+  oneNtFiveCardLengthUpgrade: boolean;
+  // Weak versus classic strong jump shifts after a one-level suit opening.
+  jumpShift: JumpShiftAgreement;
+  // Standard two-level new-suit response versus the 2/1 game-force treatment.
+  twoLevelNewSuitResponse: TwoLevelNewSuitResponseAgreement;
+  // Whether 1NT over partner's major is forcing/semi-forcing or Standard non-forcing.
   majorOneNtResponse: MajorOneNtResponseAgreement;
+  // Game-forcing major support via a new suit then raise, or artificial Jacoby 2NT with 4+ support.
   majorGameForceWithSupport: MajorGameForceWithSupportAgreement;
+  // Stayman asks a notrump opener for a four-card major.
   stayman: boolean;
+  // Jacoby transfers use 2D/2H over 1NT, or 3D/3H over 2NT, to transfer to responder's major.
   jacobyTransfers: boolean;
+  // Splinters are double-jump new-suit responses showing major support and a singleton or void.
+  splinters: boolean;
+  // Texas transfers use 4D/4H to transfer to 4H/4S.
+  texasTransfers: boolean;
 }
 
 export const defaultBiddingSystem: BiddingSystem = {
   oneNtOpening: '15-17',
-  minorJumpShift: 'strong',
+  oneNtFiveCardLengthUpgrade: false,
+  jumpShift: 'strong',
+  twoLevelNewSuitResponse: 'standard',
   majorOneNtResponse: 'nonForcing',
   majorGameForceWithSupport: 'newSuitThenRaise',
   stayman: true,
   jacobyTransfers: true,
+  splinters: true,
+  texasTransfers: true,
 };
 
+/// BiddingAgreement is a convention agreement and a value for it, sometimes just a boolean yes/no.
+/// Bidding rules declarations can tag a bid rule with an agreement value, and when selecting rules
+/// the global defaultBiddingSystem needs to match the agreement setting.  note is a short
+/// source-code reminder of the treatment, not evaluator input.
+///
 export type BiddingAgreement =
-  | { setting: 'oneNtOpening'; value: OneNtOpeningAgreement }
-  | { setting: 'minorJumpShift'; value: MinorJumpShiftAgreement }
-  | { setting: 'majorOneNtResponse'; value: MajorOneNtResponseAgreement }
-  | { setting: 'majorGameForceWithSupport'; value: MajorGameForceWithSupportAgreement }
-  | { setting: 'stayman'; value: boolean }
-  | { setting: 'jacobyTransfers'; value: boolean };
+  | { setting: 'oneNtOpening'; value: OneNtOpeningAgreement; note?: string }
+  | { setting: 'oneNtFiveCardLengthUpgrade'; value: boolean; note?: string }
+  | { setting: 'jumpShift'; value: JumpShiftAgreement; note?: string }
+  | { setting: 'twoLevelNewSuitResponse'; value: TwoLevelNewSuitResponseAgreement; note?: string }
+  | { setting: 'majorOneNtResponse'; value: MajorOneNtResponseAgreement; note?: string }
+  | { setting: 'majorGameForceWithSupport'; value: MajorGameForceWithSupportAgreement; note?: string }
+  | { setting: 'stayman'; value: boolean; note?: string }
+  | { setting: 'jacobyTransfers'; value: boolean; note?: string }
+  | { setting: 'splinters'; value: boolean; note?: string }
+  | { setting: 'texasTransfers'; value: boolean; note?: string };
 
+/// biddingBaseline records fixed assumptions of the current practice system.  These are mostly
+/// machine-readable comments; configurable choices belong in BiddingSystem instead.  If some aspect
+/// here became interesting to turn on and off for a beginner, such as weak 2s or 3s, these settings
+/// could move to BiddingSystem.
+///
 export const biddingBaseline = {
   description: 'Standard American / SAYC-like system with selected modern adaptations',
-  //
   // Opening fundamentals
   fiveCardMajors: true,
   openingMinPoints: 12,
-  //openingMaxPointsBeforeStrong2C: 21,
   convenientMinors: true,
   convenientMinorsDetails:
     'Open longer minor; four cards in both minors, open 1D; three cards in both minors open 1C',
   strong2COpening: true,
   strong2CMinHcp: 22,
-  //strong2CArtificial: true,
   weakTwos: true,
-  // weakTwoSuits: ['D', 'H', 'S'],
   weakTwoMinSuitLength: 6,
   weakTwoPointRange: { min: 5, max: 10 },
   weakThrees: true,
   weakThreeMinSuitLength: 7,
-  weakThreePointRange: { min: 6, max: 9 },
-  //
+  // The source gives suit quality/playing-trick guidance rather than a strict HCP range for 3+ preempts.
+  weakThreePointRange: { min: 5, max: 12 },
+  // Gerber is 4C after a notrump opening, asking for aces.
+  gerberAfterNotrump: true,
+  // 4NT after a notrump opening is quantitative, not Blackwood.
+  fourNtAfterNotrumpIsQuantitative: true,
+  // Blackwood 4NT asks for aces after a suit auction.
+  blackwoodAfterSuitBid: true,
   // Basic responding principles
   oneSuitMinResponsePoints: 6,
   oneSuitMinResponseNewSuitLength: 4,
@@ -75,55 +124,56 @@ export const biddingBaseline = {
   respondConvenientMinorDetails : "if equal lengths of 4, bid up the line, if 5+, down the line ",
   responseToMinorFourCardMajorsUpTheLine: true,
   // Basic suit lengths implications
-  RebidOpeningSuitTypicalMinLength: 6,
+  rebidOpeningSuitTypicalMinLength: 6,
   // Hand valuation assumptions
   ordinaryTotalPointsUseLengthPoints: true,
   supportTotalPointsUseShortagePoints: true,
-} as const; // biddingBaseline as const makes all properties readonly
+};
 
+///
+//// Types for declaring bidding rules
+///
+
+export interface BidRule {
+  id: string;
+  kind: RuleKind;
+  title: string;
+  auctionContext?: AuctionContext;
+  agreement?: BiddingAgreement;
+  calls?: Call[];
+  callRefinement?: CallRefinementFunction;
+  callCategory?: CallCategory[];
+  priority?: {
+    rank?: number;
+    note?: string;
+  };
+  appliesWhen?: HandConstraint | AppliesWhenFunction;
+  meaning?: string; // what bidder is conveying to partner
+  guidance?: string[]; // bid explanation info as well as how to refine and choose a bid
+  alternatives?: string[];
+  certainty: 'high' | 'medium' | 'low';
+  reviewNotes?: string[];
+}
 
 export type CallCategory =
-  | 'forcing'
-  | 'gameForcing'
-  | 'invitational'
-  | 'signoff'
-  | 'conventional'
-  | 'natural'
-  | 'partnershipAgreement';
+  | 'forcing' // partner needs to bid if there was no intervening bid
+  | 'gameForcing' // must keep bidding until game
+  | 'invitational' // partner can bid or pass
+  | 'signoff' // stop bidding, this is the highest bid we can make
+  | 'conventional' // stayman, jacoby, etc.
+  | 'natural';
 
 export type RuleKind =
   | 'valuation'
   | 'openingBid'
   | 'responseBid'
+  | 'overcall'
+  | 'advance'
+  | 'openerRebid'
   | 'priority'
   | 'rebidGuidance'
-  | 'styleVariant'
   | 'footnote'
   | 'concept';
-
-export interface PointRange {
-  min?: number;
-  max?: number;
-}
-
-export interface SuitLengthConstraint {
-  suit?: Strain | 'major' | 'minor';
-  min?: number;
-  max?: number;
-  exact?: number;
-}
-
-export interface HandShapeConstraint {
-  balanced?: boolean;
-  semiBalanced?: boolean;
-  noVoid?: boolean;
-  noSingleton?: boolean;
-  maxDoubletons?: number;
-  noFourCardMajor?: boolean;
-  noFourCardOtherMajor?: boolean;
-  noFiveCardMajor?: boolean;
-  text?: string;
-}
 
 export interface HandConstraint {
   hcp?: PointRange;
@@ -136,35 +186,70 @@ export interface HandConstraint {
   stoppers?: string[];
 }
 
+export interface PointRange {
+  min?: number;
+  max?: number;
+}
+
+export interface SuitLengthConstraint {
+  suit?: Strain | 'major' | 'minor';
+  min?: number; // inclusive
+  max?: number; // inclusive
+  exact?: number;
+}
+
+export interface HandShapeConstraint {
+  balanced?: boolean;
+  semiBalanced?: boolean; // true if distribution is 4-3-3-3, 4-4-3-2, or 5-3-3-2
+  noVoid?: boolean;
+  noSingleton?: boolean;
+  maxDoubletons?: number;
+  noFourCardMajor?: boolean;
+  noFourCardOtherMajor?: boolean;
+  noFiveCardMajor?: boolean;
+  text?: string;
+}
+
 export interface AuctionContext {
   role: Role;
-  // Rule auction contexts are incomplete for the first punch-through.
-  // Responder contexts record opener's call only and omit opponent passes or interference.
+  // Responder contexts currently record opener's call only; opponent passes/interference are omitted.
   auction: Call[];
   description?: string;
-  assumesUncontested?: boolean;
   openerStrain?: Strain | 'minor' | 'major';
   responderHasPassedInitially?: boolean;
 }
 
-export interface BidRule {
-  id: string;
-  kind: RuleKind;
-  title: string;
-  auctionContext?: AuctionContext;
-  agreement?: BiddingAgreement;
-  calls?: Call[];
-  callCategory?: CallCategory[];
-  priority?: {
-    rank?: number;
-    note?: string;
-  };
-  appliesWhen?: HandConstraint;
-  meaning?: string;
-  guidance?: string[];
-  alternatives?: string[];
-  style?: 'modern' | 'classic' | 'twoOverOne' | 'standard' | 'partnershipAgreement';
-  certainty: 'high' | 'medium' | 'low';
-  reviewNotes?: string[];
+/// A function-valued appliesWhen is a normal compiled TypeScript function reference.  The evaluator
+/// invokes it; declaring the function on a rule does not immediately execute it.
+export type AppliesWhenFunction = (
+  call: Call,
+  context: RuleEvaluationContext,
+  system: BiddingSystem,
+) => AppliesWhenResult;
+
+export interface AppliesWhenResult {
+  pass: boolean;
+  telemetryLines: string[];
+}
+
+/// callRefinement turns a rule's broad declared calls into the calls valid for this exact auction.
+export type CallRefinementFunction = (
+  calls: Call[],
+  context: RuleEvaluationContext,
+  system: BiddingSystem,
+) => CallRefinementResult;
+
+export interface CallRefinementResult {
+  calls: Call[];
+  telemetryLines: string[];
+}
+
+/// RuleEvaluationContext contains the actual auction/hand state available to rule functions.
+export interface RuleEvaluationContext {
+  role: Role;
+  auction: Call[];
+  hand: Hand;
+  handFacts: HandFacts;
+  partnerOpeningCall: Call | null;
 }
 
