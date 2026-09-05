@@ -4,7 +4,7 @@
 import type { Hand, HandFacts } from './cards';
 
 ///
-//// Baisic card, suit, bid types
+//// Basic card, suit, bid types
 ///
 
 /// A Strain is a suit or NT.
@@ -107,7 +107,8 @@ export const biddingBaseline = {
   weakTwoPointRange: { min: 5, max: 10 },
   weakThrees: true,
   weakThreeMinSuitLength: 7,
-  // The source gives suit quality/playing-trick guidance rather than a strict HCP range for 3+ preempts.
+  // The source gives suit quality/playing-trick guidance rather than a strict HCP range for 3+
+  // preempts.
   weakThreePointRange: { min: 5, max: 12 },
   // Gerber is 4C after a notrump opening, asking for aces.
   gerberAfterNotrump: true,
@@ -150,8 +151,12 @@ export interface BidRule {
   appliesWhen?: HandConstraint | AppliesWhenFunction;
   meaning?: string; // what bidder is conveying to partner
   guidance?: string[]; // bid explanation info as well as how to refine and choose a bid
+  // Human-readable alternate treatments or choices worth showing/reviewing.  Not evaluator input.
   alternatives?: string[];
+  // Authoring confidence in this rule's modeling, not the probability that a bid is correct.
   certainty: 'high' | 'medium' | 'low';
+  // Developer/author notes about source ambiguity, modeling questions, or future cleanup.  Not user
+  // advice and not evaluator input.
   reviewNotes?: string[];
 }
 
@@ -159,9 +164,9 @@ export type CallCategory =
   | 'forcing' // partner needs to bid if there was no intervening bid
   | 'gameForcing' // must keep bidding until game
   | 'invitational' // partner can bid or pass
-  | 'signoff' // stop bidding, this is the highest bid we can make
+  | 'signoff' // asks partner to pass/stop bidding absent interference
   | 'conventional' // stayman, jacoby, etc.
-  | 'natural';
+  | 'natural'; // face value bid rather than an artificial convention meaning
 
 export type RuleKind =
   | 'valuation'
@@ -200,6 +205,7 @@ export interface SuitLengthConstraint {
 
 export interface HandShapeConstraint {
   balanced?: boolean;
+  // TODO: review code that it reflect bidding books that these are the semi-balanced shapes
   semiBalanced?: boolean; // true if distribution is 4-3-3-3, 4-4-3-2, or 5-3-3-2
   noVoid?: boolean;
   noSingleton?: boolean;
@@ -228,7 +234,7 @@ export type AppliesWhenFunction = (
 ) => AppliesWhenResult;
 
 export interface AppliesWhenResult {
-  pass: boolean;
+  success: boolean;
   telemetryLines: string[];
 }
 
@@ -240,6 +246,9 @@ export type CallRefinementFunction = (
 ) => CallRefinementResult;
 
 export interface CallRefinementResult {
+  // Candidate calls after auction and hand facts constraints applied.  Preserve meaningful
+  // preference order when a rule defines one; the evaluator does not assume the first call is
+  // uniquely correct.
   calls: Call[];
   telemetryLines: string[];
 }

@@ -30,7 +30,7 @@ The app should help the user practice bidding decisions using structured convent
 - For boolean values, use direct boolean checks such as `if (isBalanced)` or `if (!isBalanced)`.
 - Do not write `prop?: T | undefined`; use `prop?: T`.
 - Use `prop: T | undefined` only when the property must always exist but may hold undefined.
-- Define types and functions before other later types/functions that refer to the earlier definitions.
+- Prefer higher-level callers before lower-level helper/callee functions so a file reads top-down from intent to implementation. TypeScript function declarations may appear after their callers.
 - Prefer readable, explicit domain code over clever abstractions.
 - Most functions should have comments that explain purpose, domain meaning, inputs, outputs, and important invariants.  Very small functions whose names say it all, usually don't need comments.
 - Do not emit comments that merely restate the code.

@@ -71,7 +71,9 @@ export interface BidEvalResult {
   normalizedCall: Call | null;
   userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
   handMatchingRules: BidRule[]; // Rules that match the hand, ruleResults elt.ruleApplies is true
-  ruleResults: RuleEvaluationResult[]; // one element for every rule in rule DB
+  // ruleResults has one element for each considered rule when the auction context and hand facts
+  // satisfied constraints
+  ruleResults: RuleEvaluationResult[]; 
   telemetryLines: string[];
 }
 
@@ -242,12 +244,8 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
 }
 
 
-
-
-
-
-/// evaluateCandidateCall evaluates one concrete call from one rule.  If no appliesWhen:, then the
-/// rule applies at any point in an auction.
+/// evaluateCandidateCall evaluates one concrete call from one already auction-matched rule.  If
+/// there is no appliesWhen, the call has no additional hand constraint.
 ///
 function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluationContext,
                                 system: BiddingSystem): CandidateCallMatch {
@@ -266,12 +264,12 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluati
     result = evaluateHandConstraint(appliesWhen, call, context);
   }
   telemetryLines.push(...result.telemetryLines);
-  if (result.pass) {
+  if (result.success) {
     telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
-  return { rule, call, ruleApplies: result.pass, telemetryLines };
+  return { rule, call, ruleApplies: result.success, telemetryLines };
 }
 
 ///
@@ -322,7 +320,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push('UNSUPPORTED: stoppers is not evaluated in the first punch-through.');
     pass = false;
   }
-  return { pass, telemetryLines };
+  return { success: pass, telemetryLines };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)
@@ -348,15 +346,15 @@ function testTotalPointsRange (context: RuleEvaluationContext, constraint: HandC
   return { pass: lengthResult.pass, telemetryLines: [lengthResult.telemetryLine] };
 }
 
-/// testSuitLengths takes a suit constraint length for a bidding rule and compares it to the
-/// partner's call and the bidder's hand.  NOTE, if their are no targets suits, then no suit was
-/// specified, and partners call was NT.
+/// testSuitLengths compares one declared suit-length constraint with the bidder's hand.  When the
+/// constraint omits a suit, getSuitsForLengthTesting binds it to the candidate call's suit.
 ///
 function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFacts: HandFacts)
                          : { pass: boolean; telemetryLine: string } {
   const targetSuits = getSuitsForLengthTesting(constraint, call);
   if (targetSuits.length === 0) {
-    return { pass: false, telemetryLine: `FAIL: no target suit for suit length constraint on call ${call}.` };
+    return { pass: false, 
+             telemetryLine: `FAIL: no target suit for suit length constraint on call ${call}.` };
   }
   // See if hand has length is listed suits
   for (const suit of targetSuits) {
@@ -370,15 +368,17 @@ function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFact
     if (constraint.max !== undefined && length > constraint.max) {
       continue;
     }
-    return { pass: true, telemetryLine: `PASS: ${suit} length ${length} satisfies suit length constraint.` };
+    return { pass: true, 
+             telemetryLine: `PASS: ${suit} length ${length} satisfies suit length constraint.` };
   }
-  return { pass: false, telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
+  return { pass: false, 
+           telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
 }
 
-/// Returns the suit(s) that a suit-length constraint applies to.  If the rule specifies a specific 
-/// suit, use that suit.  If the rule omits the suit, apply the constraint to the candidate call's 
-/// suit.  This is usually used for a response rule, so the suit length constraint is about the
-/// partner's suit.  There an anySuitLength rule property for those semantics.
+/// getSuitsForLengthTesting returns the suit(s) tested by one suit-length constraint.  A named
+/// suit/major/minor is explicit; an omitted suit means the candidate call's suit.  anySuitLength is
+/// reserved for the different semantics of asking whether some arbitrary suit in the hand meets a
+/// condition.
 ///
 function getSuitsForLengthTesting (constraint: SuitLengthConstraint, call: Call): Suit[] {
   if (constraint.suit === 'major') return ['H', 'S'];
@@ -396,7 +396,7 @@ function getSuitsForLengthTesting (constraint: SuitLengthConstraint, call: Call)
   return [];
 }
 
-/// testHandShapeMatches checks the handFacts against the shape constraints -- balanced, lengths, etc.
+/// testHandShape checks handFacts against the rule's balanced/distribution-shape constraints.
 ///
 function testHandShape (shape: HandShapeConstraint, call: Call, 
                         handFacts: HandFacts): { pass: boolean; telemetryLines: string[] } {
@@ -473,7 +473,7 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
 //   return handFacts.hasFourCardMajor === false;
 // }
 
-/// supportMatches determines whether the responder satisfies a support requirement from a bidding  
+/// testSupportFor determines whether the responder satisfies a support requirement from a bidding  
 /// rule.  A rule may require support for opener's suit and may require a minimum support length.
 /// supportLength may be undefined because it comes from a declared rule that may omit the property.
 ///
@@ -521,7 +521,10 @@ function getSupportSuit (supportFor: HandConstraint['supportFor'],
 //// Rule Testing Utilities -- interpreting rule declarations in context of actual hands, etc.
 ///
 
-/// BETTERNAME
+/// auctionContextMatches tests whether a rule's stage (opening, responding,
+/// overcalling)/representative auction declaration matches the actual evaluation context before any
+/// hand constraints are considered.
+///
 function auctionContextMatches (ruleContext: AuctionContext | undefined, 
                          evaluationContext: RuleEvaluationContext): boolean {
   if (ruleContext === undefined) {
@@ -581,6 +584,9 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   return callSuit === openerStrain;
 }
 
+/// getRuleCalls returns a rule's declared calls, or lets callRefinement narrow them for the actual
+/// auction.
+///
 function getRuleCalls (rule: BidRule, context: RuleEvaluationContext,
                        system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
   if (rule.calls === undefined) {
