@@ -2,7 +2,8 @@ import { useEffect, useRef, useMemo, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult,
          normalizeCallInput } from '../models/biddingEvaluation';
 import { getHandFacts, type Deal } from '../models/cards';
-import { type Call, defaultBiddingSystem, type RuleEvaluationContext } from '../models/bidding-types';
+import { type BidRule, type Call, defaultBiddingSystem,
+         type RuleEvaluationContext } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
@@ -180,28 +181,23 @@ function getNextBidLabel(northResult: BidEvalResult | null,
   return 'West:';
 }
 
-function buildExplanationLines(title: string, result: BidEvalResult): string[] {
+function buildExplanationLines (title: string, result: BidEvalResult): string[] {
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
-
   lines.push(title);
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
-
   if (result.userCallMatchingRules.length === 0) {
     lines.push('No rule satisfied by this call.');
+    const preferredRule = result.handMatchingRules[0];
+    if (preferredRule !== undefined) {
+      lines.push('');
+      lines.push('Highest-priority applicable rule:');
+      appendRuleExplanation(lines, preferredRule);
+    }
   } else {
     lines.push('Rules satisfied by user call:');
     for (const rule of result.userCallMatchingRules) {
-      lines.push(`- ${rule.id}: ${rule.title}`);
-      if (rule.meaning !== undefined && rule.meaning !== '') {
-        lines.push(`  Meaning: ${rule.meaning}`);
-      }
-      if (rule.guidance !== undefined && rule.guidance.length !== 0) {
-        for (const guidanceLine of rule.guidance) {
-          lines.push(`  ${guidanceLine}`);
-        }
-      }
-    }
+      appendRuleExplanation(lines, rule);    }
   }
 
   lines.push('');
@@ -215,6 +211,18 @@ function buildExplanationLines(title: string, result: BidEvalResult): string[] {
   }
 
   return lines;
+} // buildExplanationLines()
+
+function appendRuleExplanation (lines: string[], rule: BidRule): void {
+  lines.push(`- ${rule.id}: ${rule.title}`);
+  if (rule.meaning !== undefined && rule.meaning !== '') {
+    lines.push(`  Meaning: ${rule.meaning}`);
+  }
+  if (rule.guidance !== undefined) {
+    for (const guidanceLine of rule.guidance) {
+      lines.push(`  ${guidanceLine}`);
+    }
+  }
 }
 
 function buildAuctionRows(auctionCalls: AuctionCall[]): AuctionCall[][] {

@@ -33,13 +33,14 @@ export interface Hand {
 /// HandFacts represent various attributes of a hand used for bidding.
 export interface HandFacts {
   hcp: number;
+  hcpBySuit: Record<Suit, number>;
   totalPointsWLength: number;
   lengthPoints: number;
   shortPoints: number;
   totalPointsWShortage: number;
   lengths: Record<Suit, number>;
   balanced: boolean;
-  semiBalanced: boolean;
+  balancedOrSemiBalanced: boolean;
   voidCount: number;
   singletonCount: number;
   doubletonCount: number;
@@ -51,7 +52,8 @@ export function getHandFacts (hand: Hand): HandFacts {
   // Count card lenghts
   const lengths: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0 };
   for (const card of hand.cards) { lengths[card.suit] += 1; }
-  const hcp = getHcp(hand);
+  const hcpBySuit = getHcpBySuit(hand);
+  const hcp = hcpBySuit.C + hcpBySuit.D + hcpBySuit.H + hcpBySuit.S;
   // Count long suits
   let lengthPoints = 0;
   for (const suit of suits) {
@@ -68,24 +70,43 @@ export function getHandFacts (hand: Hand): HandFacts {
   const shortPoints = voidCount * 5 + singletonCount * 3 + doubletonCount;
   // Characterize distribution
   const balanced = voidCount === 0 && singletonCount === 0 && doubletonCount <= 1;
-  const semiBalanced = voidCount === 0 && singletonCount <= 1;
+  // Balanced or semi-balanced: at least two cards in every suit and at most two doubletons.
+  const balancedOrSemiBalanced = lengths.C >= 2 && lengths.D >= 2 && lengths.H >= 2 && 
+                                 lengths.S >= 2 && doubletonCount <= 2;
   const hasFourCardMajor = lengths.H >= 4 || lengths.S >= 4;
   const hasFiveCardMajor = lengths.H >= 5 || lengths.S >= 5;
   return {
     hcp,
+    hcpBySuit,
     totalPointsWLength: hcp + lengthPoints,
     lengthPoints: lengthPoints,
     shortPoints: shortPoints,
     totalPointsWShortage: hcp + shortPoints,
     lengths,
     balanced,
-    semiBalanced,
+    balancedOrSemiBalanced,
     voidCount,
     singletonCount,
     doubletonCount,
     hasFourCardMajor,
     hasFiveCardMajor,
   };
+}
+
+function getHcpBySuit (hand: Hand): Record<Suit, number> {
+  const hcpBySuit: Record<Suit, number> = { C: 0, D: 0, H: 0, S: 0 };
+  for (const card of hand.cards) {
+    if (card.rank === 'A') {
+      hcpBySuit[card.suit] += 4;
+    } else if (card.rank === 'K') {
+      hcpBySuit[card.suit] += 3;
+    } else if (card.rank === 'Q') {
+      hcpBySuit[card.suit] += 2;
+    } else if (card.rank === 'J') {
+      hcpBySuit[card.suit] += 1;
+    }
+  }
+  return hcpBySuit;
 }
 
 export function getCardsForSuit (hand: Hand, suit: Suit): Card[] {

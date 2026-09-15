@@ -1,10 +1,10 @@
 /// Bidding rules characterizations and bidding notes.  Not sure yet what is needed or how it will
 /// be used, so iterating toward a design with some punch through code on bidding.
 
-import type { BidRule, BiddingSystem, Call, CallRefinementResult, RuleEvaluationContext,
-                   AppliesWhenResult, Strain, SuitBid } from './bidding-types';
+import { type BidRule, type BiddingSystem, type Call, type CallRefinementResult, type RuleEvaluationContext,
+                   type AppliesWhenResult, type Strain, type SuitBid, biddingBaseline } from './bidding-types';
 import { strainOrder, } from './bidding-types';
-
+import { getCardsForSuit, type Suit } from '../models/cards';
 ///
 //// Bidding Rules
 ///
@@ -19,14 +19,17 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open 1NT with balanced 15-17',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['1NT'],
-    callCategory: ['natural'],
+    // natural is sentinal: maybeSuppressConvenientMinor() looks for this
+    callCategory: ['invitational', 'natural'], 
     agreement: { setting: 'oneNtOpening', value: '15-17', 
                  note: 'Standard 15-17 balanced 1NT range.' },
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 15, max: 17 }, shape: { balanced: true }, 
                    }, //suitLengths: [{ suit: 'H', max: 4 }, { suit: 'S', max: 4 }] },
     meaning: 'Balanced hand in the 1NT range.',
-    guidance: ['You can bid 1NT with a 5-card major.'],
+    guidance: ['You can bid 1NT with a 5-card major.',
+               'Do not consider a convenient minor when the hand fits a natural 1NT opening; ' +
+                  '1NT describes both strength and shape more precisely.', ],
     certainty: 'high',
   },
   //
@@ -37,28 +40,33 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open 1NT with balanced 16-18',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['1NT'],
-    callCategory: ['natural'],
+    // natural is sentinal: maybeSuppressConvenientMinor() looks for this
+    callCategory: ['invitational', 'natural'], 
     agreement: { setting: 'oneNtOpening', value: '16-18', 
                  note: 'Alternate 16-18 balanced 1NT range.' },
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 16, max: 18 }, shape: { balanced: true } },
     meaning: 'Balanced hand in the 1NT range.',
-    guidance: ['You can bid 1NT with a 5-card major.'],
+    guidance: ['You can bid 1NT with a 5-card major.',
+               'Do not consider a convenient minor when the hand fits a natural 1NT opening; ' +
+                  '1NT describes both strength and shape more precisely.', ],
     certainty: 'high',
   },
   //
   {
     id: 'open-1nt-five-card-length-upgrade',
-    // Upgrades a balanced hand one HCP for five-card suit by agreement.
+    // Upgrades a balanced hand one HCP with a five-card major by agreement.
     kind: 'openingBid',
-    title: 'Upgrade a balanced five-card-suit hand into the 1NT range',
+    title: 'Upgrade a balanced five-card-major hand into the 1NT range',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['1NT'],
-    callCategory: ['natural'],
+    // natural is sentinal: maybeSuppressConvenientMinor() looks for this
+    callCategory: ['invitational', 'natural'], 
     agreement: { setting: 'oneNtFiveCardLengthUpgrade', value: true,
-                 note: 'Optional one-point upgrade with a five-card suit; off by default.' },
+                 note: 'Optional one-point upgrade with a five-card major; off by default.' },
+    priority: { rank: 100 },
     appliesWhen: oneNtFiveCardLengthUpgradeApplies,
-    meaning: 'Optional length-point treatment permits one HCP below the normal 1NT minimum.',
+    meaning: 'Optional five-card-major treatment permits one HCP below the normal 1NT minimum.',
     certainty: 'high',
   },
   //
@@ -72,7 +80,8 @@ export const OpeningBidRules: BidRule[] = [
     callRefinement: refineOneLevelSuitOpening, // refines according to guidance below
     callCategory: ['natural'],
     priority: { rank: 90 },
-    appliesWhen: { totalPoints: { min: 12, max: 21 }, suitLengths: [ { suit: 'major', min: 5 } ] },
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 },
+                   suitLengths: [ { suit: 'major', min: 5 } ] },
     meaning: 'Open 1H or 1S with a five-card or longer major suit and opening values.',
     guidance: ['With two five-card or longer suits, open the higher-ranking suit.'],
     certainty: 'high',
@@ -86,13 +95,13 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { role: 'opener', auction: [] },
     calls: ['1C', '1D'],
     callRefinement: refineOneLevelSuitOpening,  // refines according to guidance below
-    callCategory: ['natural'],
+    callCategory: ['invitational'],
     priority: { rank: 70 },
-    appliesWhen: { totalPoints: { min: 12, max: 21 }, shape: { noFiveCardMajor: true }, 
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 }, shape: { noFiveCardMajor: true }, 
                    suitLengths: [{ suit: 'major', max: 4 }]},
     meaning: 'Open 1C or 1D with nothing else to do. Open 1D with four cards in both minor suits; ' +
              'open 1C with three cards in both minor suits.',
-    guidance: ['No balanced 15-17 1NT opening.', 'No five-card major.', 
+    guidance: ['No natural NT opening.', 'No five-card major.', 
                '1C may be three-card or longer.', 'Bid longer suit.', 
                'Bid 1D if both minors are four-card.'],
     certainty: 'high',
@@ -105,7 +114,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { role: 'opener', auction: [] },
     calls: ['1C', '1D', '1H', '1S'],
     callRefinement: refineOneLevelSuitOpening, // can't declaratively say which to choose
-    callCategory: ['natural'],
+    callCategory: ['invitational'], // can't be natural because of convenient minors
     appliesWhen: guidelineOf20Applies,
     meaning: 'HCP plus the lengths of the two longest suits is at least 20.',
     guidance: ['Use as an alternate opening-hand valuation in first or second seat.'],
@@ -120,8 +129,12 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open 2NT with balanced 20-21',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['2NT'],
-    callCategory: ['natural'],
+    // natural is sentinal: maybeSuppressConvenientMinor() looks for this
+    callCategory: ['invitational', 'natural'], 
+    priority: { rank: 100 },
     appliesWhen: { hcp: { min: 20, max: 21 }, shape: { balanced: true } },
+    guidance: ['Do not consider a convenient minor when the hand fits the natural 2NT opening; ' +
+                  '2NT describes both strength and shape more precisely.', ],
     meaning: 'Strong balanced opening showing 20-21 points.',
     certainty: 'high',
   },
@@ -135,8 +148,11 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['2C'],
     callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 22 } },
-    guidance: ['Seeing nine or more tricks but fewer than 22 points is ok with any shape.'],
-    meaning: 'Strong artificial opening, any shape.',
+    guidance: ['The strong 2C bid is simplest with 22+ points and any shape, but bidding texts ' +
+               'suggest a 4-4-4-1 distribution might be better opened on the 1 level.  Texts ' +
+               'also mention with nine or more tricks(required experience), fewer than 22 points ' +
+               'is ok.'],
+    meaning: 'Strong artificial and forcing opening; absent interference, partner must respond.',
     certainty: 'high',
   },
   // Weak bids
@@ -148,8 +164,9 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open weak two bid',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['2D', '2H', '2S'],
+    callRefinement: refinePreemptSuitQuality,
+    callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 10 }, suitLengths: [{ min: 6 }] },
-    // TODO: refine appliesWhen for guidance
     guidance: ['Good suit with 5 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
                'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Descriptive and obstructive weak two-bid.',
@@ -163,8 +180,9 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open at the three level with a preemptive hand',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refinePreemptSuitQuality,
+    callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 7 }] },
-    // TODO: refine appliesWhen for guidance
     guidance: ['Good suit with 6 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
                'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Preemptive opening with a good seven-card suit.',
@@ -178,8 +196,9 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open at the four level with a preemptive hand',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['4C', '4D', '4H', '4S'],
+    callRefinement: refinePreemptSuitQuality,
+    callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
-    // TODO: refine appliesWhen for guidance
     guidance: ['Good suit with 7 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
                'such as, A-Q-xxxx or Q-J-10-xxx'],
     meaning: 'Preemptive opening with a good eight-card suit.',
@@ -193,6 +212,8 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Open five of a minor with an exceptional preemptive hand',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['5C', '5D'],
+    callRefinement: refinePreemptSuitQuality,
+    callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 9 }] },
     guidance: ['Rare: good nine-card minor with about eight playing tricks.'],
     meaning: 'Very high-level descriptive and obstructive preempt.',
@@ -206,9 +227,13 @@ export const OpeningBidRules: BidRule[] = [
     title: 'Rare 4NT opening as Blackwood',
     auctionContext: { role: 'opener', auction: [] },
     calls: ['4NT'],
-    callCategory: ['conventional'],
+    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
+    callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 25 } },
-    meaning: 'Blackwood ace-asking opening; marked rare.',
+    guidance: ['Extremely rare and specialized: Blackwood is not a general slam try.',
+               'Use only when the hand is powerful enough that ace count, rather than ordinary ' +
+               'hand description, is the specific remaining information needed.'],
+    meaning: 'Artificial Blackwood ace-asking opening; absent interference, partner must respond.',
     certainty: 'high',
   },
  ]; // OpeningBidRules
@@ -219,15 +244,17 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-minor-w/-new-suit-one-level-priority',
-    // After 1C or 1D, prefer 4+ card major.
     kind: 'responseBid',
     title: 'After 1C or 1D, bid a new suit at the one level first',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
     calls: ['1D', '1H', '1S'],
-    callRefinement: refineNewSuitAtOneLevel, // chooses according to guidance below
+    // After 1C or 1D, prefer 4+ card major.  After 1C or 1D, choose among 4+ one-level new suits.
+    // Candidate suit length is owned by the refiner because it must compare the actual suit lengths
+    // to choose and order the surviving calls.
+    callRefinement: refineOneLevelNewSuitAfterMinor, // chooses according to guidance below
     callCategory: ['forcing'],
     priority: { rank: 100, note: 'Responder priority with 6+ points.' },
-    appliesWhen: { hcp: { min: 6 }, suitLengths: [{ min: 4 }]},
+    appliesWhen: { hcp: { min: 6 }, }, // suitLengths: [{ min: 4 }]}, don't need this due to refiner
     meaning: 'New suit at the one level; forcing.',
     guidance: ['Bid the longest suit.', 
                'With a choice of five-card or six-card suits, bid the higher-ranking suit.', 
@@ -274,10 +301,10 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1C or 1D, respond 1NT with minimum balanced values and no four-card major',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
     calls: ['1NT'],
-    callCategory: ['signoff'],
+    callCategory: ['invitational'],
     priority: { rank: 60 },
     appliesWhen: { hcp: { min: 6, max: 10 }, shape: { balanced: true, noFourCardMajor: true } },
-    meaning: 'Balanced minimum response with no four-card major.',
+    meaning: 'Balanced non-forcing response with no four-card major; opener may pass or continue.',
     certainty: 'high',
   },
   //
@@ -302,10 +329,10 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1C or 1D, respond 3NT with game-going balanced values and no four-card major',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
     calls: ['3NT'],
-    callCategory: ['signoff'],
+    callCategory: ['invitational'],
     priority: { rank: 70 },
     appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true, noFourCardMajor: true } },
-    meaning: 'Balanced game response with no four-card major.',
+    meaning: 'Balanced game response with no four-card major; opener may pass or continue.',
     certainty: 'high',
   },
   //
@@ -318,19 +345,20 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
     calls: ['2C', '2D'],
     callRefinement: refineRaisePartnerSuitBy1, // need to choose based on actual auction
+    callCategory: ['invitational'],
     priority: { rank: 40 },
-    appliesWhen: { hcp: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', 
-                   supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
+    appliesWhen: { hcp: { min: 6, max: 10 }, supportLength: { min: 5 }, 
+                   shape: { noFourCardMajor: true } },
     guidance: ['Usually this means five-card support if convenient minor has three cards.'],
-    meaning: 'Minimum raise of opener minor, usually with five-card or longer support and no ' +
-             'four-card major.',
+    meaning: 'Non-forcing minimum raise of opener minor, usually with five-card or longer ' +
+             'support and no four-card major; opener may pass or continue.',
     certainty: 'medium',
   },
   //
   {
     id: 'respond-to-minor-w/-limit-raise',
     // Make a limit raise to three of opener's minor with 11-12 HCP, long support, and no four-card
-    // major.  Opener should pass.
+    // major.  Opener may pass with a minimum or continue with extra values.
     kind: 'responseBid',
     title: 'Raise opener minor to three with 11-12 and support',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
@@ -338,9 +366,9 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineRaisePartnerSuitBy2, // chooses the right suit from actual auction
     callCategory: ['invitational'],
     priority: { rank: 45 },
-    appliesWhen: { hcp: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
-                   supportLength: { min: 5 }, shape: { noFourCardMajor: true } },
-    meaning: 'Limit raise of opener minor.',
+    appliesWhen: { hcp: { min: 11, max: 12 }, supportLength: { min: 5 }, 
+                   shape: { noFourCardMajor: true } },
+    meaning: 'Invitational limit raise of opener minor; opener may pass or continue with extra values.',
     guidance: ['Some play inverted minors, where single raise is strong, and jump is weak.'],
     certainty: 'medium',
   },
@@ -355,9 +383,9 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineToCheapestNewSuitBids, // chooses best suit for minimum response
     callCategory: ['forcing'],
     priority: { rank: 95 },
-    appliesWhen: { hcp: { min: 13 }, supportFor: 'partnersOpenedSuit', suitLengths: [{ min: 4 }] },
-    guidance: ['Plan to raise later.'],
-    meaning: 'Start with a new suit and plan to show the minor support later.',
+    appliesWhen: { hcp: { min: 13 }, supportLength: { min: 5 }, suitLengths: [{ min: 4 }] },
+    guidance: ['The new-suit response is forcing absent interference.', 'Plan to raise later.'],
+    meaning: 'Start with a forcing new-suit response and plan to show the minor support later.',
     certainty: 'high',
   },
   //
@@ -367,12 +395,13 @@ export const ResponseBidRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Modern weak jump shift after one of a minor',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
-    calls: ['2D', '2H', '2S', '3C', '3D'],
+    calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineJumpNewSuit,  // chooses long suit for minium response
+    callCategory: ['invitational'],
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
-    meaning: 'Weak hand with a six-card suit, preemptive.',
+    meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
   },
   //
@@ -382,14 +411,14 @@ export const ResponseBidRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Classic strong jump shift after one of a minor',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
-    calls: ['2D', '2H', '2S', '3C', '3D'],
+    calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineJumpNewSuit, // chooses longest best minium suit response
     callCategory: ['gameForcing'],
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
     guidance: ['With a good five-card or longer suit and 18-19 points, jump-shift to new suit.'],
-    meaning: 'Classic Standard treats jump shifts as strong.',
+    meaning: 'Classic strong jump shift: game-forcing with a good long suit and slam interest.',
     certainty: 'high',
   },
   {
@@ -399,9 +428,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Use Blackwood with strong slam-going values after a minor opening',
     auctionContext: { role: 'responder', auction: ['1C'], openerStrain: 'minor' },
     calls: ['4NT'],
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
+    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
     appliesWhen: { hcp: { min: 20 } },
-    meaning: 'Blackwood asks partner for aces.',
+    guidance: ['Rare and specialized: Blackwood is not a general slam try.',
+               'Use it only when the partnership already has enough playing strength to consider ' +
+               'slam and ace count is the specific remaining information needed to choose the ' +
+               'final contract.'],
+    meaning: 'Blackwood is artificial and forcing, asking partner to show aces.',
     certainty: 'high',
   },
   // With openerStrain:'major', auction:['1H'] is a representative declaration for either 1H or 1S.
@@ -414,9 +448,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Pass with support and 0-5',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['Pass'],
-    callCategory: ['signoff'],
-    appliesWhen: { totalPoints: { min: 0, max: 5 }, supportFor: 'partnersOpenedSuit', 
-                   supportLength: { min: 3 } },
+    appliesWhen: { totalPoints: { max: 5, valuation: 'shortage' }, supportLength: { min: 3 } },
     meaning: 'Game is unlikely.',
     certainty: 'high',
   },
@@ -428,8 +460,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Pass one of a major with 0-5',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['Pass'],
-    callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 0, max: 5 } },
+    appliesWhen: { hcp: { max: 5 }, supportLength: { max: 2 }, },
     meaning: 'Responder has too few points to bid.',
     certainty: 'high',
   },
@@ -442,7 +473,7 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1D'], openerStrain: 'minor' },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 0, max: 5 } },
+    appliesWhen: { hcp: { max: 5 } },
     meaning: 'Responder has too few points to bid.',
     certainty: 'high',
   },
@@ -456,9 +487,10 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['2H', '2S'],
     callRefinement: refineRaisePartnerSuitBy1, // choose opener's suit
-    appliesWhen: { totalPoints: { min: 6, max: 10 }, supportFor: 'partnersOpenedSuit', 
+    callCategory: ['invitational'],
+    appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' }, 
                    supportLength: { min: 3 } },
-    meaning: 'Raise partner major to the two level.',
+    meaning: 'Non-forcing simple raise of partner major; opener may pass or continue.',
     certainty: 'high',
   },
   //
@@ -471,9 +503,10 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3H', '3S'],
     callRefinement: refineRaisePartnerSuitBy2, // chooses opener's suit
     callCategory: ['invitational'],
-    appliesWhen: { totalPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' }, 
                    supportLength: { min: 4 } },
-    meaning: 'Jump to the three level as a limit raise with four-card or longer support.',
+    meaning: 'Invitational jump raise with four-card or longer support; ' +
+             'opener bids game with extra values.',
     certainty: 'high',
   },
   //
@@ -487,10 +520,30 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
                  note: 'This 1NT-then-raise route relies on a forcing/semi-forcing 1NT response.' },
-    appliesWhen: { totalPoints: { min: 11, max: 12 }, supportFor: 'partnersOpenedSuit', 
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' }, 
                    supportLength: { min: 3, max: 3 } },
-    meaning: 'With exactly three-card support and limit-raise values, bid 1NT first and then ' +
-             'raise to the three level.',
+    meaning: 'With exactly three-card support and limit-raise values, start with a forcing 1NT ' +
+             'absent interference, then make an invitational raise to the three level.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first',
+    // Exactly three-card support and 11-12 support points: without a forcing 1NT route (2/1),
+    // bid a new suit first and make an invitational raise of opener's major later.
+    kind: 'responseBid',
+    title: 'Three-card major support, 11-12: bid a new suit then raise',
+    auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
+    calls: ['1S', '2C', '2D', '2H'],
+    callRefinement: refineThreeCardMajorSupportNewSuitFirst,
+    callCategory: ['forcing'],
+    agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
+                 note: 'Without forcing 1NT, show three-card limit-raise support via a new suit first.' },
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
+                   supportLength: { min: 3, max: 3 } },
+    guidance: ["Bid a new suit and later make an invitational raise of opener's major."],
+    meaning: 'With exactly three-card support and limit-raise values, start with a forcing ' +
+             'new-suit response, then make an invitational raise of opener major.',
     certainty: 'high',
   },
   //
@@ -501,10 +554,13 @@ export const ResponseBidRules: BidRule[] = [
     title: 'With 13+ and three-card major support, bid a new suit then raise to game',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
-    callRefinement: refineToCheapestNewSuitBids, // chooses min longest suit response
-    callCategory: ['forcing'],
-    // TODO: needs agreement?
-    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit',
+    callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
+    callCategory: ['gameForcing'],
+    // supportLength: [{ min: 4 }] almost captures normal cases declaratively, but it cannot also
+    // express the 5+ heart requirement for 1S-2H and the sometimes three-card-minor fallback when
+    // no good 4 or 5 card suit can be bid.  The call refiner therefore owns the candidate-suit
+    // length requirements.
+    appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' },
                    supportLength: { min: 3, max: 3 } },
     guidance: ['Bid a new suit and then raise to at least game.'],
     meaning: 'Game-forcing support path with three-card support.',
@@ -518,11 +574,13 @@ export const ResponseBidRules: BidRule[] = [
     title: 'With 13+ and four-card major support, bid a new suit then raise to game',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
-    callRefinement: refineToCheapestNewSuitBids, // chooses min longest suit response
-    callCategory: ['forcing'],
+    callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
+    callCategory: ['gameForcing'],
     agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise',
                  note: 'Show game-forcing support by bidding a new suit first, then raising.' },
-    appliesWhen: { totalPoints: { min: 13 }, supportFor: 'partnersOpenedSuit',
+    // Call refiner checks call candidate suit lengths, possibly falling back to the exceptional
+    // three-card-minor fallback.  appliesWhen can't quite express all that.
+    appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     priority: { rank: 80 }, // relative to rule 'respond-to-major-w/-support-splinter' at 95
     guidance: ['Bid a new suit and then raise to at least game.'],
@@ -537,12 +595,12 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Jacoby 2NT partnership agreement',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['2NT'],
-    callCategory: ['conventional'],
+    callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
                  note: 'Jacoby 2NT is an artificial game-forcing raise with 4+ major support.' },
-    appliesWhen: { hcp: { min: 13 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 4 } },
-    meaning: 'Some partnerships use 2NT as artificial Jacoby 2NT, showing four-card or longer ' +
-             'support and 13+ points.',
+    appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' }, supportLength: { min: 4 } },
+    meaning: 'Jacoby 2NT is an artificial game force showing four-card or longer major support ' +
+             'and 13+ points.',
     certainty: 'high',
   },
   //
@@ -560,11 +618,12 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'splinters', value: true,
                  note: 'Double-jump new suit: 4+ support plus singleton/void in the bid suit.' },
-    appliesWhen: { totalPoints: { min: 13, max: 15 }, supportFor: 'partnersOpenedSuit',
+    appliesWhen: { totalPoints: { min: 13, max: 15, valuation: 'shortage' },
                    supportLength: { min: 4 }, suitLengths: [{ max: 1 }] },
     // relative to rule 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise' at 80
     priority: { rank: 95 }, 
-    meaning: 'Artificial double jump showing major support and shortness in the bid suit.',
+    meaning: 'Artificial game-forcing double jump showing major support and shortness ' +
+             'in the bid suit.',
     certainty: 'high',
   },
   //
@@ -579,8 +638,9 @@ export const ResponseBidRules: BidRule[] = [
       // The broad declaration contains both 4H and 4S; keep only four of partner's actual major.
       return refineRaiseToLevel(calls, context, 4);
     },
-    appliesWhen: { totalPoints: { max: 9 }, supportFor: 'partnersOpenedSuit', supportLength: { min: 5 } },
-    meaning: 'Preemptive raise to game with long support and fewer than 10 support points.',
+    callCategory: ['invitational'],
+    appliesWhen: { totalPoints: { max: 9, valuation: 'shortage' }, supportLength: { min: 5 } },
+    meaning: 'Non-forcing preemptive raise to game w/ long support and fewer than 10 total points.',
     certainty: 'high',
   },
   //
@@ -596,7 +656,8 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 6 }, supportLength: { max: 2 }, 
                    suitLengths: [{ suit: 'S', min: 4 }] },
-    guidance: ["Use a new suit at the one level to show no support for partner's major."],
+    guidance: ["Use a new suit at the one level to show no support for partner's major.",
+               'The new-suit response is forcing absent opponent interference.'],
     certainty: 'high',
   },
   //
@@ -664,7 +725,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Standard style 1NT response to a major',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['1NT'],
-    callCategory: ['signoff'],
+    callCategory: ['invitational'],
     agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
                  note: 'Standard non-forcing 1NT response to a major.' },
     appliesWhen: { hcp: { min: 6, max: 10 }, supportLength: { max: 2 } },
@@ -679,9 +740,9 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Without support, respond 3NT with 13-15 balanced',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['3NT'],
-    callCategory: ['signoff'],
+    callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 13, max: 15 }, supportLength: { max: 2 }, shape: { balanced: true, noFourCardOtherMajor: true } },
-    meaning: 'Balanced game response without support.',
+    meaning: 'Balanced non-forcing game response without support; opener may pass or continue.',
     certainty: 'high',
   },
   //
@@ -693,10 +754,11 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['2S', '3C', '3D', '3H'],
     callRefinement: refineJumpNewSuit, // chooses 6+ card suit
+    callCategory: ['invitational'], 
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
-    meaning: 'Weak hand with a six-card suit, preemptive.',
+    meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
   },
   //
@@ -712,7 +774,7 @@ export const ResponseBidRules: BidRule[] = [
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
-    meaning: 'Strong jump shift showing a good long suit and slam interest.',
+    meaning: 'Game-forcing strong jump shift showing a good long suit and slam interest.',
     certainty: 'high',
   },
   //
@@ -723,9 +785,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Use Blackwood with strong slam-going values after a major opening',
     auctionContext: { role: 'responder', auction: ['1H'], openerStrain: 'major' },
     calls: ['4NT'],
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
+    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
     appliesWhen: { hcp: { min: 20 } },
-    meaning: 'Blackwood asks partner for aces.',
+    guidance: ['Rare and specialized: Blackwood is not a general slam try.',
+               'Use it only when the partnership already has enough playing strength to consider ' +
+               'slam and ace count is the specific remaining information needed to choose the ' +
+               'final contract.'],
+    meaning: 'Blackwood is artificial and forcing, asks partner for aces.',
     certainty: 'high',
   },
   // Responding to notrump
@@ -739,19 +806,21 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 0, max: 7 }, shape: { balanced: true } },
-    meaning: 'Partscore decision.',
+    meaning: 'Sign off in 1NT; opener is expected to leave the contract there if no interference.',
     certainty: 'high',
   },
   //
   {
-    id: 'respond-to-1nt-w/-2nt-8-9-balanced',
-    // Raise 1NT to 2NT with 8-9 balanced HCP to invite game.
+    id: 'respond-to-1nt-w/-2nt-8-9-invitational',
+    // Raise 1NT to 2NT with 8-9 HCP to invite game.  Normally this is a balanced-hand bid;
+    // without Stayman or Jacoby transfers, it is the basic natural invitation regardless of shape.
+    // See appliesWhen function for explanation of bidding reasoning.
     kind: 'responseBid',
-    title: 'Invite game over 1NT with 8-9 balanced',
+    title: 'Invite game over 1NT with 8-9 HCP',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['2NT'],
     callCategory: ['invitational'],
-    appliesWhen: { hcp: { min: 8, max: 9 }, shape: { balanced: true } },
+    appliesWhen: oneNtTwoNtInvitationApplies, // see function for bidding explanation
     meaning: 'Invitational raise to 2NT.',
     certainty: 'high',
   },
@@ -804,7 +873,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['5NT'],
     callCategory: ['forcing'],
     appliesWhen: { hcp: { min: 20, max: 21 }, shape: { balanced: true } },
-    meaning: 'Grand slam invitation.',
+    meaning: 'Forces at least a small slam while inviting opener to bid grand slam with extra values.',
     certainty: 'high',
   },
   //
@@ -831,8 +900,10 @@ export const ResponseBidRules: BidRule[] = [
     agreement: { setting: 'stayman', value: true, 
                  note: 'Stayman asks a notrump opener for a four-card major.' },
     callCategory: ['forcing', 'conventional'],
-    appliesWhen: { hcp: { min: 8 }, suitLengths: [{ suit: 'major', min: 4 } ] },
-    guidance: ['Stayman asks opener for a four-card major.', 'Can be used even if short in clubs.'],
+    appliesWhen: { hcp: { min: 8 }, suitLengths: [{ suit: 'major', exact: 4 } ] },
+    guidance: ['Stayman is artificial and forcing if no intervening bid; opener must respond.',
+               'Stayman asks opener for a four-card major.',
+               'Can be used even if short in clubs.'],
     certainty: 'high',
   },
   //
@@ -845,9 +916,13 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2D'],
     agreement: { setting: 'jacobyTransfers', value: true, 
                  note: 'Jacoby transfer to responder major.' },
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
-    guidance: ['Use transfers to have the partner with the concealed points bid the contract.'],
+    guidance: ['The transfer is artificial and forcing w/o intervening bid; opener normally ' +
+               'completes the transfer.',
+               'Use transfers to have the partner with the concealed points bid the contract.',
+               'With 0-7 HCP and a five-card or longer major, transfer and then pass rather ' +
+               'than automatically passing 1NT; the major-suit contract may play better.'],
     certainty: 'high',
   },
   //
@@ -860,12 +935,32 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2H'],
     agreement: { setting: 'jacobyTransfers', value: true, 
                  note: 'Jacoby transfer to responder major.' },
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
-    guidance: ['Use transfers to have the partner with the concealed points bid the contract.'],
+    guidance: ['The transfer is artificial and forcing w/o intervening bid; opener normally ' +
+               'completes the transfer.',
+               'Use transfers to have the partner with the concealed points bid the contract.',
+               'With 0-7 HCP and a five-card or longer major, transfer and then pass rather ' +
+               'than automatically passing 1NT; the major-suit contract may play better.'],
     certainty: 'high',
   },
   //
+  {
+    id: 'respond-to-1nt-w/-2h-2s-natural-signoff',
+    // Without Jacoby transfers, bid a five-card or longer major naturally at the two level to play.
+    kind: 'responseBid',
+    title: 'Bid two of a major naturally over 1NT with a weak hand',
+    auctionContext: { role: 'responder', auction: ['1NT'] },
+    calls: ['2H', '2S'],
+    agreement: { setting: 'jacobyTransfers', value: false,
+                 note: 'Without Jacoby transfers, 2H and 2S are natural weak signoffs.' },
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 0, max: 7 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Natural weak signoff in a five-card or longer major.',
+    guidance: ['With a weak hand and a five-card or longer major, prefer the major-suit ' +
+               'signoff to automatically passing 1NT.'],
+    certainty: 'high',
+  },
   //
   {
     id: 'respond-to-1nt-w/-3c-3d-natural-invitational',
@@ -883,57 +978,89 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-1nt-w/-4h-4s-natural-game',
-    // Bid 4H or 4S naturally with game values and a 6+ card major.
+    // Without Texas transfers, bid 4H or 4S directly with game values, a 6+ card major, and
+    // no four-card other major.  With 6-4 majors, use Stayman first to look for the 4-4 fit.
     kind: 'responseBid',
     title: 'Bid four of a major naturally over 1NT with game values',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['4H', '4S'],
+    agreement: { setting: 'texasTransfers', value: false,
+                 note: 'Without Texas transfers, bid the long major naturally at game.' },
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 10, max: 15 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 10, max: 15 }, suitLengths: [{ min: 6 }],
+                   shape: { noFourCardOtherMajor: true } },
     meaning: 'Natural game signoff with a six-card or longer major.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-1nt-w/-texas-transfer-to-hearts',
-    // Texas transfer: bid 4D with a long heart suit, forcing opener to 4H.
+    // Texas is the fast game-only route with 6+ hearts when no other major needs exploration.
+    // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to hearts over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['4D'],
-    callCategory: ['forcing', 'conventional'],
+    callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
                  note: '4D asks opener to bid 4H.' },
-    appliesWhen: { hcp: { min: 10, max: 15 }, suitLengths: [{ suit: 'H', min: 6 }] },
+    appliesWhen: { hcp: { min: 10, max: 15 },
+                   // can't use noFourCardOtherMajor because 4D is not 4H which maps to four spades
+                   suitLengths: [{ suit: 'H', min: 6 }, { suit: 'S', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4H.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-1nt-w/-texas-transfer-to-spades',
-    // Texas transfer: bid 4H with a long spade suit, forcing opener to 4S.
+    // Texas is the fast game-only route with 6+ spades when no other major needs exploration.
+    // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to spades over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['4H'],
-    callCategory: ['forcing', 'conventional'],
+    callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
                  note: '4H asks opener to bid 4S.' },
-    appliesWhen: { hcp: { min: 10, max: 15 }, suitLengths: [{ suit: 'S', min: 6 }] },
+    appliesWhen: { hcp: { min: 10, max: 15 },
+                   // can't use noFourCardOtherMajor because artificial 4H would check spades
+                   suitLengths: [{ suit: 'S', min: 6 }, { suit: 'H', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4S.',
     certainty: 'high',
   },
   //
   {
+    id: 'respond-to-1nt-w/-3h-3s-natural-forcing',
+    // Without Jacoby transfers, bid a five-card or longer major naturally at the three level
+    // with game-forcing values.
+    kind: 'responseBid',
+    title: 'Bid three of a major naturally over 1NT with game-forcing values',
+    auctionContext: { role: 'responder', auction: ['1NT'] },
+    calls: ['3H', '3S'],
+    agreement: { setting: 'jacobyTransfers', value: false,
+                 note: 'Without Jacoby transfers, a direct 3H or 3S is natural and game forcing.' },
+    callCategory: ['gameForcing'],
+    appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Natural game-forcing major-suit response.',
+    certainty: 'high',
+  },
+  //
+  {
     id: 'respond-to-1nt-w/-3h-3s-slam-interest',
-    // Bid 3H or 3S naturally with a 6+ card major and slam-interest strength.
+    // With Jacoby transfers available, reserve a direct 3H or 3S for slam interest with a
+    // 6+ card major and no four-card other major.  With 6-4 majors, use Stayman first to
+    // look for the possible 4-4 fit.
     kind: 'responseBid',
     title: '3H or 3S over 1NT with slam interest',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['3H', '3S'],
-    callCategory: ['forcing'],
-    appliesWhen: { hcp: { min: 16 }, suitLengths: [{ min: 6 }]},
-    meaning: 'Natural major-suit bid with slam interest.',
+    agreement: { setting: 'jacobyTransfers', value: true,
+                 note: 'With transfers available, direct 3H and 3S retain the strong treatment.' },
+    callCategory: ['gameForcing'],
+    appliesWhen: { hcp: { min: 16 }, suitLengths: [{ min: 6 }],
+                   // important to leave open 4 card major, might be better than 6 card major
+                   shape: { noFourCardOtherMajor: true } }, 
+    meaning: 'Natural game-forcing major-suit bid with slam interest.',
     certainty: 'high',
   },
   //
@@ -944,9 +1071,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Gerber over 1NT',
     auctionContext: { role: 'responder', auction: ['1NT'] },
     calls: ['4C'],
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
+    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
     appliesWhen: { hcp: { min: 18 } },
-    meaning: 'Gerber asks partner for aces after a notrump opening.',
+    guidance: ['Rare and specialized: Gerber is not a general slam try.',
+               'Use it only when the partnership already has enough playing strength to consider ' +
+               'slam and ace count is the specific remaining information needed to choose the ' +
+               'final contract.'],
+    meaning: 'Gerber is artificial and forcing, asking the notrump opener to show aces.',
     certainty: 'high',
   },
   //
@@ -959,7 +1091,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 0, max: 3 }, shape: { balanced: true } },
-    meaning: 'Partscore decision over 20-21 balanced opener.',
+    meaning: 'Sign off in 2NT; opener is expected to leave the contract there absent interference.',
     certainty: 'high',
   },
   //
@@ -978,44 +1110,54 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-2nt-w/-4h-4s-natural-game',
-    // Bid 4H or 4S naturally over 2NT with 4-10 HCP and a 6+ card major.
+    // Without Texas transfers, bid 4H or 4S directly with game values, a 6+ card major, and
+    // no four-card other major.  With 6-4 majors, use Stayman first to look for the 4-4 fit.
     kind: 'responseBid',
     title: 'Bid four of a major naturally over 2NT with game values',
     auctionContext: { role: 'responder', auction: ['2NT'] },
     calls: ['4H', '4S'],
-    // TODO: call refiner for which is 6 long
+    callRefinement: refineNaturalMajorGameOver2Nt,
+    agreement: { setting: 'texasTransfers', value: false,
+                 note: 'Without Texas transfers, bid the long major naturally at game.' },
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'major', min: 6 }] },
+    appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'major', min: 6 }],
+                   shape: { noFourCardOtherMajor: true } },
     meaning: 'Natural game signoff with a six-card or longer major.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-2nt-w/-texas-transfer-to-hearts',
-    // Optional Texas transfer over 2NT: bid 4D with a long heart suit, asking opener to bid 4H.
+    // Texas is the fast game-only route with 6+ hearts when no other major needs exploration.
+    // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to hearts over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'] },
     calls: ['4D'],
-    callCategory: ['forcing', 'conventional'],
+    callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
                  note: '4D asks opener to bid 4H.' },
-    appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'H', min: 6 }] },
+    appliesWhen: { hcp: { min: 4, max: 10 },
+                   // can't use noFourCardOtherMajor because 4D is not 4H which maps to four spades
+                   suitLengths: [{ suit: 'H', min: 6 }, { suit: 'S', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4H.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-2nt-w/-texas-transfer-to-spades',
-    // Optional Texas transfer over 2NT: bid 4H with a long spade suit, asking opener to bid 4S.
+    // Texas is the fast game-only route with 6+ hearts when no other major needs exploration.
+    // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to spades over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'] },
     calls: ['4H'],
-    callCategory: ['forcing', 'conventional'],
+    callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
                  note: '4H asks opener to bid 4S.' },
-    appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'S', min: 6 }] },
+    appliesWhen: { hcp: { min: 4, max: 10 },
+                   // can't use noFourCardOtherMajor because artificial 4H would check spades
+                   suitLengths: [{ suit: 'S', min: 6 }, { suit: 'H', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4S.',
     certainty: 'high',
   },
@@ -1027,9 +1169,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Gerber over 2NT',
     auctionContext: { role: 'responder', auction: ['2NT'] },
     calls: ['4C'],
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
+    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
     appliesWhen: { hcp: { min: 13 } },
-    meaning: 'Gerber asks partner for aces after a notrump opening.',
+    guidance: ['Rare and specialized: Gerber is not a general slam try.',
+               'Use it only when the partnership already has enough playing strength to consider ' +
+               'slam and ace count is the specific remaining information needed to choose the ' +
+               'final contract.'],
+    meaning: 'Gerber is artificial and forcing, asking the notrump opener to show aces.',
     certainty: 'high',
   },
   //
@@ -1068,7 +1215,20 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['5NT'],
     callCategory: ['forcing'],
     appliesWhen: { hcp: { min: 16, max: 16 }, shape: { balanced: true } },
-    meaning: 'Grand slam invitation.',
+    meaning: 'Forces at least a small slam while inviting grand slam if opener has extra values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-2nt-w/-7nt-17plus-balanced',
+    // Bid 7NT directly over 2NT with 17+ balanced HCP.
+    kind: 'responseBid',
+    title: 'Bid grand slam over 2NT with 17+ balanced',
+    auctionContext: { role: 'responder', auction: ['2NT'] },
+    calls: ['7NT'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 17 }, shape: { balanced: true } },
+    meaning: 'Place the contract in grand slam.',
     certainty: 'high',
   },
   //
@@ -1082,8 +1242,8 @@ export const ResponseBidRules: BidRule[] = [
     agreement: { setting: 'stayman', value: true, 
                  note: 'Stayman asks a notrump opener for a four-card major.' },
     callCategory: ['forcing', 'conventional'],
-    appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'major', min: 4 }] },
-    meaning: 'Stayman asking for a major suit.',
+    appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'major', exact: 4 }] },
+    guidance: ['Stayman is artificial and forcing absent interference; opener must respond.'],
     certainty: 'high',
   },
   //
@@ -1096,9 +1256,11 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3D'],
     agreement: { setting: 'jacobyTransfers', value: true, 
                  note: 'Jacoby transfer to responder major.' },
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
-    guidance: ['Use transfers to have the partner with the concealed points bid the contract.'],
+    guidance: ['The transfer is artificial and forcing absent interference; opener normally ' +
+               'completes the transfer.',
+               'Use transfers to have the partner with the concealed points bid the contract.'],
     certainty: 'high',
   },
   //
@@ -1111,9 +1273,27 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3H'],
     agreement: { setting: 'jacobyTransfers', value: true, 
                  note: 'Jacoby transfer to responder major.' },
-    callCategory: ['conventional'],
+    callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
-    guidance: ['Use transfers to have the partner with the concealed points bid the contract.'],
+    guidance: ['The transfer is artificial and forcing absent interference; opener normally ' +
+               'completes the transfer.',
+               'Use transfers to have the partner with the concealed points bid the contract.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-2nt-w/-3h-3s-natural-forcing',
+    // Without Jacoby transfers, bid a five-card or longer major naturally at the three level
+    // with enough strength to force to game opposite a 20-21 HCP 2NT opening.
+    kind: 'responseBid',
+    title: 'Bid three of a major naturally over 2NT with game-forcing values',
+    auctionContext: { role: 'responder', auction: ['2NT'] },
+    calls: ['3H', '3S'],
+    agreement: { setting: 'jacobyTransfers', value: false,
+                 note: 'Without Jacoby transfers, a direct 3H or 3S is natural and game forcing.' },
+    callCategory: ['gameForcing'],
+    appliesWhen: { hcp: { min: 4 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Natural game-forcing major-suit response.',
     certainty: 'high',
   },
  ];
@@ -1140,14 +1320,15 @@ export const BiddingNotes: BidRule[] = [
   //
   {
     id: 'garbage-stayman-note',
-    // Weak escape form of Stayman; kept as note until decide how to incorporate it if I do.
+    // Weak escape form of Stayman; kept as a teaching note until we decide whether to model it.
     kind: 'footnote',
     title: 'Weak escape use of Stayman',
     auctionContext: { role: 'responder', auction: ['1NT'], openerStrain: 'NT' },
     meaning: 'With 0-7 points and short clubs, Stayman can be used as an escape, planning to ' +
              'pass opener\'s rebid.',
-    guidance: ['Kept as a teaching note for now rather than an executable rule until the ' +
-               'desired shape constraints are settled.'],
+    guidance: ['Some bidding methods use garbage or crawling Stayman with suitable weak ' +
+               'two-major hands.  Weak hands with a five-card major may instead use a transfer ' +
+               'and pass.'],
     certainty: 'high',
   },
   //
@@ -1269,10 +1450,10 @@ export const BiddingNotes: BidRule[] = [
 ///
 function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvaluationContext)
     : CallRefinementResult {
-  const opening = getPartnerOpeningBid(context);
-  if (opening === null) {
-    return { calls: [], telemetryLines: ['No opening bid is available for a simple raise.'] };
-  }
+  const opening = getPartnerOpeningBid(context)!;
+  // if (opening === null) {
+  //   return { calls: [], telemetryLines: ['No opening bid is available for a simple raise.'] };
+  // }
   return refineRaiseToLevel(calls, context, opening.level + 1);
 }
 
@@ -1281,10 +1462,10 @@ function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvaluationContex
 ///
 function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvaluationContext)
     : CallRefinementResult {
-  const opening = getPartnerOpeningBid(context);
-  if (opening === null) {
-    return { calls: [], telemetryLines: ['No opening bid is available for a limit raise.'] };
-  }
+  const opening = getPartnerOpeningBid(context)!;
+  // if (opening === null) {
+  //   return { calls: [], telemetryLines: ['No opening bid is available for a limit raise.'] };
+  // }
   return refineRaiseToLevel(calls, context, opening.level + 2);
 }
 
@@ -1293,25 +1474,105 @@ function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvaluationContex
 ///
 function refineRaiseToLevel (calls: Call[], context: RuleEvaluationContext,
                              targetLevel: number): CallRefinementResult {
-  const opening = getPartnerOpeningBid(context);
-  if (opening === null || opening.strain === 'NT') {
-    return { calls: [], telemetryLines: ['No suit opening is available to raise.'] };
-  }
+  const opening = getPartnerOpeningBid(context)!;
+  // if (opening === null || opening.strain === 'NT') {
+  //   return { calls: [], telemetryLines: ['No suit opening is available to raise.'] };
+  // }
   const wantedCall = `${targetLevel}${opening.strain}` as SuitBid;
   const refined = calls.filter((call) => call === wantedCall);
   return {calls: refined, 
           telemetryLines: [`Raise partner's ${opening.strain} to ${targetLevel}${opening.strain}.`] };
 }
 
-/// refineNewSuitAtOneLevel chooses non-jump new-suit candidates, then chooses only those at the one
-/// level.  Used when the rule specifically gives one-level new-suit responses priority.
+/// refineOneLevelNewSuitAfterMinor chooses among legal one-level new-suit responses after a
+/// minor opening.  A candidate suit must be four cards or longer.
 ///
-function refineNewSuitAtOneLevel (calls: Call[], context: RuleEvaluationContext): CallRefinementResult {
-  const result = refineToCheapestNewSuitBids(calls, context);
-  const refined = result.calls.filter((call) => parseSuitBid(call)?.level === 1);
-  return {calls: refined,
-          telemetryLines: ['Keep only one-level new-suit calls legal over the actual opening.'] };
-}
+/// With convenient minors, finding a major fit has priority: choose the longest available major.
+/// With equal four-card majors bid hearts before spades; with equal five-card-or-longer majors
+/// bid spades before hearts.  After 1C with 6-10 HCP, a strictly longer diamond suit may remain
+/// as a lower-preference alternative.
+///
+/// Without convenient minors, use ordinary longest-suit treatment across all eligible new suits.
+///
+function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEvaluationContext) : 
+      CallRefinementResult {
+  const legalResult = refineToCheapestNewSuitBids(calls, context);
+  const opening = getPartnerOpeningBid(context)!;
+  // get eligible 1 level calls with their suit and length support
+  const eligible: { call: Call; suit: Suit; length: number }[] = [];
+  for (const call of legalResult.calls) {
+    const candidate = parseSuitBid(call)!;
+    if (candidate.level !== 1) {continue;}
+    const suit = candidate.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    if (length < 4) {continue;}
+    eligible.push({ call, suit, length });
+  }
+  // if no good bids ...
+  if (eligible.length === 0) {
+    return {
+      calls: [],
+      telemetryLines: [
+        ...legalResult.telemetryLines,
+        'No four-card-or-longer new suit is available at the one level.',
+      ],
+    };
+  }
+  // Sort qualifying majors regarless of convenient minors agreement:
+  // longer first, H before S if both have 4 cards, S before H each is 5+
+  let majors = eligible.filter((candidate) => candidate.suit === 'H' || candidate.suit === 'S');
+  if (majors.length > 1) {
+    majors.sort((left, right) => {
+      if (left.length !== right.length) { // return negative if left belongs first because it's longer
+        return right.length - left.length;
+      }
+      if (left.length === 4) { // bid up the line
+        return left.suit === 'H' ? -1 : 1;
+      }
+      return left.suit === 'S' ? -1 : 1; // bid down the line
+    });
+  }
+  // Order based on opening, convenient minors, and majors
+  if (biddingBaseline.convenientMinors && majors.length > 0) {
+    if (majors.length === 2) {
+      if (majors[0].length !== majors[1].length) {
+        majors = [majors[0]];
+      }
+    }
+    const refined = majors.map((candidate) => candidate.call);
+    // With a minimum response after 1C, retain a genuinely longer diamond suit as a
+    // lower-preference alternative.  Equal or shorter diamonds are suppressed by the major.
+    if (opening.strain === 'C' && context.handFacts.hcp <= 10) {
+      const diamond = eligible.find((candidate) => candidate.suit === 'D');
+      // Alternative treatment: suppress 1D entirely whenever a 4+ major is available.
+      // const refined = majors.map((candidate) => candidate.call);
+      if (diamond !== undefined && diamond.length > majors[0].length) { // a longest major
+        refined.push(diamond.call);
+      }
+    }
+    return {calls: refined,
+            telemetryLines: [
+              ...legalResult.telemetryLines,
+              'With convenient minors, prefer a 4+ card major; after 1C with 6-10 HCP, ' +
+              'a longer 1D may remain as an alternative.',],};
+  } // convenient minors and 4+ card majors exist
+  // No major is available under the convenient-minor agreement, or convenient minors is off.
+  // In either case use ordinary longest-suit treatment among the remaining eligible calls.
+  // This code seems oddly super general and falsely clever, but we need to handle 0 majors, equal
+  // majors, unequal majors, diamonds existence and their length, and it all falls out of this code.
+  // First keep only equally longest suits.
+  const longest = Math.max(...eligible.map((candidate) => candidate.length));
+  const refined = eligible.filter((candidate) => candidate.length === longest);
+  return {calls: refined.map((candidate) => candidate.call),
+          telemetryLines: [
+            ...legalResult.telemetryLines,
+            `Keep longest one-level new suits (${longest} cards); ` +
+            `${longest === 4 ? 'bid equal suits up the line'
+                             : 'prefer the higher-ranking equal suit'}.`,
+          ],
+        };
+} // refineOneLevelNewSuitAfterMinor()
+
 
 /// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
 /// opening suit, thereby emoving raises and jump shifts.  This does not yet choose among multiple
@@ -1321,6 +1582,8 @@ function refineNewSuitAtOneLevel (calls: Call[], context: RuleEvaluationContext)
 function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvaluationContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context);
+  // Most refiners don't need this check, and technically this function shouldn't, but it is used
+  // enough places, let's be defensive.
   if (opening === null) {
     return { calls: [], telemetryLines: ['No opening bid is available for a new-suit response.'] };
   }
@@ -1337,6 +1600,101 @@ function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvaluationCont
           telemetryLines: ['Keep only non-jump new-suit calls legal over the actual opening.'] };
 }
 
+/// refineThreeCardMajorSupportNewSuitFirst applies the new-suit-first treatment for the 11-12
+/// point, exactly-three-card-support, response to major open rule.  With Standard two-level
+/// responses, normal two-level candidates are available; with 2/1 game-force responses, this hand
+/// is not strong enough for a two-level new-suit response, so only a legal one-level response can
+/// survive.
+///
+function refineThreeCardMajorSupportNewSuitFirst (
+    calls: Call[], context: RuleEvaluationContext, system: BiddingSystem): CallRefinementResult {
+  const refined = refineMajorSupportNewSuitFirst(calls, context);
+  if (system.twoLevelNewSuitResponse === 'standard') {
+    return refined;
+  }
+
+  return {
+    calls: refined.calls.filter((call) => parseSuitBid(call)!.level === 1),
+    telemetryLines: [
+      ...refined.telemetryLines,
+      'With 2/1 game-force responses, 11-12 cannot start this limit raise with a two-level new suit.',
+    ],
+  };
+}
+
+/// refineMajorSupportNewSuitFirst chooses the new suit used before a later raise of opener's major.
+/// Keep legal new-suit responses to opening, requiring 4+ spades for 1H-1S, 5+ hearts for 1S-2H,
+/// and 4+ cards for a new minor at the two level.  If no normally qualifying new suit is available,
+/// allow a three-card minor as a fallback.  Do not retain that fallback when a normally qualifying
+/// new suit exists.  Order surviving calls according to the preferred new-suit treatment.
+///
+function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEvaluationContext) :
+      CallRefinementResult {
+  const legalResult = refineToCheapestNewSuitBids(calls, context);
+  const opening = getPartnerOpeningBid(context)!;
+  const normalCalls = legalResult.calls.filter((call) => {
+    const candidate = parseSuitBid(call)!;
+    const suit = candidate.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    if (candidate.strain === 'C' || candidate.strain === 'D') {
+      return length >= 4;
+    }
+    if (opening.strain === 'H' && candidate.strain === 'S') {
+      return length >= 4;
+    }
+    if (opening.strain === 'S' && candidate.strain === 'H') {
+      return length >= 5;
+    }
+    return false;
+  });
+  if (normalCalls.length > 0) {
+    return { calls: normalCalls,
+             telemetryLines: [
+               ...legalResult.telemetryLines,
+               'Keep normally supported new suits for the major-support response.',],
+    };
+  }
+  // check for minor fallback
+  const fallbackMinorCalls = legalResult.calls.filter((call) => {
+    const candidate = parseSuitBid(call)!;
+    const suit = candidate.strain as Suit;
+    return (suit === 'C' || suit === 'D') && context.handFacts.lengths[suit] === 3;
+  });
+  return {calls: fallbackMinorCalls,
+          telemetryLines: [
+            ...legalResult.telemetryLines,
+            fallbackMinorCalls.length > 0
+              ? 'No normal new suit is available; allow a three-card minor as the fallback.'
+              : 'No normally supported new suit or three-card minor fallback is available.',],};
+}
+
+/// refinePreemptSuitQuality keeps only preempt calls whose candidate suit has enough concentrated
+/// honor strength: at least two of the top three honors, or at least three of the top five.
+/// HCP and suit length remain declarative constraints on the individual preempt rules.
+///
+function refinePreemptSuitQuality (calls: Call[], context: RuleEvaluationContext) : 
+      CallRefinementResult {
+  const refinedCalls = calls.filter((call) => {
+    const candidate = parseSuitBid(call)!;
+    const suit = candidate.strain as Suit; // only rules with suit calls use this refiner, no NT
+    const cards = getCardsForSuit(context.hand, suit);
+    const topThreeCount = cards.filter((card) =>
+      card.rank === 'A' || card.rank === 'K' || card.rank === 'Q').length;
+    let topFiveCount = cards.filter((card) =>
+      // card.rank === 'A' || card.rank === 'K' || card.rank === 'Q' ||
+      card.rank === 'J' || card.rank === 'T').length;
+    topFiveCount += topThreeCount;
+    return topThreeCount >= 2 || topFiveCount >= 3;
+  });
+
+  return {
+    calls: refinedCalls,
+    telemetryLines: [
+      'Keep preempt candidates with at least two of A/K/Q or at least three of A/K/Q/J/T.',
+    ],
+  };
+}
+
 /// refineJumpNewSuit chooses a jump to a new suit that is the cheapest legal bid in each suit.
 /// This is a one liner so that it can be used in rule declaration to satisfy refineCandidates.
 ///
@@ -1349,11 +1707,11 @@ function refineJumpNewSuit (calls: Call[], context: RuleEvaluationContext): Call
 /// splinter.
 function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvaluationContext,
                                      extraLevels: number, label: string): CallRefinementResult {
-  const opening = getPartnerOpeningBid(context);
-  if (opening === null) {
-    return {calls: [], 
-            telemetryLines: [`No opening bid is available for a ${label} new-suit response.`]};
-  }
+  const opening = getPartnerOpeningBid(context)!;
+  // if (opening === null) {
+  //   return {calls: [], 
+  //           telemetryLines: [`No opening bid is available for a ${label} new-suit response.`]};
+  // }
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     // Probably excessively defensive, but make sure NT is not in candidates list
@@ -1429,9 +1787,72 @@ function refineOneLevelSuitOpening (calls: Call[], context: RuleEvaluationContex
                             `by five-card-major/convenient-minor priorities.`]};
 }
 
+/// refineNaturalMajorGameOver2Nt keeps only natural 4H/4S responses supported by an actual 6+ card
+/// major.  If both majors qualify, preserve both and prefer the major containing more HCP.  With
+/// equal suit HCP, prefer the higher-ranking major, spades.
+///
+function refineNaturalMajorGameOver2Nt (calls: Call[], context: RuleEvaluationContext) :
+    CallRefinementResult {
+  const heartsQualify = calls.includes('4H') && context.handFacts.lengths.H >= 6;
+  const spadesQualify = calls.includes('4S') && context.handFacts.lengths.S >= 6;
+  let refinedCalls: Call[];
+  if (heartsQualify && spadesQualify) {
+    refinedCalls = context.handFacts.hcpBySuit.S >= context.handFacts.hcpBySuit.H ? ['4S', '4H']
+                                                                                  : ['4H', '4S'];
+  } else if (heartsQualify) {
+    refinedCalls = ['4H'];
+  } else if (spadesQualify) {
+    refinedCalls = ['4S'];
+  } else {
+    refinedCalls = [];
+  }
+  return { calls: refinedCalls,
+           telemetryLines: [
+             'Keep six-card-or-longer majors; with both majors, prefer more suit HCP, then spades.'],
+  };
+}
+
 ///
 //// Bidding Rule When Applies Functions
 ///
+
+/// oneNtTwoNtInvitationApplies uses the ordinary balanced 2NT invitation, but when neither
+/// Stayman nor Jacoby transfers is available, 2NT is the basic natural 8-9 HCP invitation
+/// regardless of shape.
+///
+/// ACBL instructional path starts without conventions:
+///    0–7 + 5+ major        -> 2M, weak signoff
+///    8–9                   -> 2NT, invitational
+///    10+ + exactly 5 major -> 3M, forcing / choice of games
+///    10+ + 6+ major        -> 4M, game
+///    10+ without major     -> 3NT
+/// Then adding Stayman fixes:
+///    8–9 + major           -> Stayman rather than inviting 2NT and missing a level of majors
+/// Adding transfers improves the whole 5+ major structure:
+//     all strengths + 5+ major -> transfer first, then describe strength
+/// With an unbalanced 8-9 HCP hand (5-4-3-1), with both Stayman and transfers disabled:
+///    not balanced -> current 2NT rule fails, but ACBL says to use this without stayman and jacoby
+///    too strong for the new weak 2M rule;
+///    too weak for natural forcing 3M;
+///    no Stayman, which normally provides an out to keep the level low and ask for major
+///    no transfer
+///
+/// This applies function doesn't impose the balanced condition when not using stayman and jacoby.
+///
+function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvaluationContext, 
+                                      system: BiddingSystem): AppliesWhenResult {
+  const hcpApplies = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9;
+  const shapeApplies = context.handFacts.balanced || (! system.stayman && ! system.jacobyTransfers);
+
+  return {
+    success: hcpApplies && shapeApplies,
+    telemetryLines: [
+      `${hcpApplies ? 'PASS' : 'FAIL'}: 2NT invitation needs 8-9 HCP.`,
+      `${shapeApplies ? 'PASS' : 'FAIL'}: 2NT needs balanced shape unless Stayman and ` +
+        'Jacoby transfers are both off.',
+    ],
+  };
+}
 
 /// guidelineOf20Applies tests the Rule of 20 for a hand below the normal 12-HCP opening.  If HCP
 /// + the lengths of the two longest suits >= 20 -> open.
@@ -1443,8 +1864,8 @@ function guidelineOf20Applies (_call: Call, context: RuleEvaluationContext): App
   return {
     success: pass,
     telemetryLines: [
-      `${pass ? 'APPLIES' : 'FAIL'}: Guideline of 20 for a sub-12-HCP hand = ' +
-      'HCP ${context.handFacts.hcp} + ` + `${lengths[0] ?? 0} + ${lengths[1] ?? 0} = ${value}.`, ],
+      `${pass ? 'APPLIES' : 'FAIL'}: Guideline of 20 for a sub-12-HCP hand = ` +
+      `HCP ${context.handFacts.hcp} + ${lengths[0] ?? 0} + ${lengths[1] ?? 0} = ${value}.`, ],
   };
 }
 
@@ -1454,16 +1875,15 @@ function guidelineOf20Applies (_call: Call, context: RuleEvaluationContext): App
 function oneNtFiveCardLengthUpgradeApplies (_call: Call, context: RuleEvaluationContext,
                                             system: BiddingSystem): AppliesWhenResult {
   const normalMinimum = system.oneNtOpening === '15-17' ? 15 : 16;
-  const longestSuit = Math.max(...Object.values(context.handFacts.lengths));
-  const success = context.handFacts.balanced && context.handFacts.hcp === normalMinimum - 1 && 
-               longestSuit >= 5;
+  const hasFiveCardMajor = context.handFacts.lengths.H >= 5 || context.handFacts.lengths.S >= 5;
+  const success = context.handFacts.balanced && context.handFacts.hcp === normalMinimum - 1 &&
+                  hasFiveCardMajor;
   return {
-    success: success,
+    success,
     telemetryLines: [
-      `${success ? 'APPLIES' : 'FAIL'}: 1NT five-card length upgrade needs balanced, ` +
-      `${normalMinimum - 1} HCP, and a five-card suit; HCP=${context.handFacts.hcp}, longest=${longestSuit}.`,
-    ],
-  };
+      `${success ? 'APPLIES' : 'FAIL'}: 1NT five-card-major upgrade needs balanced, ` +
+      `${normalMinimum - 1} HCP, and a five-card major; HCP=${context.handFacts.hcp}, ` +
+      `H=${context.handFacts.lengths.H}, S=${context.handFacts.lengths.S}.`,],};
 }
 
 /// majorTwoLevelNewSuitApplies tests a non-jump two-level new-suit response to a major opening.

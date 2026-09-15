@@ -37,7 +37,7 @@ export type MajorGameForceWithSupportAgreement = 'newSuitThenRaise' | 'jacoby2NT
 export interface BiddingSystem {
   // Normal balanced 1NT opening range.
   oneNtOpening: OneNtOpeningAgreement;
-  // If true, a balanced hand one HCP below the normal 1NT range can upgrade with a five-card suit.
+  // If true, a balanced hand one HCP below the normal 1NT range can upgrade with a five-card major.
   oneNtFiveCardLengthUpgrade: boolean;
   // Weak versus classic strong jump shifts after a one-level suit opening.
   jumpShift: JumpShiftAgreement;
@@ -107,8 +107,7 @@ export const biddingBaseline = {
   weakTwoPointRange: { min: 5, max: 10 },
   weakThrees: true,
   weakThreeMinSuitLength: 7,
-  // The source gives suit quality/playing-trick guidance rather than a strict HCP range for 3+
-  // preempts.
+  // Usually suit quality/playing-trick assessmnent rather than strict HCP range for 3+ preempts.
   weakThreePointRange: { min: 5, max: 12 },
   // Gerber is 4C after a notrump opening, asking for aces.
   gerberAfterNotrump: true,
@@ -145,6 +144,8 @@ export interface BidRule {
   callRefinement?: CallRefinementFunction;
   callCategory?: CallCategory[];
   priority?: {
+    // Higher rank means greater preference when multiple rules qualify.  Rank affects ordering
+    // only; it does not suppress lower-ranked qualifying rules.
     rank?: number;
     note?: string;
   };
@@ -165,7 +166,7 @@ export type CallCategory =
   | 'gameForcing' // must keep bidding until game
   | 'invitational' // partner can bid or pass
   | 'signoff' // asks partner to pass/stop bidding absent interference
-  | 'conventional' // stayman, jacoby, etc.
+  | 'conventional' // stayman, jacoby, etc., often forcing, but if so, 'forcing' will be explicit
   | 'natural'; // face value bid rather than an artificial convention meaning
 
 export type RuleKind =
@@ -182,11 +183,12 @@ export type RuleKind =
 
 export interface HandConstraint {
   hcp?: PointRange;
-  totalPoints?: PointRange;
-  suitLengths?: SuitLengthConstraint[];
-  anySuitLength?: SuitLengthConstraint[];
+  // computed with length bonuses or shortage bonuses depending on auction stage
+  totalPoints?: TotalPointsRange;  
+  suitLengths?: SuitLengthConstraint[]; // if no suit specified, it means the candidate call suit
+  anySuitLength?: SuitLengthConstraint[]; // a suit needs to exist with this length
   shape?: HandShapeConstraint;
-  supportFor?: Strain | 'partnersOpenedSuit';
+  // Length in partner's opened suit; may express either support or lack of support (max: 2).
   supportLength?: PointRange;
   stoppers?: string[];
 }
@@ -194,6 +196,12 @@ export interface HandConstraint {
 export interface PointRange {
   min?: number;
   max?: number;
+}
+
+/// Ordinary total points use length points.  Support for partner's suit means using shortage
+/// points for total points.
+export interface TotalPointsRange extends PointRange {
+  valuation?: 'length' | 'shortage';
 }
 
 export interface SuitLengthConstraint {
@@ -204,9 +212,10 @@ export interface SuitLengthConstraint {
 }
 
 export interface HandShapeConstraint {
-  balanced?: boolean;
-  // TODO: review code that it reflect bidding books that these are the semi-balanced shapes
-  semiBalanced?: boolean; // true if distribution is 4-3-3-3, 4-4-3-2, or 5-3-3-2
+  balanced?: boolean; // true if distribution is 4-3-3-3, 4-4-3-2, or 5-3-3-2
+  // Balanced has three hand shapes, and semibalanced is no fewer than two cards in every suit and
+  // no more than two suits with doubletons.
+  balancedOrSemiBalanced?: boolean; 
   noVoid?: boolean;
   noSingleton?: boolean;
   maxDoubletons?: number;

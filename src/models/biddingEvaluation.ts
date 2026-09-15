@@ -1,7 +1,7 @@
 /// User input and given a hand, auction context, user call, and rules, explain which rules apply 
 /// and whether the user call is accepted by any of them.
 ///
-import type { AuctionContext, BidRule, Call, HandConstraint, PointRange,
+import type { AuctionContext, BidRule, Call, HandConstraint, PointRange, TotalPointsRange,
               SuitLengthConstraint, Strain, SuitBid, BiddingSystem, BiddingAgreement,
               HandShapeConstraint, RuleEvaluationContext, AppliesWhenResult } from './bidding-types';
 import { type HandFacts, type Suit } from './cards';
@@ -114,8 +114,29 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 
 
 /// evaluateUserCall evaluates one user-entered call against the currently relevant bidding rules.
-/// This does not choose the best bid.  It reports which rules apply to the hand/context
-/// and which of those rules, if any, match the user's call.
+/// This does not choose the best bid like an auto-bidder, but rule refiners and suppressors invokd
+/// here will eliminate bids and order bids according to bidding books and sources.  It reports in
+/// BidEvalResult which rules apply to the hand/context and which of those rules, if any, match the
+/// user's entered call.
+///
+/// Evaluator flow:
+///    1. Pick the bidding stage
+///       responder after one opening bid → ResponseBidRules
+///    2. Apply agreement settings
+///       e.g. Jacoby on removes the Jacoby-off rules
+///    3. Filter those rules by auction context
+///       e.g. after 1NT, only response rules whose context matches 1NT remain
+///    4. Evaluate EVERY remaining rule
+///       - run its callRefinement first, if any
+///       - evaluate every surviving candidate call against appliesWhen
+///       - set candidate.ruleApplies
+///       - set ruleResult.ruleApplies = true if ANY candidate applies
+///    5. After all rules have been evaluated:
+///       run cross-rule suppression logic
+///       - convenient-minor suppression
+///       - our proposed NT-response fallback suppression
+///       - existing major-response 1NT suppression
+///    6. Sort by priority.rank for presentation
 ///
 export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContext,
                                   system: BiddingSystem): BidEvalResult {
@@ -124,9 +145,38 @@ export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContex
   // Select the rule bucket from the current auction state, then apply partnership agreements.
   const stageRules = getRulesForAuctionState(context);
   const activeRules = getActiveBiddingRules(stageRules, system);
-  const ruleResults = evaluateRules(activeRules, context, system);
-  const applicableRules = ruleResults.filter((result) => result.ruleApplies).map((result) => result.rule);
-  const matchingRulesForUserCall: BidRule[] = [];
+  let ruleResults = evaluateRules(activeRules, context, system);
+  // Opening rules have a few relationships that cannot be expressed by evaluating each rule
+  // independently.  
+  // A convenient minor is a fallback and should disappear when a natural NT opening
+  // already describes the hand.  A rule with no explicit rank has the default rank 0.
+  if (context.role === 'opener' && context.auction.length === 0) {
+    ruleResults = maybeSuppressConvenientMinor(ruleResults);
+  }
+  // When responding to a natural notrump opening, a major-oriented bid makes direct Pass/notrump
+  // call only a fallback bid.
+  if (context.role === 'responder' && context.auction.length === 1 &&
+      (context.auction[0] === '1NT' || context.auction[0] === '2NT')) {
+    ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
+    ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context);
+    ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
+    ruleResults = maybeSuppressJacobyForMajorGame(ruleResults); // jacoby vs major game (and texas)
+    // order matters for this last call, declarations make the previous suppressors mutually clean
+    ruleResults = maybeSuppressNtResponseFallback(ruleResults); // fallback pass or NT
+  }
+  // Suppress 1NT when one of a major is better
+  if (context.role === 'responder' && context.auction.length === 1) {
+    ruleResults = maybeSuppress1NTWhenMajorSupport(ruleResults);
+  }
+  // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
+  // order only; it does not eliminate lower-ranked qualifying rules.
+  ruleResults.sort((left, right) =>
+    (right.rule.priority?.rank ?? 0) - (left.rule.priority?.rank ?? 0));
+
+  const applicableRules = ruleResults
+    .filter((result) => result.ruleApplies)
+    .map((result) => result.rule);
+    const matchingRulesForUserCall: BidRule[] = [];
   // Report rule eval telemetry and collect matching candidate calls
   for (const ruleResult of ruleResults) {
     telemetryLines.push(...ruleResult.telemetryLines);
@@ -272,13 +322,385 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluati
   return { rule, call, ruleApplies: result.success, telemetryLines };
 }
 
+
+/// maybeSuppressConvenientMinor takes all applicable rules for current auction and responder's hand
+/// and removes a declarative qualifying convenient-minor opening when an already-evaluated natural
+/// 1NT or 2NT opening applies.  We can't cause this mutual exclusion declaratively only, while some
+/// better bids do naturally eliminate the fallback convenient minor.  Both the rule-level and
+/// candidate-level applicability flags are changed so downstream code sees the convenient-minor
+/// rule consistently as no longer applicable.
+///
+function maybeSuppressConvenientMinor (ruleResults: RuleEvaluationResult[]): RuleEvaluationResult[] {
+  const convenientMinorResult = ruleResults.find((result) =>
+    result.rule.id === 'open-convenient-minor' && result.ruleApplies);
+  if (convenientMinorResult === undefined) {
+    return ruleResults;
+  }
+  // We have a convenient minor, so see if there's a NT that trumps the minor rule :-).
+  let naturalNtCall: Call | null = null;
+  for (const result of ruleResults) {
+    if (! result.rule.callCategory?.includes('natural')) {
+      continue;
+    }
+    const ntCandidate = result.candidates.find((candidate) =>
+      candidate.ruleApplies && (candidate.call === '1NT' || candidate.call === '2NT'));
+    if (ntCandidate !== undefined) {
+      naturalNtCall = ntCandidate.call;
+      break;
+    }
+  }
+  if (naturalNtCall === null) {
+    return ruleResults;
+  }
+  // Telemetry
+  const suppressionLine =
+    `SUPPRESSED: ${naturalNtCall} applies to this hand, so do not use a convenient minor.`;
+  // Supress convenient minor
+  convenientMinorResult.ruleApplies = false;
+  convenientMinorResult.telemetryLines.push(`  ${suppressionLine}`);
+  for (const candidate of convenientMinorResult.candidates) {
+    if (candidate.ruleApplies) {
+      candidate.ruleApplies = false;
+      candidate.telemetryLines.push(suppressionLine);
+    }
+  }
+  return ruleResults;
+} // maybeSuppressConvenientMinor()
+
+/// maybeSuppressJacobyWhenForStayman resolves the 5-4-major overlap between ordinary Stayman and a
+/// Jacoby transfer.  With enough strength and 5-4 majors, responder uses Stayman first to look for
+/// the four-card-major fit rather than forcing it.  With 5-3 or 5-5 majors, Stayman does not
+/// qualify without 4-card major, so transfer remains available.
+///
+/// agreement.setting === 'jacobyTransfers' by itself does not mean a rule is a Jacoby transfer;
+/// it only means that rule's meaning depends on whether Jacoby transfers are enabled.  For example,
+/// the direct strong 3H/3S rule also uses that setting.  A Jacoby transfer is therefore identified
+/// here by the enabled jacobyTransfers agreement plus the conventional call category.
+///
+function maybeSuppressTransfersForStayman (ruleResults: RuleEvaluationResult[]):
+    RuleEvaluationResult[] {
+  const staymanResult = ruleResults.find((result) =>
+    result.ruleApplies && result.rule.agreement?.setting === 'stayman' &&
+    result.rule.agreement.value);
+  if (staymanResult === undefined) {
+    return ruleResults;
+  }
+  const staymanCandidate = staymanResult.candidates.find((candidate) => candidate.ruleApplies)!;
+
+  for (const result of ruleResults) {
+    const isJacobyTransfer =
+      result.rule.agreement?.setting === 'jacobyTransfers' && result.rule.agreement.value &&
+      result.rule.callCategory?.includes('conventional');
+    if (! result.ruleApplies || ! isJacobyTransfer) {
+      continue;
+    }
+    const suppressionLine =
+      `SUPPRESSED: ${staymanCandidate.call} Stayman is preferred with 5-4 majors, ` +
+      'so do not use the Jacoby transfer.';
+    result.ruleApplies = false;
+    result.telemetryLines.push(`  ${suppressionLine}`);
+    for (const candidate of result.candidates) {
+      if (candidate.ruleApplies) {
+        candidate.ruleApplies = false;
+        candidate.telemetryLines.push(suppressionLine);
+      }
+    }
+  }
+  return ruleResults;
+} // maybeSuppressJacobyWhenForStayman()
+
+/// maybeSuppressOneFiveFiveMajorTransfer removes one of the two Jacoby transfers when responder has
+/// exactly five cards in each major and the bidding sequence gives one transfer a preferred meaning
+/// for this strength.
+///
+/// This transfer ordering is separate from ordinary natural-suit ordering.  When only natural suit
+/// bids are available by partnership agreement, bidding guidelines commonly use up-the-line choices
+/// with four-card suits and down-the-line preferences with five-card suits.  With transfers,
+/// however, the first artificial bid can instead be chosen to preserve a particular rebid level and
+/// thereby communicate strength.
+///
+/// After 1NT, 8-9 HCP starts with the heart transfer so responder can bid 2S invitationally; 10+
+/// HCP starts with the spade transfer so a later 3H is game forcing.  After 2NT, 4+ HCP is already
+/// game going, so start with the heart transfer and preserve 3S to show the second major.
+///
+/// Weak 5-5 hands are intentionally left unresolved.  Modern transfer methods commonly respond with
+/// a five-card major even with fewer than eight points rather than automatically passing 1NT,
+/// because playing in the major may be better than leaving the contract in NT.  Some bidding
+/// methods instead use garbage/crawling Stayman with suitable weak two-major shapes.  For now,
+/// don't compares the two major suit qualities, and both weak transfer choices remain available.
+///
+function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvaluationResult[],
+                                                context: RuleEvaluationContext):
+    RuleEvaluationResult[] {
+  if (context.handFacts.lengths.H < 5 || context.handFacts.lengths.S < 5) {
+    return ruleResults;
+  }
+  // a 5-card major exists
+  let preferredTransfer: Call | null = null;
+  if (context.auction[0] === '1NT') {
+    if (context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9) {
+      preferredTransfer = '2D'; // Transfer to hearts, then show spades at the two level.
+    } else if (context.handFacts.hcp >= 10) {
+      preferredTransfer = '2H'; // Transfer to spades, then show hearts at the three level.
+    }
+  } else if (context.auction[0] === '2NT' && context.handFacts.hcp >= 4) {
+    preferredTransfer = '3D'; // Transfer to hearts, then 3S shows the second major below 3NT.
+  }
+  if (preferredTransfer === null) {
+    return ruleResults;
+  }
+  // and one is a preferred suit by bidding instructional materials
+  const jacobyResults = ruleResults.filter((result) =>
+    result.ruleApplies && result.rule.agreement?.setting === 'jacobyTransfers' &&
+    result.rule.agreement.value && result.rule.callCategory?.includes('conventional'));
+  const preferredExists = jacobyResults.some((result) =>
+    result.candidates.some((candidate) =>
+      candidate.ruleApplies && candidate.call === preferredTransfer));
+  if (! preferredExists) {
+    return ruleResults;
+  }
+
+  for (const result of jacobyResults) {
+    let suppressed = false;
+    for (const candidate of result.candidates) {
+      if (! candidate.ruleApplies || candidate.call === preferredTransfer) {
+        continue;
+      }
+      const suppressionLine =
+        `SUPPRESSED: with 5-5 majors, ${preferredTransfer} is the preferred first transfer ` +
+        'for this strength.';
+      candidate.ruleApplies = false;
+      candidate.telemetryLines.push(suppressionLine);
+      result.telemetryLines.push(`  ${suppressionLine}`);
+      suppressed = true;
+    }
+    if (suppressed) {
+      result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
+    }
+  }
+  return ruleResults;
+} // maybeSuppressOneFiveFiveMajorTransfer()
+
+/// maybeSuppressJacobyForDirectMajorSlam resolves the overlap between an ordinary Jacoby transfer
+/// and our direct 3H/3S slam-interest treatment.  With Jacoby transfers enabled, a direct 3M shows
+/// 16+ HCP, a 6+ card major, and no four-card other major.  When that stronger treatment applies,
+/// do not also present the ordinary lower-level Jacoby transfer as an equal first action.
+///
+/// agreement.setting === 'jacobyTransfers' alone does not identify a Jacoby transfer: the direct
+/// 3H/3S rule also depends on that agreement.  The transfer rule is the conventional one; the
+/// direct 3M slam-interest rule is natural and game forcing.
+///
+function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvaluationResult[]) : 
+      RuleEvaluationResult[] {
+  const majorSlamResult = ruleResults.find((result) =>
+    result.ruleApplies && result.rule.agreement?.setting === 'jacobyTransfers' &&
+    result.rule.agreement.value && result.rule.callCategory?.includes('gameForcing') &&
+    ! result.rule.callCategory?.includes('conventional') &&
+    result.candidates.some((candidate) =>
+      candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S')));
+  if (majorSlamResult === undefined) {
+    return ruleResults;
+  }
+  // found game forcing direct major
+  const majorSlamCandidate = majorSlamResult.candidates.find((candidate) =>
+    candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S'));
+  // if (majorSlamCandidate === undefined) {
+  //   return ruleResults;
+  // }
+  // we know we have a direct slam candidate, so see if there's a jacoby to suppress
+  for (const result of ruleResults) {
+    const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
+                             result.rule.agreement.value && 
+                             result.rule.callCategory?.includes('conventional');
+    if (! result.ruleApplies || ! isJacobyTransfer) {
+      continue;
+    }
+    // got the jacoby rule
+    const suppressionLine =
+      `SUPPRESSED: ${majorSlamCandidate!.call} is the preferred direct major slam-interest ` +
+      'response, so do not use the ordinary Jacoby transfer.';
+    for (const candidate of result.candidates) {
+      if (candidate.ruleApplies) {
+        candidate.ruleApplies = false;
+        candidate.telemetryLines.push(suppressionLine);
+      }
+    }
+    result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
+    result.telemetryLines.push(`  ${suppressionLine}`);
+  }
+  return ruleResults;
+} // maybeSuppressJacobyForDirectMajorSlam()
+
+
+
+/// maybeSuppressJacobyForMajorGame resolves the game-only overlap between Jacoby and the system's
+/// direct 6+ major game route.  With Texas enabled, that route is a four-level Texas transfer.
+/// Without Texas, 4H/4S are natural game signoffs instead.  In either treatment, a game-only hand
+/// uses the direct game route rather than first making the lower-level Jacoby transfer.
+///
+/// The major-game rules themselves exclude another four-card or longer major: 6-4 hands start with
+/// Stayman, while two 5+ card majors use a lower-level transfer sequence to describe both suits.
+/// Jacoby remains available for weaker/invitational hands and stronger hands needing bidding room.
+///
+/// 5-3 major shape                 -> Jacoby
+/// 5-4 / 6-4 + Stayman strength   -> Stayman
+/// 5-5 / 6-5                       -> lower-level transfer route
+/// 6-3 + game-only values         -> Texas
+/// 6-3 + weaker/invitational      -> Jacoby
+/// 6-3 + slam interest            -> slower strong treatment, not Texas
+///
+function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvaluationResult[]):
+    RuleEvaluationResult[] {
+  // do any results specify a texas transfer result ...  if texas is true, and one applies, then
+  // suppress jacoby, and if texas is off for an applicable rule, and a natural 4M applies, then
+  // suppress jacoby
+  const majorGameResult = ruleResults.find((result) =>
+    result.ruleApplies && result.rule.agreement?.setting === 'texasTransfers'); //&&
+    // result.rule.agreement.value && result.rule.callCategory?.includes('conventional'));
+  if (majorGameResult === undefined) {
+    return ruleResults;
+  }
+  const majorGameCandidate = majorGameResult.candidates.find((candidate) => candidate.ruleApplies)!;
+  // if (majorGameCandidate === undefined) {
+  //   return ruleResults;
+  // }
+  // We have the system's direct major-game route, so see if a competing Jacoby transfer applies.
+  for (const result of ruleResults) {
+    const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
+                             result.rule.agreement.value && 
+                             result.rule.callCategory?.includes('conventional');
+    if (! result.ruleApplies || ! isJacobyTransfer) {
+      continue;
+    }
+    const suppressionLine =
+      `SUPPRESSED: ${majorGameCandidate.call} is the preferred direct major-game route, ` +
+      'so do not use the Jacoby transfer.';
+    for (const candidate of result.candidates) {
+      if (candidate.ruleApplies) {
+        candidate.ruleApplies = false;
+        candidate.telemetryLines.push(suppressionLine);
+      }
+    }
+    // update rule defensively based on any candidates still apply
+    result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
+    result.telemetryLines.push(`  ${suppressionLine}`);
+  }
+  return ruleResults;
+} // maybeSuppressJacobyForMajorGame()
+
+
+
+/// maybeSuppressNtResponseFallback takes all applicable rules for current auction and responder's
+/// hand and removes a direct Pass or natural notrump response to a 1NT opening when an
+/// major-oriented response should come first.  This keeps the point-range NT ladder declarative in
+/// bidding rules while resolving choice with major-suit bids.
+///
+/// With Jacoby transfers available, responder first shows a five-card-or-longer major and then
+/// describes strength:
+///   0-7 + 5-card major -> transfer, then pass
+///   8-9 + 5-card major -> transfer, then bid 2NT
+///   10+ + 5-card major -> transfer, then bid 3NT or otherwise describe the hand
+///
+/// Using rule agreements rather than testing IDs give a clean result consistent with bidding books:
+///    Jacoby ON:
+///       1NT + 5 HCP + 5S-3-3-2  -> 2H transfer      (Pass removed)
+///       1NT + 8 HCP + 5S-3-3-2  -> 2H transfer      (2NT removed)
+///       1NT + 10 HCP + 5S-3-3-2 -> 2H transfer      (3NT removed)
+///       1NT + 16 HCP + 5S-3-3-2 -> 2H transfer      (4NT removed)
+///    Jacoby OFF:
+///       1NT + 5 HCP + 5S-3-3-2  -> 2S natural       (Pass removed)
+///       1NT + 8 HCP + 5S-3-3-2  -> 2NT              (correctly remains)
+///       1NT + 10 HCP + 5S-3-3-2 -> 3S natural       (3NT removed)
+///
+function maybeSuppressNtResponseFallback (ruleResults: RuleEvaluationResult[]) :
+    RuleEvaluationResult[] {
+  // Find first response rule associated with one of our major-oriented NT-response treatments: for
+  // example, with transfers on, find rules like respond-to-1nt-w/-stayman and
+  // respond-to-1nt-w/-transfer-to-hearts, but with transfers off (those rules aren't in result
+  // set), find things like respond-to-1nt-w/-2h-2s-natural-signoff and
+  // respond-to-1nt-w/-3h-3s-natural-forcing.
+  const majorActionResult = ruleResults.find((result) => {
+    if (! result.ruleApplies) {
+      return false;
+    }
+    const setting = result.rule.agreement?.setting;
+    return setting === 'stayman' || setting === 'jacobyTransfers' || setting === 'texasTransfers';
+  });
+  if (majorActionResult === undefined) {
+    return ruleResults;
+  }
+  const majorCandidate = majorActionResult.candidates.find((candidate) => candidate.ruleApplies)!;
+  // if (majorCandidate === undefined) {
+  //   return ruleResults;
+  // }
+  // Since we have a major bid, look for NT bids we should suppress since we prefer majors
+  for (const result of ruleResults) {
+    let suppressed = false;
+    for (const candidate of result.candidates) {
+      const isNtFallback = candidate.call === 'Pass' ||
+        (isContractBid(candidate.call) && getStrainFromSuitBid(candidate.call) === 'NT');
+      if (! candidate.ruleApplies || ! isNtFallback) {
+        continue;
+      }
+      const suppressionLine =
+        `SUPPRESSED: ${majorCandidate.call} is a preferred major-oriented response, ` +
+        `so do not use direct ${candidate.call}.`;
+      candidate.ruleApplies = false;
+      candidate.telemetryLines.push(suppressionLine);
+      result.telemetryLines.push(`  ${suppressionLine}`);
+      suppressed = true;
+    }
+    // if we suppressed anything, the rule applies only if it has surviving calls after supporession
+    if (suppressed) {
+      result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
+    }
+  }
+  return ruleResults;
+} // maybeSuppressNtResponseFallback()
+
+/// maybeSuppressMajorOneNtResponse takes all applicable rules for current auction and responder's
+/// hand and removes the no-support 1NT response when responder already has a qualifying one-level
+/// new-suit response.  After 1H, four or more spades are shown with 1S; the 1NT response is the
+/// fallback when that preferred one-level response is unavailable.
+///
+function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvaluationResult[]) :
+      RuleEvaluationResult[] {
+  const newSuitResult = ruleResults.find((result) =>
+    result.rule.id === 'respond-to-major-w/o-support-new-suit-one-level' &&
+    result.ruleApplies);
+  if (newSuitResult === undefined) { // don't suppress anything, no valid one suit bid found
+    return ruleResults;
+  }
+  const newSuitCandidate = newSuitResult.candidates.find(
+    (candidate) => candidate.ruleApplies)!;
+  const oneNtResult = ruleResults.find((result) =>
+    (result.rule.id === 'respond-to-major-w/o-support-1nt-twooverone' ||
+     result.rule.id === 'respond-to-major-w/o-support-1nt-standard') &&
+    result.ruleApplies);
+  if (oneNtResult === undefined) {
+    return ruleResults;
+  }
+  const suppressionLine = // telemetry, not user facing
+    `SUPPRESSED: ${newSuitCandidate.call} is the preferred one-level new-suit response, ` +
+    'so do not use fallback 1NT.';
+  oneNtResult.ruleApplies = false;
+  oneNtResult.telemetryLines.push(`  ${suppressionLine}`);
+  for (const candidate of oneNtResult.candidates) {
+    if (candidate.ruleApplies) {
+      candidate.ruleApplies = false;
+      candidate.telemetryLines.push(suppressionLine);
+    }
+  }
+  return ruleResults;
+} // maybeSuppressMajorOneNtResponse()
+
 ///
 //// Evaluate Hand Constraints against Calls
 ///
 
-/// evaluateHandConstraint evaluates rule.appliesWhen's HandConstraint against a call.
-/// Fields not supported by the first punch-through fail closed so unsupported
-/// rule data does not silently produce advice.
+/// evaluateHandConstraint evaluates rule.appliesWhen's HandConstraint against a call.  Fields not
+/// supported by the first punch-through fail closed so unsupported rule data does not silently
+/// produce advice.
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
                                  context: RuleEvaluationContext)
@@ -291,7 +713,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     pass = pass && result.pass;
   }
   if (constraint.totalPoints !== undefined) {
-    const result = testTotalPointsRange(context, constraint, constraint.totalPoints);
+    const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
     pass = pass && result.pass;
   }
@@ -311,8 +733,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(...result.telemetryLines);
     pass = pass && result.pass;
   }
-  if (constraint.supportFor !== undefined || constraint.supportLength !== undefined) {
-    const result = testSupportFor(constraint.supportFor, constraint.supportLength, context);
+  if (constraint.supportLength !== undefined) {
+    const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
@@ -334,16 +756,14 @@ function testPointRange (value: number, range: PointRange, label: string)
   return { pass: true, telemetryLine: `PASS: ${label} ${value} is in range.` };
 }
 
-function testTotalPointsRange (context: RuleEvaluationContext, constraint: HandConstraint, range: PointRange)
-                              : { pass: boolean; telemetryLines: string[] } {
-  if (constraint.supportFor !== undefined || constraint.supportLength !== undefined) {
-    const shortageResult = testPointRange(context.handFacts.totalPointsWShortage, range,
-                                          'total points with shortage');
-    return { pass: shortageResult.pass, telemetryLines: [shortageResult.telemetryLine] };
-  }
-  const lengthResult = testPointRange(context.handFacts.totalPointsWLength, range,
-                                      'total points with length');
-  return { pass: lengthResult.pass, telemetryLines: [lengthResult.telemetryLine] };
+function testTotalPointsRange (context: RuleEvaluationContext, range: TotalPointsRange) :
+     { pass: boolean; telemetryLines: string[] } {
+  const useShortage = range.valuation === 'shortage';
+  const value = useShortage ? context.handFacts.totalPointsWShortage
+                            : context.handFacts.totalPointsWLength;
+  const label = useShortage ? 'total points with shortage' : 'total points with length';
+  const result = testPointRange(value, range, label);
+  return { pass: result.pass, telemetryLines: [result.telemetryLine] };
 }
 
 /// testSuitLengths compares one declared suit-length constraint with the bidder's hand.  When the
@@ -407,9 +827,10 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balanced is ${handFacts.balanced}.`);
     pass = pass && thisPass;
   }
-  if (shape.semiBalanced !== undefined) {
-    const thisPass = handFacts.semiBalanced === shape.semiBalanced;
-    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: semiBalanced is ${handFacts.semiBalanced}.`);
+  if (shape.balancedOrSemiBalanced !== undefined) {
+    const thisPass = handFacts.balancedOrSemiBalanced === shape.balancedOrSemiBalanced;
+    telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balancedOrSemiBalanced is ` +
+                        `${handFacts.balancedOrSemiBalanced}.`);
     pass = pass && thisPass;
   }
   if (shape.noVoid !== undefined) {
@@ -459,62 +880,24 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
   return { pass, telemetryLines };
 } //testHandShape()
 
-// function noFourCardOtherMajorMatches (call: Call, handFacts: HandFacts): boolean {
-//   if (! isContractBid(call)) {
-//     return handFacts.hasFourCardMajor === false;
-//   }
-//   const callSuit = getStrainFromSuitBid(call);
-//   if (callSuit === 'H') {
-//     return handFacts.lengths.S < 4;
-//   }
-//   if (callSuit === 'S') {
-//     return handFacts.lengths.H < 4;
-//   }
-//   return handFacts.hasFourCardMajor === false;
-// }
-
-/// testSupportFor determines whether the responder satisfies a support requirement from a bidding  
-/// rule.  A rule may require support for opener's suit and may require a minimum support length.
-/// supportLength may be undefined because it comes from a declared rule that may omit the property.
+/// testSupportLength compares responder's holding in partner's opened suit with the declared
+/// range.  supportLength says only how many cards responder has in that suit; it does not choose
+/// how total points are valued.
 ///
-function testSupportFor (supportFor: HandConstraint['supportFor'], 
-                         supportLength: PointRange | undefined, 
-                         context: RuleEvaluationContext): { pass: boolean; telemetryLine: string } {
-  // Use suit, NT-oriented rules should use shape or balanced-hand constraints instead.
-  const effectiveSupportFor = supportFor ?? 'partnersOpenedSuit';
-  const supportSuit = getSupportSuit(effectiveSupportFor, context.partnerOpeningCall);
-  if (supportSuit === null) { // support Strain was NT or undefined
-    return { pass: false, telemetryLine: 'supportFor hand constraint undefined or NT.' };
+function testSupportLength (supportLength: PointRange, context: RuleEvaluationContext) : 
+      { pass: boolean; telemetryLine: string } {
+  const opening = context.partnerOpeningCall;
+  if (opening === null || !isContractBid(opening)) {
+    return {pass: false, 
+            telemetryLine: 'FAIL: no partner opening suit for supportLength constraint.',};
   }
-  if (supportLength === undefined) {
-    return { pass: true, telemetryLine: `PASS: support suit ${supportSuit} is available.` };
+  const supportSuit = getStrainFromSuitBid(opening);
+  if (supportSuit === 'NT') {
+    return {pass: false,
+            telemetryLine: 'FAIL: NT opening has no suit for supportLength constraint.',};
   }
-  const length = context.handFacts.lengths[supportSuit];
-  const result = testPointRange(length, supportLength, `${supportSuit} support length`);
-  return { pass: result.pass, telemetryLine: result.telemetryLine };
-}
-
-/// getSupportSuit resolves a rule support target to a specific suit.  This returns null for NT 
-/// so callers can distinguish.  
-///
-function getSupportSuit (supportFor: HandConstraint['supportFor'], 
-                         partnerOpeningCall: Call | null): Suit | null {
-  if (supportFor === undefined) { // no required suit constraint
-    return null;
-  }
-  if (supportFor !== 'partnersOpenedSuit') {
-    if (supportFor === 'NT') return null;
-    return supportFor;
-  }
-  if (partnerOpeningCall === null || ! isContractBid(partnerOpeningCall)) {
-    // If partner bid doesn't exist or is not a contract bid, then no suit to support.
-    return null;
-  }
-  const partnerOpeningStrain = getStrainFromSuitBid(partnerOpeningCall);
-  if (partnerOpeningStrain === 'NT') {
-    return null;
-  }
-  return partnerOpeningStrain;
+  return testPointRange(context.handFacts.lengths[supportSuit], supportLength,
+                        `${supportSuit} support length`);
 }
 
 ///
