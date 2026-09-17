@@ -125,9 +125,17 @@ export interface Deal {
   W: Hand;
 }
 
-/// Deal generation returns telemetry because the trainer UI is partly a rule-debugging UI.
-export interface DealWTelemetry {
+/// Board is the physical deal plus dealer.  Practice generation may deliberately rotate a useful
+/// hand into a seat, but the bidding model sees an ordinary board and derives auction position from
+/// dealer and calls.
+export interface Board {
   deal: Deal;
+  dealer: Seat;
+}
+
+/// Board generation returns telemetry because the trainer UI is partly a rule-debugging UI.
+export interface BoardWTelemetry {
+  board: Board;
   telemetryLines: string[];
 }
 
@@ -135,7 +143,7 @@ export interface DealWTelemetry {
 /// openable hands come along within a couple of deals
 const maxDealAttempts = 100;
 
-export function generateOpenableNorthDeal (): DealWTelemetry {
+export function generateOpenableNorthBoard (): BoardWTelemetry {
   const telemetryLines: string[] = [];
   // This is only a deal-generation shortcut, not the bidding evaluator.  Include the common ways
   // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
@@ -151,13 +159,13 @@ export function generateOpenableNorthDeal (): DealWTelemetry {
         deal = rotateOpeningToNorth(deal, firstOpenableSeat);
         telemetryLines.push(`First practice-opening hand was ${firstOpenableSeat}; rotated it to North.`);
       }
-      return { deal, telemetryLines };
+      return { board: { deal, dealer: 'N' }, telemetryLines };
     }
   } // for
   const fallbackDeal = dealRandomHands();
   telemetryLines.push(
     `No practice-opening hand found after ${maxDealAttempts} attempts; using final random deal.`);
-  return { deal: fallbackDeal, telemetryLines };
+  return { board: { deal: fallbackDeal, dealer: 'N' }, telemetryLines };
 }
 
 /// isPracticeOpeningHand keeps random deal generation from waiting only for a 12-HCP hand.  The

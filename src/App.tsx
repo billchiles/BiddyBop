@@ -2,19 +2,19 @@ import { useState } from 'react';
 import './App.css';
 import { BidPanel } from './components/BidPanel';
 import { TelemetryPanel } from './components/TelemetryPanel';
-import { generateOpenableNorthDeal, type Deal } from './models/cards';
+import { generateOpenableNorthBoard, type Board } from './models/cards';
 
 /// App is the first browser-only punch-through for deal generation and rule matching.
 interface AppState {
-  deal: Deal;
+  board: Board;
   telemetryLines: string[];
 }
 
 function createInitialState(): AppState {
-  const result = generateOpenableNorthDeal();
+  const result = generateOpenableNorthBoard();
   return {
-    deal: result.deal,
-    telemetryLines: ['Generated initial deal.', ...result.telemetryLines],
+    board: result.board,
+    telemetryLines: ['Generated initial board.', ...result.telemetryLines],
   };
 }
 
@@ -22,10 +22,10 @@ export default function App() {
   const [state, setState] = useState<AppState>(() => createInitialState());
 
   function redeal(): void {
-    const result = generateOpenableNorthDeal();
+    const result = generateOpenableNorthBoard();
     setState({
-      deal: result.deal,
-      telemetryLines: ['Generated new deal.', ...result.telemetryLines],
+      board: result.board,
+      telemetryLines: ['Generated new board.', ...result.telemetryLines],
     });
   }
 
@@ -50,7 +50,7 @@ export default function App() {
         <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
       </header>
 
-      <BidPanel deal={state.deal} onTelemetry={appendTelemetry} />
+      <BidPanel board={state.board} onTelemetry={appendTelemetry} />
       <TelemetryPanel lines={state.telemetryLines} />
     </main>
   );

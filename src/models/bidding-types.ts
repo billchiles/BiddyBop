@@ -1,7 +1,7 @@
 /// Core types and current bidding-system settings for the bridge trainer.
 ///
 
-import type { Hand, HandFacts } from './cards';
+import type { Hand, HandFacts, Seat } from './cards';
 
 ///
 //// Basic card, suit, bid types
@@ -19,7 +19,13 @@ export type Call =
   | 'Pass'
   | 'Double'
   | 'Redouble';
-export type Role = 'opener' | 'responder';
+export type BidStage =
+  | 'opening'
+  | 'responding'
+  | 'openerRebid'
+  | 'responderRebid'
+  | 'overcalling'
+  | 'advancing';
 
 ///
 //// Bidding System conventions and agreements types
@@ -226,8 +232,9 @@ export interface HandShapeConstraint {
 }
 
 export interface AuctionContext {
-  role: Role;
-  // Responder contexts currently record opener's call only; opponent passes/interference are omitted.
+  stage: BidStage;
+  // Rule declarations use a compact representative auction.  The evaluator owns the full physical
+  // auction, including passes, and derives the compact calls used for rule matching.
   auction: Call[];
   description?: string;
   openerStrain?: Strain | 'minor' | 'major';
@@ -238,7 +245,7 @@ export interface AuctionContext {
 /// invokes it; declaring the function on a rule does not immediately execute it.
 export type AppliesWhenFunction = (
   call: Call,
-  context: RuleEvaluationContext,
+  context: RuleEvalContext,
   system: BiddingSystem,
 ) => AppliesWhenResult;
 
@@ -250,7 +257,7 @@ export interface AppliesWhenResult {
 /// callRefinement turns a rule's broad declared calls into the calls valid for this exact auction.
 export type CallRefinementFunction = (
   calls: Call[],
-  context: RuleEvaluationContext,
+  context: RuleEvalContext,
   system: BiddingSystem,
 ) => CallRefinementResult;
 
@@ -262,9 +269,12 @@ export interface CallRefinementResult {
   telemetryLines: string[];
 }
 
-/// RuleEvaluationContext contains the actual auction/hand state available to rule functions.
-export interface RuleEvaluationContext {
-  role: Role;
+/// RuleEvalContext contains model-derived auction/hand state available to rule functions.
+/// React supplies the board and full auction; the bidding model derives seat, stage, and hand.
+export interface RuleEvalContext {
+  dealer: Seat;
+  seat: Seat;
+  stage: BidStage | null;
   auction: Call[];
   hand: Hand;
   handFacts: HandFacts;

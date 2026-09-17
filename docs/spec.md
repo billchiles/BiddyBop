@@ -48,7 +48,10 @@ The app should help the user practice bidding decisions using structured convent
 ## Rule Data Policy
 
 - Executable bidding rules are organized by auction stage in arrays such as `OpeningBidRules`, `ResponseBidRules`, `OvercallRules`, `AdvanceRules`, and `OpenerRebidRules`.
-- The evaluator selects the appropriate stage array from the current auction state; there is no required flattened `BiddingRules` array.
+- `BidStage` uses bidding-process names such as `opening`, `responding`, `openerRebid`, `responderRebid`, `overcalling`, and `advancing`.
+- The evaluator derives the current `BidStage` from the board and authoritative auction, then selects the appropriate rule array. React does not tell the evaluator that a seat is opener/responder.
+- There is no required flattened `BiddingRules` array.
+- Keep declarative rule arrays in `bidding-rules.ts`. Keep executable `callRefinement` and function-valued `appliesWhen` functions, plus their private helpers, in `bidding-rule-functions.ts`.
 - `BiddingSystem` is the configurable set of bidding agreements for the current practice session.
 - A rule's optional `agreement` selects whether the whole rule is active in the current `BiddingSystem`.
 - Declarative `appliesWhen` values should remain concrete and literal. Prefer representing bidding
@@ -59,8 +62,8 @@ The app should help the user practice bidding decisions using structured convent
 - `callRefinement` may be a typed function that removes or orders candidates within one rule.
   Use it when forcing that logic into declarative data would make the rule less clear.
 - `BiddingNotes` contains documentation and teaching concepts that are not executable bidding
-  rules. `getRulesForAuctionState` does not select them, so they cannot generate candidate calls
-  or ordinary rule explanations.
+  rules. Stage rule selection does not include them, so they cannot generate candidate calls or
+  ordinary rule explanations.
 - `appliesWhen` should contain only constraints the code can evaluate.
 - Human explanation belongs in `guidance`.
 - `meaning` is optional. Use it mainly when the call has a non-obvious or conventional meaning.
@@ -72,7 +75,9 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Evaluator Flow and Invariants
 
-- Select the rule array for the current auction stage.
+- `Board` contains the physical `Deal` plus `dealer`. The authoritative auction is a `Call[]` containing every physical call, including passes.
+- Derive the acting seat, acting hand, and current `BidStage` from `Board + auction`, then select the rule array for that stage.
+- `RuleEvalContext` is model-derived evaluation state; React supplies board, auction, and the user call rather than choosing a hand or role for the evaluator.
 - Remove rules whose `agreement` does not match the current `BiddingSystem`.
 - Filter the active rules by auction context.
 - Evaluate every remaining rule independently:
@@ -103,6 +108,7 @@ The app should help the user practice bidding decisions using structured convent
 - `suitLengths` entries are conjunctive.
 - If a `suitLengths` entry specifies a concrete suit, test that suit.
 - If a `suitLengths` entry omits the suit, apply it to the suit of the candidate call currently being evaluated.
+- Rule `auctionContext.auction` remains a compact representative partnership auction even though the model stores the full physical auction with passes. The matcher derives the opening partnership's non-pass calls for current uncontested rules.
 - `auction: ['1H']` together with `openerStrain: 'major'` is a representative rule declaration for either 1H or 1S; similarly `auction: ['1C']` plus `openerStrain: 'minor'` represents either minor opening. Keep this convention commented near the rule declarations.
 - Do not put prose such as `text` inside `appliesWhen`.
 - Do not put judgment phrases such as "good suit" inside `appliesWhen` unless the code has a defined evaluator for them.
@@ -116,14 +122,15 @@ The app should help the user practice bidding decisions using structured convent
 
 ## First GUI Punch-Through
 
-- Generate one random deal.
-- Show all four hands.
-- Assume North is dealer initially, but rotate a randomly dealt practice-opening hand to North. Deal generation may use simple hard-coded opening characteristics for efficiency; the bidding evaluator remains authoritative.
-- Ignore opponent interference in the first punch-through. Rule auction contexts omit opponent passes/interference rather than carrying an `assumesUncontested` flag.
-- Evaluate North's opening call.
-- If North opens, evaluate South's response.
+- Generate a `Board` containing `deal` plus `dealer` and show all four hands.
+- For the current focused practice shortcut, rotate a randomly dealt practice-opening hand to North and set `dealer: 'N'`. Deal generation may use simple hard-coded opening characteristics for efficiency; the bidding evaluator remains authoritative.
+- Keep one authoritative physical auction containing the opponent passes that the current UI inserts automatically. Rule declarations may continue to use compact uncontested partnership auctions.
+- Model code derives the next physical seat, acting hand, and bidding stage from board + auction. React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
+- For now, the UI still has the user enter the partnership's calls and auto-passes the intervening opponents. Do not introduce a controlled-seat/controller abstraction yet.
+- Punch through opening, response, and opener rebid, then stop.
 - Show matching rules, suggested calls, and guidance.
 - Do not build DDS, simulation, competitive bidding, scoring, or full auction judgment yet.
+- Later, configurable practice-hand/scenario generation should move out of React and into model code.
 
 
 ## Current Practice-System Decisions

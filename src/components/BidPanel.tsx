@@ -1,50 +1,32 @@
-import { useEffect, useRef, useMemo, useState, type FormEvent } from 'react';
-import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult,
-         normalizeCallInput } from '../models/biddingEvaluation';
-import { getHandFacts, type Deal } from '../models/cards';
-import { type BidRule, type Call, defaultBiddingSystem,
-         type RuleEvaluationContext } from '../models/bidding-types';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { auctionIsComplete, evaluateUserCall, getApplicableCandidateCalls, getBidStage, getNextSeat,
+         type BidEvalResult, normalizeCallInput } from '../models/biddingEvaluation';
+import { type Board, type Seat } from '../models/cards';
+import { type BidRule, type BidStage, type Call, defaultBiddingSystem } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
 /// BidPanel owns the visible auction practice area while App keeps telemetry separate.
+/// The current punch-through still has the user enter partnership calls while opponents auto-pass.
+/// The model, rather than React, derives the acting seat, hand, and bidding stage from board + auction.
 export interface BidPanelProps {
-  deal: Deal;
+  board: Board;
   onTelemetry: (lines: string[]) => void;
 }
 
-type BidSeat = 'N' | 'E' | 'S' | 'W';
-
-interface AuctionCall {
-  seat: BidSeat;
-  call: Call;
-}
-
-export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
+export function BidPanel({ board, onTelemetry }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
-  const [auctionCalls, setAuctionCalls] = useState<AuctionCall[]>([]);
-  const [northResult, setNorthResult] = useState<BidEvalResult | null>(null);
-  const [southResult, setSouthResult] = useState<BidEvalResult | null>(null);
+  const [auction, setAuction] = useState<Call[]>([]);
+  const [punchThroughComplete, setPunchThroughComplete] = useState(false);
   const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
   const explanationRef = useRef<HTMLPreElement | null>(null);
 
-  const northContext = useMemo<RuleEvaluationContext>(() => {
-    return {
-      role: 'opener',
-      auction: [],
-      hand: deal.N,
-      handFacts: getHandFacts(deal.N),
-      partnerOpeningCall: null,
-    };
-  }, [deal]);
-
   useEffect(() => {
     setBidText('');
-    setAuctionCalls([]);
-    setNorthResult(null);
-    setSouthResult(null);
+    setAuction([]);
+    setPunchThroughComplete(false);
     setExplanationLines(['No evaluation yet.']);
-  }, [deal]);
+  }, [board]);
 
   useEffect(() => {
     if (explanationRef.current === null) {
@@ -55,99 +37,84 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (northResult === null) {
-      evaluateNorthBid();
+    if (punchThroughComplete) {
+      onTelemetry(['Current punch-through is complete.']);
       return;
     }
-    if (southResult === null) {
-      evaluateSouthBid();
+    if (auctionIsComplete(auction)) {
+      onTelemetry(['Auction is complete.']);
       return;
     }
-    onTelemetry(['Only North opening and South response are evaluated in the first punch-through.']);
+
+    const stage = getBidStage(board, auction);
+    switch (stage) {
+      case 'opening':
+        evaluateBid('opening', true, false);
+        return;
+      case 'responding':
+        evaluateBid('responding', true, false);
+        return;
+      case 'openerRebid':
+        evaluateBid('openerRebid', false, true);
+        return;
+      case 'responderRebid':
+      case 'overcalling':
+      case 'advancing':
+      case null:
+        onTelemetry([`No user-input punch-through is implemented for stage ${stage ?? 'unresolved'}.`]);
+        return;
+    }
   }
 
-  function evaluateNorthBid(): void {
+  /// evaluateBid keeps the temporary punch-through policy in React: the user enters partnership
+  /// calls and the intervening opponent auto-passes.  Acting seat, hand, and bidding stage are still
+  /// derived by the model from board + auction.
+  function evaluateBid(stage: BidStage, autoPassOpponent: boolean,
+                       completesPunchThrough: boolean): void {
+    const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
     if (normalizedCall === null) {
-      const lines = [`Invalid North opening input: "${bidText}".`];
-      setNorthResult(null);
-      setSouthResult(null);
-      setExplanationLines(lines);
-      onTelemetry(lines);
+      reportInvalidInput(seat, stage);
       return;
     }
-    const result = evaluateUserCall(normalizedCall, northContext, defaultBiddingSystem);
-    const nextAuctionCalls: AuctionCall[] = [
-      { seat: 'N', call: normalizedCall },
-      { seat: 'E', call: 'Pass' },
-    ];
 
-    setNorthResult(result);
-    setSouthResult(null);
-    setAuctionCalls(nextAuctionCalls);
+    const result = evaluateUserCall(normalizedCall, board, auction, defaultBiddingSystem);
+    const nextAuction: Call[] = [...auction, normalizedCall];
+    if (autoPassOpponent) {
+      nextAuction.push('Pass');
+    }
+
+    setAuction(nextAuction);
+    if (completesPunchThrough) {
+      setPunchThroughComplete(true);
+    }
+    finishBidEntry(seat, stage, result);
+  }
+
+  function finishBidEntry(seat: Seat, stage: BidStage, result: BidEvalResult): void {
+    const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
-    setExplanationLines((current) => [...current, '',
-                                      ...buildExplanationLines('North opening', result), ]);
-    onTelemetry(['Evaluating North opening.', ...result.telemetryLines]);
+    setExplanationLines((current) => [...current, '', ...buildExplanationLines(title, result)]);
+    onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
   }
 
-  function evaluateSouthBid(): void {
-    const northCall = getNorthCall();
-    const southCall = normalizeCallInput(bidText);
-
-    if (northCall === null) {
-      const lines = ['Cannot evaluate South response until North has a valid opening call.'];
-      setSouthResult(null);
-      setExplanationLines(lines);
-      onTelemetry(lines);
-      return;
-    }
-
-    if (southCall === null) {
-      const lines = [`Invalid South response input: "${bidText}".`];
-      setSouthResult(null);
-      setExplanationLines(lines);
-      onTelemetry(lines);
-      return;
-    }
-
-    const southContext: RuleEvaluationContext = {
-      role: 'responder',
-      auction: [northCall],
-      hand: deal.S,
-      handFacts: getHandFacts(deal.S),
-      partnerOpeningCall: northCall,
-    };
-    const result = evaluateUserCall(southCall, southContext, defaultBiddingSystem);
-    const nextAuctionCalls: AuctionCall[] = [
-      ...auctionCalls,
-      { seat: 'S', call: southCall },
-      { seat: 'W', call: 'Pass' },
+  function reportInvalidInput(seat: Seat, stage: BidStage): void {
+    const lines = [
+      `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
-
-    setSouthResult(result);
-    setAuctionCalls(nextAuctionCalls);
-    setBidText('');
-    setExplanationLines((current) => [...current, '',
-                                      ...buildExplanationLines('South response', result), ]);
-    onTelemetry(['Evaluating South response.', ...result.telemetryLines]);
+    setExplanationLines(lines);
+    onTelemetry(lines);
   }
 
-  function getNorthCall(): Call | null {
-    if (northResult === null) {
-      return null;
-    }
-    return northResult.normalizedCall;
-  }
-
-  const nextBidLabel = getNextBidLabel(northResult, southResult);
-  const auctionRows = buildAuctionRows(auctionCalls);
+  const inputDisabled = punchThroughComplete || auctionIsComplete(auction);
+  const nextBidLabel = getNextBidLabel(board.dealer, auction, punchThroughComplete);
+  const auctionRows = buildAuctionRows(auction, board.dealer);
 
   return (
     <section className="bidPanel" aria-label="Bid evaluation">
       <section className="trainerWorkspace">
         <section className="trainerLeftColumn">
-          <DealCompass deal={deal} />
+          <DealCompass deal={board.deal} />
           <form className="bidForm" onSubmit={handleSubmit}>
             <label className="bidLabel" htmlFor="bidInput">{nextBidLabel}</label>
             <input
@@ -156,8 +123,9 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
               value={bidText}
               onChange={(event) => setBidText(event.target.value)}
               placeholder="1H, 1NT, Pass"
+              disabled={inputDisabled}
             />
-            <button className="bidButton" type="submit">Commit</button>
+            <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
           </form>
         </section>
 
@@ -170,15 +138,46 @@ export function BidPanel({ deal, onTelemetry }: BidPanelProps) {
   );
 }
 
-function getNextBidLabel(northResult: BidEvalResult | null,
-                         southResult: BidEvalResult | null): string {
-  if (northResult === null) {
-    return 'North:';
+function getStageLabel(stage: BidStage | null): string {
+  switch (stage) {
+    case 'opening':
+      return 'opening';
+    case 'responding':
+      return 'response';
+    case 'openerRebid':
+      return 'opener rebid';
+    case 'responderRebid':
+      return 'responder rebid';
+    case 'overcalling':
+      return 'overcall';
+    case 'advancing':
+      return 'advance';
+    case null:
+      return 'bid';
   }
-  if (southResult === null) {
-    return 'South:';
+}
+
+function getSeatLabel(seat: Seat): string {
+  switch (seat) {
+    case 'N':
+      return 'North';
+    case 'E':
+      return 'East';
+    case 'S':
+      return 'South';
+    case 'W':
+      return 'West';
   }
-  return 'West:';
+}
+
+function getNextBidLabel(dealer: Seat, auction: Call[], punchThroughComplete: boolean): string {
+  if (auctionIsComplete(auction)) {
+    return 'Auction complete';
+  }
+  if (punchThroughComplete) {
+    return 'Punch-through complete';
+  }
+  return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
 }
 
 function buildExplanationLines (title: string, result: BidEvalResult): string[] {
@@ -197,7 +196,8 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
   } else {
     lines.push('Rules satisfied by user call:');
     for (const rule of result.userCallMatchingRules) {
-      appendRuleExplanation(lines, rule);    }
+      appendRuleExplanation(lines, rule);
+    }
   }
 
   lines.push('');
@@ -225,30 +225,38 @@ function appendRuleExplanation (lines: string[], rule: BidRule): void {
   }
 }
 
-function buildAuctionRows(auctionCalls: AuctionCall[]): AuctionCall[][] {
-  const rows: AuctionCall[][] = [];
-  let currentRow: AuctionCall[] = [];
+interface AuctionRow {
+  N?: Call;
+  E?: Call;
+  S?: Call;
+  W?: Call;
+}
 
-  for (const auctionCall of auctionCalls) {
-    currentRow.push(auctionCall);
-    if (currentRow.length === 4) {
-      rows.push(currentRow);
-      currentRow = [];
+function buildAuctionRows(auction: Call[], dealer: Seat): AuctionRow[] {
+  const seatOrder: Seat[] = ['N', 'E', 'S', 'W'];
+  const dealerIndex = seatOrder.indexOf(dealer);
+  const rows: AuctionRow[] = [];
+
+  for (let index = 0; index < auction.length; index += 1) {
+    const absoluteSlot = dealerIndex + index;
+    const rowIndex = Math.floor(absoluteSlot / seatOrder.length);
+    const seat = seatOrder[absoluteSlot % seatOrder.length];
+    const call = auction[index];
+    if (seat === undefined || call === undefined) {
+      continue;
     }
-  }
-
-  if (currentRow.length !== 0) {
-    rows.push(currentRow);
+    const row = rows[rowIndex] ?? {};
+    row[seat] = call;
+    rows[rowIndex] = row;
   }
 
   if (rows.length === 0) {
-    rows.push([]);
+    rows.push({});
   }
-
   return rows;
 }
 
-function AuctionGrid({ rows }: { rows: AuctionCall[][] }) {
+function AuctionGrid({ rows }: { rows: AuctionRow[] }) {
   return (
     <section className="auctionPanel" aria-label="Auction">
       <h3>Auction</h3>
@@ -264,10 +272,10 @@ function AuctionGrid({ rows }: { rows: AuctionCall[][] }) {
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={rowIndex}>
-              <td>{getAuctionCell(row, 'N')}</td>
-              <td>{getAuctionCell(row, 'E')}</td>
-              <td>{getAuctionCell(row, 'S')}</td>
-              <td>{getAuctionCell(row, 'W')}</td>
+              <td>{row.N ?? ''}</td>
+              <td>{row.E ?? ''}</td>
+              <td>{row.S ?? ''}</td>
+              <td>{row.W ?? ''}</td>
             </tr>
           ))}
         </tbody>
@@ -276,15 +284,7 @@ function AuctionGrid({ rows }: { rows: AuctionCall[][] }) {
   );
 }
 
-function getAuctionCell(row: AuctionCall[], seat: BidSeat): string {
-  const matchingCall = row.find((auctionCall) => auctionCall.seat === seat);
-  if (matchingCall === undefined) {
-    return '';
-  }
-  return matchingCall.call;
-}
-
-function ExplanationPanel ({ lines, explanationRef }: 
+function ExplanationPanel ({ lines, explanationRef }:
                           {lines: string[]; explanationRef: React.RefObject<HTMLPreElement | null>;}) {
     return (
     <section className="resultSummary" aria-label="Explanation and app output">

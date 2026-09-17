@@ -3,12 +3,13 @@
 ///
 import type { AuctionContext, BidRule, Call, HandConstraint, PointRange, TotalPointsRange,
               SuitLengthConstraint, Strain, SuitBid, BiddingSystem, BiddingAgreement,
-              HandShapeConstraint, RuleEvaluationContext, AppliesWhenResult } from './bidding-types';
-import { type HandFacts, type Suit } from './cards';
-import { OpeningBidRules, ResponseBidRules } from './bidding-rules';
+              HandShapeConstraint, RuleEvalContext, AppliesWhenResult, BidStage } from './bidding-types';
+import { getHandFacts, type Board, type HandFacts, type Seat, type Suit } from './cards';
+import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
+  from './bidding-rules';
 
 
-/// user input -> normalize to Call -> build RuleEvaluationContext
+/// user input -> normalize to Call -> build RuleEvalContext
 ///   -> filter rules by auction context applicability -> filter rules for finer-grain applicability
 ///   -> expand each rule into candidate calls -> evaluate appliesWhen constraints for each call
 ///   -> report:
@@ -73,14 +74,14 @@ export interface BidEvalResult {
   handMatchingRules: BidRule[]; // Rules that match the hand, ruleResults elt.ruleApplies is true
   // ruleResults has one element for each considered rule when the auction context and hand facts
   // satisfied constraints
-  ruleResults: RuleEvaluationResult[]; 
+  ruleResults: RuleEvalResult[];
   telemetryLines: string[];
 }
 
 /// Represents (possibly) multiple call candidates from a matching rule because a rule can contain
 /// several calls.
 ///
-export interface RuleEvaluationResult {
+export interface RuleEvalResult {
   rule: BidRule;
   candidates: CandidateCallMatch[]; // Each possible call from the rule and whether it applies.
   ruleApplies: boolean;
@@ -114,7 +115,7 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 
 
 /// evaluateUserCall evaluates one user-entered call against the currently relevant bidding rules.
-/// This does not choose the best bid like an auto-bidder, but rule refiners and suppressors invokd
+/// This does not choose the best bid like an auto-bidder, but rule refiners and suppressors invoked
 /// here will eliminate bids and order bids according to bidding books and sources.  It reports in
 /// BidEvalResult which rules apply to the hand/context and which of those rules, if any, match the
 /// user's entered call.
@@ -138,34 +139,34 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 ///       - existing major-response 1NT suppression
 ///    6. Sort by priority.rank for presentation
 ///
-export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContext,
+export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[],
                                   system: BiddingSystem): BidEvalResult {
+  const context = makeRuleEvalContext(board, auction);
   const telemetryLines: string[] = [];
-  telemetryLines.push(`evaluateUserCall: User call is ${inputCall}.`);
-  // Select the rule bucket from the current auction state, then apply partnership agreements.
-  const stageRules = getRulesForAuctionState(context);
+  telemetryLines.push(
+    `evaluateUserCall: ${context.seat} call ${inputCall}; stage=${context.stage ?? 'unresolved'}.`);
+  // Select the rule bucket from the model-derived bidding stage, then apply partnership agreements.
+  const stageRules = getRulesForStage(context.stage);
   const activeRules = getActiveBiddingRules(stageRules, system);
   let ruleResults = evaluateRules(activeRules, context, system);
   // Opening rules have a few relationships that cannot be expressed by evaluating each rule
-  // independently.  
-  // A convenient minor is a fallback and should disappear when a natural NT opening
-  // already describes the hand.  A rule with no explicit rank has the default rank 0.
-  if (context.role === 'opener' && context.auction.length === 0) {
+  // independently.
+  if (context.stage === 'opening') {
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
   }
   // When responding to a natural notrump opening, a major-oriented bid makes direct Pass/notrump
   // call only a fallback bid.
-  if (context.role === 'responder' && context.auction.length === 1 &&
-      (context.auction[0] === '1NT' || context.auction[0] === '2NT')) {
+  if (context.stage === 'responding' &&
+      (context.partnerOpeningCall === '1NT' || context.partnerOpeningCall === '2NT')) {
     ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
     ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context);
     ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
     ruleResults = maybeSuppressJacobyForMajorGame(ruleResults); // jacoby vs major game (and texas)
-    // order matters for this last call, declarations make the previous suppressors mutually clean
+    // Order matters for this last call; declarations make the previous suppressors mutually clean.
     ruleResults = maybeSuppressNtResponseFallback(ruleResults); // fallback pass or NT
   }
-  // Suppress 1NT when one of a major is better
-  if (context.role === 'responder' && context.auction.length === 1) {
+  // Suppress 1NT when one of a major is better.
+  if (context.stage === 'responding') {
     ruleResults = maybeSuppress1NTWhenMajorSupport(ruleResults);
   }
   // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
@@ -176,8 +177,8 @@ export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContex
   const applicableRules = ruleResults
     .filter((result) => result.ruleApplies)
     .map((result) => result.rule);
-    const matchingRulesForUserCall: BidRule[] = [];
-  // Report rule eval telemetry and collect matching candidate calls
+  const matchingRulesForUserCall: BidRule[] = [];
+  // Report rule eval telemetry and collect matching candidate calls.
   for (const ruleResult of ruleResults) {
     telemetryLines.push(...ruleResult.telemetryLines);
     const matchingCandidate = ruleResult.candidates.find(
@@ -201,29 +202,153 @@ export function evaluateUserCall (inputCall: Call, context: RuleEvaluationContex
   };
 } //evaluateUserCall()
 
-/// getRulesForAuctionState chooses the relevant rule family before hand evaluation.  The first
-/// punch-through only recognizes opening and response states; later stages already have buckets.
-export function getRulesForAuctionState (context: RuleEvaluationContext): BidRule[] {
-  if (context.role === 'opener' && context.auction.length === 0) {
-    return OpeningBidRules;
-  }
-  if (context.role === 'responder' && context.auction.length === 1) {
-    return ResponseBidRules;
-  }
 
-  return [];
+/// makeRuleEvalContext is the React/model boundary for bidding evaluation.  React supplies the
+/// board and authoritative full auction; model code derives acting seat, hand, stage, and partner
+/// opening information.
+///
+export function makeRuleEvalContext (board: Board, auction: Call[]): RuleEvalContext {
+  const seat = getNextSeat(board.dealer, auction);
+  const hand = board.deal[seat];
+  const opening = getOpeningCallInfo(board.dealer, auction);
+  const partnerOpeningCall = opening !== null && opening.seat === getPartnerSeat(seat)
+    ? opening.call
+    : null;
+  return {
+    dealer: board.dealer,
+    seat,
+    stage: getBidStage(board, auction),
+    auction,
+    hand,
+    handFacts: getHandFacts(hand),
+    partnerOpeningCall,
+  };
 }
 
-/// evaluateRules filters the already-selected stage rules by auction context and evaluates the hand.
-export function evaluateRules (rules: BidRule[], context: RuleEvaluationContext,
-                               system: BiddingSystem): RuleEvaluationResult[] {
+/// getNextSeat returns the seat whose turn it is after the calls already in the auction.
+/// It is not looking up the seat after dealer, that's just the starting seat for the rotation.
+///
+export function getNextSeat (dealer: Seat, auction: Call[]): Seat {
+  return getSeatForCallIndex(dealer, auction.length);
+}
+
+/// getBidStage derives the current uncontested bidding stage from the real auction.  Competitive
+/// stages will be filled in as their rule families are added; opponent non-pass calls currently
+/// leave the stage unresolved rather than guessing.
+export function getBidStage (board: Board, auction: Call[]): BidStage | null {
+  // Silly punch through code, needs to be just three passes test
+  if (auctionIsComplete(auction)) {
+    return null;
+  }
+  const opening = getOpeningCallInfo(board.dealer, auction);
+  if (opening === null) {
+    return 'opening';
+  }
+  // getNextSeat read weird (not seat after dealer), it is next seat to bid given this auction.
+  const nextSeat = getNextSeat(board.dealer, auction); 
+  const openerPartner = getPartnerSeat(opening.seat);
+  const openingPartnership = new Set<Seat>([opening.seat, openerPartner]);
+  for (let index = opening.index + 1; index < auction.length; index += 1) {
+    const call = auction[index];
+    const seat = getSeatForCallIndex(board.dealer, index);
+    if (! openingPartnership.has(seat) && call !== 'Pass') {
+      return null;
+    }
+  }
+
+  const partnershipCalls = getOpeningPartnershipCalls(board.dealer, auction, opening.seat);
+  if (nextSeat === openerPartner && partnershipCalls.length === 1) {
+    return 'responding';
+  }
+  if (nextSeat === opening.seat && partnershipCalls.length === 2) {
+    return 'openerRebid';
+  }
+  if (nextSeat === openerPartner && partnershipCalls.length === 3) {
+    return 'responderRebid';
+  }
+  return null;
+}
+
+/// getRulesForStage chooses the relevant rule family before hand evaluation.
+export function getRulesForStage (stage: BidStage | null): BidRule[] {
+  switch (stage) {
+    case 'opening':
+      return OpeningBidRules;
+    case 'responding':
+      return ResponseBidRules;
+    case 'openerRebid':
+      return OpenerRebidRules;
+    case 'overcalling':
+      return OvercallRules;
+    case 'advancing':
+      return AdvanceRules;
+    case 'responderRebid':
+    case null:
+      return [];
+  }
+}
+
+interface OpeningCallInfo {
+  index: number;
+  seat: Seat;
+  call: SuitBid;
+}
+
+function getOpeningCallInfo (dealer: Seat, auction: Call[]): OpeningCallInfo | null {
+  for (let index = 0; index < auction.length; index += 1) {
+    const call = auction[index];
+    if (call !== undefined && isContractBid(call)) {
+      return { index, seat: getSeatForCallIndex(dealer, index), call };
+    }
+  }
+  return null;
+}
+
+function getOpeningPartnershipCalls (dealer: Seat, auction: Call[], openingSeat: Seat): Call[] {
+  const partner = getPartnerSeat(openingSeat);
+  const calls: Call[] = [];
+  for (let index = 0; index < auction.length; index += 1) {
+    const seat = getSeatForCallIndex(dealer, index);
+    const call = auction[index];
+    if ((seat === openingSeat || seat === partner) && call !== undefined && call !== 'Pass') {
+      calls.push(call);
+    }
+  }
+  return calls;
+}
+
+export function getPartnerSeat (seat: Seat): Seat {
+  if (seat === 'N') return 'S';
+  if (seat === 'E') return 'W';
+  if (seat === 'S') return 'N';
+  return 'E';
+}
+
+/// getSeatForCallIndex derives the physical bidder from dealer and zero-based auction index.
+///
+export function getSeatForCallIndex (dealer: Seat, callIndex: number): Seat {
+  const seats: Seat[] = ['N', 'E', 'S', 'W'];
+  const dealerIndex = seats.indexOf(dealer);
+  const seat = seats[(dealerIndex + callIndex) % seats.length];
+  if (seat === undefined) {
+    throw new Error(`Cannot derive seat for dealer ${dealer} and call index ${callIndex}.`);
+  }
+  return seat;
+}
+
+
+/// evaluateRules filters the already-selected stage rules by auction context and evaluates the rule
+/// against the hand.
+///
+export function evaluateRules (rules: BidRule[], context: RuleEvalContext,
+                               system: BiddingSystem): RuleEvalResult[] {
   return rules
     .filter((rule) => auctionContextMatches(rule.auctionContext, context))
     .map((rule) => evaluateRule(rule, context, system));
 }
 
-function evaluateRule (rule: BidRule, context: RuleEvaluationContext,
-                       system: BiddingSystem): RuleEvaluationResult {
+function evaluateRule (rule: BidRule, context: RuleEvalContext,
+                       system: BiddingSystem): RuleEvalResult {
   const callResult = getRuleCalls(rule, context, system);
   const calls = callResult.calls;
   const telemetryLines: string[] = [];
@@ -297,7 +422,7 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
 /// evaluateCandidateCall evaluates one concrete call from one already auction-matched rule.  If
 /// there is no appliesWhen, the call has no additional hand constraint.
 ///
-function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluationContext,
+function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalContext,
                                 system: BiddingSystem): CandidateCallMatch {
   const telemetryLines: string[] = [];
   telemetryLines.push(`evaluateCandidateCall: Candidate ${call}.`);
@@ -330,7 +455,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvaluati
 /// candidate-level applicability flags are changed so downstream code sees the convenient-minor
 /// rule consistently as no longer applicable.
 ///
-function maybeSuppressConvenientMinor (ruleResults: RuleEvaluationResult[]): RuleEvaluationResult[] {
+function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
   const convenientMinorResult = ruleResults.find((result) =>
     result.rule.id === 'open-convenient-minor' && result.ruleApplies);
   if (convenientMinorResult === undefined) {
@@ -377,8 +502,8 @@ function maybeSuppressConvenientMinor (ruleResults: RuleEvaluationResult[]): Rul
 /// the direct strong 3H/3S rule also uses that setting.  A Jacoby transfer is therefore identified
 /// here by the enabled jacobyTransfers agreement plus the conventional call category.
 ///
-function maybeSuppressTransfersForStayman (ruleResults: RuleEvaluationResult[]):
-    RuleEvaluationResult[] {
+function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
+    RuleEvalResult[] {
   const staymanResult = ruleResults.find((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'stayman' &&
     result.rule.agreement.value);
@@ -429,21 +554,21 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvaluationResult[]):
 /// methods instead use garbage/crawling Stayman with suitable weak two-major shapes.  For now,
 /// don't compares the two major suit qualities, and both weak transfer choices remain available.
 ///
-function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvaluationResult[],
-                                                context: RuleEvaluationContext):
-    RuleEvaluationResult[] {
+function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
+                                                context: RuleEvalContext):
+    RuleEvalResult[] {
   if (context.handFacts.lengths.H < 5 || context.handFacts.lengths.S < 5) {
     return ruleResults;
   }
   // a 5-card major exists
   let preferredTransfer: Call | null = null;
-  if (context.auction[0] === '1NT') {
+  if (context.partnerOpeningCall === '1NT') {
     if (context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9) {
       preferredTransfer = '2D'; // Transfer to hearts, then show spades at the two level.
     } else if (context.handFacts.hcp >= 10) {
       preferredTransfer = '2H'; // Transfer to spades, then show hearts at the three level.
     }
-  } else if (context.auction[0] === '2NT' && context.handFacts.hcp >= 4) {
+  } else if (context.partnerOpeningCall === '2NT' && context.handFacts.hcp >= 4) {
     preferredTransfer = '3D'; // Transfer to hearts, then 3S shows the second major below 3NT.
   }
   if (preferredTransfer === null) {
@@ -490,8 +615,8 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvaluationRes
 /// 3H/3S rule also depends on that agreement.  The transfer rule is the conventional one; the
 /// direct 3M slam-interest rule is natural and game forcing.
 ///
-function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvaluationResult[]) : 
-      RuleEvaluationResult[] {
+function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvalResult[]) :
+      RuleEvalResult[] {
   const majorSlamResult = ruleResults.find((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'jacobyTransfers' &&
     result.rule.agreement.value && result.rule.callCategory?.includes('gameForcing') &&
@@ -549,8 +674,8 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvaluationResul
 /// 6-3 + weaker/invitational      -> Jacoby
 /// 6-3 + slam interest            -> slower strong treatment, not Texas
 ///
-function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvaluationResult[]):
-    RuleEvaluationResult[] {
+function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
+    RuleEvalResult[] {
   // do any results specify a texas transfer result ...  if texas is true, and one applies, then
   // suppress jacoby, and if texas is off for an applicable rule, and a natural 4M applies, then
   // suppress jacoby
@@ -612,8 +737,8 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvaluationResult[]):
 ///       1NT + 8 HCP + 5S-3-3-2  -> 2NT              (correctly remains)
 ///       1NT + 10 HCP + 5S-3-3-2 -> 3S natural       (3NT removed)
 ///
-function maybeSuppressNtResponseFallback (ruleResults: RuleEvaluationResult[]) :
-    RuleEvaluationResult[] {
+function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
+    RuleEvalResult[] {
   // Find first response rule associated with one of our major-oriented NT-response treatments: for
   // example, with transfers on, find rules like respond-to-1nt-w/-stayman and
   // respond-to-1nt-w/-transfer-to-hearts, but with transfers off (those rules aren't in result
@@ -663,8 +788,8 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvaluationResult[]) :
 /// new-suit response.  After 1H, four or more spades are shown with 1S; the 1NT response is the
 /// fallback when that preferred one-level response is unavailable.
 ///
-function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvaluationResult[]) :
-      RuleEvaluationResult[] {
+function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
+      RuleEvalResult[] {
   const newSuitResult = ruleResults.find((result) =>
     result.rule.id === 'respond-to-major-w/o-support-new-suit-one-level' &&
     result.ruleApplies);
@@ -694,6 +819,13 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvaluationResult[]) 
   return ruleResults;
 } // maybeSuppressMajorOneNtResponse()
 
+
+export function auctionIsComplete (auction: Call[]): boolean {
+  return auction.length >= 4 &&
+    auction.slice(-3).every((call) => call === 'Pass');
+}
+
+
 ///
 //// Evaluate Hand Constraints against Calls
 ///
@@ -703,7 +835,7 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvaluationResult[]) 
 /// produce advice.
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
-                                 context: RuleEvaluationContext)
+                                 context: RuleEvalContext)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
   let pass = true;
@@ -756,7 +888,7 @@ function testPointRange (value: number, range: PointRange, label: string)
   return { pass: true, telemetryLine: `PASS: ${label} ${value} is in range.` };
 }
 
-function testTotalPointsRange (context: RuleEvaluationContext, range: TotalPointsRange) :
+function testTotalPointsRange (context: RuleEvalContext, range: TotalPointsRange) :
      { pass: boolean; telemetryLines: string[] } {
   const useShortage = range.valuation === 'shortage';
   const value = useShortage ? context.handFacts.totalPointsWShortage
@@ -884,7 +1016,7 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
 /// range.  supportLength says only how many cards responder has in that suit; it does not choose
 /// how total points are valued.
 ///
-function testSupportLength (supportLength: PointRange, context: RuleEvaluationContext) : 
+function testSupportLength (supportLength: PointRange, context: RuleEvalContext) :
       { pass: boolean; telemetryLine: string } {
   const opening = context.partnerOpeningCall;
   if (opening === null || !isContractBid(opening)) {
@@ -908,41 +1040,56 @@ function testSupportLength (supportLength: PointRange, context: RuleEvaluationCo
 /// overcalling)/representative auction declaration matches the actual evaluation context before any
 /// hand constraints are considered.
 ///
-function auctionContextMatches (ruleContext: AuctionContext | undefined, 
-                         evaluationContext: RuleEvaluationContext): boolean {
+function auctionContextMatches (ruleContext: AuctionContext | undefined,
+                               evalContext: RuleEvalContext): boolean {
   if (ruleContext === undefined) {
     return true;
   }
-
-  if (ruleContext.role !== evaluationContext.role) {
+  if (ruleContext.stage !== evalContext.stage) {
     return false;
   }
 
-  if (ruleContext.auction.length !== evaluationContext.auction.length) {
+  const actualAuction = getRuleAuction(evalContext);
+  if (ruleContext.auction.length !== actualAuction.length) {
     return false;
   }
 
   for (let index = 0; index < ruleContext.auction.length; index += 1) {
     const ruleCall = ruleContext.auction[index];
-    const actualCall = evaluationContext.auction[index];
-
+    const actualCall = actualAuction[index];
     if (ruleCall === undefined || actualCall === undefined) {
       return false;
     }
-
     if (ruleCall === actualCall) {
       continue;
     }
-
-    if (index === 0 && ruleContext.openerStrain !== undefined && 
+    if (index === 0 && ruleContext.openerStrain !== undefined &&
         openerStrainMatches(ruleContext.openerStrain, actualCall)) {
       continue;
     }
-
     return false;
   }
-
   return true;
+}
+
+/// getRuleAuction derives the compact uncontested partnership auction used by current rule
+/// declarations from the authoritative physical auction.  Opponent passes remain in context.auction
+/// and are not duplicated in every rule declaration.  
+///
+/// THIS IS SUSPICIOUS CODE, and need to decide best rectification of bid rule auction
+/// representation, whether rules need an abstract represenation, whether eval/refiner/applies
+/// functions should match a full auction to a bid rule auction represenatation so that rules that
+/// still apply regardless of intervening bids or passes don't need a rule for each permutation.
+///
+function getRuleAuction (context: RuleEvalContext): Call[] {
+  if (context.stage === 'opening') {
+    return [];
+  }
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null) {
+    return [];
+  }
+  return getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
 }
 
 function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call: Call): boolean {
@@ -970,7 +1117,7 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
 /// getRuleCalls returns a rule's declared calls, or lets callRefinement narrow them for the actual
 /// auction.
 ///
-function getRuleCalls (rule: BidRule, context: RuleEvaluationContext,
+function getRuleCalls (rule: BidRule, context: RuleEvalContext,
                        system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
   if (rule.calls === undefined) {
     return { calls: [], telemetryLines: [] };
