@@ -149,7 +149,7 @@ export function generateOpenableNorthBoard (): BoardWTelemetry {
   // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
     let deal = dealRandomHands();
-    const firstOpenableSeat = seats.find((seat) => isPracticeOpeningHand(getHandFacts(deal[seat])));
+    const firstOpenableSeat = seats.find((seat) => isPracticeOpeningHand(deal[seat]));
     if (firstOpenableSeat !== undefined) {
       const hcpBySeat = getHcpBySeat(deal);
       telemetryLines.push(
@@ -170,7 +170,8 @@ export function generateOpenableNorthBoard (): BoardWTelemetry {
 
 /// isPracticeOpeningHand keeps random deal generation from waiting only for a 12-HCP hand.  The
 /// actual evaluator remains authoritative about which opening calls match.
-function isPracticeOpeningHand (facts: HandFacts): boolean {
+function isPracticeOpeningHand (hand: Hand): boolean {
+  const facts = getHandFacts(hand);
   if (facts.totalPointsWLength >= 12) {
     return true;
   }
@@ -182,16 +183,28 @@ function isPracticeOpeningHand (facts: HandFacts): boolean {
   }
 
   if (facts.hcp >= 5 && facts.hcp <= 10 &&
-      (facts.lengths.D >= 6 || facts.lengths.H >= 6 || facts.lengths.S >= 6)) {
+      ((facts.lengths.D >= 6 && hasPreemptSuitQuality(hand, 'D')) ||
+       (facts.lengths.H >= 6 && hasPreemptSuitQuality(hand, 'H')) ||
+       (facts.lengths.S >= 6 && hasPreemptSuitQuality(hand, 'S')))) {
     return true;
   }
 
   if (facts.hcp >= 5 && facts.hcp <= 12 &&
-      Math.max(facts.lengths.C, facts.lengths.D, facts.lengths.H, facts.lengths.S) >= 7) {
+      suits.some((suit) => facts.lengths[suit] >= 7 && hasPreemptSuitQuality(hand, suit))) {
     return true;
   }
 
   return false;
+}
+
+/// hasPreemptSuitQuality tests the honor concentration used by the current preempt rules.
+export function hasPreemptSuitQuality (hand: Hand, suit: Suit): boolean {
+  const cards = getCardsForSuit(hand, suit);
+  const topThreeCount = cards.filter((card) =>
+    card.rank === 'A' || card.rank === 'K' || card.rank === 'Q').length;
+  let topFiveCount = cards.filter((card) => card.rank === 'J' || card.rank === 'T').length;
+  topFiveCount += topThreeCount;
+  return topThreeCount >= 2 || topFiveCount >= 3;
 }
 
 /// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a

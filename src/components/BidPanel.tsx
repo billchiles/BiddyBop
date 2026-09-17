@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { auctionIsComplete, evaluateUserCall, getApplicableCandidateCalls, getBidStage, getNextSeat,
          type BidEvalResult, normalizeCallInput } from '../models/biddingEvaluation';
-import { type Board, type Seat } from '../models/cards';
+import { type Board, type Hand, type Seat, type Suit } from '../models/cards';
 import { type BidRule, type BidStage, type Call, defaultBiddingSystem } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
@@ -106,6 +106,17 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
     onTelemetry(lines);
   }
 
+  function dumpState(): void {
+    const dump = buildDumpText(board, auction, explanationLines);
+    if (navigator.clipboard === undefined) {
+      onTelemetry(['Clipboard unavailable; dump follows:', dump]);
+      return;
+    }
+    navigator.clipboard.writeText(dump)
+      .then(() => onTelemetry(['Dump copied to clipboard.']))
+      .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
+  }
+
   const inputDisabled = punchThroughComplete || auctionIsComplete(auction);
   const nextBidLabel = getNextBidLabel(board.dealer, auction, punchThroughComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
@@ -126,6 +137,7 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
               disabled={inputDisabled}
             />
             <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
+            <button className="bidButton" type="button" onClick={dumpState}>Dump</button>
           </form>
         </section>
 
@@ -136,6 +148,31 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
       </section>
     </section>
   );
+}
+
+function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {
+  const stage = getBidStage(board, auction);
+  return [
+    `Dealer: ${board.dealer}`,
+    `North: ${formatHand(board.deal.N)}`,
+    `East: ${formatHand(board.deal.E)}`,
+    `South: ${formatHand(board.deal.S)}`,
+    `West: ${formatHand(board.deal.W)}`,
+    `Auction: ${auction.length === 0 ? '(empty)' : auction.join(' ')}`,
+    `Next seat: ${getSeatLabel(getNextSeat(board.dealer, auction))}`,
+    `Stage: ${stage ?? 'unresolved'}`,
+    '',
+    'Explanation:',
+    ...explanationLines,
+  ].join('\n');
+}
+
+function formatHand(hand: Hand): string {
+  const suits: Suit[] = ['S', 'H', 'D', 'C'];
+  return suits.map((suit) => {
+    const ranks = hand.cards.filter((card) => card.suit === suit).map((card) => card.rank);
+    return `${suit}: ${ranks.length === 0 ? '-' : ranks.join(',')}`;
+  }).join('; ');
 }
 
 function getStageLabel(stage: BidStage | null): string {

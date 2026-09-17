@@ -3,7 +3,7 @@
 import { biddingBaseline, strainOrder, type AppliesWhenResult, type BiddingSystem, type Call,
          type CallRefinementResult, type RuleEvalContext, type Strain, type SuitBid }
   from './bidding-types';
-import { getCardsForSuit, type Suit } from './cards';
+import { hasPreemptSuitQuality, type Suit } from './cards';
 
 ///
 //// Bidding Rule Bid Refinements
@@ -297,14 +297,7 @@ export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContex
   const refinedCalls = calls.filter((call) => {
     const candidate = parseSuitBid(call)!;
     const suit = candidate.strain as Suit; // only rules with suit calls use this refiner, no NT
-    const cards = getCardsForSuit(context.hand, suit);
-    const topThreeCount = cards.filter((card) =>
-      card.rank === 'A' || card.rank === 'K' || card.rank === 'Q').length;
-    let topFiveCount = cards.filter((card) =>
-      // card.rank === 'A' || card.rank === 'K' || card.rank === 'Q' ||
-      card.rank === 'J' || card.rank === 'T').length;
-    topFiveCount += topThreeCount;
-    return topThreeCount >= 2 || topFiveCount >= 3;
+    return hasPreemptSuitQuality(context.hand, suit);
   });
 
   return {
