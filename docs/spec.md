@@ -94,8 +94,9 @@ The app should help the user practice bidding decisions using structured convent
 - Higher rank means greater presentation preference. Ranking does not eliminate lower-ranked
   qualifying alternatives.
 - A missing rank is equivalent to rank `0`.
-- Rank `-100` is an intentional "present last" sentinel for rare specialized ace-asking
-  treatments such as Gerber and Blackwood.
+- Rank `-100` is an intentional "present last" sentinel for specialized alternatives that should
+  remain visible without competing with ordinary teaching choices, such as Gerber, Blackwood, and
+  optional opener-side splinters.
 - Refiners operate within one rule; cross-rule suppressors resolve relationships among
   independently evaluated rules.
 
@@ -108,12 +109,21 @@ The app should help the user practice bidding decisions using structured convent
 - `suitLengths` entries are conjunctive.
 - If a `suitLengths` entry specifies a concrete suit, test that suit.
 - If a `suitLengths` entry omits the suit, apply it to the suit of the candidate call currently being evaluated.
-- Rule `auctionContext.auction` remains a compact representative partnership auction even though the model stores the full physical auction with passes. The matcher derives the opening partnership's non-pass calls for current uncontested rules.
-- `auction: ['1H']` together with `openerStrain: 'major'` is a representative rule declaration for either 1H or 1S; similarly `auction: ['1C']` plus `openerStrain: 'minor'` represents either minor opening. Keep this convention commented near the rule declarations.
+- `auctionContext.auction` is optional. Older/exact rules may use a compact representative
+  partnership auction even though the model stores the full physical auction with passes. The
+  matcher derives the opening partnership's non-pass calls for current uncontested rules.
+- `auction: ['1H']` together with `openerStrain: 'major'` is a representative rule declaration for
+  either 1H or 1S; similarly `auction: ['1C']` plus `openerStrain: 'minor'` represents either minor
+  opening. Keep this convention commented near rule declarations that use it.
+- Opener-rebid rules may instead constrain `responderCall`. `kind`, absolute `level`, and `jump` are
+  rule-declaration constraints; the evaluator derives those facts from responder's actual call.
+  `jump: true` requires a jump, `jump: false` requires a non-jump, and omission means the rule does
+  not care.
 - Do not put prose such as `text` inside `appliesWhen`.
 - Do not put judgment phrases such as "good suit" inside `appliesWhen` unless the code has a defined evaluator for them.
-- `supportLength` is always interpreted against partner's opened suit. It describes only the
-  required holding in that suit; it does not implicitly choose a total-points valuation.
+- `supportLength` means length in partner's relevant naturally bid suit for the current stage.
+  While responding it is partner's opening suit; on opener's rebid it is responder's suit. It
+  describes only the required holding and does not implicitly choose a total-points valuation.
 - `balanced` means one of the strict balanced shapes: 4-3-3-3, 4-4-3-2, or 5-3-3-2.
 - `balancedOrSemiBalanced` additionally permits 5-4-2-2 and 6-3-2-2: every suit has at least
   two cards and the hand has at most two doubletons.
@@ -141,9 +151,18 @@ The app should help the user practice bidding decisions using structured convent
 - A five-card-major upgrade into the 1NT range is configurable and off by default.
 - Standard two-level new-suit responses are the default; the 2/1 game-force treatment is a separate agreement.
 
-- Standard non-forcing 1NT responses to a major are the default; forcing/semi-forcing 1NT is a separate agreement.
+- Standard non-forcing 1NT responses to a major are the default. `majorOneNtResponse: 'forcing'`
+  means opener may not pass. With 2/1 and `majorOneNtResponse: 'nonForcing'`, the combination is the
+  common semi-forcing treatment.
 - Stayman and Jacoby transfers are enabled by default.
 - Splinters and Texas transfers are enabled so they can appear as candidate options and explanations.
+- The existing `splinters` agreement also governs opener-side splinters. Opener-side splinters
+  use rank `-100` so their teaching explanation remains visible without competing with ordinary
+  rebids.
+- After `1M-2M`, a `3M` rebid with six or more trumps is the modern competitive treatment rather
+  than a game try. Natural help-suit game tries use a 3+ card side suit.
+- After `1M-2M`, a balanced `2NT` game try uses shortage-point valuation because the major-suit fit
+  is already known; this is distinct from HCP valuation for ordinary natural notrump rebids.
 - Gerber after a notrump opening and Blackwood after a suit auction are baseline conventions, not current on/off settings.
 - Gerber and Blackwood are rare, specialized ace-asking treatments rather than general slam
   tries. They use priority rank -100 so they remain visible but sort after ordinary descriptive,
@@ -152,3 +171,59 @@ The app should help the user practice bidding decisions using structured convent
 - Multiple rule-supported calls may be valid for one hand. Higher `priority.rank` means greater
   presentation preference; lower-ranked qualifying alternatives remain visible rather than being
   silently eliminated.
+
+## Pending Bidding Work
+
+- Complete the stronger long-minor/game region after `1m-1NT`, especially the 19-21-point long-minor
+  actions, 3NT/game decisions, and overlaps. The current minor-opener rebid slice intentionally
+  stopped after the basic minimum/medium actions so those rules could be exercised before choosing
+  precedence for the stronger cases.
+
+## Intentionally Unmodeled or Guidance-Only Bidding Treatments
+
+These are treatments we have consciously decided may never need executable trainer rules. Each item
+records whether the current trainer should still teach the idea in ordinary rule guidance and what
+would cause us to revisit the omission.
+
+### Rare three-card raise after `1H-1S`
+
+- Status: Guidance only; no executable rule currently planned.
+- Explanation guidance: Yes. The normal four-card raise and the 1NT rebid guidance explain that a
+  good three-card spade holding can occasionally make `2S` preferable when notrump is unattractive.
+- Reason: This is a rare judgment treatment. Good support quality plus awkward shape can justify it,
+  but we do not have a crisp enough criterion to make the trainer recommend it reliably.
+- Revisit if: practice repeatedly exposes hands where accepting or suggesting the three-card raise
+  would materially improve the trainer.
+
+### Strong `2C` openings based on playing tricks below the HCP threshold
+
+- Status: Guidance only; no executable exception currently planned.
+- Explanation guidance: Yes. The existing strong-`2C` rule notes that some bidding treatments open
+  an exceptional playing-strength hand `2C` below the project's 22-HCP threshold.
+- Reason: Playing-trick exceptions are uncommon and materially less mechanical than the project's
+  chosen 22+ HCP treatment. Encoding them would add judgment complexity with little value for the
+  current beginner/intermediate practice goals.
+- Revisit if: strong-hand practice becomes important enough that these exceptions occur often.
+
+### Partnership-specific `3NT` opener rebid after a one-level new-suit response
+
+- Status: Unmodeled; no executable meaning is selected.
+- Explanation guidance: No routine runtime guidance is required. Keep the omission visible here;
+  nearby rule guidance may mention it if that becomes useful.
+- Reason: The bidding material itself labels the call as partnership agreement and does not assign a
+  universal meaning. Inventing a meaning would be worse than omitting the call.
+- Revisit if: the project adopts a specific partnership agreement assigning this `3NT` rebid a
+  defined meaning.
+
+### Specialized jumps and higher-notrump continuations after a 2/1 game force
+
+- Status: Core shape-showing rebids are executable; specialized continuations remain unmodeled.
+- Explanation guidance: Yes. The 2/1 opener-rebid guidance says to describe shape economically and
+  show extra strength later, and notes that specialized higher-notrump meanings are partnership
+  choices.
+- Reason: Once game is already forced, jump rebids, jump shifts, and higher-notrump rebids can carry
+  partnership-specific meanings. The trainer gets most of the teaching value from economical
+  support, second-suit, six-card-major, and notrump descriptions without selecting a detailed 2/1
+  convention package.
+- Revisit if: the project adopts a more specific 2/1 continuation structure or practice shows that
+  the omitted calls are important enough to teach directly.

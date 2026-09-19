@@ -34,7 +34,9 @@ export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context:
 }
 
 /// refineOpenerReverseRebid keeps higher-ranking new suits at the two level.  This classifies the
-/// call geometrically; the reverse rule's appliesWhen separately enforces the extra strength.
+/// call as a higher ranking new suit; the reverse rule's appliesWhen separately enforces the extra
+/// strength.
+///
 export function refineOpenerReverseRebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
@@ -62,6 +64,183 @@ export function refineOpenerOpeningSuitToLevel (calls: Call[], context: RuleEval
   return {
     calls: calls.filter((call) => call === wantedCall),
     telemetryLines: [`Keep opener's ${wantedCall} rebid.`],
+  };
+}
+
+/// refineOpenerResponderSuitToGame raises responder's natural suit to its normal game level.
+///
+export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const response = getResponderBid(context);
+  if (response === null || response.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No responder suit is available to raise to game.'] };
+  }
+  const targetLevel = response.strain === 'H' || response.strain === 'S' ? 4 : 5;
+  return refineOpenerRaiseResponderSuitToLevel(calls, context, targetLevel);
+}
+
+
+/// refineOpenerRaiseResponderSuitToLevel keeps the raise of responder's natural suit to the
+/// requested level.  Three-card support is enough when responder's non-jump 2H over 1S promised
+/// five hearts; otherwise opener needs four-card support for a new suit shown by responder.
+///
+export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: RuleEvalContext,
+                                                       targetLevel: number): CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT' ||
+      response.strain === 'NT' || response.strain === opening.strain) {
+    return { calls: [], telemetryLines: ['No responder new suit is available to raise.'] };
+  }
+  const responseSuit = response.strain as Suit;
+  const minSupport = opening.strain === 'S' && response.strain === 'H' && 
+                     response.level === 2 ? 3 : 4;
+  if (context.handFacts.lengths[responseSuit] < minSupport) {
+    return {calls: [],
+            telemetryLines: [
+              `Responder's ${responseSuit} needs ${minSupport}+ cards of opener support; ` +
+              `opener has ${context.handFacts.lengths[responseSuit]}.`,
+            ],
+    };
+  }
+  const wantedCall = `${targetLevel}${responseSuit}` as SuitBid;
+  return {calls: calls.filter((call) => call === wantedCall),
+          telemetryLines: [`Raise responder's ${responseSuit} to ${wantedCall}.`],
+  };
+} // refineOpenerRaiseResponderSuitToLevel()
+
+/// refineOpenerNewSuitAtCheapestLevel keeps opener's cheapest legal second-suit calls after
+/// responder's actual call.  suitOrder can restrict the second suit to lower- or higher-ranking
+/// than opener's first suit; higher is the reverse case (17+ points) in the current uncontested
+/// rules.
+///
+export function refineOpenerNewSuitAtCheapestLevel (
+    calls: Call[], context: RuleEvalContext, suitOrder: 'any' | 'lower' | 'higher' = 'any'):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No suit opening and response are available for rebid.'] };
+  }
+  const openingIndex = strainOrder.indexOf(opening.strain);
+  const refined = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.strain === response.strain) {
+      return false;
+    }
+    const candidateIndex = strainOrder.indexOf(candidate.strain);
+    if (suitOrder === 'lower' && candidateIndex >= openingIndex) {
+      return false;
+    }
+    if (suitOrder === 'higher' && candidateIndex <= openingIndex) {
+      return false;
+    }
+    return cheapestBidInStrainAfter(response, candidate.strain) === call;
+  });
+  return {
+    calls: refined,
+    telemetryLines: [`Keep cheapest ${suitOrder} new-suit rebids after responder's call.`],
+  };
+}
+
+/// refineOpenerNewSuitByExtraLevels keeps opener new-suit calls a fixed number of levels above the
+/// cheapest legal call after responder.  This covers strong jump shifts and opener-side splinters.
+///
+export function refineOpenerNewSuitByExtraLevels (
+    calls: Call[], context: RuleEvalContext, extraLevels: number,
+    suitOrder: 'any' | 'lower' | 'higher', label: string): CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], 
+             telemetryLines: [`No suit opening and response are available for ${label}.`] };
+  }
+  const openingIndex = strainOrder.indexOf(opening.strain);
+  const refined = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.strain === response.strain) {
+      return false;
+    }
+    const candidateIndex = strainOrder.indexOf(candidate.strain);
+    if (suitOrder === 'lower' && candidateIndex >= openingIndex) {
+      return false;
+    }
+    if (suitOrder === 'higher' && candidateIndex <= openingIndex) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(response, candidate.strain);
+    if (cheapest === null) {
+      return false;
+    }
+    const cheapestParsed = parseSuitBid(cheapest)!;
+    return candidate.level === cheapestParsed.level + extraLevels;
+  });
+  return { calls: refined, telemetryLines: [`Keep only ${label} calls after responder's bid.`] };
+}
+
+/// refineForcingOneNtMinorFallback supplies the awkward rebid required by a completely forcing
+/// 1NT response when opener has no normal descriptive rebid.  Prefer the longer three-card-or-
+/// longer minor, choosing clubs when the minors are equal.
+///
+export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  // Ensure our situation is suit opening followed by 1NT ...
+  if (opening === null || response === null || opening.strain === 'NT' || response.strain !== 'NT') {
+    return { calls: [], telemetryLines: ['Forcing-1NT minor fallback needs a major opening and 1NT.'] };
+  }
+  // if there are natural bids in this situation, don't look for rare minor bid ...
+  const openingSuit = opening.strain as Suit;
+  if (context.handFacts.lengths[openingSuit] >= 6) {
+    return { calls: [], telemetryLines: ['Six-card opening major supplies a normal rebid.'] };
+  }
+  if (context.handFacts.hcp >= 18 && context.handFacts.hcp <= 19 &&
+      context.handFacts.balancedOrSemiBalanced) {
+    return { calls: [], telemetryLines: ['18-19 balanced/semi-balanced hand can rebid 2NT.'] };
+  }
+  // if a 4+ card suit ranked below the opening major, can bid it 2 level, so stop trying minor.
+  const openingIndex = strainOrder.indexOf(opening.strain);
+  const hasNaturalLowerSecondSuit = (['C', 'D', 'H', 'S'] as Suit[]).some((suit) =>
+    suit !== openingSuit && strainOrder.indexOf(suit) < openingIndex &&
+    context.handFacts.lengths[suit] >= 4);
+  if (hasNaturalLowerSecondSuit) {
+    return { calls: [], telemetryLines: ['A natural lower-ranking four-card second suit is available.'] };
+  }
+  // If have points to reverse, and have reverse suit to bid, stop looking for minor
+  const hasStrengthForReverse = context.handFacts.totalPointsWLength >= 17;
+  const hasHigherSecondSuit = (['C', 'D', 'H', 'S'] as Suit[]).some((suit) =>
+    suit !== openingSuit && strainOrder.indexOf(suit) > openingIndex &&
+    context.handFacts.lengths[suit] >= 4);
+  if (hasStrengthForReverse && hasHigherSecondSuit) {
+    return { calls: [], telemetryLines: ['A strength-qualified reverse is available.'] };
+  }
+  // No good bids, so if we have 3+ of a minor, we can use it to honor the forcing 1NT
+  const minorCandidates = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    return candidate !== null && candidate.level === 2 &&
+           (candidate.strain === 'C' || candidate.strain === 'D') &&
+           context.handFacts.lengths[candidate.strain] >= 3;
+  });
+  if (minorCandidates.length === 0) {
+    return { calls: [], telemetryLines: ['No three-card minor is available for the fallback rebid.'] };
+  }
+  // With only one available minor, use it.  With both minors available, bid the longer one;
+  let refined = minorCandidates;
+  if (minorCandidates.length === 2) {
+    if (context.handFacts.lengths.C > context.handFacts.lengths.D) {
+      refined = ['2C'];
+    } else if (context.handFacts.lengths.D > context.handFacts.lengths.C) {
+      refined = ['2D'];
+    } else {
+      refined = ['2C']; // if equal len, convention is bid clubs
+    }
+  }
+  return {
+    calls: refined,
+    telemetryLines: ['No normal rebid is available; manufacture the best three-card minor rebid.'],
   };
 }
 
@@ -344,6 +523,39 @@ export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalCont
   });
   return {calls: refined,
           telemetryLines:[`Keep only ${label} new-suit calls over the actual opening.`]};
+}
+
+function getResponderBid (context: RuleEvalContext): { level: number; strain: Strain } | null {
+  const call = getResponderCall(context.dealer, context.auction);
+  return call === null ? null : parseSuitBid(call);
+}
+
+/// getResponderCall returns opener's partner's first call after the opening bid.
+///
+export function getResponderCall (dealer: Seat, auction: Call[]): Call | null {
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null) {
+    return null;
+  }
+  const responderSeat = getPartnerSeat(opening.seat);
+  for (let index = opening.index + 1; index < auction.length; index += 1) {
+    if (getSeatForCallIndex(dealer, index) === responderSeat) {
+      return auction[index] ?? null;
+    }
+  }
+  return null;
+}
+
+function cheapestBidInStrainAfter (previous: { level: number; strain: Strain }, strain: Strain):
+    SuitBid | null {
+  let level = previous.level;
+  if (strainOrder.indexOf(strain) <= strainOrder.indexOf(previous.strain)) {
+    level += 1;
+  }
+  if (level > 7) {
+    return null;
+  }
+  return `${level}${strain}` as SuitBid;
 }
 
 /// cheapestNewSuitBid returns the cheapest legal contract bid in a different strain after opening.

@@ -1,9 +1,11 @@
 /// User input and given a hand, auction context, user call, and rules, explain which rules apply 
 /// and whether the user call is accepted by any of them.
 ///
-import type { AuctionContext, BidRule, Call, HandConstraint, PointRange, TotalPointsRange,
-              SuitLengthConstraint, Strain, SuitBid, BiddingSystem, BiddingAgreement,
-              HandShapeConstraint, RuleEvalContext, AppliesWhenResult, BidStage } from './bidding-types';
+import { strainOrder, type AuctionContext, type BidRule, type Call, type HandConstraint,
+         type PointRange, type TotalPointsRange, type SuitLengthConstraint, type Strain,
+         type SuitBid, type BiddingSystem, type BiddingAgreement, type HandShapeConstraint,
+         type RuleEvalContext, type AppliesWhenResult, type BidStage,
+         type ResponderCallContext } from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Seat, type Suit } from './cards';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
@@ -1012,33 +1014,51 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
   return { pass, telemetryLines };
 } //testHandShape()
 
-/// testSupportLength compares responder's holding in partner's opened suit with the declared
-/// range.  supportLength says only how many cards responder has in that suit; it does not choose
-/// how total points are valued.
+/// testSupportLength compares the bidder's holding in partner's relevant naturally bid suit with
+/// the declared range.  While responding this is opener's suit; on opener's rebid it is responder's
+/// suit.  supportLength does not choose how total points are valued.
 ///
 function testSupportLength (supportLength: PointRange, context: RuleEvalContext) :
       { pass: boolean; telemetryLine: string } {
-  const opening = context.partnerOpeningCall;
-  if (opening === null || !isContractBid(opening)) {
-    return {pass: false, 
-            telemetryLine: 'FAIL: no partner opening suit for supportLength constraint.',};
-  }
-  const supportSuit = getStrainFromSuitBid(opening);
-  if (supportSuit === 'NT') {
+  const supportSuit = getSupportSuitForStage(context);
+  if (supportSuit === null) {
     return {pass: false,
-            telemetryLine: 'FAIL: NT opening has no suit for supportLength constraint.',};
+            telemetryLine: 'FAIL: no partner suit is available for supportLength constraint.',};
   }
   return testPointRange(context.handFacts.lengths[supportSuit], supportLength,
                         `${supportSuit} support length`);
+}
+
+function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
+  if (context.stage === 'responding') {
+    const opening = context.partnerOpeningCall;
+    if (opening === null || !isContractBid(opening)) {
+      return null;
+    }
+    const strain = getStrainFromSuitBid(opening);
+    return strain === 'NT' ? null : strain;
+  }
+
+  if (context.stage === 'openerRebid') {
+    const responderCall = getRuleAuction(context)[1];
+    if (responderCall === undefined || !isContractBid(responderCall)) {
+      return null;
+    }
+    const strain = getStrainFromSuitBid(responderCall);
+    return strain === 'NT' ? null : strain;
+  }
+
+  return null;
 }
 
 ///
 //// Rule Testing Utilities -- interpreting rule declarations in context of actual hands, etc.
 ///
 
-/// auctionContextMatches tests whether a rule's stage (opening, responding,
-/// overcalling)/representative auction declaration matches the actual evaluation context before any
-/// hand constraints are considered.
+/// auctionContextMatches tests whether a rule's stage and declared auction constraints match the
+/// actual evaluation context before any hand constraints are considered.  Older/exact rules may
+/// use a representative compact auction; newer rebid rules can describe responder's call by its
+/// semantic properties instead of enumerating every suit permutation.
 ///
 function auctionContextMatches (ruleContext: AuctionContext | undefined,
                                evalContext: RuleEvalContext): boolean {
@@ -1050,26 +1070,86 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   }
 
   const actualAuction = getRuleAuction(evalContext);
-  if (ruleContext.auction.length !== actualAuction.length) {
+  const actualOpening = actualAuction[0];
+  if (ruleContext.openerStrain !== undefined &&
+      (actualOpening === undefined ||
+       ! openerStrainMatches(ruleContext.openerStrain, actualOpening))) {
     return false;
   }
 
-  for (let index = 0; index < ruleContext.auction.length; index += 1) {
-    const ruleCall = ruleContext.auction[index];
-    const actualCall = actualAuction[index];
-    if (ruleCall === undefined || actualCall === undefined) {
+  if (ruleContext.auction !== undefined) {
+    if (ruleContext.auction.length !== actualAuction.length) {
       return false;
     }
-    if (ruleCall === actualCall) {
-      continue;
+
+    for (let index = 0; index < ruleContext.auction.length; index += 1) {
+      const ruleCall = ruleContext.auction[index];
+      const actualCall = actualAuction[index];
+      if (ruleCall === undefined || actualCall === undefined) {
+        return false;
+      }
+      if (ruleCall === actualCall) {
+        continue;
+      }
+      if (index === 0 && ruleContext.openerStrain !== undefined &&
+          openerStrainMatches(ruleContext.openerStrain, actualCall)) {
+        continue;
+      }
+      return false;
     }
-    if (index === 0 && ruleContext.openerStrain !== undefined &&
-        openerStrainMatches(ruleContext.openerStrain, actualCall)) {
-      continue;
+  }
+
+  if (ruleContext.responderCall !== undefined) {
+    const actualResponse = actualAuction[1];
+    if (actualOpening === undefined || actualResponse === undefined ||
+        ! responderCallMatches(ruleContext.responderCall, actualOpening, actualResponse)) {
+      return false;
     }
+  }
+
+  return true;
+}
+
+function responderCallMatches (constraint: ResponderCallContext, openingCall: Call,
+                               responseCall: Call): boolean {
+  if (! isContractBid(openingCall) || ! isContractBid(responseCall)) {
+    return false;
+  }
+
+  const openingStrain = getStrainFromSuitBid(openingCall);
+  const responseStrain = getStrainFromSuitBid(responseCall);
+  const responseLevel = Number(responseCall.substring(0, 1));
+  const kind = responseStrain === 'NT' ? 'notrump'
+    : responseStrain === openingStrain ? 'raise' : 'newSuit';
+
+  if (constraint.kind !== undefined && constraint.kind !== kind) {
+    return false;
+  }
+  if (constraint.level !== undefined && constraint.level !== responseLevel) {
+    return false;
+  }
+  if (constraint.jump !== undefined &&
+      constraint.jump !== responseIsJump(openingCall, responseCall)) {
     return false;
   }
   return true;
+}
+
+function responseIsJump (openingCall: SuitBid, responseCall: SuitBid): boolean {
+  const responseStrain = getStrainFromSuitBid(responseCall);
+  let cheapestLevel = Number(openingCall.substring(0, 1));
+  const openingRank = contractBidRank(openingCall);
+  const sameLevelCall = `${cheapestLevel}${responseStrain}` as SuitBid;
+  if (contractBidRank(sameLevelCall) <= openingRank) {
+    cheapestLevel += 1;
+  }
+  return Number(responseCall.substring(0, 1)) > cheapestLevel;
+}
+
+function contractBidRank (call: SuitBid): number {
+  const level = Number(call.substring(0, 1));
+  const strain = getStrainFromSuitBid(call);
+  return (level - 1) * strainOrder.length + strainOrder.indexOf(strain);
 }
 
 /// getRuleAuction derives the compact uncontested partnership auction used by current rule

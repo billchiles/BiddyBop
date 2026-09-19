@@ -49,7 +49,8 @@ export interface BiddingSystem {
   jumpShift: JumpShiftAgreement;
   // Standard two-level new-suit response versus the 2/1 game-force treatment.
   twoLevelNewSuitResponse: TwoLevelNewSuitResponseAgreement;
-  // Whether 1NT over partner's major is forcing/semi-forcing or Standard non-forcing.
+  // Whether 1NT over partner's major is completely forcing or may be passed.  With 2/1, the
+  // nonForcing choice is the common semi-forcing combination.
   majorOneNtResponse: MajorOneNtResponseAgreement;
   // Game-forcing major support via a new suit then raise, or artificial Jacoby 2NT with 4+ support.
   majorGameForceWithSupport: MajorGameForceWithSupportAgreement;
@@ -57,7 +58,7 @@ export interface BiddingSystem {
   stayman: boolean;
   // Jacoby transfers use 2D/2H over 1NT, or 3D/3H over 2NT, to transfer to responder's major.
   jacobyTransfers: boolean;
-  // Splinters are double-jump new-suit responses showing major support and a singleton or void.
+  // Splinters are double-jump new-suit calls showing major support and a singleton or void.
   splinters: boolean;
   // Texas transfers use 4D/4H to transfer to 4H/4S.
   texasTransfers: boolean;
@@ -194,7 +195,8 @@ export interface HandConstraint {
   suitLengths?: SuitLengthConstraint[]; // if no suit specified, it means the candidate call suit
   anySuitLength?: SuitLengthConstraint[]; // a suit needs to exist with this length
   shape?: HandShapeConstraint;
-  // Length in partner's opened suit; may express either support or lack of support (max: 2).
+  // Length in partner's relevant naturally bid suit for this stage.  While responding this is
+  // opener's suit; on opener's rebid it is responder's suit.
   supportLength?: PointRange;
   stoppers?: string[];
 }
@@ -231,13 +233,29 @@ export interface HandShapeConstraint {
   text?: string;
 }
 
+export type RuleBidLevel = 1 | 2 | 3 | 4;
+
+export interface ResponderCallContext {
+  // kind classifies responder's actual call relative to opener's opening bid.
+  // newSuit means a different suit, raise means opener's suit, and notrump means NT.
+  kind?: 'newSuit' | 'raise' | 'notrump';
+  // level is the absolute bid level, not the size of a jump.
+  level?: RuleBidLevel;
+  // jump constrains jump status derived from the actual auction.  true requires a jump, false
+  // requires a non-jump, and omitted means the rule does not care.
+  jump?: boolean;
+}
+
 export interface AuctionContext {
   stage: BidStage;
-  // Rule declarations use a compact representative auction.  The evaluator owns the full physical
-  // auction, including passes, and derives the compact calls used for rule matching.
-  auction: Call[];
+  // Some older/exact rules use a compact representative partnership auction.  The evaluator owns
+  // the full physical auction, including passes, and derives the compact calls used for matching.
+  auction?: Call[];
   description?: string;
   openerStrain?: Strain | 'minor' | 'major';
+  // responderCall is a rule constraint.  The evaluator derives these facts from responder's actual
+  // call rather than storing them as auction state.
+  responderCall?: ResponderCallContext;
   responderHasPassedInitially?: boolean;
 }
 
