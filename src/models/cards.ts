@@ -4,17 +4,17 @@
 //import type { Call, Strain, SuitBid } from './bidding-types';
 
 
-/// These may not be used, but we distinguish suit from strain for now in case we need just suits.
-const suits = ['S', 'H', 'D', 'C'] as const;
-export type Suit = typeof suits[number];
+/// Canonical suit display order; Suit remains distinct from Strain because NT is not a suit.
+export const SUITS = ['S', 'H', 'D', 'C'] as const;
+export type Suit = typeof SUITS[number];
 
 /// Card rank order is display order, high to low.
-const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'] as const;
-export type Rank = typeof ranks[number];
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'] as const;
+export type Rank = typeof RANKS[number];
 
 /// Seat order is clockwise auction order.
-const seats = ['N', 'E', 'S', 'W'] as const;
-export type Seat = typeof seats[number];
+export const SEATS = ['N', 'E', 'S', 'W'] as const;
+export type Seat = typeof SEATS[number];
 
 /// A physical card representation in the generated deal.
 export interface Card {
@@ -56,14 +56,14 @@ export function getHandFacts (hand: Hand): HandFacts {
   const hcp = hcpBySuit.C + hcpBySuit.D + hcpBySuit.H + hcpBySuit.S;
   // Count long suits
   let lengthPoints = 0;
-  for (const suit of suits) {
+  for (const suit of SUITS) {
     const length = lengths[suit];
     if (length >= 5) {
       lengthPoints += length - 4;
     }
   }
   // Count short suits
-  const sortedLengths = suits.map((suit) => lengths[suit]).sort((a, b) => a - b);
+  const sortedLengths = SUITS.map((suit) => lengths[suit]).sort((a, b) => a - b);
   const voidCount = sortedLengths.filter((length) => length === 0).length;
   const singletonCount = sortedLengths.filter((length) => length === 1).length;
   const doubletonCount = sortedLengths.filter((length) => length === 2).length;
@@ -149,7 +149,7 @@ export function generateOpenableNorthBoard (): BoardWTelemetry {
   // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
     let deal = dealRandomHands();
-    const firstOpenableSeat = seats.find((seat) => isPracticeOpeningHand(deal[seat]));
+    const firstOpenableSeat = SEATS.find((seat) => isPracticeOpeningHand(deal[seat]));
     if (firstOpenableSeat !== undefined) {
       const hcpBySeat = getHcpBySeat(deal);
       telemetryLines.push(
@@ -190,7 +190,7 @@ function isPracticeOpeningHand (hand: Hand): boolean {
   }
 
   if (facts.hcp >= 5 && facts.hcp <= 12 &&
-      suits.some((suit) => facts.lengths[suit] >= 7 && hasPreemptSuitQuality(hand, suit))) {
+      SUITS.some((suit) => facts.lengths[suit] >= 7 && hasPreemptSuitQuality(hand, suit))) {
     return true;
   }
 
@@ -214,8 +214,8 @@ export function hasPreemptSuitQuality (hand: Hand, suit: Suit): boolean {
 function dealRandomHands (): Deal {
   // Make a deck
   const cards: Card[] = [];
-  for (const suit of suits) {
-    for (const rank of ranks) {
+  for (const suit of SUITS) {
+    for (const rank of RANKS) {
       cards.push({ suit, rank });
     }
   }
@@ -241,8 +241,8 @@ function dealRandomHands (): Deal {
 /// compareCards used with array.sort to totally order hands.
 ///
 function compareCards (left: Card, right: Card): number {
-  const suitCompare = suits.indexOf(left.suit) - suits.indexOf(right.suit);
-  return suitCompare !== 0 ? suitCompare : (ranks.indexOf(left.rank) - ranks.indexOf(right.rank));
+  const suitCompare = SUITS.indexOf(left.suit) - SUITS.indexOf(right.suit);
+  return suitCompare !== 0 ? suitCompare : (RANKS.indexOf(left.rank) - RANKS.indexOf(right.rank));
 }
 
 function getHcpBySeat(deal: Deal): Record<Seat, number> {
@@ -274,15 +274,15 @@ function getHcp (hand: Hand): number {
 /// punch throughs to try out bidding logic and rules data.
 ///
 function rotateOpeningToNorth (deal: Deal, firstOpenableSeat: Seat): Deal {
-  const openableIndex = seats.indexOf(firstOpenableSeat);
+  const openableIndex = SEATS.indexOf(firstOpenableSeat);
   if (openableIndex < 0) {
     throw new Error(`Unknown seat: ${firstOpenableSeat}`);
   }
   return {
-    N: deal[seats[openableIndex]],
-    E: deal[seats[(openableIndex + 1) % seats.length]],
-    S: deal[seats[(openableIndex + 2) % seats.length]],
-    W: deal[seats[(openableIndex + 3) % seats.length]],
+    N: deal[SEATS[openableIndex]],
+    E: deal[SEATS[(openableIndex + 1) % SEATS.length]],
+    S: deal[SEATS[(openableIndex + 2) % SEATS.length]],
+    W: deal[SEATS[(openableIndex + 3) % SEATS.length]],
   };
 }
 

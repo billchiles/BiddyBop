@@ -10,7 +10,7 @@ import type { Hand, HandFacts, Seat } from './cards';
 /// A Strain is a suit or NT.
 export type Strain = 'C' | 'D' | 'H' | 'S' | 'NT';
 /// strainOrder helps with determining next lowest possible bid
-export const strainOrder: Strain[] = ['C', 'D', 'H', 'S', 'NT'];
+export const STRAIN_ORDER: Strain[] = ['C', 'D', 'H', 'S', 'NT'];
 /// A suit bid is a level plus denomination, such as 1C, 1H, or 3NT.
 export type SuitBid = `${1 | 2 | 3 | 4 | 5 | 6 | 7}${Strain}`;
 /// A call is anything a player can say on their turn in the auction.
@@ -296,6 +296,5 @@ export interface RuleEvalContext {
   auction: Call[];
   hand: Hand;
   handFacts: HandFacts;
-  partnerOpeningCall: Call | null;
 }
 

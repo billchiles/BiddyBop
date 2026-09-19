@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { auctionIsComplete, evaluateUserCall, getApplicableCandidateCalls, getBidStage, getNextSeat,
-         type BidEvalResult, normalizeCallInput } from '../models/biddingEvaluation';
-import { type Board, type Hand, type Seat, type Suit } from '../models/cards';
+import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
+  from '../models/biddingEvaluation';
+import { auctionIsComplete, getBidStage, getNextSeat } from '../models/auction';
+import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import { type BidRule, type BidStage, type Call, defaultBiddingSystem } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
@@ -46,7 +47,7 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
       return;
     }
 
-    const stage = getBidStage(board, auction);
+    const stage = getBidStage(board.dealer, auction);
     switch (stage) {
       case 'opening':
         evaluateBid('opening', true, false);
@@ -151,7 +152,7 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
 }
 
 function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {
-  const stage = getBidStage(board, auction);
+  const stage = getBidStage(board.dealer, auction);
   return [
     `Dealer: ${board.dealer}`,
     `North: ${formatHand(board.deal.N)}`,
@@ -168,8 +169,7 @@ function buildDumpText(board: Board, auction: Call[], explanationLines: string[]
 }
 
 function formatHand(hand: Hand): string {
-  const suits: Suit[] = ['S', 'H', 'D', 'C'];
-  return suits.map((suit) => {
+  return SUITS.map((suit) => {
     const ranks = hand.cards.filter((card) => card.suit === suit).map((card) => card.rank);
     return `${suit}: ${ranks.length === 0 ? '-' : ranks.join(',')}`;
   }).join('; ');
@@ -270,14 +270,13 @@ interface AuctionRow {
 }
 
 function buildAuctionRows(auction: Call[], dealer: Seat): AuctionRow[] {
-  const seatOrder: Seat[] = ['N', 'E', 'S', 'W'];
-  const dealerIndex = seatOrder.indexOf(dealer);
+  const dealerIndex = SEATS.indexOf(dealer);
   const rows: AuctionRow[] = [];
 
   for (let index = 0; index < auction.length; index += 1) {
     const absoluteSlot = dealerIndex + index;
-    const rowIndex = Math.floor(absoluteSlot / seatOrder.length);
-    const seat = seatOrder[absoluteSlot % seatOrder.length];
+    const rowIndex = Math.floor(absoluteSlot / SEATS.length);
+    const seat = SEATS[absoluteSlot % SEATS.length];
     const call = auction[index];
     if (seat === undefined || call === undefined) {
       continue;

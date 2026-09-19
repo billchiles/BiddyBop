@@ -1,12 +1,15 @@
 /// User input and given a hand, auction context, user call, and rules, explain which rules apply 
 /// and whether the user call is accepted by any of them.
 ///
-import { strainOrder, type AuctionContext, type BidRule, type Call, type HandConstraint,
-         type PointRange, type TotalPointsRange, type SuitLengthConstraint, type Strain,
-         type SuitBid, type BiddingSystem, type BiddingAgreement, type HandShapeConstraint,
+import { type AuctionContext, type BidRule, type Call, type HandConstraint,
+         type PointRange, type TotalPointsRange, type SuitLengthConstraint, //type Strain,
+         type BiddingSystem, type BiddingAgreement, type HandShapeConstraint,
          type RuleEvalContext, type AppliesWhenResult, type BidStage,
          type ResponderCallContext } from './bidding-types';
-import { getHandFacts, type Board, type HandFacts, type Seat, type Suit } from './cards';
+import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
+import { getBidStage, getNextSeat, getOpeningCallInfo,
+         getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
+         getStrainFromSuitBid, isContractBid, responseIsJump } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 
@@ -40,27 +43,6 @@ export function normalizeCallInput (input: string): Call | null {
     return trimmed as Call;
   }
   return null;
-}
-
-/// isContractBid takes a Call and returns whether it is 1C..7NT and further declares the call
-/// is also a SuitBid (not pass, double, etc.).
-///
-export function isContractBid (call: Call): call is SuitBid {
-  if (call.length !== 2 && call.length !== 3) {
-    return false;
-  }
-  const levelText = call.substring(0, 1);
-  const suitText = call.substring(1);
-  const level = Number(levelText);
-  // test isInteger due to user input, quick and dirty safety check
-  if (! Number.isInteger(level) || level < 1 || level > 7) {
-    return false;
-  }
-  return suitText === 'C' || suitText === 'D' || suitText === 'H' || suitText === 'S' || suitText === 'NT';
-}
-
-export function getStrainFromSuitBid (call: SuitBid): Strain {
-  return call.substring(1) as Strain;
 }
 
 ///
@@ -157,9 +139,11 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
   }
   // When responding to a natural notrump opening, a major-oriented bid makes direct Pass/notrump
-  // call only a fallback bid.
-  if (context.stage === 'responding' &&
-      (context.partnerOpeningCall === '1NT' || context.partnerOpeningCall === '2NT')) {
+  // call only a fallback bid.  Derive partner's opening only for this response-stage behavior.
+  const partnerOpeningCall = context.stage === 'responding'
+    ? getPartnerOpeningCall(context.dealer, context.auction, context.seat)
+    : null;
+  if (partnerOpeningCall === '1NT' || partnerOpeningCall === '2NT') {
     ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
     ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context);
     ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
@@ -206,69 +190,21 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
 
 
 /// makeRuleEvalContext is the React/model boundary for bidding evaluation.  React supplies the
-/// board and authoritative full auction; model code derives acting seat, hand, stage, and partner
-/// opening information.
+/// board and authoritative full auction; model code derives the acting seat, hand, and stage.
+/// More specific auction facts are queried from auction.ts only by rules/evaluator code that needs
+/// them rather than being precomputed into every RuleEvalContext.
 ///
 export function makeRuleEvalContext (board: Board, auction: Call[]): RuleEvalContext {
   const seat = getNextSeat(board.dealer, auction);
   const hand = board.deal[seat];
-  const opening = getOpeningCallInfo(board.dealer, auction);
-  const partnerOpeningCall = opening !== null && opening.seat === getPartnerSeat(seat)
-    ? opening.call
-    : null;
   return {
     dealer: board.dealer,
     seat,
-    stage: getBidStage(board, auction),
+    stage: getBidStage(board.dealer, auction),
     auction,
     hand,
     handFacts: getHandFacts(hand),
-    partnerOpeningCall,
   };
-}
-
-/// getNextSeat returns the seat whose turn it is after the calls already in the auction.
-/// It is not looking up the seat after dealer, that's just the starting seat for the rotation.
-///
-export function getNextSeat (dealer: Seat, auction: Call[]): Seat {
-  return getSeatForCallIndex(dealer, auction.length);
-}
-
-/// getBidStage derives the current uncontested bidding stage from the real auction.  Competitive
-/// stages will be filled in as their rule families are added; opponent non-pass calls currently
-/// leave the stage unresolved rather than guessing.
-export function getBidStage (board: Board, auction: Call[]): BidStage | null {
-  // Silly punch through code, needs to be just three passes test
-  if (auctionIsComplete(auction)) {
-    return null;
-  }
-  const opening = getOpeningCallInfo(board.dealer, auction);
-  if (opening === null) {
-    return 'opening';
-  }
-  // getNextSeat read weird (not seat after dealer), it is next seat to bid given this auction.
-  const nextSeat = getNextSeat(board.dealer, auction); 
-  const openerPartner = getPartnerSeat(opening.seat);
-  const openingPartnership = new Set<Seat>([opening.seat, openerPartner]);
-  for (let index = opening.index + 1; index < auction.length; index += 1) {
-    const call = auction[index];
-    const seat = getSeatForCallIndex(board.dealer, index);
-    if (! openingPartnership.has(seat) && call !== 'Pass') {
-      return null;
-    }
-  }
-
-  const partnershipCalls = getOpeningPartnershipCalls(board.dealer, auction, opening.seat);
-  if (nextSeat === openerPartner && partnershipCalls.length === 1) {
-    return 'responding';
-  }
-  if (nextSeat === opening.seat && partnershipCalls.length === 2) {
-    return 'openerRebid';
-  }
-  if (nextSeat === openerPartner && partnershipCalls.length === 3) {
-    return 'responderRebid';
-  }
-  return null;
 }
 
 /// getRulesForStage chooses the relevant rule family before hand evaluation.
@@ -289,55 +225,6 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
       return [];
   }
 }
-
-interface OpeningCallInfo {
-  index: number;
-  seat: Seat;
-  call: SuitBid;
-}
-
-function getOpeningCallInfo (dealer: Seat, auction: Call[]): OpeningCallInfo | null {
-  for (let index = 0; index < auction.length; index += 1) {
-    const call = auction[index];
-    if (call !== undefined && isContractBid(call)) {
-      return { index, seat: getSeatForCallIndex(dealer, index), call };
-    }
-  }
-  return null;
-}
-
-function getOpeningPartnershipCalls (dealer: Seat, auction: Call[], openingSeat: Seat): Call[] {
-  const partner = getPartnerSeat(openingSeat);
-  const calls: Call[] = [];
-  for (let index = 0; index < auction.length; index += 1) {
-    const seat = getSeatForCallIndex(dealer, index);
-    const call = auction[index];
-    if ((seat === openingSeat || seat === partner) && call !== undefined && call !== 'Pass') {
-      calls.push(call);
-    }
-  }
-  return calls;
-}
-
-export function getPartnerSeat (seat: Seat): Seat {
-  if (seat === 'N') return 'S';
-  if (seat === 'E') return 'W';
-  if (seat === 'S') return 'N';
-  return 'E';
-}
-
-/// getSeatForCallIndex derives the physical bidder from dealer and zero-based auction index.
-///
-export function getSeatForCallIndex (dealer: Seat, callIndex: number): Seat {
-  const seats: Seat[] = ['N', 'E', 'S', 'W'];
-  const dealerIndex = seats.indexOf(dealer);
-  const seat = seats[(dealerIndex + callIndex) % seats.length];
-  if (seat === undefined) {
-    throw new Error(`Cannot derive seat for dealer ${dealer} and call index ${callIndex}.`);
-  }
-  return seat;
-}
-
 
 /// evaluateRules filters the already-selected stage rules by auction context and evaluates the rule
 /// against the hand.
@@ -562,15 +449,16 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
   if (context.handFacts.lengths.H < 5 || context.handFacts.lengths.S < 5) {
     return ruleResults;
   }
-  // a 5-card major exists
+  // A 5-card major exists; the transfer ordering depends on partner's actual NT opening.
+  const partnerOpeningCall = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
   let preferredTransfer: Call | null = null;
-  if (context.partnerOpeningCall === '1NT') {
+  if (partnerOpeningCall === '1NT') {
     if (context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9) {
       preferredTransfer = '2D'; // Transfer to hearts, then show spades at the two level.
     } else if (context.handFacts.hcp >= 10) {
       preferredTransfer = '2H'; // Transfer to spades, then show hearts at the three level.
     }
-  } else if (context.partnerOpeningCall === '2NT' && context.handFacts.hcp >= 4) {
+  } else if (partnerOpeningCall === '2NT' && context.handFacts.hcp >= 4) {
     preferredTransfer = '3D'; // Transfer to hearts, then 3S shows the second major below 3NT.
   }
   if (preferredTransfer === null) {
@@ -822,12 +710,6 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
 } // maybeSuppressMajorOneNtResponse()
 
 
-export function auctionIsComplete (auction: Call[]): boolean {
-  return auction.length >= 4 &&
-    auction.slice(-3).every((call) => call === 'Pass');
-}
-
-
 ///
 //// Evaluate Hand Constraints against Calls
 ///
@@ -1031,8 +913,8 @@ function testSupportLength (supportLength: PointRange, context: RuleEvalContext)
 
 function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
   if (context.stage === 'responding') {
-    const opening = context.partnerOpeningCall;
-    if (opening === null || !isContractBid(opening)) {
+    const opening = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
+    if (opening === null) {
       return null;
     }
     const strain = getStrainFromSuitBid(opening);
@@ -1040,8 +922,8 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
   }
 
   if (context.stage === 'openerRebid') {
-    const responderCall = getRuleAuction(context)[1];
-    if (responderCall === undefined || !isContractBid(responderCall)) {
+    const responderCall = getResponderCall(context.dealer, context.auction);
+    if (responderCall === null || ! isContractBid(responderCall)) {
       return null;
     }
     const strain = getStrainFromSuitBid(responderCall);
@@ -1133,23 +1015,6 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
     return false;
   }
   return true;
-}
-
-function responseIsJump (openingCall: SuitBid, responseCall: SuitBid): boolean {
-  const responseStrain = getStrainFromSuitBid(responseCall);
-  let cheapestLevel = Number(openingCall.substring(0, 1));
-  const openingRank = contractBidRank(openingCall);
-  const sameLevelCall = `${cheapestLevel}${responseStrain}` as SuitBid;
-  if (contractBidRank(sameLevelCall) <= openingRank) {
-    cheapestLevel += 1;
-  }
-  return Number(responseCall.substring(0, 1)) > cheapestLevel;
-}
-
-function contractBidRank (call: SuitBid): number {
-  const level = Number(call.substring(0, 1));
-  const strain = getStrainFromSuitBid(call);
-  return (level - 1) * strainOrder.length + strainOrder.indexOf(strain);
 }
 
 /// getRuleAuction derives the compact uncontested partnership auction used by current rule

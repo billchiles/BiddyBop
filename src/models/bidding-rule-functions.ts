@@ -1,9 +1,11 @@
 /// Bidding rule call refiners, appliesWhen functions, and their shared helpers.
 
-import { biddingBaseline, strainOrder, type AppliesWhenResult, type BiddingSystem, type Call,
-         type CallRefinementResult, type RuleEvalContext, type Strain, type SuitBid }
+import { biddingBaseline, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
+         type CallRefinementResult, type RuleEvalContext, type SuitBid }
   from './bidding-types';
-import { hasPreemptSuitQuality, type Suit } from './cards';
+import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo,
+         getPartnerOpeningCall, getResponderCall, parseSuitBid, type ParsedSuitBid } from './auction';
 
 ///
 //// Bidding Rule Bid Refinements
@@ -18,13 +20,13 @@ export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context:
   if (opening === null || opening.strain === 'NT') {
     return { calls: [], telemetryLines: ['No suit opening is available for a second-suit rebid.'] };
   }
-  const openingIndex = strainOrder.indexOf(opening.strain);
+  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain) {
       return false;
     }
-    return strainOrder.indexOf(candidate.strain) < openingIndex &&
+    return STRAIN_ORDER.indexOf(candidate.strain) < openingIndex &&
            cheapestNewSuitBid(opening, candidate.strain) === call;
   });
   return {
@@ -43,13 +45,13 @@ export function refineOpenerReverseRebid (calls: Call[], context: RuleEvalContex
   if (opening === null || opening.strain === 'NT') {
     return { calls: [], telemetryLines: ['No suit opening is available for a reverse.'] };
   }
-  const openingIndex = strainOrder.indexOf(opening.strain);
+  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain) {
       return false;
     }
-    return candidate.level === 2 && strainOrder.indexOf(candidate.strain) > openingIndex;
+    return candidate.level === 2 && STRAIN_ORDER.indexOf(candidate.strain) > openingIndex;
   });
   return { calls: refined, telemetryLines: ['Keep only higher-ranking two-level second suits.'] };
 }
@@ -122,14 +124,14 @@ export function refineOpenerNewSuitAtCheapestLevel (
   if (opening === null || response === null || opening.strain === 'NT') {
     return { calls: [], telemetryLines: ['No suit opening and response are available for rebid.'] };
   }
-  const openingIndex = strainOrder.indexOf(opening.strain);
+  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
         candidate.strain === response.strain) {
       return false;
     }
-    const candidateIndex = strainOrder.indexOf(candidate.strain);
+    const candidateIndex = STRAIN_ORDER.indexOf(candidate.strain);
     if (suitOrder === 'lower' && candidateIndex >= openingIndex) {
       return false;
     }
@@ -156,14 +158,14 @@ export function refineOpenerNewSuitByExtraLevels (
     return { calls: [], 
              telemetryLines: [`No suit opening and response are available for ${label}.`] };
   }
-  const openingIndex = strainOrder.indexOf(opening.strain);
+  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
         candidate.strain === response.strain) {
       return false;
     }
-    const candidateIndex = strainOrder.indexOf(candidate.strain);
+    const candidateIndex = STRAIN_ORDER.indexOf(candidate.strain);
     if (suitOrder === 'lower' && candidateIndex >= openingIndex) {
       return false;
     }
@@ -202,17 +204,17 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
     return { calls: [], telemetryLines: ['18-19 balanced/semi-balanced hand can rebid 2NT.'] };
   }
   // if a 4+ card suit ranked below the opening major, can bid it 2 level, so stop trying minor.
-  const openingIndex = strainOrder.indexOf(opening.strain);
-  const hasNaturalLowerSecondSuit = (['C', 'D', 'H', 'S'] as Suit[]).some((suit) =>
-    suit !== openingSuit && strainOrder.indexOf(suit) < openingIndex &&
+  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
+  const hasNaturalLowerSecondSuit = SUITS.some((suit) =>
+    suit !== openingSuit && STRAIN_ORDER.indexOf(suit) < openingIndex &&
     context.handFacts.lengths[suit] >= 4);
   if (hasNaturalLowerSecondSuit) {
     return { calls: [], telemetryLines: ['A natural lower-ranking four-card second suit is available.'] };
   }
   // If have points to reverse, and have reverse suit to bid, stop looking for minor
   const hasStrengthForReverse = context.handFacts.totalPointsWLength >= 17;
-  const hasHigherSecondSuit = (['C', 'D', 'H', 'S'] as Suit[]).some((suit) =>
-    suit !== openingSuit && strainOrder.indexOf(suit) > openingIndex &&
+  const hasHigherSecondSuit = SUITS.some((suit) =>
+    suit !== openingSuit && STRAIN_ORDER.indexOf(suit) > openingIndex &&
     context.handFacts.lengths[suit] >= 4);
   if (hasStrengthForReverse && hasHigherSecondSuit) {
     return { calls: [], telemetryLines: ['A strength-qualified reverse is available.'] };
@@ -525,67 +527,10 @@ export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalCont
           telemetryLines:[`Keep only ${label} new-suit calls over the actual opening.`]};
 }
 
-function getResponderBid (context: RuleEvalContext): { level: number; strain: Strain } | null {
+function getResponderBid (context: RuleEvalContext): ParsedSuitBid | null {
   const call = getResponderCall(context.dealer, context.auction);
   return call === null ? null : parseSuitBid(call);
 }
-
-/// getResponderCall returns opener's partner's first call after the opening bid.
-///
-export function getResponderCall (dealer: Seat, auction: Call[]): Call | null {
-  const opening = getOpeningCallInfo(dealer, auction);
-  if (opening === null) {
-    return null;
-  }
-  const responderSeat = getPartnerSeat(opening.seat);
-  for (let index = opening.index + 1; index < auction.length; index += 1) {
-    if (getSeatForCallIndex(dealer, index) === responderSeat) {
-      return auction[index] ?? null;
-    }
-  }
-  return null;
-}
-
-function cheapestBidInStrainAfter (previous: { level: number; strain: Strain }, strain: Strain):
-    SuitBid | null {
-  let level = previous.level;
-  if (strainOrder.indexOf(strain) <= strainOrder.indexOf(previous.strain)) {
-    level += 1;
-  }
-  if (level > 7) {
-    return null;
-  }
-  return `${level}${strain}` as SuitBid;
-}
-
-/// cheapestNewSuitBid returns the cheapest legal contract bid in a different strain after opening.
-/// Callers that mean "new suit" reject NT candidates before calling this function.  If opening is
-/// NT, any suit must be bid at the next level because NT outranks every suit at the current level.
-///
-function cheapestNewSuitBid (opening: { level: number; strain: Strain }, strain: Strain): SuitBid | null {
-  if (strain === opening.strain) {
-    return null;
-  }
-  // let level = opening.level;
-  // if (getBidRank(level, strain) <= getBidRank(opening.level, opening.strain)) {
-  //   level += 1;
-  // }
-  const level = opening.strain === 'NT' ||
-                strainOrder.indexOf(strain) < strainOrder.indexOf(opening.strain)
-                ? opening.level + 1 : opening.level;
-  if (level > 7) {
-    return null;
-  }
-  return `${level}${strain}` as SuitBid;
-}
-
-/// getBidRank returns an absolute index into a virtual table of all possible bids.  If the table
-/// had rows 1C..1NT, 2C..2NT, etc., then this function returns the row major index of the bid.
-///
-// function getBidRank (level: number, strain: Strain): number {
-//   return (level - 1) * strainOrder.length + strainOrder.indexOf(strain);
-// }
-
 
 /// refineOneLevelSuitOpening chooses the one-level suit opening implied by five-card-major and
 /// convenient-minor priorities.  Branch order is significant: with two 5+ majors choose the
@@ -789,36 +734,14 @@ export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContex
   };
 }
 
-/// getOpenerOpeningBid returns the first contract bid in the full auction.
-function getOpenerOpeningBid (context: RuleEvalContext): { level: number; strain: Strain } | null {
-  for (const call of context.auction) {
-    const bid = parseSuitBid(call);
-    if (bid !== null) {
-      return bid;
-    }
-  }
-  return null;
+/// getOpenerOpeningBid parses the auction's opening contract bid for rule refiners.
+function getOpenerOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  return opening === null ? null : parseSuitBid(opening.call);
 }
 
-/// getPartnerOpeningBid parses partnerOpeningCall when the current rule needs the exact
-/// level/strain partner opened.  Return null for a missing opening or a non-contract call.
-///
-function getPartnerOpeningBid (context: RuleEvalContext): { level: number; strain: Strain } | null {
-  if (context.partnerOpeningCall === null) {
-    return null;
-  }
-  return parseSuitBid(context.partnerOpeningCall);
-}
-
-/// parseSuitBid parses a contract Call into numeric level and Strain for candidate refinement
-/// functions and appliesWhen test functions.  Pass, Double, and Redouble are not contract bids and
-/// return null.
-///
-function parseSuitBid (call: Call): { level: number; strain: Strain } | null {
-  if (call === 'Pass' || call === 'Double' || call === 'Redouble') {
-    return null;
-  }
-  const level = Number(call.substring(0, 1));
-  const strain = call.substring(1) as Strain;
-  return { level, strain };
+/// getPartnerOpeningBid parses partner's opening contract bid when a response rule needs it.
+function getPartnerOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
+  return opening === null ? null : parseSuitBid(opening);
 }

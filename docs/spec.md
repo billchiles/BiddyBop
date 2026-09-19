@@ -78,6 +78,12 @@ The app should help the user practice bidding decisions using structured convent
 - `Board` contains the physical `Deal` plus `dealer`. The authoritative auction is a `Call[]` containing every physical call, including passes.
 - Derive the acting seat, acting hand, and current `BidStage` from `Board + auction`, then select the rule array for that stage.
 - `RuleEvalContext` is model-derived evaluation state; React supplies board, auction, and the user call rather than choosing a hand or role for the evaluator.
+- `auction.ts` owns shared physical-auction parsing and navigation: contract-bid parsing, seat rotation,
+  opener/responder lookup, partnership-call extraction, jump geometry, auction completion, and stage
+  derivation. Evaluator and rule-function code may both query this lower-level module.
+- Keep `RuleEvalContext` to broadly useful evaluation state. Do not precompute stage-specific auction
+  artifacts such as partner's opening call or responder's call into every context; derive them on
+  demand through `auction.ts` when a rule or evaluator path needs them.
 - Remove rules whose `agreement` does not match the current `BiddingSystem`.
 - Filter the active rules by auction context.
 - Evaluate every remaining rule independently:
