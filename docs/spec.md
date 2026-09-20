@@ -79,8 +79,9 @@ The app should help the user practice bidding decisions using structured convent
 - Derive the acting seat, acting hand, and current `BidStage` from `Board + auction`, then select the rule array for that stage.
 - `RuleEvalContext` is model-derived evaluation state; React supplies board, auction, and the user call rather than choosing a hand or role for the evaluator.
 - `auction.ts` owns shared physical-auction parsing and navigation: contract-bid parsing, seat rotation,
-  opener/responder lookup, partnership-call extraction, jump geometry, auction completion, and stage
-  derivation. Evaluator and rule-function code may both query this lower-level module.
+  opener/responder lookup, partnership-call extraction, jump/cheapest-bid calculations, auction
+  completion, and stage derivation. Evaluator and rule-function code may both query this lower-level
+  module.
 - Keep `RuleEvalContext` to broadly useful evaluation state. Do not precompute stage-specific auction
   artifacts such as partner's opening call or responder's call into every context; derive them on
   demand through `auction.ts` when a rule or evaluator path needs them.
@@ -177,13 +178,24 @@ The app should help the user practice bidding decisions using structured convent
 - Multiple rule-supported calls may be valid for one hand. Higher `priority.rank` means greater
   presentation preference; lower-ranked qualifying alternatives remain visible rather than being
   silently eliminated.
+- Opener-rebid reverse classification uses the actual response and cheapest legal second-suit bid.
+  A natural jump in a suit whose non-jump bid is already a reverse is not treated as an ordinary
+  maximum jump shift.  For example, 1C-1H-3D because 2D is a reverse, pushing partner to 3C.
+- After `1m-1NT`, a natural `3NT` rebid is 20-21 HCP with semi-balanced but not strict-balanced
+  shape.  A strict-balanced 20-21 HCP hand belongs in the 2NT opening.
 
 ## Pending Bidding Work
 
-- Complete the stronger long-minor/game region after `1m-1NT`, especially the 19-21-point long-minor
-  actions, 3NT/game decisions, and overlaps. The current minor-opener rebid slice intentionally
-  stopped after the basic minimum/medium actions so those rules could be exercised before choosing
-  precedence for the stronger cases.
+- Complete `1D-2C` opener rebids with separate Standard forcing-one-round and 2/1 game-forcing
+  treatments.  In the 2/1 branch, economical (non-jump?) shape description must not inherit a traditional
+  reverse-strength requirement merely because the call would be a reverse in a non-game-forcing
+  auction.
+- Implement opener continuations after 1NT/2NT openings, then revisit opener after a minor raise and
+  after responder's invitational notrump response before moving to responder's rebid.
+- Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
+  should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
+  not a current candidate, but no specific rejection reason was recorded."  Do not assume current
+  refiner/evaluator early returns automatically provide a complete rejection history.
 
 ## Intentionally Unmodeled or Guidance-Only Bidding Treatments
 
@@ -191,13 +203,14 @@ These are treatments we have consciously decided may never need executable train
 records whether the current trainer should still teach the idea in ordinary rule guidance and what
 would cause us to revisit the omission.
 
-### Rare three-card raise after `1H-1S`
+### Rare three-card raise after a one-level new-suit response
 
 - Status: Guidance only; no executable rule currently planned.
-- Explanation guidance: Yes. The normal four-card raise and the 1NT rebid guidance explain that a
-  good three-card spade holding can occasionally make `2S` preferable when notrump is unattractive.
-- Reason: This is a rare judgment treatment. Good support quality plus awkward shape can justify it,
-  but we do not have a crisp enough criterion to make the trainer recommend it reliably.
+- Explanation guidance: Yes. Normal executable raises use four-card support.  Guidance can mention
+  that a good three-card holding can occasionally justify a raise when notrump or another rebid is
+  unattractive.
+- Reason: This is a judgment treatment. Good support quality plus awkward shape can justify it, but
+  we do not have a crisp enough criterion to make the trainer recommend it reliably.
 - Revisit if: practice repeatedly exposes hands where accepting or suggesting the three-card raise
   would materially improve the trainer.
 
@@ -211,15 +224,17 @@ would cause us to revisit the omission.
   current beginner/intermediate practice goals.
 - Revisit if: strong-hand practice becomes important enough that these exceptions occur often.
 
-### Partnership-specific `3NT` opener rebid after a one-level new-suit response
+### Partnership-specific higher rebids after a one-level new-suit response
 
-- Status: Unmodeled; no executable meaning is selected.
-- Explanation guidance: No routine runtime guidance is required. Keep the omission visible here;
-  nearby rule guidance may mention it if that becomes useful.
-- Reason: The bidding material itself labels the call as partnership agreement and does not assign a
-  universal meaning. Inventing a meaning would be worse than omitting the call.
-- Revisit if: the project adopts a specific partnership agreement assigning this `3NT` rebid a
-  defined meaning.
+- Status: Unmodeled where no treatment has been selected.  Examples include the source's undefined
+  `3NT` rebid and jumps such as `1C-1H-3D`, where the economical `2D` rebid is already a reverse.
+- Explanation guidance: Usually no routine runtime guidance.  Ordinary natural jump shifts and the
+  configured double-jump splinter treatment remain executable when their meanings are identifiable.
+- Reason: The bidding material labels these higher calls as partnership agreement without assigning
+  one universal meaning.  They are specialized or undefined for the trainer's current
+  beginner/intermediate scope; inventing meanings would be worse than omitting the calls.
+- Revisit if: the project adopts a specific agreement assigning one of these calls a defined meaning
+  or practice shows that the omission materially limits the trainer.
 
 ### Specialized jumps and higher-notrump continuations after a 2/1 game force
 

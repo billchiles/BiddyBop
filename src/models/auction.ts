@@ -179,6 +179,36 @@ export function responseIsJump (openingCall: SuitBid, responseCall: SuitBid): bo
   return cheapest !== null && Number(responseCall.substring(0, 1)) > Number(cheapest.substring(0, 1));
 }
 
+/// openerRebidIsReverse reports whether opener's cheapest rebid in a new suit forces responder
+/// above two of opener's first suit to give simple preference.  This returns true based the rebid
+/// pushing partner up a level, regardless of opener's points.  Bidding rules decide what strength a
+/// reverse promises in the configured system.
+///
+export function openerRebidIsReverse (opening: ParsedSuitBid, response: ParsedSuitBid,
+                                      rebid: ParsedSuitBid): boolean {
+  // Verify new suitness
+  if (opening.strain === 'NT' || rebid.strain === 'NT' || rebid.strain === opening.strain ||
+      rebid.strain === response.strain) {
+    return false;
+  }
+  // A jump in the new suit is not itself a reverse; compare the cheapest legal rebid in that suit.
+  const cheapestSecondSuit = cheapestBidInStrainAfter(response, rebid.strain);
+  if (cheapestSecondSuit === null) {
+    return false;
+  }
+  const cheapestParsed = parseSuitBid(cheapestSecondSuit)!;
+  if (rebid.level !== cheapestParsed.level) {
+    return false;
+  }
+  // A reverse forces responder past the next level of opener's original suit.
+  const returnToOpeningSuit = cheapestBidInStrainAfter(rebid, opening.strain);
+  if (returnToOpeningSuit === null) {
+    return false;
+  }
+  const returnParsed = parseSuitBid(returnToOpeningSuit)!;
+  return returnParsed.level > opening.level + 1;
+}
+
 /// cheapestNewSuitBid returns the cheapest legal contract in a different strain after opening.
 ///
 export function cheapestNewSuitBid (opening: ParsedSuitBid, strain: Strain): SuitBid | null {

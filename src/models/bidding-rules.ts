@@ -3,11 +3,12 @@
 
 import type { BidRule, Call, RuleEvalContext, CallRefinementResult, AppliesWhenResult } from './bidding-types';
 import { guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, majorTwoLevelNewSuitApplies,
-         openerSecondSuitApplies, oneNtTwoNtInvitationApplies,
+         openerMinorOneLevelOneNtApplies, openerSecondSuitApplies, oneNtTwoNtInvitationApplies,
          refineForcingOneNtMinorFallback, refineJumpNewSuit, refineMajorSupportNewSuitFirst,
          refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels,
          refineOneLevelNewSuitAfterMinor, refineOneLevelSuitOpening,
-         refineOpenerLowerRankingSecondSuitRebid, refineOpenerNewSuitAtCheapestLevel,
+         refineOpenerNonReverseNewSuitRebid, refineOpenerLowerRankingSecondSuitRebid,
+         refineOpenerNaturalJumpShiftRebid, refineOpenerNewSuitAtCheapestLevel,
          refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitToLevel,
          refineOpenerRaiseResponderSuitToLevel, refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
@@ -1425,6 +1426,289 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balancedOrSemiBalanced: true } },
     meaning: 'Invite game while showing 18-19 HCP and a balanced or semi-balanced hand.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-shift-lower-suit-after-m-1nt',
+    kind: 'openerRebid',
+    title: 'Jump shift into a lower-ranking second suit with maximum values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['3C'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
+    },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
+      return openerSecondSuitApplies(call, context, 19, 21, 'jump shift');
+    },
+    meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    // This is the 20-21 HCP semi-balanced hand that could not use the strict-balanced 2NT opening.
+    id: 'opener-rebid-3nt-semi-balanced-after-m-1nt',
+    kind: 'openerRebid',
+    title: 'Rebid 3NT with 20-21 HCP and semi-balanced shape',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 20, max: 21 },
+                   shape: { balanced: false, balancedOrSemiBalanced: true } },
+    meaning: 'Show 20-21 HCP with a 5-4-2-2 or 6-3-2-2 hand that did not open 2NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-long-minor-after-m-1nt',
+    kind: 'openerRebid',
+    title: 'Jump to game with a strong seven-card opening minor',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['5C', '5D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
+    meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
+    certainty: 'high',
+  },
+
+  //
+  // The following rules are opener rebids after a minor opening and one-level new-suit response.
+  //
+  {
+    id: 'opener-rebid-nonjump-second-suit-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Show an economical four-card second suit with minimum or medium values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['1D', '1H', '1S', '2C', '2D', '2H', '2S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNonReverseNewSuitRebid(calls, context);
+    },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
+    meaning: 'Show a natural four-card or longer second suit without forcing partner higher.',
+    guidance: ['A one-level second-suit rebid does not require a five-card opening minor.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-nt-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid 1NT with 12-14 HCP and balanced shape',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['1NT'],
+    callCategory: ['natural'],
+    appliesWhen: openerMinorOneLevelOneNtApplies,
+    meaning: 'Natural minimum balanced rebid without four-card support or a new suit to show at one.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-simple-raise-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: "Raise responder's suit cheaply with minimum values",
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 2);
+    },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
+                   supportLength: { min: 4 } },
+    meaning: "Show four-card or longer support for responder's suit with minimum values.",
+    guidance: ['A good three-card raise is an occasional judgment exception, not an automatic ' +
+               'trainer rule.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-repeat-minor-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid a six-card opening minor cheaply with minimum values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['2C', '2D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
+    meaning: 'Show a six-card or longer opening minor with minimum values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-reverse-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Reverse into a second suit with extra strength',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: refineOpenerReverseRebid,
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
+      return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
+    },
+    meaning: 'A reverse shows a second suit and enough extra strength to force responder higher.',
+    guidance: ['This treatment uses 17+ total points for a reverse in this non-game-forcing auction.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-repeat-minor-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump rebid a six-card opening minor with medium values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['3C', '3D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
+    meaning: 'Show medium values and a good six-card or longer opening minor.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-raise-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: "Jump raise responder's suit with medium values",
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
+                   supportLength: { min: 4 } },
+    meaning: "Show medium values and four-card or longer support for responder's suit.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-2nt-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump to 2NT with 18-19 HCP and balanced shape',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['2NT'],
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true },
+                   supportLength: { max: 3 } },
+    meaning: 'Natural 18-19 HCP balanced rebid without four-card support for responder.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-shift-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump shift into a second suit with maximum values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNaturalJumpShiftRebid(calls, context);
+    },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
+      return openerSecondSuitApplies(call, context, 19, 21, 'jump shift');
+    },
+    meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
+    guidance: ['Do not use a jump in a suit whose non-jump rebid is already a strength-showing ' +
+               'reverse; that higher call is left to partnership agreement.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-raise-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: "Raise responder's suit to game with maximum values",
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['4H', '4S', '5D'],
+    callRefinement: refineOpenerResponderSuitToGame,
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
+                   supportLength: { min: 4 } },
+    meaning: "Bid game with maximum values and four-card or longer support for responder's suit.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-long-minor-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump to game in a strong seven-card opening minor',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['5C', '5D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
+    meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-splinter-after-m-1-level-new-suit',
+    kind: 'openerRebid',
+    title: "Optional splinter agreeing responder's suit",
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 1, jump: false },
+    },
+    calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 2, 'any', 'opener splinter');
+    },
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'splinters', value: true,
+                 note: 'Opener-side splinter: support for responder plus singleton/void.' },
+    priority: { rank: -100, note: 'Specialized partnership treatment; deliberately present last.' },
+    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
+                   supportLength: { min: 4 }, suitLengths: [{ max: 1 }] },
+    meaning: "Artificial double jump showing support for responder's suit and shortness in the bid suit.",
+    guidance: ['This is an optional partnership treatment rather than the ordinary natural rebid.'],
     certainty: 'high',
   },
 

@@ -5,7 +5,8 @@ import { biddingBaseline, STRAIN_ORDER, type AppliesWhenResult, type BiddingSyst
   from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo,
-         getPartnerOpeningCall, getResponderCall, parseSuitBid, type ParsedSuitBid } from './auction';
+         getPartnerOpeningCall, getResponderCall, openerRebidIsReverse, parseSuitBid,
+         type ParsedSuitBid } from './auction';
 
 ///
 //// Bidding Rule Bid Refinements
@@ -35,25 +36,84 @@ export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context:
   };
 }
 
-/// refineOpenerReverseRebid keeps higher-ranking new suits at the two level.  This classifies the
-/// call as a higher ranking new suit; the reverse rule's appliesWhen separately enforces the extra
-/// strength.
+/// refineOpenerReverseRebid keeps cheapest new-suit rebids that force responder above two of
+/// opener's first suit to give simple preference.  The rule's appliesWhen separately enforces the
+/// strength promised by the configured treatment.
 ///
 export function refineOpenerReverseRebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
-  if (opening === null || opening.strain === 'NT') {
-    return { calls: [], telemetryLines: ['No suit opening is available for a reverse.'] };
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No suit opening and response are available for a reverse.'] };
   }
-  const openingIndex = STRAIN_ORDER.indexOf(opening.strain);
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
-    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain) {
+    return candidate !== null && openerRebidIsReverse(opening, response, candidate);
+  });
+  return {
+    calls: refined,
+    telemetryLines: [
+      "Keep only cheapest new-suit rebids that force responder above two of opener's first suit.",
+    ],
+  };
+}
+
+/// refineOpenerNonReverseSecondSuitRebid keeps the cheapest natural new-suit rebids that are
+/// not reverses.  Unlike a rank-only test, this correctly keeps 1C-1H-1S while rejecting
+/// 1C-1H-2D, and it can also keep a lower-ranking two-level suit such as 1D-1H-2C.
+///
+export function refineOpenerNonReverseNewSuitRebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No suit opening and response are available for rebid.'] };
+  }
+  const refined = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.strain === response.strain) {
       return false;
     }
-    return candidate.level === 2 && STRAIN_ORDER.indexOf(candidate.strain) > openingIndex;
+    return cheapestBidInStrainAfter(response, candidate.strain) === call &&
+           ! openerRebidIsReverse(opening, response, candidate);
   });
-  return { calls: refined, telemetryLines: ['Keep only higher-ranking two-level second suits.'] };
+  return {
+    calls: refined,
+    telemetryLines: ['Keep cheapest natural second-suit rebids that are not reverses.'],
+  };
+}
+
+/// refineOpenerNaturalJumpShiftRebid keeps a one-level jump in a new suit only when the
+/// corresponding non-jump bid is not already a reverse.  For example 1C-1H-2S is a natural
+/// maximum jump shift, while 1C-1H-3D is left to partnership agreement because 2D is a reverse.
+///
+export function refineOpenerNaturalJumpShiftRebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No suit opening and response are available for a jump shift.'] };
+  }
+  const refined = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.strain === response.strain) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(response, candidate.strain);
+    if (cheapest === null) {
+      return false;
+    }
+    const cheapestParsed = parseSuitBid(cheapest)!;
+    return candidate.level === cheapestParsed.level + 1 &&
+           ! openerRebidIsReverse(opening, response, cheapestParsed);
+  });
+  return {
+    calls: refined,
+    telemetryLines: ['Keep natural jump shifts whose non-jump new-suit bid is not a reverse.'],
+  };
 }
 
 export function refineOpenerOpeningSuitToLevel (calls: Call[], context: RuleEvalContext,
@@ -587,6 +647,46 @@ export function refineNaturalMajorGameOver2Nt (calls: Call[], context: RuleEvalC
 //// Bidding Rule When Applies Functions
 ///
 
+/// openerMinorOneLevelOneNtApplies uses the 12-14 HCP balanced rebid after a one-level new-suit
+/// response.  Opener normally raises four-card support and shows another four-card suit at the one
+/// level rather than hiding either feature in 1NT.
+///
+export function openerMinorOneLevelOneNtApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT' || response.strain === 'NT') {
+    return { success: false, 
+             telemetryLines: ['FAIL: 1NT rebid needs a minor opening and suit response.'] };
+  }
+  // Check the normal strength, shape, and responder-support limits first.
+  const hcpApplies = context.handFacts.hcp >= 12 && context.handFacts.hcp <= 14;
+  const balancedApplies = context.handFacts.balanced;
+  const responseSuit = response.strain as Suit;
+  const supportApplies = context.handFacts.lengths[responseSuit] < 4;
+  // Do not hide a four-card second suit that opener can still show at the one level.
+  const openingSuit = opening.strain as Suit;
+  const hasOneLevelSecondSuit = SUITS.some((suit) => {
+    if (suit === openingSuit || suit === responseSuit || context.handFacts.lengths[suit] < 4) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(response, suit);
+    const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+    return parsed !== null && parsed.level === 1;
+  });
+  const success = hcpApplies && balancedApplies && supportApplies && ! hasOneLevelSecondSuit;
+  return {
+    success,
+    telemetryLines: [
+      `${hcpApplies ? 'PASS' : 'FAIL'}: 1NT rebid needs 12-14 HCP; opener has ' +
+        '${context.handFacts.hcp}.`,
+      `${balancedApplies ? 'PASS' : 'FAIL'}: 1NT rebid needs a balanced hand.`,
+      `${supportApplies ? 'PASS' : 'FAIL'}: responder's ${responseSuit} needs fewer than ' +
+        'four-card support.`,
+      `${! hasOneLevelSecondSuit ? 'PASS' : 'FAIL'}: no four-card second suit is available at ' + 1
+        'the one level.`,],};
+}
+
 /// openerLowerRankingSecondSuitApplies requires the ordinary 12-18 total-point range,
 /// five or more cards in the opening minor, and four or more cards in the lower-ranking second suit.
 export function openerLowerRankingSecondSuitApplies (call: Call, context: RuleEvalContext):
@@ -594,7 +694,7 @@ export function openerLowerRankingSecondSuitApplies (call: Call, context: RuleEv
   return openerSecondSuitApplies(call, context, 12, 18, 'lower-ranking second suit');
 }
 
-/// openerReverseApplies requires extra strength for a geometrically reverse-shaped rebid.
+/// openerReverseApplies requires extra strength for a structurally reverse rebid.
 export function openerReverseApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
   return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
 }
