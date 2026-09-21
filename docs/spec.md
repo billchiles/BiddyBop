@@ -183,13 +183,15 @@ The app should help the user practice bidding decisions using structured convent
   maximum jump shift.  For example, 1C-1H-3D because 2D is a reverse, pushing partner to 3C.
 - After `1m-1NT`, a natural `3NT` rebid is 20-21 HCP with semi-balanced but not strict-balanced
   shape.  A strict-balanced 20-21 HCP hand belongs in the 2NT opening.
+- After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
+  five cards when a minimum opener has no better call; responder's five-card club promise means
+  three-card opener support is enough for the natural club raise.
+- After 2/1 game-forcing `1D-2C`, opener describes shape without traditional reverse-strength
+  implications: rebid `2D` with five or more diamonds; otherwise show a four-card major up the
+  line; otherwise usually rebid `2NT`, with `3C` available when notrump is unattractive.
 
 ## Pending Bidding Work
 
-- Complete `1D-2C` opener rebids with separate Standard forcing-one-round and 2/1 game-forcing
-  treatments.  In the 2/1 branch, economical (non-jump?) shape description must not inherit a traditional
-  reverse-strength requirement merely because the call would be a reverse in a non-game-forcing
-  auction.
 - Implement opener continuations after 1NT/2NT openings, then revisit opener after a minor raise and
   after responder's invitational notrump response before moving to responder's rebid.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
@@ -244,7 +246,8 @@ would cause us to revisit the omission.
   choices.
 - Reason: Once game is already forced, jump rebids, jump shifts, and higher-notrump rebids can carry
   partnership-specific meanings. The trainer gets most of the teaching value from economical
-  support, second-suit, six-card-major, and notrump descriptions without selecting a detailed 2/1
-  convention package.
+  support, second-suit, long-opening-suit, and notrump descriptions without selecting a detailed
+  2/1 convention package.  After `1D-2C`, the specialized solid-six-card `3D` exception remains
+  guidance-only rather than becoming a routine strength-showing jump.
 - Revisit if: the project adopts a more specific 2/1 continuation structure or practice shows that
   the omitted calls are important enough to teach directly.

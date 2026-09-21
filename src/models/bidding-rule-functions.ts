@@ -143,8 +143,9 @@ export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEva
 
 
 /// refineOpenerRaiseResponderSuitToLevel keeps the raise of responder's natural suit to the
-/// requested level.  Three-card support is enough when responder's non-jump 2H over 1S promised
-/// five hearts; otherwise opener needs four-card support for a new suit shown by responder.
+/// requested level.  Three-card support is enough when responder's bid promised five cards:
+/// non-jump 2H over 1S, or 2C over 1D in the current Standard and 2/1 treatments.  Otherwise opener
+/// needs four-card support for a new suit shown by responder.
 ///
 export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: RuleEvalContext,
                                                        targetLevel: number): CallRefinementResult {
@@ -155,8 +156,10 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
     return { calls: [], telemetryLines: ['No responder new suit is available to raise.'] };
   }
   const responseSuit = response.strain as Suit;
-  const minSupport = opening.strain === 'S' && response.strain === 'H' && 
-                     response.level === 2 ? 3 : 4;
+  const responsePromisesFive = response.level === 2 &&
+    ((opening.strain === 'S' && response.strain === 'H') ||
+     (opening.strain === 'D' && response.strain === 'C'));
+  const minSupport = responsePromisesFive ? 3 : 4;
   if (context.handFacts.lengths[responseSuit] < minSupport) {
     return {calls: [],
             telemetryLines: [
@@ -170,6 +173,34 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
           telemetryLines: [`Raise responder's ${responseSuit} to ${wantedCall}.`],
   };
 } // refineOpenerRaiseResponderSuitToLevel()
+
+/// refineOpenerFourCardMajorUpTheLine keeps opener's cheapest four-card major rebids and orders
+/// equal-length majors up the line.  This is the shared major-choice refinement for the Standard
+/// and 2/1 continuations after 1D-2C; the rules separately decide whether the bid promises extra
+/// strength or first denies five diamonds.
+///
+export function refineOpenerFourCardMajorUpTheLine (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const legalResult = refineOpenerNewSuitAtCheapestLevel(calls, context);
+  let majors = legalResult.calls
+    .map((call) => {
+      const candidate = parseSuitBid(call)!;
+      const suit = candidate.strain as Suit;
+      return { call, suit, length: context.handFacts.lengths[suit] };
+    })
+    .filter((candidate) =>
+      (candidate.suit === 'H' || candidate.suit === 'S') && candidate.length >= 4);
+  if (majors.length > 1) {
+    majors = orderMajorSuitCandidates(majors);
+  }
+  return {
+    calls: majors.map((candidate) => candidate.call),
+    telemetryLines: [
+      ...legalResult.telemetryLines,
+      'Keep four-card major rebids; with equal four-card majors, bid hearts before spades.',
+    ],
+  };
+}
 
 /// refineOpenerNewSuitAtCheapestLevel keeps opener's cheapest legal second-suit calls after
 /// responder's actual call.  suitOrder can restrict the second suit to lower- or higher-ranking
@@ -383,15 +414,7 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
   // longer first, H before S if both have 4 cards, S before H each is 5+
   let majors = eligible.filter((candidate) => candidate.suit === 'H' || candidate.suit === 'S');
   if (majors.length > 1) {
-    majors.sort((left, right) => {
-      if (left.length !== right.length) { // return negative if left belongs first because it's longer
-        return right.length - left.length;
-      }
-      if (left.length === 4) { // bid up the line
-        return left.suit === 'H' ? -1 : 1;
-      }
-      return left.suit === 'S' ? -1 : 1; // bid down the line
-    });
+    majors = orderMajorSuitCandidates(majors);
   }
   // Order based on opening, convenient minors, and majors
   if (biddingBaseline.convenientMinors && majors.length > 0) {
@@ -434,6 +457,21 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         };
 } // refineOneLevelNewSuitAfterMinor()
 
+/// orderMajorSuitCandidates orders the at-most-two major candidates by normal response priority:
+/// longer major first; equal four-card majors up the line; equal five-card-or-longer majors down
+/// the line.
+///
+function orderMajorSuitCandidates<T extends { suit: Suit; length: number }> (majors: T[]): T[] {
+  if (majors.length < 2) {
+    return majors;
+  }
+  const [first, second] = majors;
+  if (first.length !== second.length) {
+    return first.length > second.length ? majors : [second, first];
+  }
+  const wantedFirst = first.length === 4 ? 'H' : 'S';
+  return first.suit === wantedFirst ? majors : [second, first];
+}
 
 /// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
 /// opening suit, thereby emoving raises and jump shifts.  This does not yet choose among multiple
@@ -678,13 +716,13 @@ export function openerMinorOneLevelOneNtApplies (_call: Call, context: RuleEvalC
   return {
     success,
     telemetryLines: [
-      `${hcpApplies ? 'PASS' : 'FAIL'}: 1NT rebid needs 12-14 HCP; opener has ' +
-        '${context.handFacts.hcp}.`,
+      `${hcpApplies ? 'PASS' : 'FAIL'}: 1NT rebid needs 12-14 HCP; opener has ` +
+        `${context.handFacts.hcp}.`,
       `${balancedApplies ? 'PASS' : 'FAIL'}: 1NT rebid needs a balanced hand.`,
-      `${supportApplies ? 'PASS' : 'FAIL'}: responder's ${responseSuit} needs fewer than ' +
-        'four-card support.`,
-      `${! hasOneLevelSecondSuit ? 'PASS' : 'FAIL'}: no four-card second suit is available at ' + 1
-        'the one level.`,],};
+      `${supportApplies ? 'PASS' : 'FAIL'}: responder's ${responseSuit} needs fewer than ` +
+        'four-card support.',
+      `${! hasOneLevelSecondSuit ? 'PASS' : 'FAIL'}: no four-card second suit is available at ` +
+        'the one level.',],};
 }
 
 /// openerLowerRankingSecondSuitApplies requires the ordinary 12-18 total-point range,

@@ -58,7 +58,7 @@ export interface BiddingSystem {
   stayman: boolean;
   // Jacoby transfers use 2D/2H over 1NT, or 3D/3H over 2NT, to transfer to responder's major.
   jacobyTransfers: boolean;
-  // Splinters are double-jump new-suit calls showing major support and a singleton or void.
+  // Splinters are double-jump new-suit calls showing support and a singleton or void.
   splinters: boolean;
   // Texas transfers use 4D/4H to transfer to 4H/4S.
   texasTransfers: boolean;

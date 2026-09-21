@@ -7,8 +7,9 @@ import { guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, majorTwoLevelN
          refineForcingOneNtMinorFallback, refineJumpNewSuit, refineMajorSupportNewSuitFirst,
          refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels,
          refineOneLevelNewSuitAfterMinor, refineOneLevelSuitOpening,
-         refineOpenerNonReverseNewSuitRebid, refineOpenerLowerRankingSecondSuitRebid,
-         refineOpenerNaturalJumpShiftRebid, refineOpenerNewSuitAtCheapestLevel,
+         refineOpenerFourCardMajorUpTheLine, refineOpenerNonReverseNewSuitRebid,
+         refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
+         refineOpenerNewSuitAtCheapestLevel,
          refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitToLevel,
          refineOpenerRaiseResponderSuitToLevel, refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
@@ -1323,7 +1324,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     // Use length total points when opener is not supporting responder's suit.
-    id: 'opener-rebid-minor-1nt-pass',
+    id: 'opener-rebid-pass-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Pass 1NT with a minimum balanced or semi-balanced hand',
     auctionContext: {
@@ -1338,7 +1339,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-minor-1nt-repeat-minor',
+    id: 'opener-rebid-repeat-minor-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening minor at the two level',
     auctionContext: {
@@ -1356,7 +1357,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-minor-1nt-lower-second-suit',
+    id: 'opener-rebid-lower-second-suit-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit without reversing',
     auctionContext: {
@@ -1375,7 +1376,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-minor-1nt-reverse',
+    id: 'opener-rebid-reverse-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Reverse into a higher-ranking second suit with extra strength',
     auctionContext: {
@@ -1395,7 +1396,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-jump-repeat-minor-after-1nt',
+    id: 'opener-rebid-jump-repeat-minor-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening minor with medium values',
     auctionContext: {
@@ -1415,7 +1416,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     // Natural 2NT rebid range is HCP; do not promote 17 HCP with a length point into this range.
-    id: 'opener-rebid-minor-after-1nt-2nt',
+    id: 'opener-rebid-2nt-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Rebid 2NT with 18-19 HCP and balanced or semi-balanced shape',
     auctionContext: {
@@ -1430,7 +1431,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-jump-shift-lower-suit-after-m-1nt',
+    id: 'opener-rebid-jump-shift-lower-suit-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
@@ -1451,7 +1452,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     // This is the 20-21 HCP semi-balanced hand that could not use the strict-balanced 2NT opening.
-    id: 'opener-rebid-3nt-semi-balanced-after-m-1nt',
+    id: 'opener-rebid-3nt-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Rebid 3NT with 20-21 HCP and semi-balanced shape',
     auctionContext: {
@@ -1467,7 +1468,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-game-long-minor-after-m-1nt',
+    id: 'opener-rebid-game-minor-after-minor-1nt',
     kind: 'openerRebid',
     title: 'Jump to game with a strong seven-card opening minor',
     auctionContext: {
@@ -1488,7 +1489,7 @@ export const OpenerRebidRules: BidRule[] = [
   // The following rules are opener rebids after a minor opening and one-level new-suit response.
   //
   {
-    id: 'opener-rebid-nonjump-second-suit-after-m-1-level-new-suit',
+    id: 'opener-rebid-second-suit-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Show an economical four-card second suit with minimum or medium values',
     auctionContext: {
@@ -1507,7 +1508,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-nt-after-m-1-level-new-suit',
+    id: 'opener-rebid-1nt-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
@@ -1522,7 +1523,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-simple-raise-after-m-1-level-new-suit',
+    id: 'opener-rebid-simple-raise-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
@@ -1543,7 +1544,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-repeat-minor-after-m-1-level-new-suit',
+    id: 'opener-rebid-repeat-minor-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening minor cheaply with minimum values',
     auctionContext: {
@@ -1561,7 +1562,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-reverse-after-m-1-level-new-suit',
+    id: 'opener-rebid-reverse-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
@@ -1580,7 +1581,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-jump-repeat-minor-m-1-level-new-suit',
+    id: 'opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening minor with medium values',
     auctionContext: {
@@ -1598,7 +1599,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-jump-raise-after-m-1-level-new-suit',
+    id: 'opener-rebid-jump-raise-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
@@ -1617,7 +1618,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-2nt-m-1-level-new-suit',
+    id: 'opener-rebid-2nt-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
@@ -1633,7 +1634,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-jump-shift-after-m-1-level-new-suit',
+    id: 'opener-rebid-jump-shift-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump shift into a second suit with maximum values',
     auctionContext: {
@@ -1655,7 +1656,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-game-raise-after-m-1-level-new-suit',
+    id: 'opener-rebid-game-raise-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
@@ -1672,7 +1673,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-game-long-minor-m-1-level-new-suit',
+    id: 'opener-rebid-game-in-minor-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening minor',
     auctionContext: {
@@ -1690,7 +1691,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-splinter-after-m-1-level-new-suit',
+    id: 'opener-rebid-splinter-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
@@ -1713,10 +1714,264 @@ export const OpenerRebidRules: BidRule[] = [
   },
 
   //
+  // The following rules are opener rebids after 1D-2C.  Standard treats the response as forcing
+  // one round; 2/1 is already game forcing, so opener describes shape economically.
+  //
+  {
+    id: 'opener-rebid-repeat-diamonds-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid diamonds cheaply after a Standard 1D-2C response',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2D'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
+                 note: 'Standard 1D-2C is forcing one round, but not forcing to game.' },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ suit: 'D', min: 5 }] },
+    meaning: 'Show a five-card or longer diamond suit without enough strength for a stronger rebid.',
+    guidance: ['This rebid normally shows six diamonds.  Five diamonds are allowed when opener ' +
+               'has no better minimum rebid, especially when a four-card major would require a reverse.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-reverse-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Reverse into a four-card major after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2H', '2S'],
+    callRefinement: refineOpenerFourCardMajorUpTheLine,
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
+      return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
+    },
+    meaning: 'Show a four-card major with reverse strength; this auction is not already forced to game.',
+    guidance: ['With both four-card majors, show hearts before spades.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-2nt-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid 2NT with 12-14 HCP after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2NT'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balanced: true } },
+    meaning: 'Describe a minimum balanced hand; a four-card major may be concealed because showing it would reverse.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-simple-raise-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Raise clubs cheaply with minimum values after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['3C'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 3);
+    },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Show an eight-card-or-longer club fit with minimum values.',
+    guidance: ['Responder promised five or more clubs, so three-card opener support is enough.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-repeat-diamonds-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump rebid a good six-card diamond suit with medium values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['3D'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ suit: 'D', min: 6 }] },
+    meaning: 'Show medium values and a good six-card or longer diamond suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-3nt-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid 3NT with 18-19 HCP after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['3NT'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true } },
+    meaning: 'Describe a strong balanced hand and place the partnership in game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-jump-raise-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump raise clubs with medium values after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['4C'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 4);
+    },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Show medium values and club support while inviting the minor-suit game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-raise-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Raise clubs to game with maximum values after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['5C'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 5);
+    },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Bid the club game with maximum values and a known eight-card-or-longer fit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-in-diamonds-after-minor-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Jump to game in a strong seven-card diamond suit after Standard 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['5D'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ suit: 'D', min: 7 }] },
+    meaning: 'Bid game with maximum values and a good seven-card or longer diamond suit.',
+    certainty: 'high',
+  },
+
+  //
+  // In the 2/1 version of 1D-2C, game is already forced.  Follow the chosen natural treatment:
+  // rebid 2D with five or more diamonds; otherwise show a four-card major up the line; otherwise
+  // usually rebid 2NT, with 3C available when notrump is unattractive.
+  //
+  {
+    id: 'opener-rebid-repeat-diamonds-after-minor-two-over-one-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid 2D with five or more diamonds in a 2/1 game force',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2D'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
+                 note: '2/1 1D-2C is already forcing to game.' },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { suitLengths: [{ suit: 'D', min: 5 }] },
+    meaning: 'Describe five or more diamonds without implying extra strength.',
+    guidance: ['With five or more diamonds, rebid 2D before showing a four-card major.',
+               'A specialized jump to 3D with a solid six-card suit remains guidance-only.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-major-after-minor-two-over-one-new-suit',
+    kind: 'openerRebid',
+    title: 'Show a four-card major up the line after 2/1 1D-2C',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2H', '2S'],
+    callRefinement: refineOpenerFourCardMajorUpTheLine,
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { suitLengths: [{ suit: 'D', max: 4 }, { min: 4 }] },
+    meaning: 'With fewer than five diamonds, show a natural four-card major without promising extras.',
+    guidance: ['With both four-card majors, show hearts before spades.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-2nt-after-minor-two-over-one-new-suit',
+    kind: 'openerRebid',
+    title: 'Rebid 2NT when no five-card diamond suit or four-card major is available',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2NT'],
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 20 },
+    appliesWhen: { suitLengths: [{ suit: 'D', max: 4 }, { suit: 'H', max: 3 },
+                                 { suit: 'S', max: 3 }],
+                   shape: { balancedOrSemiBalanced: true } },
+    meaning: 'Describe balanced or semi-balanced shape economically; the auction is already game forcing.',
+    guidance: ['This is the usual rebid after denying five diamonds and a four-card major.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-simple-raise-after-minor-two-over-one-new-suit',
+    kind: 'openerRebid',
+    title: 'Raise clubs naturally when 2NT is unattractive in a 2/1 game force',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['3C'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 3);
+    },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 10 },
+    appliesWhen: { supportLength: { min: 4 },
+                   suitLengths: [{ suit: 'D', max: 4 }, { suit: 'H', max: 3 },
+                                 { suit: 'S', max: 3 }] },
+    meaning: 'Confirm a club fit when a natural notrump rebid is unattractive.',
+    guidance: ['Responder promised five or more clubs; this chosen 2/1 treatment normally uses ' +
+               'four-card opener support for the club raise.'],
+    certainty: 'high',
+  },
+
+  //
   // The following rules are opener rebids after a major opening and 1NT response.
   //
   {
-    id: 'opener-rebid-major-1nt-pass-nonforcing',
+    id: 'opener-rebid-pass-after-major-1nt-nonforcing',
     kind: 'openerRebid',
     title: 'Pass a non-forcing 1NT response with a flat minimum',
     auctionContext: {
@@ -1735,7 +1990,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-repeat-major',
+    id: 'opener-rebid-repeat-major-after-major-1nt',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major at the two level',
     auctionContext: {
@@ -1753,7 +2008,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-lower-second-suit',
+    id: 'opener-rebid-lower-second-suit-after-major-1nt',
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit after 1NT',
     auctionContext: {
@@ -1771,7 +2026,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-reverse',
+    id: 'opener-rebid-reverse-after-major-1nt',
     kind: 'openerRebid',
     title: 'Reverse after 1NT with extra strength',
     auctionContext: {
@@ -1789,7 +2044,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-forcing-minor-fallback',
+    id: 'opener-rebid-minor-fallback-after-major-1nt-forcing',
     kind: 'openerRebid',
     title: 'Manufacture a minor rebid when a forcing 1NT leaves no natural rebid',
     auctionContext: {
@@ -1808,7 +2063,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-jump-repeat-major',
+    id: 'opener-rebid-jump-repeat-major-after-major-1nt',
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
@@ -1827,7 +2082,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-2nt',
+    id: 'opener-rebid-2nt-after-major-1nt',
     kind: 'openerRebid',
     title: 'Rebid 2NT with 18-19 HCP and balanced or semi-balanced shape',
     auctionContext: {
@@ -1842,7 +2097,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-jump-shift-lower-suit',
+    id: 'opener-rebid-jump-shift-lower-suit-after-major-1nt',
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
@@ -1860,7 +2115,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-1nt-game-long-major',
+    id: 'opener-rebid-game-same-major-after-major-1nt',
     kind: 'openerRebid',
     title: 'Jump to game with a strong seven-card opening major',
     auctionContext: {
@@ -1882,7 +2137,7 @@ export const OpenerRebidRules: BidRule[] = [
   // For five-card majors this family is 1H-1S.
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-1nt',
+    id: 'opener-rebid-1nt-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
@@ -1901,7 +2156,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-simple-raise',
+    id: 'opener-rebid-simple-raise-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
@@ -1922,7 +2177,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-repeat-major',
+    id: 'opener-rebid-repeat-major-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
@@ -1940,7 +2195,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-second-suit',
+    id: 'opener-rebid-second-suit-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit at the cheapest level',
     auctionContext: {
@@ -1958,7 +2213,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-jump-repeat-major',
+    id: 'opener-rebid-jump-repeat-major-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
@@ -1976,7 +2231,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-jump-raise',
+    id: 'opener-rebid-jump-raise-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
@@ -1995,7 +2250,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-2nt',
+    id: 'opener-rebid-2nt-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
@@ -2011,7 +2266,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-jump-shift',
+    id: 'opener-rebid-jump-shift-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
@@ -2029,7 +2284,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-game-raise',
+    id: 'opener-rebid-game-raise-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
@@ -2048,7 +2303,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-game-long-major',
+    id: 'opener-rebid-game-same-major-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
@@ -2066,7 +2321,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-one-level-new-suit-splinter',
+    id: 'opener-rebid-splinter-after-major-one-level-new-suit',
     kind: 'openerRebid',
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
@@ -2093,7 +2348,7 @@ export const OpenerRebidRules: BidRule[] = [
   // response.  Responder has forced one round but has not forced to game.
   //
   {
-    id: 'opener-rebid-major-standard-two-level-support-cheap',
+    id: 'opener-rebid-simple-raise-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
@@ -2116,7 +2371,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-repeat-major',
+    id: 'opener-rebid-repeat-major-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
@@ -2135,7 +2390,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-second-suit',
+    id: 'opener-rebid-second-suit-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Show a lower-ranking second suit at the cheapest legal level',
     auctionContext: {
@@ -2154,7 +2409,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-reverse',
+    id: 'opener-rebid-reverse-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Reverse into a higher-ranking second suit with extra strength',
     auctionContext: {
@@ -2173,7 +2428,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-2nt',
+    id: 'opener-rebid-2nt-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Rebid 2NT with 12-14 HCP and balanced shape',
     auctionContext: {
@@ -2189,7 +2444,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-jump-repeat-major',
+    id: 'opener-rebid-jump-repeat-major-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
@@ -2208,7 +2463,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-jump-raise',
+    id: 'opener-rebid-jump-raise-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
@@ -2228,7 +2483,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-3nt',
+    id: 'opener-rebid-3nt-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to 3NT with 18-19 HCP and balanced shape',
     auctionContext: {
@@ -2244,7 +2499,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-jump-shift',
+    id: 'opener-rebid-jump-shift-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
@@ -2263,7 +2518,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-game-long-major',
+    id: 'opener-rebid-game-same-major-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
@@ -2282,7 +2537,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-standard-two-level-game-raise',
+    id: 'opener-rebid-game-raise-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
@@ -2304,7 +2559,7 @@ export const OpenerRebidRules: BidRule[] = [
   // strength later rather than jumping merely to advertise strength.
   //
   {
-    id: 'opener-rebid-major-two-over-one-support',
+    id: 'opener-rebid-simple-raise-after-major-two-over-one-new-suit',
     kind: 'openerRebid',
     title: "Support responder's suit at the cheapest level in a 2/1 game force",
     auctionContext: {
@@ -2327,7 +2582,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-two-over-one-repeat-major',
+    id: 'opener-rebid-repeat-major-after-major-two-over-one-new-suit',
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply in a 2/1 game force',
     auctionContext: {
@@ -2346,7 +2601,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-two-over-one-second-suit',
+    id: 'opener-rebid-second-suit-after-major-two-over-one-new-suit',
     kind: 'openerRebid',
     title: 'Show a four-card second suit cheaply in a 2/1 game force',
     auctionContext: {
@@ -2366,7 +2621,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-two-over-one-2nt',
+    id: 'opener-rebid-2nt-after-major-two-over-one-new-suit',
     kind: 'openerRebid',
     title: 'Rebid 2NT with balanced or semi-balanced shape in a 2/1 game force',
     auctionContext: {
@@ -2387,7 +2642,7 @@ export const OpenerRebidRules: BidRule[] = [
   // The following rules are opener rebids after responder raises a major opening to two.
   //
   {
-    id: 'opener-rebid-major-simple-raise-pass',
+    id: 'opener-rebid-pass-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Pass a simple major raise with minimum values',
     auctionContext: {
@@ -2402,7 +2657,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-simple-raise-competitive-three',
+    id: 'opener-rebid-competitive-three-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Compete to three of the major with six-card trump length',
     auctionContext: {
@@ -2424,7 +2679,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-simple-raise-help-suit-game-try',
+    id: 'opener-rebid-help-suit-game-try-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Make a natural help-suit game try with medium values',
     auctionContext: {
@@ -2446,7 +2701,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-simple-raise-2nt-game-try',
+    id: 'opener-rebid-2nt-game-try-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Use 2NT as a balanced game try with medium values',
     auctionContext: {
@@ -2468,7 +2723,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-simple-raise-game',
+    id: 'opener-rebid-game-raise-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Raise the agreed major to game with maximum values',
     auctionContext: {
@@ -2486,7 +2741,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
-    id: 'opener-rebid-major-simple-raise-splinter',
+    id: 'opener-rebid-splinter-after-major-simple-raise',
     kind: 'openerRebid',
     title: 'Optional splinter after a simple major raise',
     auctionContext: {
