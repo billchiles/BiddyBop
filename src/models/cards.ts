@@ -143,7 +143,132 @@ export interface BoardWTelemetry {
 /// openable hands come along within a couple of deals
 const maxDealAttempts = 100;
 
+/// Temporary deterministic opener-rebid exercise.  Flip this false to return to random practice.
+const USE_OPENER_REBID_TEST_DEALS = false;
+let openerRebidTestDealIndex = 0;
+
+interface OpenerRebidTestDeal {
+  target: string;
+  north: Record<Suit, string>;
+  south: Record<Suit, string>;
+}
+
+const OPENER_REBID_TEST_DEALS: OpenerRebidTestDeal[] = [
+  {
+    target: '1C-1NT-Pass: minimum balanced opener accepts 1NT.',
+    north: { S: 'AK2', H: 'Q42', D: 'J96', C: 'KJ75' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-2D: minimum hand repeats a six-card diamond suit.',
+    north: { S: 'A42', H: 'K4', D: 'AQJT92', C: '85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-2C: show a lower-ranking four-card second suit cheaply.',
+    north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-2H: reverse with five diamonds, four hearts, and extra strength.',
+    north: { S: 'AK', H: 'AQ42', D: 'QJ952', C: '85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-3D: jump rebid a six-card diamond suit with medium values.',
+    north: { S: 'AK', H: 'Q4', D: 'AQJ982', C: '852' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-2NT: 18 HCP balanced opener invites in notrump.',
+    north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-3C: maximum natural jump shift into clubs.',
+    north: { S: 'AK2', H: 'Q', D: 'AJ652', C: 'KJ85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1D-1NT-3NT: 20 HCP, 6-3-2-2 semi-balanced hand that did not open 2NT.',
+    north: { S: 'AK', H: 'KQ', D: 'AQJ982', C: 'J85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+  },
+  {
+    target: '1C-1H-1S: economical four-card second suit.',
+    north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-1NT: minimum balanced hand with no four-card support or one-level second suit.',
+    north: { S: 'AK2', H: 'Q42', D: 'K72', C: 'J852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-2H: minimum simple raise with four-card heart support.',
+    north: { S: 'AK2', H: 'Q942', D: 'K72', C: '852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-2D: natural reverse with five clubs and four diamonds.',
+    north: { S: 'AK', H: 'Q2', D: 'AKJ2', C: 'T8752' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-3H: jump raise with medium support values.',
+    north: { S: 'AQ', H: 'AQ42', D: 'K2', C: 'T8752' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-2S: maximum jump shift; 1S was the economical spade bid.',
+    north: { S: 'AKQ2', H: 'Q2', D: 'A2', C: 'KJ852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-4H: raise responder to game with maximum support values.',
+    north: { S: 'AK', H: 'AQ42', D: 'K2', C: 'J8752' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1C-1H-4D: opener-side splinter; 4H should also remain a natural candidate.',
+    north: { S: 'AQ2', H: 'AQ42', D: 'K', C: 'J8752' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    target: '1D-2C-2D Standard: minimum five diamonds; four hearts are not enough to reverse.',
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+  {
+    target: '1D-2C-2H Standard: reverse into hearts with extra strength.',
+    north: { S: 'A4', H: 'AKJ2', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+  {
+    target: '1D-2C-2NT Standard: minimum balanced hand can conceal a four-card major.',
+    north: { S: 'AQJ4', H: 'KJ2', D: 'QJ92', C: '82' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+  {
+    target: '1D-2C-3C Standard: three clubs are support because responder promised five; 2D may also qualify.',
+    north: { S: 'A', H: 'KJ42', D: 'KJ972', C: 'T82' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+];
+
 export function generateOpenableNorthBoard (): BoardWTelemetry {
+  if (USE_OPENER_REBID_TEST_DEALS) {
+    const testIndex = openerRebidTestDealIndex % OPENER_REBID_TEST_DEALS.length;
+    const testDeal = OPENER_REBID_TEST_DEALS[testIndex]!;
+    openerRebidTestDealIndex += 1;
+    return {
+      board: { deal: makeOpenerRebidTestDeal(testDeal), dealer: 'N' },
+      telemetryLines: [
+        `Opener-rebid test deal ${testIndex + 1}/${OPENER_REBID_TEST_DEALS.length}.`,
+        `Target: ${testDeal.target}`,
+      ],
+    };
+  }
   const telemetryLines: string[] = [];
   // This is only a deal-generation shortcut, not the bidding evaluator.  Include the common ways
   // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
@@ -205,6 +330,54 @@ export function hasPreemptSuitQuality (hand: Hand, suit: Suit): boolean {
   let topFiveCount = cards.filter((card) => card.rank === 'J' || card.rank === 'T').length;
   topFiveCount += topThreeCount;
   return topThreeCount >= 2 || topFiveCount >= 3;
+}
+
+/// makeOpenerRebidTestDeal builds a complete physical deal from the two hands that matter to the
+/// current North-South punch-through.  East and West get the remaining cards deterministically.
+///
+function makeOpenerRebidTestDeal (testDeal: OpenerRebidTestDeal): Deal {
+  const north = makeTestHand(testDeal.north);
+  const south = makeTestHand(testDeal.south);
+  const usedCards = new Set([...north.cards, ...south.cards].map(cardKey));
+  if (usedCards.size !== 26) {
+    throw new Error(`Duplicate card in opener-rebid test deal: ${testDeal.target}`);
+  }
+  // Fill the opponents from the unused deck; their cards do not affect the current auto-pass UI.
+  const remainingCards: Card[] = [];
+  for (const suit of SUITS) {
+    for (const rank of RANKS) {
+      const card = { suit, rank };
+      if (! usedCards.has(cardKey(card))) {
+        remainingCards.push(card);
+      }
+    }
+  }
+  return {
+    N: north,
+    E: { cards: remainingCards.slice(0, 13).sort(compareCards) },
+    S: south,
+    W: { cards: remainingCards.slice(13, 26).sort(compareCards) },
+  };
+}
+
+function makeTestHand (suits: Record<Suit, string>): Hand {
+  const cards: Card[] = [];
+  for (const suit of SUITS) {
+    for (const rankText of suits[suit]) {
+      if (! RANKS.includes(rankText as Rank)) {
+        throw new Error(`Unknown rank ${rankText} in opener-rebid test hand.`);
+      }
+      cards.push({ suit, rank: rankText as Rank });
+    }
+  }
+  if (cards.length !== 13) {
+    throw new Error(`Opener-rebid test hand has ${cards.length} cards instead of 13.`);
+  }
+  return { cards: cards.sort(compareCards) };
+}
+
+function cardKey (card: Card): string {
+  return `${card.suit}${card.rank}`;
 }
 
 /// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a
