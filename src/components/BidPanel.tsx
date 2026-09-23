@@ -3,7 +3,7 @@ import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, norm
   from '../models/biddingEvaluation';
 import { auctionIsComplete, getBidStage, getNextSeat } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
-import { type BidRule, type BidStage, type Call, defaultBiddingSystem } from '../models/bidding-types';
+import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
@@ -12,10 +12,11 @@ import { DealCompass } from './DealCompass';
 /// The model, rather than React, derives the acting seat, hand, and bidding stage from board + auction.
 export interface BidPanelProps {
   board: Board;
+  biddingSystem: BiddingSystem;
   onTelemetry: (lines: string[]) => void;
 }
 
-export function BidPanel({ board, onTelemetry }: BidPanelProps) {
+export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [auction, setAuction] = useState<Call[]>([]);
   const [punchThroughComplete, setPunchThroughComplete] = useState(false);
@@ -27,7 +28,7 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
     setAuction([]);
     setPunchThroughComplete(false);
     setExplanationLines(['No evaluation yet.']);
-  }, [board]);
+  }, [board, biddingSystem]);
 
   useEffect(() => {
     if (explanationRef.current === null) {
@@ -79,7 +80,7 @@ export function BidPanel({ board, onTelemetry }: BidPanelProps) {
       return;
     }
 
-    const result = evaluateUserCall(normalizedCall, board, auction, defaultBiddingSystem);
+    const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
     const nextAuction: Call[] = [...auction, normalizedCall];
     if (autoPassOpponent) {
       nextAuction.push('Pass');

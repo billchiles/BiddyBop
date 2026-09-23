@@ -1,14 +1,14 @@
 /// Deterministic rule-practice deals, grouped in the same order as the executable opener-rebid
-/// rule families.  An expected call/rule pair is a positive assertion, not an exact candidate set.
-/// practiceAuction is the intended physical path (including opponent passes) for manual practice.
-/// Selecting a deal does not change the partnership's bidding system.
-///
+/// rule families.  An expected call/rule pairs are assertions of what we should see.
+/// 
 import type { BiddingSystem, Call } from './bidding-types';
 import type { Suit } from './cards';
 
 export interface RuleTestDeal {
   description: string;
+  // actual auction (including opponent passes) for manual practice.
   practiceAuction: Call[];
+  // An expected call/rule pairs are assertions of what we should see.
   requiredSystem?: Partial<BiddingSystem>;
   expectedOpeningCalls?: RuleTestExpectedCall[];
   expectedResponseCalls?: RuleTestExpectedCall[];
@@ -27,7 +27,7 @@ export interface RuleTestExpectedCall {
 ///
 export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: '1C-1NT-Pass: minimum balanced opener accepts 1NT.',
+    description: "1C-1NT-Pass: minimum balanced opener with no more descriptive rebid accepts responder's 1NT.",
     practiceAuction: ['1C', 'Pass', '1NT', 'Pass', 'Pass'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -42,7 +42,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-2D: minimum hand repeats a six-card diamond suit.',
+    description: '1D-1NT-2D: 14 HCP / 16 total with six diamonds; repeat the long opening suit descriptively.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2D'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -57,7 +57,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-2C: show a lower-ranking four-card second suit cheaply.',
+    description: '1D-1NT-2C: 15 HCP / 16 total, 5D-4C; show the lower-ranking second suit economically without reversing.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2C'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -72,7 +72,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-2H: reverse with five diamonds, four hearts, and extra strength.',
+    description: "1D-1NT-2H: 16 HCP / 17 total, 5D-4H; the length point reaches this treatment's reverse threshold.",
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2H'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -87,7 +87,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-3D: jump rebid a six-card diamond suit with medium values.',
+    description: '1D-1NT-3D: 16 HCP / 18 total with six diamonds; length points reach the 17-18 total-point jump-repeat range.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3D'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -102,7 +102,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-2NT: 18 HCP balanced opener invites in notrump.',
+    description: '1D-1NT-2NT: 18 HCP balanced; this 18-19 notrump rebid range is based on HCP, not length points.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2NT'],
     requiredSystem: { oneNtOpening: '15-17' },
     expectedOpeningCalls: [
@@ -118,7 +118,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-3C: maximum natural jump shift into clubs.',
+    description: '1D-1NT-3C: 18 HCP / 19 total, 5D-4C; maximum values make the lower second suit a natural jump shift.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3C'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -133,7 +133,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
   {
-    description: '1D-1NT-3NT: 20 HCP, 6-3-2-2 semi-balanced hand that did not open 2NT.',
+    description: '1D-1NT-3NT: 20 HCP, 6-3-2-2; semi-balanced rather than strict balanced, so show the 20-21 range now.',
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3NT'],
     expectedOpeningCalls: [
       { call: '1D', ruleIds: ['open-convenient-minor'] },
@@ -147,6 +147,53 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AK', H: 'KQ', D: 'AQJ982', C: 'J85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
   },
+  {
+    description: '1D-1NT: 12 HCP / 14 total, 6-3-2-2; both Pass and 2D remain reasonable modeled choices.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2D'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-minor-w/-1nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-1nt'] },
+      { call: '2D', ruleIds: ['opener-rebid-repeat-minor-after-minor-1nt'] },
+    ],
+    north: { S: 'A42', H: 'J4', D: 'KQT982', C: 'Q5' },
+    south: { S: 'Q76', H: 'K85', D: '743', C: 'J964' },
+  },
+  {
+    description: '1D-1NT: 20 HCP, 5-4-2-2; both a 2H reverse and 3NT remain reasonable modeled choices.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2H'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-minor-w/-1nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-reverse-after-minor-1nt'] },
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-1nt'] },
+    ],
+    north: { S: 'A2', H: 'KQJ2', D: 'AKQJ9', C: '85' },
+    south: { S: 'K76', H: '985', D: '743', C: 'QJ64' },
+  },
+  {
+    description: '1D-1NT-5D: 16 HCP / 19 total with seven diamonds; maximum long-minor values justify bidding game.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '5D'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-minor-w/-1nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '5D', ruleIds: ['opener-rebid-game-minor-after-minor-1nt'] },
+    ],
+    north: { S: 'AK2', H: 'Q2', D: 'AQJ9876', C: '5' },
+    south: { S: 'Q76', H: 'J85', D: 'K43', C: 'K964' },
+  },
 ];
 
 ///
@@ -154,7 +201,7 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
 ///
 export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: '1C-1H-1S: economical four-card second suit.',
+    description: '1C-1H-1S: opener has only three clubs; show an economical four-card second suit at the one level.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -169,7 +216,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-1NT: minimum balanced hand with no four-card support or one-level second suit.',
+    description: '1C-1H-1NT: 13 HCP balanced, with neither four-card heart support nor another suit available at the one level.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1NT'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -184,7 +231,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-2H: minimum simple raise with four-card heart support.',
+    description: '1C-1H-2H: minimum values with four-card heart support; make the ordinary simple raise.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2H'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -199,7 +246,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-2D: natural reverse with five clubs and four diamonds.',
+    description: '1C-1H-2D: 17 HCP / 18 total, 5C-4D; this is a reverse because responder must bid 3C to return to clubs.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2D'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -214,7 +261,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-3H: jump raise with medium support values.',
+    description: '1C-1H-3H: 15 HCP becomes 17 shortage points with two doubletons; jump raise with medium support values.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '3H'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -229,7 +276,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-2S: maximum jump shift; 1S was the economical spade bid.',
+    description: '1C-1H-2S: 19 HCP / 20 total, 5C-4S; 1S was economical, so 2S is the natural maximum jump shift.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2S'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -244,7 +291,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-4H: raise responder to game with maximum support values.',
+    description: '1C-1H-4H: 17 HCP becomes 19 shortage points with heart support; raise responder to game.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4H'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -259,7 +306,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
   {
-    description: '1C-1H-4D: opener-side splinter; 4H should also remain a natural candidate.',
+    description: '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both 4H and optional 4D splinter remain candidates.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
@@ -275,6 +322,68 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     north: { S: 'AQ2', H: 'AQ42', D: 'K', C: 'J8752' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
+  {
+    description: '1D-1H: 12 HCP / 14 total, 6D-4C; both 2D and economical 2C are reasonable descriptive rebids.',
+    practiceAuction: ['1D', 'Pass', '1H', 'Pass', '2C'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2C', ruleIds: ['opener-rebid-second-suit-after-minor-one-level-new-suit'] },
+      { call: '2D', ruleIds: ['opener-rebid-repeat-minor-after-minor-one-level-new-suit'] },
+    ],
+    north: { S: 'Q2', H: '4', D: 'KJT972', C: 'AQ85' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    description: '1C-1H-3C: 16 HCP / 18 total with six clubs; length points reach the medium jump-repeat range.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '3C'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3C', ruleIds: ['opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit'] },
+    ],
+    north: { S: 'AQ2', H: 'Q4', D: 'K2', C: 'AJT852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    description: '1C-1H-2NT: 18 HCP balanced with five clubs; the 18-19 NT rebid is based on HCP, not length points.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-minor-one-level-new-suit'] },
+    ],
+    north: { S: 'AK2', H: 'Q4', D: 'KJ2', C: 'KQ852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  },
+  {
+    description: '1D-1H-5D: 16 HCP / 19 total with seven diamonds; maximum long-minor values justify bidding game.',
+    practiceAuction: ['1D', 'Pass', '1H', 'Pass', '5D'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '5D', ruleIds: ['opener-rebid-game-in-minor-after-minor-one-level-new-suit'] },
+    ],
+    north: { S: 'AK', H: 'Q2', D: 'AQJ9876', C: '85' },
+    south: { S: 'Q76', H: 'KJ85', D: '43', C: 'Q964' },
+  },
 ];
 
 ///
@@ -282,7 +391,7 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
 ///
 export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: '1D-2C-2D Standard: minimum five diamonds; four hearts are not enough to reverse.',
+    description: '1D-2C-2D Standard: 14 HCP / 15 total, 5D-4H; Standard is forcing only one round, so the minimum hand repeats diamonds rather than reverse.',
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D'],
     requiredSystem: { twoLevelNewSuitResponse: 'standard' },
     expectedOpeningCalls: [
@@ -299,7 +408,7 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
   },
   {
-    description: '1D-2C-2H Standard: reverse into hearts with extra strength.',
+    description: '1D-2C-2H Standard: 18 HCP / 19 total, 5D-4H; extra strength now supports the reverse that the minimum hand could not make.',
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2H'],
     requiredSystem: { twoLevelNewSuitResponse: 'standard' },
     expectedOpeningCalls: [
@@ -316,7 +425,7 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
   },
   {
-    description: '1D-2C-2NT Standard: minimum balanced hand can conceal a four-card major.',
+    description: '1D-2C-2NT Standard: 14 HCP balanced, 4D-4S-3H-2C; show the minimum balanced hand even though that conceals the four-card spade suit.',
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2NT'],
     requiredSystem: { twoLevelNewSuitResponse: 'standard' },
     expectedOpeningCalls: [
@@ -333,7 +442,7 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
   },
   {
-    description: '1D-2C-3C Standard: three clubs are support because responder promised five; 2D may also qualify.',
+    description: '1D-2C-3C Standard: 12 HCP / 15 shortage points with three clubs; responder promised 5+, so the eight-card fit is known and both 3C and 2D remain candidates.',
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3C'],
     requiredSystem: { twoLevelNewSuitResponse: 'standard' },
     expectedOpeningCalls: [
@@ -350,13 +459,118 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     north: { S: 'A', H: 'KJ42', D: 'KJ972', C: 'T82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
   },
+  {
+    description: '1D-2C Standard: 15 HCP gives 17 total points with six diamonds and 18 shortage points with club support; both 3D and 4C describe the medium hand.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3D'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3D', ruleIds: ['opener-rebid-jump-repeat-diamonds-after-minor-standard-two-level-new-suit'] },
+      { call: '4C', ruleIds: ['opener-rebid-jump-raise-after-minor-standard-two-level-new-suit'] },
+    ],
+    north: { S: 'AQ4', H: '4', D: 'KQJ972', C: 'K82' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+  {
+    description: '1D-2C-3NT Standard: 19 HCP balanced, 4D-4S-3H-2C; the strong balanced rebid reaches game without inventing reverse strength or club support.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3NT'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-standard-two-level-new-suit'] },
+    ],
+    north: { S: 'AQJ4', H: 'KJ2', D: 'KJ92', C: 'A8' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
+  {
+    description: '1D-2C Standard: 16 HCP becomes 19 total points with seven diamonds and 20 shortage points with club support; both 5D and 5C are modeled game choices.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '5D'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '5C', ruleIds: ['opener-rebid-game-raise-after-minor-standard-two-level-new-suit'] },
+      { call: '5D', ruleIds: ['opener-rebid-game-in-diamonds-after-minor-standard-two-level-new-suit'] },
+    ],
+    north: { S: 'A4', H: 'K', D: 'KQJ9876', C: 'K84' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+  },
 ];
 
-/// These remaining buckets await positive deals and evaluator verification.
 ///
 //// Opener rebids after 1D-2C in 2/1
 ///
-export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [];
+export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1D-2C-2D 2/1: 13 HCP, 5D-4H; with five or more diamonds, repeat diamonds first without implying extra strength.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-two-over-one'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2D', ruleIds: ['opener-rebid-repeat-diamonds-after-minor-two-over-one-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'KJ84', D: 'KQT95', C: '6' },
+    south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+  },
+  {
+    description: '1D-2C 2/1: 13 HCP, 4D-4H-4S; with fewer than five diamonds, show a four-card major without reverse strength, hearts up the line before spades.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2H'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-two-over-one'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-major-after-minor-two-over-one-new-suit'] },
+      { call: '2S', ruleIds: ['opener-rebid-major-after-minor-two-over-one-new-suit'] },
+    ],
+    north: { S: 'AQ84', H: 'KJ85', D: 'K742', C: '6' },
+    south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+  },
+  {
+    description: '1D-2C 2/1: 13 HCP, 4D-4C-3H-2S; 2NT is the usual economical description, while 3C remains available when notrump is unattractive.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2NT'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1d-w/-2c-two-over-one'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-minor-two-over-one-new-suit'] },
+      { call: '3C', ruleIds: ['opener-rebid-simple-raise-after-minor-two-over-one-new-suit'] },
+    ],
+    north: { S: '82', H: 'AKJ', D: 'KQ84', C: 'T843' },
+    south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+  },
+];
+
+/// The remaining major-opening buckets await positive deals and evaluator verification.
 
 ///
 //// Opener rebids after a major opening and 1NT response
@@ -403,12 +617,21 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS },
 ] as const;
 
+/// RuleTestDealBucketId is 'all' plus every id declared in RULE_TEST_DEAL_BUCKETS.
+/// In `typeof RULE_TEST_DEAL_BUCKETS[number]['id']`, `number` means any numeric array index,
+/// so TypeScript considers every possible bucket element; `['id']` is an indexed property access
+/// that extracts each element's `id` property.  `id` is not a TypeScript keyword: if the bucket
+/// property were named `foo`, this expression would use `['foo']`.  Adding a bucket therefore
+/// automatically adds its id to this type without maintaining a second list.
 export type RuleTestDealBucketId = 'all' | typeof RULE_TEST_DEAL_BUCKETS[number]['id'];
 
-/// Return the chosen bucket's deals (or all of them) that agree with the active system.  The
-/// practice UI never changes system settings to make a test deal eligible.
-export function getRuleTestDeals (bucketId: RuleTestDealBucketId,
-                                  system: BiddingSystem): RuleTestDeal[] {
+/// Bidding rules are grouped into logical buckets, such as opener rebids after a minor opening
+/// and 1NT response or opener rebids after a major opening and simple raise.  Each bucket owns an
+/// array of test deals chosen to exercise the rules in that group.  'all' means the test deals
+/// from all buckets that are compatible with the active bidding system; it does not mean every
+/// test deal regardless of its required system settings.
+export function getRulesBucketTestDeals (bucketId: RuleTestDealBucketId,
+                                         system: BiddingSystem): RuleTestDeal[] {
   const buckets = bucketId === 'all'
     ? RULE_TEST_DEAL_BUCKETS
     : RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.id === bucketId);

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import './App.css';
 import { BidPanel } from './components/BidPanel';
+import { BiddingSystemControls } from './components/BiddingSystemControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateOpenableNorthBoard, makeRuleTestBoard, type Board } from './models/cards';
-import { defaultBiddingSystem } from './models/bidding-types';
-import { getRuleTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDealBucketId }
+import { defaultBiddingSystem, type BiddingSystem } from './models/bidding-types';
+import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDealBucketId }
   from './models/rule-test-deals';
 
 /// App is the first browser-only punch-through for deal generation and rule matching.
@@ -23,9 +24,10 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => createInitialState());
+  const [biddingSystem, setBiddingSystem] = useState<BiddingSystem>(() => ({ ...defaultBiddingSystem }));
   const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>('minor-1nt');
   const [testDealCount, setTestDealCount] = useState(0);
-  const testDeals = getRuleTestDeals(testBucketId, defaultBiddingSystem);
+  const testDeals = getRulesBucketTestDeals(testBucketId, biddingSystem);
   // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
     const result = generateOpenableNorthBoard();
@@ -76,6 +78,7 @@ export default function App() {
         </div>
         <div className="dealControls">
           <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
+          <BiddingSystemControls biddingSystem={biddingSystem} onChange={setBiddingSystem} />
           <select className="testBucketSelect" aria-label="Rule test deal bucket"
             value={testBucketId}
             onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
@@ -92,7 +95,7 @@ export default function App() {
         </div>
       </header>
 
-      <BidPanel board={state.board} onTelemetry={appendTelemetry} />
+      <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry} />
       <TelemetryPanel lines={state.telemetryLines} />
     </main>
   );
