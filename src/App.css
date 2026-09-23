@@ -10,6 +10,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -21,8 +22,10 @@ textarea {
 }
 
 .appHeader {
+  position: relative;
+  min-height: 80px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 10px;
@@ -38,6 +41,35 @@ textarea {
   color: #536072;
 }
 
+.dealControls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  width: 255px;
+  flex-shrink: 0;
+}
+
+.dealControls > :not(:first-child) {
+  transform: translateY(30px);
+}
+
+.testBucketSelect {
+  margin-top: 10px;
+  min-width: 0;
+  border: 1px solid #aab5c3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: white;
+}
+
+.testDealProgress {
+  color: #536072;
+  text-align: center;
+  font-size: 13px;
+}
+
 .redealButton,
 .bidButton {
   border: 1px solid #1f3b64;
@@ -46,6 +78,11 @@ textarea {
   color: white;
   background: #264b80;
   cursor: pointer;
+}
+
+.redealButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .redealButton:hover,
@@ -169,7 +206,7 @@ textarea {
 }
 
 .auctionPanel {
-  justify-self: center;
+  justify-self: start;
   width: fit-content;
   border: 1px solid #c7d0dc;
   border-radius: 14px;
@@ -276,6 +313,10 @@ textarea {
   .trainerWorkspace {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .dealControls {
+    width: 100%;
   }
 
   .dealCompass {

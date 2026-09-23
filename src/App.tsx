@@ -2,7 +2,10 @@ import { useState } from 'react';
 import './App.css';
 import { BidPanel } from './components/BidPanel';
 import { TelemetryPanel } from './components/TelemetryPanel';
-import { generateOpenableNorthBoard, type Board } from './models/cards';
+import { generateOpenableNorthBoard, makeRuleTestBoard, type Board } from './models/cards';
+import { defaultBiddingSystem } from './models/bidding-types';
+import { getRuleTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDealBucketId }
+  from './models/rule-test-deals';
 
 /// App is the first browser-only punch-through for deal generation and rule matching.
 interface AppState {
@@ -20,7 +23,10 @@ function createInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => createInitialState());
-
+  const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>('minor-1nt');
+  const [testDealCount, setTestDealCount] = useState(0);
+  const testDeals = getRuleTestDeals(testBucketId, defaultBiddingSystem);
+  // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
     const result = generateOpenableNorthBoard();
     setState({
@@ -28,18 +34,39 @@ export default function App() {
       telemetryLines: ['Generated new board.', ...result.telemetryLines],
     });
   }
-
+  // Switching buckets starts its cycle at the first deal.
+  function selectTestBucket(bucketId: RuleTestDealBucketId): void {
+    setTestBucketId(bucketId);
+    setTestDealCount(0);
+  }
+  // Each click advances through compatible deals and wraps after the last one.
+  function nextTestDeal(): void {
+    if (testDeals.length === 0) {
+      return;
+    }
+    const index = testDealCount % testDeals.length;
+    const testDeal = testDeals[index];
+    if (testDeal === undefined) {
+      return;
+    }
+    const result = makeRuleTestBoard(testDeal);
+    setState({
+      board: result.board,
+      telemetryLines: [`Test deal ${index + 1} of ${testDeals.length}.`, ...result.telemetryLines],
+    });
+    setTestDealCount(index + 1);
+  }
+  // Preserve evaluator telemetry for the board currently displayed.
   function appendTelemetry(lines: string[]): void {
     if (lines.length === 0) {
       return;
     }
-
     setState((current) => ({
       ...current,
       telemetryLines: [...current.telemetryLines, '', ...lines],
     }));
   }
-
+  // The controls follow their use order: random deal, bucket, test deal, progress.
   return (
     <main className="appShell">
       <header className="appHeader">
@@ -47,7 +74,22 @@ export default function App() {
           <h1>Bridge Trainer Punch-Through</h1>
           <p>Random deal, openable North, user bid matching, candidate rules, and evaluator telemetry.</p>
         </div>
-        <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
+        <div className="dealControls">
+          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
+          <select className="testBucketSelect" aria-label="Rule test deal bucket"
+            value={testBucketId}
+            onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
+            <option value="all">All</option>
+            {RULE_TEST_DEAL_BUCKETS.map((bucket) => (
+              <option key={bucket.id} value={bucket.id}>{bucket.label}</option>
+            ))}
+          </select>
+          <button className="redealButton" type="button" onClick={nextTestDeal}
+            disabled={testDeals.length === 0}>Test Deal</button>
+          <span className="testDealProgress" aria-live="polite">
+            {testDealCount} of {testDeals.length}
+          </span>
+        </div>
       </header>
 
       <BidPanel board={state.board} onTelemetry={appendTelemetry} />
