@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { BiddingSystem } from '../models/bidding-types';
 
 
@@ -9,8 +10,33 @@ export interface BiddingSystemControlsProps {
 /// BiddingSystemControls edits the partnership agreements used throughout the current practice
 /// session.  These are ordinary app settings; rule-test deals only filter against them.
 export function BiddingSystemControls({ biddingSystem, onChange }: BiddingSystemControlsProps) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  // Give the disclosure normal popover-style light-dismiss behavior.
+  useEffect(() => {
+    function closeIfOutside(event: PointerEvent): void {
+      const details = detailsRef.current;
+      if (details === null || !details.open) {
+        return;
+      }
+      if (event.target instanceof Node && details.contains(event.target)) {
+        return;
+      }
+      details.open = false;
+    }
+    function closeOnEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape' && detailsRef.current !== null) {
+        detailsRef.current.open = false;
+      }
+    }
+    document.addEventListener('pointerdown', closeIfOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeIfOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
   return (
-    <details className="biddingSystemDetails">
+    <details ref={detailsRef} className="biddingSystemDetails">
       <summary className="biddingSystemSummary">Bidding System</summary>
       <div className="biddingSystemPanel">
         <label className="biddingSystemField">

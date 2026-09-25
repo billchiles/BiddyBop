@@ -570,17 +570,286 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
   },
 ];
 
-/// The remaining major-opening buckets await positive deals and evaluator verification.
+/// Major-opening buckets are filled incrementally as positive deals are evaluator-verified.
 
 ///
 //// Opener rebids after a major opening and 1NT response
 ///
-export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [];
+export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1S-1NT-Pass, non-forcing: a flat 13-HCP minimum may accept 1NT as the final contract.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', 'Pass'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-1nt-nonforcing'] },
+    ],
+    north: { S: 'KQJ85', H: 'A74', D: '82', C: 'QJ3' },
+    south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+  },
+  {
+    description: '1S-1NT-2C, forcing: the same flat 13-HCP hand cannot pass, so manufacture the three-card club fallback.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C'],
+    requiredSystem: { majorOneNtResponse: 'forcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-twooverone'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2C', ruleIds: ['opener-rebid-minor-fallback-after-major-1nt-forcing'] },
+    ],
+    north: { S: 'KQJ85', H: 'A74', D: '82', C: 'QJ3' },
+    south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+  },
+  {
+    description: '1S-1NT: 11 HCP / 13 total, 6S-4H and Guideline of 20; 2S emphasizes the six-card major while 2H searches for the heart fit.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2H'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major', 'open-guideline-of-20'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-repeat-major-after-major-1nt'] },
+      { call: '2H', ruleIds: ['opener-rebid-lower-second-suit-after-major-1nt'] },
+    ],
+    north: { S: 'AQ8765', H: 'KQ65', D: '43', C: '2' },
+    south: { S: 'K3', H: 'J82', D: '9752', C: 'QJ84' },
+  },
+  {
+    description: '1H-1NT-2S: 16 HCP / 17 total, 5H-4S; showing the higher-ranking second suit is a strength-qualified reverse.',
+    practiceAuction: ['1H', 'Pass', '1NT', 'Pass', '2S'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-reverse-after-major-1nt'] },
+    ],
+    north: { S: 'AQ94', H: 'KJ985', D: 'AQ', C: '76' },
+    south: { S: 'K63', H: 'Q2', D: 'J753', C: 'T842' },
+  },
+  {
+    description: '1S-1NT-3S: 16 HCP / 18 total with six spades; medium values move the major-repeat ladder from 2S to 3S.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '3S'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3S', ruleIds: ['opener-rebid-jump-repeat-major-after-major-1nt'] },
+    ],
+    north: { S: 'AQJ986', H: 'KQ7', D: 'A2', C: '85' },
+    south: { S: 'K3', H: 'J82', D: '9753', C: 'QJ64' },
+  },
+  {
+    description: '1S-1NT-2NT: 19 HCP, 5-3-3-2 balanced; show the natural 18-19 HCP notrump rebid range.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2NT'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-major-1nt'] },
+    ],
+    north: { S: 'AKQJ8', H: 'AQ4', D: 'K72', C: '85' },
+    south: { S: '72', H: 'J86', D: 'Q954', C: 'KJ64' },
+  },
+  {
+    description: '1S-1NT-3H: 20 HCP / 21 total, 5S-4H; maximum values turn the natural lower second suit into a jump shift.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '3H'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-jump-shift-lower-suit-after-major-1nt'] },
+    ],
+    north: { S: 'AKQJ8', H: 'AQJ4', D: 'K72', C: '5' },
+    south: { S: '76', H: 'K65', D: 'Q954', C: 'J842' },
+  },
+  {
+    description: '1S-1NT-4S: 16 HCP / 19 total with seven spades; maximum long-major values complete the repeat ladder at game.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '4S'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-standard'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-game-same-major-after-major-1nt'] },
+    ],
+    north: { S: 'AKQJ987', H: 'AQ', D: '32', C: '54' },
+    south: { S: '65', H: 'KJ4', D: 'Q876', C: 'J832' },
+  },
+];
 
 ///
 //// Opener rebids after a major opening and one-level new-suit response
 ///
-export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [];
+export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-1S-1NT: 14 HCP, 5-3-3-2 balanced with just three spades; show minimum NT values instead of raising responder.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '1NT'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '1NT', ruleIds: ['opener-rebid-1nt-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-2S: 13 HCP / 15 shortage points, 5H-4S; ordinary simple raise requires four-card support.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2S'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-simple-raise-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A852', H: 'KQJ85', D: 'K7', C: '85' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S: minimum 13 HCP / 15 total, 6H-4D; 2H emphasizes the six-card major while 2D shows the lower second suit. Neither is a reverse.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2D'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-repeat-major-after-major-one-level-new-suit'] },
+      { call: '2D', ruleIds: ['opener-rebid-second-suit-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'KQJ985', D: 'K764', C: '' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-3H: 15 HCP / 17 total with six hearts; medium values turn the economical 2H repeat into a jump repeat.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-jump-repeat-major-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'Q82', H: 'KQJ985', D: 'A7', C: 'K5' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-3S: 15 HCP / 17 shortage points with 5H-4S; four-card support and distribution justify the medium jump raise.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3S'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3S', ruleIds: ['opener-rebid-jump-raise-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'AQ52', H: 'KQJ85', D: 'K7', C: '85' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-2NT: 19 HCP, 5-3-3-2 balanced with just three spades; the 18-19 NT rebid is based on HCP, not length points.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2NT'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'AKQ85', D: 'KJ7', C: 'Q5' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-3D: 19 HCP / 20 total, 5H-4D; maximum values justify a natural jump shift rather than the economical 2D second suit.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3D'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3D', ruleIds: ['opener-rebid-jump-shift-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'AKQ85', D: 'KQJ7', C: '5' },
+    south: { S: 'KJ74', H: '63', D: '985', C: 'A942' },
+  },
+  {
+    description: '1H-1S: 17 HCP / 20 shortage points with 5H-4S and singleton club; natural 4S and the optional 4C splinter both show the spade fit.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '4S'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-game-raise-after-major-one-level-new-suit'] },
+      { call: '4C', ruleIds: ['opener-rebid-splinter-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'AQ52', H: 'AKJ85', D: 'K74', C: '6' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+  {
+    description: '1H-1S-4H: 17 HCP / 20 total with seven hearts; a strong long major supports the direct game rebid rather than a smaller repeat.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-same-major-after-major-one-level-new-suit'] },
+    ],
+    north: { S: 'A82', H: 'AKQJ987', D: 'K4', C: '5' },
+    south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+  },
+];
 
 ///
 //// Opener rebids after a major opening and Standard two-level new-suit response

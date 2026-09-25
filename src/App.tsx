@@ -68,7 +68,7 @@ export default function App() {
       telemetryLines: [...current.telemetryLines, '', ...lines],
     }));
   }
-  // The controls follow their use order: random deal, bucket, test deal, progress.
+  // The controls follow their use order: bidding system, random deal, bucket, test deal, progress.
   return (
     <main className="appShell">
       <header className="appHeader">
@@ -77,8 +77,8 @@ export default function App() {
           <p>Random deal, openable North, user bid matching, candidate rules, and evaluator telemetry.</p>
         </div>
         <div className="dealControls">
-          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
           <BiddingSystemControls biddingSystem={biddingSystem} onChange={setBiddingSystem} />
+          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
           <select className="testBucketSelect" aria-label="Rule test deal bucket"
             value={testBucketId}
             onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
