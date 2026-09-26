@@ -2,18 +2,22 @@
 /// be used, so iterating toward a design with some punch through code on bidding.
 
 import type { BidRule, Call, RuleEvalContext, CallRefinementResult, AppliesWhenResult } from './bidding-types';
-import { guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, majorTwoLevelNewSuitApplies,
+import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
+         minorSupportNewSuitApplies,
+         oneNtFiveCardLengthUpgradeApplies, majorTwoLevelNewSuitApplies,
          openerMinorOneLevelOneNtApplies, openerSecondSuitApplies, oneNtTwoNtInvitationApplies,
          refineForcingOneNtMinorFallback, refineJumpNewSuit, refineMajorSupportNewSuitFirst,
          refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels,
          refineOneLevelNewSuitAfterMinor, refineOneLevelSuitOpening,
-         refineOpenerFourCardMajorUpTheLine, refineOpenerNonReverseNewSuitRebid,
+         refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
+         refineOpenerNonReverseNewSuitRebid,
          refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
          refineOpenerNewSuitAtCheapestLevel,
          refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitToLevel,
          refineOpenerRaiseResponderSuitToLevel, refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
-         refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardMajorSupportNewSuitFirst,
+         refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
+         refineThreeCardMajorSupportNewSuitFirst,
          refineToCheapestNewSuitBids,}
   from './bidding-rule-functions';
 
@@ -363,11 +367,13 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineRaisePartnerSuitBy1, // need to choose based on actual auction
     callCategory: ['invitational'],
     priority: { rank: 40 },
-    appliesWhen: { hcp: { min: 6, max: 10 }, supportLength: { min: 5 }, 
-                   shape: { noFourCardMajor: true } },
-    guidance: ['Usually this means five-card support if convenient minor has three cards.'],
-    meaning: 'Non-forcing minimum raise of opener minor, usually with five-card or longer ' +
-             'support and no four-card major; opener may pass or continue.',
+    appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult => {
+      return minorRaiseApplies(call, context, 6, 10, 'minimum minor raise');
+    },
+    guidance: ['Use five-card support after 1C, where opener may hold only three clubs.',
+               'Four-card support is enough after 1D.'],
+    meaning: 'Non-forcing minimum raise of opener minor with normal support and no four-card major; ' +
+             'opener may pass or continue.',
     certainty: 'medium',
   },
   //
@@ -382,10 +388,12 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineRaisePartnerSuitBy2, // chooses the right suit from actual auction
     callCategory: ['invitational'],
     priority: { rank: 45 },
-    appliesWhen: { hcp: { min: 11, max: 12 }, supportLength: { min: 5 }, 
-                   shape: { noFourCardMajor: true } },
+    appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult => {
+      return minorRaiseApplies(call, context, 11, 12, 'minor limit raise');
+    },
     meaning: 'Invitational limit raise of opener minor; opener may pass or continue with extra values.',
-    guidance: ['Some play inverted minors, where single raise is strong, and jump is weak.'],
+    guidance: ['Use five-card support after 1C and four-card support after 1D.',
+               'Some play inverted minors, where single raise is strong, and jump is weak.'],
     certainty: 'medium',
   },
   //
@@ -399,8 +407,9 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineToCheapestNewSuitBids, // chooses best suit for minimum response
     callCategory: ['forcing'],
     priority: { rank: 95 },
-    appliesWhen: { hcp: { min: 13 }, supportLength: { min: 5 }, suitLengths: [{ min: 4 }] },
-    guidance: ['The new-suit response is forcing absent interference.', 'Plan to raise later.'],
+    appliesWhen: minorSupportNewSuitApplies,
+    guidance: ['Five clubs support 1C; four diamonds support 1D.',
+               'The new-suit response is forcing absent interference.', 'Plan to raise later.'],
     meaning: 'Start with a forcing new-suit response and plan to show the minor support later.',
     certainty: 'high',
   },
@@ -416,6 +425,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['invitational'],
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
+    priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
     appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
@@ -432,6 +442,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['gameForcing'],
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
+    priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
     appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
     guidance: ['With a good five-card or longer suit and 18-19 points, jump-shift to new suit.'],
     meaning: 'Classic strong jump shift: game-forcing with a good long suit and slam interest.',
@@ -528,38 +539,61 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-major-w/-support-limit-raise-three-card',
-    // Exactly three-card support and 11-12 support points, use forcing 1NT first and raise later.
+    // Exactly three-card support and 11-12 support points.  With forcing 1NT, use 1NT unless a
+    // one-level new suit is available first; later make the invitational raise.
     kind: 'responseBid',
-    title: 'Three-card support, 11-12: bid 1NT then raise',
+    title: 'Three-card support, 11-12: bid forcing 1NT then raise',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['1NT'],
+    callRefinement: refineThreeCardLimitRaiseOneNtFallback,
     callCategory: ['forcing'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
-                 note: 'This 1NT-then-raise route relies on a forcing/semi-forcing 1NT response.' },
-    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' }, 
+                 note: 'Forcing 1NT guarantees responder another turn to show the limit raise.' },
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
                    supportLength: { min: 3, max: 3 } },
-    meaning: 'With exactly three-card support and limit-raise values, start with a forcing 1NT ' +
-             'absent interference, then make an invitational raise to the three level.',
+    guidance: ['After 1H, show four or more spades with 1S before raising hearts later.',
+               'Otherwise use 1NT, then make an invitational raise to the three level.'],
+    meaning: 'With exactly three-card support and limit-raise values, use forcing 1NT when no ' +
+             'one-level new suit takes priority, then raise invitationally.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback',
+    // Under the non-forcing/semi-forcing treatment, 1NT remains the catch-all when no one-level new
+    // suit can start the three-card limit raise.  Opener may occasionally pass a flat minimum.
+    kind: 'responseBid',
+    title: 'Three-card support, 11-12: use non-forcing 1NT as the fallback',
+    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    calls: ['1NT'],
+    callRefinement: refineThreeCardLimitRaiseOneNtFallback,
+    callCategory: ['invitational'],
+    agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
+                 note: 'Semi-forcing fallback: opener may pass a flat minimum.' },
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
+                   supportLength: { min: 3, max: 3 } },
+    guidance: ['After 1H, show four or more spades with 1S before raising hearts later.',
+               'Otherwise use 1NT as the catch-all; opener may occasionally pass.'],
+    meaning: 'With exactly three-card support and limit-raise values, use 1NT when no one-level ' +
+             'new suit is available, then invite later if opener continues.',
     certainty: 'high',
   },
   //
   {
     id: 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first',
-    // Exactly three-card support and 11-12 support points: without a forcing 1NT route (2/1),
-    // bid a new suit first and make an invitational raise of opener's major later.
+    // Exactly three-card support and 11-12 support points: if a one-level new suit is available,
+    // show it before making the invitational raise regardless of the partnership's 1NT treatment.
     kind: 'responseBid',
-    title: 'Three-card major support, 11-12: bid a new suit then raise',
+    title: 'Three-card major support, 11-12: bid a one-level new suit then raise',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
-    calls: ['1S', '2C', '2D', '2H'],
+    calls: ['1S'],
     callRefinement: refineThreeCardMajorSupportNewSuitFirst,
     callCategory: ['forcing'],
-    agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
-                 note: 'Without forcing 1NT, show three-card limit-raise support via a new suit first.' },
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
                    supportLength: { min: 3, max: 3 } },
-    guidance: ["Bid a new suit and later make an invitational raise of opener's major."],
-    meaning: 'With exactly three-card support and limit-raise values, start with a forcing ' +
-             'new-suit response, then make an invitational raise of opener major.',
+    guidance: ["After 1H, show four or more spades with 1S and later raise opener's hearts."],
+    meaning: 'With exactly three-card support and limit-raise values, show an available one-level ' +
+             'new suit first, then make the invitational raise.',
     certainty: 'high',
   },
   //
@@ -750,16 +784,20 @@ export const ResponseBidRules: BidRule[] = [
   },
   //
   {
-    id: 'respond-to-major-w/o-support-3nt',
-    // Bid 3NT with 13-15 balanced HCP, no support for opener's major, and no four-card other major.
+    id: 'respond-to-major-w/-3nt-flat-13-15',
+    // Partnership treatment: direct 3NT shows a very flat 13-15 HCP hand, normally 4-3-3-3 with
+    // exactly three-card support and no four-card other major.
     kind: 'responseBid',
-    title: 'Without support, respond 3NT with 13-15 balanced',
+    title: 'Respond 3NT with a very flat 13-15 HCP hand',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['3NT'],
     callCategory: ['invitational'],
-    appliesWhen: { hcp: { min: 13, max: 15 }, supportLength: { max: 2 }, shape: { balanced: true, noFourCardOtherMajor: true } },
-    meaning: 'Balanced non-forcing game response without support; opener may pass or continue.',
-    certainty: 'high',
+    appliesWhen: majorDirectThreeNtApplies,
+    guidance: ['This is a partnership treatment for very flat game-going values.',
+               'With more control-rich values, starting a forcing support route may be preferable.'],
+    meaning: 'Very flat 13-15 HCP game response, normally with three-card support; opener may pass ' +
+             'or continue.',
+    certainty: 'medium',
   },
   //
   {
@@ -773,6 +811,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['invitational'], 
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
+    priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
     appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
@@ -789,6 +828,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['gameForcing'],
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
+    priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
     appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
     meaning: 'Game-forcing strong jump shift showing a good long suit and slam interest.',
     certainty: 'high',
@@ -2390,40 +2430,55 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
+    id: 'opener-rebid-five-card-major-fallback-after-major-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Repeat a five-card major only when a minimum hand has no descriptive rebid',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'newSuit', level: 2, jump: false },
+    },
+    calls: ['2H', '2S'],
+    callRefinement: refineOpenerFiveCardMajorFallback,
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 } },
+    meaning: 'A minimum opener may repeat exactly five cards in the opening major when the one-round force leaves no normal rebid.',
+    guidance: ['Normally a repeat promises six cards. This is an explicitly limited fallback, ' +
+               'not an invitation to conceal a suitable second suit, fit, or balanced NT rebid.'],
+    certainty: 'high',
+  },
+  //
+  {
     id: 'opener-rebid-second-suit-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
-    title: 'Show a lower-ranking second suit at the cheapest legal level',
+    title: 'Show an economical second suit without reversing',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: false },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H'],
-    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
-      return refineOpenerNewSuitAtCheapestLevel(calls, context, 'lower');
-    },
+    callRefinement: refineOpenerNonReverseNewSuitRebid,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
-    meaning: 'Show a natural four-card or longer lower-ranking second suit.',
+    meaning: 'Show a natural four-card or longer second suit without promising reverse strength.',
     certainty: 'high',
   },
   //
   {
     id: 'opener-rebid-reverse-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
-    title: 'Reverse into a higher-ranking second suit with extra strength',
+    title: 'Reverse into a second suit with extra strength',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: false },
     },
-    calls: ['2S', '3S'],
-    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
-      return refineOpenerNewSuitAtCheapestLevel(calls, context, 'higher');
-    },
+    calls: ['2S', '3S', '3C', '3D'],
+    callRefinement: refineOpenerReverseRebid,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['forcing', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 21 }, suitLengths: [{ min: 4 }] },
-    meaning: 'A reverse in this non-game-forcing auction shows extra strength.',
+    meaning: 'A reverse, including a three-level lower suit that forces partner higher, shows 17+ total points in Standard.',
     certainty: 'high',
   },
   //
@@ -2635,7 +2690,10 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Describe balanced or semi-balanced shape economically; game is already forced.',
     guidance: ['Do not jump merely to show extra strength.  This project leaves specialized ' +
                'higher-notrump strength treatments to partnership agreement; extra strength can ' +
-               'be shown later.'],
+               'be shown later.',
+               'With a weak doubleton in an unbid suit or a clear natural suit/fit rebid, prefer ' +
+               'describing the suit when judgment says notrump is unattractive; this rule keeps ' +
+               '2NT available rather than encoding stopper quality.'],
     certainty: 'high',
   },
   //
@@ -2712,13 +2770,11 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['forcing', 'invitational', 'natural'],
     priority: { rank: 20,
                 note: 'Prefer the balanced game try while leaving natural help-suit tries visible.' },
-    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
-                   shape: { balanced: true } },
+    appliesWhen: { hcp: { min: 17, max: 18 }, shape: { balanced: true } },
     meaning: 'Balanced game try after the major-suit fit is already known.',
-    guidance: ['Although the call is 2NT, strength is revalued with shortage points because the ' +
-               'partnership has already found its major-suit fit.  Responder decides whether to ' +
-               'stop below game or accept the invitation; the final strain can still be the major ' +
-               'or notrump.'],
+    guidance: ['Use high-card points for this natural notrump-oriented invitation rather than ' +
+               'promoting the hand with shortage points.  Responder decides whether to stop below ' +
+               'game or accept the invitation; the final strain can still be the major or notrump.'],
     certainty: 'high',
   },
   //

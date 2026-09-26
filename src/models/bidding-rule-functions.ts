@@ -59,6 +59,50 @@ export function refineOpenerReverseRebid (calls: Call[], context: RuleEvalContex
   };
 }
 
+/// refineOpenerFiveCardMajorFallback allows a minimum Standard opener to repeat exactly five
+/// cards only when a forcing two-level response leaves no descriptive rebid.  In particular,
+/// a three-level lower second suit after 1S-2H is a strength-showing high reverse, not an
+/// economical alternative for a minimum hand.
+///
+export function refineOpenerFiveCardMajorFallback (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null ||
+      (opening.strain !== 'S' && opening.strain !== 'H') ||
+      response.level !== 2 || response.strain === 'NT' ||
+      context.handFacts.lengths[opening.strain] !== 5) {
+    return { calls: [], telemetryLines: ['Five-card fallback requires a major opening and natural two-level response.'] };
+  }
+  // A known fit or an ordinary minimum balanced NT rebid takes precedence over the fallback.
+  const responderSuit = response.strain as Suit;
+  const minSupport = opening.strain === 'S' && responderSuit === 'H' ? 3 : 4;
+  if (context.handFacts.lengths[responderSuit] >= minSupport ||
+      (context.handFacts.balanced && context.handFacts.hcp >= 12 &&
+       context.handFacts.hcp <= 14)) {
+    return { calls: [], telemetryLines: ['Responder support or a minimum balanced 2NT rebid is available.'] };
+  }
+  // An economical natural second suit is available only if it does not force preference higher.
+  const hasEconomicalSecondSuit = SUITS.some((suit) => {
+    if (suit === opening.strain || suit === responderSuit ||
+        context.handFacts.lengths[suit] < 4) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(response, suit);
+    const candidate = cheapest === null ? null : parseSuitBid(cheapest);
+    return candidate !== null && ! openerRebidIsReverse(opening, response, candidate);
+  });
+  if (hasEconomicalSecondSuit) {
+    return { calls: [], telemetryLines: ['An economical natural four-card second suit is available.'] };
+  }
+  // With no descriptive call, show the five-card major rather than promise reverse strength.
+  const wantedCall = `2${opening.strain}` as SuitBid;
+  return {
+    calls: calls.filter((call) => call === wantedCall),
+    telemetryLines: ['Minimum Standard fallback: five-card major repeat because no natural rebid fits.'],
+  };
+}
+
 /// refineOpenerNonReverseSecondSuitRebid keeps the cheapest natural new-suit rebids that are
 /// not reverses.  Unlike a rank-only test, this correctly keeps 1C-1H-1S while rejecting
 /// 1C-1H-2D, and it can also keep a lower-ranking two-level suit such as 1D-1H-2C.
@@ -499,24 +543,38 @@ export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalCon
           telemetryLines: ['Keep only non-jump new-suit calls legal over the actual opening.'] };
 }
 
-/// refineThreeCardMajorSupportNewSuitFirst applies the new-suit-first treatment for the 11-12
-/// point, exactly-three-card-support, response to major open rule.  With Standard two-level
-/// responses, normal two-level candidates are available; with 2/1 game-force responses, this hand
-/// is not strong enough for a two-level new-suit response, so only a legal one-level response can
-/// survive.
+/// refineThreeCardLimitRaiseOneNtFallback keeps 1NT for an exactly-three-card limit raise only
+/// when responder cannot first show four or more spades over a 1H opening.  After 1S there is no
+/// one-level new suit, so 1NT remains the catch-all route under either forcing or non-forcing
+/// partnership treatment.
+///
+export function refineThreeCardLimitRaiseOneNtFallback (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening !== null && opening.strain === 'H' && context.handFacts.lengths.S >= 4) {
+    return {
+      calls: [],
+      telemetryLines: ['With 4+ spades over 1H, show 1S before later making the limit raise.'],
+    };
+  }
+  return {
+    calls,
+    telemetryLines: ['No one-level new suit takes priority; keep 1NT as the three-card limit-raise route.'],
+  };
+}
+
+/// refineThreeCardMajorSupportNewSuitFirst keeps only the one-level new-suit route for an 11-12
+/// point hand with exactly three-card major support.  In practice this is 1H-1S with four or more
+/// spades.  Otherwise responder uses the partnership's 1NT route and plans to invite later.
 ///
 export function refineThreeCardMajorSupportNewSuitFirst (
-    calls: Call[], context: RuleEvalContext, system: BiddingSystem): CallRefinementResult {
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
   const refined = refineMajorSupportNewSuitFirst(calls, context);
-  if (system.twoLevelNewSuitResponse === 'standard') {
-    return refined;
-  }
-
   return {
     calls: refined.calls.filter((call) => parseSuitBid(call)!.level === 1),
     telemetryLines: [
       ...refined.telemetryLines,
-      'With 2/1 game-force responses, 11-12 cannot start this limit raise with a two-level new suit.',
+      'Keep a one-level new suit before the later three-card limit raise; otherwise use 1NT.',
     ],
   };
 }
@@ -839,6 +897,76 @@ export function oneNtFiveCardLengthUpgradeApplies (_call: Call, context: RuleEva
 export function standardMajorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   return majorTwoLevelNewSuitApplies(call, context, 11, 'Standard');
+}
+
+/// minorRaiseApplies uses four-card support after 1D and five-card support after 1C.  It also
+/// enforces the rule's HCP range and the normal requirement that responder not bypass a four-card
+/// major to raise the minor.
+export function minorRaiseApplies (_call: Call, context: RuleEvalContext, minHcp: number,
+                                   maxHcp: number, label: string): AppliesWhenResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || (opening.strain !== 'C' && opening.strain !== 'D')) {
+    return { success: false, telemetryLines: [`FAIL: ${label} needs a minor-suit opening.`] };
+  }
+  const hcp = context.handFacts.hcp;
+  const supportLength = context.handFacts.lengths[opening.strain];
+  const minSupport = opening.strain === 'C' ? 5 : 4;
+  const success = hcp >= minHcp && hcp <= maxHcp &&
+                  supportLength >= minSupport && ! context.handFacts.hasFourCardMajor;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'APPLIES' : 'FAIL'}: ${label} requires ${minHcp}-${maxHcp} HCP, ` +
+      `${minSupport}+ ${opening.strain} support, and no four-card major.`,
+    ],
+  };
+}
+
+/// minorSupportNewSuitApplies handles the strong responder who plans to show minor support later.
+/// Four diamonds support 1D; five clubs support 1C.  The immediate forcing response must still be
+/// a natural new suit with four or more cards.
+export function minorSupportNewSuitApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getPartnerOpeningBid(context);
+  const candidate = parseSuitBid(call);
+  if (opening === null || candidate === null || candidate.strain === 'NT' ||
+      (opening.strain !== 'C' && opening.strain !== 'D')) {
+    return { success: false, telemetryLines: ['FAIL: strong minor-support route needs suit bids.'] };
+  }
+  const minSupport = opening.strain === 'C' ? 5 : 4;
+  const supportLength = context.handFacts.lengths[opening.strain];
+  const candidateLength = context.handFacts.lengths[candidate.strain as Suit];
+  const success = context.handFacts.hcp >= 13 && supportLength >= minSupport && candidateLength >= 4;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'APPLIES' : 'FAIL'}: strong minor-support route requires 13+ HCP, ` +
+      `${minSupport}+ ${opening.strain} support, and 4+ cards in ${candidate.strain}.`,
+    ],
+  };
+}
+
+/// majorDirectThreeNtApplies models the direct 3NT response as the very-flat 13-15 HCP treatment:
+/// exactly 4-3-3-3, exactly three-card support for opener's major, and no four-card other major.
+export function majorDirectThreeNtApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || (opening.strain !== 'H' && opening.strain !== 'S')) {
+    return { success: false, telemetryLines: ['FAIL: direct 3NT needs a major-suit opening.'] };
+  }
+  const lengths = context.handFacts.lengths;
+  const supportLength = lengths[opening.strain];
+  const otherMajor = opening.strain === 'H' ? 'S' : 'H';
+  const sortedLengths = SUITS.map((suit) => lengths[suit]).sort((a, b) => a - b);
+  const isFourThreeThreeThree = sortedLengths.join('-') === '3-3-3-4';
+  const hcp = context.handFacts.hcp;
+  const success = hcp >= 13 && hcp <= 15 && supportLength === 3 &&
+                  lengths[otherMajor] <= 3 && isFourThreeThreeThree;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'APPLIES' : 'FAIL'}: direct 3NT requires 13-15 HCP, 4-3-3-3 shape, ` +
+      `exactly three-card support, and no four-card other major.`,
+    ],
+  };
 }
 
 /// majorTwoLevelNewSuitApplies tests a non-jump two-level new-suit response to a major opening.

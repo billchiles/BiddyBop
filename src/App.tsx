@@ -28,6 +28,7 @@ export default function App() {
   const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>('minor-1nt');
   const [testDealCount, setTestDealCount] = useState(0);
   const testDeals = getRulesBucketTestDeals(testBucketId, biddingSystem);
+  const testBucketGroups = [...new Set(RULE_TEST_DEAL_BUCKETS.map((bucket) => bucket.group))];
   // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
     const result = generateOpenableNorthBoard();
@@ -83,8 +84,12 @@ export default function App() {
             value={testBucketId}
             onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
             <option value="all">All</option>
-            {RULE_TEST_DEAL_BUCKETS.map((bucket) => (
-              <option key={bucket.id} value={bucket.id}>{bucket.label}</option>
+            {testBucketGroups.map((group) => (
+              <optgroup key={group} label={group}>
+                {RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.group === group).map((bucket) => (
+                  <option key={bucket.id} value={bucket.id}>{bucket.label}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <button className="redealButton" type="button" onClick={nextTestDeal}
