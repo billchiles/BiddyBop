@@ -168,8 +168,8 @@ The app should help the user practice bidding decisions using structured convent
   rebids.
 - After `1M-2M`, a `3M` rebid with six or more trumps is the modern competitive treatment rather
   than a game try. Natural help-suit game tries use a 3+ card side suit.
-- After `1M-2M`, a balanced `2NT` game try uses shortage-point valuation because the major-suit fit
-  is already known; this is distinct from HCP valuation for ordinary natural notrump rebids.
+- After `1M-2M`, a natural balanced `2NT` game try uses 17-18 HCP, not shortage-point
+  valuation. Natural help-suit game tries use shortage points.
 - Gerber after a notrump opening and Blackwood after a suit auction are baseline conventions, not current on/off settings.
 - Gerber and Blackwood are rare, specialized ace-asking treatments rather than general slam
   tries. They use priority rank -100 so they remain visible but sort after ordinary descriptive,

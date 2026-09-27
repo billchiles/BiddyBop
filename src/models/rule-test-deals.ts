@@ -1,5 +1,5 @@
-/// Deterministic rule-practice deals, grouped in the same order as the executable opener-rebid
-/// rule families.  An expected call/rule pairs are assertions of what we should see.
+/// Deterministic rule-practice deals, grouped by bidding stage and rebid family.
+/// Expected call/rule pairs are assertions of what we should see.
 /// 
 import type { BiddingSystem, Call } from './bidding-types';
 import type { Suit } from './cards';
@@ -1337,7 +1337,7 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J9', H: 'K6', D: 'AK72', C: 'QT975' },
   },
   {
-    description: '1C: 6 HCP with six good hearts; under weak jump shifts, 2H outranks the ordinary 1H response ithout eliminating it.',
+    description: '1C: 6 HCP with six good hearts; under weak jump shifts, 2H outranks the ordinary 1H response without eliminating it.',
     practiceAuction: ['1C', 'Pass', '2H'],
     requiredSystem: { jumpShift: 'weak' },
     expectedOpeningCalls: [
@@ -1366,8 +1366,177 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
-/// Reserved for the next response-coverage batch; the dropdown order follows bidding stages.
-export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [];
+/// Supplementary major-opening response coverage.  The opener-rebid buckets already exercise
+/// simple raises, natural new-suit responses, and both forcing and non-forcing 1NT responses.
+/// Their expectedResponseCalls count toward corpus coverage; rare Blackwood is deferred.
+export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1S-Pass: 4 HCP and only two spades; without enough strength to respond, pass.',
+    practiceAuction: ['1S', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-major-w/-pass-0-5'] },
+    ],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: '65', H: '9542', D: 'JT43', C: 'K43' },
+  },
+  {
+    description: '1H-Pass: 4 HCP, three hearts and flat shape; support adds no shortage points, so pass.',
+    practiceAuction: ['1H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-major-w/-support-pass-0-5'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'Q53', H: '983', D: 'Q873', C: '973' },
+  },
+  {
+    description: '1S-3S: 11 HCP plus one shortage point for a doubleton gives 12 support points; with four ' +
+                 'spades, make a limit raise.',
+    practiceAuction: ['1S', 'Pass', '3S'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-major-w/-support-limit-raise-four-card'] },
+    ],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'T954', H: 'Q43', D: 'KJ43', C: 'KQ' },
+  },
+  {
+    description: '1H-1S: 11 HCP plus one shortage point gives 12 support points with three hearts; show four ' +
+                 'spades first, then make the invitational heart raise.',
+    practiceAuction: ['1H', 'Pass', '1S'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-major-w/-support-limit-raise-three-card-new-suit-first'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'AQ74', H: 'K64', D: 'QT65', C: '95' },
+  },
+  {
+    description: '1S-1NT: 11 HCP plus one shortage point gives 12 support points with exactly three spades; ' +
+                 'under forcing 1NT, invite with a later spade raise.',
+    practiceAuction: ['1S', 'Pass', '1NT'],
+    requiredSystem: { majorOneNtResponse: 'forcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/-support-limit-raise-three-card'] },
+    ],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'K54', H: 'Q963', D: 'KJ65', C: 'Q7' },
+  },
+  {
+    description: '1H-1NT: 12 HCP and three hearts, but no four-card spade suit; non-forcing 1NT is the ' +
+                 'limit-raise fallback. Opener may pass, so the later invitation is not guaranteed.',
+    practiceAuction: ['1H', 'Pass', '1NT'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'J96', H: 'K93', D: 'KT63', C: 'KQ9' },
+  },
+  {
+    description: '1S: 14 HCP, flat 4-3-3-3, three-card spade support and four diamonds; both game-forcing 2D ' +
+                 'followed by a raise and direct 3NT qualify. Shortage adds no points.',
+    practiceAuction: ['1S', 'Pass', '2D'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise'] },
+      { call: '3NT', ruleIds: ['respond-to-major-w/-3nt-flat-13-15'] },
+    ],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'K65', H: 'AT3', D: 'K763', C: 'A74' },
+  },
+  {
+    description: '1H: 11 HCP plus three shortage points for a singleton club gives 14 support points with four ' +
+                 'hearts; the 4C splinter ranks ahead of the valid 1S and 2D new-suit-first routes.',
+    practiceAuction: ['1H', 'Pass', '4C'],
+    requiredSystem: { majorGameForceWithSupport: 'newSuitThenRaise', splinters: true },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4C', ruleIds: ['respond-to-major-w/-support-splinter'] },
+      { call: '1S', ruleIds: ['respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'] },
+      { call: '2D', ruleIds: ['respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'J962', H: 'K986', D: 'K763', C: 'A' },
+  },
+  {
+    description: '1S-2NT: 13 HCP plus one shortage point for a doubleton gives 14 support points with four ' +
+                 'spades; Jacoby 2NT is the agreed game force.',
+    practiceAuction: ['1S', 'Pass', '2NT'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'K954', H: 'AT4', D: '6543', C: 'AQ' },
+  },
+  {
+    description: '1H: 7 HCP plus one shortage point for a doubleton gives 8 support points with five hearts; ' +
+                 'both the ordinary 2H raise and preemptive 4H qualify.',
+    practiceAuction: ['1H', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+      { call: '4H', ruleIds: ['respond-to-major-w/-support-preemptive-game-raise'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'T5', H: 'K9543', D: '863', C: 'A93' },
+  },
+  {
+    description: '1H: 6 HCP and six good spades; under weak jump shifts, 2S outranks the ordinary 1S response, ' +
+                 'which remains visible.',
+    practiceAuction: ['1H', 'Pass', '2S'],
+    requiredSystem: { jumpShift: 'weak' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-to-major-w-weak-jump-shift-modern'] },
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'AQ7642', H: '8', D: 'T54', C: '532' },
+  },
+  {
+    description: '1H: 18 HCP and five strong spades; under strong jump shifts, 2S outranks the ordinary 1S ' +
+                 'response, which remains visible.',
+    practiceAuction: ['1H', 'Pass', '2S'],
+    requiredSystem: { jumpShift: 'strong' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-to-major-w/-strong-jump-shift-classic'] },
+      { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'AQJT9', H: 'K8', D: 'KQ7', C: 'K93' },
+  },
+];
 
 /// The dropdown follows this registry order: response buckets before opener-rebid buckets.
 /// 'all' concatenates compatible deals in the same order.

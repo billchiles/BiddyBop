@@ -111,6 +111,30 @@ textarea {
   background: white;
 }
 
+.testBucketSelect,
+.testBucketSelect::picker(select) {
+  appearance: base-select;
+}
+
+.testBucketSelect::picker(select) {
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid #aab5c3;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 6px 18px rgba(23, 32, 51, 0.18);
+}
+
+.testBucketSelect optgroup {
+  color: #344760;
+  font-weight: 700;
+}
+
+.testBucketSelect option {
+  color: #172033;
+  font-weight: 400;
+}
+
 .testDealProgress {
   color: #536072;
   text-align: center;
