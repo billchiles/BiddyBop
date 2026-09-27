@@ -94,6 +94,12 @@ export type BiddingAgreement =
   | { setting: 'splinters'; value: boolean; note?: string }
   | { setting: 'texasTransfers'; value: boolean; note?: string };
 
+/// Under our 25-combined-HCP treatment, 16-18 1NT openings lower responder's
+/// ordinary HCP thresholds by one. Do not also adjust for the optional opener upgrade.
+export function oneNtResponseHcpShift (system: BiddingSystem): number {
+  return system.oneNtOpening === '16-18' ? 1 : 0;
+}
+
 /// biddingBaseline records fixed assumptions of the current practice system.  These are mostly
 /// machine-readable comments; configurable choices belong in BiddingSystem instead.  If some aspect
 /// here became interesting to turn on and off for a beginner, such as weak 2s or 3s, these settings
@@ -190,6 +196,8 @@ export type RuleKind =
 
 export interface HandConstraint {
   hcp?: PointRange;
+  // For responses to 1NT, shift the stated 15-17 HCP bounds down one with a 16-18 opener.
+  hcpRelativeToOneNtOpening?: boolean;
   // computed with length bonuses or shortage bonuses depending on auction stage
   totalPoints?: TotalPointsRange;  
   suitLengths?: SuitLengthConstraint[]; // if no suit specified, it means the candidate call suit

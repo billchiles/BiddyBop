@@ -1,6 +1,6 @@
 /// Bidding rule call refiners, appliesWhen functions, and their shared helpers.
 
-import { biddingBaseline, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
+import { biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
          type CallRefinementResult, type RuleEvalContext, type SuitBid }
   from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
@@ -825,8 +825,10 @@ export function openerSecondSuitApplies (call: Call, context: RuleEvalContext, m
 
 /// oneNtTwoNtInvitationApplies uses the ordinary balanced 2NT invitation, but when neither
 /// Stayman nor Jacoby transfers is available, 2NT is the basic natural 8-9 HCP invitation
-/// regardless of shape.
+/// (7-8 opposite 16-18) regardless of shape.
 ///
+/// The following examples assume the standard 15-17 range; reduce the responder HCP
+/// boundaries by one under the selected 16-18 treatment.
 /// ACBL instructional path starts without conventions:
 ///    0–7 + 5+ major        -> 2M, weak signoff
 ///    8–9                   -> 2NT, invitational
@@ -848,13 +850,15 @@ export function openerSecondSuitApplies (call: Call, context: RuleEvalContext, m
 ///
 export function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvalContext,
                                       system: BiddingSystem): AppliesWhenResult {
-  const hcpApplies = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9;
+  const shift = oneNtResponseHcpShift(system);
+  const hcpApplies = context.handFacts.hcp >= 8 - shift &&
+                     context.handFacts.hcp <= 9 - shift;
   const shapeApplies = context.handFacts.balanced || (! system.stayman && ! system.jacobyTransfers);
 
   return {
     success: hcpApplies && shapeApplies,
     telemetryLines: [
-      `${hcpApplies ? 'PASS' : 'FAIL'}: 2NT invitation needs 8-9 HCP.`,
+      `${hcpApplies ? 'PASS' : 'FAIL'}: 2NT invitation needs ${8 - shift}-${9 - shift} HCP.`,
       `${shapeApplies ? 'PASS' : 'FAIL'}: 2NT needs balanced shape unless Stayman and ` +
         'Jacoby transfers are both off.',
     ],

@@ -153,8 +153,16 @@ The app should help the user practice bidding decisions using structured convent
 ## Current Practice-System Decisions
 
 - Default 1NT range is 15-17 balanced.
+- With the alternate 16-18 1NT opening and our 25-combined-HCP game guideline, shift the
+  ordinary 15-17 response HCP thresholds down one. The optional five-card-major 1NT upgrade
+  does not lower the response thresholds another point. Existing range-specific rule IDs and
+  titles retain their 15-17 wording; their guidance describes both ranges.
 - Natural 1NT and 2NT openings use only the strict balanced shapes: 4-3-3-3, 4-4-3-2,
   and 5-3-3-2.
+- Responding to a natural 20-21 HCP 2NT opening, Pass is available with 0-3 HCP regardless
+  of distribution; a qualifying major-suit transfer takes precedence. With 4-10 balanced
+  HCP, bid 3NT as specified in the 2NT-response treatment, even when opener has only
+  20 HCP. The usual 25-combined-HCP game guideline is not an absolute requirement.
 - A five-card-major upgrade into the 1NT range is configurable and off by default.
 - Standard two-level new-suit responses are the default; the 2/1 game-force treatment is a separate agreement.
 

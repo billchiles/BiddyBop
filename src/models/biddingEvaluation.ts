@@ -5,7 +5,7 @@ import { type AuctionContext, type BidRule, type Call, type HandConstraint,
          type PointRange, type TotalPointsRange, type SuitLengthConstraint, //type Strain,
          type BiddingSystem, type BiddingAgreement, type HandShapeConstraint,
          type RuleEvalContext, type AppliesWhenResult, type BidStage,
-         type ResponderCallContext } from './bidding-types';
+         type ResponderCallContext, oneNtResponseHcpShift } from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
@@ -145,7 +145,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
     : null;
   if (partnerOpeningCall === '1NT' || partnerOpeningCall === '2NT') {
     ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
-    ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context);
+    ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context, system);
     ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
     ruleResults = maybeSuppressJacobyForMajorGame(ruleResults); // jacoby vs major game (and texas)
     // Order matters for this last call; declarations make the previous suppressors mutually clean.
@@ -325,7 +325,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   if (typeof appliesWhen === 'function') {
     result = appliesWhen(call, context, system);
   } else {
-    result = evaluateHandConstraint(appliesWhen, call, context);
+    result = evaluateHandConstraint(appliesWhen, call, context, system);
   }
   telemetryLines.push(...result.telemetryLines);
   if (result.success) {
@@ -433,8 +433,9 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
 /// however, the first artificial bid can instead be chosen to preserve a particular rebid level and
 /// thereby communicate strength.
 ///
-/// After 1NT, 8-9 HCP starts with the heart transfer so responder can bid 2S invitationally; 10+
-/// HCP starts with the spade transfer so a later 3H is game forcing.  After 2NT, 4+ HCP is already
+/// After 1NT, 8-9 HCP (7-8 with 16-18) starts with the heart transfer so responder
+/// can bid 2S invitationally; 10+ (9+ with 16-18) starts with the spade transfer
+/// so a later 3H is game forcing.  After 2NT, 4+ HCP is already
 /// game going, so start with the heart transfer and preserve 3S to show the second major.
 ///
 /// Weak 5-5 hands are intentionally left unresolved.  Modern transfer methods commonly respond with
@@ -444,7 +445,7 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
 /// don't compares the two major suit qualities, and both weak transfer choices remain available.
 ///
 function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
-                                                context: RuleEvalContext):
+                                                context: RuleEvalContext, system: BiddingSystem):
     RuleEvalResult[] {
   if (context.handFacts.lengths.H < 5 || context.handFacts.lengths.S < 5) {
     return ruleResults;
@@ -453,9 +454,10 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
   const partnerOpeningCall = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
   let preferredTransfer: Call | null = null;
   if (partnerOpeningCall === '1NT') {
-    if (context.handFacts.hcp >= 8 && context.handFacts.hcp <= 9) {
+    const shift = oneNtResponseHcpShift(system);
+    if (context.handFacts.hcp >= 8 - shift && context.handFacts.hcp <= 9 - shift) {
       preferredTransfer = '2D'; // Transfer to hearts, then show spades at the two level.
-    } else if (context.handFacts.hcp >= 10) {
+    } else if (context.handFacts.hcp >= 10 - shift) {
       preferredTransfer = '2H'; // Transfer to spades, then show hearts at the three level.
     }
   } else if (partnerOpeningCall === '2NT' && context.handFacts.hcp >= 4) {
@@ -616,7 +618,8 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 ///   8-9 + 5-card major -> transfer, then bid 2NT
 ///   10+ + 5-card major -> transfer, then bid 3NT or otherwise describe the hand
 ///
-/// Using rule agreements rather than testing IDs give a clean result consistent with bidding books:
+/// The following examples assume the standard 15-17 opening agreement. Using rule
+/// agreements rather than testing IDs gives a clean result consistent with bidding books:
 ///    Jacoby ON:
 ///       1NT + 5 HCP + 5S-3-3-2  -> 2H transfer      (Pass removed)
 ///       1NT + 8 HCP + 5S-3-3-2  -> 2H transfer      (2NT removed)
@@ -719,12 +722,16 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
 /// produce advice.
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
-                                 context: RuleEvalContext)
+                                 context: RuleEvalContext, system: BiddingSystem)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
-    const result = testPointRange(context.handFacts.hcp, constraint.hcp, 'HCP');
+    const shift = constraint.hcpRelativeToOneNtOpening
+      ? oneNtResponseHcpShift(system) : 0;
+    const range = { min: constraint.hcp.min === undefined ? undefined : constraint.hcp.min - shift,
+                    max: constraint.hcp.max === undefined ? undefined : constraint.hcp.max - shift };
+    const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
