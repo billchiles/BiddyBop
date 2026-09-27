@@ -8,11 +8,19 @@ export interface RuleTestDeal {
   description: string;
   // actual auction (including opponent passes) for manual practice.
   practiceAuction: Call[];
-  // An expected call/rule pairs are assertions of what we should see.
+  // Each expected call/rule pair is an assertion of what we should see.
   requiredSystem?: Partial<BiddingSystem>;
   expectedOpeningCalls?: RuleTestExpectedCall[];
   expectedResponseCalls?: RuleTestExpectedCall[];
   expectedOpenerRebidCalls?: RuleTestExpectedCall[];
+  // These calls must be absent from the final candidate list; they need not have been generated.
+  rejectedOpeningCalls?: Call[];
+  rejectedResponseCalls?: Call[];
+  rejectedOpenerRebidCalls?: Call[];
+  // Each pair requires both calls to survive, with the first appearing before the second.
+  expectedOpeningCallOrder?: [Call, Call][];
+  expectedResponseCallOrder?: [Call, Call][];
+  expectedOpenerRebidCallOrder?: [Call, Call][];
   north: Record<Suit, string>;
   south: Record<Suit, string>;
 }
@@ -224,6 +232,9 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     expectedOpenerRebidCalls: [
       { call: '1S', ruleIds: ['opener-rebid-second-suit-after-minor-one-level-new-suit'] },
     ],
+    // Show the available one-level second suit instead of falling back to 1NT.
+    rejectedOpenerRebidCalls: ['1NT'],
+    rejectedOpeningCalls: ['1D'],
     north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
   },
@@ -428,6 +439,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     expectedOpenerRebidCalls: [
       { call: '2D', ruleIds: ['opener-rebid-repeat-diamonds-after-minor-standard-two-level-new-suit'] },
     ],
+    // This minimum must not make a Standard high reverse.
+    rejectedOpenerRebidCalls: ['2H'],
     north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
   },
@@ -598,6 +611,7 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
       { call: '2NT', ruleIds: ['opener-rebid-2nt-after-minor-two-over-one-new-suit'] },
       { call: '3C', ruleIds: ['opener-rebid-simple-raise-after-minor-two-over-one-new-suit'] },
     ],
+    rejectedOpeningCalls: ['1C'],
     north: { S: '82', H: 'AKJ', D: 'KQ84', C: 'T843' },
     south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
   },
@@ -744,6 +758,25 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AKQJ987', H: 'AQ', D: '32', C: '54' },
     south: { S: '65', H: 'KJ4', D: 'Q876', C: 'J832' },
   },
+  {
+    description: '1S-1NT, forcing: 13 HCP with five spades, two hearts and exactly three cards ' +
+                 'in each minor. No natural rebid qualifies, so manufacture 2C rather than 2D ' +
+                 'on equal minor lengths.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C'],
+    requiredSystem: { majorOneNtResponse: 'forcing' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-to-major-w/o-support-1nt-twooverone'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2C', ruleIds: ['opener-rebid-minor-fallback-after-major-1nt-forcing'] },
+    ],
+    rejectedOpenerRebidCalls: ['2D'],
+    north: { S: 'KQJ85', H: 'A7', D: '982', C: 'QJ3' },
+    south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+  },
 ];
 
 ///
@@ -762,6 +795,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     expectedOpenerRebidCalls: [
       { call: '1NT', ruleIds: ['opener-rebid-1nt-after-major-one-level-new-suit'] },
     ],
+    // A valid one-level spade response displaces the 1NT fallback.
+    rejectedResponseCalls: ['1NT'],
     north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
   },
@@ -1347,6 +1382,7 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '2H', ruleIds: ['respond-to-minor-w/-weak-jump-shift-modern'] },
       { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
     ],
+    expectedResponseCallOrder: [['2H', '1H']],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'Q63', H: 'KJT986', D: 'T4', C: 'T9' },
   },
@@ -1361,8 +1397,96 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '2H', ruleIds: ['respond-to-minor-w/-strong-jump-shift-classic'] },
       { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
     ],
+    expectedResponseCallOrder: [['2H', '1H']],
     north: { S: 'K84', H: '742', D: 'AQ9', C: 'KQ85' },
     south: { S: 'AJ6', H: 'AKQ85', D: 'K7', C: 'J94' },
+  },
+  {
+    description: '1C: 8 HCP with four hearts and four spades; both one-level majors qualify. ' +
+                 'With equally long four-card majors, bid up the line: 1H before 1S.',
+    practiceAuction: ['1C', 'Pass', '1H'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+      { call: '1S', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedResponseCallOrder: [['1H', '1S']],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'JT75', H: 'KJT6', D: 'JT4', C: 'Q9' },
+  },
+  {
+    description: '1C: 8 HCP with five hearts and five spades; both one-level majors qualify. ' +
+                 'With equally long five-card majors, bid down the line: 1S before 1H.',
+    practiceAuction: ['1C', 'Pass', '1S'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedResponseCallOrder: [['1S', '1H']],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'QJT75', H: 'K9643', D: 'T3', C: 'Q' },
+  },
+  {
+    description: '1C: 8 HCP with five diamonds and four spades; prefer 1S to look for the ' +
+                 'major fit, but retain the genuinely longer 1D as an alternative.',
+    practiceAuction: ['1C', 'Pass', '1S'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+      { call: '1D', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedResponseCallOrder: [['1S', '1D']],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'T965', H: 'J9', D: 'KQT63', C: 'QT' },
+  },
+  {
+    description: '1C: 12 HCP with five diamonds and four spades; show the major first. ' +
+                 'The longer-diamond alternative is reserved for minimum 6-10 HCP responses.',
+    practiceAuction: ['1C', 'Pass', '1S'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    rejectedResponseCalls: ['1D'],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'A963', H: 'A3', D: 'KJ543', C: '74' },
+  },
+  {
+    description: '1D: 8 HCP with four diamonds and four spades; showing a four-card major ' +
+                 'takes priority over the otherwise available minimum diamond raise.',
+    practiceAuction: ['1D', 'Pass', '1S'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    rejectedResponseCalls: ['2D'],
+    north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
+    south: { S: '9763', H: 'JT4', D: 'Q864', C: 'AJ' },
+  },
+  {
+    description: '1C: 8 HCP with five hearts and four spades; the longer heart suit ' +
+                 'eliminates the shorter 1S response instead of merely ranking it second.',
+    practiceAuction: ['1C', 'Pass', '1H'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    rejectedResponseCalls: ['1S'],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'A762', H: 'A9864', D: '43', C: '42' },
   },
 ];
 
@@ -1417,6 +1541,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCalls: [
       { call: '1S', ruleIds: ['respond-to-major-w/-support-limit-raise-three-card-new-suit-first'] },
     ],
+    // The four-card spade suit is available ahead of the 1NT limit-raise route.
+    rejectedResponseCalls: ['1NT'],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQ74', H: 'K64', D: 'QT65', C: '95' },
   },
@@ -1475,6 +1601,7 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '1S', ruleIds: ['respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'] },
       { call: '2D', ruleIds: ['respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'] },
     ],
+    expectedResponseCallOrder: [['4C', '1S'], ['4C', '2D']],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'J962', H: 'K986', D: 'K763', C: 'A' },
   },
@@ -1518,6 +1645,7 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '2S', ruleIds: ['respond-to-major-w-weak-jump-shift-modern'] },
       { call: '1S', ruleIds: ['respond-to-major-w/o-support-new-suit-one-level'] },
     ],
+    expectedResponseCallOrder: [['2S', '1S']],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQ7642', H: '8', D: 'T54', C: '532' },
   },
@@ -1535,6 +1663,23 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQJT9', H: 'K8', D: 'KQ7', C: 'K93' },
+  },
+  {
+    description: '1S: 13 HCP with three spades, four hearts and only three cards in each ' +
+                 'minor. Game-forcing support needs a new suit first: both 2C and 2D are ' +
+                 'allowed three-card-minor fallbacks, while four hearts cannot support 2H.',
+    practiceAuction: ['1S', 'Pass', '2C'],
+    requiredSystem: { majorGameForceWithSupport: 'newSuitThenRaise' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise'] },
+      { call: '2D', ruleIds: ['respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise'] },
+    ],
+    rejectedResponseCalls: ['2H'],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'K98', H: 'A974', D: 'KJ7', C: 'Q94' },
   },
 ];
 

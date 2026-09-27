@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "CommonJS",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "strict": true,
+    "rootDir": ".",
+    "outDir": "node_modules/.rule-tests"
+  },
+  "include": ["tests/rule-tests.ts"]
+}
