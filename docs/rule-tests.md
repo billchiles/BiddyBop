@@ -18,9 +18,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The suit-auction and opening-selection checkpoint includes 104 deals, with 321 positive call/rule
-assertions, 15 elimination assertions, ten call-order assertions, and 276 checks that the
-recorded practice call qualifies. The positive assertions cover all 76 implemented opener-rebid
+The suit-auction, opening-selection, and 1NT convention-variation checkpoint includes 127 deals,
+with 368 positive call/rule assertions, 36 elimination assertions, ten call-order assertions, and
+322 checks that the recorded practice call qualifies. The positive assertions cover all 76 implemented opener-rebid
 rule IDs, all 12 ordinary minor-opening response rules, and all 20 ordinary major-opening response
 rules. The remaining response ID in each suit family is the specialized Blackwood option, for
 which dedicated practice deals were deliberately omitted.
@@ -30,6 +30,15 @@ condition inside each rule or refiner.
 
 | Tested distinction | Where to find the deals | Recorded expectations |
 | --- | --- | --- |
+| Natural responses to a 15–17 1NT opening | `response-1nt-opening`, weak balanced, invitational, and game-going hands | All three natural response ranges qualify under their recorded rules, with selected neighboring levels eliminated. Each deal also asserts the ordinary 15–17 opening. |
+| Ordinary Stayman and 5–4 major Stayman preference | `response-1nt-opening`, four-heart and five-heart/four-spade hands | Stayman qualifies with at least four cards in a major; with five hearts and four spades, both Jacoby transfers are eliminated. |
+| Weak Jacoby transfers and 5–5 major strength ladder | `response-1nt-opening`, weak single-major and three equal-five-major cases | Weak five-card hearts and spades displace Pass; weak 5–5 retains both transfers, 8–9 HCP retains only the heart transfer, and 10+ HCP retains only the spade transfer. |
+| No-convention natural responses after 1NT | `response-1nt-opening`, natural 2H, 2S, 2NT, and 3S hands | With Stayman and Jacoby both off, natural weak two-level major signoffs, an unbalanced 8-HCP 2NT invitation, and natural forcing 3S qualify. The strong five-spade hand excludes natural 3NT. |
+| Texas off, with Stayman and Jacoby on | `response-1nt-opening`, natural 4H and 4S paired with existing Texas-on hands | The identical six-card-major hands use natural 4M when Texas is off, and artificial Texas 4D/4H when Texas is on. In either case, the game-only route suppresses ordinary Jacoby. |
+| Six-four majors and direct major slam interest | `response-1nt-opening`, six-heart/four-spade Stayman and strong six-heart 3H hands | Stayman wins over the heart transfer on a six-four major hand; with 16 HCP, six hearts, and no other four-card major, direct 3H expresses slam interest and removes ordinary Jacoby. |
+| Texas transfers versus ordinary Jacoby | `response-1nt-opening`, six-heart and six-spade game hands | Four-level Texas transfers qualify under the active agreement and eliminate the lower-level Jacoby alternative. |
+| Natural invitations with a six-card minor | `response-1nt-opening`, club and diamond invitation hands | Both 3C and 3D qualify with 8–9 HCP and six cards. The hands have KQ or AK in their minors to illustrate suit quality; the evaluator currently checks only length and HCP, **not** suit quality. |
+| Quantitative 4NT after 1NT | `response-1nt-opening`, balanced 16-HCP hand | Quantitative 4NT qualifies as a small-slam invitation rather than a game-going 3NT response or ace-asking Blackwood. |
 | Five-card-major 1NT upgrade under 15–17 and 16–18 | `opening-bids`, paired upgrade-enabled and disabled deals for each range | Balanced 14-HCP hearts and 15-HCP spades show both `1NT` and the major with the upgrade on, `1NT` first; with it off, only the major survives. |
 | Equal five-card majors at the Guideline of 20 boundary | `opening-bids`, 10-HCP 5-5 major deal | Both `open-five-card-major` and `open-guideline-of-20` support `1S`, and `1H` is eliminated. |
 | Strict balanced-hand requirement for natural 1NT | `response-major-opening`, flat weak responder after `1H` | The 15-HCP opener's 5-4-2-2 shape permits `1H`, but excludes `1NT` even though it meets the normal HCP range. |
