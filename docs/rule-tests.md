@@ -18,8 +18,8 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current suit-auction regression checkpoint includes 99 deals, with 313 positive call/rule
-assertions, 11 elimination assertions, eight call-order assertions, and 271 checks that the
+The suit-auction and opening-selection checkpoint includes 104 deals, with 321 positive call/rule
+assertions, 15 elimination assertions, ten call-order assertions, and 276 checks that the
 recorded practice call qualifies. The positive assertions cover all 76 implemented opener-rebid
 rule IDs, all 12 ordinary minor-opening response rules, and all 20 ordinary major-opening response
 rules. The remaining response ID in each suit family is the specialized Blackwood option, for
@@ -30,6 +30,9 @@ condition inside each rule or refiner.
 
 | Tested distinction | Where to find the deals | Recorded expectations |
 | --- | --- | --- |
+| Five-card-major 1NT upgrade under 15–17 and 16–18 | `opening-bids`, paired upgrade-enabled and disabled deals for each range | Balanced 14-HCP hearts and 15-HCP spades show both `1NT` and the major with the upgrade on, `1NT` first; with it off, only the major survives. |
+| Equal five-card majors at the Guideline of 20 boundary | `opening-bids`, 10-HCP 5-5 major deal | Both `open-five-card-major` and `open-guideline-of-20` support `1S`, and `1H` is eliminated. |
+| Strict balanced-hand requirement for natural 1NT | `response-major-opening`, flat weak responder after `1H` | The 15-HCP opener's 5-4-2-2 shape permits `1H`, but excludes `1NT` even though it meets the normal HCP range. |
 | Three-card versus four-card minor opening ties | `minor-one-level-new-suit`, first deal; `minor-two-over-one-new-suit`, third deal | With 3-3 minors, `1C` qualifies and `1D` does not; with 4-4 minors, `1D` qualifies and `1C` does not. |
 | Equal four-card versus equal five-card majors after `1C` | `response-minor-opening`, equal-major deals | Both majors survive; `1H` precedes `1S` with 4-4, while `1S` precedes `1H` with 5-5. |
 | Four- and five-card unequal majors after `1C` | `response-minor-opening`, five-heart/four-spade deal | The longer `1H` survives; the shorter `1S` is eliminated, not merely ranked second. |

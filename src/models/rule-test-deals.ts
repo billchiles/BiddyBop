@@ -31,6 +31,77 @@ export interface RuleTestExpectedCall {
 }
 
 ///
+//// Opening-bid selection variations
+///
+
+/// Supplementary opening-only cases. Ordinary 1NT/2NT and strong 2C openings will be exercised
+/// alongside their responses, rather than duplicated here solely for opening-rule coverage.
+export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '14 HCP, balanced 5-3-3-2 with five hearts: the optional one-point 1NT upgrade ' +
+                 'puts 1NT ahead of the natural 1H opening, which remains available.',
+    practiceAuction: ['1NT'],
+    requiredSystem: { oneNtOpening: '15-17', oneNtFiveCardLengthUpgrade: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-five-card-length-upgrade'] },
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedOpeningCallOrder: [['1NT', '1H']],
+    north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
+    south: { S: 'KJ5', H: 'A42', D: 'QJ76', C: 'AQ5' },
+  },
+  {
+    description: 'The same 14-HCP balanced hand with the five-card-major upgrade disabled: ' +
+                 'open 1H; 1NT is below the standard 15-HCP minimum.',
+    practiceAuction: ['1H'],
+    requiredSystem: { oneNtOpening: '15-17', oneNtFiveCardLengthUpgrade: false },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    rejectedOpeningCalls: ['1NT'],
+    north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
+    south: { S: 'KJ5', H: 'A42', D: 'QJ76', C: 'AQ5' },
+  },
+  {
+    description: '15 HCP, balanced 5-3-3-2 with five spades: under the alternate 16-18 ' +
+                 'agreement, the optional upgrade puts 1NT ahead of natural 1S.',
+    practiceAuction: ['1NT'],
+    requiredSystem: { oneNtOpening: '16-18', oneNtFiveCardLengthUpgrade: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-five-card-length-upgrade'] },
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedOpeningCallOrder: [['1NT', '1S']],
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
+    south: { S: 'K63', H: 'Q85', D: 'KJ64', C: 'K94' },
+  },
+  {
+    description: 'The same 15-HCP hand under 16-18 with the optional upgrade disabled: ' +
+                 'open 1S; 1NT is below the alternate 16-HCP minimum.',
+    practiceAuction: ['1S'],
+    requiredSystem: { oneNtOpening: '16-18', oneNtFiveCardLengthUpgrade: false },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    rejectedOpeningCalls: ['1NT'],
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
+    south: { S: 'K63', H: 'Q85', D: 'KJ64', C: 'K94' },
+  },
+  {
+    description: 'Exactly 10 HCP with five spades and five hearts: 10 + 5 + 5 = 20, so ' +
+                 'both the five-card-major opening and Guideline of 20 support 1S. ' +
+                 'With equal five-card majors, open spades rather than hearts.',
+    practiceAuction: ['1S'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major', 'open-guideline-of-20'] },
+    ],
+    rejectedOpeningCalls: ['1H'],
+    north: { S: 'AQ972', H: 'KJ864', D: '53', C: '2' },
+    south: { S: 'K63', H: 'AQ5', D: 'A642', C: 'KQ5' },
+  },
+];
+
+///
 //// Opener rebids after a minor opening and 1NT response
 ///
 export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
@@ -1512,6 +1583,7 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedOpeningCalls: [
       { call: '1H', ruleIds: ['open-five-card-major'] },
     ],
+    rejectedOpeningCalls: ['1NT'],
     expectedResponseCalls: [
       { call: 'Pass', ruleIds: ['respond-to-major-w/-support-pass-0-5'] },
     ],
@@ -1683,9 +1755,11 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
-/// The dropdown follows this registry order: response buckets before opener-rebid buckets.
+/// The dropdown follows bidding order: opening bids, responses, then opener rebids.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
+  { id: 'opening-bids', group: 'Opening bids', label: 'Opening selection',
+    deals: OPENING_BID_TEST_DEALS },
   { id: 'response-minor-opening', group: 'Responses to 1-level opening', label: 'Minor opening',
     deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
   { id: 'response-major-opening', group: 'Responses to 1-level opening', label: 'Major opening',
