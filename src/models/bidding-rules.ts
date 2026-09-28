@@ -18,7 +18,10 @@ import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
          refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
          refineThreeCardMajorSupportNewSuitFirst,
-         refineToCheapestNewSuitBids,}
+         refineToCheapestNewSuitBids, refineNtStaymanReply, refineNtJacobyCompletion,
+         refineNtTexasCompletion, openerNtNotrumpSignoffApplies,
+         openerNtNaturalMajorGameApplies, openerNtWeakMajorSignoffApplies,
+         openerNtGameInvitationApplies, openerNtQuantitativeInvitationApplies,}
   from './bidding-rule-functions';
 
 ///
@@ -1391,6 +1394,175 @@ export const ResponseBidRules: BidRule[] = [
 ///
 
 export const OpenerRebidRules: BidRule[] = [
+  // These immediate, uncontested continuations apply to natural 1NT and 2NT alike.
+  // Stayman shows hearts first with both four-card majors.
+  {
+    id: 'opener-rebid-deny-major-after-nt-stayman',
+    kind: 'openerRebid',
+    title: 'Deny a four-card major after Stayman',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['2D', '3D'],
+    callRefinement: refineNtStaymanReply,
+    agreement: { setting: 'stayman', value: true },
+    callCategory: ['conventional'],
+    appliesWhen: { suitLengths: [{ suit: 'H', max: 3 }, { suit: 'S', max: 3 }] },
+    meaning: 'No four-card major; responder can now describe their hand.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-show-hearts-after-nt-stayman',
+    kind: 'openerRebid',
+    title: 'Show four or more hearts after Stayman',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['2H', '3H'],
+    callRefinement: refineNtStaymanReply,
+    agreement: { setting: 'stayman', value: true },
+    callCategory: ['conventional'],
+    appliesWhen: { suitLengths: [{ suit: 'H', min: 4 }] },
+    meaning: 'Show hearts first when opener has both four-card majors.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-show-spades-after-nt-stayman',
+    kind: 'openerRebid',
+    title: 'Show four or more spades without four hearts after Stayman',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['2S', '3S'],
+    callRefinement: refineNtStaymanReply,
+    agreement: { setting: 'stayman', value: true },
+    callCategory: ['conventional'],
+    appliesWhen: { suitLengths: [{ suit: 'S', min: 4 }, { suit: 'H', max: 3 }] },
+    meaning: 'Show a four-card spade suit when no four-card heart suit is available.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-complete-jacoby-after-nt',
+    kind: 'openerRebid',
+    title: 'Complete a Jacoby transfer after 1NT or 2NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['2H', '2S', '3H', '3S'],
+    callRefinement: refineNtJacobyCompletion,
+    agreement: { setting: 'jacobyTransfers', value: true },
+    callCategory: ['conventional'],
+    meaning: 'Complete the transfer at the next level; opener normally becomes declarer.',
+    guidance: ['This initial treatment does not model superaccepting transfers.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-complete-texas-after-nt',
+    kind: 'openerRebid',
+    title: 'Complete a Texas transfer after 1NT or 2NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['4H', '4S'],
+    callRefinement: refineNtTexasCompletion,
+    agreement: { setting: 'texasTransfers', value: true },
+    callCategory: ['conventional'],
+    meaning: 'Complete the Texas transfer to game in the requested major.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-nt-natural-nt-signoff',
+    kind: 'openerRebid',
+    title: 'Pass a natural notrump game or slam signoff',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: openerNtNotrumpSignoffApplies,
+    meaning: 'Responder placed the contract in 3NT, 6NT, or 7NT.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-nt-natural-major-game',
+    kind: 'openerRebid',
+    title: 'Pass a natural four-of-a-major game signoff',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['Pass'],
+    agreement: { setting: 'texasTransfers', value: false },
+    callCategory: ['signoff'],
+    appliesWhen: openerNtNaturalMajorGameApplies,
+    meaning: 'Without Texas, a direct 4H or 4S is natural and to play.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-1nt-weak-natural-major',
+    kind: 'openerRebid',
+    title: 'Pass a weak natural major signoff over 1NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['Pass'],
+    agreement: { setting: 'jacobyTransfers', value: false },
+    callCategory: ['signoff'],
+    appliesWhen: openerNtWeakMajorSignoffApplies,
+    meaning: 'Without Jacoby transfers, 2H and 2S are natural weak signoffs.',
+    certainty: 'high',
+  },
+  // Natural invitations are not signoffs: minimums decline, maximums accept, and
+  // the middle strength deliberately offers both choices with judgment guidance.
+  {
+    id: 'opener-rebid-pass-after-1nt-2nt-invitation',
+    kind: 'openerRebid',
+    title: 'Decline a natural 2NT game invitation over 1NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    priority: { rank: 60 },
+    appliesWhen: (call, context, system) =>
+      openerNtGameInvitationApplies(call, context, system, false),
+    meaning: 'Decline the invitation and play 2NT.',
+    guidance: ['Over 15-17, Pass with 15 and generally with 16; consider 3NT with a good 16.',
+               'Over 16-18, Pass with 16 and generally with 17; consider 3NT with a good 17.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-1nt-2nt-invitation',
+    kind: 'openerRebid',
+    title: 'Accept a natural 2NT game invitation over 1NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 60 },
+    appliesWhen: (call, context, system) =>
+      openerNtGameInvitationApplies(call, context, system, true),
+    meaning: 'Accept the game invitation and bid 3NT.',
+    guidance: ['Over 15-17, accept with 17 or a suitable 16.',
+               'Over 16-18, accept with 18 or a suitable 17.',
+               'Borderline hands depend on texture, working honors, and likely tricks.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-nt-4nt-quantitative-invitation',
+    kind: 'openerRebid',
+    title: 'Decline a quantitative 4NT invitation after a notrump opening',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    priority: { rank: 65 },
+    appliesWhen: (call, context, system) =>
+      openerNtQuantitativeInvitationApplies(call, context, system, false),
+    meaning: 'Stop in 4NT rather than force a slam with insufficient values.',
+    guidance: ['Minimum 1NT openers decline; middle-strength hands require judgment.',
+               'A 20-HCP 2NT opener declines, and a 21-HCP opener may also decline: ' +
+               'responder could have only 11 HCP.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-6nt-after-nt-4nt-quantitative-invitation',
+    kind: 'openerRebid',
+    title: 'Accept a quantitative 4NT invitation with sufficient strength',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    calls: ['6NT'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 50 },
+    appliesWhen: (call, context, system) =>
+      openerNtQuantitativeInvitationApplies(call, context, system, true),
+    meaning: 'Accept the quantitative invitation to a small slam.',
+    guidance: ['Maximum 1NT openers normally accept; the middle HCP is a judgment case.',
+               'After a 20-21 2NT opening, even 21 opposite 11-12 may provide only 32-33 ' +
+               'combined HCP: treat 6NT as conditional on good trick-taking prospects.'],
+    certainty: 'high',
+  },
+  //
+  // One-level suit-opening rebids follow below.
+  //
   //
   // The following rules are opener rebids after a one-level minor opening and 1NT response.
   //
@@ -2728,6 +2900,151 @@ export const OpenerRebidRules: BidRule[] = [
                '2NT available rather than encoding stopper quality.'],
     certainty: 'high',
   },
+  //
+  // The following rules are opener rebids after responder raises a minor opening.
+  // Standard natural raises are used here: a single raise is minimum, and a jump raise is
+  // invitational.  Inverted minors and their stopper-showing continuations are not modeled.
+  //
+  {
+    id: 'opener-rebid-pass-after-minor-simple-raise',
+    kind: 'openerRebid',
+    title: 'Pass a simple minor raise with minimum values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 2, jump: false },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 } },
+    meaning: 'With minimum values after a non-forcing minor raise, stop in the partscore.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-raise-to-three-after-minor-simple-raise',
+    kind: 'openerRebid',
+    title: 'Raise the minor to three with medium values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 2, jump: false },
+    },
+    calls: ['3C', '3D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18 } },
+    meaning: 'Invite game by raising the agreed minor with medium values.',
+    guidance: ['If game is eventually reached after a minor-suit fit, 3NT is usually preferred ' +
+               'to five of the minor when notrump is suitable.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-3nt-after-minor-simple-raise',
+    kind: 'openerRebid',
+    title: 'Usually bid 3NT with maximum values after a simple minor raise',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 2, jump: false },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 20, note: '3NT is the usual game target after a minor-suit fit.' },
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 19 } },
+    meaning: 'With maximum values, usually place the contract in 3NT rather than five of the minor.',
+    guidance: ['Outside-suit weakness is a reason for caution, but this uncontested rule does not ' +
+               'require opener personally to hold a full stopper in every outside suit.',
+               'For human judgment, a conservative full stopper is A, Kx or longer, or Qxx or ' +
+               'longer.  Partial holdings such as Qx or Jxx, or holdings whose effectiveness ' +
+               'depends on which hand declares and who leads the suit, may still be adequate in ' +
+               'practice as a judgment call.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-minor-after-minor-simple-raise',
+    kind: 'openerRebid',
+    title: 'Consider five of the minor with a very long, unbalanced maximum',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 2, jump: false },
+    },
+    calls: ['5C', '5D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 10, note: 'Judgment alternative to the usual 3NT game.' },
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 19 },
+                   suitLengths: [{ min: 7 }], shape: { balancedOrSemiBalanced: false } },
+    meaning: 'A very long minor and strongly unbalanced shape can make the minor-suit game preferable.',
+    guidance: ['3NT remains the usual game target; this is a conservative executable case for ' +
+               'choosing five of the minor when notrump is clearly less attractive.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'opener-rebid-pass-after-minor-limit-raise',
+    kind: 'openerRebid',
+    title: 'Pass a minor limit raise with a bad minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 3, jump: true },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { totalPoints: { min: 12, max: 13 } },
+    meaning: 'Responder has invited game; a bad minimum opener may decline at three of the minor.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-3nt-after-minor-limit-raise',
+    kind: 'openerRebid',
+    title: 'Accept a minor limit raise with 3NT when game values are present',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 3, jump: true },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 20, note: '3NT is the usual game target after a minor-suit fit.' },
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 14 } },
+    meaning: 'Accept the invitation in the usual minor-suit game target, 3NT.',
+    guidance: ['Responder has shown about 11-12 HCP, so a useful 14+ total-point opener has ' +
+               'enough combined strength to consider game.',
+               'Outside-suit weakness is a reason for caution, but this uncontested rule does not ' +
+               'require opener personally to hold a full stopper in every outside suit.',
+               'For human judgment, a conservative full stopper is A, Kx or longer, or Qxx or ' +
+               'longer.  Partial holdings such as Qx or Jxx, or holdings whose effectiveness ' +
+               'depends on which hand declares and who leads the suit, may still be adequate in ' +
+               'practice as a judgment call.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-minor-after-minor-limit-raise',
+    kind: 'openerRebid',
+    title: 'Consider five of the minor with extra values and extreme distribution',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'raise', level: 3, jump: true },
+    },
+    calls: ['5C', '5D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 10, note: 'Judgment alternative to the usual 3NT game.' },
+    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 17 },
+                   suitLengths: [{ min: 7 }], shape: { balancedOrSemiBalanced: false } },
+    meaning: 'A very long agreed minor and extreme shape can make five of the minor preferable to 3NT.',
+    guidance: ['Keep 3NT available as the usual game; the lower-ranked five-minor candidate marks ' +
+               'a distributional judgment case rather than a mandatory choice.'],
+    certainty: 'medium',
+  },
+
   //
   // The following rules are opener rebids after responder raises a major opening to two.
   //

@@ -170,6 +170,20 @@ The app should help the user practice bidding decisions using structured convent
   means opener may not pass. With 2/1 and `majorOneNtResponse: 'nonForcing'`, the combination is the
   common semi-forcing treatment.
 - Stayman and Jacoby transfers are enabled by default.
+- After natural 1NT or 2NT, ordinary Stayman replies are one level above the opening: deny
+  both majors with D, show H with four or more hearts (including both four-card majors), or
+  show S with four or more spades and fewer than four hearts. Jacoby and Texas transfers are
+  completed normally at the next required level; superaccepts are not executable yet.
+- Opener passes direct natural 3NT/6NT/7NT signoffs, natural 4M with Texas off, and weak
+  natural 2M signoffs over 1NT with Jacoby off. With Texas enabled, 4H is instead the
+  artificial transfer to 4S, so opener must not Pass.
+- Over 1NT-2NT, opener declines with the opening-range minimum, accepts at maximum, and
+  retains both Pass and 3NT at the middle HCP (16 over 15-17, 17 over 16-18).
+- Direct 4NT over natural 1NT/2NT is quantitative, not ace-asking. With a minimum 1NT
+  opener decline with Pass, with a maximum accept with 6NT, and keep both as judgment
+  alternatives at middle HCP. Over a 20-21 2NT opening, 20 declines; even at 21 HCP,
+  accepting a balanced 11-12 HCP invitation depends on trick-taking prospects.
+  Responder's subsequent convention rebids remain separate future rules.
 - Splinters and Texas transfers are enabled so they can appear as candidate options and explanations.
 - The existing `splinters` agreement also governs opener-side splinters. Opener-side splinters
   use rank `-100` so their teaching explanation remains visible without competing with ordinary
@@ -191,6 +205,18 @@ The app should help the user practice bidding decisions using structured convent
   maximum jump shift.  For example, 1C-1H-3D because 2D is a reverse, pushing partner to 3C.
 - After `1m-1NT`, a natural `3NT` rebid is 20-21 HCP with semi-balanced but not strict-balanced
   shape.  A strict-balanced 20-21 HCP hand belongs in the 2NT opening.
+- After a standard natural `1m-2m` minimum raise, opener passes with 12-16 total points,
+  raises the agreed minor to three with 17-18, and usually bids 3NT with 19+ total points.
+  A very long seven-card-or-longer minor with extreme distribution can keep five of the minor
+  available as a lower-ranked judgment alternative.
+- After a standard natural `1m-3m` limit raise, a bad 12-13-total-point minimum can Pass; with
+  14+ total points, 3NT is the usual game target.  With 17+ total points, a seven-card-or-longer
+  agreed minor, and extreme distribution, five of the minor remains a lower-ranked alternative.
+- Minor-raise 3NT rules do not hard-require opener to hold full stoppers in all outside suits.
+  Guidance uses A, Kx or longer, or Qxx or longer as a conservative full-stopper heuristic when
+  human judgment makes stoppers relevant; Qx, Jxx, and lead/declaring-position-dependent holdings
+  remain judgment cases.  Inverted minors and stopper-showing continuations are not executable
+  treatments in the current standard natural-minor-raise model.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.
@@ -200,8 +226,11 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Pending Bidding Work
 
-- Implement opener continuations after 1NT/2NT openings, then revisit opener after a minor raise and
-  after responder's invitational notrump response before moving to responder's rebid.
+- Next finish the remaining opener rebid after a suit opening and an invitational notrump
+  response. Then audit early-auction gaps, review weak preempts
+  and their responses with pages 16-17, and implement selective overcalls, advances, and
+  takeout doubles. Defer responder rebids until ordinary openings, responses, and opener
+  rebids are more complete. `advancing` is responding to partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
   not a current candidate, but no specific rejection reason was recorded."  Do not assume current

@@ -12,6 +12,136 @@ import { cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo,
 //// Bidding Rule Bid Refinements
 ///
 
+/// refineNtStaymanReply selects the reply one level above a natural 1NT or 2NT opening.
+/// Separate declarative rules decide whether opener has no four-card major, hearts, or spades.
+export function refineNtStaymanReply (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain !== 'NT' ||
+      (opening.level !== 1 && opening.level !== 2) ||
+      response.strain !== 'C' || response.level !== opening.level + 1) {
+    return { calls: [], telemetryLines: ['This is not a 1NT/2NT Stayman auction.'] };
+  }
+  const level = opening.level + 1;
+  return {
+    calls: calls.filter((call) => parseSuitBid(call)?.level === level),
+    telemetryLines: [`Stayman replies are at the ${level} level.`],
+  };
+}
+
+/// Normal Jacoby completion is compulsory; this first treatment does not model superaccepts.
+export function refineNtJacobyCompletion (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain !== 'NT' ||
+      (opening.level !== 1 && opening.level !== 2) ||
+      response.level !== opening.level + 1) {
+    return { calls: [], telemetryLines: ['This is not a 1NT/2NT Jacoby transfer.'] };
+  }
+  const target = response.strain === 'D' ? 'H' : response.strain === 'H' ? 'S' : null;
+  const wanted = target === null ? null : `${response.level}${target}` as SuitBid;
+  return {
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null ? ['Not a Jacoby transfer call.']
+      : [`Complete the Jacoby transfer with ${wanted}.`],
+  };
+}
+
+/// Texas over either natural notrump opening always completes at the four level.
+export function refineNtTexasCompletion (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain !== 'NT' ||
+      (opening.level !== 1 && opening.level !== 2) || response.level !== 4) {
+    return { calls: [], telemetryLines: ['This is not a 1NT/2NT Texas transfer.'] };
+  }
+  const wanted: Call | null = response.strain === 'D' ? '4H'
+    : response.strain === 'H' ? '4S' : null;
+  return {
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null ? ['Not a Texas transfer call.']
+      : [`Complete the Texas transfer with ${wanted}.`],
+  };
+}
+
+/// Natural NT game and slam signoffs require Pass, never acceptance of an invitation.
+export function openerNtNotrumpSignoffApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.strain === 'NT' &&
+    (opening.level === 1 || opening.level === 2) &&
+    (response === '3NT' || response === '6NT' || response === '7NT');
+  return { success, telemetryLines: [success ? 'PASS: natural NT signoff.'
+    : 'FAIL: responder has not made a natural NT signoff.'] };
+}
+
+/// A direct 4H/4S is a natural game signoff only when Texas is disabled.
+export function openerNtNaturalMajorGameApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.strain === 'NT' &&
+    (opening.level === 1 || opening.level === 2) &&
+    (response === '4H' || response === '4S');
+  return { success, telemetryLines: [success ? 'PASS: natural major game signoff.'
+    : 'FAIL: not a natural major game signoff.'] };
+}
+
+/// Without Jacoby, a natural weak major response to 1NT ends the auction at 2H/2S.
+export function openerNtWeakMajorSignoffApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.level === 1 && opening.strain === 'NT' &&
+    (response === '2H' || response === '2S');
+  return { success, telemetryLines: [success ? 'PASS: natural weak major signoff.'
+    : 'FAIL: not a weak major signoff over 1NT.'] };
+}
+
+/// A natural 2NT response invites game after 1NT. The middle HCP is a judgment case:
+/// keep both Pass and 3NT instead of forcing either choice on every balanced opener.
+export function openerNtGameInvitationApplies (_call: Call, context: RuleEvalContext,
+                                               system: BiddingSystem, accept: boolean):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const isInvitation = opening?.level === 1 && opening.strain === 'NT' && response === '2NT';
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  // At the middle value either action can be reasonable; upgrades below the range decline.
+  const strengthApplies = accept ? hcp >= minimum + 1 : hcp <= minimum + 1;
+  const success = isInvitation && strengthApplies;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: 1NT-2NT invitation: ${accept ? 'accept' : 'decline'} ` +
+    `with ${hcp} HCP under the ${system.oneNtOpening} agreement.`,
+  ] };
+}
+
+/// Quantitative 4NT invites a small slam, not Blackwood. A 21-HCP 2NT opener may
+/// decline: opposite responder's 11-12 HCP, slam remains a judgment call.
+export function openerNtQuantitativeInvitationApplies (_call: Call, context: RuleEvalContext,
+                                                       system: BiddingSystem, accept: boolean):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const openingLevel = opening?.strain === 'NT' ? opening.level : null;
+  if (response !== '4NT' || (openingLevel !== 1 && openingLevel !== 2)) {
+    return { success: false, telemetryLines: ['FAIL: not a quantitative 4NT response to 1NT/2NT.'] };
+  }
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const strengthApplies = openingLevel === 1
+    ? (accept ? hcp >= minimum + 1 : hcp <= minimum + 1)
+    : (accept ? hcp >= 21 : hcp <= 21);
+  return { success: strengthApplies, telemetryLines: [
+    `${strengthApplies ? 'PASS' : 'FAIL'}: quantitative 4NT ${accept ? 'acceptance' : 'decline'} ` +
+    `with a ${hcp}-HCP ${openingLevel}NT opener.`,
+  ] };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.

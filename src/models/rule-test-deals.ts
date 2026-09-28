@@ -691,6 +691,134 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
 /// Major-opening buckets are filled incrementally as positive deals are evaluator-verified.
 
 ///
+//// Opener rebids after responder raises a minor opening
+///
+export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1D-2D-Pass: a 13-total-point opener declines responder\'s minimum minor raise.',
+    practiceAuction: ['1D', 'Pass', '2D', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-simple-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['3D', '3NT', '5D'],
+    north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
+    south: { S: 'J6', H: '63', D: 'KQ74', C: 'QT943' },
+  },
+  {
+    description: '1C-2C-3C: 16 HCP plus one club length point gives the medium 17-total-point ' +
+                 'range, so opener invites game by raising the agreed minor.',
+    practiceAuction: ['1C', 'Pass', '2C', 'Pass', '3C'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-minor-w/-raise-to-two'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3C', ruleIds: ['opener-rebid-raise-to-three-after-minor-simple-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass', '3NT', '5C'],
+    north: { S: 'AQ74', H: 'K72', D: '6', C: 'AQJ85' },
+    south: { S: 'J82', H: '84', D: 'K72', C: 'KT974' },
+  },
+  {
+    description: '1D-2D-3NT: a 19-HCP balanced maximum usually chooses notrump game after ' +
+                 'responder\'s minimum diamond raise.',
+    practiceAuction: ['1D', 'Pass', '2D', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-simple-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass', '3D', '5D'],
+    north: { S: 'AQ3', H: 'K7', D: 'AQ84', C: 'KJ72' },
+    south: { S: '865', H: '942', D: 'KJ63', C: 'Q85' },
+  },
+  {
+    description: '1C-2C-3NT: a seven-card club suit and extreme 3-2-1-7 shape keep five clubs ' +
+                 'as a modeled judgment alternative behind the usual 3NT game.',
+    practiceAuction: ['1C', 'Pass', '2C', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-minor-w/-raise-to-two'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-simple-raise'] },
+      { call: '5C', ruleIds: ['opener-rebid-game-minor-after-minor-simple-raise'] },
+    ],
+    expectedOpenerRebidCallOrder: [['3NT', '5C']],
+    rejectedOpenerRebidCalls: ['Pass', '3C'],
+    north: { S: 'AQ4', H: 'K3', D: '6', C: 'AKJ9864' },
+    south: { S: 'J82', H: 'Q74', D: 'K2', C: 'Q7532' },
+  },
+  {
+    description: '1C-3C-Pass: a 12-total-point opener declines the 11-HCP minor limit raise.',
+    practiceAuction: ['1C', 'Pass', '3C', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-to-minor-w/-limit-raise'] },
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-limit-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT', '5C'],
+    north: { S: 'K84', H: 'J72', D: 'A92', C: 'KJ85' },
+    south: { S: '962', H: 'AQ8', D: 'K7', C: 'QT974' },
+  },
+  {
+    description: '1D-3D-3NT: a useful 14-HCP opener accepts the diamond limit raise in the usual ' +
+                 'notrump game.',
+    practiceAuction: ['1D', 'Pass', '3D', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3D', ruleIds: ['respond-to-minor-w/-limit-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-limit-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass', '5D'],
+    north: { S: 'K84', H: 'A72', D: 'AQJ92', C: '85' },
+    south: { S: 'Q62', H: 'KJ4', D: 'K8743', C: 'Q9' },
+  },
+  {
+    description: '1D-3D-3NT: a seven-card diamond suit and extreme distribution keep five diamonds ' +
+                 'as a natural judgment alternative behind the usual 3NT acceptance.',
+    practiceAuction: ['1D', 'Pass', '3D', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3D', ruleIds: ['respond-to-minor-w/-limit-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-limit-raise'] },
+      { call: '5D', ruleIds: ['opener-rebid-game-minor-after-minor-limit-raise'] },
+    ],
+    expectedOpenerRebidCallOrder: [['3NT', '5D']],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AQ4', H: 'K3', D: 'AKJ9864', C: '6' },
+    south: { S: 'K82', H: 'Q74', D: 'QT753', C: 'KJ' },
+  },
+];
+
+///
 //// Opener rebids after a major opening and 1NT response
 ///
 export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
@@ -1376,8 +1504,9 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
 
 /// This bucket adds response situations missing from the opener-rebid practice corpus; it is not
 /// an exhaustive response quiz.  Those rebid buckets already exercise a one-level new-suit
-/// response, both Standard and 2/1 1D-2C, and balanced 1NT and invitational 2NT responses.
-/// Their expectedResponseCalls still count toward whole-corpus coverage.  The rare 4NT
+/// response, both Standard and 2/1 1D-2C, balanced 1NT and invitational 2NT responses, and
+/// both ordinary minor raises.  Their expectedResponseCalls still count toward whole-corpus
+/// coverage.  The rare 4NT
 /// Blackwood response is intentionally left without a dedicated practice deal.
 export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   {
@@ -1391,31 +1520,6 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: 'Q62', H: 'J94', D: 'T743', C: 'Q64' },
-  },
-  {
-    description: '1D-2D: minimum 8 HCP with exactly four diamonds and no four-card major; four-card support is sufficient after 1D.',
-    practiceAuction: ['1D', 'Pass', '2D'],
-    expectedOpeningCalls: [
-      { call: '1D', ruleIds: ['open-convenient-minor'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] },
-    ],
-    north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
-    south: { S: 'J6', H: '63', D: 'KQ74', C: 'QT943' },
-  },
-  {
-    description: '1C: 11 HCP, five clubs and balanced 5-3-3-2; the 3C limit raise and invitational 2NT are both modeled responses.',
-    practiceAuction: ['1C', 'Pass', '3C'],
-    expectedOpeningCalls: [
-      { call: '1C', ruleIds: ['open-convenient-minor'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3C', ruleIds: ['respond-to-minor-w/-limit-raise'] },
-      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
-    ],
-    north: { S: 'K84', H: 'J72', D: 'A92', C: 'KJ85' },
-    south: { S: '962', H: 'AQ8', D: 'K7', C: 'QT974' },
   },
   {
     description: '1C-3NT: 14 HCP, balanced 4-3-3-3 with no four-card major or five-card club fit; place the contract in notrump game.',
@@ -1777,89 +1881,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'T62', H: 'Q87', D: '96', C: 'KJT83' },
   },
   {
-    description: '1NT, 15-17 opener: 9-HCP balanced responder invites with 2NT; natural invitation is not a game signoff.',
-    practiceAuction: ['1NT', 'Pass', '2NT'],
-    requiredSystem: { oneNtOpening: '15-17' },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
-    north: { S: 'AK63', H: 'QJ62', D: 'QT9', C: 'KQ' },
-    south: { S: 'J82', H: 'AK7', D: 'J8542', C: '54' },
-  },
-  {
-    description: '1NT, 15-17 opener: 10-HCP balanced responder bids 3NT directly rather than inviting.',
-    practiceAuction: ['1NT', 'Pass', '3NT'],
-    requiredSystem: { oneNtOpening: '15-17' },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3NT', ruleIds: ['respond-to-1nt-w/-3nt-10-15-balanced'] },
-    ],
-    rejectedResponseCalls: ['2NT'],
-    north: { S: 'A532', H: 'KJ92', D: 'A7', C: 'QJT' },
-    south: { S: 'Q7', H: 'Q64', D: 'QJ4', C: 'K8432' },
-  },
-  {
-    description: '1NT: 12-HCP responder with four hearts asks for a four-card major using Stayman 2C.',
-    practiceAuction: ['1NT', 'Pass', '2C'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
-    ],
-    north: { S: 'KQJ3', H: 'J4', D: 'K832', C: 'AQ6' },
-    south: { S: 'AT5', H: 'AK76', D: '9', C: 'JT543' },
-  },
-  {
-    description: '1NT: 8-HCP responder with five hearts and four spades uses Stayman 2C before a Jacoby transfer; both majors need exploration.',
-    practiceAuction: ['1NT', 'Pass', '2C'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
-    ],
-    rejectedResponseCalls: ['2D', '2H'],
-    north: { S: 'AQJ3', H: 'JT65', D: 'AK', C: 'Q73' },
-    south: { S: 'KT74', H: 'K9742', D: 'Q94', C: 'T' },
-  },
-  {
-    description: '1NT: 6-HCP responder with five hearts transfers with 2D rather than passing 1NT.',
-    practiceAuction: ['1NT', 'Pass', '2D'],
-    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2D', ruleIds: ['respond-to-1nt-w/-transfer-to-hearts'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    north: { S: 'AT42', H: 'AK', D: 'KJ4', C: '9764' },
-    south: { S: '6', H: 'T9763', D: 'Q532', C: 'KJ5' },
-  },
-  {
-    description: '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
-    practiceAuction: ['1NT', 'Pass', '2H'],
-    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2H', ruleIds: ['respond-to-1nt-w/-transfer-to-spades'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    north: { S: 'AK8', H: 'AT2', D: 'K652', C: 'JT4' },
-    south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
-  },
-  {
     description: '1NT: 6 HCP and five cards in each major; both 2D and 2H Jacoby transfers remain legitimate alternatives.',
     practiceAuction: ['1NT', 'Pass', '2D'],
     requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
@@ -1902,34 +1923,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'KT653', H: 'AT842', D: 'J2', C: 'K' },
   },
   {
-    description: '1NT: 14 HCP, six hearts, no four-card spade suit; Texas 4D takes priority over ordinary Jacoby 2D.',
-    practiceAuction: ['1NT', 'Pass', '4D'],
-    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true, texasTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4D', ruleIds: ['respond-to-1nt-w/-texas-transfer-to-hearts'] },
-    ],
-    rejectedResponseCalls: ['2D'],
-    north: { S: 'KQJ8', H: 'J3', D: 'AT73', C: 'A93' },
-    south: { S: 'A74', H: 'KQT752', D: 'KQ85', C: '' },
-  },
-  {
-    description: '1NT: 12 HCP, six spades, no four-card heart suit; Texas 4H takes priority over ordinary Jacoby 2H.',
-    practiceAuction: ['1NT', 'Pass', '4H'],
-    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true, texasTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4H', ruleIds: ['respond-to-1nt-w/-texas-transfer-to-spades'] },
-    ],
-    rejectedResponseCalls: ['2H'],
-    north: { S: 'K5', H: 'AKJ8', D: 'A87', C: '9876' },
-    south: { S: 'AJT942', H: 'Q6', D: 'QJ54', C: 'Q' },
-  },
-  {
     description: '1NT: 8 HCP and six clubs headed by KQ; natural 3C invites, with good suit quality illustrated by the hand but not checked by the current rule.',
     practiceAuction: ['1NT', 'Pass', '3C'],
     requiredSystem: { oneNtOpening: '15-17' },
@@ -1943,20 +1936,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: '94', H: 'Q2', D: 'J62', C: 'KQ6432' },
   },
   {
-    description: '1NT: balanced 16-HCP responder invites small slam with quantitative 4NT, not Blackwood.',
-    practiceAuction: ['1NT', 'Pass', '4NT'],
-    requiredSystem: { oneNtOpening: '15-17' },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
-    north: { S: '53', H: 'AQJ4', D: 'AKT6', C: 'QT3' },
-    south: { S: 'AT9', H: 'K86', D: 'Q97', C: 'AK82' },
-  },
-  {
     description: '1NT: 9 HCP and six diamonds headed by AK; natural 3D invites, with suit quality illustrated rather than evaluated.',
     practiceAuction: ['1NT', 'Pass', '3D'],
     requiredSystem: { oneNtOpening: '15-17' },
@@ -1968,22 +1947,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K63', H: 'AJ7', D: 'QJ6', C: 'KJT3' },
     south: { S: '2', H: '98', D: 'AKT874', C: 'Q987' },
-  },
-  // Natural responses when the partnership does not use Stayman, Jacoby, or Texas transfers.
-  {
-    description: '1NT: with both Stayman and Jacoby off, 6 HCP and five hearts give a natural ' +
-                 'weak 2H signoff, not an artificial 2D transfer.',
-    practiceAuction: ['1NT', 'Pass', '2H'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: false, jacobyTransfers: false,
-                      texasTransfers: false },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2H', ruleIds: ['respond-to-1nt-w/-2h-2s-natural-signoff'] },
-    ],
-    north: { S: 'AT42', H: 'AK', D: 'KJ4', C: '9764' },
-    south: { S: '6', H: 'T9763', D: 'Q532', C: 'KJ5' },
   },
   {
     description: '1NT: without Stayman or transfers, 2 HCP and five spades give a natural ' +
@@ -2002,22 +1965,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
   },
   {
-    description: '1NT: with neither Stayman nor Jacoby, an unbalanced 8-HCP hand with ' +
-                 'five hearts and four spades uses the basic natural 2NT invitation. ' +
-                 'This rule deliberately permits an unbalanced invitation when both are off.',
-    practiceAuction: ['1NT', 'Pass', '2NT'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: false, jacobyTransfers: false,
-                      texasTransfers: false },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
-    ],
-    north: { S: 'AQJ3', H: 'JT65', D: 'AK', C: 'Q73' },
-    south: { S: 'KT74', H: 'K9742', D: 'Q94', C: 'T' },
-  },
-  {
     description: '1NT: without Stayman or transfers, 12 HCP and exactly five spades ' +
                  'qualify for natural, forcing 3S; the balanced 3NT fallback is eliminated.',
     practiceAuction: ['1NT', 'Pass', '3S'],
@@ -2032,23 +1979,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3NT'],
     north: { S: 'JT53', H: 'AKJ3', D: 'AT8', C: 'Q9' },
     south: { S: 'AK842', H: '76', D: 'Q54', C: 'K74' },
-  },
-  // Texas off while Stayman and Jacoby remain on: natural game replaces the Texas transfer.
-  {
-    description: '1NT: 14 HCP and six hearts, with Texas off but Jacoby on: natural 4H ' +
-                 'is the direct game route and suppresses the otherwise available 2D transfer.',
-    practiceAuction: ['1NT', 'Pass', '4H'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true,
-                      texasTransfers: false },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4H', ruleIds: ['respond-to-1nt-w/-4h-4s-natural-game'] },
-    ],
-    rejectedResponseCalls: ['2D', '4D'],
-    north: { S: 'KQJ8', H: 'J3', D: 'AT73', C: 'A93' },
-    south: { S: 'A74', H: 'KQT752', D: 'KQ85', C: '' },
   },
   {
     description: '1NT: 12 HCP and six spades, with Texas off but Jacoby on: natural 4S ' +
@@ -2066,23 +1996,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K5', H: 'AKJ8', D: 'A87', C: '9876' },
     south: { S: 'AJT942', H: 'Q6', D: 'QJ54', C: 'Q' },
   },
-  // Ordinary conventions on: preserve two further distinct choices, not the full combination matrix.
-  {
-    description: '1NT: 9 HCP and six hearts plus four spades uses Stayman 2C first, ' +
-                 'rather than Jacoby 2D or Texas 4D; explore a possible four-four spade fit.',
-    practiceAuction: ['1NT', 'Pass', '2C'],
-    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true,
-                      texasTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
-    ],
-    rejectedResponseCalls: ['2D', '4D'],
-    north: { S: 'T3', H: 'Q72', D: 'AJ4', C: 'AKJ83' },
-    south: { S: 'K752', H: 'KT9843', D: 'K7', C: '4' },
-  },
   {
     description: '1NT: 16 HCP and six hearts without another four-card major: direct, ' +
                  'forcing 3H shows slam interest instead of an ordinary Jacoby 2D transfer.',
@@ -2098,8 +2011,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'QJT8', H: 'J4', D: 'AK87', C: 'AJ8' },
     south: { S: 'A67', H: 'KQ9753', D: 'QT', C: 'KQ' },
   },
-  // 16-18 opening agreement: selected boundary and convention contrasts, paired with
-  // identical 15-17 boards where the different opening range changes the response.
   {
     description: '1NT, 16-18: balanced 6 HCP without a four-card major passes; 7 HCP starts the invitation.',
     practiceAuction: ['1NT', 'Pass', 'Pass'],
@@ -2113,20 +2024,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AK5', H: 'KQ9', D: '932', C: 'A754' },
     south: { S: 'J92', H: '832', D: 'K876', C: 'Q83' },
-  },
-  {
-    description: '1NT, 16-18: balanced 7 HCP invites with 2NT; the same hand passes over 15-17.',
-    practiceAuction: ['1NT', 'Pass', '2NT'],
-    requiredSystem: { oneNtOpening: "16-18" },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
-    ],
-    rejectedResponseCalls: ['Pass', '3NT'],
-    north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AJ' },
-    south: { S: 'QT9', H: 'AJT', D: 'T763', C: '852' },
   },
   {
     description: 'The same balanced 7-HCP hand over 15-17 passes rather than inviting with 2NT.',
@@ -2153,20 +2050,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '3NT', ruleIds: ['respond-to-1nt-w/-3nt-10-15-balanced'] },
     ],
     rejectedResponseCalls: ['2NT'],
-    north: { S: 'AKT', H: 'KJ63', D: '93', C: 'AJ93' },
-    south: { S: 'Q64', H: 'A84', D: 'T876', C: 'K72' },
-  },
-  {
-    description: 'The same balanced 9-HCP hand over 15-17 invites with 2NT rather than bidding game.',
-    practiceAuction: ['1NT', 'Pass', '2NT'],
-    requiredSystem: { oneNtOpening: "15-17" },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
     north: { S: 'AKT', H: 'KJ63', D: '93', C: 'AJ93' },
     south: { S: 'Q64', H: 'A84', D: 'T876', C: 'K72' },
   },
@@ -2282,20 +2165,6 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J9', H: 'JT3', D: '63', C: 'KQT652' },
   },
   {
-    description: '1NT, 16-18: balanced 15 HCP makes a quantitative 4NT slam invitation, not a game signoff.',
-    practiceAuction: ['1NT', 'Pass', '4NT'],
-    requiredSystem: { oneNtOpening: "16-18" },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
-    north: { S: 'AK7', H: 'K9762', D: 'KT2', C: 'A3' },
-    south: { S: 'QT2', H: 'AJ8', D: 'AJ85', C: 'QJT' },
-  },
-  {
     description: 'The same balanced 15-HCP hand over 15-17 places the contract in 3NT, not quantitative 4NT.',
     practiceAuction: ['1NT', 'Pass', '3NT'],
     requiredSystem: { oneNtOpening: "15-17" },
@@ -2372,21 +2241,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'QJ2', H: 'T93', D: '943', C: 'T642' },
   },
   {
-    description: '2NT: 4 balanced HCP bid 3NT even opposite a minimum 20-HCP opener; our ' +
-                 'source uses this threshold, not a rigid 25 combined HCP.',
-    practiceAuction: ['2NT', 'Pass', '3NT'],
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3NT', ruleIds: ['respond-to-2nt-w/-3nt-4-10-balanced'] },
-    ],
-    rejectedResponseCalls: ['Pass', '4NT'],
-    rejectedOpeningCalls: ['1C', '1D'],
-    north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
-    south: { S: 'T76', H: '753', D: 'T86', C: 'AT92' },
-  },
-  {
     description: '2NT: 0 HCP and six clubs with no useful major-suit convention still permit ' +
                  'Pass; balanced shape is not required.',
     practiceAuction: ['2NT', 'Pass', 'Pass'],
@@ -2402,21 +2256,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: '75', H: '76', D: '986', C: 'T65432' },
   },
   {
-    description: '2NT: with 0 HCP and six hearts, transfer with 3D when Jacoby is on; the ' +
-                 'natural Pass fallback is suppressed.',
-    practiceAuction: ['2NT', 'Pass', '3D'],
-    requiredSystem: { jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3D', ruleIds: ['respond-to-2nt-w/-transfer-to-hearts'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
-    south: { S: '85', H: 'T87543', D: '532', C: '92' },
-  },
-  {
     description: '2NT: the same 0-HCP six-heart hand may Pass with Jacoby and Texas off; no ' +
                  'forcing natural 3H qualifies.',
     practiceAuction: ['2NT', 'Pass', 'Pass'],
@@ -2430,37 +2269,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3H'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: '85', H: 'T87543', D: '532', C: '92' },
-  },
-  {
-    description: '2NT: 2 HCP and five spades transfer with 3H rather than passing a weak ' +
-                 'balanced hand.',
-    practiceAuction: ['2NT', 'Pass', '3H'],
-    requiredSystem: { jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3H', ruleIds: ['respond-to-2nt-w/-transfer-to-spades'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
-    south: { S: '87532', H: '975', D: 'Q86', C: '42' },
-  },
-  {
-    description: '2NT: 4 HCP and four hearts use 3C Stayman to look for a 4-4 fit; direct 3NT ' +
-                 'is suppressed.',
-    practiceAuction: ['2NT', 'Pass', '3C'],
-    requiredSystem: { stayman: true },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3C', ruleIds: ['respond-to-2nt-w/-stayman'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
-    rejectedOpeningCalls: ['1C', '1D'],
-    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
-    south: { S: 'KJ6', H: 'T975', D: '752', C: '542' },
   },
   {
     description: '2NT: with six hearts and four spades, use Stayman first rather than a heart ' +
@@ -2509,21 +2317,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'T9754', H: 'J8654', D: '83', C: 'K' },
   },
   {
-    description: '2NT: 5 HCP and six hearts take the fast Texas 4D game route; ordinary 3D ' +
-                 'Jacoby is suppressed.',
-    practiceAuction: ['2NT', 'Pass', '4D'],
-    requiredSystem: { jacobyTransfers: true, texasTransfers: true },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4D', ruleIds: ['respond-to-2nt-w/-texas-transfer-to-hearts'] },
-    ],
-    rejectedResponseCalls: ['3D'],
-    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
-    south: { S: 'Q9', H: 'J98643', D: 'Q63', C: '64' },
-  },
-  {
     description: '2NT: the same six-heart hand bids natural 4H for game when Texas is off; the ' +
                  'slower Jacoby route is suppressed.',
     practiceAuction: ['2NT', 'Pass', '4H'],
@@ -2537,36 +2330,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3D'],
     north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
     south: { S: 'Q9', H: 'J98643', D: 'Q63', C: '64' },
-  },
-  {
-    description: '2NT: 5 HCP and six spades take the fast Texas 4H route to 4S when the ' +
-                 'convention is enabled.',
-    practiceAuction: ['2NT', 'Pass', '4H'],
-    requiredSystem: { jacobyTransfers: true, texasTransfers: true },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4H', ruleIds: ['respond-to-2nt-w/-texas-transfer-to-spades'] },
-    ],
-    rejectedResponseCalls: ['3H'],
-    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
-    south: { S: '987652', H: '87', D: 'Q74', C: 'K6' },
-  },
-  {
-    description: '2NT: the same six-spade hand responds natural 4S when Texas is disabled; ' +
-                 'ordinary 3H Jacoby is suppressed.',
-    practiceAuction: ['2NT', 'Pass', '4S'],
-    requiredSystem: { jacobyTransfers: true, texasTransfers: false },
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4S', ruleIds: ['respond-to-2nt-w/-4h-4s-natural-game'] },
-    ],
-    rejectedResponseCalls: ['3H'],
-    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
-    south: { S: '987652', H: '87', D: 'Q74', C: 'K6' },
   },
   {
     description: '2NT: with 10 HCP and six hearts, Texas 4D still places the game without ' +
@@ -2599,34 +2362,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q4', H: 'KT9875', D: 'Q62', C: 'A5' },
   },
   {
-    description: '2NT: with 11 balanced HCP, 4NT is quantitative and invites small slam, ' +
-                 'rather than signing off in 3NT.',
-    practiceAuction: ['2NT', 'Pass', '4NT'],
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4NT', ruleIds: ['respond-to-2nt-w/-4nt-11-12-balanced'] },
-    ],
-    rejectedResponseCalls: ['3NT'],
-    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
-    south: { S: 'QJ2', H: 'KJ5', D: '987', C: 'AT84' },
-  },
-  {
-    description: '2NT: with 13 balanced HCP, bid 6NT directly. Rare Gerber may also appear, ' +
-                 'but is not a general slam try.',
-    practiceAuction: ['2NT', 'Pass', '6NT'],
-    expectedOpeningCalls: [
-      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
-    ],
-    expectedResponseCalls: [
-      { call: '6NT', ruleIds: ['respond-to-2nt-w/-6nt-13-15-balanced'] },
-    ],
-    rejectedResponseCalls: ['4NT'],
-    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
-    south: { S: 'KJ5', H: 'AT7', D: '986', C: 'AJ73' },
-  },
-  {
     description: '2NT: without Jacoby, a five-heart, 4-HCP unbalanced hand can bid natural ' +
                  'forcing 3H; do not confuse it with an artificial transfer.',
     practiceAuction: ['2NT', 'Pass', '3H'],
@@ -2639,6 +2374,663 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'J5', H: 'KT986', D: 'T732', C: '54' },
+  },
+];
+
+/// Existing response-practice deals extended through opener's first notrump continuation.
+/// Moving them here avoids duplicate physical boards in both dropdown groups.
+export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1NT, 15-17 opener: 10-HCP balanced responder bids 3NT directly rather than inviting.',
+    practiceAuction: ['1NT', 'Pass', '3NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-1nt-w/-3nt-10-15-balanced'] },
+    ],
+    rejectedResponseCalls: ['2NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-nt-signoff'] },
+    ],
+    north: { S: 'A532', H: 'KJ92', D: 'A7', C: 'QJT' },
+    south: { S: 'Q7', H: 'Q64', D: 'QJ4', C: 'K8432' },
+  },
+  {
+    description: '1NT: 12-HCP responder with four hearts asks for a four-card major using Stayman 2C.',
+    practiceAuction: ['1NT', 'Pass', '2C', 'Pass', '2S'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-show-spades-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['2D', '2H'],
+    north: { S: 'KQJ3', H: 'J4', D: 'K832', C: 'AQ6' },
+    south: { S: 'AT5', H: 'AK76', D: '9', C: 'JT543' },
+  },
+  {
+    description: '1NT: 8-HCP responder with five hearts and four spades uses Stayman 2C before a Jacoby transfer; both majors need exploration.',
+    practiceAuction: ['1NT', 'Pass', '2C', 'Pass', '2H'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
+    ],
+    rejectedResponseCalls: ['2D', '2H'],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-show-hearts-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['2D', '2S'],
+    north: { S: 'AQJ3', H: 'JT65', D: 'AK', C: 'Q73' },
+    south: { S: 'KT74', H: 'K9742', D: 'Q94', C: 'T' },
+  },
+  {
+    description: '1NT: 6-HCP responder with five hearts transfers with 2D rather than passing 1NT.',
+    practiceAuction: ['1NT', 'Pass', '2D', 'Pass', '2H'],
+    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-1nt-w/-transfer-to-hearts'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AT42', H: 'AK', D: 'KJ4', C: '9764' },
+    south: { S: '6', H: 'T9763', D: 'Q532', C: 'KJ5' },
+  },
+  {
+    description: '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
+    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S'],
+    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-1nt-w/-transfer-to-spades'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK8', H: 'AT2', D: 'K652', C: 'JT4' },
+    south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
+  },
+  {
+    description: '1NT: 14 HCP, six hearts, no four-card spade suit; Texas 4D takes priority over ordinary Jacoby 2D.',
+    practiceAuction: ['1NT', 'Pass', '4D', 'Pass', '4H'],
+    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true, texasTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4D', ruleIds: ['respond-to-1nt-w/-texas-transfer-to-hearts'] },
+    ],
+    rejectedResponseCalls: ['2D'],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-complete-texas-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'KQJ8', H: 'J3', D: 'AT73', C: 'A93' },
+    south: { S: 'A74', H: 'KQT752', D: 'KQ85', C: '' },
+  },
+  {
+    description: '1NT: 12 HCP, six spades, no four-card heart suit; Texas 4H takes priority over ordinary Jacoby 2H.',
+    practiceAuction: ['1NT', 'Pass', '4H', 'Pass', '4S'],
+    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true, texasTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4H', ruleIds: ['respond-to-1nt-w/-texas-transfer-to-spades'] },
+    ],
+    rejectedResponseCalls: ['2H'],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-complete-texas-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'K5', H: 'AKJ8', D: 'A87', C: '9876' },
+    south: { S: 'AJT942', H: 'Q6', D: 'QJ54', C: 'Q' },
+  },
+  {
+    description: '1NT: with both Stayman and Jacoby off, 6 HCP and five hearts give a natural ' +
+                 'weak 2H signoff, not an artificial 2D transfer.',
+    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: false, jacobyTransfers: false,
+                      texasTransfers: false },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-1nt-w/-2h-2s-natural-signoff'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-1nt-weak-natural-major'] },
+    ],
+    north: { S: 'AT42', H: 'AK', D: 'KJ4', C: '9764' },
+    south: { S: '6', H: 'T9763', D: 'Q532', C: 'KJ5' },
+  },
+  {
+    description: '1NT: 14 HCP and six hearts, with Texas off but Jacoby on: natural 4H ' +
+                 'is the direct game route and suppresses the otherwise available 2D transfer.',
+    practiceAuction: ['1NT', 'Pass', '4H', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true,
+                      texasTransfers: false },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4H', ruleIds: ['respond-to-1nt-w/-4h-4s-natural-game'] },
+    ],
+    rejectedResponseCalls: ['2D', '4D'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-major-game'] },
+    ],
+    rejectedOpenerRebidCalls: ['4S'],
+    north: { S: 'KQJ8', H: 'J3', D: 'AT73', C: 'A93' },
+    south: { S: 'A74', H: 'KQT752', D: 'KQ85', C: '' },
+  },
+  {
+    description: '1NT: 9 HCP and six hearts plus four spades uses Stayman 2C first, ' +
+                 'rather than Jacoby 2D or Texas 4D; explore a possible four-four spade fit.',
+    practiceAuction: ['1NT', 'Pass', '2C', 'Pass', '2D'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: true, jacobyTransfers: true,
+                      texasTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
+    ],
+    rejectedResponseCalls: ['2D', '4D'],
+    expectedOpenerRebidCalls: [
+      { call: '2D', ruleIds: ['opener-rebid-deny-major-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['2H', '2S'],
+    north: { S: 'T3', H: 'Q72', D: 'AJ4', C: 'AKJ83' },
+    south: { S: 'K752', H: 'KT9843', D: 'K7', C: '4' },
+  },
+  {
+    description: '1NT-2C-2H: opener has exactly four hearts and only three spades, ' +
+                 'so answer Stayman with hearts.',
+    practiceAuction: ['1NT', 'Pass', '2C', 'Pass', '2H'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2H', ruleIds: ['opener-rebid-show-hearts-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['2D', '2S'],
+    north: { S: 'A73', H: 'KQJ6', D: 'K85', C: 'Q94' },
+    south: { S: 'K84', H: 'A982', D: 'QJT', C: 'J75' },
+  },
+  {
+    description: '1NT: with neither Stayman nor Jacoby, an unbalanced 8-HCP hand with ' +
+                 'five hearts and four spades uses the basic natural 2NT invitation. ' +
+                 'This rule deliberately permits an unbalanced invitation when both are off.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { oneNtOpening: '15-17', stayman: false, jacobyTransfers: false,
+                      texasTransfers: false },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AQJ3', H: 'JT65', D: 'AK', C: 'Q73' },
+    south: { S: 'KT74', H: 'K9742', D: 'Q94', C: 'T' },
+  },
+  {
+    description: '1NT 15-17, maximum 17 HCP: accept the balanced 9-HCP 2NT invitation with 3NT.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK63', H: 'QJ62', D: 'QT9', C: 'KQ' },
+    south: { S: 'J82', H: 'AK7', D: 'J8542', C: '54' },
+  },
+  {
+    description: '1NT 15-17, 16 HCP: a balanced 9-HCP 2NT invitation allows Pass or 3NT by judgment.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: "15-17" },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-1nt-2nt-invitation'] },
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
+    ],
+    north: { S: 'AKT', H: 'KJ63', D: '93', C: 'AJ93' },
+    south: { S: 'Q64', H: 'A84', D: 'T876', C: 'K72' },
+  },
+  {
+    description: '1NT 16-18, 17 HCP: retain Pass and 3NT against a balanced 7-HCP invitation.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: "16-18" },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    rejectedResponseCalls: ['Pass', '3NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-1nt-2nt-invitation'] },
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
+    ],
+    north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AJ' },
+    south: { S: 'QT9', H: 'AJT', D: 'T763', C: '852' },
+  },
+  {
+    description: '1NT 15-17, middle 16 HCP: Pass or 6NT are judgment options over quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+      { call: '6NT', ruleIds: ['opener-rebid-6nt-after-nt-4nt-quantitative-invitation'] },
+    ],
+    north: { S: '53', H: 'AQJ4', D: 'AKT6', C: 'QT3' },
+    south: { S: 'AT9', H: 'K86', D: 'Q97', C: 'AK82' },
+  },
+  {
+    description: '1NT 16-18, middle 17 HCP: Pass or 6NT are judgment options over quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: "16-18" },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+      { call: '6NT', ruleIds: ['opener-rebid-6nt-after-nt-4nt-quantitative-invitation'] },
+    ],
+    north: { S: 'AK7', H: 'K9762', D: 'KT2', C: 'A3' },
+    south: { S: 'QT2', H: 'AJ8', D: 'AJ85', C: 'QJT' },
+  },
+  {
+    description: '1NT 15-17, minimum 15 HCP: decline the 9-HCP 2NT game invitation.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-1nt-2nt-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'AK63', H: 'QJ62', D: 'QT9', C: 'QJ' },
+    south: { S: 'J82', H: 'AK7', D: 'J8542', C: '54' },
+  },
+  {
+    description: '1NT 16-18, minimum 16 HCP: decline the balanced 7-HCP 2NT invitation.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '16-18' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-1nt-2nt-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AT' },
+    south: { S: 'QT9', H: 'AJT', D: 'T763', C: '852' },
+  },
+  {
+    description: '1NT 16-18, maximum 18 HCP: accept the balanced 7-HCP 2NT invitation.',
+    practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { oneNtOpening: '16-18' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AQ' },
+    south: { S: 'QT9', H: 'AJT', D: 'T763', C: '852' },
+  },
+  {
+    description: '1NT 15-17, minimum 15 HCP: decline a balanced 16-HCP quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['6NT'],
+    north: { S: '53', H: 'AQ94', D: 'AKT6', C: 'QT3' },
+    south: { S: 'AT9', H: 'K86', D: 'Q97', C: 'AK82' },
+  },
+  {
+    description: '1NT 15-17, maximum 17 HCP: accept a balanced 16-HCP quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', '6NT'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '6NT', ruleIds: ['opener-rebid-6nt-after-nt-4nt-quantitative-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: '53', H: 'AQJ4', D: 'AKT6', C: 'QJ3' },
+    south: { S: 'AT9', H: 'K86', D: 'Q97', C: 'AK82' },
+  },
+  {
+    description: '1NT 16-18, minimum 16 HCP: decline the balanced 15-HCP quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '16-18' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['6NT'],
+    north: { S: 'AK7', H: 'Q9762', D: 'KT2', C: 'A3' },
+    south: { S: 'QT2', H: 'AJ8', D: 'AJ85', C: 'QJT' },
+  },
+  {
+    description: '1NT 16-18, maximum 18 HCP: accept the balanced 15-HCP quantitative 4NT.',
+    practiceAuction: ['1NT', 'Pass', '4NT', 'Pass', '6NT'],
+    requiredSystem: { oneNtOpening: '16-18' },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-1nt-w/-4nt-16-17-balanced'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '6NT', ruleIds: ['opener-rebid-6nt-after-nt-4nt-quantitative-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AKJ', H: 'K9762', D: 'KT2', C: 'A3' },
+    south: { S: 'QT2', H: 'AJ8', D: 'AJ85', C: 'QJT' },
+  },
+];
+
+/// The corresponding immediate opener continuations after a natural 20-21 2NT opening.
+export const OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '2NT: 4 balanced HCP bid 3NT even opposite a minimum 20-HCP opener; our ' +
+                 'source uses this threshold, not a rigid 25 combined HCP.',
+    practiceAuction: ['2NT', 'Pass', '3NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-2nt-w/-3nt-4-10-balanced'] },
+    ],
+    rejectedResponseCalls: ['Pass', '4NT'],
+    rejectedOpeningCalls: ['1C', '1D'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-nt-signoff'] },
+    ],
+    north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
+    south: { S: 'T76', H: '753', D: 'T86', C: 'AT92' },
+  },
+  {
+    description: '2NT: with 0 HCP and six hearts, transfer with 3D when Jacoby is on; the ' +
+                 'natural Pass fallback is suppressed.',
+    practiceAuction: ['2NT', 'Pass', '3D', 'Pass', '3H'],
+    requiredSystem: { jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3D', ruleIds: ['respond-to-2nt-w/-transfer-to-hearts'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
+    south: { S: '85', H: 'T87543', D: '532', C: '92' },
+  },
+  {
+    description: '2NT: 2 HCP and five spades transfer with 3H rather than passing a weak ' +
+                 'balanced hand.',
+    practiceAuction: ['2NT', 'Pass', '3H', 'Pass', '3S'],
+    requiredSystem: { jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-to-2nt-w/-transfer-to-spades'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '3S', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
+    south: { S: '87532', H: '975', D: 'Q86', C: '42' },
+  },
+  {
+    description: '2NT: 4 HCP and four hearts use 3C Stayman to look for a 4-4 fit; direct 3NT ' +
+                 'is suppressed.',
+    practiceAuction: ['2NT', 'Pass', '3C', 'Pass', '3H'],
+    requiredSystem: { stayman: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-to-2nt-w/-stayman'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    rejectedOpeningCalls: ['1C', '1D'],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-show-hearts-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['3D', '3S'],
+    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
+    south: { S: 'KJ6', H: 'T975', D: '752', C: '542' },
+  },
+  {
+    description: '2NT: 5 HCP and six hearts take the fast Texas 4D game route; ordinary 3D ' +
+                 'Jacoby is suppressed.',
+    practiceAuction: ['2NT', 'Pass', '4D', 'Pass', '4H'],
+    requiredSystem: { jacobyTransfers: true, texasTransfers: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4D', ruleIds: ['respond-to-2nt-w/-texas-transfer-to-hearts'] },
+    ],
+    rejectedResponseCalls: ['3D'],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-complete-texas-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
+    south: { S: 'Q9', H: 'J98643', D: 'Q63', C: '64' },
+  },
+  {
+    description: '2NT: 5 HCP and six spades take the fast Texas 4H route to 4S when the ' +
+                 'convention is enabled.',
+    practiceAuction: ['2NT', 'Pass', '4H', 'Pass', '4S'],
+    requiredSystem: { jacobyTransfers: true, texasTransfers: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4H', ruleIds: ['respond-to-2nt-w/-texas-transfer-to-spades'] },
+    ],
+    rejectedResponseCalls: ['3H'],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-complete-texas-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
+    south: { S: '987652', H: '87', D: 'Q74', C: 'K6' },
+  },
+  {
+    description: '2NT: the same six-spade hand responds natural 4S when Texas is disabled; ' +
+                 'ordinary 3H Jacoby is suppressed.',
+    practiceAuction: ['2NT', 'Pass', '4S', 'Pass', 'Pass'],
+    requiredSystem: { jacobyTransfers: true, texasTransfers: false },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4S', ruleIds: ['respond-to-2nt-w/-4h-4s-natural-game'] },
+    ],
+    rejectedResponseCalls: ['3H'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-major-game'] },
+    ],
+    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
+    south: { S: '987652', H: '87', D: 'Q74', C: 'K6' },
+  },
+  {
+    description: '2NT: with 13 balanced HCP, bid 6NT directly. Rare Gerber may also appear, ' +
+                 'but is not a general slam try.',
+    practiceAuction: ['2NT', 'Pass', '6NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '6NT', ruleIds: ['respond-to-2nt-w/-6nt-13-15-balanced'] },
+    ],
+    rejectedResponseCalls: ['4NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-nt-signoff'] },
+    ],
+    north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
+    south: { S: 'KJ5', H: 'AT7', D: '986', C: 'AJ73' },
+  },
+  {
+    description: '2NT-3C-3D: opener has no four-card major, so deny a major ' +
+                 'rather than show a three-card suit.',
+    practiceAuction: ['2NT', 'Pass', '3C', 'Pass', '3D'],
+    requiredSystem: { stayman: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-to-2nt-w/-stayman'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3D', ruleIds: ['opener-rebid-deny-major-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['3H', '3S'],
+    north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
+    south: { S: 'J86', H: 'T975', D: '752', C: 'K42' },
+  },
+  {
+    description: '2NT-3C-3S: opener has four spades but only three hearts; ' +
+                 'the Stayman response must show spades.',
+    practiceAuction: ['2NT', 'Pass', '3C', 'Pass', '3S'],
+    requiredSystem: { stayman: true },
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-to-2nt-w/-stayman'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3S', ruleIds: ['opener-rebid-show-spades-after-nt-stayman'] },
+    ],
+    rejectedOpenerRebidCalls: ['3D', '3H'],
+    north: { S: 'AQ43', H: 'KQJ', D: 'AK83', C: 'Q9' },
+    south: { S: 'KJ6', H: 'T975', D: '752', C: '542' },
+  },
+  {
+    description: '2NT 20 HCP: decline the balanced 11-HCP quantitative 4NT with Pass.',
+    practiceAuction: ['2NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-2nt-w/-4nt-11-12-balanced'] },
+    ],
+    rejectedResponseCalls: ['3NT'],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+    ],
+    rejectedOpenerRebidCalls: ['6NT'],
+    north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
+    south: { S: 'QJ2', H: 'KJ5', D: '987', C: 'AT84' },
+  },
+  {
+    description: '2NT 21 HCP: even at the maximum, Pass is possible over quantitative 4NT; 6NT needs favorable trick-taking prospects.',
+    practiceAuction: ['2NT', 'Pass', '4NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2NT', ruleIds: ['open-2nt-balanced-20-21'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4NT', ruleIds: ['respond-to-2nt-w/-4nt-11-12-balanced'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-4nt-quantitative-invitation'] },
+      { call: '6NT', ruleIds: ['opener-rebid-6nt-after-nt-4nt-quantitative-invitation'] },
+    ],
+    expectedOpenerRebidCallOrder: [['Pass', '6NT']],
+    north: { S: 'AK4', H: 'AQ2', D: 'KQ', C: 'QJ753' },
+    south: { S: 'QJ2', H: 'KJ5', D: '987', C: 'AT84' },
   },
 ];
 
@@ -2655,6 +3047,12 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: RESPONSE_AFTER_1NT_OPENING_TEST_DEALS },
   { id: 'response-2nt-opening', group: 'Responses to NT opening', label: '2NT opening',
     deals: RESPONSE_AFTER_2NT_OPENING_TEST_DEALS },
+  { id: 'nt-1nt', group: 'Opener rebids', label: '1NT opening - continuations',
+    deals: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS },
+  { id: 'nt-2nt', group: 'Opener rebids', label: '2NT opening - continuations',
+    deals: OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS },
+  { id: 'minor-raise', group: 'Opener rebids', label: 'Minor - raise',
+    deals: OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS },
   { id: 'minor-1nt', group: 'Opener rebids', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'minor-one-level-new-suit', group: 'Opener rebids', label: 'Minor - one-level new suit',
