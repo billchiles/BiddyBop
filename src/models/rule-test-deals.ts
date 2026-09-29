@@ -819,6 +819,121 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 ///
+//// Opener rebids after a natural invitational 2NT response to a minor opening
+///
+export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1C-2NT-Pass: a 12-HCP opener declines responder\'s natural 11-HCP game invitation.',
+    practiceAuction: ['1C', 'Pass', '2NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'K83', H: 'Q72', D: 'A92', C: 'QJ85' },
+    south: { S: 'AQ6', H: 'J84', D: 'KJ7', C: 'T964' },
+  },
+  {
+    description: '1D-2NT-3NT: at 13 HCP the invitation is a judgment case, so both Pass and 3NT ' +
+                 'remain modeled choices.',
+    practiceAuction: ['1D', 'Pass', '2NT', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-2nt'] },
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-2nt'] },
+    ],
+    north: { S: 'K84', H: 'A72', D: 'KQ92', C: 'J85' },
+    south: { S: 'AQ6', H: 'J84', D: 'J73', C: 'K964' },
+  },
+  {
+    description: '1C-2NT-3NT: a 14-HCP opener accepts responder\'s natural invitation to game.',
+    practiceAuction: ['1C', 'Pass', '2NT', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'K84', H: 'A72', D: 'Q92', C: 'KQ85' },
+    south: { S: 'AQ6', H: 'KJ4', D: 'JT73', C: 'T96' },
+  },
+  {
+    description: '1C-2NT-3NT: a 16-HCP 3-2-2-6 opener accepts even though opener is not balanced; ' +
+                 'this natural invitation decision is based on strength, not a hard shape test.',
+    practiceAuction: ['1C', 'Pass', '2NT', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-minor-w/-2nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AK3', H: 'Q7', D: 'A9', C: 'QJ9864' },
+    south: { S: 'QJ5', H: 'A84', D: 'KJ73', C: 'T52' },
+  },
+];
+
+
+///
+//// Opener rebids after responder places game in 3NT after a minor opening
+///
+export const OPENER_REBID_AFTER_MINOR_3NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1C-3NT-Pass: 14-HCP balanced responder places the contract in notrump game; ' +
+                 'an ordinary 13-HCP opener respects the signoff.',
+    practiceAuction: ['1C', 'Pass', '3NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-minor-w/-3nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-3nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['4NT'],
+    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
+    south: { S: 'AQ6', H: 'KJ4', D: 'KJ7', C: 'T964' },
+  },
+  {
+    description: '1D-3NT: an 18-HCP 5-4-2-2 opener can either take the sure game or invite slam ' +
+                 'quantitatively with 4NT; the slam try is presented ahead of Pass.',
+    practiceAuction: ['1D', 'Pass', '3NT', 'Pass', '4NT'],
+    expectedOpeningCalls: [
+      { call: '1D', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-minor-w/-3nt'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4NT', ruleIds: ['opener-rebid-4nt-quantitative-after-suit-3nt'] },
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-3nt'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4NT', 'Pass']],
+    north: { S: 'AQ', H: 'KJ', D: 'AQJ84', C: 'J762' },
+    south: { S: 'K73', H: 'AQ4', D: 'K62', C: 'Q853' },
+  },
+];
+
+
+///
 //// Opener rebids after a major opening and 1NT response
 ///
 export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
@@ -1413,6 +1528,297 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
 ];
 
 ///
+//// Opener rebids after an artificial Jacoby 2NT game-forcing raise
+///
+export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1S-2NT-3D: a 14-HCP opener shows the diamond singleton before generic strength.',
+    practiceAuction: ['1S', 'Pass', '2NT', 'Pass', '3D'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3D', ruleIds: ['opener-rebid-shortness-after-major-jacoby-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'AQJ85', H: 'K74', D: '5', C: 'A982' },
+    south: { S: 'K964', H: 'AQ3', D: 'K83', C: 'JT7' },
+  },
+  {
+    description: '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
+    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-in-opening-major-after-major-jacoby-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT', '3H'],
+    north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
+    south: { S: 'A83', H: 'K976', D: 'K64', C: 'QJ2' },
+  },
+  {
+    description: '1S-2NT-3NT: 14 HCP with no singleton or void shows the medium Jacoby range.',
+    practiceAuction: ['1S', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-major-jacoby-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['4S', '3S'],
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: '85' },
+    south: { S: 'K964', H: 'AQ3', D: 'K83', C: 'J72' },
+  },
+  {
+    description: '1H-2NT-3H: 17 HCP with no singleton or void shows the strong slam-interest range.',
+    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '3H'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-strong-3-major-after-major-jacoby-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['4H', '3NT'],
+    north: { S: 'AQ4', H: 'AKJ85', D: 'K72', C: '85' },
+    south: { S: 'K83', H: 'Q976', D: 'A64', C: 'KJ2' },
+  },
+  {
+    description: '1S-2NT: 14 HCP with a club singleton and good five-card diamonds; 3C shortness ' +
+                 'ranks ahead of the 4D side-suit description, while both remain visible.',
+    practiceAuction: ['1S', 'Pass', '2NT', 'Pass', '3C'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3C', ruleIds: ['opener-rebid-shortness-after-major-jacoby-2nt'] },
+      { call: '4D', ruleIds: ['opener-rebid-side-suit-after-major-jacoby-2nt'] },
+    ],
+    expectedOpenerRebidCallOrder: [['3C', '4D']],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'AKJ85', H: '82', D: 'KQJ74', C: '5' },
+    south: { S: 'Q976', H: 'AK3', D: 'A62', C: 'T83' },
+  },
+];
+
+///
+//// Opener rebids after responder's major-suit splinter
+///
+export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-3S-4H: 18 raw HCP fall to 12 working HCP after discounting KQJ opposite ' +
+                 'responder\'s spade shortness, so opener stops in game rather than control-bid 4D.',
+    practiceAuction: ['1H', 'Pass', '3S', 'Pass', '4H'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-major-w/-support-splinter'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
+    ],
+    rejectedOpenerRebidCalls: ['4D'],
+    north: { S: 'KQJ', H: 'AKJ85', D: 'A72', C: '85' },
+    south: { S: '4', H: 'Q976', D: 'K83', C: 'AQJ72' },
+  },
+  {
+    description: '1S-4C-4D: 15 working HCP and controls in both diamonds and hearts make 4D the ' +
+                 'cheapest slam-interest control; 4S remains visible as the judgment alternative.',
+    practiceAuction: ['1S', 'Pass', '4C', 'Pass', '4D'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4C', ruleIds: ['respond-to-major-w/-support-splinter'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4D', ruleIds: ['opener-rebid-control-after-major-splinter'] },
+      { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4D', '4S']],
+    rejectedOpenerRebidCalls: ['4H'],
+    north: { S: 'AKJ85', H: 'K65', D: 'A72', C: '85' },
+    south: { S: 'Q976', H: 'AQJ72', D: 'K83', C: '4' },
+  },
+  {
+    description: '1S-4D-4H: a heart control can be the slam-interest bid after a splinter; ' +
+                 '4S still survives below it as the practical game choice.',
+    practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4D', ruleIds: ['respond-to-major-w/-support-splinter'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-control-after-major-splinter'] },
+      { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4H', '4S']],
+    north: { S: 'AKJ85', H: 'A74', D: '85', C: 'K96' },
+    south: { S: 'Q976', H: 'K83', D: '4', C: 'AQJ72' },
+  },
+];
+
+///
+//// Opener rebids after responder places game after a major opening
+///
+export const OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1S-3NT: responder\'s flat 14-HCP treatment promises exactly three spades; the ' +
+                 'known eight-card fit makes 4S the preferred game while Pass remains visible.',
+    practiceAuction: ['1S', 'Pass', '3NT', 'Pass', '4S'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-major-w/-3nt-flat-13-15'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-3nt'] },
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-3nt'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4S', 'Pass']],
+    rejectedOpenerRebidCalls: ['4NT'],
+    north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
+    south: { S: 'K65', H: 'AT3', D: 'K763', C: 'A74' },
+  },
+  {
+    description: '1H-3NT: an 18-HCP 5-4-2-2 opener sees the known eight-card heart fit and also ' +
+                 'has quantitative slam interest; 4H ranks ahead of 4NT, and Pass remains visible.',
+    practiceAuction: ['1H', 'Pass', '3NT', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-to-major-w/-3nt-flat-13-15'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-in-opening-major-after-major-3nt'] },
+      { call: '4NT', ruleIds: ['opener-rebid-4nt-quantitative-after-suit-3nt'] },
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-3nt'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4H', '4NT'], ['4NT', 'Pass']],
+    north: { S: 'AQ', H: 'AKJ84', D: 'KJ72', C: '62' },
+    south: { S: 'K73', H: 'Q65', D: 'A83', C: 'AQ94' },
+  },
+  {
+    description: '1H-4H-Pass: 7 HCP plus a doubleton gives responder eight support points and ' +
+                 'five hearts; the direct game raise is weak, preemptive, and passable.',
+    practiceAuction: ['1H', 'Pass', '4H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+      { call: '4H', ruleIds: ['respond-to-major-w/-support-preemptive-game-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-preemptive-game-raise'] },
+    ],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    south: { S: 'T5', H: 'K9543', D: '863', C: 'A93' },
+  },
+];
+
+///
+//// Opener rebids after responder's four-card limit raise of a major
+///
+export const OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1S-3S-Pass: 11 HCP plus the five-card-suit length point open 1S, but only 12 ' +
+                 'support points after the fit is known; opener declines the limit raise.',
+    practiceAuction: ['1S', 'Pass', '3S', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-major-w/-support-limit-raise-four-card'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-limit-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['4S'],
+    north: { S: 'AJ985', H: 'K74', D: 'Q72', C: 'J5' },
+    south: { S: 'KQ76', H: 'AJ3', D: 'J64', C: 'T42' },
+  },
+  {
+    description: '1H-3H: 12 HCP and one doubleton give 13 support points; both Pass and 4H remain ' +
+                 'available as the limit-raise judgment boundary.',
+    practiceAuction: ['1H', 'Pass', '3H', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-to-major-w/-support-limit-raise-four-card'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-limit-raise'] },
+      { call: '4H', ruleIds: ['opener-rebid-game-raise-after-major-limit-raise'] },
+    ],
+    north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
+    south: { S: 'A83', H: 'K976', D: 'K64', C: 'J42' },
+  },
+  {
+    description: '1S-3S-4S: 14 HCP / 15 support points clearly accept responder\'s limit raise.',
+    practiceAuction: ['1S', 'Pass', '3S', 'Pass', '4S'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-major-w/-support-limit-raise-four-card'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4S', ruleIds: ['opener-rebid-game-raise-after-major-limit-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: '85' },
+    south: { S: 'K976', H: 'A83', D: 'K64', C: 'J42' },
+  },
+  {
+    description: '1H-3H-4H: only 11 HCP, but a singleton club raises opener to 14 support points; ' +
+                 'the known fit makes shortage valuation, not HCP alone, the relevant measure.',
+    practiceAuction: ['1H', 'Pass', '3H', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-to-major-w/-support-limit-raise-four-card'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-raise-after-major-limit-raise'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    north: { S: 'KQ74', H: 'AJ985', D: 'J72', C: '5' },
+    south: { S: 'A83', H: 'KQ76', D: 'Q64', C: 'T42' },
+  },
+];
+
+///
 //// Opener rebids after responder's simple raise of a major
 ///
 export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = [
@@ -1505,8 +1911,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
 /// This bucket adds response situations missing from the opener-rebid practice corpus; it is not
 /// an exhaustive response quiz.  Those rebid buckets already exercise a one-level new-suit
 /// response, both Standard and 2/1 1D-2C, balanced 1NT and invitational 2NT responses, and
-/// both ordinary minor raises.  Their expectedResponseCalls still count toward whole-corpus
-/// coverage.  The rare 4NT
+/// both ordinary minor raises and the direct 3NT game response.  Their expectedResponseCalls
+/// still count toward whole-corpus coverage.  The rare 4NT
 /// Blackwood response is intentionally left without a dedicated practice deal.
 export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   {
@@ -1520,18 +1926,6 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: 'Q62', H: 'J94', D: 'T743', C: 'Q64' },
-  },
-  {
-    description: '1C-3NT: 14 HCP, balanced 4-3-3-3 with no four-card major or five-card club fit; place the contract in notrump game.',
-    practiceAuction: ['1C', 'Pass', '3NT'],
-    expectedOpeningCalls: [
-      { call: '1C', ruleIds: ['open-convenient-minor'] },
-    ],
-    expectedResponseCalls: [
-      { call: '3NT', ruleIds: ['respond-to-minor-w/-3nt'] },
-    ],
-    north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
-    south: { S: 'AQ6', H: 'KJ4', D: 'KJ7', C: 'T964' },
   },
   {
     description: '1C-1D: 13 HCP with five-card club support and four diamonds; both the ordinary forcing 1D response and the strong-support new-suit-first rule apply.  Raise clubs later.',
@@ -1666,8 +2060,9 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 /// Supplementary major-opening response coverage.  The opener-rebid buckets already exercise
-/// simple raises, natural new-suit responses, and both forcing and non-forcing 1NT responses.
-/// Their expectedResponseCalls count toward corpus coverage; rare Blackwood is deferred.
+/// simple raises, natural new-suit responses, both forcing and non-forcing 1NT responses,
+/// and the weak preemptive game raise. Their expectedResponseCalls count toward corpus coverage;
+/// rare Blackwood is deferred.
 export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1S-Pass: 4 HCP and only two spades; without enough strength to respond, pass.',
@@ -1794,20 +2189,6 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K954', H: 'AT4', D: '6543', C: 'AQ' },
-  },
-  {
-    description: '1H: 7 HCP plus one shortage point for a doubleton gives 8 support points with five hearts; ' +
-                 'both the ordinary 2H raise and preemptive 4H qualify.',
-    practiceAuction: ['1H', 'Pass', '4H'],
-    expectedOpeningCalls: [
-      { call: '1H', ruleIds: ['open-five-card-major'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
-      { call: '4H', ruleIds: ['respond-to-major-w/-support-preemptive-game-raise'] },
-    ],
-    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
-    south: { S: 'T5', H: 'K9543', D: '863', C: 'A93' },
   },
   {
     description: '1H: 6 HCP and six good spades; under weak jump shifts, 2S outranks the ordinary 1S response, ' +
@@ -3053,6 +3434,10 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS },
   { id: 'minor-raise', group: 'Opener rebids', label: 'Minor - raise',
     deals: OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS },
+  { id: 'minor-2nt', group: 'Opener rebids', label: 'Minor - 2NT response',
+    deals: OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS },
+  { id: 'minor-3nt', group: 'Opener rebids', label: 'Minor - 3NT response',
+    deals: OPENER_REBID_AFTER_MINOR_3NT_TEST_DEALS },
   { id: 'minor-1nt', group: 'Opener rebids', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'minor-one-level-new-suit', group: 'Opener rebids', label: 'Minor - one-level new suit',
@@ -3073,8 +3458,16 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'major-two-over-one-new-suit', group: 'Opener rebids',
     label: 'Major - 2/1 two-level new suit',
     deals: OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS },
+  { id: 'major-jacoby-2nt', group: 'Opener rebids', label: 'Major - Jacoby 2NT',
+    deals: OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS },
+  { id: 'major-splinter', group: 'Opener rebids', label: 'Major - splinter',
+    deals: OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS },
   { id: 'major-simple-raise', group: 'Opener rebids', label: 'Major - simple raise',
     deals: OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS },
+  { id: 'major-limit-raise', group: 'Opener rebids', label: 'Major - limit raise',
+    deals: OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS },
+  { id: 'major-game-response', group: 'Opener rebids', label: 'Major - game response',
+    deals: OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS },
 ] as const;
 
 /// RuleTestDealBucketId is 'all' plus every id declared in RULE_TEST_DEAL_BUCKETS.

@@ -3,8 +3,8 @@
 import { biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
          type CallRefinementResult, type RuleEvalContext, type SuitBid }
   from './bidding-types';
-import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
-import { cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo,
+import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getOpeningCallInfo,
          getPartnerOpeningCall, getResponderCall, openerRebidIsReverse, parseSuitBid,
          type ParsedSuitBid } from './auction';
 
@@ -66,85 +66,10 @@ export function refineNtTexasCompletion (calls: Call[], context: RuleEvalContext
   };
 }
 
-/// Natural NT game and slam signoffs require Pass, never acceptance of an invitation.
-export function openerNtNotrumpSignoffApplies (_call: Call, context: RuleEvalContext):
-    AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderCall(context.dealer, context.auction);
-  const success = opening !== null && opening.strain === 'NT' &&
-    (opening.level === 1 || opening.level === 2) &&
-    (response === '3NT' || response === '6NT' || response === '7NT');
-  return { success, telemetryLines: [success ? 'PASS: natural NT signoff.'
-    : 'FAIL: responder has not made a natural NT signoff.'] };
-}
-
-/// A direct 4H/4S is a natural game signoff only when Texas is disabled.
-export function openerNtNaturalMajorGameApplies (_call: Call, context: RuleEvalContext):
-    AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderCall(context.dealer, context.auction);
-  const success = opening !== null && opening.strain === 'NT' &&
-    (opening.level === 1 || opening.level === 2) &&
-    (response === '4H' || response === '4S');
-  return { success, telemetryLines: [success ? 'PASS: natural major game signoff.'
-    : 'FAIL: not a natural major game signoff.'] };
-}
-
-/// Without Jacoby, a natural weak major response to 1NT ends the auction at 2H/2S.
-export function openerNtWeakMajorSignoffApplies (_call: Call, context: RuleEvalContext):
-    AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderCall(context.dealer, context.auction);
-  const success = opening !== null && opening.level === 1 && opening.strain === 'NT' &&
-    (response === '2H' || response === '2S');
-  return { success, telemetryLines: [success ? 'PASS: natural weak major signoff.'
-    : 'FAIL: not a weak major signoff over 1NT.'] };
-}
-
-/// A natural 2NT response invites game after 1NT. The middle HCP is a judgment case:
-/// keep both Pass and 3NT instead of forcing either choice on every balanced opener.
-export function openerNtGameInvitationApplies (_call: Call, context: RuleEvalContext,
-                                               system: BiddingSystem, accept: boolean):
-    AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderCall(context.dealer, context.auction);
-  const isInvitation = opening?.level === 1 && opening.strain === 'NT' && response === '2NT';
-  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
-  const hcp = context.handFacts.hcp;
-  // At the middle value either action can be reasonable; upgrades below the range decline.
-  const strengthApplies = accept ? hcp >= minimum + 1 : hcp <= minimum + 1;
-  const success = isInvitation && strengthApplies;
-  return { success, telemetryLines: [
-    `${success ? 'PASS' : 'FAIL'}: 1NT-2NT invitation: ${accept ? 'accept' : 'decline'} ` +
-    `with ${hcp} HCP under the ${system.oneNtOpening} agreement.`,
-  ] };
-}
-
-/// Quantitative 4NT invites a small slam, not Blackwood. A 21-HCP 2NT opener may
-/// decline: opposite responder's 11-12 HCP, slam remains a judgment call.
-export function openerNtQuantitativeInvitationApplies (_call: Call, context: RuleEvalContext,
-                                                       system: BiddingSystem, accept: boolean):
-    AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderCall(context.dealer, context.auction);
-  const openingLevel = opening?.strain === 'NT' ? opening.level : null;
-  if (response !== '4NT' || (openingLevel !== 1 && openingLevel !== 2)) {
-    return { success: false, telemetryLines: ['FAIL: not a quantitative 4NT response to 1NT/2NT.'] };
-  }
-  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
-  const hcp = context.handFacts.hcp;
-  const strengthApplies = openingLevel === 1
-    ? (accept ? hcp >= minimum + 1 : hcp <= minimum + 1)
-    : (accept ? hcp >= 21 : hcp <= 21);
-  return { success: strengthApplies, telemetryLines: [
-    `${strengthApplies ? 'PASS' : 'FAIL'}: quantitative 4NT ${accept ? 'acceptance' : 'decline'} ` +
-    `with a ${hcp}-HCP ${openingLevel}NT opener.`,
-  ] };
-}
-
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
+///
 export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
@@ -163,6 +88,71 @@ export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context:
   return {
     calls: refined,
     telemetryLines: ['Keep only a cheapest lower-ranking second-suit rebid; exclude reverses.'],
+  };
+}
+
+
+/// refineOpenerSplinterControlBid keeps the cheapest available side-suit control below four of the
+/// agreed major when opener has slam-interest working values.  Working HCP discounts K/Q/J in
+/// responder's splinter suit; the ace remains counted because the splinter does not distinguish a
+/// singleton from a void, and an ace may not be a wasted high card against a void.  A control is A,
+/// K, singleton, or void.
+///
+export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null ||
+      (opening.strain !== 'H' && opening.strain !== 'S') || response.strain === 'NT' ||
+      response.strain === opening.strain) {
+    return { calls: [], telemetryLines: ['No major-opening splinter auction is available.'] };
+  }
+  // Discount K/Q/J held opposite responder's announced shortness; keep the ace counted in this
+  // deliberately simple approximation because the splinter does not distinguish singleton/void.
+  const splinterSuit = response.strain as Suit;
+  const wastedHcp = getCardsForSuit(context.hand, splinterSuit).reduce((total, card) => {
+    if (card.rank === 'K') return total + 3;
+    if (card.rank === 'Q') return total + 2;
+    if (card.rank === 'J') return total + 1;
+    return total;
+  }, 0);
+  const workingHcp = context.handFacts.hcp - wastedHcp;
+  if (workingHcp < 15) {
+    return { calls: [], telemetryLines: [
+      `No splinter control bid: ${context.handFacts.hcp} HCP - ${wastedHcp} wasted K/Q/J points ` +
+      `in ${splinterSuit} = ${workingHcp} working HCP; 15+ is the slam-interest threshold.`,
+    ] };
+  }
+  // A control bid must be a side suit below game in the agreed major.  Exclude both the trump
+  // suit and responder's already-announced splinter suit before examining opener's side suits.
+  const game = parseSuitBid(`4${opening.strain}` as SuitBid)!;
+  const legalControls = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.strain === response.strain) {
+      return false;
+    }
+    if (cheapestBidInStrainAfter(response, candidate.strain) !== call ||
+        compareSuitBids(candidate, game) >= 0) {
+      return false;
+    }
+    const suit = candidate.strain as Suit;
+    const cards = getCardsForSuit(context.hand, suit);
+    // In opener's candidate side suit, A/K is a high-card control and singleton/void is a
+    // shortness control.  The responder's splinter suit was excluded above.
+    return cards.length <= 1 || cards.some((card) => card.rank === 'A' || card.rank === 'K');
+  });
+  // Control-bid upward from the cheapest available suit.
+  legalControls.sort((a, b) => compareSuitBids(parseSuitBid(a)!, parseSuitBid(b)!));
+  const cheapestControl = legalControls[0];
+  return {
+    calls: cheapestControl === undefined ? [] : [cheapestControl],
+    telemetryLines: [
+      `${workingHcp} working HCP after discounting K/Q/J in responder's ${splinterSuit} splinter.`,
+      cheapestControl === undefined
+        ? `No modeled side-suit control is available below 4${opening.strain}.`
+        : `Use the cheapest available A/K/singleton/void control below game: ${cheapestControl}.`,
+    ],
   };
 }
 
@@ -813,11 +803,6 @@ export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalCont
           telemetryLines:[`Keep only ${label} new-suit calls over the actual opening.`]};
 }
 
-function getResponderBid (context: RuleEvalContext): ParsedSuitBid | null {
-  const call = getResponderCall(context.dealer, context.auction);
-  return call === null ? null : parseSuitBid(call);
-}
-
 /// refineOneLevelSuitOpening chooses the one-level suit opening implied by five-card-major and
 /// convenient-minor priorities.  Branch order is significant: with two 5+ majors choose the
 /// higher-ranking spade suit; otherwise use the longer minor, breaking a 4-4 minor tie with 1D and
@@ -1132,6 +1117,132 @@ export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContex
       `no major support, and ${minSuitLength}+ cards in ${candidate.strain}.`,
     ],
   };
+}
+
+/// After a natural 3NT response to a one-level suit opening, a strong opener can invite slam
+/// with quantitative 4NT.  This chosen treatment keeps Pass available as the practical game
+/// decision; 4NT is not Blackwood in this auction family.
+export function openerSuitThreeNtQuantitativeApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const isSuitThreeNt = opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
+    response === '3NT';
+  const hcp = context.handFacts.hcp;
+  const success = isSuitThreeNt && hcp >= 18 && hcp <= 21;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: quantitative 4NT after a one-level suit opening and ` +
+    `natural 3NT response requires an 18-21 HCP opener.`,
+  ] };
+}
+
+/// A Jacoby 2NT four-level side-suit rebid shows a good five-card-or-longer suit.  This chosen
+/// executable threshold is at least two of A/K/Q/J in the bid suit.
+export function openerJacobyGoodSideSuitApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const candidate = parseSuitBid(call);
+  if (opening === null || (opening.strain !== 'H' && opening.strain !== 'S') ||
+      response !== '2NT' || candidate === null || candidate.strain === 'NT' ||
+      candidate.strain === opening.strain) {
+    return { success: false, telemetryLines: ['FAIL: not a Jacoby 2NT side-suit rebid.'] };
+  }
+  const suit = candidate.strain as Suit;
+  const cards = getCardsForSuit(context.hand, suit);
+  const honorCount = cards.filter((card) =>
+    card.rank === 'A' || card.rank === 'K' || card.rank === 'Q' || card.rank === 'J').length;
+  const success = cards.length >= 5 && honorCount >= 2;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${suit} has ${cards.length} cards and ${honorCount} of A/K/Q/J; ` +
+    'Jacoby side-suit rebid needs 5+ cards and at least two top-four honors.',
+  ] };
+}
+
+/// Natural NT game and slam signoffs require Pass, never acceptance of an invitation.
+export function openerNtNotrumpSignoffApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.strain === 'NT' &&
+    (opening.level === 1 || opening.level === 2) &&
+    (response === '3NT' || response === '6NT' || response === '7NT');
+  return { success, telemetryLines: [success ? 'PASS: natural NT signoff.'
+    : 'FAIL: responder has not made a natural NT signoff.'] };
+}
+
+/// A direct 4H/4S is a natural game signoff only when Texas is disabled.
+export function openerNtNaturalMajorGameApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.strain === 'NT' &&
+    (opening.level === 1 || opening.level === 2) &&
+    (response === '4H' || response === '4S');
+  return { success, telemetryLines: [success ? 'PASS: natural major game signoff.'
+    : 'FAIL: not a natural major game signoff.'] };
+}
+
+/// Without Jacoby, a natural weak major response to 1NT ends the auction at 2H/2S.
+export function openerNtWeakMajorSignoffApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const success = opening !== null && opening.level === 1 && opening.strain === 'NT' &&
+    (response === '2H' || response === '2S');
+  return { success, telemetryLines: [success ? 'PASS: natural weak major signoff.'
+    : 'FAIL: not a weak major signoff over 1NT.'] };
+}
+
+/// A natural 2NT response invites game after 1NT. The middle HCP is a judgment case:
+/// keep both Pass and 3NT instead of forcing either choice on every balanced opener.
+export function openerNtGameInvitationApplies (_call: Call, context: RuleEvalContext,
+                                               system: BiddingSystem, accept: boolean):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const isInvitation = opening?.level === 1 && opening.strain === 'NT' && response === '2NT';
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  // At the middle value either action can be reasonable; upgrades below the range decline.
+  const strengthApplies = accept ? hcp >= minimum + 1 : hcp <= minimum + 1;
+  const success = isInvitation && strengthApplies;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: 1NT-2NT invitation: ${accept ? 'accept' : 'decline'} ` +
+    `with ${hcp} HCP under the ${system.oneNtOpening} agreement.`,
+  ] };
+}
+
+/// Quantitative 4NT invites a small slam, not Blackwood. A 21-HCP 2NT opener may
+/// decline: opposite responder's 11-12 HCP, slam remains a judgment call.
+export function openerNtQuantitativeInvitationApplies (_call: Call, context: RuleEvalContext,
+                                                       system: BiddingSystem, accept: boolean):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderCall(context.dealer, context.auction);
+  const openingLevel = opening?.strain === 'NT' ? opening.level : null;
+  if (response !== '4NT' || (openingLevel !== 1 && openingLevel !== 2)) {
+    return { success: false, telemetryLines: ['FAIL: not a quantitative 4NT response to 1NT/2NT.'] };
+  }
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const strengthApplies = openingLevel === 1
+    ? (accept ? hcp >= minimum + 1 : hcp <= minimum + 1)
+    : (accept ? hcp >= 21 : hcp <= 21);
+  return { success: strengthApplies, telemetryLines: [
+    `${strengthApplies ? 'PASS' : 'FAIL'}: quantitative 4NT ${accept ? 'acceptance' : 'decline'} ` +
+    `with a ${hcp}-HCP ${openingLevel}NT opener.`,
+  ] };
+}
+
+
+///
+//// Helpers
+///
+
+function getResponderBid (context: RuleEvalContext): ParsedSuitBid | null {
+  const call = getResponderCall(context.dealer, context.auction);
+  return call === null ? null : parseSuitBid(call);
 }
 
 /// getOpenerOpeningBid parses the auction's opening contract bid for rule refiners.

@@ -192,6 +192,17 @@ The app should help the user practice bidding decisions using structured convent
   than a game try. Natural help-suit game tries use a 3+ card side suit.
 - After `1M-2M`, a natural balanced `2NT` game try uses 17-18 HCP, not shortage-point
   valuation. Natural help-suit game tries use shortage points.
+- With the `jacoby2NT` major-support agreement, responder's `2NT` is artificial and game forcing
+  with four-card-or-longer support and 13+ support points.  Opener describes distribution before
+  generic strength: a three-level new suit shows singleton/void; a four-level new suit shows a good
+  five-card-or-longer side suit, using at least two of A/K/Q/J as the executable quality threshold.
+  When both descriptions apply, shortness ranks ahead while the side-suit call remains visible.
+  With no singleton or void, `4M` shows a minimum through 13 HCP, `3NT` shows 14-15 HCP, and `3M`
+  shows 16-21 HCP with slam interest.  Later control bids, relays, and keycard continuations are not
+  modeled in this family.
+- After a four-card `1M-3M` limit raise showing 11-12 support points, opener revalues with
+  shortage points: 12 declines, 14+ accepts in `4M`, and 13 keeps both Pass and game available
+  as a judgment case.  Stronger slam-exploration continuations are not modeled in this family.
 - Gerber after a notrump opening and Blackwood after a suit auction are baseline conventions, not current on/off settings.
 - Gerber and Blackwood are rare, specialized ace-asking treatments rather than general slam
   tries. They use priority rank -100 so they remain visible but sort after ordinary descriptive,
@@ -217,6 +228,23 @@ The app should help the user practice bidding decisions using structured convent
   human judgment makes stoppers relevant; Qx, Jxx, and lead/declaring-position-dependent holdings
   remain judgment cases.  Inverted minors and stopper-showing continuations are not executable
   treatments in the current standard natural-minor-raise model.
+- After a natural `1m-2NT` response showing 11-12 HCP, balanced shape, and no four-card major,
+  opener declines with 12 HCP, accepts with 14+ HCP, and keeps both Pass and 3NT available with
+  13 HCP as a judgment case.  The acceptance decision uses HCP rather than distribution points.
+  It does not hard-require opener to be balanced or to hold every outside stopper; the same
+  conservative stopper guidance applies when human judgment makes an outside suit a concern.
+  More detailed shape-showing continuations are left to partnership treatment.
+- A direct natural `1m-3NT` response is a signoff showing balanced 13-15 HCP with no four-card
+  major.  Pass remains available for opener.  With 18-21 HCP, opener may also bid quantitative
+  `4NT` to invite 6NT; the trainer presents the slam try ahead of Pass but retains both as judgment
+  choices.  In this family `4NT` is quantitative, not Blackwood.
+- The chosen direct `1M-3NT` treatment shows 13-15 HCP, 4-3-3-3 shape, and exactly three-card
+  support for opener's major.  The opening major is therefore a known 5-3 or longer fit, so `4M`
+  is presented ahead of Pass.  With 18-21 HCP, quantitative `4NT` is also available between `4M`
+  and Pass.  This project explicitly treats that `4NT` as quantitative in this direct-3NT family.
+- A direct `1M-4M` response with five-card support and fewer than 10 support points is a natural
+  preemptive signoff.  Opener Passes in the executable treatment; exceptional slam-oriented
+  continuations are left to later control-bid or ace-asking work.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.
@@ -226,11 +254,11 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Pending Bidding Work
 
-- Next finish the remaining opener rebid after a suit opening and an invitational notrump
-  response. Then audit early-auction gaps, review weak preempts
-  and their responses with pages 16-17, and implement selective overcalls, advances, and
-  takeout doubles. Defer responder rebids until ordinary openings, responses, and opener
-  rebids are more complete. `advancing` is responding to partner's overcall or double.
+- Next finish the remaining high-to-medium opener continuations identified by the early-auction
+  audit: responder splinters, jump shifts, and selected natural NT suit continuations.
+  Then review weak preempts and their responses with
+  pages 16-17. Defer responder rebids until ordinary openings, responses, and opener rebids are
+  more complete. `advancing` is responding to partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
   not a current candidate, but no specific rejection reason was recorded."  Do not assume current

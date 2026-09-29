@@ -170,13 +170,30 @@ export function getStrainFromSuitBid (call: SuitBid): Strain {
   return call.substring(1) as Strain;
 }
 
-/// responseIsJump reports whether responder skipped a cheaper contract in the same response strain.
+/// responseJump reports how many levels responder bid above the cheapest legal contract in the
+/// same strain.  Zero is an ordinary non-jump response; one and two are single and double jumps.
+/// Larger values are returned rather than being collapsed into the modeled 0/1/2 rule constraint.
 ///
-export function responseIsJump (openingCall: SuitBid, responseCall: SuitBid): boolean {
+export function responseJump (openingCall: SuitBid, responseCall: SuitBid): number {
   const opening = parseSuitBid(openingCall)!;
-  const responseStrain = getStrainFromSuitBid(responseCall);
-  const cheapest = cheapestBidInStrainAfter(opening, responseStrain);
-  return cheapest !== null && Number(responseCall.substring(0, 1)) > Number(cheapest.substring(0, 1));
+  const response = parseSuitBid(responseCall)!;
+  const cheapest = cheapestBidInStrainAfter(opening, response.strain);
+  if (cheapest === null) {
+    return 0;
+  }
+  const cheapestLevel = parseSuitBid(cheapest)!.level;
+  return response.level - cheapestLevel;
+}
+
+/// compareSuitBids compares contract bids in normal auction order: level first, then strain.
+/// A negative result means a is lower than b, zero means equal, and a positive result means a is
+/// higher than b.  This return shape is intended for Array.sort and explicit order comparisons.
+///
+export function compareSuitBids (a: ParsedSuitBid, b: ParsedSuitBid): number {
+  if (a.level !== b.level) {
+    return a.level - b.level;
+  }
+  return STRAIN_ORDER.indexOf(a.strain) - STRAIN_ORDER.indexOf(b.strain);
 }
 
 /// openerRebidIsReverse reports whether opener's cheapest rebid in a new suit forces responder

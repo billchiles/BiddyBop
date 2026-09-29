@@ -14,6 +14,7 @@ import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
          refineOpenerNewSuitAtCheapestLevel,
          refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitToLevel,
+         refineOpenerSplinterControlBid,
          refineOpenerRaiseResponderSuitToLevel, refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
          refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
@@ -21,7 +22,8 @@ import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          refineToCheapestNewSuitBids, refineNtStaymanReply, refineNtJacobyCompletion,
          refineNtTexasCompletion, openerNtNotrumpSignoffApplies,
          openerNtNaturalMajorGameApplies, openerNtWeakMajorSignoffApplies,
-         openerNtGameInvitationApplies, openerNtQuantitativeInvitationApplies,}
+         openerNtGameInvitationApplies, openerNtQuantitativeInvitationApplies,
+         openerSuitThreeNtQuantitativeApplies, openerJacobyGoodSideSuitApplies,}
   from './bidding-rule-functions';
 
 ///
@@ -352,7 +354,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1C or 1D, respond 3NT with game-going balanced values and no four-card major',
     auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
     calls: ['3NT'],
-    callCategory: ['invitational'],
+    callCategory: ['signoff', 'natural'],
     priority: { rank: 70 },
     appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced game response with no four-card major; opener may pass or continue.',
@@ -691,7 +693,7 @@ export const ResponseBidRules: BidRule[] = [
       // The broad declaration contains both 4H and 4S; keep only four of partner's actual major.
       return refineRaiseToLevel(calls, context, 4);
     },
-    callCategory: ['invitational'],
+    callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { max: 9, valuation: 'shortage' }, supportLength: { min: 5 } },
     meaning: 'Non-forcing preemptive raise to game w/ long support and fewer than 10 total points.',
     certainty: 'high',
@@ -794,7 +796,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Respond 3NT with a very flat 13-15 HCP hand',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['3NT'],
-    callCategory: ['invitational'],
+    callCategory: ['signoff', 'natural'],
     appliesWhen: majorDirectThreeNtApplies,
     guidance: ['This is a partnership treatment for very flat game-going values.',
                'With more control-rich values, starting a forcing support route may be preferable.'],
@@ -1738,7 +1740,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show an economical four-card second suit with minimum or medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['1D', '1H', '1S', '2C', '2D', '2H', '2S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1757,7 +1759,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['1NT'],
     callCategory: ['natural'],
@@ -1772,7 +1774,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2D', '2H', '2S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1793,7 +1795,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid a six-card opening minor cheaply with minimum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2C', '2D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1811,7 +1813,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2D', '2H', '2S'],
     callRefinement: refineOpenerReverseRebid,
@@ -1830,7 +1832,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump rebid a six-card opening minor with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3C', '3D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1848,7 +1850,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1867,7 +1869,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2NT'],
     callCategory: ['invitational', 'natural'],
@@ -1883,7 +1885,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump shift into a second suit with maximum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1905,7 +1907,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['4H', '4S', '5D'],
     callRefinement: refineOpenerResponderSuitToGame,
@@ -1922,7 +1924,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to game in a strong seven-card opening minor',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['5C', '5D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1940,7 +1942,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -1967,7 +1969,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid diamonds cheaply after a Standard 1D-2C response',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
@@ -1986,7 +1988,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Reverse into a four-card major after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: refineOpenerFourCardMajorUpTheLine,
@@ -2006,7 +2008,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT with 12-14 HCP after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2022,7 +2024,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise clubs cheaply with minimum values after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2043,7 +2045,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump rebid a good six-card diamond suit with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3D'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2059,7 +2061,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 3NT with 18-19 HCP after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2075,7 +2077,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump raise clubs with medium values after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4C'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2095,7 +2097,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise clubs to game with maximum values after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['5C'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2115,7 +2117,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to game in a strong seven-card diamond suit after Standard 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['5D'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2136,7 +2138,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2D with five or more diamonds in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
@@ -2155,7 +2157,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show a four-card major up the line after 2/1 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: refineOpenerFourCardMajorUpTheLine,
@@ -2173,7 +2175,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT when no five-card diamond suit or four-card major is available',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
@@ -2193,7 +2195,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise clubs naturally when 2NT is unattractive in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2386,7 +2388,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['1NT'],
     callCategory: ['natural'],
@@ -2405,7 +2407,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2426,7 +2428,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2444,7 +2446,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show a lower-ranking four-card second suit at the cheapest level',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2C', '2D'],
     callRefinement: refineOpenerLowerRankingSecondSuitRebid,
@@ -2462,7 +2464,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2480,7 +2482,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2499,7 +2501,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2NT'],
     callCategory: ['invitational', 'natural'],
@@ -2515,7 +2517,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3C', '3D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2533,7 +2535,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2552,7 +2554,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['4H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2570,7 +2572,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 1, jump: false },
+      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['4C', '4D', '4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2597,7 +2599,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2620,7 +2622,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2639,7 +2641,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Repeat a five-card major only when a minimum hand has no descriptive rebid',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: refineOpenerFiveCardMajorFallback,
@@ -2658,7 +2660,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show an economical second suit without reversing',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H'],
     callRefinement: refineOpenerNonReverseNewSuitRebid,
@@ -2675,7 +2677,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2S', '3S', '3C', '3D'],
     callRefinement: refineOpenerReverseRebid,
@@ -2692,7 +2694,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT with 12-14 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2708,7 +2710,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2727,7 +2729,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4C', '4D', '4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2747,7 +2749,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to 3NT with 18-19 HCP and balanced shape',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
@@ -2763,7 +2765,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3D', '3H', '4C', '4D', '4H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2782,7 +2784,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2801,7 +2803,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4H', '4S', '5C', '5D'],
     callRefinement: refineOpenerResponderSuitToGame,
@@ -2823,7 +2825,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Support responder's suit at the cheapest level in a 2/1 game force",
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2846,7 +2848,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid a six-card opening major cheaply in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2865,7 +2867,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show a four-card second suit cheaply in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2885,7 +2887,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT with balanced or semi-balanced shape in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'newSuit', level: 2, jump: false },
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
@@ -2911,7 +2913,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Pass a simple minor raise with minimum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -2926,7 +2928,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise the minor to three with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['3C', '3D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2946,7 +2948,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Usually bid 3NT with maximum values after a simple minor raise',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
@@ -2968,7 +2970,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Consider five of the minor with a very long, unbalanced maximum',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['5C', '5D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2990,7 +2992,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Pass a minor limit raise with a bad minimum',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 3, jump: true },
+      responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -3005,7 +3007,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Accept a minor limit raise with 3NT when game values are present',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 3, jump: true },
+      responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
@@ -3029,7 +3031,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Consider five of the minor with extra values and extreme distribution',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'minor',
-      responderCall: { kind: 'raise', level: 3, jump: true },
+      responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['5C', '5D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -3046,6 +3048,366 @@ export const OpenerRebidRules: BidRule[] = [
   },
 
   //
+  // The following rules are opener rebids after a natural invitational 2NT response to a minor.
+  // Responder has shown 11-12 HCP, balanced shape, and no four-card major.
+  //
+  {
+    id: 'opener-rebid-pass-after-minor-2nt',
+    kind: 'openerRebid',
+    title: 'Decline an invitational 2NT response with a minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 12, max: 13 } },
+    meaning: 'Decline responder\'s natural game invitation and play 2NT with a minimum opener.',
+    guidance: ['With 12 HCP, Pass.  A 13-HCP hand is a judgment case, so both Pass and 3NT remain ' +
+               'available in the trainer.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-3nt-after-minor-2nt',
+    kind: 'openerRebid',
+    title: 'Accept an invitational 2NT response with game-going values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 13, max: 21 } },
+    meaning: 'Accept responder\'s natural game invitation and bid 3NT.',
+    guidance: ['With 14+ HCP, accept the 11-12 HCP invitation.  With 13 HCP, hand texture, working ' +
+               'honors, and likely sources of tricks make acceptance a judgment call.',
+               'Outside-suit weakness can make notrump less attractive, but this uncontested rule ' +
+               'does not require opener personally to hold a full stopper in every outside suit.',
+               'For human judgment, a conservative full stopper is A, Kx or longer, or Qxx or ' +
+               'longer.  Partial holdings such as Qx or Jxx, or holdings whose effectiveness ' +
+               'depends on which hand declares and who leads the suit, may still be adequate in ' +
+               'practice as a judgment call.',
+               'More detailed shape-showing continuations after 1m-2NT are partnership treatment ' +
+               'and are not executable in this natural invitation model.'],
+    certainty: 'high',
+  },
+
+  //
+  // The following rules are opener rebids after an artificial Jacoby 2NT game-forcing raise.
+  // Distribution is described before generic strength: three-level new suits show shortness,
+  // four-level new suits show a good five-card-or-longer side suit, and otherwise opener uses
+  // 4M / 3NT / 3M for minimum / medium / strong hands.
+  //
+  {
+    id: 'opener-rebid-shortness-after-major-jacoby-2nt',
+    kind: 'openerRebid',
+    title: 'Show singleton or void after Jacoby 2NT',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    },
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
+                 note: 'Jacoby 2NT: a three-level new suit shows singleton or void.' },
+    priority: { rank: 40, note: 'Prefer shortness description before a good side-suit alternative.' },
+    appliesWhen: { suitLengths: [{ max: 1 }] },
+    meaning: 'Show singleton or void in the bid side suit after the Jacoby 2NT game force.',
+    guidance: ['Responder can use the shortness information when judging game versus slam.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-side-suit-after-major-jacoby-2nt',
+    kind: 'openerRebid',
+    title: 'Show a good five-card side suit after Jacoby 2NT',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['4C', '4D', '4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'any',
+                                              'Jacoby good side-suit rebid');
+    },
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
+                 note: 'Jacoby 2NT: a four-level new suit shows a good five-card-or-longer suit.' },
+    priority: { rank: 30, note: 'Keep behind a three-level shortness description when both apply.' },
+    appliesWhen: openerJacobyGoodSideSuitApplies,
+    meaning: 'Show a good five-card-or-longer side suit after the Jacoby 2NT game force.',
+    guidance: ['This project uses at least two of A/K/Q/J as the executable suit-quality threshold.',
+               'When both shortness and a good side suit can be described, shortness is presented ' +
+               'first while this bid remains visible as a reasonable partnership judgment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt',
+    kind: 'openerRebid',
+    title: 'Jump to game with a minimum Jacoby 2NT opener',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
+    callCategory: ['signoff', 'natural'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    appliesWhen: { hcp: { max: 13 }, shape: { noVoid: true, noSingleton: true } },
+    meaning: 'With no shortness to show, a minimum opener signs off in game in the agreed major.',
+    guidance: ['This range includes an unusually light Rule-of-20 opener; the auction is already ' +
+               'forced to game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-3nt-after-major-jacoby-2nt',
+    kind: 'openerRebid',
+    title: 'Show medium strength after Jacoby 2NT',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['3NT'],
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    appliesWhen: { hcp: { min: 14, max: 15 }, shape: { noVoid: true, noSingleton: true } },
+    meaning: 'With no shortness to show, 3NT conventionally shows a medium 14-15 HCP opener.',
+    guidance: ['The agreed major remains trump; 3NT is a strength message rather than a proposal ' +
+               'to play notrump.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-strong-3-major-after-major-jacoby-2nt',
+    kind: 'openerRebid',
+    title: 'Show strong slam-interest values after Jacoby 2NT',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    appliesWhen: { hcp: { min: 16, max: 21 }, shape: { noVoid: true, noSingleton: true } },
+    meaning: 'With no shortness to show, three of the agreed major shows a strong opener and slam interest.',
+    guidance: ['Responder continues the game-forcing auction with the knowledge that opener has ' +
+               'substantial extra strength.  Later control bids and keycard methods are not modeled here.'],
+    certainty: 'high',
+  },
+
+  //
+  // The following rules are opener continuations after responder makes a double-jump splinter.
+  // Responder has shown 4+ major support, 13-15 support points, and singleton/void in the bid suit.
+  // Four of the agreed major always remains available.  With enough working high-card strength,
+  // opener can instead show the cheapest available side-suit control below game as a slam try.
+  //
+  {
+    id: 'opener-rebid-game-in-opening-major-after-major-splinter',
+    kind: 'openerRebid',
+    title: 'Keep game in the agreed major available after a splinter',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'newSuit', jump: 2 },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
+    callCategory: ['signoff', 'natural'],
+    agreement: { setting: 'splinters', value: true },
+    priority: { rank: 20, note: 'Keep game visible even when a higher-ranked control bid qualifies.' },
+    meaning: 'Stop in game in the agreed major rather than pursue slam after responder\'s splinter.',
+    guidance: ['Responder has already shown game-forcing support and shortness in the splinter suit.',
+               'High cards opposite responder\'s singleton or void can be wasted.  When opener has ' +
+               'enough working strength outside that suit, a higher-ranked control bid may also ' +
+               'appear as a slam-interest alternative; four of the major remains available as a ' +
+               'judgment choice.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-control-after-major-splinter',
+    kind: 'openerRebid',
+    title: 'Show a side-suit control with slam interest after a splinter',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'newSuit', jump: 2 },
+    },
+    calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    callRefinement: refineOpenerSplinterControlBid,
+    callCategory: ['gameForcing', 'conventional'],
+    agreement: { setting: 'splinters', value: true,
+                 note: 'After a splinter, the cheapest available side-suit control below game ' +
+                       'shows slam interest.' },
+    priority: { rank: 30, note: 'Present the slam-interest control ahead of the game signoff.' },
+    meaning: 'Show slam interest and first- or second-round control in the bid side suit.',
+    guidance: ['This project uses 15+ working HCP as the executable slam-interest threshold, ' +
+               'discounting K/Q/J held in responder\'s splinter suit.',
+               'Because the splinter does not distinguish singleton from void, an ace in the ' +
+               'splinter suit remains counted in this approximation.',
+               'A control is an ace, king, singleton, or void.  Bid the cheapest available control ' +
+               'below four of the agreed major; the control bid is exploratory, not a commitment ' +
+               'to reach slam.',
+               'If no modeled control bid is available below game, four of the major remains the ' +
+               'modeled continuation; later keycard or higher-level slam methods are deferred.'],
+    certainty: 'medium',
+  },
+
+  //
+  // The following rules are opener continuations after responder places the contract in game.
+  // Direct 3NT responses are natural signoffs; Pass remains visible even when a strong opener can
+  // make a quantitative slam try.  The direct major 3NT treatment already promises three-card
+  // support, so four of opener's major is also a natural game choice.
+  //
+  {
+    id: 'opener-rebid-pass-after-minor-3nt',
+    kind: 'openerRebid',
+    title: 'Pass a natural 3NT game response after a minor opening',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'minor',
+      responderCall: { kind: 'notrump', level: 3 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { max: 21 } },
+    meaning: 'Responder has placed the contract in 3NT with balanced game-going values.',
+    guidance: ['Pass remains the ordinary practical choice.  With 18-21 HCP, quantitative 4NT is ' +
+               'also available as a judgment-based slam invitation.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-pass-after-major-3nt',
+    kind: 'openerRebid',
+    title: 'Keep 3NT available after a direct flat game response to a major',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 3 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { max: 21 } },
+    meaning: 'Responder has offered 3NT with a very flat 13-15 HCP hand and three-card major support.',
+    guidance: ['Pass remains a judgment alternative even though the known eight-card major fit ' +
+               'also makes four of the major available.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-in-opening-major-after-major-3nt',
+    kind: 'openerRebid',
+    title: 'Return to the known major fit after a direct 3NT response',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'notrump', level: 3 },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 30, note: 'Prefer the known eight-card major fit while retaining 3NT.' },
+    appliesWhen: { suitLengths: [{ min: 5 }] },
+    meaning: 'Responder\'s direct 3NT treatment promises exactly three-card support, so opener has ' +
+             'at least an eight-card major fit.',
+    guidance: ['Four of the major is presented ahead of 3NT, but Pass remains visible because the ' +
+               'relative merits of the two games can still depend on the actual cards.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-4nt-quantitative-after-suit-3nt',
+    kind: 'openerRebid',
+    title: 'Invite small slam quantitatively after a natural 3NT response',
+    auctionContext: {
+      stage: 'openerRebid', responderCall: { kind: 'notrump', level: 3 },
+    },
+    calls: ['4NT'],
+    callCategory: ['invitational', 'natural'],
+    priority: { rank: 20, note: 'Slam invitation remains behind a known major-suit game.' },
+    appliesWhen: openerSuitThreeNtQuantitativeApplies,
+    meaning: 'Natural quantitative invitation to 6NT with an 18-21 HCP one-level suit opener.',
+    guidance: ['This is quantitative, not Blackwood: responder may Pass with a minimum or ' +
+               'unsuitable 13-15 HCP hand and continue toward 6NT with a maximum/useful hand.',
+               'Pass at 3NT remains available because accepting the slam try is a judgment decision.',
+               'After a major opening, this project still treats 4NT as quantitative in this ' +
+               'specific direct-3NT family; four of the known major fit remains available ahead of it.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-pass-after-major-preemptive-game-raise',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s preemptive game raise',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'raise', level: 4, jump: 2 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    meaning: 'Responder\'s direct four-of-the-major raise is weak, preemptive, and non-forcing.',
+    guidance: ['Exceptional slam-oriented hands can explore further in actual play; those control ' +
+               'bids or ace-asking continuations are not modeled in this rule family.'],
+    certainty: 'high',
+  },
+
+  //
+  // The following rules are opener rebids after responder makes a four-card limit raise of a major.
+  // Responder has shown 11-12 support points, so 13 support points is deliberately a judgment case.
+  //
+  {
+    id: 'opener-rebid-pass-after-major-limit-raise',
+    kind: 'openerRebid',
+    title: 'Decline a major-suit limit raise with minimum values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'raise', level: 3, jump: 1 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { totalPoints: { min: 12, max: 13, valuation: 'shortage' } },
+    meaning: 'Decline responder\'s invitational raise and play three of the agreed major.',
+    guidance: ['With 12 support points, Pass.  A 13-support-point hand is a judgment case, so ' +
+               'both Pass and game remain available in the trainer.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-game-raise-after-major-limit-raise',
+    kind: 'openerRebid',
+    title: 'Accept a major-suit limit raise with game-going values',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'major',
+      responderCall: { kind: 'raise', level: 3, jump: 1 },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' } },
+    meaning: 'Accept responder\'s limit raise and bid game in the agreed major.',
+    guidance: ['With 14+ support points, accept the 11-12-point invitation.  With 13 support ' +
+               'points, hand texture and working honors make acceptance a judgment call.',
+               'Because the major-suit fit is known, revalue with shortage points rather than ' +
+               'using HCP alone.',
+               'With substantial extra strength and useful controls, slam exploration may be ' +
+               'appropriate in actual play; those continuations are not modeled in this rule family.'],
+    certainty: 'high',
+  },
+
+  //
   // The following rules are opener rebids after responder raises a major opening to two.
   //
   {
@@ -3054,7 +3416,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Pass a simple major raise with minimum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -3069,7 +3431,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Compete to three of the major with six-card trump length',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -3091,7 +3453,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Make a natural help-suit game try with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -3113,7 +3475,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Use 2NT as a balanced game try with medium values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['2NT'],
     callCategory: ['forcing', 'invitational', 'natural'],
@@ -3133,7 +3495,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise the agreed major to game with maximum values',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -3151,7 +3513,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Optional splinter after a simple major raise',
     auctionContext: {
       stage: 'openerRebid', openerStrain: 'major',
-      responderCall: { kind: 'raise', level: 2, jump: false },
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['3S', '4C', '4D', '4H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {

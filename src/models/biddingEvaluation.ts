@@ -9,7 +9,7 @@ import { type AuctionContext, type BidRule, type Call, type HandConstraint,
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
-         getStrainFromSuitBid, isContractBid, responseIsJump } from './auction';
+         getStrainFromSuitBid, isContractBid, responseJump } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 
@@ -1018,7 +1018,7 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
     return false;
   }
   if (constraint.jump !== undefined &&
-      constraint.jump !== responseIsJump(openingCall, responseCall)) {
+      constraint.jump !== responseJump(openingCall, responseCall)) {
     return false;
   }
   return true;

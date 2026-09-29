@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 180 deals, with 525 positive call/rule assertions, 131 elimination
-assertions, thirteen call-order assertions, and 471 recorded-practice-call checks. Positive assertions
-cover all 83 implemented suit-opening opener-rebid rule IDs, all eight immediate 1NT/2NT
+The current corpus contains 196 deals, with 582 positive call/rule assertions, 147 elimination
+assertions, eighteen call-order assertions, and 521 recorded-practice-call checks. Positive assertions
+cover all 97 implemented suit-opening opener-rebid rule IDs, all eight immediate 1NT/2NT
 opener-continuation rule IDs, and all four notrump-invitation rule IDs. All 12 ordinary
 minor-opening response rules and all 20 ordinary major-opening response rules remain covered.
 The remaining response ID in each suit family is the specialized Blackwood option, for which
@@ -39,8 +39,13 @@ dedicated practice deals were omitted.
 Twenty-five existing notrump response deals were extended through opener's next call and **moved**,
 not copied, into the `nt-1nt` and `nt-2nt` opener-rebid dropdown buckets. Two existing minor-raise
 response deals are likewise moved into the new `minor-raise` opener-rebid bucket, and five new
-minor-raise comparison deals exercise the remaining strength and distribution cases. Earlier-stage
-opening and response assertions continue to run after a deal moves to a later bucket.
+minor-raise comparison deals exercise the remaining strength and distribution cases. Four dedicated
+`minor-2nt` deals exercise the natural invitational 2NT decision at 12, 13, 14, and stronger HCP.
+The existing direct minor 3NT response and preemptive major game-raise deals are moved into their
+opener-rebid buckets, while three new comparison deals exercise quantitative 4NT and the direct
+major 3NT game choice. Five dedicated `major-jacoby-2nt` deals exercise shortness, a good side suit,
+and the minimum/medium/strong no-shortness rebids. Earlier-stage opening and response assertions
+continue to run after a deal moves to a later bucket.
 
 These are selected meaningful variations represented in the corpus, not an inventory of every
 condition inside each rule or refiner.
@@ -50,6 +55,10 @@ condition inside each rule or refiner.
 | Opener after a simple minor raise | `minor-raise`, four `1m-2m` deals | With 12-16 total points opener can Pass; 17-18 raises the agreed minor to three; with 19+ total points 3NT is the usual game target. An extreme seven-card-minor hand keeps five of the minor as a lower-ranked judgment alternative. |
 | Opener after a minor limit raise | `minor-raise`, three `1m-3m` deals | A bad 12-13-total-point minimum can Pass; 14+ total points qualify for the usual 3NT acceptance. With 17+ total points, a seven-card minor, and extreme shape, five of the minor remains available behind 3NT. |
 | Minor-raise stopper guidance without a hard stopper gate | `minor-raise`, both 3NT families | The executable rules use strength and the known minor fit, not `HandConstraint.stoppers`. Guidance gives A, Kx+, or Qxx+ as a conservative full stopper and leaves Qx, Jxx, and lead/declaring-position-dependent holdings to judgment. |
+| Natural `1m-2NT` invitation | `minor-2nt`, four opener-rebid deals | Responder shows 11-12 HCP, balanced shape, and no four-card major. Opener Passes with 12 HCP, keeps both Pass and 3NT at 13 HCP, and accepts with 14+ HCP. A 16-HCP 3-2-2-6 opener confirms that acceptance does not require balanced shape or a hard stopper gate. |
+| Natural `1m-3NT` game placement and quantitative slam try | `minor-3nt`, two opener-rebid deals | An ordinary opener can Pass responder's balanced 13-15 HCP 3NT signoff. With 18-21 HCP, quantitative 4NT also remains available ahead of Pass as a judgment-based small-slam invitation rather than Blackwood. |
+| Direct flat `1M-3NT` game response | `major-game-response`, two 3NT deals | The chosen direct 3NT treatment shows 13-15 HCP, 4-3-3-3 shape, and exactly three-card support. Opener therefore has a known 5-3 major fit: 4M ranks ahead of Pass; with 18-21 HCP, quantitative 4NT is inserted between them. |
+| Preemptive `1M-4M` response | `major-game-response`, moved weak game-raise deal | The direct five-card-support game raise is a natural signoff. Opener Passes; exceptional slam exploration remains outside this rule family. |
 | Natural game invitations after 1NT | `nt-1nt`, paired minimum, middle, and maximum hands under both 15-17 and 16-18, including natural bidding without conventions | Over either 1NT range, opener declines `2NT` with minimum HCP, accepts with maximum HCP, and keeps both Pass and `3NT` at the middle HCP; selected boundary deals eliminate the unavailable alternative. The 15-17 no-conventions invitation retains its unbalanced response rule and now tests acceptance by a 17-HCP opener. |
 | Quantitative 4NT after 1NT | `nt-1nt`, minimum/middle/maximum hands under both 1NT ranges | Minimum opener passes; maximum bids `6NT`; at the middle HCP both remain valid judgment alternatives. Recorded calls use quantitative, not Blackwood, response rules. |
 | Quantitative 4NT after 2NT | `nt-2nt`, paired 20- and 21-HCP openers | With 20 HCP, opener declines with Pass. With 21 HCP, both Pass and `6NT` remain qualified, with Pass presented first because responder can have only 11 HCP and slam depends on working honors and likely tricks. |
@@ -94,6 +103,8 @@ condition inside each rule or refiner.
 | Standard two-level response: minimum versus strong diamond opener with a second heart suit | `minor-standard-two-level-new-suit`, first two deals | At 14 HCP / 15 total, repeat `2D` and exclude the `2H` reverse; at 18 HCP / 19 total, `2H` qualifies. |
 | Available one-level new suit versus fallback notrump | `major-one-level-new-suit`, first deal; `minor-one-level-new-suit`, first deal | Responder's `1S` leaves no qualifying fallback `1NT` after `1H`; opener's `1S` excludes fallback `1NT` after `1C–1H`. |
 | Three-card major limit raise when a one-level new suit is available | `response-major-opening`, `1H–1S` limit-raise deal | Respond `1S` and exclude the `1NT` fallback. |
+| Four-card major limit-raise acceptance | `major-limit-raise`, four Pass/game boundary deals | Opener revalues with shortage points: 12 declines, 13 keeps both Pass and `4M`, and 14+ accepts. An 11-HCP opener with a singleton demonstrates distributional revaluation to 14 support points. |
+| Jacoby 2NT opener descriptions | `major-jacoby-2nt`, five opener-rebid deals | After the artificial game-forcing raise, a three-level new suit shows singleton/void and outranks a four-level good five-card side suit. With no shortness, `4M` shows a minimum through 13 HCP, `3NT` shows 14-15, and `3M` shows 16-21 with slam interest. The side-suit test uses 5+ cards and at least two of A/K/Q/J. |
 | Weak versus strong jump shifts after `1C` | `response-minor-opening`, weak and strong jump-shift deals | Each system's `2H` rule and the natural `1H` rule both qualify; `2H` precedes `1H`. |
 | Weak jump shift after `1H` | `response-major-opening`, weak-jump-shift deal | `2S` and `1S` both qualify, with `2S` first. |
 | Shortage points and splinter presentation | `response-major-opening`, `1H–4C` splinter deal | 11 HCP plus three shortage points qualify for the splinter and two natural routes; `4C` precedes `1S` and `2D`. |

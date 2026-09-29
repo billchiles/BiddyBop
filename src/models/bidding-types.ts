@@ -249,9 +249,9 @@ export interface ResponderCallContext {
   kind?: 'newSuit' | 'raise' | 'notrump';
   // level is the absolute bid level, not the size of a jump.
   level?: RuleBidLevel;
-  // jump constrains jump status derived from the actual auction.  true requires a jump, false
-  // requires a non-jump, and omitted means the rule does not care.
-  jump?: boolean;
+  // jump is the number of levels above the cheapest legal bid in responder's strain.  0 requires
+  // a non-jump, 1 a single jump, 2 a double jump, and omitted means the rule does not care.
+  jump?: 0 | 1 | 2;
 }
 
 export interface AuctionContext {

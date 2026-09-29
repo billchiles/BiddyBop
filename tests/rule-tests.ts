@@ -1,6 +1,7 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
-import { defaultBiddingSystem, type BiddingSystem, type Call } from '../src/models/bidding-types';
+import { defaultBiddingSystem, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
+import { compareSuitBids, parseSuitBid, responseJump } from '../src/models/auction';
 import { evaluateUserCall, getApplicableCandidateCalls, type CandidateCallMatch }
   from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
@@ -27,6 +28,42 @@ const CONVENTION_CONFIGURATIONS: { name: string; settings: ConventionValues }[] 
   { name: 'basic natural', settings: { stayman: false, jacobyTransfers: false, texasTransfers: false } },
 ];
 const CONVENTION_SETTINGS: ConventionSetting[] = ['stayman', 'jacobyTransfers', 'texasTransfers'];
+
+/// responseJump keeps the exact jump size instead of collapsing it to a boolean.  Test zero
+/// explicitly so later code does not accidentally depend on numeric truthiness.
+function runAuctionHelperTests (): number {
+  const cases: { opening: SuitBid; response: SuitBid; expected: number }[] = [
+    { opening: '1H', response: '1S', expected: 0 },
+    { opening: '1S', response: '2H', expected: 0 },
+    { opening: '1S', response: '3H', expected: 1 },
+    { opening: '1H', response: '3S', expected: 2 },
+  ];
+  let failureCount = 0;
+  for (const testCase of cases) {
+    const actual = responseJump(testCase.opening, testCase.response);
+    if (actual !== testCase.expected) {
+      failureCount += 1;
+      console.error(`FAIL responseJump(${testCase.opening}, ${testCase.response}) = ${actual}; ` +
+                    `expected ${testCase.expected}.`);
+    }
+  }
+  const comparisonCases: { lower: SuitBid; higher: SuitBid }[] = [
+    { lower: '4D', higher: '4H' },
+    { lower: '3S', higher: '4C' },
+  ];
+  for (const testCase of comparisonCases) {
+    const lowerBid = parseSuitBid(testCase.lower)!;
+    const higherBid = parseSuitBid(testCase.higher)!;
+    if (compareSuitBids(lowerBid, higherBid) >= 0 || compareSuitBids(higherBid, lowerBid) <= 0 ||
+        compareSuitBids(lowerBid, lowerBid) !== 0) {
+      failureCount += 1;
+      console.error(`FAIL compareSuitBids ordering for ${testCase.lower} and ${testCase.higher}.`);
+    }
+  }
+  console.log(`Auction helpers: ${cases.length} responseJump checks and ${comparisonCases.length} ` +
+              `bid-order comparisons; ${failureCount} failures.`);
+  return failureCount;
+}
 
 /// Run all deals, including those requiring non-default partnership agreements.
 /// Continue after individual failures so one run reports all recoverable regressions.
@@ -231,4 +268,7 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
 }
 
-process.exitCode = runRuleTests();
+const failureCount = runAuctionHelperTests() + runRuleTests();
+if (failureCount !== 0) {
+  throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
+}
