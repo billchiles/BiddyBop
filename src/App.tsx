@@ -3,19 +3,21 @@ import './App.css';
 import { BidPanel } from './components/BidPanel';
 import { BiddingSystemControls } from './components/BiddingSystemControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
-import { generateOpenableNorthBoard, makeRuleTestBoard, type Board } from './models/cards';
+import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
 import { defaultBiddingSystem, type BiddingSystem } from './models/bidding-types';
 import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDealBucketId }
   from './models/rule-test-deals';
 
-/// App is the first browser-only punch-through for deal generation and rule matching.
+/// App owns browser-level practice controls and the board currently displayed.
+const PRACTICE_DEALER: Seat = 'N';
+
 interface AppState {
   board: Board;
   telemetryLines: string[];
 }
 
 function createInitialState(): AppState {
-  const result = generateOpenableNorthBoard();
+  const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening: true });
   return {
     board: result.board,
     telemetryLines: ['Generated initial board.', ...result.telemetryLines],
@@ -31,7 +33,7 @@ export default function App() {
   const testBucketGroups = [...new Set(RULE_TEST_DEAL_BUCKETS.map((bucket) => bucket.group))];
   // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
-    const result = generateOpenableNorthBoard();
+    const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening: true });
     setState({
       board: result.board,
       telemetryLines: ['Generated new board.', ...result.telemetryLines],
@@ -74,8 +76,8 @@ export default function App() {
     <main className="appShell">
       <header className="appHeader">
         <div>
-          <h1>Bridge Trainer Punch-Through</h1>
-          <p>Random deal, openable North, user bid matching, candidate rules, and evaluator telemetry.</p>
+          <h1>Bridge Bidding Trainer</h1>
+          <p>Random and rule-practice deals, bid matching, candidate rules, and evaluator telemetry.</p>
         </div>
         <div className="dealControls">
           <BiddingSystemControls biddingSystem={biddingSystem} onChange={setBiddingSystem} />

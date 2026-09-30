@@ -7,9 +7,9 @@ import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../m
 import { DealCompass } from './DealCompass';
 
 
-/// BidPanel owns the visible auction practice area while App keeps telemetry separate.
-/// The current punch-through still has the user enter partnership calls while opponents auto-pass.
-/// The model, rather than React, derives the acting seat, hand, and bidding stage from board + auction.
+/// BidPanel owns the visible auction practice area while App keeps telemetry separate.  The current
+/// UI still has the user enter partnership calls while opponents auto-pass; the model derives the
+/// acting seat, hand, and bidding stage from board + auction.
 export interface BidPanelProps {
   board: Board;
   biddingSystem: BiddingSystem;
@@ -19,14 +19,14 @@ export interface BidPanelProps {
 export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [auction, setAuction] = useState<Call[]>([]);
-  const [punchThroughComplete, setPunchThroughComplete] = useState(false);
+  const [auctionComplete, setAuctionComplete] = useState(false);
   const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
   const explanationRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
     setBidText('');
     setAuction([]);
-    setPunchThroughComplete(false);
+    setAuctionComplete(false);
     setExplanationLines(['No evaluation yet.']);
   }, [board, biddingSystem]);
 
@@ -39,11 +39,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (punchThroughComplete) {
-      onTelemetry(['Current punch-through is complete.']);
-      return;
-    }
-    if (auctionIsComplete(auction)) {
+    if (auctionComplete || auctionIsComplete(auction)) {
       onTelemetry(['Auction is complete.']);
       return;
     }
@@ -51,28 +47,29 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
     const stage = getBidStage(board.dealer, auction);
     switch (stage) {
       case 'opening':
-        evaluateBid('opening', true, false);
-        return;
       case 'responding':
-        evaluateBid('responding', true, false);
-        return;
       case 'openerRebid':
-        evaluateBid('openerRebid', false, true);
+        commitUserCall();
         return;
       case 'responderRebid':
       case 'overcalling':
       case 'advancing':
       case null:
-        onTelemetry([`No user-input punch-through is implemented for stage ${stage ?? 'unresolved'}.`]);
+        onTelemetry([`No user-input workflow is implemented for stage ${stage ?? 'unresolved'}.`]);
         return;
     }
   }
 
-  /// evaluateBid keeps the temporary punch-through policy in React: the user enters partnership
-  /// calls and the intervening opponent auto-passes.  Acting seat, hand, and bidding stage are still
-  /// derived by the model from board + auction.
-  function evaluateBid(stage: BidStage, autoPassOpponent: boolean,
-                       completesPunchThrough: boolean): void {
+  /// commitUserCall evaluates one call using board + auction as the durable model inputs.  The
+  /// current UI orchestration remains local: opponents auto-pass after opening and response, and the
+  /// current practice auction stops after opener's rebid.
+  function commitUserCall(): void {
+    const stage = getBidStage(board.dealer, auction);
+    if (stage === null) {
+      onTelemetry(['No bidding stage is available for the current auction.']);
+      return;
+    }
+
     const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
     if (normalizedCall === null) {
@@ -82,13 +79,13 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
 
     const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
     const nextAuction: Call[] = [...auction, normalizedCall];
-    if (autoPassOpponent) {
+    if (stage === 'opening' || stage === 'responding') {
       nextAuction.push('Pass');
     }
 
     setAuction(nextAuction);
-    if (completesPunchThrough) {
-      setPunchThroughComplete(true);
+    if (stage === 'openerRebid' || auctionIsComplete(nextAuction)) {
+      setAuctionComplete(true);
     }
     finishBidEntry(seat, stage, result);
   }
@@ -119,8 +116,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
       .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
   }
 
-  const inputDisabled = punchThroughComplete || auctionIsComplete(auction);
-  const nextBidLabel = getNextBidLabel(board.dealer, auction, punchThroughComplete);
+  const inputDisabled = auctionComplete || auctionIsComplete(auction);
+  const nextBidLabel = getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
   return (
@@ -208,12 +205,9 @@ function getSeatLabel(seat: Seat): string {
   }
 }
 
-function getNextBidLabel(dealer: Seat, auction: Call[], punchThroughComplete: boolean): string {
-  if (auctionIsComplete(auction)) {
+function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean): string {
+  if (auctionComplete || auctionIsComplete(auction)) {
     return 'Auction complete';
-  }
-  if (punchThroughComplete) {
-    return 'Punch-through complete';
   }
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
 }

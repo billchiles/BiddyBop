@@ -140,13 +140,24 @@ export interface BoardWTelemetry {
 }
 
 /// maxDealAttempts is probably silly and will be removed eventually, but for now, let's make sure
-/// openable hands come along within a couple of deals
+/// openable hands come along within a couple of deals.
 const maxDealAttempts = 100;
 
-export function generateOpenableNorthBoard (): BoardWTelemetry {
+export interface GenerateBoardOptions {
+  dealer: Seat;
+  requireDealerOpening?: boolean;
+}
+
+/// generateBoard deals a board for the requested dealer.  Practice callers can require an opening
+/// hand in the dealer seat without making that generation shortcut part of the bidding evaluator.
+export function generateBoard (options: GenerateBoardOptions): BoardWTelemetry {
   const telemetryLines: string[] = [];
-  // This is only a deal-generation shortcut, not the bidding evaluator.  Include the common ways
-  // the current opening rules can produce an opening so weak preempts and Rule-of-20 hands appear.
+  if (! options.requireDealerOpening) {
+    return { board: { deal: dealRandomHands(), dealer: options.dealer }, telemetryLines };
+  }
+
+  // Include the common ways the current opening rules can produce an opening so weak preempts and
+  // Rule-of-20 hands appear in random practice deals.
   for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
     let deal = dealRandomHands();
     const firstOpenableSeat = SEATS.find((seat) => isPracticeOpeningHand(deal[seat]));
@@ -155,17 +166,18 @@ export function generateOpenableNorthBoard (): BoardWTelemetry {
       telemetryLines.push(
         `Deal attempt ${attemptIndex}: HCP N=${hcpBySeat.N} E=${hcpBySeat.E} ` +
         `S=${hcpBySeat.S} W=${hcpBySeat.W}.`);
-      if (firstOpenableSeat !== 'N') {
-        deal = rotateOpeningToNorth(deal, firstOpenableSeat);
-        telemetryLines.push(`First practice-opening hand was ${firstOpenableSeat}; rotated it to North.`);
+      if (firstOpenableSeat !== options.dealer) {
+        deal = rotateSeatTo(deal, firstOpenableSeat, options.dealer);
+        telemetryLines.push(
+          `First practice-opening hand was ${firstOpenableSeat}; rotated it to ${options.dealer}.`);
       }
-      return { board: { deal, dealer: 'N' }, telemetryLines };
+      return { board: { deal, dealer: options.dealer }, telemetryLines };
     }
   } // for
   const fallbackDeal = dealRandomHands();
   telemetryLines.push(
     `No practice-opening hand found after ${maxDealAttempts} attempts; using final random deal.`);
-  return { board: { deal: fallbackDeal, dealer: 'N' }, telemetryLines };
+  return { board: { deal: fallbackDeal, dealer: options.dealer }, telemetryLines };
 }
 
 /// Build a deterministic rule-practice board without changing the active bidding system.  The
@@ -241,8 +253,8 @@ function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): numb
   return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
 }
 
-/// makeRuleTestDeal builds a complete physical deal from the two hands that matter to the
-/// current North-South punch-through.  East and West get the remaining cards deterministically.
+/// makeRuleTestDeal builds a complete physical deal from the two hands specified by the current
+/// rule-practice fixture.  East and West get the remaining cards deterministically.
 ///
 function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   const north = makeTestHand(testDeal.north);
@@ -251,7 +263,7 @@ function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   if (usedCards.size !== 26) {
     throw new Error(`Duplicate card in rule-test deal: ${testDeal.description}`);
   }
-  // Fill the opponents from the unused deck; their cards do not affect the current auto-pass UI.
+  // Fill the opponents from the unused deck; their cards do not affect current uncontested tests.
   const remainingCards: Card[] = [];
   for (const suit of SUITS) {
     for (const rank of RANKS) {
@@ -352,19 +364,18 @@ function getHcp (hand: Hand): number {
   return total;
 }
 
-/// rotateOpeningToNorth might be useful indefinitely, but for not it is just for the initial
-/// punch throughs to try out bidding logic and rules data.
+/// rotateSeatTo rotates a deal so the hand currently at sourceSeat moves to targetSeat while
+/// preserving the clockwise relationship among all four hands.
 ///
-function rotateOpeningToNorth (deal: Deal, firstOpenableSeat: Seat): Deal {
-  const openableIndex = SEATS.indexOf(firstOpenableSeat);
-  if (openableIndex < 0) {
-    throw new Error(`Unknown seat: ${firstOpenableSeat}`);
-  }
+function rotateSeatTo (deal: Deal, sourceSeat: Seat, targetSeat: Seat): Deal {
+  const sourceIndex = SEATS.indexOf(sourceSeat);
+  const targetIndex = SEATS.indexOf(targetSeat);
+  const offset = (sourceIndex - targetIndex + SEATS.length) % SEATS.length;
   return {
-    N: deal[SEATS[openableIndex]],
-    E: deal[SEATS[(openableIndex + 1) % SEATS.length]],
-    S: deal[SEATS[(openableIndex + 2) % SEATS.length]],
-    W: deal[SEATS[(openableIndex + 3) % SEATS.length]],
+    N: deal[SEATS[offset]],
+    E: deal[SEATS[(1 + offset) % SEATS.length]],
+    S: deal[SEATS[(2 + offset) % SEATS.length]],
+    W: deal[SEATS[(3 + offset) % SEATS.length]],
   };
 }
 

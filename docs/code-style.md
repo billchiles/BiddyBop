@@ -79,7 +79,7 @@ when the wrapper is used once and contributes no additional logic.
 ## Naming
 
 - Prefer conceptual/domain names over names that encode temporary implementation details.
-- Name durable APIs for the behavior they conceptually provide, not for temporary punch-through or scaffolding mechanics.
+- Name durable APIs for the behavior they conceptually provide, not for temporary prototype or scaffolding mechanics.
 - Prefer concise established abbreviations when they improve readability without losing meaning, for example `RuleEvalContext` rather than `RuleEvaluationContext`.
 - Do not shorten names merely to save characters if the result is less clear.
 - When porting existing code, preserve established names unless the rename fixes a concrete semantic or readability problem.
@@ -158,7 +158,7 @@ only when the property itself must always exist but its value may be `undefined`
 - Keep temporary UI/controller workflow separate from durable model APIs.
 - Do not promote temporary scaffolding behavior into first-class model fields or long-lived API parameters.
 - If an interim workflow needs crude hard-coded orchestration, keep that crudity local and obvious rather than designing a polished abstraction around code that will shortly disappear.
-- It is acceptable for temporary punch-through behavior to end roughly or become inoperable once the currently implemented path is exhausted; do not add ceremonial completion-state machinery unless it prevents a real correctness or usability problem.
+- It is acceptable for a temporary workflow to end roughly or become inoperable once the currently implemented path is exhausted; do not add ceremonial completion-state machinery unless it prevents a real correctness or usability problem.
 - When an eventual architecture is known but not needed yet, leave a clear seam rather than implementing the future framework prematurely.
 
 ## API Design
@@ -167,7 +167,7 @@ only when the property itself must always exist but its value may be `undefined`
 - Avoid parameters that exist only to control temporary workflow behavior.
 - Boolean parameters are especially suspicious when their meaning is not self-evident at the call site, but replacing them with an options object does not fix a bad conceptual API.
 - First ask whether the behavior belongs in the callee's contract at all.
-- If temporary behavior belongs only to orchestration, leave it in the orchestration layer rather than adding `addPass`, `finalStage`, `punchThroughComplete`, or similar knobs to a general API.
+- If temporary behavior belongs only to orchestration, leave it in the orchestration layer rather than adding `addPass`, `finalStage`, or similar knobs to a general API.
 - Prefer an API that accepts the true domain inputs and derives consequences internally when those consequences are inherent to the domain state.
 
 ## React and UI Code
@@ -201,7 +201,7 @@ only when the property itself must always exist but its value may be `undefined`
 Temporary code should be obviously temporary and cheap to remove.
 
 - Prefer rough, explicit orchestration to polished temporary abstractions.
-- Do not add completion flags, wrapper APIs, or state machines merely to make an incomplete punch-through appear finished.
+- Do not add completion flags, wrapper APIs, or state machines merely to make an incomplete workflow appear finished.
 - Do not let temporary behavior leak into signatures of functions likely to survive the prototype.
 - Keep hard-coded development assumptions at the highest practical layer so lower-level model code stays reusable.
 - When temporary assumptions are replaced later, remove their scaffolding rather than preserving compatibility wrappers without a concrete need.

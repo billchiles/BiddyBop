@@ -1,5 +1,4 @@
-/// Bidding rules characterizations and bidding notes.  Not sure yet what is needed or how it will
-/// be used, so iterating toward a design with some punch through code on bidding.
+/// Executable bidding rules, priorities, meanings, and guidance for the trainer.
 
 import type { BidRule, Call, RuleEvalContext, CallRefinementResult, AppliesWhenResult } from './bidding-types';
 import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
@@ -178,10 +177,9 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['2C'],
     callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 22 } },
-    guidance: ['The strong 2C bid is simplest with 22+ points and any shape, but bidding texts ' +
-               'suggest a 4-4-4-1 distribution might be better opened on the 1 level.  Texts ' +
-               'also mention with nine or more tricks(required experience), fewer than 22 points ' +
-               'is ok.'],
+    guidance: ['Use 22+ HCP for the artificial strong 2C opening.  Highly distributional hands ' +
+               'can be awkward to describe later and can lead to a less suitable final contract.  ' +
+               'This app does not lower the 2C HCP threshold by counting playing tricks.'],
     meaning: 'Strong artificial and forcing opening; absent interference, partner must respond.',
     certainty: 'high',
   },

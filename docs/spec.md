@@ -124,8 +124,8 @@ The app should help the user practice bidding decisions using structured convent
   opening. Keep this convention commented near rule declarations that use it.
 - Opener-rebid rules may instead constrain `responderCall`. `kind`, absolute `level`, and `jump` are
   rule-declaration constraints; the evaluator derives those facts from responder's actual call.
-  `jump: true` requires a jump, `jump: false` requires a non-jump, and omission means the rule does
-  not care.
+  `jump: 0` requires a non-jump, `jump: 1` a single jump, `jump: 2` a double jump, and omission
+  means the rule does not care about jump size.
 - Do not put prose such as `text` inside `appliesWhen`.
 - Do not put judgment phrases such as "good suit" inside `appliesWhen` unless the code has a defined evaluator for them.
 - `supportLength` means length in partner's relevant naturally bid suit for the current stage.
@@ -137,17 +137,23 @@ The app should help the user practice bidding decisions using structured convent
 - Natural 1NT and 2NT opening rules require the strict `balanced` shapes, not
   `balancedOrSemiBalanced`.
 
-## First GUI Punch-Through
+## Current GUI Interaction
 
-- Generate a `Board` containing `deal` plus `dealer` and show all four hands.
-- For the current focused practice shortcut, rotate a randomly dealt practice-opening hand to North and set `dealer: 'N'`. Deal generation may use simple hard-coded opening characteristics for efficiency; the bidding evaluator remains authoritative.
-- Keep one authoritative physical auction containing the opponent passes that the current UI inserts automatically. Rule declarations may continue to use compact uncontested partnership auctions.
-- Model code derives the next physical seat, acting hand, and bidding stage from board + auction. React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
-- For now, the UI still has the user enter the partnership's calls and auto-passes the intervening opponents. Do not introduce a controlled-seat/controller abstraction yet.
-- Punch through opening, response, and opener rebid, then stop.
+- A `Board` contains the physical `deal` plus `dealer`; the UI shows all four hands.
+- Random practice generation accepts the dealer as an input and can require the dealer to receive a
+  practice-opening hand.  The current React caller uses North as dealer, but the generation and
+  bidding APIs do not assume North.
+- Keep one authoritative physical auction containing the opponent passes that the current UI inserts
+  automatically. Rule declarations may continue to use compact uncontested partnership auctions.
+- Model code derives the next physical seat, acting hand, and bidding stage from board + auction.
+  React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
+- For now, the UI still has the user enter the partnership's calls and auto-passes the intervening
+  opponents.  The intended later interaction keeps the user at South and automates the other seats;
+  do not introduce that controller abstraction until the behavior is needed.
+- The current workflow covers opening, response, and opener rebid, then marks the auction complete.
 - Show matching rules, suggested calls, and guidance.
 - Do not build DDS, simulation, competitive bidding, scoring, or full auction judgment yet.
-- Later, configurable practice-hand/scenario generation should move out of React and into model code.
+- Configurable practice-hand/scenario generation belongs in model code rather than React.
 
 
 ## Current Practice-System Decisions
@@ -301,15 +307,16 @@ would cause us to revisit the omission.
 - Revisit if: practice repeatedly exposes hands where accepting or suggesting the three-card raise
   would materially improve the trainer.
 
-### Strong `2C` openings based on playing tricks below the HCP threshold
+### Strong `2C` playing-trick exceptions
 
-- Status: Guidance only; no executable exception currently planned.
-- Explanation guidance: Yes. The existing strong-`2C` rule notes that some bidding treatments open
-  an exceptional playing-strength hand `2C` below the project's 22-HCP threshold.
-- Reason: Playing-trick exceptions are uncommon and materially less mechanical than the project's
-  chosen 22+ HCP treatment. Encoding them would add judgment complexity with little value for the
-  current beginner/intermediate practice goals.
+- Status: Intentionally omitted from executable rules.
+- Explanation guidance: Yes. The strong-`2C` rule uses 22+ HCP and notes that highly distributional
+  hands can be awkward to describe later and can lead to a less suitable final contract.  This app
+  does not lower the 2C HCP threshold by counting playing tricks.
+- Reason: Playing-trick exceptions are less mechanical than the chosen 22+ HCP treatment and add
+  little value for the trainer's focus on common, foundational contract bridge bidding.
 - Revisit if: strong-hand practice becomes important enough that these exceptions occur often.
+
 
 ### Partnership-specific higher rebids after a one-level new-suit response
 
@@ -318,8 +325,9 @@ would cause us to revisit the omission.
 - Explanation guidance: Usually no routine runtime guidance.  Ordinary natural jump shifts and the
   configured double-jump splinter treatment remain executable when their meanings are identifiable.
 - Reason: The bidding material labels these higher calls as partnership agreement without assigning
-  one universal meaning.  They are specialized or undefined for the trainer's current
-  beginner/intermediate scope; inventing meanings would be worse than omitting the calls.
+  one universal meaning.  They are specialized or undefined relative to the trainer's focus on
+  common, foundational contract bridge bidding; inventing meanings would be worse than omitting
+  the calls.
 - Revisit if: the project adopts a specific agreement assigning one of these calls a defined meaning
   or practice shows that the omission materially limits the trainer.
 

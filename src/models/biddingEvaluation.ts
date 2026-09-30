@@ -711,9 +711,7 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
 //// Evaluate Hand Constraints against Calls
 ///
 
-/// evaluateHandConstraint evaluates rule.appliesWhen's HandConstraint against a call.  Fields not
-/// supported by the first punch-through fail closed so unsupported rule data does not silently
-/// produce advice.
+/// evaluateHandConstraint evaluates rule.appliesWhen's declarative hand constraints against a call.
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
                                  context: RuleEvalContext, system: BiddingSystem)
@@ -741,10 +739,6 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       pass = pass && result.pass;
     }
   }
-  if (constraint.anySuitLength !== undefined) {
-    telemetryLines.push('UNSUPPORTED: anySuitLength is not evaluated in the first punch-through.');
-    pass = false;
-  }
   if (constraint.shape !== undefined) {
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
@@ -754,10 +748,6 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
-  }
-  if (constraint.stoppers !== undefined) {
-    telemetryLines.push('UNSUPPORTED: stoppers is not evaluated in the first punch-through.');
-    pass = false;
   }
   return { success: pass, telemetryLines };
 } //evaluateHandConstraint()
@@ -813,9 +803,7 @@ function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFact
 }
 
 /// getSuitsForLengthTesting returns the suit(s) tested by one suit-length constraint.  A named
-/// suit/major/minor is explicit; an omitted suit means the candidate call's suit.  anySuitLength is
-/// reserved for the different semantics of asking whether some arbitrary suit in the hand meets a
-/// condition.
+/// suit/major/minor is explicit; an omitted suit means the candidate call's suit.
 ///
 function getSuitsForLengthTesting (constraint: SuitLengthConstraint, call: Call): Suit[] {
   if (constraint.suit === 'major') return ['H', 'S'];
@@ -889,10 +877,6 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
     const thisPass = shape.noFiveCardMajor ? ! handFacts.hasFiveCardMajor : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFiveCardMajor is ${handFacts.hasFiveCardMajor}.`);
     pass = pass && thisPass;
-  }
-  if (shape.text !== undefined && shape.text !== '') {
-    telemetryLines.push('UNSUPPORTED: shape.text is not evaluated in the first punch-through.');
-    pass = false;
   }
   return { pass, telemetryLines };
 } //testHandShape()

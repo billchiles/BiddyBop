@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
-/// Browser-only Vite entry point for the punch-through app.
+/// Browser-only Vite entry point for the bridge bidding trainer.
 const rootElement = document.getElementById('root');
 
 if (rootElement === null) {

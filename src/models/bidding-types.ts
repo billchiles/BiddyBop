@@ -101,9 +101,8 @@ export function oneNtResponseHcpShift (system: BiddingSystem): number {
 }
 
 /// biddingBaseline records fixed assumptions of the current practice system.  These are mostly
-/// machine-readable comments; configurable choices belong in BiddingSystem instead.  If some aspect
-/// here became interesting to turn on and off for a beginner, such as weak 2s or 3s, these settings
-/// could move to BiddingSystem.
+/// machine-readable comments; configurable choices belong in BiddingSystem instead.  If a fixed
+/// assumption later becomes useful as a user-configurable agreement, move it to BiddingSystem.
 ///
 export const biddingBaseline = {
   description: 'Standard American / SAYC-like system with selected modern adaptations',
@@ -201,12 +200,10 @@ export interface HandConstraint {
   // computed with length bonuses or shortage bonuses depending on auction stage
   totalPoints?: TotalPointsRange;  
   suitLengths?: SuitLengthConstraint[]; // if no suit specified, it means the candidate call suit
-  anySuitLength?: SuitLengthConstraint[]; // a suit needs to exist with this length
   shape?: HandShapeConstraint;
   // Length in partner's relevant naturally bid suit for this stage.  While responding this is
   // opener's suit; on opener's rebid it is responder's suit.
   supportLength?: PointRange;
-  stoppers?: string[];
 }
 
 export interface PointRange {
@@ -238,7 +235,6 @@ export interface HandShapeConstraint {
   noFourCardMajor?: boolean;
   noFourCardOtherMajor?: boolean;
   noFiveCardMajor?: boolean;
-  text?: string;
 }
 
 export type RuleBidLevel = 1 | 2 | 3 | 4;
