@@ -160,9 +160,11 @@ The app should help the user practice bidding decisions using structured convent
 - Natural 1NT and 2NT openings use only the strict balanced shapes: 4-3-3-3, 4-4-3-2,
   and 5-3-3-2.
 - Responding to a natural 20-21 HCP 2NT opening, Pass is available with 0-3 HCP regardless
-  of distribution; a qualifying major-suit transfer takes precedence. With 4-10 balanced
-  HCP, bid 3NT as specified in the 2NT-response treatment, even when opener has only
-  20 HCP. The usual 25-combined-HCP game guideline is not an absolute requirement.
+  of distribution; a qualifying suit response takes precedence. With ordinary 4-10 HCP,
+  bid 3NT even when unbalanced if no preferred suit route applies. When Stayman or Jacoby
+  is disabled, the corresponding 3C or 3D call may be natural and game forcing with 10+ HCP,
+  a five-card-or-longer minor, and an unbalanced hand; opener's basic continuation is 3NT.
+  The usual 25-combined-HCP game guideline is not an absolute requirement.
 - A five-card-major upgrade into the 1NT range is configurable and off by default.
 - Standard two-level new-suit responses are the default; the 2/1 game-force treatment is a separate agreement.
 
@@ -176,9 +178,15 @@ The app should help the user practice bidding decisions using structured convent
   completed normally at the next required level; superaccepts are not executable yet.
 - Opener passes direct natural 3NT/6NT/7NT signoffs, natural 4M with Texas off, and weak
   natural 2M signoffs over 1NT with Jacoby off. With Texas enabled, 4H is instead the
-  artificial transfer to 4S, so opener must not Pass.
+  artificial transfer to 4S, so opener must not Pass. A natural 1NT-3m invitation requires
+  a six-card minor with at least two of A/K/Q; opener tries 3NT with A/K/Q in that minor
+  and otherwise passes. Without Jacoby, natural 1NT/2NT-3M is game forcing: opener chooses
+  3NT with exactly two-card support and 4M with three or more cards.
 - Over 1NT-2NT, opener declines with the opening-range minimum, accepts at maximum, and
   retains both Pass and 3NT at the middle HCP (16 over 15-17, 17 over 16-18).
+- With Jacoby enabled, a direct natural 1NT-3M shows a six-card-or-longer major with slam
+  interest. Four of responder's major remains available; a middle-or-better opener may rank
+  the cheapest side-suit A/K control below game ahead of 4M while retaining 4M as an option.
 - Direct 4NT over natural 1NT/2NT is quantitative, not ace-asking. With a minimum 1NT
   opener decline with Pass, with a maximum accept with 6NT, and keep both as judgment
   alternatives at middle HCP. Over a 20-21 2NT opening, 20 declines; even at 21 HCP,
@@ -245,6 +253,18 @@ The app should help the user practice bidding decisions using structured convent
 - A direct `1M-4M` response with five-card support and fewer than 10 support points is a natural
   preemptive signoff.  Opener Passes in the executable treatment; exceptional slam-oriented
   continuations are left to later control-bid or ace-asking work.
+- Under the weak jump-shift agreement, responder uses a single jump in a six-card-or-longer new
+  suit with 4-7 HCP.  With multiple qualifying suits the trainer chooses the longest, breaking an
+  equal-length tie with the higher-ranking suit.  After a major opening, normal three-card-or-longer
+  support takes priority over the weak jump shift.  Opener normally Passes; exceptional continuations
+  with unusual strength and fit are left to judgment rather than modeled as deterministic rules.
+- Under the classic strong jump-shift agreement, responder uses a single jump with 17+ HCP and a
+  good one-suited 5+ card suit; the executable suit-quality threshold is at least 5 HCP in that suit.
+  With two 5+ unbid suits, responder instead starts naturally in the higher-ranking suit and plans to
+  show the lower-ranking suit later.  The strong jump shift is game forcing.  Opener first prefers an
+  economical raise with three-card support; otherwise opener can repeat a 6+ opening suit, show a
+  four-card second suit, or rebid notrump with balanced/semi-balanced shape at the cheapest legal
+  level.  Extra strength is shown later rather than by unnecessary jumps.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.
@@ -254,11 +274,11 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Pending Bidding Work
 
-- Next finish the remaining high-to-medium opener continuations identified by the early-auction
-  audit: responder splinters, jump shifts, and selected natural NT suit continuations.
-  Then review weak preempts and their responses with
-  pages 16-17. Defer responder rebids until ordinary openings, responses, and opener rebids are
-  more complete. `advancing` is responding to partner's overcall or double.
+- The high-to-medium ordinary opener continuations identified by the early-auction audit are now
+  modeled through jump shifts.  Next do the small declarative/documentation cleanup audit, then
+  review weak preempts and their responses with pages 16-17 and add strong artificial 2C responses.
+  Defer responder rebids until those opening families are more complete. `advancing` is responding
+  to partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
   not a current candidate, but no specific rejection reason was recorded."  Do not assume current

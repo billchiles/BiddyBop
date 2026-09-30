@@ -138,8 +138,8 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   if (context.stage === 'opening') {
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
   }
-  // When responding to a natural notrump opening, a major-oriented bid makes direct Pass/notrump
-  // call only a fallback bid.  Derive partner's opening only for this response-stage behavior.
+  // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
+  // only a fallback bid.  Derive partner's opening only for this response-stage behavior.
   const partnerOpeningCall = context.stage === 'responding'
     ? getPartnerOpeningCall(context.dealer, context.auction, context.seat)
     : null;
@@ -608,9 +608,9 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 
 
 /// maybeSuppressNtResponseFallback takes all applicable rules for current auction and responder's
-/// hand and removes a direct Pass or natural notrump response to a 1NT opening when an
-/// major-oriented response should come first.  This keeps the point-range NT ladder declarative in
-/// bidding rules while resolving choice with major-suit bids.
+/// hand and removes a direct Pass or natural notrump response when a preferred suit response
+/// should come first.  This keeps the point-range NT ladder declarative while resolving Stayman,
+/// transfer, natural-major, and no-convention natural-minor choices.
 ///
 /// With Jacoby transfers available, responder first shows a five-card-or-longer major and then
 /// describes strength:
@@ -632,26 +632,20 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 ///
 function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
     RuleEvalResult[] {
-  // Find first response rule associated with one of our major-oriented NT-response treatments: for
-  // example, with transfers on, find rules like respond-to-1nt-w/-stayman and
-  // respond-to-1nt-w/-transfer-to-hearts, but with transfers off (those rules aren't in result
-  // set), find things like respond-to-1nt-w/-2h-2s-natural-signoff and
-  // respond-to-1nt-w/-3h-3s-natural-forcing.
-  const majorActionResult = ruleResults.find((result) => {
+  // Find the first applicable suit-response treatment controlled by Stayman, Jacoby, or Texas.
+  // This also includes the natural 3C/3D meanings recovered when Stayman/Jacoby are disabled.
+  const suitActionResult = ruleResults.find((result) => {
     if (! result.ruleApplies) {
       return false;
     }
     const setting = result.rule.agreement?.setting;
     return setting === 'stayman' || setting === 'jacobyTransfers' || setting === 'texasTransfers';
   });
-  if (majorActionResult === undefined) {
+  if (suitActionResult === undefined) {
     return ruleResults;
   }
-  const majorCandidate = majorActionResult.candidates.find((candidate) => candidate.ruleApplies)!;
-  // if (majorCandidate === undefined) {
-  //   return ruleResults;
-  // }
-  // Since we have a major bid, look for NT bids we should suppress since we prefer majors
+  const suitCandidate = suitActionResult.candidates.find((candidate) => candidate.ruleApplies)!;
+  // A preferred suit action makes Pass or a direct notrump response only a fallback.
   for (const result of ruleResults) {
     let suppressed = false;
     for (const candidate of result.candidates) {
@@ -661,7 +655,7 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
         continue;
       }
       const suppressionLine =
-        `SUPPRESSED: ${majorCandidate.call} is a preferred major-oriented response, ` +
+        `SUPPRESSED: ${suitCandidate.call} is a preferred suit response, ` +
         `so do not use direct ${candidate.call}.`;
       candidate.ruleApplies = false;
       candidate.telemetryLines.push(suppressionLine);
@@ -1054,6 +1048,10 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   }
 
   const callSuit = getStrainFromSuitBid(call);
+
+  if (openerStrain === 'suit') {
+    return callSuit !== 'NT';
+  }
 
   if (openerStrain === 'major') {
     return callSuit === 'H' || callSuit === 'S';

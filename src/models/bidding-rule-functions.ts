@@ -3,7 +3,7 @@
 import { biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
          type CallRefinementResult, type RuleEvalContext, type SuitBid }
   from './bidding-types';
-import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { getCardsForSuit, hasPreemptSuitQuality, hasTwoOfTopThreeHonors, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getOpeningCallInfo,
          getPartnerOpeningCall, getResponderCall, openerRebidIsReverse, parseSuitBid,
          type ParsedSuitBid } from './auction';
@@ -63,6 +63,61 @@ export function refineNtTexasCompletion (calls: Call[], context: RuleEvalContext
     calls: wanted === null ? [] : calls.filter((call) => call === wanted),
     telemetryLines: wanted === null ? ['Not a Texas transfer call.']
       : [`Complete the Texas transfer with ${wanted}.`],
+  };
+}
+
+/// refineOpenerNtResponderMajorToGame keeps four of responder's natural three-level major
+/// after a 1NT or 2NT opening.
+export function refineOpenerNtResponderMajorToGame (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain !== 'NT' ||
+      (opening.level !== 1 && opening.level !== 2) || response.level !== 3 ||
+      (response.strain !== 'H' && response.strain !== 'S')) {
+    return { calls: [], telemetryLines: ['No natural 1NT/2NT-3M auction is available.'] };
+  }
+  const wanted = `4${response.strain}` as SuitBid;
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Keep the major game ${wanted} after responder's natural 3${response.strain}.`],
+  };
+}
+
+/// refineOpenerNtMajorSlamControlBid keeps the cheapest side-suit control below game after a
+/// direct 1NT-3M slam-interest response.  The agreed major is responder's six-card-or-longer suit.
+/// Because the notrump opener is strictly balanced, the executable controls here are aces or kings.
+///
+export function refineOpenerNtMajorSlamControlBid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 1 || opening.strain !== 'NT' ||
+      response.level !== 3 || (response.strain !== 'H' && response.strain !== 'S')) {
+    return { calls: [], telemetryLines: ['No direct 1NT-3M slam-interest auction is available.'] };
+  }
+  const game = parseSuitBid(`4${response.strain}` as SuitBid)!;
+  const legalControls = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    // The control must be a side suit, bid as cheaply as possible after responder's 3M, and
+    // remain below four of the agreed major so that 4M is still available as the stopping place.
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === response.strain ||
+        cheapestBidInStrainAfter(response, candidate.strain) !== call ||
+        compareSuitBids(candidate, game) >= 0) {
+      return false;
+    }
+    const cards = getCardsForSuit(context.hand, candidate.strain as Suit);
+    // A natural 1NT opener has no singleton or void, so A/K are the relevant side-suit controls.
+    return cards.some((card) => card.rank === 'A' || card.rank === 'K');
+  });
+  // Control-bid upward from the cheapest available suit.
+  legalControls.sort((a, b) => compareSuitBids(parseSuitBid(a)!, parseSuitBid(b)!));
+  const cheapestControl = legalControls[0];
+  return {
+    calls: cheapestControl === undefined ? [] : [cheapestControl],
+    telemetryLines: [cheapestControl === undefined
+      ? `No modeled side-suit A/K control is available below 4${response.strain}.`
+      : `Use the cheapest available side-suit A/K control below game: ${cheapestControl}.`],
   };
 }
 
@@ -293,6 +348,42 @@ export function refineOpenerOpeningSuitToLevel (calls: Call[], context: RuleEval
   };
 }
 
+/// refineOpenerOpeningSuitAtCheapestLevel repeats opener's suit at its cheapest legal level after
+/// responder's actual call.
+///
+export function refineOpenerOpeningSuitAtCheapestLevel (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No suit opening and response are available to repeat.'] };
+  }
+  const wantedCall = cheapestBidInStrainAfter(response, opening.strain);
+  return {
+    calls: wantedCall === null ? [] : calls.filter((call) => call === wantedCall),
+    telemetryLines: wantedCall === null
+      ? ["Opener's suit cannot be rebid legally after responder's call."]
+      : [`Repeat opener's ${opening.strain} at the cheapest legal level: ${wantedCall}.`],
+  };
+}
+
+/// refineOpenerNotrumpAtCheapestLevel keeps the cheapest legal notrump rebid after responder.
+///
+export function refineOpenerNotrumpAtCheapestLevel (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const response = getResponderBid(context);
+  if (response === null) {
+    return { calls: [], telemetryLines: ['No responder bid is available for a notrump rebid.'] };
+  }
+  const wantedCall = cheapestBidInStrainAfter(response, 'NT');
+  return {
+    calls: wantedCall === null ? [] : calls.filter((call) => call === wantedCall),
+    telemetryLines: wantedCall === null
+      ? ['No legal notrump rebid is available.']
+      : [`Use the cheapest legal notrump rebid: ${wantedCall}.`],
+  };
+}
+
 /// refineOpenerResponderSuitToGame raises responder's natural suit to its normal game level.
 ///
 export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEvalContext):
@@ -337,6 +428,29 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
           telemetryLines: [`Raise responder's ${responseSuit} to ${wantedCall}.`],
   };
 } // refineOpenerRaiseResponderSuitToLevel()
+
+/// refineOpenerRaiseResponderSuitOneLevel supports responder's natural suit one level above the
+/// actual response, preserving bidding room in an auction already forced to game.
+///
+export function refineOpenerRaiseResponderSuitOneLevel (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const response = getResponderBid(context);
+  if (response === null || response.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No responder suit is available for a one-level raise.'] };
+  }
+  const responseSuit = response.strain as Suit;
+  if (context.handFacts.lengths[responseSuit] < 3) {
+    return { calls: [], telemetryLines: [
+      `Responder's strong jump-shift suit needs three-card opener support; opener has ` +
+        `${context.handFacts.lengths[responseSuit]}.`,
+    ] };
+  }
+  const wantedCall = `${response.level + 1}${response.strain}` as SuitBid;
+  return {
+    calls: calls.filter((call) => call === wantedCall),
+    telemetryLines: [`Raise responder's ${response.strain} one level to ${wantedCall}.`],
+  };
+}
 
 /// refineOpenerFourCardMajorUpTheLine keeps opener's cheapest four-card major rebids and orders
 /// equal-length majors up the line.  This is the shared major-choice refinement for the Standard
@@ -663,6 +777,34 @@ export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalCon
           telemetryLines: ['Keep only non-jump new-suit calls legal over the actual opening.'] };
 }
 
+/// refineMajorTwoLevelNewSuitByLength orders natural two-level responses by suit length.  With
+/// equal five-card-or-longer suits prefer the higher-ranking suit so the lower suit can be shown
+/// economically later; equal four-card suits stay up the line.  Lower choices remain visible.
+///
+export function refineMajorTwoLevelNewSuitByLength (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const legalResult = refineToCheapestNewSuitBids(calls, context);
+  const candidates = legalResult.calls.map((call) => {
+    const candidate = parseSuitBid(call)!;
+    const suit = candidate.strain as Suit;
+    return { call, suit, length: context.handFacts.lengths[suit] };
+  });
+  candidates.sort((left, right) => {
+    if (left.length !== right.length) {
+      return right.length - left.length;
+    }
+    const suitOrder = STRAIN_ORDER.indexOf(left.suit) - STRAIN_ORDER.indexOf(right.suit);
+    return left.length >= 5 ? -suitOrder : suitOrder;
+  });
+  return {
+    calls: candidates.map((candidate) => candidate.call),
+    telemetryLines: [
+      ...legalResult.telemetryLines,
+      'Order two-level new suits by length; with equal 5+ suits bid the higher-ranking suit first.',
+    ],
+  };
+}
+
 /// refineThreeCardLimitRaiseOneNtFallback keeps 1NT for an exactly-three-card limit raise only
 /// when responder cannot first show four or more spades over a 1H opening.  After 1S there is no
 /// one-level new suit, so 1NT remains the catch-all route under either forcing or non-forcing
@@ -770,6 +912,80 @@ export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContex
 ///
 export function refineJumpNewSuit (calls: Call[], context: RuleEvalContext): CallRefinementResult {
   return refineNewSuitByExtraLevels(calls, context, 1, 'single-jump');
+}
+
+/// refineWeakJumpShift chooses one weak single-jump suit: six cards or longer, longest first, and
+/// the higher-ranking suit when equally long.  Equal long suits are rare, but choosing one keeps
+/// the practice recommendation deterministic.
+///
+export function refineWeakJumpShift (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const jumpResult = refineNewSuitByExtraLevels(calls, context, 1, 'weak jump-shift');
+  const candidates = jumpResult.calls
+    .map((call) => {
+      const candidate = parseSuitBid(call)!;
+      const suit = candidate.strain as Suit;
+      return { call, suit, length: context.handFacts.lengths[suit] };
+    })
+    .filter((candidate) => candidate.length >= 6);
+  if (candidates.length === 0) {
+    return { calls: [], telemetryLines: [
+      ...jumpResult.telemetryLines,
+      'No six-card-or-longer suit is available for a weak jump shift.',
+    ] };
+  }
+
+  const longestLength = Math.max(...candidates.map((candidate) => candidate.length));
+  const longest = candidates.filter((candidate) => candidate.length === longestLength);
+  longest.sort((left, right) => STRAIN_ORDER.indexOf(right.suit) - STRAIN_ORDER.indexOf(left.suit));
+  const selected = longest[0]!;
+  return {
+    calls: [selected.call],
+    telemetryLines: [
+      ...jumpResult.telemetryLines,
+      `Choose the longest weak jump-shift suit; with equal length prefer the higher-ranking suit: ` +
+        `${selected.call}.`,
+    ],
+  };
+}
+
+/// refineStrongJumpShift keeps a classic strong single-jump response only for a one-suited hand.
+/// The jump suit must be 5+ cards with at least 5 HCP.  With two 5+ unbid suits, respond naturally
+/// in the higher-ranking suit first and plan to show the lower-ranking suit later.
+///
+export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['A strong jump shift needs a one-level suit opening.'] };
+  }
+
+  const fiveCardNewSuits = SUITS.filter((suit) =>
+    suit !== opening.strain && context.handFacts.lengths[suit] >= 5);
+  if (fiveCardNewSuits.length !== 1) {
+    return { calls: [], telemetryLines: [
+      fiveCardNewSuits.length > 1
+        ? 'With two 5+ new suits, respond naturally in the higher-ranking suit rather than jump shift.'
+        : 'No five-card-or-longer new suit is available for a strong jump shift.',
+    ] };
+  }
+
+  const wantedSuit = fiveCardNewSuits[0]!;
+  if (context.handFacts.hcpBySuit[wantedSuit] < 5) {
+    return { calls: [], telemetryLines: [
+      `Strong jump-shift suit ${wantedSuit} needs at least 5 HCP in the suit; responder has ` +
+        `${context.handFacts.hcpBySuit[wantedSuit]}.`,
+    ] };
+  }
+
+  const jumpResult = refineNewSuitByExtraLevels(calls, context, 1, 'strong jump-shift');
+  const refined = jumpResult.calls.filter((call) => parseSuitBid(call)!.strain === wantedSuit);
+  return {
+    calls: refined,
+    telemetryLines: [
+      ...jumpResult.telemetryLines,
+      `Keep the one-suited strong jump shift in ${wantedSuit}; the suit has ` +
+        `${context.handFacts.hcpBySuit[wantedSuit]} HCP.`,
+    ],
+  };
 }
 
 /// refineNewSuitByExtraLevels chooses new-suit calls that are extraLevels above the cheapest legal
@@ -934,6 +1150,61 @@ export function openerSecondSuitApplies (call: Call, context: RuleEvalContext, m
         `opener has ${context.handFacts.lengths[openingSuit]}.`,
       `${secondSuitLengthApplies ? 'PASS' : 'FAIL'}: rebid ${candidateSuit} needs 4+ cards; ` +
         `opener has ${context.handFacts.lengths[candidateSuit]}.`,
+    ],
+  };
+}
+
+/// oneNtNaturalMinorInvitationApplies requires the candidate minor to be six cards or longer
+/// with at least two of A/K/Q.  The response HCP range follows the selected 1NT opening range.
+export function oneNtNaturalMinorInvitationApplies (call: Call, context: RuleEvalContext,
+                                                     system: BiddingSystem): AppliesWhenResult {
+  const candidate = parseSuitBid(call);
+  if (candidate === null || candidate.level !== 3 ||
+      (candidate.strain !== 'C' && candidate.strain !== 'D')) {
+    return { success: false, telemetryLines: ['FAIL: natural 1NT minor invitation needs 3C or 3D.'] };
+  }
+  const shift = oneNtResponseHcpShift(system);
+  const minHcp = 8 - shift;
+  const maxHcp = 9 - shift;
+  const suit = candidate.strain as Suit;
+  const hcpApplies = context.handFacts.hcp >= minHcp && context.handFacts.hcp <= maxHcp;
+  const lengthApplies = context.handFacts.lengths[suit] >= 6;
+  const qualityApplies = hasTwoOfTopThreeHonors(context.hand, suit);
+  const success = hcpApplies && lengthApplies && qualityApplies;
+  return {
+    success,
+    telemetryLines: [
+      `${hcpApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs ${minHcp}-${maxHcp} HCP.`,
+      `${lengthApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs 6+ ${suit}.`,
+      `${qualityApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs at least two of A/K/Q.`,
+    ],
+  };
+}
+
+/// twoNtNaturalMinorForcingApplies supplies a natural descriptive minor response when the
+/// conventional meaning of 3C or 3D is disabled.  Reserve it for strong unbalanced hands;
+/// balanced hands use the normal notrump ladder, and a useful major-suit route takes precedence.
+export function twoNtNaturalMinorForcingApplies (call: Call, context: RuleEvalContext,
+                                                 system: BiddingSystem): AppliesWhenResult {
+  const candidate = parseSuitBid(call);
+  if (candidate === null || candidate.level !== 3 ||
+      (candidate.strain !== 'C' && candidate.strain !== 'D')) {
+    return { success: false, telemetryLines: ['FAIL: natural 2NT minor response needs 3C or 3D.'] };
+  }
+  const suit = candidate.strain as Suit;
+  const hcpApplies = context.handFacts.hcp >= 10;
+  const lengthApplies = context.handFacts.lengths[suit] >= 5;
+  const shapeApplies = ! context.handFacts.balanced;
+  const hasPreferredMajor = context.handFacts.hasFiveCardMajor ||
+    (system.stayman && context.handFacts.hasFourCardMajor);
+  const success = hcpApplies && lengthApplies && shapeApplies && ! hasPreferredMajor;
+  return {
+    success,
+    telemetryLines: [
+      `${hcpApplies ? 'PASS' : 'FAIL'}: natural 3${suit} over 2NT needs 10+ HCP.`,
+      `${lengthApplies ? 'PASS' : 'FAIL'}: natural 3${suit} over 2NT needs 5+ ${suit}.`,
+      `${shapeApplies ? 'PASS' : 'FAIL'}: balanced hands use the normal notrump response ladder.`,
+      `${! hasPreferredMajor ? 'PASS' : 'FAIL'}: no preferred major-suit response takes precedence.`,
     ],
   };
 }
@@ -1156,6 +1427,85 @@ export function openerJacobyGoodSideSuitApplies (call: Call, context: RuleEvalCo
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${suit} has ${cards.length} cards and ${honorCount} of A/K/Q/J; ` +
     'Jacoby side-suit rebid needs 5+ cards and at least two top-four honors.',
+  ] };
+}
+
+/// A natural 1NT-3m invitation asks whether opener holds one of A/K/Q in responder's good
+/// six-card minor.  Holding the fitting top honor supports trying 3NT; otherwise play 3m.
+export function openerNtMinorInvitationApplies (_call: Call, context: RuleEvalContext,
+                                                accept: boolean): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 1 || opening.strain !== 'NT' ||
+      response.level !== 3 || (response.strain !== 'C' && response.strain !== 'D')) {
+    return { success: false, telemetryLines: ['FAIL: not a natural 1NT-3m invitation.'] };
+  }
+  const suit = response.strain as Suit;
+  const hasTopHonor = getCardsForSuit(context.hand, suit).some((card) =>
+    card.rank === 'A' || card.rank === 'K' || card.rank === 'Q');
+  const success = accept ? hasTopHonor : ! hasTopHonor;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: opener ${accept ? 'accepts' : 'declines'} 1NT-3${suit} ` +
+    `based on ${hasTopHonor ? 'holding' : 'not holding'} A/K/Q in responder's minor.`,
+  ] };
+}
+
+/// A natural 3m response after 2NT is available only when that call is not Stayman or a Jacoby
+/// transfer under the active agreements.  Opener's basic continuation is natural 3NT.
+export function openerNtNaturalThreeMinorApplies (_call: Call, context: RuleEvalContext,
+                                                  system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 2 || opening.strain !== 'NT') {
+    return { success: false,
+             telemetryLines: ['FAIL: responder has not made a natural forcing 3m response to 2NT.'] };
+  }
+  const naturalThreeClub = response.level === 3 && response.strain === 'C' && ! system.stayman;
+  const naturalThreeDiamond = response.level === 3 && response.strain === 'D' &&
+    ! system.jacobyTransfers;
+  const success = naturalThreeClub || naturalThreeDiamond;
+  return { success, telemetryLines: [success
+    ? 'PASS: natural forcing 3m response to 2NT; 3NT is the basic continuation.'
+    : 'FAIL: responder has not made a natural forcing 3m response to 2NT.'] };
+}
+
+/// Without Jacoby transfers, a direct 3H/3S response to 1NT or 2NT is natural and game forcing.
+/// Opener chooses 3NT with exactly two-card support or four of responder's major with 3+ support.
+export function openerNtNaturalThreeMajorApplies (_call: Call, context: RuleEvalContext,
+                                                  minSupport: number, maxSupport?: number):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain !== 'NT' ||
+      (opening.level !== 1 && opening.level !== 2) || response.level !== 3 ||
+      (response.strain !== 'H' && response.strain !== 'S')) {
+    return { success: false, telemetryLines: ['FAIL: not a natural 1NT/2NT-3M response.'] };
+  }
+  const support = context.handFacts.lengths[response.strain];
+  const supportApplies = support >= minSupport && (maxSupport === undefined || support <= maxSupport);
+  return { success: supportApplies, telemetryLines: [
+    `${supportApplies ? 'PASS' : 'FAIL'}: opener has ${support} ${response.strain}; ` +
+    `this continuation needs ${minSupport}${maxSupport === undefined ? '+' : `-${maxSupport}`} support.`,
+  ] };
+}
+
+/// With Jacoby transfers available, direct 1NT-3M shows a six-card-or-longer major with slam
+/// interest.  Four of the major always remains available; middle-or-better opener strength can
+/// cooperate with a side-suit control while retaining 4M as the judgment alternative.
+export function openerNtDirectMajorSlamInterestApplies (_call: Call, context: RuleEvalContext,
+                                                        system: BiddingSystem, cooperate: boolean):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  const isDirectSlamTry = opening !== null && response !== null && opening.level === 1 &&
+    opening.strain === 'NT' && response.level === 3 &&
+    (response.strain === 'H' || response.strain === 'S');
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const strengthApplies = ! cooperate || context.handFacts.hcp >= minimum + 1;
+  const success = isDirectSlamTry && strengthApplies;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: direct 1NT-3M slam interest; ` +
+    `${cooperate ? `control cooperation needs ${minimum + 1}+ HCP` : '4M remains available'}.`,
   ] };
 }
 

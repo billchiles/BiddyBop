@@ -260,7 +260,8 @@ export interface AuctionContext {
   // the full physical auction, including passes, and derives the compact calls used for matching.
   auction?: Call[];
   description?: string;
-  openerStrain?: Strain | 'minor' | 'major';
+  // 'suit' matches any non-notrump opening; minor/major match either suit in that family.
+  openerStrain?: Strain | 'suit' | 'minor' | 'major';
   // responderCall is a rule constraint.  The evaluator derives these facts from responder's actual
   // call rather than storing them as auction state.
   responderCall?: ResponderCallContext;

@@ -226,14 +226,19 @@ function isPracticeOpeningHand (hand: Hand): boolean {
   return false;
 }
 
+/// hasTwoOfTopThreeHonors tests whether a suit contains at least two of A/K/Q.
+export function hasTwoOfTopThreeHonors (hand: Hand, suit: Suit): boolean {
+  return countSuitHonors(hand, suit, ['A', 'K', 'Q']) >= 2;
+}
+
 /// hasPreemptSuitQuality tests the honor concentration used by the current preempt rules.
 export function hasPreemptSuitQuality (hand: Hand, suit: Suit): boolean {
-  const cards = getCardsForSuit(hand, suit);
-  const topThreeCount = cards.filter((card) =>
-    card.rank === 'A' || card.rank === 'K' || card.rank === 'Q').length;
-  let topFiveCount = cards.filter((card) => card.rank === 'J' || card.rank === 'T').length;
-  topFiveCount += topThreeCount;
-  return topThreeCount >= 2 || topFiveCount >= 3;
+  return hasTwoOfTopThreeHonors(hand, suit) ||
+    countSuitHonors(hand, suit, ['A', 'K', 'Q', 'J', 'T']) >= 3;
+}
+
+function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): number {
+  return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
 }
 
 /// makeRuleTestDeal builds a complete physical deal from the two hands that matter to the

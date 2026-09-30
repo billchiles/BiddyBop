@@ -5,23 +5,32 @@ import type { BidRule, Call, RuleEvalContext, CallRefinementResult, AppliesWhenR
 import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          minorSupportNewSuitApplies,
          oneNtFiveCardLengthUpgradeApplies, majorTwoLevelNewSuitApplies,
-         openerMinorOneLevelOneNtApplies, openerSecondSuitApplies, oneNtTwoNtInvitationApplies,
-         refineForcingOneNtMinorFallback, refineJumpNewSuit, refineMajorSupportNewSuitFirst,
-         refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels,
+         oneNtNaturalMinorInvitationApplies, oneNtTwoNtInvitationApplies,
+         openerMinorOneLevelOneNtApplies, openerSecondSuitApplies,
+         twoNtNaturalMinorForcingApplies,
+         refineForcingOneNtMinorFallback, refineMajorSupportNewSuitFirst,
+         refineMajorTwoLevelNewSuitByLength, refineNaturalMajorGameOver2Nt,
+         refineNewSuitByExtraLevels,
          refineOneLevelNewSuitAfterMinor, refineOneLevelSuitOpening,
          refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
          refineOpenerNonReverseNewSuitRebid,
          refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
-         refineOpenerNewSuitAtCheapestLevel,
-         refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitToLevel,
+         refineOpenerNewSuitAtCheapestLevel, refineOpenerNotrumpAtCheapestLevel,
+         refineOpenerNtMajorSlamControlBid,
+         refineOpenerNtResponderMajorToGame,
+         refineOpenerNewSuitByExtraLevels, refineOpenerOpeningSuitAtCheapestLevel,
+         refineOpenerOpeningSuitToLevel,
          refineOpenerSplinterControlBid,
-         refineOpenerRaiseResponderSuitToLevel, refineOpenerResponderSuitToGame,
+         refineOpenerRaiseResponderSuitOneLevel, refineOpenerRaiseResponderSuitToLevel,
+         refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
          refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
-         refineThreeCardMajorSupportNewSuitFirst,
+         refineStrongJumpShift, refineThreeCardMajorSupportNewSuitFirst,
          refineToCheapestNewSuitBids, refineNtStaymanReply, refineNtJacobyCompletion,
-         refineNtTexasCompletion, openerNtNotrumpSignoffApplies,
-         openerNtNaturalMajorGameApplies, openerNtWeakMajorSignoffApplies,
+         refineNtTexasCompletion, refineWeakJumpShift, openerNtNotrumpSignoffApplies,
+         openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
+         openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
+         openerNtDirectMajorSlamInterestApplies, openerNtWeakMajorSignoffApplies,
          openerNtGameInvitationApplies, openerNtQuantitativeInvitationApplies,
          openerSuitThreeNtQuantitativeApplies, openerJacobyGoodSideSuitApplies,}
   from './bidding-rule-functions';
@@ -426,12 +435,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Modern weak jump shift after one of a minor',
     auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
     calls: ['2D', '2H', '2S', '3C'],
-    callRefinement: refineJumpNewSuit,  // chooses long suit for minium response
-    callCategory: ['invitational'],
+    callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
+    callCategory: ['signoff', 'natural'],
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
-    appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 4, max: 7 } },
+    guidance: ['With two equally long 6+ suits, use the higher-ranking suit for a deterministic ' +
+               'preemptive choice.'],
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
   },
@@ -443,13 +454,15 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Classic strong jump shift after one of a minor',
     auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
     calls: ['2D', '2H', '2S', '3C'],
-    callRefinement: refineJumpNewSuit, // chooses longest best minium suit response
-    callCategory: ['gameForcing'],
+    callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
+    callCategory: ['gameForcing', 'natural'],
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
-    appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
-    guidance: ['With a good five-card or longer suit and 18-19 points, jump-shift to new suit.'],
+    appliesWhen: { hcp: { min: 17 } },
+    guidance: ['Use a good five-card or longer suit with at least 5 HCP in the suit.',
+               'With two 5+ new suits, respond naturally in the higher-ranking suit first and ' +
+               'plan to show the lower-ranking suit later.'],
     meaning: 'Classic strong jump shift: game-forcing with a good long suit and slam interest.',
     certainty: 'high',
   },
@@ -723,7 +736,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Standard new-suit response at the two level',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
-    callRefinement: refineToCheapestNewSuitBids, // chooses longest new suit at lowest level
+    callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
     callCategory: ['forcing'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
                  note: 'Standard: 11+ and forcing, but not forcing to game.' },
@@ -743,7 +756,7 @@ export const ResponseBidRules: BidRule[] = [
     title: '2/1 game-forcing new-suit response at the two level',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
-    callRefinement: refineToCheapestNewSuitBids, // chooses longest new suit at lowest level
+    callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
     callCategory: ['gameForcing'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
                  note: '2/1 treatment: 13+ and game forcing.' },
@@ -812,12 +825,14 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Modern weak jump shift after one of a major',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['2S', '3C', '3D', '3H'],
-    callRefinement: refineJumpNewSuit, // chooses 6+ card suit
-    callCategory: ['invitational'], 
+    callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
+    callCategory: ['signoff', 'natural'],
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
-    appliesWhen: { hcp: { min: 4, max: 7 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 4, max: 7 }, supportLength: { max: 2 } },
+    guidance: ["With three-card or longer support, raise opener's major instead of making a weak " +
+               'jump shift.'],
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
     certainty: 'high',
   },
@@ -829,12 +844,15 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Classic strong jump shift after one of a major',
     auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
     calls: ['2S', '3C', '3D', '3H'],
-    callRefinement: refineJumpNewSuit, // chooses long suit to jump to
-    callCategory: ['gameForcing'],
+    callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
+    callCategory: ['gameForcing', 'natural'],
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
-    appliesWhen: { hcp: { min: 17 }, suitLengths: [{ min: 5 }] },
+    appliesWhen: { hcp: { min: 17 } },
+    guidance: ['Use a good five-card or longer suit with at least 5 HCP in the suit.',
+               'With two 5+ new suits, respond naturally in the higher-ranking suit first and ' +
+               'plan to show the lower-ranking suit later.'],
     meaning: 'Game-forcing strong jump shift showing a good long suit and slam interest.',
     certainty: 'high',
   },
@@ -1044,17 +1062,17 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-1nt-w/-3c-3d-natural-invitational',
-    // Bid 3C or 3D naturally with 8-9 HCP and a good six-card minor to invite further action.
+    // Bid 3C or 3D naturally with invitational values and a good six-card minor.
     kind: 'responseBid',
-    title: '3C or 3D over 1NT with a good six-card minor and 8-9',
+    title: '3C or 3D over 1NT with a good six-card minor and invitational values',
     auctionContext: { stage: 'responding', auction: ['1NT'] },
     calls: ['3C', '3D'],
-    callCategory: ['invitational'],
-    appliesWhen: { hcp: { min: 8, max: 9 }, hcpRelativeToOneNtOpening: true,
-                   suitLengths: [{ min: 6 }]},
-    guidance: ['15-17: 8-9 HCP; 16-18: 7-8 HCP; suit quality is guidance-only.',
-               'Good six-card minor suit.'],
-    meaning: 'Invitational natural minor-suit bid.',
+    callCategory: ['invitational', 'natural'],
+    priority: { rank: 20, note: 'Prefer the descriptive good minor to the generic 2NT invitation.' },
+    appliesWhen: oneNtNaturalMinorInvitationApplies,
+    guidance: ['15-17: 8-9 HCP; 16-18: 7-8 HCP.',
+               'Good means six or more cards with at least two of A/K/Q.'],
+    meaning: 'Invitational natural minor-suit bid asking whether opener has a fitting top honor.',
     certainty: 'high',
   },
   //
@@ -1189,16 +1207,54 @@ export const ResponseBidRules: BidRule[] = [
   },
   //
   {
-    id: 'respond-to-2nt-w/-3nt-4-10-balanced',
-    // Raise 2NT to 3NT with 4-10 balanced HCP to play game.
+    id: 'respond-to-2nt-w/-3nt-4-10',
+    // With 4-10 HCP, 3NT is the ordinary game destination when no preferred suit response applies.
     kind: 'responseBid',
-    title: 'Bid 3NT over 2NT with 4-10 balanced',
+    title: 'Bid 3NT over 2NT with ordinary game values',
     auctionContext: { stage: 'responding', auction: ['2NT'] },
     calls: ['3NT'],
-    callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 4, max: 10 }, shape: { balanced: true } },
-    meaning: 'Game in notrump.',
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 4, max: 10 } },
+    guidance: ['A qualifying Stayman, transfer, natural major, or strong natural minor route ' +
+               'takes precedence over this notrump fallback.'],
+    meaning: 'Place the contract in 3NT when no preferred suit response is available.',
     certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-2nt-w/-3c-natural-forcing',
+    // With Stayman disabled, 3C can recover a natural descriptive meaning for a strong long club suit.
+    kind: 'responseBid',
+    title: 'Bid 3C naturally over 2NT with a strong unbalanced club hand',
+    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    calls: ['3C'],
+    agreement: { setting: 'stayman', value: false,
+                 note: 'Without Stayman, 3C is available as a natural forcing club response.' },
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 25 },
+    appliesWhen: twoNtNaturalMinorForcingApplies,
+    meaning: 'Natural 5+ clubs with 10+ HCP and an unbalanced hand; forcing to game.',
+    guidance: ['Use the normal notrump ladder with a balanced hand, and prefer an available ' +
+               'major-suit route before describing the minor.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-to-2nt-w/-3d-natural-forcing',
+    // With Jacoby transfers disabled, 3D can recover a natural descriptive meaning for diamonds.
+    kind: 'responseBid',
+    title: 'Bid 3D naturally over 2NT with a strong unbalanced diamond hand',
+    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    calls: ['3D'],
+    agreement: { setting: 'jacobyTransfers', value: false,
+                 note: 'Without Jacoby transfers, 3D is available as a natural forcing diamond response.' },
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 25 },
+    appliesWhen: twoNtNaturalMinorForcingApplies,
+    meaning: 'Natural 5+ diamonds with 10+ HCP and an unbalanced hand; forcing to game.',
+    guidance: ['Use the normal notrump ladder with a balanced hand, and prefer an available ' +
+               'major-suit route before describing the minor.'],
+    certainty: 'medium',
   },
   //
   {
@@ -1496,6 +1552,119 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerNtWeakMajorSignoffApplies,
     meaning: 'Without Jacoby transfers, 2H and 2S are natural weak signoffs.',
     certainty: 'high',
+  },
+  // A natural 1NT-3m invitation is about fitting honor strength, not simply minimum/maximum.
+  {
+    id: 'opener-rebid-pass-after-1nt-3-minor-invitation',
+    kind: 'openerRebid',
+    title: 'Decline a natural minor invitation without a fitting top honor',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    priority: { rank: 55 },
+    appliesWhen: (call, context) => openerNtMinorInvitationApplies(call, context, false),
+    meaning: "Play three of responder's minor when opener cannot guarantee the suit will run.",
+    guidance: ['Responder has promised 6+ cards and at least two of A/K/Q; without one of A/K/Q ' +
+               'in that minor, opener cannot guarantee all three top honors.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-1nt-3-minor-invitation',
+    kind: 'openerRebid',
+    title: 'Accept a natural minor invitation with a fitting top honor',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 55 },
+    appliesWhen: (call, context) => openerNtMinorInvitationApplies(call, context, true),
+    meaning: "Bid 3NT when opener holds A, K, or Q in responder's promised good six-card minor.",
+    guidance: ['The fitting honor, rather than raw opener HCP, is the executable acceptance test.'],
+    certainty: 'high',
+  },
+  // Natural 3M with Jacoby off is a choice of games: two-card support favors 3NT, 3+ favors 4M.
+  {
+    id: 'opener-rebid-3nt-after-nt-natural-3-major',
+    kind: 'openerRebid',
+    title: 'Choose 3NT with two-card support after a natural 3M response',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['3NT'],
+    agreement: { setting: 'jacobyTransfers', value: false },
+    callCategory: ['natural'],
+    priority: { rank: 45 },
+    appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 2, 2),
+    meaning: "With only two cards in responder's five-card-or-longer major, choose the notrump game.",
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-game-in-responder-major-after-nt-natural-3-major',
+    kind: 'openerRebid',
+    title: "Choose four of responder's major with three-card-or-longer support",
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['4H', '4S'],
+    callRefinement: refineOpenerNtResponderMajorToGame,
+    agreement: { setting: 'jacobyTransfers', value: false },
+    callCategory: ['natural'],
+    priority: { rank: 45 },
+    appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 3),
+    meaning: 'Three-card support establishes the known eight-card major fit; choose the major game.',
+    certainty: 'high',
+  },
+  // With transfers on, direct 1NT-3M is the existing slam-interest treatment.  4M always remains
+  // available; middle-or-better opener values may cooperate by showing the cheapest side control.
+  {
+    id: 'opener-rebid-game-after-1nt-direct-3-major-slam-interest',
+    kind: 'openerRebid',
+    title: 'Stop in game after a direct major slam try',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['4H', '4S'],
+    callRefinement: refineOpenerNtResponderMajorToGame,
+    agreement: { setting: 'jacobyTransfers', value: true },
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 30 },
+    appliesWhen: (call, context, system) =>
+      openerNtDirectMajorSlamInterestApplies(call, context, system, false),
+    meaning: 'Decline further slam exploration while placing the contract in the agreed major game.',
+    guidance: ['4M remains visible even when a control bid is also reasonable.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-control-after-1nt-direct-3-major-slam-interest',
+    kind: 'openerRebid',
+    title: 'Cooperate with a direct major slam try by showing a side control',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['3S', '4C', '4D', '4H'],
+    callRefinement: refineOpenerNtMajorSlamControlBid,
+    agreement: { setting: 'jacobyTransfers', value: true },
+    callCategory: ['gameForcing', 'conventional'],
+    priority: { rank: 45 },
+    appliesWhen: (call, context, system) =>
+      openerNtDirectMajorSlamInterestApplies(call, context, system, true),
+    meaning: 'Show the cheapest side-suit ace or king while keeping the agreed major available at game.',
+    guidance: ['Cooperate from the middle of the 1NT range upward; a maximum is especially suitable.',
+               'This is modest control bidding, not Gerber or Blackwood.'],
+    certainty: 'medium',
+  },
+  // A strong natural 3m over 2NT is forcing; 3NT is the basic continuation rather than Pass.
+  {
+    id: 'opener-rebid-3nt-after-2nt-natural-3-minor',
+    kind: 'openerRebid',
+    title: 'Return to 3NT after a natural forcing minor response to 2NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    priority: { rank: 40 },
+    appliesWhen: openerNtNaturalThreeMinorApplies,
+    meaning: 'Use 3NT as the normal game destination after responder describes a strong long minor.',
+    guidance: ['Responder may continue with additional slam interest; deeper minor-fit slam ' +
+               'machinery is not modeled in this treatment.'],
+    certainty: 'medium',
   },
   // Natural invitations are not signoffs: minimums decline, maximums accept, and
   // the middle strength deliberately offers both choices with judgment guidance.
@@ -3262,6 +3431,107 @@ export const OpenerRebidRules: BidRule[] = [
                'If no modeled control bid is available below game, four of the major remains the ' +
                'modeled continuation; later keycard or higher-level slam methods are deferred.'],
     certainty: 'medium',
+  },
+
+  //
+  // The following rules are opener continuations after responder makes a single-jump new-suit
+  // response.  Under the weak agreement the bid is preemptive and normally ends the auction.
+  // Under the classic strong agreement game is already forced, so opener describes fit and shape
+  // economically rather than jumping again merely to advertise strength.
+  //
+  {
+    id: 'opener-rebid-pass-after-weak-jump-shift',
+    kind: 'openerRebid',
+    title: 'Pass a weak jump shift',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'suit',
+      responderCall: { kind: 'newSuit', jump: 1 },
+    },
+    calls: ['Pass'],
+    agreement: { setting: 'jumpShift', value: 'weak',
+                 note: 'Modern weak jump shifts are non-forcing and preemptive.' },
+    callCategory: ['signoff'],
+    meaning: 'Responder has made a weak, preemptive, passable jump shift; opener normally stops.',
+    guidance: ['An unusually strong opener with an exceptional fit may continue by partnership ' +
+               'judgment, but those exceptional continuations are not modeled here.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-raise-after-strong-jump-shift',
+    kind: 'openerRebid',
+    title: "Raise responder's strong jump-shift suit economically",
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'suit',
+      responderCall: { kind: 'newSuit', jump: 1 },
+    },
+    calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    callRefinement: refineOpenerRaiseResponderSuitOneLevel, // cheapest raise of responder's 5+ suit
+    agreement: { setting: 'jumpShift', value: 'strong',
+                 note: 'Classic strong jump shift is already game forcing.' },
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 20, note: 'Support for responder is opener\'s first descriptive priority.' },
+    appliesWhen: { supportLength: { min: 3 } },
+    meaning: "Confirm the fit in responder's five-card-or-longer suit while preserving bidding room.",
+    guidance: ['Three-card support is enough because the strong jump shift promises 5+ cards.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-repeat-opening-suit-after-strong-jump-shift',
+    kind: 'openerRebid',
+    title: 'Repeat a six-card opening suit after a strong jump shift',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'suit',
+      responderCall: { kind: 'newSuit', jump: 1 },
+    },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerOpeningSuitAtCheapestLevel, // cheapest legal repeat after response
+    agreement: { setting: 'jumpShift', value: 'strong' },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { suitLengths: [{ min: 6 }] },
+    meaning: 'Show a six-card-or-longer opening suit; responder has already forced the auction to game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-new-suit-after-strong-jump-shift',
+    kind: 'openerRebid',
+    title: 'Show a four-card second suit after a strong jump shift',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'suit',
+      responderCall: { kind: 'newSuit', jump: 1 },
+    },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S', '4C', '4D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    }, // cheapest natural second-suit call
+    agreement: { setting: 'jumpShift', value: 'strong' },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { suitLengths: [{ min: 4 }] },
+    meaning: 'Describe a natural four-card-or-longer second suit economically in the game force.',
+    guidance: ['Traditional reverse-strength restrictions are unnecessary because responder has ' +
+               'already forced the auction to game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-notrump-after-strong-jump-shift',
+    kind: 'openerRebid',
+    title: 'Rebid notrump economically after a strong jump shift',
+    auctionContext: {
+      stage: 'openerRebid', openerStrain: 'suit',
+      responderCall: { kind: 'newSuit', jump: 1 },
+    },
+    calls: ['2NT', '3NT'],
+    callRefinement: refineOpenerNotrumpAtCheapestLevel, // cheapest legal NT rebid after response
+    agreement: { setting: 'jumpShift', value: 'strong' },
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { shape: { balancedOrSemiBalanced: true } },
+    meaning: 'Describe a balanced or semi-balanced opener economically; the auction remains game forcing.',
+    guidance: ['Do not jump merely to show extra strength.  Prefer a clear fit or natural suit ' +
+               'description when one is more informative.'],
+    certainty: 'high',
   },
 
   //
