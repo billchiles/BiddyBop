@@ -224,9 +224,9 @@ function isPracticeOpeningHand (hand: Hand): boolean {
   }
 
   if (facts.hcp >= 5 && facts.hcp <= 10 &&
-      ((facts.lengths.D >= 6 && hasPreemptSuitQuality(hand, 'D')) ||
-       (facts.lengths.H >= 6 && hasPreemptSuitQuality(hand, 'H')) ||
-       (facts.lengths.S >= 6 && hasPreemptSuitQuality(hand, 'S')))) {
+      ((facts.lengths.D === 6 && hasPreemptSuitQuality(hand, 'D')) ||
+       (facts.lengths.H === 6 && hasPreemptSuitQuality(hand, 'H')) ||
+       (facts.lengths.S === 6 && hasPreemptSuitQuality(hand, 'S')))) {
     return true;
   }
 
@@ -247,6 +247,12 @@ export function hasTwoOfTopThreeHonors (hand: Hand, suit: Suit): boolean {
 export function hasPreemptSuitQuality (hand: Hand, suit: Suit): boolean {
   return hasTwoOfTopThreeHonors(hand, suit) ||
     countSuitHonors(hand, suit, ['A', 'K', 'Q', 'J', 'T']) >= 3;
+}
+
+/// hasSolidWeakTwoSuit uses AKQJ as the executable approximation for a six-card suit solid enough
+/// to suggest 3NT after responder's forcing 2NT inquiry.
+export function hasSolidWeakTwoSuit (hand: Hand, suit: Suit): boolean {
+  return countSuitHonors(hand, suit, ['A', 'K', 'Q', 'J']) === 4;
 }
 
 function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): number {

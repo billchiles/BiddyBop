@@ -943,6 +943,12 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
        ! openerStrainMatches(ruleContext.openerStrain, actualOpening))) {
     return false;
   }
+  if (ruleContext.openerLevel !== undefined) {
+    if (actualOpening === undefined || ! isContractBid(actualOpening) ||
+        Number(actualOpening.substring(0, 1)) !== ruleContext.openerLevel) {
+      return false;
+    }
+  }
 
   if (ruleContext.auction !== undefined) {
     if (ruleContext.auction.length !== actualAuction.length) {

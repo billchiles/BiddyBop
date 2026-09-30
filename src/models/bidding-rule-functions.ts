@@ -3,7 +3,8 @@
 import { biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call,
          type CallRefinementResult, type RuleEvalContext, type SuitBid }
   from './bidding-types';
-import { getCardsForSuit, hasPreemptSuitQuality, hasTwoOfTopThreeHonors, SUITS, type Suit } from './cards';
+import { getCardsForSuit, hasPreemptSuitQuality, hasSolidWeakTwoSuit, hasTwoOfTopThreeHonors,
+         SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getOpeningCallInfo,
          getPartnerOpeningCall, getResponderCall, openerRebidIsReverse, parseSuitBid,
          type ParsedSuitBid } from './auction';
@@ -429,8 +430,8 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
   };
 } // refineOpenerRaiseResponderSuitToLevel()
 
-/// refineOpenerRaiseResponderSuitOneLevel supports responder's natural suit one level above the
-/// actual response, preserving bidding room in an auction already forced to game.
+/// refineOpenerRaiseResponderSuitOneLevel supports responder's natural forcing suit one level
+/// above the actual response, preserving bidding room while satisfying the force economically.
 ///
 export function refineOpenerRaiseResponderSuitOneLevel (
     calls: Call[], context: RuleEvalContext): CallRefinementResult {
@@ -441,7 +442,7 @@ export function refineOpenerRaiseResponderSuitOneLevel (
   const responseSuit = response.strain as Suit;
   if (context.handFacts.lengths[responseSuit] < 3) {
     return { calls: [], telemetryLines: [
-      `Responder's strong jump-shift suit needs three-card opener support; opener has ` +
+      `Responder's natural forcing suit needs three-card opener support; opener has ` +
         `${context.handFacts.lengths[responseSuit]}.`,
     ] };
   }
@@ -907,6 +908,126 @@ export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContex
   };
 }
 
+/// refineWeakTwoNewSuitResponse chooses responder's natural forcing suit after a weak two.  The
+/// suit is 5+ cards, has ordinary preempt-style honor concentration, and is bid at the cheapest
+/// legal level through three.  With multiple candidates, prefer length, then higher rank.
+export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getWeakTwoOpeningBid(context);
+  if (opening === null) {
+    return { calls: [], telemetryLines: ['A forcing new-suit response needs a weak-two opening.'] };
+  }
+
+  const candidates: { call: Call; suit: Suit; length: number }[] = [];
+  for (const call of calls) {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        candidate.level > 3 || cheapestBidInStrainAfter(opening, candidate.strain) !== call) {
+      continue;
+    }
+    const suit = candidate.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    if (length < 5 || ! hasPreemptSuitQuality(context.hand, suit)) {
+      continue;
+    }
+    candidates.push({ call, suit, length });
+  }
+  if (candidates.length === 0) {
+    return { calls: [], telemetryLines: [
+      'No good five-card-or-longer new suit is available at the cheapest legal level.',
+    ] };
+  }
+
+  const longest = Math.max(...candidates.map((candidate) => candidate.length));
+  const best = candidates.filter((candidate) => candidate.length === longest);
+  best.sort((left, right) => STRAIN_ORDER.indexOf(right.suit) - STRAIN_ORDER.indexOf(left.suit));
+  return {
+    calls: [best[0]!.call],
+    telemetryLines: [
+      `Choose the longest good forcing suit after the weak two; equal lengths use the ` +
+        `higher-ranking suit: ${best[0]!.call}.`,
+    ],
+  };
+}
+
+/// refineThreeLevelPreemptNewSuitResponse keeps the cheapest new-suit response that remains below
+/// game in that suit.  A three-level response needs a good 5+ suit; a four-level minor response
+/// needs a good 6+ suit.  Length, then higher rank, resolves multiple qualifying suits.
+export function refineThreeLevelPreemptNewSuitResponse (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getThreeLevelPreemptOpeningBid(context);
+  if (opening === null) {
+    return { calls: [], telemetryLines: ['A forcing new-suit response needs a three-level preempt.'] };
+  }
+
+  const candidates: { call: Call; suit: Suit; length: number }[] = [];
+  for (const call of calls) {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        cheapestBidInStrainAfter(opening, candidate.strain) !== call) {
+      continue;
+    }
+    const gameLevel = candidate.strain === 'H' || candidate.strain === 'S' ? 4 : 5;
+    if (candidate.level >= gameLevel) {
+      continue;
+    }
+    const suit = candidate.strain as Suit;
+    const minLength = candidate.level === 3 ? 5 : 6;
+    const length = context.handFacts.lengths[suit];
+    if (length < minLength || ! hasPreemptSuitQuality(context.hand, suit)) {
+      continue;
+    }
+    candidates.push({ call, suit, length });
+  }
+  if (candidates.length === 0) {
+    return { calls: [], telemetryLines: [
+      'No sufficiently long good new suit is available below game after the three-level preempt.',
+    ] };
+  }
+
+  const longest = Math.max(...candidates.map((candidate) => candidate.length));
+  const best = candidates.filter((candidate) => candidate.length === longest);
+  best.sort((left, right) => STRAIN_ORDER.indexOf(right.suit) - STRAIN_ORDER.indexOf(left.suit));
+  return {
+    calls: [best[0]!.call],
+    telemetryLines: [
+      `Keep the longest good forcing new suit below game; equal lengths use the higher-ranking ` +
+        `suit: ${best[0]!.call}.`,
+    ],
+  };
+}
+
+/// refineWeakTwoFeatureRebid shows opener's cheapest side ace or king after responder's artificial
+/// 2NT inquiry.  The bid is a feature message, not a promise of natural length in the side suit.
+export function refineWeakTwoFeatureRebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getWeakTwoOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || response.level !== 2 || response.strain !== 'NT') {
+    return { calls: [], telemetryLines: ['No weak-two 2NT inquiry is available for a feature rebid.'] };
+  }
+
+  const features = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+        cheapestBidInStrainAfter(response, candidate.strain) !== call) {
+      return false;
+    }
+    const suit = candidate.strain as Suit;
+    return getCardsForSuit(context.hand, suit).some((card) => card.rank === 'A' || card.rank === 'K');
+  });
+  features.sort((left, right) => compareSuitBids(parseSuitBid(left)!, parseSuitBid(right)!));
+  const feature = features[0];
+  return {
+    calls: feature === undefined ? [] : [feature],
+    telemetryLines: [
+      feature === undefined
+        ? 'No side ace or king is available to show after the 2NT inquiry.'
+        : `Show the cheapest side ace-or-king feature: ${feature}.`,
+    ],
+  };
+}
+
 /// refineJumpNewSuit chooses a jump to a new suit that is the cheapest legal bid in each suit.
 /// This is a one liner so that it can be used in rule declaration to satisfy refineCandidates.
 ///
@@ -1251,6 +1372,182 @@ export function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvalConte
   };
 }
 
+/// guidelineOf17Applies uses responder HCP plus support length as a rough game-interest check
+/// after partner's weak two.  It is a named guideline, not an estimate of actual playing tricks.
+export function guidelineOf17Applies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const info = getWeakTwoGuidelineOf17Info(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: Guideline of 17 needs a weak-two opening.'] };
+  }
+  const success = info.value >= 17;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'APPLIES' : 'FAIL'}: Guideline of 17 = responder HCP ${context.handFacts.hcp} + ` +
+        `${info.supportLength} cards in opener's ${info.opening.strain} = ${info.value}.`,
+    ],
+  };
+}
+
+/// weakTwoPassApplies keeps Pass when the Guideline of 17 does not suggest game investigation and
+/// responder has at most two cards in opener's suit.
+export function weakTwoPassApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const info = getWeakTwoGuidelineOf17Info(context);
+  const success = info !== null && info.value < 17 && info.supportLength <= 2;
+  return { success, telemetryLines: [
+    info === null
+      ? 'FAIL: Pass treatment needs a weak-two opening.'
+      : `${success ? 'APPLIES' : 'FAIL'}: Pass needs two or fewer trumps and Guideline of 17 ` +
+        `below 17; support=${info.supportLength}, value=${info.value}.`,
+  ] };
+}
+
+/// weakTwoSimpleRaiseApplies keeps the three-level preemptive raise with exactly three-card support
+/// and no game interest under the Guideline of 17.
+export function weakTwoSimpleRaiseApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const info = getWeakTwoGuidelineOf17Info(context);
+  const success = info !== null && info.value < 17 && info.supportLength === 3;
+  return { success, telemetryLines: [
+    info === null
+      ? 'FAIL: Three-level raise treatment needs a weak-two opening.'
+      : `${success ? 'APPLIES' : 'FAIL'}: Three-level raise needs exactly three trumps and ` +
+        `Guideline of 17 below 17; support=${info.supportLength}, value=${info.value}.`,
+  ] };
+}
+
+/// weakTwoFourLevelRaiseApplies uses four-card-or-longer support to raise the six-card weak two to
+/// the four level.  The same call can be further preemption or a game contract in a major.
+export function weakTwoFourLevelRaiseApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getWeakTwoGuidelineOf17Info(context);
+  const success = info !== null && info.supportLength >= 4;
+  return { success, telemetryLines: [
+    info === null
+      ? 'FAIL: Four-level raise treatment needs a weak-two opening.'
+      : `${success ? 'APPLIES' : 'FAIL'}: Four-level raise needs 4+ trumps; responder has ` +
+        `${info.supportLength}.`,
+  ] };
+}
+
+/// weakTwoRepeatAfterInquiryApplies rebids the opening suit after 2NT with a 5-7 minimum, or as the
+/// conservative fallback for an 8-10 maximum with neither a side A/K feature nor a solid suit.
+export function weakTwoRepeatAfterInquiryApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getWeakTwoOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: Weak-two repeat needs a weak-two opening.'] };
+  }
+  const suit = opening.strain as Suit;
+  const minimum = context.handFacts.hcp >= 5 && context.handFacts.hcp <= 7;
+  const maximum = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10;
+  const solid = hasSolidWeakTwoSuit(context.hand, suit);
+  const hasFeature = hasSideAceOrKing(context, suit);
+  const maximumFallback = maximum && ! solid && ! hasFeature;
+  const success = minimum || maximumFallback;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: repeat the preempt with a 5-7 minimum or an 8-10 ` +
+      `maximum lacking both a side A/K feature and the solid-suit 3NT message; HCP=` +
+      `${context.handFacts.hcp}, side feature=${hasFeature}, solid=${solid}.`,
+  ] };
+}
+
+/// weakTwoFeatureAfterInquiryApplies uses an 8-10 maximum with a side ace or king after 2NT.
+export function weakTwoFeatureAfterInquiryApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getWeakTwoOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: Feature rebid needs a weak-two opening.'] };
+  }
+  const suit = opening.strain as Suit;
+  const maximum = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10;
+  const solid = hasSolidWeakTwoSuit(context.hand, suit);
+  const hasFeature = hasSideAceOrKing(context, suit);
+  const success = maximum && ! solid && hasFeature;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: feature rebid needs 8-10 HCP, a side ace or king, and ` +
+      `no solid-suit 3NT message; HCP=${context.handFacts.hcp}, side feature=${hasFeature}, ` +
+      `solid=${solid}.`,
+  ] };
+}
+
+/// weakTwoSolidThreeNtApplies uses AKQJ in the six-card preempt suit as the executable
+/// approximation for the chosen special solid-suit 3NT rebid after the forcing 2NT inquiry.
+export function weakTwoSolidThreeNtApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getWeakTwoOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: Solid-suit 3NT needs a weak-two opening.'] };
+  }
+  const suit = opening.strain as Suit;
+  const solid = hasSolidWeakTwoSuit(context.hand, suit);
+  const success = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10 && solid;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: 3NT after the inquiry needs an 8-10 HCP maximum and ` +
+      `AKQJ in the six-card ${suit} suit; HCP=${context.handFacts.hcp}, solid=${solid}.`,
+  ] };
+}
+
+/// threeLevelPreemptPassApplies keeps Pass with two or fewer trumps.  Responder must also judge
+/// that game is unlikely; the app does not estimate playing tricks.
+export function threeLevelPreemptPassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getThreeLevelPreemptOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: Pass treatment needs a three-level preempt.'] };
+  }
+  const support = context.handFacts.lengths[opening.strain as Suit];
+  const success = support <= 2;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: structural Pass candidate needs two or fewer trumps; ` +
+      `responder has ${support}.  Game still depends on playing-trick judgment.`,
+  ] };
+}
+
+/// threeLevelPreemptRaiseApplies further preempts to the four level with three-card-or-longer
+/// support for opener's promised seven-card suit, giving at least ten combined trumps.
+export function threeLevelPreemptRaiseApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getThreeLevelPreemptOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: Raise treatment needs a three-level preempt.'] };
+  }
+  const support = context.handFacts.lengths[opening.strain as Suit];
+  const success = support >= 3;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: four-level raise needs 3+ support opposite opener's ` +
+      `seven-card suit; responder has ${support}.`,
+  ] };
+}
+
+/// openerPreemptNewSuitRaiseApplies raises responder's forcing new suit with 3+ support.
+export function openerPreemptNewSuitRaiseApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getResponderBid(context);
+  const forcingResponse = preemptNewSuitResponseIsForcing(context);
+  const support = response === null || response.strain === 'NT'
+    ? 0 : context.handFacts.lengths[response.strain as Suit];
+  const success = forcingResponse && support >= 3;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: raise responder's forcing new suit with 3+ support; ` +
+      `opener has ${support}.`,
+  ] };
+}
+
+/// openerPreemptNewSuitRepeatApplies returns to opener's preempt suit when a forcing new-suit
+/// response does not find three-card support.
+export function openerPreemptNewSuitRepeatApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getResponderBid(context);
+  const forcingResponse = preemptNewSuitResponseIsForcing(context);
+  const support = response === null || response.strain === 'NT'
+    ? 0 : context.handFacts.lengths[response.strain as Suit];
+  const success = forcingResponse && support <= 2;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: with fewer than three cards in responder's forcing new suit, ` +
+      `return to opener's preempt suit; support=${support}.`,
+  ] };
+}
+
 /// guidelineOf20Applies tests the Rule of 20 for a hand below the normal 12-HCP opening.  If HCP
 /// + the lengths of the two longest suits >= 20 -> open.
 ///
@@ -1589,6 +1886,64 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 ///
 //// Helpers
 ///
+
+interface WeakTwoGuidelineOf17Info {
+  opening: ParsedSuitBid;
+  supportLength: number;
+  value: number;
+}
+
+function getWeakTwoGuidelineOf17Info (context: RuleEvalContext): WeakTwoGuidelineOf17Info | null {
+  const opening = getWeakTwoOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return null;
+  }
+  const supportLength = context.handFacts.lengths[opening.strain as Suit];
+  return { opening, supportLength, value: context.handFacts.hcp + supportLength };
+}
+
+function hasSideAceOrKing (context: RuleEvalContext, openingSuit: Suit): boolean {
+  return SUITS.some((suit) => suit !== openingSuit &&
+    getCardsForSuit(context.hand, suit).some((card) => card.rank === 'A' || card.rank === 'K'));
+}
+
+function getWeakTwoOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getOpenerOpeningBid(context);
+  if (opening === null || opening.level !== 2 || opening.strain === 'C' || opening.strain === 'NT') {
+    return null;
+  }
+  return opening;
+}
+
+function getThreeLevelPreemptOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getOpenerOpeningBid(context);
+  if (opening === null || opening.level !== 3 || opening.strain === 'NT') {
+    return null;
+  }
+  return opening;
+}
+
+/// preemptNewSuitResponseIsForcing recognizes only the natural new-suit responses modeled in this
+/// file: through the three level after a weak two, or below game in the new suit after a three-level
+/// preempt.  This keeps opener's forcing rebids from leaking into unrelated auctions.
+function preemptNewSuitResponseIsForcing (context: RuleEvalContext): boolean {
+  const opening = getOpenerOpeningBid(context);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const response = responseCall === null ? null : parseSuitBid(responseCall);
+  if (opening === null || response === null || response.strain === 'NT' ||
+      response.strain === opening.strain ||
+      cheapestBidInStrainAfter(opening, response.strain) !== responseCall) {
+    return false;
+  }
+  if (opening.level === 2 && opening.strain !== 'C' && opening.strain !== 'NT') {
+    return response.level <= 3;
+  }
+  if (opening.level === 3 && opening.strain !== 'NT') {
+    const gameLevel = response.strain === 'H' || response.strain === 'S' ? 4 : 5;
+    return response.level < gameLevel;
+  }
+  return false;
+}
 
 function getResponderBid (context: RuleEvalContext): ParsedSuitBid | null {
   const call = getResponderCall(context.dealer, context.auction);

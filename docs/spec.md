@@ -271,6 +271,18 @@ The app should help the user practice bidding decisions using structured convent
   economical raise with three-card support; otherwise opener can repeat a 6+ opening suit, show a
   four-card second suit, or rebid notrump with balanced/semi-balanced shape at the cheapest legal
   level.  Extra strength is shown later rather than by unnecessary jumps.
+- Weak `2D`/`2H`/`2S` openings use 5-10 HCP, exactly six cards, and a good suit: at least two
+  of A/K/Q or at least three of A/K/Q/J/T.  Three-level preempts use exactly seven cards, the
+  same good-suit test, and stay below ordinary one-level opening values.  Vulnerability and
+  playing-trick estimates remain guidance rather than executable board state.
+- After a weak two, raises are non-forcing while `2NT` and natural new suits are forcing.  The
+  Guideline of 17 (responder HCP plus cards in opener's suit) is a rough executable trigger for
+  game investigation, not a playing-trick calculator.  After `2NT`, a 5-7 minimum repeats the
+  preempt suit; an 8-10 maximum shows a side ace/king feature; AKQJ in the six-card opening suit
+  is the app's conservative executable approximation for the special solid-suit `3NT` message.
+- After a three-level preempt, the app models Pass, trump-count raises, and forcing natural new
+  suits below game when their structural requirements are known.  Direct game placement based
+  only on expected playing tricks remains guidance rather than an invented HCP threshold.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.
@@ -280,11 +292,10 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Pending Bidding Work
 
-- The high-to-medium ordinary opener continuations identified by the early-auction audit are now
-  modeled through jump shifts.  Next do the small declarative/documentation cleanup audit, then
-  review weak preempts and their responses with pages 16-17 and add strong artificial 2C responses.
-  Defer responder rebids until those opening families are more complete. `advancing` is responding
-  to partner's overcall or double.
+- The ordinary one-level/notrump opener continuations and weak-preempt family are modeled through
+  opener's rebid.  Next add responses and continuations after the strong artificial `2C` opening.
+  Defer responder rebids until that opening family is complete. `advancing` is responding to
+  partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
   not a current candidate, but no specific rejection reason was recorded."  Do not assume current

@@ -115,12 +115,12 @@ export const biddingBaseline = {
   strong2COpening: true,
   strong2CMinHcp: 22,
   weakTwos: true,
-  weakTwoMinSuitLength: 6,
-  weakTwoPointRange: { min: 5, max: 10 },
+  weakTwoSuitLength: 6,
+  weakTwoHcpRange: { min: 5, max: 10 },
   weakThrees: true,
-  weakThreeMinSuitLength: 7,
-  // Usually suit quality/playing-trick assessmnent rather than strict HCP range for 3+ preempts.
-  weakThreePointRange: { min: 5, max: 12 },
+  weakThreeSuitLength: 7,
+  // Three-level preempts stay below ordinary one-level opening values in this treatment.
+  weakThreeMaxTotalPoints: 11,
   // Gerber is 4C after a notrump opening, asking for aces.
   gerberAfterNotrump: true,
   // 4NT after a notrump opening is quantitative, not Blackwood.
@@ -258,6 +258,8 @@ export interface AuctionContext {
   description?: string;
   // 'suit' matches any non-notrump opening; minor/major match either suit in that family.
   openerStrain?: Strain | 'suit' | 'minor' | 'major';
+  // openerLevel constrains the level of the opening contract bid without fixing its strain.
+  openerLevel?: RuleBidLevel;
   // responderCall is a rule constraint.  The evaluator derives these facts from responder's actual
   // call rather than storing them as auction state.
   responderCall?: ResponderCallContext;

@@ -99,6 +99,17 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AQ972', H: 'KJ864', D: '53', C: '2' },
     south: { S: 'K63', H: 'AQ5', D: 'A642', C: 'KQ5' },
   },
+  {
+    description: 'Seven hearts with 9 HCP and three length points reach ordinary one-level opening ' +
+                 'values: open 1H rather than using either the six-card weak two or the weak three.',
+    practiceAuction: ['1H'],
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    rejectedOpeningCalls: ['2H', '3H'],
+    north: { S: 'K42', H: 'KQJ9876', D: '73', C: '5' },
+    south: { S: 'A73', H: 'A52', D: 'A64', C: 'QJ84' },
+  },
 ];
 
 ///
@@ -3731,6 +3742,169 @@ export const OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+///
+//// Responses to weak preemptive openings
+///
+
+/// One compact bucket covers the preempt opening, responder's action, and the opener rebid when the
+/// response is forcing.  Playing-trick-only game placement remains guidance rather than a fake HCP
+/// calculation.
+export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '2H-Pass: a good six-card 6-HCP heart suit qualifies for the weak two; responder ' +
+                 'has only two hearts and Guideline of 17 = 7, so Pass is the modeled action.',
+    practiceAuction: ['2H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2H', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-weak-two-w/-pass'] },
+    ],
+    rejectedResponseCalls: ['3H', '2NT'],
+    north: { S: '852', H: 'KQJ987', D: '73', C: 'T5' },
+    south: { S: 'A73', H: '42', D: 'J864', C: '9764' },
+  },
+  {
+    description: '2S-3S: exactly three spades give nine combined trumps; with Guideline of 17 ' +
+                 'well below 17, responder furthers the preempt one level rather than inviting game.',
+    practiceAuction: ['2S', 'Pass', '3S'],
+    expectedOpeningCalls: [
+      { call: '2S', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-weak-two-w/-raise-to-three'] },
+    ],
+    rejectedResponseCalls: ['Pass', '2NT', '4S'],
+    north: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+    south: { S: 'A43', H: 'Q76', D: '852', C: '9642' },
+  },
+  {
+    description: '2D-4D: four-card diamond support gives at least ten combined trumps, so responder ' +
+                 'can further the preempt to the four level without treating the call as an invite.',
+    practiceAuction: ['2D', 'Pass', '4D'],
+    expectedOpeningCalls: [
+      { call: '2D', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4D', ruleIds: ['respond-to-weak-two-w/-raise-to-four'] },
+    ],
+    rejectedResponseCalls: ['Pass', '3D'],
+    north: { S: '842', H: '73', D: 'KQJ987', C: 'T5' },
+    south: { S: '765', H: 'Q86', D: 'A432', C: '964' },
+  },
+  {
+    description: '2H-2NT-3H: responder reaches Guideline of 17 exactly; forcing 2NT asks for more ' +
+                 'information, and the 7-HCP minimum opener repeats hearts at the three level.',
+    practiceAuction: ['2H', 'Pass', '2NT', 'Pass', '3H'],
+    expectedOpeningCalls: [
+      { call: '2H', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-weak-two-w/-2nt-inquiry'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-repeat-after-weak-two-2nt-inquiry'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: '842', H: 'AQJ987', D: '73', C: '65' },
+    south: { S: 'KQ5', H: 'K2', D: 'A64', C: 'QJ832' },
+  },
+  {
+    description: '2S-2NT-3C: a 9-HCP maximum has the club king as a side feature; opener shows the ' +
+                 'cheapest side ace-or-king feature rather than simply repeating spades.',
+    practiceAuction: ['2S', 'Pass', '2NT', 'Pass', '3C'],
+    expectedOpeningCalls: [
+      { call: '2S', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-weak-two-w/-2nt-inquiry'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3C', ruleIds: ['opener-rebid-feature-after-weak-two-2nt-inquiry'] },
+    ],
+    rejectedOpenerRebidCalls: ['3S', '3NT'],
+    north: { S: 'KQJ987', H: '842', D: '73', C: 'K5' },
+    south: { S: 'A3', H: 'AK5', D: 'QJ64', C: 'QJ82' },
+  },
+  {
+    description: '2D-2NT-3NT: a 10-HCP maximum with AKQJ in the six-card diamond suit satisfies ' +
+                 "the app's conservative executable approximation of a solid weak-two suit.",
+    practiceAuction: ['2D', 'Pass', '2NT', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '2D', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-weak-two-w/-2nt-inquiry'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-weak-two-2nt-inquiry'] },
+    ],
+    rejectedOpenerRebidCalls: ['3D'],
+    north: { S: '842', H: '73', D: 'AKQJ98', C: '65' },
+    south: { S: 'KQ5', H: 'AQ4', D: 'T2', C: 'KJ832' },
+  },
+  {
+    description: '2D-2S-3S: responder has a good five-card spade suit and enough strength for ' +
+                 'Guideline of 17; the natural new suit is forcing and opener raises with three.',
+    practiceAuction: ['2D', 'Pass', '2S', 'Pass', '3S'],
+    expectedOpeningCalls: [
+      { call: '2D', ruleIds: ['open-weak-two'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-to-weak-two-w/-new-suit-forcing'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3S', ruleIds: ['opener-rebid-raise-after-preempt-new-suit'] },
+    ],
+    north: { S: 'T42', H: '83', D: 'KQJ987', C: '65' },
+    south: { S: 'AKQJ9', H: 'A74', D: '2', C: 'QJ84' },
+  },
+  {
+    description: '3H-Pass: a good seven-card heart suit with only 9 total points is a three-level ' +
+                 'preempt, not a weak two; responder has two hearts and no modeled structural action.',
+    practiceAuction: ['3H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '3H', ruleIds: ['open-weak-three'] },
+    ],
+    rejectedOpeningCalls: ['2H'],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-three-level-preempt-w/-pass'] },
+    ],
+    north: { S: '842', H: 'KQJ9876', D: '73', C: '5' },
+    south: { S: 'Q75', H: 'A2', D: 'A64', C: '98742' },
+  },
+  {
+    description: '3S-4S: opener promises seven spades; responder has three-card support, producing ' +
+                 'the ten-card fit used to further the preempt to the four level.',
+    practiceAuction: ['3S', 'Pass', '4S'],
+    expectedOpeningCalls: [
+      { call: '3S', ruleIds: ['open-weak-three'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4S', ruleIds: ['respond-to-three-level-preempt-w/-raise-to-four'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    north: { S: 'KQJ9876', H: '842', D: '73', C: '5' },
+    south: { S: 'A43', H: 'Q76', D: 'A52', C: '9642' },
+  },
+  {
+    description: '3H-3S-4H: a good five-card spade suit can be bid at the cheapest level below ' +
+                 'game as a forcing response; without three spades opener returns to hearts.',
+    practiceAuction: ['3H', 'Pass', '3S', 'Pass', '4H'],
+    expectedOpeningCalls: [
+      { call: '3H', ruleIds: ['open-weak-three'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-to-three-level-preempt-w/-new-suit-forcing'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-repeat-after-preempt-new-suit'] },
+    ],
+    north: { S: '82', H: 'KQJ9876', D: '73', C: '65' },
+    south: { S: 'AKQJ9', H: 'A2', D: 'A64', C: 'T84' },
+  },
+];
+
 /// The dropdown follows bidding order: opening bids, responses, then opener rebids.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
@@ -3744,6 +3918,8 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: RESPONSE_AFTER_1NT_OPENING_TEST_DEALS },
   { id: 'response-2nt-opening', group: 'Responses to NT opening', label: '2NT opening',
     deals: RESPONSE_AFTER_2NT_OPENING_TEST_DEALS },
+  { id: 'response-weak-preempt', group: 'Responses to preempts', label: 'Weak preempts',
+    deals: RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS },
   { id: 'nt-1nt', group: 'Opener rebids', label: '1NT opening - continuations',
     deals: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS },
   { id: 'nt-2nt', group: 'Opener rebids', label: '2NT opening - continuations',

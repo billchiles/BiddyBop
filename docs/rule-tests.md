@@ -28,13 +28,13 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 216 deals, with 650 positive call/rule assertions, 163 elimination
-assertions, 24 call-order assertions, and 578 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 747 eligible deal/configuration combinations and 2018 recorded calls.
-Positive assertions cover all 123 implemented opener-rebid rule IDs. Opening coverage is 7/13;
-the uncovered opening families are strong artificial 2C, weak/preemptive openings, and rare 4NT.
-Response coverage is 60/68; the eight uncovered response rules are the intentionally deferred
-Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
+The current corpus contains 227 deals, with 676 positive call/rule assertions, 178 elimination
+assertions, 24 call-order assertions, and 604 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 791 eligible deal/configuration combinations and 2122 recorded calls.
+Positive assertions cover all 128 implemented opener-rebid rule IDs. Opening coverage is 9/13;
+the uncovered opening rules are strong artificial 2C, rare 4NT, and the deliberately unpracticed
+four- and five-level preempts. Response coverage is 68/76; the eight uncovered response rules are
+the intentionally deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
 
 Twenty-five existing notrump response deals were extended through opener's next call and **moved**,
 not copied, into the `nt-1nt` and `nt-2nt` opener-rebid dropdown buckets. Two existing minor-raise
@@ -109,6 +109,10 @@ condition inside each rule or refiner.
 | Weak jump-shift response and opener Pass | `response-minor-opening`, `response-major-opening`, and `jump-shift` | A weak single jump uses a 6+ suit with 4-7 HCP; after a major opening, three-card support suppresses the weak jump shift. In the opener-rebid bucket the normal continuation is Pass. |
 | Strong jump-shift one-suiter versus 5-5 fallback | `response-minor-opening`, `response-major-opening`, and `jump-shift` | A strong jump shift requires 17+ HCP, a 5+ new suit with at least 5 suit HCP, and no second 5+ new suit. With a 5-5 heart-diamond hand after `1S`, natural `2H` precedes `2D` and the strong jump calls are eliminated. |
 | Opener after a strong jump shift | `jump-shift`, four opener-rebid deals | Game is already forced. Three-card support raises responder economically and ranks first; otherwise opener can repeat a 6+ opening suit, show a four-card second suit, or rebid notrump with balanced/semi-balanced shape at the cheapest legal level. |
+| Weak-two opening and non-forcing raises | `opening-bids` and `response-weak-preempt` | Weak twos use 5-10 HCP, exactly six cards, and the shared good-suit test. With no game investigation, two or fewer trumps Pass; three-card support raises one level; four-card support raises to the four level. Vulnerability and direct game placement remain judgment guidance. |
+| Weak-two forcing inquiry and features | `response-weak-preempt`, three 2NT inquiry deals | Guideline of 17 is the rough executable game-interest trigger. A 5-7 minimum repeats the suit; an 8-10 maximum shows the cheapest side ace/king feature; AKQJ in the six-card suit triggers the special solid-suit 3NT message. |
+| Forcing new suit after a weak preempt | `response-weak-preempt`, weak-two and three-level-preempt new-suit deals | A good natural new suit below the modeled game boundary is forcing. Opener raises with 3+ support and otherwise returns economically to the preempt suit. |
+| Three-level preempt structure | `opening-bids` and `response-weak-preempt` | Three-level preempts use exactly seven cards, the shared good-suit test, and less than ordinary one-level opening values. Responder can Pass with no fit, further the preempt with 3+ support, or show a qualifying forcing new suit; playing-trick-only game calls remain guidance. |
 | Shortage points and splinter presentation | `response-major-opening`, `1H–4C` splinter deal | 11 HCP plus three shortage points qualify for the splinter and two natural routes; `4C` precedes `1S` and `2D`. |
 | Game-forcing major support with a flat hand | `response-major-opening`, flat 14-HCP `1S` deal | Natural `2D` followed by a raise and direct `3NT` both qualify. |
 | Five-card major opener after a forcing or non-forcing `1NT` response | `major-1nt` | Distinct deals exercise the forcing rebid requirement and the non-forcing `Pass` treatment. |

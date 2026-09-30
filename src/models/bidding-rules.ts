@@ -1,7 +1,7 @@
 /// Executable bidding rules, priorities, meanings, and guidance for the trainer.
 
 import type { BidRule, Call, RuleEvalContext, CallRefinementResult, AppliesWhenResult } from './bidding-types';
-import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
+import { guidelineOf17Applies, guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          minorSupportNewSuitApplies,
          oneNtFiveCardLengthUpgradeApplies, majorTwoLevelNewSuitApplies,
          oneNtNaturalMinorInvitationApplies, oneNtTwoNtInvitationApplies,
@@ -25,13 +25,19 @@ import { guidelineOf20Applies, majorDirectThreeNtApplies, minorRaiseApplies,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
          refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
          refineStrongJumpShift, refineThreeCardMajorSupportNewSuitFirst,
-         refineToCheapestNewSuitBids, refineNtStaymanReply, refineNtJacobyCompletion,
-         refineNtTexasCompletion, refineWeakJumpShift, openerNtNotrumpSignoffApplies,
+         refineThreeLevelPreemptNewSuitResponse, refineToCheapestNewSuitBids,
+         refineNtStaymanReply, refineNtJacobyCompletion, refineNtTexasCompletion,
+         refineWeakJumpShift, refineWeakTwoFeatureRebid, refineWeakTwoNewSuitResponse,
+         openerNtNotrumpSignoffApplies,
          openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
          openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
          openerNtDirectMajorSlamInterestApplies, openerNtWeakMajorSignoffApplies,
          openerNtGameInvitationApplies, openerNtQuantitativeInvitationApplies,
-         openerSuitThreeNtQuantitativeApplies, openerJacobyGoodSideSuitApplies,}
+         openerPreemptNewSuitRaiseApplies, openerPreemptNewSuitRepeatApplies,
+         openerSuitThreeNtQuantitativeApplies, openerJacobyGoodSideSuitApplies,
+         threeLevelPreemptPassApplies, threeLevelPreemptRaiseApplies, weakTwoFeatureAfterInquiryApplies,
+         weakTwoFourLevelRaiseApplies, weakTwoPassApplies, weakTwoRepeatAfterInquiryApplies,
+         weakTwoSimpleRaiseApplies, weakTwoSolidThreeNtApplies,}
   from './bidding-rule-functions';
 
 ///
@@ -193,11 +199,14 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['2D', '2H', '2S'],
     callRefinement: refinePreemptSuitQuality,
-    callCategory: ['invitational'],
-    appliesWhen: { hcp: { min: 5, max: 10 }, suitLengths: [{ min: 6 }] },
-    guidance: ['Good suit with 5 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
-               'such as, A-Q-xxxx or Q-J-10-xxx'],
-    meaning: 'Descriptive and obstructive weak two-bid.',
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 5, max: 10 }, suitLengths: [{ exact: 6 }] },
+    guidance: ['A good suit has at least two of A/K/Q or at least three of A/K/Q/J/T.',
+               'Think in playing tricks as well as HCP: roughly five playing tricks is a useful ' +
+                 'non-vulnerable target; vulnerable preempts should generally be sounder.',
+               'Going down vulnerable can give the opponents enough penalty points that the ' +
+                 'sacrifice is not worthwhile; vulnerability is guidance-only in this app.'],
+    meaning: 'Descriptive and obstructive weak two-bid with exactly six cards in the suit.',
     certainty: 'high',
   },
   //
@@ -209,11 +218,14 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refinePreemptSuitQuality,
-    callCategory: ['invitational'],
-    appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 7 }] },
-    guidance: ['Good suit with 6 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
-               'such as, A-Q-xxxx or Q-J-10-xxx'],
-    meaning: 'Preemptive opening with a good seven-card suit.',
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { max: 11 }, suitLengths: [{ exact: 7 }] },
+    guidance: ['A good suit has at least two of A/K/Q or at least three of A/K/Q/J/T.',
+               'Use a three-level preempt below ordinary one-level opening values; these bidding ' +
+                 'guidelines describe roughly six playing tricks non-vulnerable and a sounder hand vulnerable.',
+               'Going down vulnerable can give the opponents enough penalty points that the ' +
+                 'sacrifice is not worthwhile; vulnerability is guidance-only in this app.'],
+    meaning: 'Preemptive opening with a good seven-card suit and less than one-level opening values.',
     certainty: 'high',
   },
   //
@@ -1443,6 +1455,117 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural game-forcing major-suit response.',
     certainty: 'high',
   },
+  //
+  // Responses to weak preemptive openings.  The app models the structural parts of the chosen
+  // treatment and leaves direct game placement that depends only on playing-trick judgment in
+  // guidance rather than inventing an HCP threshold.
+  //
+  {
+    id: 'respond-to-weak-two-w/-pass',
+    kind: 'responseBid',
+    title: 'Pass a weak two without game interest or a fit',
+    auctionContext: { stage: 'responding', openerLevel: 2, openerStrain: 'suit' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: weakTwoPassApplies, // Guideline of 17 below 17 and at most two trumps
+    meaning: 'No game investigation and no useful fit; leave the weak two in place.',
+    guidance: ['The Guideline of 17 is only a rough check; actual playing tricks can override it.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-weak-two-w/-raise-to-three',
+    kind: 'responseBid',
+    title: 'Further a weak two to the three level with three-card support',
+    auctionContext: { stage: 'responding', openerLevel: 2, openerStrain: 'suit' },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 3),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: weakTwoSimpleRaiseApplies, // exactly three trumps, no Rule-of-17 game interest
+    meaning: 'Preemptive raise based on nine combined trumps; opener is expected to pass.',
+    guidance: ['Raises of a weak two are non-forcing; 2NT and new-suit responses are forcing.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-weak-two-w/-raise-to-four',
+    kind: 'responseBid',
+    title: 'Raise a weak two to the four level with four-card-or-longer support',
+    auctionContext: { stage: 'responding', openerLevel: 2, openerStrain: 'suit' },
+    calls: ['4D', '4H', '4S'],
+    callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 4),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: weakTwoFourLevelRaiseApplies, // 4+ support gives at least ten combined trumps
+    meaning: 'Further the preempt to the four level; in a major this may also be the game contract.',
+    guidance: ['This call can be based on the known ten-card fit or on an expectation of making game.',
+               'The app does not estimate playing tricks for direct game placement.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-weak-two-w/-2nt-inquiry',
+    kind: 'responseBid',
+    title: 'Ask for more information with forcing 2NT after a weak two',
+    auctionContext: { stage: 'responding', openerLevel: 2, openerStrain: 'suit' },
+    calls: ['2NT'],
+    callCategory: ['forcing', 'conventional'],
+    appliesWhen: guidelineOf17Applies, // HCP + cards in opener's suit >= 17 is the rough game-interest test
+    meaning: 'Artificial inquiry asking opener to describe minimum/maximum strength and features.',
+    guidance: ['The Guideline of 17 is a rough trigger for investigating game, not a playing-trick ' +
+               'calculator.  Controls, fit, honor location, and vulnerability still matter.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-weak-two-w/-new-suit-forcing',
+    kind: 'responseBid',
+    title: 'Bid a good new suit forcing after a weak two',
+    auctionContext: { stage: 'responding', openerLevel: 2, openerStrain: 'suit' },
+    calls: ['2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineWeakTwoNewSuitResponse, // good 5+ suit at the cheapest legal level
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: guidelineOf17Applies, // use the same rough game-interest check as the 2NT inquiry
+    meaning: 'Natural new suit, forcing one round, showing a good five-card-or-longer suit.',
+    guidance: ['Use only with game interest; the Guideline of 17 is a rough executable guide rather ' +
+               'than an estimate of actual playing tricks.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-three-level-preempt-w/-pass',
+    kind: 'responseBid',
+    title: 'Pass a three-level preempt without a fit when game is not expected',
+    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: threeLevelPreemptPassApplies, // structural check only; playing tricks remain judgment
+    meaning: 'With two or fewer trumps and no judged game, leave opener at the three level.',
+    guidance: ['The app does not estimate playing tricks.  Direct 3NT or another game can be right ' +
+               'when you judge that the partnership can take the required tricks.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'respond-to-three-level-preempt-w/-raise-to-four',
+    kind: 'responseBid',
+    title: 'Further a three-level preempt with three-card-or-longer support',
+    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    calls: ['4C', '4D', '4H', '4S'],
+    callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 4),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: threeLevelPreemptRaiseApplies, // 3+ support gives at least ten combined trumps
+    meaning: 'Raise to the four level on the known ten-card-or-longer fit.',
+    guidance: ['In a major this can also be a game contract; playing-trick judgment can justify ' +
+               'game even without the trump-count rationale.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-three-level-preempt-w/-new-suit-forcing',
+    kind: 'responseBid',
+    title: 'Bid a long new suit below game after a three-level preempt',
+    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    calls: ['3D', '3H', '3S', '4C', '4D'],
+    callRefinement: refineThreeLevelPreemptNewSuitResponse, // cheapest good 5+/6+ suit below game
+    callCategory: ['forcing', 'natural'],
+    meaning: 'Natural new suit below game, forcing one round and showing game interest.',
+    guidance: ['The app checks suit length and quality but does not estimate the playing tricks ' +
+               'needed to decide whether the hand truly has game interest.'],
+    certainty: 'medium',
+  },
  ]; // ResponseBiddingRules
 
 ///
@@ -1729,6 +1852,81 @@ export const OpenerRebidRules: BidRule[] = [
                'combined HCP: treat 6NT as conditional on good trick-taking prospects.'],
     certainty: 'high',
   },
+  //
+  // Weak-preempt continuations.  The 2NT inquiry has explicit minimum/maximum messages; natural
+  // forcing new-suit responses are answered economically with support or by returning to the
+  // preempt suit.
+  //
+  {
+    id: 'opener-rebid-repeat-after-weak-two-2nt-inquiry',
+    kind: 'openerRebid',
+    title: 'Repeat the weak-two suit after the forcing 2NT inquiry',
+    auctionContext: { stage: 'openerRebid', openerLevel: 2, openerStrain: 'suit',
+                      responderCall: { kind: 'notrump', level: 2 } },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineOpenerOpeningSuitToLevel(calls, context, 3),
+    callCategory: ['natural'],
+    appliesWhen: weakTwoRepeatAfterInquiryApplies, // 5-7 minimum or max with no feature/solid suit
+    meaning: 'Minimum weak two; or a maximum without another modeled descriptive message.',
+    guidance: ['A 5-7 minimum rebids the opening suit at the three level.',
+               'For an 8-10 maximum, a side ace/king or solid-suit 3NT message takes precedence; ' +
+                 'repeating the suit is the conservative fallback when neither applies.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-feature-after-weak-two-2nt-inquiry',
+    kind: 'openerRebid',
+    title: 'Show a side ace or king with a maximum weak two',
+    auctionContext: { stage: 'openerRebid', openerLevel: 2, openerStrain: 'suit',
+                      responderCall: { kind: 'notrump', level: 2 } },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineWeakTwoFeatureRebid, // choose the cheapest side A/K feature
+    callCategory: ['conventional'],
+    appliesWhen: weakTwoFeatureAfterInquiryApplies,
+    meaning: 'An 8-10 HCP maximum with a side ace or king; the side-suit bid shows that feature.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-weak-two-2nt-inquiry',
+    kind: 'openerRebid',
+    title: 'Rebid 3NT with a maximum weak two and a solid suit',
+    auctionContext: { stage: 'openerRebid', openerLevel: 2, openerStrain: 'suit',
+                      responderCall: { kind: 'notrump', level: 2 } },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: weakTwoSolidThreeNtApplies, // AKQJ is the executable solid-suit approximation
+    meaning: 'Maximum weak two with a solid opening suit suitable for notrump.',
+    guidance: ['The app uses AKQJ in the six-card opening suit as its conservative executable ' +
+               "approximation of the solid-suit requirement."],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-raise-after-preempt-new-suit',
+    kind: 'openerRebid',
+    title: "Raise responder's forcing new suit after a preempt",
+    auctionContext: { stage: 'openerRebid', openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit' } },
+    calls: ['3H', '3S', '4C', '4D', '4H', '4S', '5C', '5D'],
+    callRefinement: refineOpenerRaiseResponderSuitOneLevel, // economical raise with 3+ support
+    callCategory: ['natural'],
+    appliesWhen: openerPreemptNewSuitRaiseApplies,
+    meaning: "Three-card-or-longer support for responder's forcing natural suit.",
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-repeat-after-preempt-new-suit',
+    kind: 'openerRebid',
+    title: "Return to opener's preempt suit without support for responder",
+    auctionContext: { stage: 'openerRebid', openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit' } },
+    calls: ['3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    callRefinement: refineOpenerOpeningSuitAtCheapestLevel, // satisfy the force with no 3-card fit
+    callCategory: ['natural'],
+    appliesWhen: openerPreemptNewSuitRepeatApplies,
+    meaning: "No three-card fit for responder's forcing suit; return to the preempt suit economically.",
+    certainty: 'medium',
+  },
+  //
   //
   // One-level suit-opening rebids follow below.
   //
