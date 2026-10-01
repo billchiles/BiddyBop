@@ -116,12 +116,13 @@ The app should help the user practice bidding decisions using structured convent
 - `suitLengths` entries are conjunctive.
 - If a `suitLengths` entry specifies a concrete suit, test that suit.
 - If a `suitLengths` entry omits the suit, apply it to the suit of the candidate call currently being evaluated.
-- `auctionContext.auction` is optional. Older/exact rules may use a compact representative
-  partnership auction even though the model stores the full physical auction with passes. The
-  matcher derives the opening partnership's non-pass calls for current uncontested rules.
-- `auction: ['1H']` together with `openerStrain: 'major'` is a representative rule declaration for
-  either 1H or 1S; similarly `auction: ['1C']` plus `openerStrain: 'minor'` represents either minor
-  opening. Keep this convention commented near rule declarations that use it.
+- `auctionContext` decides whether a rule belongs to the current auction; `appliesWhen` decides
+  whether the hand qualifies, and `callRefinement` narrows or orders the rule's candidate calls.
+- `auctionContext.auction` is optional and always literal. The matcher derives the opening
+  partnership's compact non-pass calls from the full physical auction, then every declared call
+  must match exactly; `auction` is never made representative by another context field.
+- Use `openerCalls` for a small explicit set such as the weak-two openings `2D`/`2H`/`2S`; use
+  `openerLevel` and `openerStrain` for semantic families such as any one-level minor opening.
 - Opener-rebid rules may instead constrain `responderCall`. `kind`, absolute `level`, and `jump` are
   rule-declaration constraints; the evaluator derives those facts from responder's actual call.
   `jump: 0` requires a non-jump, `jump: 1` a single jump, `jump: 2` a double jump, and omission

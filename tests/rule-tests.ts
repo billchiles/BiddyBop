@@ -1,9 +1,9 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
-import { defaultBiddingSystem, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
+import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, parseSuitBid, responseJump } from '../src/models/auction';
-import { evaluateUserCall, getApplicableCandidateCalls, type CandidateCallMatch }
-  from '../src/models/biddingEvaluation';
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
+         type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/rule-test-deals';
@@ -62,6 +62,88 @@ function runAuctionHelperTests (): number {
   }
   console.log(`Auction helpers: ${cases.length} responseJump checks and ${comparisonCases.length} ` +
               `bid-order comparisons; ${failureCount} failures.`);
+  return failureCount;
+}
+
+/// AuctionContext fields are explicit constraints: semantic opener fields can generalize an opening,
+/// while auction remains literal and openerCalls can enumerate a small exact opening set.
+function runAuctionContextTests (): number {
+  const seedDeal = RULE_TEST_DEAL_BUCKETS[0]?.deals[0];
+  if (seedDeal === undefined) {
+    console.error('FAIL auction-context tests need at least one rule-test deal to build a board.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seedDeal);
+  const rules: BidRule[] = [
+    {
+      id: 'test-context-one-level-minor', kind: 'responseBid', title: 'test one-level minor context',
+      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-one-level-major', kind: 'responseBid', title: 'test one-level major context',
+      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-weak-two-set', kind: 'responseBid', title: 'test weak-two opening set',
+      auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-strong-two-clubs', kind: 'responseBid', title: 'test strong 2C opening',
+      auctionContext: { stage: 'responding', openerCalls: ['2C'] },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-literal-auction', kind: 'responseBid', title: 'test literal auction context',
+      auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+      calls: ['Pass'], certainty: 'high',
+    },
+  ];
+  const cases: { auction: Call[]; expected: string[]; rejected: string[] }[] = [
+    { auction: ['1C', 'Pass'],
+      expected: ['test-context-one-level-minor', 'test-context-literal-auction'],
+      rejected: ['test-context-one-level-major', 'test-context-weak-two-set',
+                 'test-context-strong-two-clubs'] },
+    { auction: ['1D', 'Pass'], expected: ['test-context-one-level-minor'],
+      rejected: ['test-context-literal-auction', 'test-context-one-level-major'] },
+    { auction: ['1H', 'Pass'], expected: ['test-context-one-level-major'],
+      rejected: ['test-context-one-level-minor'] },
+    { auction: ['1S', 'Pass'], expected: ['test-context-one-level-major'],
+      rejected: ['test-context-one-level-minor'] },
+    { auction: ['2C', 'Pass'], expected: ['test-context-strong-two-clubs'],
+      rejected: ['test-context-one-level-minor', 'test-context-one-level-major',
+                 'test-context-weak-two-set', 'test-context-literal-auction'] },
+    { auction: ['2D', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-strong-two-clubs', 'test-context-one-level-minor'] },
+    { auction: ['2H', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-one-level-major'] },
+    { auction: ['2S', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-one-level-major'] },
+  ];
+  let checkCount = 0;
+  let failureCount = 0;
+  for (const testCase of cases) {
+    const context = makeRuleEvalContext(board, testCase.auction);
+    const matched = new Set(evaluateRules(rules, context, defaultBiddingSystem)
+      .map((result) => result.rule.id));
+    for (const ruleId of testCase.expected) {
+      checkCount += 1;
+      if (! matched.has(ruleId)) {
+        failureCount += 1;
+        console.error(`FAIL auction context ${testCase.auction.join(' ')} should match ${ruleId}.`);
+      }
+    }
+    for (const ruleId of testCase.rejected) {
+      checkCount += 1;
+      if (matched.has(ruleId)) {
+        failureCount += 1;
+        console.error(`FAIL auction context ${testCase.auction.join(' ')} should reject ${ruleId}.`);
+      }
+    }
+  }
+  console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} failures.`);
   return failureCount;
 }
 
@@ -268,7 +350,7 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
 }
 
-const failureCount = runAuctionHelperTests() + runRuleTests();
+const failureCount = runAuctionHelperTests() + runAuctionContextTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

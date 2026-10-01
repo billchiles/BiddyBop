@@ -250,24 +250,25 @@ export interface ResponderCallContext {
   jump?: 0 | 1 | 2;
 }
 
+/// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
+  // stage selects the bidding phase in which the rule can apply.
   stage: BidStage;
-  // Some older/exact rules use a compact representative partnership auction.  The evaluator owns
-  // the full physical auction, including passes, and derives the compact calls used for matching.
+  // auction is an exact compact partnership call sequence; every listed call must match literally.
   auction?: Call[];
+  // description is optional author-facing context and is not evaluator input.
   description?: string;
-  // 'suit' matches any non-notrump opening; minor/major match either suit in that family.
-  openerStrain?: Strain | 'suit' | 'minor' | 'major';
-  // openerLevel constrains the level of the opening contract bid without fixing its strain.
+  // openerCalls restricts opener to one of these exact opening calls.
+  openerCalls?: Call[];
+  // openerLevel constrains the opening contract level without fixing its strain.
   openerLevel?: RuleBidLevel;
-  // responderCall is a rule constraint.  The evaluator derives these facts from responder's actual
-  // call rather than storing them as auction state.
+  // openerStrain constrains the opening strain; suit means non-NT, while minor/major match either suit in that family.
+  openerStrain?: Strain | 'suit' | 'minor' | 'major';
+  // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
-  responderHasPassedInitially?: boolean;
 }
 
-/// A function-valued appliesWhen is a normal compiled TypeScript function reference.  The evaluator
-/// invokes it; declaring the function on a rule does not immediately execute it.
+/// appliesWhen decides whether the current hand qualifies for a rule or candidate after auction-context matching.
 export type AppliesWhenFunction = (
   call: Call,
   context: RuleEvalContext,
@@ -279,7 +280,7 @@ export interface AppliesWhenResult {
   telemetryLines: string[];
 }
 
-/// callRefinement turns a rule's broad declared calls into the calls valid for this exact auction.
+/// callRefinement narrows or orders a rule's declared calls for the actual auction; it does not decide rule context.
 export type CallRefinementFunction = (
   calls: Call[],
   context: RuleEvalContext,

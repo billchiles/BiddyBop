@@ -922,10 +922,8 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
 //// Rule Testing Utilities -- interpreting rule declarations in context of actual hands, etc.
 ///
 
-/// auctionContextMatches tests whether a rule's stage and declared auction constraints match the
-/// actual evaluation context before any hand constraints are considered.  Older/exact rules may
-/// use a representative compact auction; newer rebid rules can describe responder's call by its
-/// semantic properties instead of enumerating every suit permutation.
+/// auctionContextMatches decides only whether a rule belongs to the current auction; hand qualification and call refinement are separate responsibilities.
+/// Exact auction declarations stay literal, while opener/responder fields provide explicit semantic constraints.
 ///
 function auctionContextMatches (ruleContext: AuctionContext | undefined,
                                evalContext: RuleEvalContext): boolean {
@@ -938,6 +936,10 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
 
   const actualAuction = getRuleAuction(evalContext);
   const actualOpening = actualAuction[0];
+  if (ruleContext.openerCalls !== undefined &&
+      (actualOpening === undefined || ! ruleContext.openerCalls.includes(actualOpening))) {
+    return false;
+  }
   if (ruleContext.openerStrain !== undefined &&
       (actualOpening === undefined ||
        ! openerStrainMatches(ruleContext.openerStrain, actualOpening))) {
@@ -961,14 +963,9 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
       if (ruleCall === undefined || actualCall === undefined) {
         return false;
       }
-      if (ruleCall === actualCall) {
-        continue;
+      if (ruleCall !== actualCall) {
+        return false;
       }
-      if (index === 0 && ruleContext.openerStrain !== undefined &&
-          openerStrainMatches(ruleContext.openerStrain, actualCall)) {
-        continue;
-      }
-      return false;
     }
   }
 
@@ -1008,14 +1005,8 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
   return true;
 }
 
-/// getRuleAuction derives the compact uncontested partnership auction used by current rule
-/// declarations from the authoritative physical auction.  Opponent passes remain in context.auction
-/// and are not duplicated in every rule declaration.  
-///
-/// THIS IS SUSPICIOUS CODE, and need to decide best rectification of bid rule auction
-/// representation, whether rules need an abstract represenation, whether eval/refiner/applies
-/// functions should match a full auction to a bid rule auction represenatation so that rules that
-/// still apply regardless of intervening bids or passes don't need a rule for each permutation.
+/// getRuleAuction derives the compact uncontested partnership auction from the authoritative physical auction.
+/// Opponent passes stay in context.auction; an AuctionContext.auction declaration matches this compact sequence literally.
 ///
 function getRuleAuction (context: RuleEvalContext): Call[] {
   if (context.stage === 'opening') {
