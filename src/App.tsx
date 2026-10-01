@@ -4,8 +4,8 @@ import { BidPanel } from './components/BidPanel';
 import { BiddingSystemControls } from './components/BiddingSystemControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
-import { defaultBiddingSystem, type BiddingSystem } from './models/bidding-types';
-import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDealBucketId }
+import { defaultBiddingSystem, type BidStage, type BiddingSystem } from './models/bidding-types';
+import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
   from './models/rule-test-deals';
 
 /// App owns browser-level practice controls and the board currently displayed.
@@ -13,6 +13,8 @@ const PRACTICE_DEALER: Seat = 'N';
 
 interface AppState {
   board: Board;
+  testDeal?: RuleTestDeal;
+  practiceStages?: BidStage[];
   telemetryLines: string[];
 }
 
@@ -36,6 +38,8 @@ export default function App() {
     const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening: true });
     setState({
       board: result.board,
+      testDeal: undefined,
+      practiceStages: undefined,
       telemetryLines: ['Generated new board.', ...result.telemetryLines],
     });
   }
@@ -55,8 +59,15 @@ export default function App() {
       return;
     }
     const result = makeRuleTestBoard(testDeal);
+    // For All, find the owning bucket so overcall exercises still use their own practiced stages.
+    const selectedBucket = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.deals.includes(testDeal));
+    const practiceStages: BidStage[] = selectedBucket !== undefined &&
+      'practiceStages' in selectedBucket
+      ? [...selectedBucket.practiceStages] : ['opening', 'responding', 'openerRebid'];
     setState({
       board: result.board,
+      testDeal,
+      practiceStages,
       telemetryLines: [`Test deal ${index + 1} of ${testDeals.length}.`, ...result.telemetryLines],
     });
     setTestDealCount(index + 1);
@@ -102,7 +113,8 @@ export default function App() {
         </div>
       </header>
 
-      <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry} />
+      <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry}
+        testDeal={state.testDeal} practiceStages={state.practiceStages} />
       <TelemetryPanel lines={state.telemetryLines} />
     </main>
   );

@@ -19,8 +19,8 @@ export interface ParsedSuitBid {
   strain: Strain;
 }
 
-/// getBidStage derives the current uncontested bidding stage from the real auction.  Opponent
-/// non-pass calls currently leave the stage unresolved rather than guessing.
+/// getBidStage identifies bidding roles from seats and the physical auction.  Unsupported later
+/// competitive continuations return null without preventing the user from entering further calls.
 ///
 export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   if (auctionIsComplete(auction)) {
@@ -30,29 +30,54 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   if (opening === null) {
     return 'opening';
   }
-  // Reject competitive auctions until the competitive stages and rule semantics are implemented.
-  const openerPartner = getPartnerSeat(opening.seat);
-  const openingPartnership = new Set<Seat>([opening.seat, openerPartner]);
-  for (let index = opening.index + 1; index < auction.length; index += 1) {
-    const call = auction[index];
-    const seat = getSeatForCallIndex(dealer, index);
-    if (! openingPartnership.has(seat) && call !== 'Pass') {
-      return null;
-    }
-  }
-  // Count the opening partnership's non-pass calls to identify whose turn in the sequence is next.
   const nextSeat = getNextSeat(dealer, auction);
-  const partnershipCalls = getOpeningPartnershipCalls(dealer, auction, opening.seat);
-  if (nextSeat === openerPartner && partnershipCalls.length === 1) {
+  const responder = getPartnerSeat(opening.seat);
+  const overcaller = getSeatForCallIndex(dealer, opening.index + 1);
+  const advancer = getPartnerSeat(overcaller);
+  const overcallIndex = opening.index + 1;
+  const overcall = auction[overcallIndex];
+  if (nextSeat === overcaller && auction.length === overcallIndex) {
+    return 'overcalling';
+  }
+  if (nextSeat === responder && auction.length === opening.index + 2) {
     return 'responding';
   }
+  if (nextSeat === advancer && auction.length === opening.index + 3 &&
+      overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
+    return 'advancing';
+  }
+  // Later opener/responder continuation meanings after competition remain unreviewed.
+  // Recognize Double as intervention here, without treating it as a penalty-double decision.
+  const opponentsBid = auction.some((call, index) =>
+    index > opening.index && (isContractBid(call) || call === 'Double') &&
+    getSeatForCallIndex(dealer, index) !== opening.seat &&
+    getSeatForCallIndex(dealer, index) !== responder);
+  if (opponentsBid) {
+    return null;
+  }
+  const partnershipCalls = getOpeningPartnershipCalls(dealer, auction, opening.seat);
   if (nextSeat === opening.seat && partnershipCalls.length === 2) {
     return 'openerRebid';
   }
-  if (nextSeat === openerPartner && partnershipCalls.length === 3) {
+  if (nextSeat === responder && partnershipCalls.length === 3) {
     return 'responderRebid';
   }
   return null;
+}
+
+/// isCallAvailableInAuction checks contract ordering independently of bidding-rule meaning.
+/// Pass is always mechanically available here; doubles/redoubles await their specific treatments.
+export function isCallAvailableInAuction (call: Call, auction: Call[]): boolean {
+  if (! isContractBid(call)) {
+    return true;
+  }
+  for (let index = auction.length - 1; index >= 0; index -= 1) {
+    const prior = auction[index];
+    if (prior !== undefined && isContractBid(prior)) {
+      return compareSuitBids(parseSuitBid(call)!, parseSuitBid(prior)!) > 0;
+    }
+  }
+  return true;
 }
 
 /// getNextSeat returns the seat whose turn it is after the calls already in the auction.

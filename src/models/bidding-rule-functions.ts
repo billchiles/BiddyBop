@@ -11,7 +11,65 @@ import { cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getOpeni
 
 ///
 //// Bidding Rule Bid Refinements
+
+/// Simple suit overcalls use the cheapest available bid of a new suit, not a jump.
+/// With five cards require the shared good-suit test; with six or more length is sufficient.
+export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+  if (opening === undefined || opening.substring(1) === 'NT') {
+    return { calls: [], telemetryLines: ['A one-level suit opening is required.'] };
+  }
+  const parsedOpening = parseSuitBid(opening);
+  if (parsedOpening === null) {
+    return { calls: [], telemetryLines: ['No contract opening was found.'] };
+  }
+  const qualifying = calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(parsedOpening, bid.strain);
+    if (cheapest !== call) {
+      return false;
+    }
+    const suit = bid.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    return length >= 6 || (length === 5 && hasPreemptSuitQuality(context.hand, suit));
+  });
+  return { calls: qualifying, telemetryLines: [
+    'Keep non-jump new suits with a good five-card suit or any six-card-or-longer suit.',
+  ] };
+}
+
 ///
+
+/// Preemptive jump overcalls use a good six-, seven-, or eight-card suit at levels 2, 3, or 4.
+/// A natural suit bid must actually jump above the cheapest possible overcall in that suit.
+export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+  const parsedOpening = opening === undefined ? null : parseSuitBid(opening);
+  if (parsedOpening === null || parsedOpening.level !== 1 || parsedOpening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['Requires a one-level suit opening.'] };
+  }
+  const qualifying = calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain ||
+        bid.level < 2 || bid.level > 4) {
+      return false;
+    }
+    const cheapest = cheapestBidInStrainAfter(parsedOpening, bid.strain);
+    const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+    if (parsedCheapest === null || bid.level <= parsedCheapest.level) {
+      return false;
+    }
+    const suit = bid.strain as Suit;
+    return context.handFacts.lengths[suit] === bid.level + 4 &&
+      hasPreemptSuitQuality(context.hand, suit);
+  });
+  return { calls: qualifying, telemetryLines: [
+    'Jump in a different suit: good six cards at two, seven at three, eight at four.',
+  ] };
+}
 
 /// refineNtStaymanReply selects the reply one level above a natural 1NT or 2NT opening.
 /// Separate declarative rules decide whether opener has no four-card major, hearts, or spades.
@@ -1262,6 +1320,54 @@ export function refineNaturalMajorGameOver2Nt (calls: Call[], context: RuleEvalC
 ///
 //// Bidding Rule When Applies Functions
 ///
+
+/// naturalOneNtOvercallApplies requires 15-18 HCP, balanced shape, and A, Kx, Qxx, or Jxxx
+/// in opener's suit as a simple stopper approximation, not a guaranteed trick.
+export function naturalOneNtOvercallApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+  const parsed = opening === undefined ? null : parseSuitBid(opening);
+  if (parsed === null || parsed.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: an opposing suit opening is required.'] };
+  }
+  const cards = getCardsForSuit(context.hand, parsed.strain as Suit);
+  const ranks = cards.map((card) => card.rank);
+  const stopper = ranks.includes('A') || (ranks.includes('K') && cards.length >= 2) ||
+    (ranks.includes('Q') && cards.length >= 3) || (ranks.includes('J') && cards.length >= 4);
+  const points = context.handFacts.hcp;
+  const strength = points >= 15 && points <= 18;
+  const balanced = context.handFacts.balanced;
+  return {
+    success: strength && balanced && stopper,
+    telemetryLines: [
+      `${strength ? 'PASS' : 'FAIL'}: 1NT overcall requires 15-18 HCP; hand has ${points}.`,
+      `${balanced ? 'PASS' : 'FAIL'}: 1NT overcall needs balanced distribution.`,
+      `${stopper ? 'PASS' : 'FAIL'}: 1NT overcall needs A, Kx, Qxx, or Jxxx in ` +
+        `opener's ${parsed.strain} suit.`,
+    ],
+  };
+}
+
+/// takeoutDoubleHasUnbidSuitSupport models an ordinary direct double: 13+ shortage points
+/// and at least three cards in each of the three suits opener did not bid.
+export function takeoutDoubleHasUnbidSuitSupport (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+  const parsed = opening === undefined ? null : parseSuitBid(opening);
+  if (parsed === null || parsed.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: requires a natural suit opening.'] };
+  }
+  const unbid = SUITS.filter((suit) => suit !== parsed.strain);
+  const support = unbid.every((suit) => context.handFacts.lengths[suit] >= 3);
+  const points = context.handFacts.totalPointsWShortage;
+  return {
+    success: support && points >= 13 && context.handFacts.hcp < 18,
+    telemetryLines: [
+      `${points >= 13 ? 'PASS' : 'FAIL'}: ${points} points with shortage; need at least 13.`,
+      `${support ? 'PASS' : 'FAIL'}: need three cards in each unbid suit (${unbid.map((suit) =>
+        `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}).`,
+      `${context.handFacts.hcp < 18 ? 'PASS' : 'FAIL'}: 18+ HCP uses the strong-double rule.`,
+    ],
+  };
+}
 
 /// openerMinorOneLevelOneNtApplies uses the 12-14 HCP balanced rebid after a one-level new-suit
 /// response.  Opener normally raises four-card support and shows another four-card suit at the one

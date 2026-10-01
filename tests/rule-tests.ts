@@ -1,7 +1,7 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
-import { compareSuitBids, parseSuitBid, responseJump } from '../src/models/auction';
+import { compareSuitBids, getBidStage, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
@@ -145,6 +145,95 @@ function runAuctionContextTests (): number {
   }
   console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} failures.`);
   return failureCount;
+}
+
+/// Competitive smoke checks cover the newly shared stage and call-availability boundaries.
+/// The eight-point responder hand cannot force a two-level response after 1S interference.
+function runCompetitionBoundaryTests (): number {
+  const openingHand = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' };
+  const responderHand = { S: 'Q53', H: 'KQJ87', D: '82', C: 'T94' };
+  const { board } = makeRuleTestBoard({
+    description: 'Responder with eight HCP and five hearts after 1D-1S.',
+    practiceAuction: ['1D', '1S', 'Pass'],
+    north: openingHand, south: responderHand,
+  });
+  let checks = 0;
+  let failures = 0;
+  const stages: { auction: Call[]; expected: ReturnType<typeof getBidStage> }[] = [
+    { auction: ['1D'], expected: 'overcalling' },
+    { auction: ['1D', 'Pass'], expected: 'responding' },
+    { auction: ['1D', '1S'], expected: 'responding' },
+    { auction: ['1D', '1S', 'Pass'], expected: 'advancing' },
+    { auction: ['1D', '1S', '2D'], expected: 'advancing' },
+    { auction: ['1D', 'Double'], expected: 'responding' },
+    { auction: ['1D', 'Double', 'Pass'], expected: 'advancing' },
+    { auction: ['1D', 'Double', '2D'], expected: 'advancing' },
+    { auction: ['1D', 'Double', 'Pass', 'Pass'], expected: null },
+    { auction: ['1D', 'Pass', '1H', 'Pass'], expected: 'openerRebid' },
+  ];
+  for (const testCase of stages) {
+    checks += 1;
+    if (getBidStage(board.dealer, testCase.auction) !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL competitive stage for ${testCase.auction.join(' ')}.`);
+    }
+  }
+  checks += 1;
+  if (isCallAvailableInAuction('1H', ['1D', '1S']) ||
+      ! isCallAvailableInAuction('2H', ['1D', '1S'])) {
+    failures += 1;
+    console.error('FAIL contract call availability after 1D-1S.');
+  }
+  const result = evaluateUserCall('Pass', board, ['1D', '1S'], defaultBiddingSystem);
+  const candidates = getApplicableCandidateCalls(result);
+  checks += 1;
+  if (candidates.some(({ call }) => call === '1H' || call === '2H') ||
+      candidates.length !== 0) {
+    failures += 1;
+    console.error('FAIL 8-HCP responder should not retain unavailable 1H or unqualified 2H.');
+    console.error(`  Surviving: ${formatCandidates(candidates)}`);
+  }
+  // A balanced 18-HCP hand without a diamond stopper cannot overcall natural 1NT.
+  const { board: noStopperBoard } = makeRuleTestBoard({
+    description: '18 balanced HCP, but no diamond stopper for an overcall of 1D.',
+    dealer: 'W', practiceAuction: ['1D', 'Double', 'Pass'],
+    west: openingHand,
+    north: { S: 'AQ9', H: 'KQ8', D: '965', C: 'AKT6' },
+    south: { S: 'T864', H: 'JT7', D: 'K83', C: 'QJ9' },
+  });
+  const noStopperCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('1NT', noStopperBoard, ['1D'], defaultBiddingSystem));
+  checks += 1;
+  if (noStopperCandidates.some(({ call }) => call === '1NT')) {
+    failures += 1;
+    console.error('FAIL natural 1NT overcall should require an opening-suit stopper.');
+  }
+  // The same six-club, 10-HCP hand may not use the preemptive 2C rule after 1D:
+  // 2C is the cheapest club overcall, not a jump.
+  const { board: nonJumpBoard } = makeRuleTestBoard({
+    description: 'Six good clubs, but 2C over 1D does not jump.',
+    dealer: 'W', practiceAuction: ['1D', 'Pass', 'Pass'],
+    west: openingHand,
+    north: { S: 'A8', H: 'T72', D: '65', C: 'KQJ965' },
+    south: { S: 'T964', H: 'KQ8', D: 'K83', C: 'A72' },
+  });
+  const nonJumpCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('2C', nonJumpBoard, ['1D'], defaultBiddingSystem));
+  checks += 1;
+  if (nonJumpCandidates.some(({ call, rule }) =>
+      call === '2C' && rule.id === 'overcall-preemptive-jump-at-two-level')) {
+    failures += 1;
+    console.error('FAIL 2C over 1D is not a preemptive jump overcall.');
+  }
+  // Direct 1NT and jump overcalls still count as intervention when deriving responder's stage.
+  checks += 1;
+  if (getBidStage('W', ['1D', '1NT']) !== 'responding' ||
+      getBidStage('W', ['1D', '3C']) !== 'responding') {
+    failures += 1;
+    console.error('FAIL responder stage after direct 1NT or jump overcall.');
+  }
+  console.log(`Competition boundaries: ${checks} checks; ${failures} failures.`);
+  return failures;
 }
 
 /// Run all deals, including those requiring non-default partnership agreements.
@@ -332,6 +421,8 @@ function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
       rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
+    { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
+      rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
     { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
       rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
     { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
@@ -350,7 +441,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
 }
 
-const failureCount = runAuctionHelperTests() + runAuctionContextTests() + runRuleTests();
+const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
+  runCompetitionBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

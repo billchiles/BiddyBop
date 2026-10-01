@@ -144,16 +144,17 @@ The app should help the user practice bidding decisions using structured convent
 - Random practice generation accepts the dealer as an input and can require the dealer to receive a
   practice-opening hand.  The current React caller uses North as dealer, but the generation and
   bidding APIs do not assume North.
-- Keep one authoritative physical auction containing the opponent passes that the current UI inserts
-  automatically. Rule declarations may continue to use compact uncontested partnership auctions.
+- Keep one authoritative physical auction. Practice scenarios may insert recorded setup calls,
+  but ordinary bidding records each of the user-entered calls for all four seats.
 - Model code derives the next physical seat, acting hand, and bidding stage from board + auction.
   React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
-- For now, the UI still has the user enter the partnership's calls and auto-passes the intervening
-  opponents.  The intended later interaction keeps the user at South and automates the other seats;
-  do not introduce that controller abstraction until the behavior is needed.
-- The current workflow covers opening, response, and opener rebid, then marks the auction complete.
+- The current UI lets the user bid all four visible hands. A later single-seat mode may show
+  South only and automate the other seats; no autobidder is implemented yet.
+- The auction remains open for further user-entered calls and ends after three final passes.
+  Rule evaluation remains incomplete for some later and competitive stages.
 - Show matching rules, suggested calls, and guidance.
-- Do not build DDS, simulation, competitive bidding, scoring, or full auction judgment yet.
+- Do not build DDS, simulation, scoring, or full auction judgment yet. Keep competitive
+  bidding incremental and leave unmodeled meanings unresolved.
 - Configurable practice-hand/scenario generation belongs in model code rather than React.
 
 
@@ -305,10 +306,11 @@ The app should help the user practice bidding decisions using structured convent
 ## Pending Bidding Work
 
 - The ordinary one-level/notrump, weak-preempt, and strong artificial `2C` families are modeled
-  through opener's rebid.  Next add ordinary overcalls and advances, followed by takeout doubles
-  and advances.  Responder rebids remain a later phase; for strong `2C`, the selected source also
+  through opener's rebid. Simple direct natural suit overcalls are the first competitive slice;
+  add natural 1NT and jump overcalls, then review responder interference and advances.
+  Responder rebids remain a later phase; for strong `2C`, the selected source also
   teaches the cheaper-minor 0-4 second negative after a suit rebid and ordinary notrump methods
-  after a balanced rebid, but the current UI still stops after opener's rebid. `advancing` is
+  after a balanced rebid; those responder-second-bid rules are not yet modeled. `advancing` is
   responding to partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
@@ -369,3 +371,29 @@ would cause us to revisit the omission.
   guidance-only rather than becoming a routine strength-showing jump.
 - Revisit if: the project adopts a more specific 2/1 continuation structure or practice shows that
   the omitted calls are important enough to teach directly.
+
+## First competitive slice
+
+The UI presently exposes all four hands and accepts one user-entered call at each seat. An
+Overcalling practice bucket uses the recorded opening call to reach the overcall decision;
+other recorded calls are setup, not outputs of an opponent autobidder. When a practice call
+diverges from its recorded auction, the user resumes supplying subsequent seats. Random boards
+also require the user to enter all seats' calls; no opponent auto-passes are inserted.
+
+The evaluator removes contract calls that fail to outrank the last bid *before* call refinement.
+`OvercallRules` cover direct, non-jump natural suit overcalls and informational takeout doubles
+after one-level suit openings. Simple overcall suit quality means a good five-card suit (two of
+A/K/Q or three of A/K/Q/J/T) or any six-card-or-longer suit. One-level calls require at least
+7 total points with length; two-level calls require at least 13, both capped at 17 HCP.
+An ordinary takeout double requires at least 13 points with shortage and three or more cards
+in every unbid suit; an 18+ HCP strong-hand exception has no distribution requirement. Strong
+playing-strength exceptions below 18 HCP remain judgment-only. The double is informational, never
+a generic penalty-double rule. Natural 1NT overcalls use 15-18 HCP, strict balanced shape,
+and A, Kx, Qxx, or Jxxx in opener's suit as a simple stopper approximation. Preemptive
+jump overcalls use the shared good-suit test with six cards at the two level (5-11 HCP),
+seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
+These exact lengths and HCP interpretations are deterministic choices from the source's
+weak-hand guidance. Balancing, advancing, and competitive opener continuations are not
+yet implemented. `responding` remains the stage after a direct overcall,
+but existing responder meanings/conventions still require a competitive audit. With no modeled candidate, the user can Pass; no general competitive Pass
+rule is asserted. Doubles and redoubles have no general-purpose evaluator treatment.

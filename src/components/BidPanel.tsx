@@ -1,34 +1,37 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
   from '../models/biddingEvaluation';
-import { auctionIsComplete, getBidStage, getNextSeat } from '../models/auction';
+import { auctionIsComplete, getBidStage, getNextSeat, getOpeningCallInfo, isCallAvailableInAuction, isContractBid } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
+import type { RuleTestDeal } from '../models/rule-test-deals';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
-/// BidPanel owns the visible auction practice area while App keeps telemetry separate.  The current
-/// UI still has the user enter partnership calls while opponents auto-pass; the model derives the
-/// acting seat, hand, and bidding stage from board + auction.
+/// BidPanel lets the user bid every seat.  In targeted practice, recorded setup calls establish
+/// the designated bidding stage without pretending to be an opponent autobidder.
 export interface BidPanelProps {
   board: Board;
   biddingSystem: BiddingSystem;
   onTelemetry: (lines: string[]) => void;
+  testDeal?: RuleTestDeal;
+  practiceStages?: BidStage[];
 }
 
-export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
+export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practiceStages }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
-  const [auction, setAuction] = useState<Call[]>([]);
+  const [auction, setAuction] = useState<Call[]>(() =>
+    setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
   const [auctionComplete, setAuctionComplete] = useState(false);
   const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
   const explanationRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
     setBidText('');
-    setAuction([]);
+    setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
     setAuctionComplete(false);
     setExplanationLines(['No evaluation yet.']);
-  }, [board, biddingSystem]);
+  }, [board, biddingSystem, testDeal, practiceStages]);
 
   useEffect(() => {
     if (explanationRef.current === null) {
@@ -44,32 +47,13 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
       return;
     }
 
-    const stage = getBidStage(board.dealer, auction);
-    switch (stage) {
-      case 'opening':
-      case 'responding':
-      case 'openerRebid':
-        commitUserCall();
-        return;
-      case 'responderRebid':
-      case 'overcalling':
-      case 'advancing':
-      case null:
-        onTelemetry([`No user-input workflow is implemented for stage ${stage ?? 'unresolved'}.`]);
-        return;
-    }
+    commitUserCall();
   }
 
-  /// commitUserCall evaluates one call using board + auction as the durable model inputs.  The
-  /// current UI orchestration remains local: opponents auto-pass after opening and response, and the
-  /// current practice auction stops after opener's rebid.
+  /// commitUserCall records the acting seat's choice.  If it follows the practice script,
+  /// non-practice setup calls are inserted until the next practiced stage.
   function commitUserCall(): void {
     const stage = getBidStage(board.dealer, auction);
-    if (stage === null) {
-      onTelemetry(['No bidding stage is available for the current auction.']);
-      return;
-    }
-
     const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
     if (normalizedCall === null) {
@@ -77,27 +61,40 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
       return;
     }
 
-    const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
-    const nextAuction: Call[] = [...auction, normalizedCall];
-    if (stage === 'opening' || stage === 'responding') {
-      nextAuction.push('Pass');
+    if (! isCallAvailableInAuction(normalizedCall, auction)) {
+      onTelemetry([`${normalizedCall} does not outrank the current contract.`]);
+      return;
     }
-
+    const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
+    const enteredAuction: Call[] = [...auction, normalizedCall];
+    const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
     setAuction(nextAuction);
-    if (stage === 'openerRebid' || auctionIsComplete(nextAuction)) {
+    if (auctionIsComplete(nextAuction)) {
       setAuctionComplete(true);
     }
     finishBidEntry(seat, stage, result);
+    if (nextAuction.length > enteredAuction.length) {
+      const scripted = nextAuction.slice(enteredAuction.length);
+      onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
+    }
   }
 
-  function finishBidEntry(seat: Seat, stage: BidStage, result: BidEvalResult): void {
+  function finishBidEntry(seat: Seat, stage: BidStage | null, result: BidEvalResult): void {
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
-    setExplanationLines((current) => [...current, '', ...buildExplanationLines(title, result)]);
+    const explanation = buildExplanationLines(title, result, stage === null);
+    const opening = getOpeningCallInfo(board.dealer, auction);
+    const overcall = opening === null ? undefined : auction[opening.index + 1];
+    if (stage === 'responding' && overcall !== undefined && isContractBid(overcall) &&
+        getApplicableCandidateCalls(result).length === 0) {
+      explanation.push('No modeled response survives the overcall; Pass is available, while ' +
+                       'negative doubles and other competitive responses are not yet modeled.');
+    }
+    setExplanationLines((current) => [...current, '', ...explanation]);
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
   }
 
-  function reportInvalidInput(seat: Seat, stage: BidStage): void {
+  function reportInvalidInput(seat: Seat, stage: BidStage | null): void {
     const lines = [
       `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
@@ -147,6 +144,31 @@ export function BidPanel({ board, biddingSystem, onTelemetry }: BidPanelProps) {
       </section>
     </section>
   );
+}
+
+/// Insert only recorded setup calls, stopping at the next practiced stage or a divergent call.
+/// A deviation from the practice auction returns control to the user for all subsequent seats.
+function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTestDeal,
+                               practiceStages?: BidStage[]): Call[] {
+  if (testDeal === undefined || practiceStages === undefined || practiceStages.length === 0) {
+    return auction;
+  }
+  const next = [...auction];
+  while (next.length < testDeal.practiceAuction.length && ! auctionIsComplete(next)) {
+    if (next.some((call, index) => call !== testDeal.practiceAuction[index])) {
+      break;
+    }
+    const stage = getBidStage(dealer, next);
+    if (stage !== null && practiceStages.includes(stage)) {
+      break;
+    }
+    const call = testDeal.practiceAuction[next.length];
+    if (call === undefined || ! isCallAvailableInAuction(call, next)) {
+      break;
+    }
+    next.push(call);
+  }
+  return next;
 }
 
 function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {
@@ -212,10 +234,13 @@ function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
 }
 
-function buildExplanationLines (title: string, result: BidEvalResult): string[] {
+function buildExplanationLines (title: string, result: BidEvalResult, unmodeledStage: boolean): string[] {
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
+  if (unmodeledStage) {
+    lines.push('This auction position has no modeled rule family yet.');
+  }
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
   if (result.userCallMatchingRules.length === 0) {
     lines.push('No rule satisfied by this call.');

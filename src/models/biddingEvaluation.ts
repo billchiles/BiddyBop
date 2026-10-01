@@ -9,7 +9,7 @@ import { type AuctionContext, type BidRule, type Call, type HandConstraint,
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
-         getStrainFromSuitBid, isContractBid, responseJump } from './auction';
+         getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, responseJump } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 
@@ -112,7 +112,8 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 ///    3. Filter those rules by auction context
 ///       e.g. after 1NT, only response rules whose context matches 1NT remain
 ///    4. Evaluate EVERY remaining rule
-///       - run its callRefinement first, if any
+///       - remove contract calls that cannot legally overcall the last contract
+///       - run its callRefinement, if any, on the available calls
 ///       - evaluate every surviving candidate call against appliesWhen
 ///       - set candidate.ruleApplies
 ///       - set ruleResult.ruleApplies = true if ANY candidate applies
@@ -1045,16 +1046,25 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   return callSuit === openerStrain;
 }
 
-/// getRuleCalls returns a rule's declared calls, or lets callRefinement narrow them for the actual
-/// auction.
+/// getRuleCalls first removes mechanically unavailable contract calls, then refines them.
+/// Refiners must never have to select an illegal call before the alternative calls are considered.
 ///
 function getRuleCalls (rule: BidRule, context: RuleEvalContext,
                        system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
   if (rule.calls === undefined) {
     return { calls: [], telemetryLines: [] };
   }
-  if (rule.callRefinement === undefined) {
-    return { calls: rule.calls, telemetryLines: [] };
+  const available = rule.calls.filter((call) => isCallAvailableInAuction(call, context.auction));
+  const removed = rule.calls.filter((call) => ! available.includes(call));
+  const telemetryLines = removed.length === 0 ? [] :
+    [`Unavailable in this auction: ${removed.join(', ')}.`];
+  if (rule.callRefinement === undefined || available.length === 0) {
+    return { calls: available, telemetryLines };
   }
-  return rule.callRefinement(rule.calls, context, system);
+  const refined = rule.callRefinement(available, context, system);
+  // A refiner should select from the offered candidates, not introduce new or illegal calls.
+  return {
+    calls: refined.calls.filter((call) => available.includes(call)),
+    telemetryLines: [...telemetryLines, ...refined.telemetryLines],
+  };
 }

@@ -193,6 +193,9 @@ export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
     telemetryLines.push(`Required system: ${settings}.`);
   }
   // Report each stage's positive assertions so manual practice can check the candidate set.
+  if (testDeal.expectedOvercallCalls !== undefined) {
+    telemetryLines.push(`Expected overcall: ${formatExpectedCalls(testDeal.expectedOvercallCalls)}.`);
+  }
   if (testDeal.expectedOpeningCalls !== undefined) {
     telemetryLines.push(`Expected opening: ${formatExpectedCalls(testDeal.expectedOpeningCalls)}.`);
   }
@@ -202,7 +205,7 @@ export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
   if (testDeal.expectedOpenerRebidCalls !== undefined) {
     telemetryLines.push(`Expected opener rebid: ${formatExpectedCalls(testDeal.expectedOpenerRebidCalls)}.`);
   }
-  return { board: { deal: makeRuleTestDeal(testDeal), dealer: 'N' }, telemetryLines };
+  return { board: { deal: makeRuleTestDeal(testDeal), dealer: testDeal.dealer ?? 'N' }, telemetryLines };
 }
 
 function formatExpectedCalls (expectedCalls: RuleTestExpectedCall[]): string {
@@ -260,16 +263,17 @@ function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): numb
 }
 
 /// makeRuleTestDeal builds a complete physical deal from the two hands specified by the current
-/// rule-practice fixture.  East and West get the remaining cards deterministically.
+/// rule-practice fixture.  An optional fixed West hand supports direct-overcall practice.
 ///
 function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   const north = makeTestHand(testDeal.north);
   const south = makeTestHand(testDeal.south);
-  const usedCards = new Set([...north.cards, ...south.cards].map(cardKey));
-  if (usedCards.size !== 26) {
+  const west = testDeal.west === undefined ? null : makeTestHand(testDeal.west);
+  const explicit = west === null ? [north, south] : [north, south, west];
+  const usedCards = new Set(explicit.flatMap((hand) => hand.cards).map(cardKey));
+  if (usedCards.size !== explicit.length * 13) {
     throw new Error(`Duplicate card in rule-test deal: ${testDeal.description}`);
   }
-  // Fill the opponents from the unused deck; their cards do not affect current uncontested tests.
   const remainingCards: Card[] = [];
   for (const suit of SUITS) {
     for (const rank of RANKS) {
@@ -283,7 +287,7 @@ function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
     N: north,
     E: { cards: remainingCards.slice(0, 13).sort(compareCards) },
     S: south,
-    W: { cards: remainingCards.slice(13, 26).sort(compareCards) },
+    W: west ?? { cards: remainingCards.slice(13, 26).sort(compareCards) },
   };
 }
 
