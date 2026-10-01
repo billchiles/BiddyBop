@@ -3743,6 +3743,175 @@ export const OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 ///
+//// Responses and opener rebids after the artificial strong 2C opening
+///
+
+export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '2C-2D-2NT: a 23-HCP 4-3-3-3 opener uses the artificial waiting response to ' +
+                 'show the 22-24 balanced range.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-2c-2d'] },
+    ],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: '876', H: 'Q876', D: '8765', C: '76' },
+  },
+  {
+    description: "2C-2D-3NT: a 26-HCP balanced opener shows the source's 25-27 range directly, " +
+                 'with no additional shape qualification beyond being balanced.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '3NT'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3NT', ruleIds: ['opener-rebid-3nt-after-2c-2d'] },
+    ],
+    rejectedOpenerRebidCalls: ['2NT'],
+    north: { S: 'AKQ4', H: 'AQ3', D: 'KQ4', C: 'AQ3' },
+    south: { S: '876', H: 'K876', D: '8765', C: '76' },
+  },
+  {
+    description: '2C-2D-4NT: a 29-HCP 4-3-3-3 opener uses the natural 28-30 balanced rebid; ' +
+                 '4NT here is a strength-showing notrump rebid, not Blackwood.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '4NT'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4NT', ruleIds: ['opener-rebid-4nt-after-2c-2d'] },
+    ],
+    rejectedOpenerRebidCalls: ['2NT', '3NT'],
+    north: { S: 'AKQJ', H: 'AKQ', D: 'AKQ', C: 'J32' },
+    south: { S: '876', H: 'J876', D: 'J876', C: 'Q7' },
+  },
+  {
+    description: '2C-2D-2S: a 23-HCP unbalanced opener with six spades shows the longest natural ' +
+                 'five-card-or-longer suit at the cheapest level.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2S'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-longest-suit-after-2c-2d'] },
+    ],
+    north: { S: 'AKQJ87', H: 'AK3', D: 'AQ3', C: '5' },
+    south: { S: '954', H: 'Q876', D: '876', C: 'J76' },
+  },
+  {
+    description: '2C-2D-3C: with six clubs and five spades, the unbalanced strong opener shows ' +
+                 'the longer clubs even though 2S would be a cheaper bid.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '3C'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3C', ruleIds: ['opener-rebid-longest-suit-after-2c-2d'] },
+    ],
+    rejectedOpenerRebidCalls: ['2S'],
+    north: { S: 'AKQJ9', H: 'A', D: '5', C: 'AKQJ87' },
+    south: { S: '876', H: 'Q876', D: 'K876', C: 'T5' },
+  },
+  {
+    description: '2C-2D-2S: with equal five-card spade and heart suits, the unbalanced strong ' +
+                 'opener shows the higher-ranking spades first.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2S'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-longest-suit-after-2c-2d'] },
+    ],
+    rejectedOpenerRebidCalls: ['2H'],
+    north: { S: 'AKQJ8', H: 'AKQJ7', D: 'A2', C: '5' },
+    south: { S: '976', H: '986', D: 'K876', C: 'Q76' },
+  },
+  {
+    description: '2C-2H: with 10 HCP and a good five-card heart suit, responder can make the ' +
+                 'immediate positive response; the artificial 2D waiting bid remains available ' +
+                 'but is presented behind the more descriptive call.',
+    practiceAuction: ['2C', 'Pass', '2H'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-2c-w/-positive-suit'] },
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedResponseCallOrder: [['2H', '2D']],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: 'K765', H: 'QJT98', D: 'A75', C: '6' },
+  },
+  {
+    description: '2C-3C: 12 HCP and a good five-card club suit qualify for an immediate positive ' +
+                 'minor response; the lower-ranked 2D waiting response also remains valid.',
+    practiceAuction: ['2C', 'Pass', '3C'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-to-2c-w/-positive-suit'] },
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedResponseCallOrder: [['3C', '2D']],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: '6', H: 'Q76', D: 'A765', C: 'AQT98' },
+  },
+  {
+    description: '2C-2NT: an 11-HCP 4-3-3-3 responder qualifies for the positive balanced ' +
+                 'response with no extra requirement beyond 8+ HCP and balanced shape.',
+    practiceAuction: ['2C', 'Pass', '2NT'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-2c-w/-2nt-positive-balanced'] },
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    expectedResponseCallOrder: [['2NT', '2D']],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: 'K765', H: 'Q76', D: 'A75', C: 'Q76' },
+  },
+  {
+    description: '2C-2D: a 10-HCP 4-4-4-1 responder has enough strength for a positive response ' +
+                 'but is neither balanced nor equipped with a good 5+ suit, so the waiting bid is ' +
+                 'the modeled descriptive route.',
+    practiceAuction: ['2C', 'Pass', '2D'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    rejectedResponseCalls: ['2H', '2S', '2NT', '3C', '3D'],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: 'K765', H: 'QJ76', D: 'A765', C: '6' },
+  },
+];
+
+///
 //// Responses to weak preemptive openings
 ///
 
@@ -3918,6 +4087,8 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: RESPONSE_AFTER_1NT_OPENING_TEST_DEALS },
   { id: 'response-2nt-opening', group: 'Responses to NT opening', label: '2NT opening',
     deals: RESPONSE_AFTER_2NT_OPENING_TEST_DEALS },
+  { id: 'response-strong-2c', group: 'Responses to strong opening', label: 'Strong 2C',
+    deals: RESPONSE_TO_STRONG_2C_TEST_DEALS },
   { id: 'response-weak-preempt', group: 'Responses to preempts', label: 'Weak preempts',
     deals: RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS },
   { id: 'nt-1nt', group: 'Opener rebids', label: '1NT opening - continuations',

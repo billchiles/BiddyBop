@@ -24,7 +24,8 @@ import { guidelineOf17Applies, guidelineOf20Applies, majorDirectThreeNtApplies, 
          refineOpenerResponderSuitToGame,
          refineOpenerReverseRebid, refinePreemptSuitQuality, refineRaisePartnerSuitBy1,
          refineRaisePartnerSuitBy2, refineRaiseToLevel, refineThreeCardLimitRaiseOneNtFallback,
-         refineStrongJumpShift, refineThreeCardMajorSupportNewSuitFirst,
+         refineStrongJumpShift, refineStrongTwoCPositiveSuitResponse,
+         refineStrongTwoCUnbalancedSuitRebid, refineThreeCardMajorSupportNewSuitFirst,
          refineThreeLevelPreemptNewSuitResponse, refineToCheapestNewSuitBids,
          refineNtStaymanReply, refineNtJacobyCompletion, refineNtTexasCompletion,
          refineWeakJumpShift, refineWeakTwoFeatureRebid, refineWeakTwoNewSuitResponse,
@@ -283,6 +284,54 @@ export const OpeningBidRules: BidRule[] = [
 ///
 
 export const ResponseBidRules: BidRule[] = [ 
+  // Responses to the artificial strong 2C opening.  2D is a waiting response; immediate positive
+  // responses show about 8+ HCP and either a good 5+ suit or a balanced hand.
+  {
+    id: 'respond-to-2c-w/-2d-waiting',
+    kind: 'responseBid',
+    title: 'Respond 2D as the artificial waiting bid after strong 2C',
+    auctionContext: { stage: 'responding', auction: ['2C'] },
+    calls: ['2D'],
+    callCategory: ['forcing', 'conventional'],
+    priority: { rank: -10, note: 'Waiting remains available behind more descriptive positive responses.' },
+    appliesWhen: { hcp: { min: 0 } },
+    meaning: 'Artificial waiting response; responder can describe strength and distribution later.',
+    guidance: ['2D does not show weakness; it is available with any responder strength or shape.',
+               'With about 8+ HCP, a good 5+ suit or a balanced 2NT response can describe the hand ' +
+               'immediately instead.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-2c-w/-positive-suit',
+    kind: 'responseBid',
+    title: 'Make an immediate positive suit response after strong 2C',
+    auctionContext: { stage: 'responding', auction: ['2C'] },
+    calls: ['2H', '2S', '3C', '3D'],
+    callRefinement: refineStrongTwoCPositiveSuitResponse,
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 20, note: 'Prefer a descriptive positive suit response to the waiting bid.' },
+    appliesWhen: { hcp: { min: 8 } },
+    meaning: 'Positive natural response showing about 8+ HCP and a good five-card-or-longer suit.',
+    guidance: ["Good suit uses the app's shared executable quality test: at least two of A/K/Q " +
+               'or at least three of A/K/Q/J/T.',
+               'An immediate positive response commits the partnership to game.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-to-2c-w/-2nt-positive-balanced',
+    kind: 'responseBid',
+    title: 'Respond 2NT positively after strong 2C with a balanced hand',
+    auctionContext: { stage: 'responding', auction: ['2C'] },
+    calls: ['2NT'],
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 10, note: 'The source labels this positive balanced response as relatively rare.' },
+    appliesWhen: { hcp: { min: 8 }, shape: { balanced: true } },
+    meaning: 'Positive balanced response showing about 8+ HCP.',
+    guidance: ["Balanced means the app's ordinary 4-3-3-3, 4-4-3-2, or 5-3-3-2 shapes; no " +
+               'additional qualification is imposed.'],
+    certainty: 'high',
+  },
+  //
   // With openerStrain:'minor', auction:['1C'] is a representative declaration for either 1C or 1D.
   // callRefinement resolves calls whose exact denomination depends on the actual opening.
   //
@@ -290,7 +339,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-minor-w/-new-suit-one-level-priority',
     kind: 'responseBid',
     title: 'After 1C or 1D, bid a new suit at the one level first',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['1D', '1H', '1S'],
     // After 1C or 1D, prefer 4+ card major.  After 1C or 1D, choose among 4+ one-level new suits.
     // Candidate suit length is owned by the refiner because it must compare the actual suit lengths
@@ -343,7 +392,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 1NT after a minor opening with minimum balanced values and no four-card major.
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 1NT with minimum balanced values and no four-card major',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['1NT'],
     callCategory: ['invitational'],
     priority: { rank: 60 },
@@ -357,7 +406,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 2NT after a minor opening with invitational balanced values and no four-card major.
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 2NT with invitational balanced values and no four-card major',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['2NT'],
     callCategory: ['invitational'],
     priority: { rank: 65 },
@@ -371,7 +420,7 @@ export const ResponseBidRules: BidRule[] = [
     // Place the contract in 3NT with game balanced values and no four-card major.
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 3NT with game-going balanced values and no four-card major',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
     priority: { rank: 70 },
@@ -386,7 +435,7 @@ export const ResponseBidRules: BidRule[] = [
     // major.
     kind: 'responseBid',
     title: 'Raise opener minor to two with 6-10 and support',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['2C', '2D'],
     callRefinement: refineRaisePartnerSuitBy1, // need to choose based on actual auction
     callCategory: ['invitational'],
@@ -407,7 +456,7 @@ export const ResponseBidRules: BidRule[] = [
     // major.  Opener may pass with a minimum or continue with extra values.
     kind: 'responseBid',
     title: 'Raise opener minor to three with 11-12 and support',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['3C', '3D'],
     callRefinement: refineRaisePartnerSuitBy2, // chooses the right suit from actual auction
     callCategory: ['invitational'],
@@ -426,7 +475,7 @@ export const ResponseBidRules: BidRule[] = [
     // With strong hand and support for opener's minor, first bid a new suit and show support later.
     kind: 'responseBid',
     title: 'With 13+ and minor support, start with a new suit',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['1D', '1H', '1S', '2C'],
     callRefinement: refineToCheapestNewSuitBids, // chooses best suit for minimum response
     callCategory: ['forcing'],
@@ -443,7 +492,7 @@ export const ResponseBidRules: BidRule[] = [
     // Modern weak jump shift after a minor opening: jump in a long new suit with a weak hand.
     kind: 'responseBid',
     title: 'Modern weak jump shift after one of a minor',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
     callCategory: ['signoff', 'natural'],
@@ -462,7 +511,7 @@ export const ResponseBidRules: BidRule[] = [
     // Classic strong jump shift after a minor opening: jump in long new suit to show points.
     kind: 'responseBid',
     title: 'Classic strong jump shift after one of a minor',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
     callCategory: ['gameForcing', 'natural'],
@@ -481,7 +530,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 4NT as Blackwood after a minor-suit opening when responder has strong slam values.
     kind: 'responseBid',
     title: 'Use Blackwood with strong slam-going values after a minor opening',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['4NT'],
     callCategory: ['forcing', 'conventional'],
     priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
@@ -501,7 +550,7 @@ export const ResponseBidRules: BidRule[] = [
     // Pass a major opening when responder has support but no more than five total points.
     kind: 'responseBid',
     title: 'Pass with support and 0-5',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['Pass'],
     appliesWhen: { totalPoints: { max: 5, valuation: 'shortage' }, supportLength: { min: 3 } },
     meaning: 'Game is unlikely.',
@@ -513,7 +562,7 @@ export const ResponseBidRules: BidRule[] = [
     // General pass option after a major opening when responder has only 0-5 HCP.
     kind: 'responseBid',
     title: 'Pass one of a major with 0-5',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['Pass'],
     appliesWhen: { hcp: { max: 5 }, supportLength: { max: 2 }, },
     meaning: 'Responder has too few points to bid.',
@@ -525,7 +574,7 @@ export const ResponseBidRules: BidRule[] = [
     // Pass a minor opening when responder has only 0-5 HCP.
     kind: 'responseBid',
     title: 'Pass one of a minor with 0-5',
-    auctionContext: { stage: 'responding', auction: ['1D'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1D'], openerLevel: 1, openerStrain: 'minor' },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { max: 5 } },
@@ -539,7 +588,7 @@ export const ResponseBidRules: BidRule[] = [
     // Min hand with 3-card support, raise partner's major one level with 6-10 total points.
     kind: 'responseBid',
     title: 'Simple raise with 6-10 and major support',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2H', '2S'],
     callRefinement: refineRaisePartnerSuitBy1, // choose opener's suit
     callCategory: ['invitational'],
@@ -554,7 +603,7 @@ export const ResponseBidRules: BidRule[] = [
     // Jump raise partner's major to the three level with 11-12 support points and 4+-card support.
     kind: 'responseBid',
     title: 'Limit raise with four-card support and 11-12',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['3H', '3S'],
     callRefinement: refineRaisePartnerSuitBy2, // chooses opener's suit
     callCategory: ['invitational'],
@@ -571,7 +620,7 @@ export const ResponseBidRules: BidRule[] = [
     // one-level new suit is available first; later make the invitational raise.
     kind: 'responseBid',
     title: 'Three-card support, 11-12: bid forcing 1NT then raise',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callRefinement: refineThreeCardLimitRaiseOneNtFallback,
     callCategory: ['forcing'],
@@ -592,7 +641,7 @@ export const ResponseBidRules: BidRule[] = [
     // suit can start the three-card limit raise.  Opener may occasionally pass a flat minimum.
     kind: 'responseBid',
     title: 'Three-card support, 11-12: use non-forcing 1NT as the fallback',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callRefinement: refineThreeCardLimitRaiseOneNtFallback,
     callCategory: ['invitational'],
@@ -613,7 +662,7 @@ export const ResponseBidRules: BidRule[] = [
     // show it before making the invitational raise regardless of the partnership's 1NT treatment.
     kind: 'responseBid',
     title: 'Three-card major support, 11-12: bid a one-level new suit then raise',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1S'],
     callRefinement: refineThreeCardMajorSupportNewSuitFirst,
     callCategory: ['forcing'],
@@ -630,7 +679,7 @@ export const ResponseBidRules: BidRule[] = [
     // Exactly three-card support and 13+ total points, bid a new suit and later raise to game.
     kind: 'responseBid',
     title: 'With 13+ and three-card major support, bid a new suit then raise to game',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
     callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
     callCategory: ['gameForcing'],
@@ -650,7 +699,7 @@ export const ResponseBidRules: BidRule[] = [
     // By agreement, show 4+ major support and 13+ support points by forcing in a new suit first.
     kind: 'responseBid',
     title: 'With 13+ and four-card major support, bid a new suit then raise to game',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
     callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
     callCategory: ['gameForcing'],
@@ -671,7 +720,7 @@ export const ResponseBidRules: BidRule[] = [
     // Jacoby 2NT agreement: 2NT shows game-forcing values with 4+ support for opener's major.
     kind: 'responseBid',
     title: 'Jacoby 2NT partnership agreement',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2NT'],
     callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
@@ -687,7 +736,7 @@ export const ResponseBidRules: BidRule[] = [
     // splinter: double-jump in short new suit to show 4+ support, game-forcing, and shortness.
     kind: 'responseBid',
     title: 'Show game-forcing major support with a splinter',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['3S', '4C', '4D', '4H'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
       // resolve which declared double jumps are legal over the actual 1H or 1S opening.
@@ -710,7 +759,7 @@ export const ResponseBidRules: BidRule[] = [
     // With 5+ card support and fewer than 10 total points, jump to game as a preemptive raise.
     kind: 'responseBid',
     title: 'Preemptively raise partner major to game with five-card support',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult => {
       // The broad declaration contains both 4H and 4S; keep only four of partner's actual major.
@@ -744,7 +793,7 @@ export const ResponseBidRules: BidRule[] = [
     // Natural non-jump new-suit response at the two level after a major opening.
     kind: 'responseBid',
     title: 'Standard new-suit response at the two level',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
     callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
     callCategory: ['forcing'],
@@ -764,7 +813,7 @@ export const ResponseBidRules: BidRule[] = [
     // 2/1 treatment for a non-jump two-level new-suit response: natural and game forcing.
     kind: 'responseBid',
     title: '2/1 game-forcing new-suit response at the two level',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
     callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
     callCategory: ['gameForcing'],
@@ -784,7 +833,7 @@ export const ResponseBidRules: BidRule[] = [
     // Forcing/semi-forcing 1NT response to a major when responder lacks support and has new-suit.
     kind: 'responseBid',
     title: 'Without support, respond 1NT with 6-12',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callCategory: ['forcing'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
@@ -801,7 +850,7 @@ export const ResponseBidRules: BidRule[] = [
     // Standard non-forcing 1NT response to a major with 6-10 HCP and no support.
     kind: 'responseBid',
     title: 'Standard style 1NT response to a major',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callCategory: ['invitational'],
     agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
@@ -817,7 +866,7 @@ export const ResponseBidRules: BidRule[] = [
     // exactly three-card support and no four-card other major.
     kind: 'responseBid',
     title: 'Respond 3NT with a very flat 13-15 HCP hand',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
     appliesWhen: majorDirectThreeNtApplies,
@@ -833,7 +882,7 @@ export const ResponseBidRules: BidRule[] = [
     // Modern weak jump shift after a major opening: jump in a 6+ card new suit with 4-7 HCP.
     kind: 'responseBid',
     title: 'Modern weak jump shift after one of a major',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2S', '3C', '3D', '3H'],
     callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
     callCategory: ['signoff', 'natural'],
@@ -852,7 +901,7 @@ export const ResponseBidRules: BidRule[] = [
     // Classic strong jump shift a good 5+ card new suit with strong values.
     kind: 'responseBid',
     title: 'Classic strong jump shift after one of a major',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['2S', '3C', '3D', '3H'],
     callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
     callCategory: ['gameForcing', 'natural'],
@@ -872,7 +921,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 4NT as Blackwood after a major-suit opening when responder has strong slam-going values.
     kind: 'responseBid',
     title: 'Use Blackwood with strong slam-going values after a major opening',
-    auctionContext: { stage: 'responding', auction: ['1H'], openerStrain: 'major' },
+    auctionContext: { stage: 'responding', auction: ['1H'], openerLevel: 1, openerStrain: 'major' },
     calls: ['4NT'],
     callCategory: ['forcing', 'conventional'],
     priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
@@ -1573,6 +1622,59 @@ export const ResponseBidRules: BidRule[] = [
 ///
 
 export const OpenerRebidRules: BidRule[] = [
+  // Opener's first rebid after the artificial 2D waiting response to strong 2C.
+  {
+    id: 'opener-rebid-2nt-after-2c-2d',
+    kind: 'openerRebid',
+    title: 'Rebid 2NT with 22-24 balanced after 2C-2D',
+    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    calls: ['2NT'],
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 22, max: 24 }, shape: { balanced: true } },
+    meaning: 'Balanced 22-24 HCP hand.',
+    guidance: ["This rebid is not forcing.  Later responder methods can mirror the partnership's " +
+               'methods over a notrump opening.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-2c-2d',
+    kind: 'openerRebid',
+    title: 'Rebid 3NT with 25-27 balanced after 2C-2D',
+    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 25, max: 27 }, shape: { balanced: true } },
+    meaning: 'Balanced 25-27 HCP hand.',
+    guidance: ['No additional qualification beyond the stated balanced shape and HCP range is used.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-4nt-after-2c-2d',
+    kind: 'openerRebid',
+    title: 'Rebid 4NT with 28-30 balanced after 2C-2D',
+    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    calls: ['4NT'],
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 28, max: 30 }, shape: { balanced: true } },
+    meaning: 'Balanced 28-30 HCP hand; this is a natural strength-showing rebid, not Blackwood.',
+    guidance: ['No additional qualification beyond the stated balanced shape and HCP range is used.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-longest-suit-after-2c-2d',
+    kind: 'openerRebid',
+    title: 'Show the longest suit after 2C-2D with an unbalanced hand',
+    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    calls: ['2H', '2S', '3C', '3D'],
+    callRefinement: refineStrongTwoCUnbalancedSuitRebid,
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: { hcp: { min: 22 } },
+    meaning: "Natural forcing rebid in opener's longest five-card-or-longer suit.",
+    guidance: ['With two equal five-card or equal six-card suits, bid the higher-ranking suit.',
+               'Balanced hands use the separate 2NT, 3NT, or 4NT rebids instead.'],
+    certainty: 'high',
+  },
+  //
   // These immediate, uncontested continuations apply to natural 1NT and 2NT alike.
   // Stayman shows hearts first with both four-card majors.
   {
@@ -4113,7 +4215,7 @@ export const BiddingNotes: BidRule[] = [
     // Teaching priority after a minor opening: look first for a major fit, then notrump, before settling in a minor.
     kind: 'priority',
     title: 'Responder objective after 1C or 1D',
-    auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+    auctionContext: { stage: 'responding', auction: ['1C'], openerLevel: 1, openerStrain: 'minor' },
     meaning: 'Responder first looks for an eight-card or longer major-suit fit. Major-suit ' +
              'contracts are preferred over minor-suit contracts. Without a major fit, responder ' +
              'next considers notrump. Notrump is generally preferred to minor-suit contracts ' +

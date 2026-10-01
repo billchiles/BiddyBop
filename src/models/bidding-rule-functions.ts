@@ -908,6 +908,74 @@ export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContex
   };
 }
 
+/// refineStrongTwoCPositiveSuitResponse keeps immediate positive responses in good five-card-or-
+/// longer suits.  The artificial 2D waiting response is handled by a separate rule.
+export function refineStrongTwoCPositiveSuitResponse (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || opening.level !== 2 || opening.strain !== 'C') {
+    return { calls: [], telemetryLines: ['A strong-2C positive suit response needs a 2C opening.'] };
+  }
+
+  const refined = calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT') {
+      return false;
+    }
+    const suit = candidate.strain as Suit;
+    return context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit);
+  });
+  return {
+    calls: refined,
+    telemetryLines: [
+      'Keep positive suit responses with 5+ cards and at least two of A/K/Q or three of A/K/Q/J/T.',
+    ],
+  };
+}
+
+/// refineStrongTwoCUnbalancedSuitRebid chooses opener's longest five-card-or-longer suit after
+/// 2C-2D.  Balanced hands use the separate notrump rebids.  Equal-length suits use the
+/// higher-ranking suit, as in the chosen treatment.
+export function refineStrongTwoCUnbalancedSuitRebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 2 || opening.strain !== 'C' ||
+      response.level !== 2 || response.strain !== 'D' || context.handFacts.balanced) {
+    return {
+      calls: [],
+      telemetryLines: ['A natural strong-2C suit rebid needs 2C-2D and an unbalanced opener.'],
+    };
+  }
+
+  const candidates: { call: Call; suit: Suit; length: number }[] = [];
+  for (const call of calls) {
+    const candidate = parseSuitBid(call);
+    if (candidate === null || candidate.strain === 'NT' ||
+        cheapestBidInStrainAfter(response, candidate.strain) !== call) {
+      continue;
+    }
+    const suit = candidate.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    if (length >= 5) {
+      candidates.push({ call, suit, length });
+    }
+  }
+  if (candidates.length === 0) {
+    return { calls: [], telemetryLines: ['No five-card-or-longer natural suit is available.'] };
+  }
+
+  const longest = Math.max(...candidates.map((candidate) => candidate.length));
+  const best = candidates.filter((candidate) => candidate.length === longest);
+  best.sort((left, right) => STRAIN_ORDER.indexOf(right.suit) - STRAIN_ORDER.indexOf(left.suit));
+  return {
+    calls: [best[0]!.call],
+    telemetryLines: [
+      `Show opener's longest 5+ suit; equal lengths use the higher-ranking suit: ${best[0]!.call}.`,
+    ],
+  };
+}
+
 /// refineWeakTwoNewSuitResponse chooses responder's natural forcing suit after a weak two.  The
 /// suit is 5+ cards, has ordinary preempt-style honor concentration, and is bid at the cheapest
 /// legal level through three.  With multiple candidates, prefer length, then higher rank.

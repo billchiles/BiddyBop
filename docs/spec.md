@@ -283,6 +283,17 @@ The app should help the user practice bidding decisions using structured convent
 - After a three-level preempt, the app models Pass, trump-count raises, and forcing natural new
   suits below game when their structural requirements are known.  Direct game placement based
   only on expected playing tricks remains guidance rather than an invented HCP threshold.
+- The artificial strong `2C` opening remains 22+ HCP in the executable treatment.  Responder's
+  `2D` is an artificial waiting bid available with any strength or distribution.  With about 8+
+  HCP, responder can instead make a positive response in a good five-card-or-longer suit, using
+  the shared two-of-top-three or three-of-top-five honor test, or bid `2NT` with any balanced hand.
+  Positive responses are game forcing; `2D` remains available but is presented behind a qualifying
+  descriptive positive response.
+- After `2C-2D`, a balanced opener rebids `2NT` with 22-24 HCP, `3NT` with 25-27, or natural `4NT`
+  with 28-30.  No extra qualification is imposed beyond the app's ordinary balanced-shape
+  definition and the stated HCP range.  With an unbalanced hand, opener instead shows the longest
+  five-card-or-longer suit economically, choosing the higher-ranking suit when equal five- or
+  six-card suits are available; that natural suit rebid is forcing.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.
@@ -292,10 +303,12 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Pending Bidding Work
 
-- The ordinary one-level/notrump opener continuations and weak-preempt family are modeled through
-  opener's rebid.  Next add responses and continuations after the strong artificial `2C` opening.
-  Defer responder rebids until that opening family is complete. `advancing` is responding to
-  partner's overcall or double.
+- The ordinary one-level/notrump, weak-preempt, and strong artificial `2C` families are modeled
+  through opener's rebid.  Next add ordinary overcalls and advances, followed by takeout doubles
+  and advances.  Responder rebids remain a later phase; for strong `2C`, the selected source also
+  teaches the cheaper-minor 0-4 second negative after a suit rebid and ordinary notrump methods
+  after a balanced rebid, but the current UI still stops after opener's rebid. `advancing` is
+  responding to partner's overcall or double.
 - Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
   should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
   not a current candidate, but no specific rejection reason was recorded."  Do not assume current

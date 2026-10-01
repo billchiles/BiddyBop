@@ -28,13 +28,13 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 227 deals, with 676 positive call/rule assertions, 178 elimination
-assertions, 24 call-order assertions, and 604 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 791 eligible deal/configuration combinations and 2122 recorded calls.
-Positive assertions cover all 128 implemented opener-rebid rule IDs. Opening coverage is 9/13;
-the uncovered opening rules are strong artificial 2C, rare 4NT, and the deliberately unpracticed
-four- and five-level preempts. Response coverage is 68/76; the eight uncovered response rules are
-the intentionally deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
+The current corpus contains 237 deals, with 705 positive call/rule assertions, 189 elimination
+assertions, 27 call-order assertions, and 630 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 831 eligible deal/configuration combinations and 2226 recorded calls.
+Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
+the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
+preempts. Response coverage is 71/79; the eight uncovered response rules are the intentionally
+deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
 
 Twenty-five existing notrump response deals were extended through opener's next call and **moved**,
 not copied, into the `nt-1nt` and `nt-2nt` opener-rebid dropdown buckets. Two existing minor-raise
@@ -113,6 +113,8 @@ condition inside each rule or refiner.
 | Weak-two forcing inquiry and features | `response-weak-preempt`, three 2NT inquiry deals | Guideline of 17 is the rough executable game-interest trigger. A 5-7 minimum repeats the suit; an 8-10 maximum shows the cheapest side ace/king feature; AKQJ in the six-card suit triggers the special solid-suit 3NT message. |
 | Forcing new suit after a weak preempt | `response-weak-preempt`, weak-two and three-level-preempt new-suit deals | A good natural new suit below the modeled game boundary is forcing. Opener raises with 3+ support and otherwise returns economically to the preempt suit. |
 | Three-level preempt structure | `opening-bids` and `response-weak-preempt` | Three-level preempts use exactly seven cards, the shared good-suit test, and less than ordinary one-level opening values. Responder can Pass with no fit, further the preempt with 3+ support, or show a qualifying forcing new suit; playing-trick-only game calls remain guidance. |
+| Strong artificial 2C responses | `response-strong-2c`, immediate positive and waiting-response deals | `2D` is an artificial waiting response with no minimum strength or shape requirement. With about 8+ HCP, a good 5+ suit can be shown immediately and a balanced hand can respond `2NT`; the descriptive positive responses rank ahead of waiting while `2D` remains available. |
+| Strong 2C opener rebids after waiting 2D | `response-strong-2c`, five opener-rebid deals | Balanced hands show 22-24 with `2NT`, 25-27 with `3NT`, and 28-30 with natural `4NT`. Unbalanced hands show the longest 5+ suit economically; a six-club/five-spade case confirms length beats bid economy, while equal five-card majors select the higher-ranking spades. |
 | Shortage points and splinter presentation | `response-major-opening`, `1H–4C` splinter deal | 11 HCP plus three shortage points qualify for the splinter and two natural routes; `4C` precedes `1S` and `2D`. |
 | Game-forcing major support with a flat hand | `response-major-opening`, flat 14-HCP `1S` deal | Natural `2D` followed by a raise and direct `3NT` both qualify. |
 | Five-card major opener after a forcing or non-forcing `1NT` response | `major-1nt` | Distinct deals exercise the forcing rebid requirement and the non-forcing `Pass` treatment. |
