@@ -279,7 +279,7 @@ export function refineOpenerFiveCardMajorFallback (calls: Call[], context: RuleE
   };
 }
 
-/// refineOpenerNonReverseSecondSuitRebid keeps the cheapest natural new-suit rebids that are
+/// refineOpenerNonReverseNewSuitRebid keeps the cheapest natural new-suit rebids that are
 /// not reverses.  Unlike a rank-only test, this correctly keeps 1C-1H-1S while rejecting
 /// 1C-1H-2D, and it can also keep a lower-ranking two-level suit such as 1D-1H-2C.
 ///
@@ -616,7 +616,7 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
   };
 }
 
-/// refineSimpleRaise returns a simple raise one level above opening in the same suit.  Resolve the
+/// refineRaisePartnerSuitBy1 returns a simple raise one level above opening in the same suit.  Resolve the
 /// 2H/2S or 2C/2D declaration to the one call matching the actual opening.
 ///
 export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalContext)
@@ -628,7 +628,7 @@ export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalConte
   return refineRaiseToLevel(calls, context, opening.level + 1);
 }
 
-/// refineLimitRaise chooses a bid two levels above partner's one-level suit opening.  Resolve
+/// refineRaisePartnerSuitBy2 chooses a bid two levels above partner's one-level suit opening.  Resolve
 /// the several declared raise calls to the suit the partner actually opened.
 ///
 export function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvalContext)
@@ -753,7 +753,7 @@ function orderMajorSuitCandidates<T extends { suit: Suit; length: number }> (maj
 }
 
 /// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
-/// opening suit, thereby emoving raises and jump shifts.  This does not yet choose among multiple
+/// opening suit, thereby removing raises and jump shifts.  This does not yet choose among multiple
 /// eligible suits by hand length or up-the-line/down-the-line preference; candidate hand
 /// constraints do that only partially.
 ///
@@ -1260,11 +1260,11 @@ export function refineNaturalMajorGameOver2Nt (calls: Call[], context: RuleEvalC
 }
 
 ///
-//// Overcall refiners and helpers
+//// Call Refiners for Making Suit Overcalls
 ///
 
-/// Simple suit overcalls use the cheapest available bid of a new suit, not a jump.
-/// With five cards require the shared good-suit test; with six or more length is sufficient.
+/// refineSimpleSuitOvercall selects the cheapest available non-jump suit bid for the
+/// overcaller. A five-card suit needs the shared good-suit test; six or more cards suffice.
 export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
   if (opening === undefined || opening.substring(1) === 'NT') {
@@ -1292,8 +1292,8 @@ export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContex
   ] };
 }
 
-/// Preemptive jump overcalls use a good six-, seven-, or eight-card suit at levels 2, 3, or 4.
-/// A natural suit bid must actually jump above the cheapest possible overcall in that suit.
+/// refinePreemptiveJumpOvercall selects a jump bid for the overcaller, with a good six-,
+/// seven-, or eight-card suit at level 2, 3, or 4. The bid must exceed the cheapest bid in that suit.
 export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
   const parsedOpening = opening === undefined ? null : parseSuitBid(opening);
@@ -1320,11 +1320,43 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
   ] };
 }
 
-/// refineNewSuitAfterOverall keeps natural non-jumps measured over the actual overcall.
-/// Four cards suffice for a one-level major after 1m-(1D); elsewhere need five.
 ///
-export function refineNewSuitAfterOverall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const auction = getNaturalSuitOvercall(context);
+//// Auction Helper for Responder After a Suit Overcall
+///
+
+/// getOpenerCallAndOvercallForResponder reads the opener's suit bid and the opponent's
+/// subsequent suit overcall for responder's refiners and applicability checks. It returns
+/// null unless the opening is at the one level and the overcall is the cheapest natural bid
+/// in a different suit. This helper identifies the auction; it does not choose a bid.
+///
+function getOpenerCallAndOvercallForResponder (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) {
+    return null;
+  }
+  const action = context.auction[openingInfo.index + 1];
+  const opening = parseSuitBid(openingInfo.call);
+  const overcall = action === undefined ? null : parseSuitBid(action);
+  if (opening === null || overcall === null || opening.level !== 1 ||
+      opening.strain === 'NT' || overcall.strain === 'NT' ||
+      opening.strain === overcall.strain ||
+      cheapestBidInStrainAfter(opening, overcall.strain) !== action) {
+    return null;
+  }
+  return { opening, overcall };
+}
+
+///
+//// Call Refiners for Responder After a Suit Overcall
+///
+
+/// refineResponderNewSuitAfterOvercall selects responder's cheapest natural new-suit bid
+/// after an opponent's suit overcall. Four cards suffice for a one-level major after
+/// 1m-(1D); otherwise responder needs five cards in the new suit.
+///
+export function refineResponderNewSuitAfterOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const auction = getOpenerCallAndOvercallForResponder(context);
   if (auction === null) {
     return { calls: [], telemetryLines: ['No direct non-jump suit overcall.'] };
   }
@@ -1353,12 +1385,12 @@ export function refineNewSuitAfterOverall (calls: Call[], context: RuleEvalConte
   ] };
 }
 
-/// refineRaiseAfterOvercall selects a raise of partner's opened suit at the specified
-/// level, distinguishing an economical raise from a jump raise.
+/// refineResponderRaiseAfterOvercall selects responder's raise of opener's suit at the
+/// specified level, distinguishing the cheapest available raise from a jump raise.
 ///
-export function refineRaiseAfterOvercall (calls: Call[], context: RuleEvalContext,
+export function refineResponderRaiseAfterOvercall (calls: Call[], context: RuleEvalContext,
                                           level: number, jump: boolean): CallRefinementResult {
-  const auction = getNaturalSuitOvercall(context);
+  const auction = getOpenerCallAndOvercallForResponder(context);
   if (auction === null) {
     return { calls: [], telemetryLines: ['No direct non-jump suit overcall.'] };
   }
@@ -1369,63 +1401,19 @@ export function refineRaiseAfterOvercall (calls: Call[], context: RuleEvalContex
   return { calls: calls.filter((call) => call === wanted && expectedLevel !== undefined &&
       (jump ? level === expectedLevel + 1 : level === expectedLevel)), telemetryLines: [
         jump ? 'True jump raise measured from the intervening contract.' :
-               'Cheapest available raise, forced to three by the intervening contract.',
+               `Cheapest available raise to level ${level} after the opponent's overcall.`,
       ] };
 }
 
-/// refineCueBidAfterOvercall selects the cheapest legal bid of the opponent overcalled suit.
+/// refineResponderCuebidAfterOvercall selects responder's cheapest legal cuebid in
+/// the opponent's overcalled suit (an artificial support bid, not a natural suit bid).
 ///
-export function refineCueBidAfterOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const auction = getNaturalSuitOvercall(context);
+export function refineResponderCuebidAfterOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const auction = getOpenerCallAndOvercallForResponder(context);
   const wanted = auction === null ? null :
     cheapestBidInStrainAfter(auction.overcall, auction.overcall.strain);
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
     telemetryLines: ['Opponent suit is artificial cuebid, not a natural new suit.'] };
-}
-
-/// overcallCuebidApplies uses shortage points for partner-suit support, not the opponent's suit.
-///
-export function overcallCuebidApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
-  const auction = getNaturalSuitOvercall(context);
-  if (auction === null) {
-    return { success: false, telemetryLines: ['No natural opponent suit overcall.'] };
-  }
-  const minor = auction.opening.strain === 'C' || auction.opening.strain === 'D';
-  const support = context.handFacts.lengths[auction.opening.strain as Suit];
-  const points = context.handFacts.totalPointsWShortage;
-  const enough = support >= (minor ? 4 : 3) && points >= 11;
-  return { success: enough, telemetryLines: [
-    `${enough ? 'PASS' : 'FAIL'}: cuebid needs 11+ support points and ` +
-      `${minor ? 4 : 3}+ trump cards (have ${points} points, ${support} trump).`,
-  ] };
-}
-
-/// overcallNegativeDoubleApplies chooses a deliberately conservative unbid-suit holding.
-/// A one-level double needs 6+ HCP and a two-level double 10+; doubles above 2S are unmodeled.
-///
-export function overcallNegativeDoubleApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
-  const auction = getNaturalSuitOvercall(context);
-  if (auction === null || auction.overcall.level > 2) {
-    return { success: false, telemetryLines: ['Negative doubles modeled only through 2S.'] };
-  }
-  const unbid = SUITS.filter((suit) => suit !== auction.opening.strain &&
-                                   suit !== auction.overcall.strain);
-  const majors = unbid.filter((suit) => suit === 'H' || suit === 'S');
-  const relevant = majors.length > 0 ? majors : unbid;
-  const exactlyFourSpades = auction.overcall.strain === 'H' &&
-    (auction.opening.strain === 'C' || auction.opening.strain === 'D') &&
-    auction.overcall.level === 1;
-  const suitsOkay = relevant.every((suit) => context.handFacts.lengths[suit] >= 4) &&
-    (! exactlyFourSpades || context.handFacts.lengths.S === 4);
-  const points = context.handFacts.hcp;
-  const min = auction.overcall.level === 1 ? 6 : 10;
-  return { success: points >= min && suitsOkay, telemetryLines: [
-    `${points >= min ? 'PASS' : 'FAIL'}: negative double after level ` +
-      `${auction.overcall.level} needs ${min}+ HCP; have ${points}.`,
-    `${suitsOkay ? 'PASS' : 'FAIL'}: unbid suit lengths ` +
-      `${relevant.map((suit) => `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}; ` +
-      `${exactlyFourSpades ? 'requires exactly four spades' : 'requires at least four in each listed suit'}.`,
-  ] };
 }
 
 ///
@@ -1455,10 +1443,10 @@ export function naturalOneNtOvercallApplies (_call: Call, context: RuleEvalConte
   };
 }
 
-/// takeoutDoubleHasUnbidSuitSupportAppliesWhen models an ordinary direct double: 13+ shortage
-/// points and at least three cards in each of the three suits opener did not bid.
+/// ordinaryTakeoutDoubleApplies checks the ordinary takeout double (not the strong-hand
+/// exception): 13+ shortage-adjusted points, fewer than 18 HCP, and 3+ cards in each unbid suit.
 ///
-export function takeoutDoubleHasUnbidSuitSupportAppliesWhen (_call: Call, context: RuleEvalContext):
+export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalContext):
      AppliesWhenResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
   const parsed = opening === undefined ? null : parseSuitBid(opening);
@@ -2166,10 +2154,62 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
   ] };
 }
 
-/// overcallNotrumpResponseApplies checks natural 1/2/3NT strength and a stopper in opponent suit.
 ///
-export function overcallNotrumpResponseApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
-  const auction = getNaturalSuitOvercall(context);
+//// Applicability Checks for Responder After a Suit Overcall
+///
+
+/// responderCuebidAfterOvercallApplies checks responder's support and shortage-adjusted
+/// points for an artificial cuebid in the opponent's overcalled suit.
+///
+export function responderCuebidAfterOvercallApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const auction = getOpenerCallAndOvercallForResponder(context);
+  if (auction === null) {
+    return { success: false, telemetryLines: ['No natural opponent suit overcall.'] };
+  }
+  const minor = auction.opening.strain === 'C' || auction.opening.strain === 'D';
+  const support = context.handFacts.lengths[auction.opening.strain as Suit];
+  const points = context.handFacts.totalPointsWShortage;
+  const enough = support >= (minor ? 4 : 3) && points >= 11;
+  return { success: enough, telemetryLines: [
+    `${enough ? 'PASS' : 'FAIL'}: cuebid needs 11+ support points and ` +
+      `${minor ? 4 : 3}+ trump cards (have ${points} points, ${support} trump).`,
+  ] };
+}
+
+/// responderNegativeDoubleAfterOvercallApplies checks strength and unbid-suit length for
+/// responder's negative double after a suit overcall. Require 6+ HCP at the one level or 10+
+/// at the two level, with the modeled suit holdings; overcalls above 2S are not supported.
+///
+export function responderNegativeDoubleAfterOvercallApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const auction = getOpenerCallAndOvercallForResponder(context);
+  if (auction === null || auction.overcall.level > 2) {
+    return { success: false, telemetryLines: ['Negative doubles modeled only through 2S.'] };
+  }
+  const unbid = SUITS.filter((suit) => suit !== auction.opening.strain &&
+                                   suit !== auction.overcall.strain);
+  const majors = unbid.filter((suit) => suit === 'H' || suit === 'S');
+  const relevant = majors.length > 0 ? majors : unbid;
+  const exactlyFourSpades = auction.overcall.strain === 'H' &&
+    (auction.opening.strain === 'C' || auction.opening.strain === 'D') &&
+    auction.overcall.level === 1;
+  const suitsOkay = relevant.every((suit) => context.handFacts.lengths[suit] >= 4) &&
+    (! exactlyFourSpades || context.handFacts.lengths.S === 4);
+  const points = context.handFacts.hcp;
+  const min = auction.overcall.level === 1 ? 6 : 10;
+  return { success: points >= min && suitsOkay, telemetryLines: [
+    `${points >= min ? 'PASS' : 'FAIL'}: negative double after level ` +
+      `${auction.overcall.level} needs ${min}+ HCP; have ${points}.`,
+    `${suitsOkay ? 'PASS' : 'FAIL'}: unbid suit lengths ` +
+      `${relevant.map((suit) => `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}; ` +
+      `${exactlyFourSpades ? 'requires exactly four spades' : 'requires at least four in each listed suit'}.`,
+  ] };
+}
+
+/// responderNotrumpAfterOvercallApplies checks responder's natural 1NT, 2NT, or 3NT bid
+/// after a suit overcall: suitable HCP, balanced shape, and a stopper in opponent's suit.
+///
+export function responderNotrumpAfterOvercallApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const auction = getOpenerCallAndOvercallForResponder(context);
   const parsed = parseSuitBid(call);
   if (auction === null || parsed === null || parsed.strain !== 'NT') {
     return { success: false, telemetryLines: ['Not a natural notrump response after a suit overcall.'] };
@@ -2188,26 +2228,6 @@ export function overcallNotrumpResponseApplies (call: Call, context: RuleEvalCon
   ] };
 }
 
-/// getNaturalSuitOvercall returns the non-jump suit overcall and opening bids when
-/// responder is refining calls and checking applies when.
-///
-function getNaturalSuitOvercall (context: RuleEvalContext):
-    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) {
-    return null;
-  }
-  const action = context.auction[openingInfo.index + 1];
-  const opening = parseSuitBid(openingInfo.call);
-  const overcall = action === undefined ? null : parseSuitBid(action);
-  if (opening === null || overcall === null || opening.level !== 1 ||
-      opening.strain === 'NT' || overcall.strain === 'NT' ||
-      opening.strain === overcall.strain ||
-      cheapestBidInStrainAfter(opening, overcall.strain) !== action) {
-    return null;
-  }
-  return { opening, overcall };
-}
 
 
 ///
