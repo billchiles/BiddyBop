@@ -263,13 +263,18 @@ function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): numb
 }
 
 /// makeRuleTestDeal builds a complete physical deal from the two hands specified by the current
-/// rule-practice fixture.  An optional fixed West hand supports direct-overcall practice.
+/// rule-practice fixture.  An optional third fixed hand supports realistic competitive practice.
 ///
 function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   const north = makeTestHand(testDeal.north);
   const south = makeTestHand(testDeal.south);
   const west = testDeal.west === undefined ? null : makeTestHand(testDeal.west);
-  const explicit = west === null ? [north, south] : [north, south, west];
+  const east = testDeal.east === undefined ? null : makeTestHand(testDeal.east);
+  if (east !== null && west !== null) {
+    throw new Error('A rule-test deal can fix East or West, not both.');
+  }
+  const explicit = [north, south, ...(west === null ? [] : [west]),
+                    ...(east === null ? [] : [east])];
   const usedCards = new Set(explicit.flatMap((hand) => hand.cards).map(cardKey));
   if (usedCards.size !== explicit.length * 13) {
     throw new Error(`Duplicate card in rule-test deal: ${testDeal.description}`);
@@ -285,9 +290,10 @@ function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   }
   return {
     N: north,
-    E: { cards: remainingCards.slice(0, 13).sort(compareCards) },
+    E: east ?? { cards: remainingCards.slice(0, 13).sort(compareCards) },
     S: south,
-    W: west ?? { cards: remainingCards.slice(13, 26).sort(compareCards) },
+    W: west ?? { cards: remainingCards.slice(east === null ? 13 : 0,
+                                            east === null ? 26 : 13).sort(compareCards) },
   };
 }
 

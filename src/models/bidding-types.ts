@@ -250,6 +250,11 @@ export interface ResponderCallContext {
   jump?: 0 | 1 | 2;
 }
 
+/// First-opponent-call classification for responder rules.  An unmodeled intervention remains
+/// distinct from no intervention, so uncontested treatments cannot silently leak into it.
+export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
+  'takeoutDouble' | 'notrumpOvercall' | 'other';
+
 /// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
   // stage selects the bidding phase in which the rule can apply.
@@ -264,6 +269,8 @@ export interface AuctionContext {
   openerLevel?: RuleBidLevel;
   // openerStrain constrains the opening strain; suit means non-NT, while minor/major match either suit in that family.
   openerStrain?: Strain | 'suit' | 'minor' | 'major';
+  // interference restricts responder treatments to a direct opponent action.  Omitted means any.
+  interference?: DirectInterference;
   // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
 }

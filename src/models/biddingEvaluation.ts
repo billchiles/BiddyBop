@@ -9,7 +9,7 @@ import { type AuctionContext, type BidRule, type Call, type HandConstraint,
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
-         getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, responseJump } from './auction';
+         getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, responseJump, getDirectInterference } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 
@@ -932,6 +932,11 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
     return true;
   }
   if (ruleContext.stage !== evalContext.stage) {
+    return false;
+  }
+
+  if (ruleContext.interference !== undefined &&
+      ruleContext.interference !== getDirectInterference(evalContext.dealer, evalContext.auction)) {
     return false;
   }
 

@@ -306,8 +306,9 @@ The app should help the user practice bidding decisions using structured convent
 ## Pending Bidding Work
 
 - The ordinary one-level/notrump, weak-preempt, and strong artificial `2C` families are modeled
-  through opener's rebid. Simple direct natural suit overcalls are the first competitive slice;
-  add natural 1NT and jump overcalls, then review responder interference and advances.
+  through opener's rebid. Common direct natural suit, 1NT, jump, and takeout-double
+  overcalls are modeled; responses after direct non-jump suit overcalls are the first
+  competitive responder slice. Other interference and advances remain pending.
   Responder rebids remain a later phase; for strong `2C`, the selected source also
   teaches the cheaper-minor 0-4 second negative after a suit rebid and ordinary notrump methods
   after a balanced rebid; those responder-second-bid rules are not yet modeled. `advancing` is
@@ -395,5 +396,43 @@ seven at the three level (under 10 HCP), or eight at the four level (under 10 HC
 These exact lengths and HCP interpretations are deterministic choices from the source's
 weak-hand guidance. Balancing, advancing, and competitive opener continuations are not
 yet implemented. `responding` remains the stage after a direct overcall,
-but existing responder meanings/conventions still require a competitive audit. With no modeled candidate, the user can Pass; no general competitive Pass
-rule is asserted. Doubles and redoubles have no general-purpose evaluator treatment.
+but only ordinary one-level suit responses after a direct non-jump natural suit overcall have
+been updated; response after takeout Double, natural 1NT, and preemptive jumps remains pending.
+With no modeled candidate, the user can Pass, but no general inferred-Pass rule exists.
+Double is evaluated only for specifically declared informational treatments, never penalties.
+
+## Responder after a direct natural suit overcall
+
+For one-level suit openings, `AuctionContext.interference` classifies the first opponent's
+call as none, a natural non-jump suit overcall, a jump suit overcall, takeout Double,
+natural 1NT, or other. Omission of this context property intentionally leaves a rule
+shareable. Existing weak Pass, economical single raises, and major preemptive game raises
+remain shared. Other ordinary first responses use `interference: 'none'`, so original
+2/1 forcing, natural jump shifts, limit jumps, and Jacoby 2NT cannot accidentally describe
+competitive actions. Literal compact partnership-auction matching is unchanged.
+
+After a *natural non-jump suit overcall*, the new responder rules offer:
+
+- Informational negative Double with 6+ HCP over a one-level suit or 10+ HCP over a
+  non-jump two-level suit, with explicit unbid-major holdings (at least four cards),
+  or at least four cards in both unbid minors if neither unbid suit is a major. After
+  `1m-(1H)`, use exactly four spades for this treatment; natural 1S needs five.
+  The model is deliberately conservative and is not a substitute for partnership
+  judgment; penalty doubles are never generated.
+- Natural one-level new suit: 6+ HCP; usually five cards, but after `1m-(1D)` a
+  four-card major is sufficient. Natural non-jump two-level new suit: 10+ HCP,
+  five cards, forcing one round even under 2/1 agreements. Three-level *nonjump*
+  new suit: 13+ HCP and five cards; game forcing. Candidate jumps are calculated
+  from the actual intervening contract, not simply the original opening.
+- Three-level *jump* raise: four-card support and fewer than 10 shortage-adjusted
+  points, preemptive. A cuebid of the overcalled suit shows 11+ shortage-adjusted
+  points and at least three-card major support or four-card minor support.
+- Natural 1NT/2NT/3NT with balanced shape, A/Kx/Qxx/Jxxx stopper in the overcalled
+  suit, and respective 6-10, 11-12, or 13-15 HCP bands. The same stopper
+  approximation is reused by natural 1NT overcalls.
+
+Raises forced above two of opener's suit by *jump* preempts (e.g., `1H-(2S)-3H`),
+response after an opponent's takeout Double or natural 1NT, and subsequent competitive
+opener rebids are not yet modeled. Zero remaining candidate bids is not a rule to Pass.
+These responder treatments rely on outside competitive-bidding teaching references;
+they are not attributed to source pages 18-21, which address overcalls and advances.

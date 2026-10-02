@@ -1,11 +1,12 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
-import { compareSuitBids, getBidStage, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
+import { compareSuitBids, getBidStage, getDirectInterference, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestExpectedCall }
+import { RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RULE_TEST_DEAL_BUCKETS,
+         type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/rule-test-deals';
 
 interface StageExpectations {
@@ -148,7 +149,8 @@ function runAuctionContextTests (): number {
 }
 
 /// Competitive smoke checks cover the newly shared stage and call-availability boundaries.
-/// The eight-point responder hand cannot force a two-level response after 1S interference.
+/// The eight-point responder hand has a negative double and natural 1NT available when
+/// a spade overcall removes its four-card heart response, but not a natural 2H.
 function runCompetitionBoundaryTests (): number {
   const openingHand = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' };
   const responderHand = { S: 'Q53', H: 'KQJ87', D: '82', C: 'T94' };
@@ -188,9 +190,12 @@ function runCompetitionBoundaryTests (): number {
   const candidates = getApplicableCandidateCalls(result);
   checks += 1;
   if (candidates.some(({ call }) => call === '1H' || call === '2H') ||
-      candidates.length !== 0) {
+      ! candidates.some(({ call, rule }) => call === 'Double' &&
+        rule.id === 'respond-over-suit-negative-double') ||
+      ! candidates.some(({ call, rule }) => call === '1NT' &&
+        rule.id === 'respond-over-suit-natural-notrump')) {
     failures += 1;
-    console.error('FAIL 8-HCP responder should not retain unavailable 1H or unqualified 2H.');
+    console.error('FAIL 8-HCP response after 1S: Double and stopped 1NT should survive.');
     console.error(`  Surviving: ${formatCandidates(candidates)}`);
   }
   // A balanced 18-HCP hand without a diamond stopper cannot overcall natural 1NT.
@@ -231,6 +236,96 @@ function runCompetitionBoundaryTests (): number {
       getBidStage('W', ['1D', '3C']) !== 'responding') {
     failures += 1;
     console.error('FAIL responder stage after direct 1NT or jump overcall.');
+  }
+  // A non-jump 2C over 1D is distinct from a jump 2H over 1D.  A later responder
+  // patch must not expose uncontested treatments after either intervention by accident.
+  const interferenceCases: { auction: Call[]; expected: ReturnType<typeof getDirectInterference> }[] = [
+    { auction: ['1D', 'Pass'], expected: 'none' },
+    { auction: ['1C', '1D'], expected: 'suitOvercall' },
+    { auction: ['1D', '2C'], expected: 'suitOvercall' },
+    { auction: ['1H', '2D'], expected: 'suitOvercall' },
+    { auction: ['1H', '2S'], expected: 'jumpSuitOvercall' },
+    { auction: ['1C', '2H'], expected: 'jumpSuitOvercall' },
+    { auction: ['1D', 'Double'], expected: 'takeoutDouble' },
+    { auction: ['1D', '1NT'], expected: 'notrumpOvercall' },
+  ];
+  for (const testCase of interferenceCases) {
+    checks += 1;
+    if (getDirectInterference('N', testCase.auction) !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL intervention classification: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  // A strong raise cuebid is never simultaneously a natural jump shift, even under the
+  // configurable classic-strong jump-shift treatment.
+  const { board: cueBoard } = makeRuleTestBoard({
+    description: 'Strong heart support after 1H-(1S): 2S is only an artificial cuebid.',
+    practiceAuction: ['1H', '1S', '2S'],
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    north: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    south: { S: 'T93', H: 'QJ85', D: 'AT97', C: 'AQ' },
+  });
+  const cueCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('2S', cueBoard, ['1H', '1S'], defaultBiddingSystem));
+  checks += 1;
+  if (! cueCandidates.some(({call, rule}) => call === '2S' &&
+      rule.id === 'respond-over-suit-support-cuebid') ||
+      cueCandidates.some(({call, rule}) => call === '2S' &&
+        rule.id !== 'respond-over-suit-support-cuebid')) {
+    failures += 1;
+    console.error('FAIL opponent-suit 2S must be a support cuebid, never a natural jump shift.');
+  }
+  // A stopper is mandatory for a natural responder NT bid, even with balanced 6-10 HCP.
+  const { board: noResponseStopper } = makeRuleTestBoard({
+    description: 'Balanced 6 HCP without stopper after 1D-(1S) may not bid 1NT.',
+    practiceAuction: ['1D', '1S', 'Pass'],
+    north: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    east: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T54', H: 'QJ8', D: 'Q95', C: 'JT85' },
+  });
+  const ntCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('1NT', noResponseStopper, ['1D', '1S'], defaultBiddingSystem));
+  checks += 1;
+  if (ntCandidates.some(({ call }) => call === '1NT')) {
+    failures += 1;
+    console.error('FAIL competitive natural 1NT requires a stopper in spades.');
+  }
+  // A weak jump after a suit opening has a different response treatment; this first
+  // patch deliberately leaves it unmodeled rather than importing uncontested rules.
+  const { board: jumpedBoard } = makeRuleTestBoard({
+    description: 'Responder after a preemptive 2S jump over 1H.',
+    practiceAuction: ['1H', '2S', '3H'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T96' },
+    south: { S: 'T843', H: 'J82', D: 'AK6', C: 'A72' },
+  });
+  const jumpedCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('3H', jumpedBoard, ['1H', '2S'], defaultBiddingSystem));
+  checks += 1;
+  if (jumpedCandidates.some(({ call }) => call === '3H')) {
+    failures += 1;
+    console.error('FAIL raised 3H after preemptive 2S is deferred, not ordinary limit raise.');
+  }
+  // Every recorded competitive response setup must itself be a legitimate opening and
+  // natural overcall with the supplied physical hands, not merely an injected auction string.
+  for (const deal of RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS) {
+    const { board: practiceBoard } = makeRuleTestBoard(deal);
+    for (const index of [0, 1]) {
+      const call = deal.practiceAuction[index];
+      if (call === undefined) {
+        failures += 1;
+        console.error(`FAIL missing setup call: ${deal.description}`);
+        continue;
+      }
+      checks += 1;
+      const candidates = getApplicableCandidateCalls(
+        evaluateUserCall(call, practiceBoard, deal.practiceAuction.slice(0, index),
+                         defaultBiddingSystem));
+      if (! candidates.some((candidate) => candidate.call === call)) {
+        failures += 1;
+        console.error(`FAIL physical setup call ${call}: ${deal.description}`);
+      }
+    }
   }
   console.log(`Competition boundaries: ${checks} checks; ${failures} failures.`);
   return failures;

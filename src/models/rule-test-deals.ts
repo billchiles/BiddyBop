@@ -12,6 +12,7 @@ export interface RuleTestDeal {
   // An optional dealer and third fixed hand let competitive practice use real seated hands.
   dealer?: Seat;
   west?: Record<Suit, string>;
+  east?: Record<Suit, string>; // optional opposing hand for realistic response-after-overcall practice
   // Explicitly recorded overcall expectations use the call at auction index 1.
   expectedOvercallCalls?: RuleTestExpectedCall[];
   rejectedOvercallCalls?: Call[];
@@ -4258,6 +4259,98 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Responder after a direct non-jump natural suit overcall.  North opens, East overcalls,
+/// and South practices the response.  All three hands are fixed so the overcall is plausible.
+export const RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1D-(1S)-Double: with four hearts and sufficient points, use a negative double.',
+    practiceAuction: ['1D', '1S', 'Double'],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
+    rejectedResponseCalls: ['2H'],
+    north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: '93', H: 'KQJ5', D: 'KT9', C: 'AQJ5' },
+  },
+  {
+    description: '1H-(1S)-2S: bid opponent spades artificially to show strong heart support.',
+    practiceAuction: ['1H', '1S', '2S'],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-suit-support-cuebid'] }],
+    north: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T93', H: 'QJ85', D: 'AT97', C: 'AQ' },
+  },
+  {
+    description: '1H-(2D)-2H: economical simple raise survives an ordinary two-level overcall.',
+    practiceAuction: ['1H', '2D', '2H'],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    south: { S: 'J976', H: 'KT9', D: '763', C: 'A82' },
+  },
+  {
+    description: '1S-(2H)-3S: four spades, weak preemptive true jump raise, not a limit raise.',
+    practiceAuction: ['1S', '2H', '3S'],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-over-suit-preemptive-jump-raise'] },
+    ],
+    north: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    east: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    south: { S: 'T986', H: 'T74', D: 'JT5', C: 'A84' },
+  },
+  {
+    description: '1C-(1D)-1H: four hearts suffice for an economical one-level major response.',
+    practiceAuction: ['1C', '1D', '1H'],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-over-suit-new-suit-one-level'] },
+    ],
+    north: { S: 'AK64', H: '2', D: '963', C: 'KQ972' },
+    east: { S: 'T2', H: 'KQ', D: 'AKQT872', C: 'J3' },
+    south: { S: 'J873', H: 'AT96', D: '54', C: 'A84' },
+  },
+  {
+    description: '1C-(1D)-2D: artificial cuebid showing limit-or-better club support.',
+    practiceAuction: ['1C', '1D', '2D'],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-over-suit-support-cuebid'] },
+    ],
+    north: { S: 'AK64', H: '2', D: '963', C: 'KQ972' },
+    east: { S: 'T2', H: 'KQ', D: 'AKQT872', C: 'J3' },
+    south: { S: 'QJ8', H: 'AJ85', D: '54', C: 'AT86' },
+  },
+  {
+    description: '1D-(1S)-1NT: natural balanced values and Kxx stopping opponent spades.',
+    practiceAuction: ['1D', '1S', '1NT'],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] },
+    ],
+    north: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    east: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    south: { S: 'KT5', H: 'QJ8', D: 'Q95', C: 'JT85' },
+  },
+  {
+    description: '1H-(1S)-2C: natural five clubs and 10+ HCP, only one-round forcing.',
+    practiceAuction: ['1H', '1S', '2C'],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] },
+    ],
+    north: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T9', H: 'QJ', D: 'AT97', C: 'AQJT5' },
+  },
+  {
+    description: '1H-(2D)-3C: five clubs, game-going strength, cheapest club bid at three.',
+    practiceAuction: ['1H', '2D', '3C'],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-over-suit-new-suit-three-level'] },
+    ],
+    north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    south: { S: 'J97', H: 'KT', D: '632', C: 'AKQJ8' },
+  },
+];
+
 /// The dropdown groups opening, overcalling, responding, and rebidding practice.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
@@ -4271,6 +4364,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
     practiceStages: ['overcalling'] as BidStage[], deals: NATURAL_1NT_OVERCALL_TEST_DEALS },
   { id: 'overcall-preemptive-jump', group: 'Overcalling', label: 'Preemptive jump overcalls',
     practiceStages: ['overcalling'] as BidStage[], deals: PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS },
+  { id: 'response-after-suit-overcall', group: 'Responding',
+    label: 'After natural suit overcall', practiceStages: ['responding'] as BidStage[],
+    deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },
   { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
     deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
   { id: 'response-major-opening', group: 'Responding', label: 'Major opening',

@@ -1,6 +1,6 @@
 /// Shared bridge-auction parsing, seat navigation, and auction-shape helpers.
 
-import { STRAIN_ORDER, type BidStage, type Call, type Strain, type SuitBid } from './bidding-types';
+import { STRAIN_ORDER, type BidStage, type Call, type DirectInterference, type Strain, type SuitBid } from './bidding-types';
 import { SEATS, type Seat } from './cards';
 
 /// OpeningCallInfo identifies the auction's first contract bid.
@@ -63,6 +63,36 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
     return 'responderRebid';
   }
   return null;
+}
+
+/// getDirectInterference classifies the call immediately after an opening.  For responder
+/// rules this separates natural non-jump suit overcalls from preemptive jumps and doubles.
+export function getDirectInterference (dealer: Seat, auction: Call[]): DirectInterference {
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null) {
+    return 'none';
+  }
+  const action = auction[opening.index + 1];
+  if (action === undefined || action === 'Pass') {
+    return 'none';
+  }
+  if (action === 'Double') {
+    return 'takeoutDouble';
+  }
+  const parsed = parseSuitBid(action);
+  const openerBid = parseSuitBid(opening.call);
+  if (parsed === null || openerBid === null || openerBid.level !== 1 ||
+      openerBid.strain === 'NT') {
+    return 'other';
+  }
+  if (parsed.strain === 'NT') {
+    return action === '1NT' ? 'notrumpOvercall' : 'other';
+  }
+  if (parsed.strain === openerBid.strain) {
+    return 'other';
+  }
+  const cheapest = cheapestBidInStrainAfter(openerBid, parsed.strain);
+  return cheapest === action ? 'suitOvercall' : 'jumpSuitOvercall';
 }
 
 /// isCallAvailableInAuction checks contract ordering independently of bidding-rule meaning.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
   from '../models/biddingEvaluation';
-import { auctionIsComplete, getBidStage, getNextSeat, getOpeningCallInfo, isCallAvailableInAuction, isContractBid } from '../models/auction';
+import { auctionIsComplete, getBidStage, getNextSeat, getDirectInterference, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/rule-test-deals';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
@@ -83,12 +83,14 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
     const explanation = buildExplanationLines(title, result, stage === null);
-    const opening = getOpeningCallInfo(board.dealer, auction);
-    const overcall = opening === null ? undefined : auction[opening.index + 1];
-    if (stage === 'responding' && overcall !== undefined && isContractBid(overcall) &&
+    const intervention = getDirectInterference(board.dealer, auction);
+    if (stage === 'responding' && intervention !== 'none' &&
         getApplicableCandidateCalls(result).length === 0) {
-      explanation.push('No modeled response survives the overcall; Pass is available, while ' +
-                       'negative doubles and other competitive responses are not yet modeled.');
+      explanation.push(intervention === 'suitOvercall'
+        ? 'No modeled response qualifies after this natural suit overcall. Pass is available, ' +
+          'but the app does not automatically infer Pass as the best action.'
+        : 'Responder treatments after this intervention are incomplete. Pass is available, ' +
+          'but no recommendation is established from the empty candidate list.');
     }
     setExplanationLines((current) => [...current, '', ...explanation]);
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
