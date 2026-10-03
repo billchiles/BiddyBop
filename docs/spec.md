@@ -51,7 +51,7 @@ The app should help the user practice bidding decisions using structured convent
 - `BidStage` uses bidding-process names such as `opening`, `responding`, `openerRebid`, `responderRebid`, `overcalling`, and `advancing`.
 - The evaluator derives the current `BidStage` from the board and authoritative auction, then selects the appropriate rule array. React does not tell the evaluator that a seat is opener/responder.
 - There is no required flattened `BiddingRules` array.
-- Keep declarative rule arrays in `bidding-rules.ts`. Keep executable `callRefinement` and function-valued `appliesWhen` functions, plus their private helpers, in `bidding-rule-functions.ts`.
+- Keep rule declarations in the stage-specific `*-rules.ts` files and their refiners and applicability checks in the corresponding `*-functions.ts` files. `bidding-rules.ts` re-exports the rule arrays and retains shared teaching notes; `common-rule-helpers.ts` contains only helpers needed across stages.
 - `BiddingSystem` is the configurable set of bidding agreements for the current practice session.
 - A rule's optional `agreement` selects whether the whole rule is active in the current `BiddingSystem`.
 - Declarative `appliesWhen` values should remain concrete and literal. Prefer representing bidding
@@ -517,3 +517,14 @@ opposing contract, so `1H-(2S)-3H` and `1S-(3H)-3S` are economical raises, not j
 These are explicit deterministic thresholds, not universal agreements or playing-trick
 calculations. Other responses after a four-level jump preempt, penalty doubles, scoring,
 and later advancer/opener continuations remain unmodeled.
+
+## Competitive bidding follow-up audit
+
+- After completing advancer and opener continuations for the current one-level suit-opening
+  interference set, audit responder rule eligibility: identify unintended inherited rules,
+  incorrect meanings, and missing supported actions, rather than assuming legal calls are modeled.
+- Consider a modest defense to weak two openings later. Opposing actions after 1NT openings
+  are low priority and may be omitted unless straightforward natural treatments prove useful.
+  Opposing overcalls after 2NT and strong 2C openings are intentionally excluded from scope.
+- Review genuinely shared auction helpers and stage-crossing imports in a separate organization
+  pass; discuss splitting the growing practice-deal file after the stage-based rule split.
