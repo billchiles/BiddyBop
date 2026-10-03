@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
   from '../models/biddingEvaluation';
-import { auctionIsComplete, getBidStage, getNextSeat, getDirectInterference, isCallAvailableInAuction } from '../models/auction';
+import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/rule-test-deals';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
@@ -62,7 +62,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     }
 
     if (! isCallAvailableInAuction(normalizedCall, auction)) {
-      onTelemetry([`${normalizedCall} does not outrank the current contract.`]);
+      onTelemetry([`${normalizedCall} is not available in this auction.`]);
       return;
     }
     const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
@@ -83,13 +83,13 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
     const explanation = buildExplanationLines(title, result, stage === null);
-    const intervention = getDirectInterference(board.dealer, auction);
+    const intervention = getInterferenceAfterOpening(board.dealer, auction);
     if (stage === 'responding' && intervention !== 'none' &&
         getApplicableCandidateCalls(result).length === 0) {
       explanation.push(intervention === 'suitOvercall'
         ? 'No modeled response qualifies after this natural suit overcall. Pass is available, ' +
           'but the app does not automatically infer Pass as the best action.'
-        : 'Responder treatments after this intervention are incomplete. Pass is available, ' +
+        : 'Responder treatments after this intervention may be incomplete. Pass is available, ' +
           'but no recommendation is established from the empty candidate list.');
     }
     setExplanationLines((current) => [...current, '', ...explanation]);

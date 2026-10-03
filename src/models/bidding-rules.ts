@@ -9,7 +9,8 @@ import { guidelineOf17Applies, guidelineOf20Applies, majorDirectThreeNtApplies, 
          twoNtNaturalMinorForcingApplies, ordinaryTakeoutDoubleApplies,
          naturalOneNtOvercallApplies,
          responderNegativeDoubleAfterOvercallApplies, responderNotrumpAfterOvercallApplies,
-         responderCuebidAfterOvercallApplies,
+         responderCuebidAfterOvercallApplies, responderTwoLevelSuitAfterDoubleApplies,
+         responderJordanTwoNtAfterDoubleApplies, responderWeakJumpRaiseAfterDoubleApplies,
          refineResponderNewSuitAfterOvercall, refineResponderRaiseAfterOvercall, refineResponderCuebidAfterOvercall,
          refineForcingOneNtMinorFallback, refineMajorSupportNewSuitFirst,
          refineMajorTwoLevelNewSuitByLength, refineNaturalMajorGameOver2Nt,
@@ -1632,7 +1633,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
-  // Respond after overcall
+  // Respond after interference
   // Direct responses after a natural, non-jump opponent suit overcall.  These meanings are
   // independent of the uncontested 2/1, jump-shift, Jacoby 2NT, and support-route agreements.
   //
@@ -1742,6 +1743,126 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: responderNotrumpAfterOvercallApplies,
     meaning: 'Natural balanced 1NT (6-10), 2NT (11-12), or 3NT (13-15), with a stopper ' +
              'in the opponent suit.  Not Jacoby or forcing 1NT.',
+    certainty: 'high',
+  },
+  //
+  // After a takeout double, one-level new suits remain forcing, but ordinary two-level
+  // new suits and jump shifts are weak/nonforcing. Jordan 2NT is not Jacoby or natural NT.
+  //
+  {
+    id: 'respond-after-double-redouble-values',
+    kind: 'responseBid',
+    title: 'Redouble to show 10+ HCP after an opponent takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Redouble'],
+    callCategory: ['conventional'],
+    appliesWhen: { hcp: { min: 10 } },
+    priority: { rank: 70 },
+    meaning: 'Strength-showing Redouble with 10+ HCP; it neither promises nor denies support ' +
+             'for opener, and does not require opener to rebid.',
+    guidance: ['A descriptive one-level new suit or Jordan 2NT may also qualify.',
+               'Some Jordan partnerships treat Redouble as denying three-card major support; ' +
+               'this trainer deliberately keeps both strength-showing options available.',
+               'Later penalty-double decisions are outside the trainer; this first response ' +
+               'only teaches the strength meaning.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-after-double-jordan-2nt-support',
+    kind: 'responseBid',
+    title: 'Jordan 2NT: limit raise or better after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2NT'],
+    callCategory: ['forcing', 'conventional'],
+    appliesWhen: responderJordanTwoNtAfterDoubleApplies,
+    priority: { rank: 95 },
+    meaning: 'Artificial Jordan 2NT, showing limit-raise-or-better support: 10+ shortage-adjusted ' +
+             'points and 3+ major, 4+ diamond, or 5+ club support.',
+    guidance: ['The minor-suit treatment and exact point floor are partnership agreements. ' +
+               'This trainer uses the specified support lengths and 10+ support points.',
+               'Redouble remains visible with 10+ HCP; Jordan is not the only strength-showing call.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-after-double-new-suit-one-level',
+    kind: 'responseBid',
+    title: 'Natural forcing new suit at one level after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1D', '1H', '1S'],
+    callRefinement: refineToCheapestNewSuitBids,
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: { hcp: { min: 6 }, suitLengths: [{ min: 4 }] },
+    priority: { rank: 100 },
+    meaning: 'A natural four-card-or-longer new suit at the one level, forcing one round; ' +
+             'does not deny 10+ HCP.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-after-double-new-suit-two-level',
+    kind: 'responseBid',
+    title: 'Natural nonforcing two-level new suit after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refineToCheapestNewSuitBids,
+    callCategory: ['natural'],
+    appliesWhen: responderTwoLevelSuitAfterDoubleApplies,
+    priority: { rank: 65 },
+    meaning: 'Nonforcing new suit at two level: 5-9 HCP and a good six-card suit, ' +
+             'rather than uncontested 2/1 forcing values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-after-double-weak-jump-shift',
+    kind: 'responseBid',
+    title: 'Weak jump shift after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineWeakJumpShift,
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 4, max: 7 } },
+    priority: { rank: 60 },
+    meaning: 'Weak, nonforcing jump into a six-card-or-longer new suit; not the ' +
+             'uncontested strong-jump-shift agreement.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-after-double-weak-jump-raise',
+    kind: 'responseBid',
+    title: 'Weak preemptive jump raise after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineRaisePartnerSuitBy2,
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: responderWeakJumpRaiseAfterDoubleApplies,
+    priority: { rank: 55 },
+    meaning: 'Weak preemptive jump raise with 0-6 HCP and 4+ major/diamond or 5+ club ' +
+             'support, not an invitational limit raise.',
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-after-double-natural-1nt',
+    kind: 'responseBid',
+    title: 'Natural 1NT response after a takeout double',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1NT'],
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 6, max: 9 }, shape: { balanced: true } },
+    priority: { rank: 45 },
+    meaning: 'Natural 1NT with 6-9 HCP and balanced shape; no opponent-suit stopper is required ' +
+             'because the opponent doubled rather than naming a suit.',
     certainty: 'high',
   },
  ]; // ResponseBiddingRules

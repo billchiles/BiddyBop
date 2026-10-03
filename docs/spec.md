@@ -153,7 +153,8 @@ The app should help the user practice bidding decisions using structured convent
 - The auction remains open for further user-entered calls and ends after three final passes.
   Rule evaluation remains incomplete for some later and competitive stages.
 - Show matching rules, suggested calls, and guidance.
-- Do not build DDS, simulation, scoring, or full auction judgment yet. Keep competitive
+- Do not build DDS, simulation, scoring, penalty-double/redouble evaluation, or full auction
+  judgment. These are not project goals, including in later competitive expansions. Keep
   bidding incremental and leave unmodeled meanings unresolved.
 - Configurable practice-hand/scenario generation belongs in model code rather than React.
 
@@ -395,13 +396,13 @@ jump overcalls use the shared good-suit test with six cards at the two level (5-
 seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
 These exact lengths and HCP interpretations are deterministic choices from the source's
 weak-hand guidance. Balancing, advancing, and competitive opener continuations are not
-yet implemented. `responding` remains the stage after a direct overcall,
-but only ordinary one-level suit responses after a direct non-jump natural suit overcall have
-been updated; response after takeout Double, natural 1NT, and preemptive jumps remains pending.
+yet implemented. `responding` remains the stage after the opponent's first call following
+an opening. Natural non-jump suit overcalls and takeout doubles now have responder treatments;
+responses after a natural 1NT overcall or preemptive jump remain pending.
 With no modeled candidate, the user can Pass, but no general inferred-Pass rule exists.
 Double is evaluated only for specifically declared informational treatments, never penalties.
 
-## Responder after a direct natural suit overcall
+## Responder after an opponent's natural suit overcall
 
 For one-level suit openings, `AuctionContext.interference` classifies the first opponent's
 call as none, a natural non-jump suit overcall, a jump suit overcall, takeout Double,
@@ -432,7 +433,35 @@ After a *natural non-jump suit overcall*, the new responder rules offer:
   approximation is reused by natural 1NT overcalls.
 
 Raises forced above two of opener's suit by *jump* preempts (e.g., `1H-(2S)-3H`),
-response after an opponent's takeout Double or natural 1NT, and subsequent competitive
+response after an opponent's natural 1NT overcall, and subsequent competitive
 opener rebids are not yet modeled. Zero remaining candidate bids is not a rule to Pass.
 These responder treatments rely on outside competitive-bidding teaching references;
 they are not attributed to source pages 18-21, which address overcalls and advances.
+
+## Responder after an opponent's takeout double
+
+`getInterferenceAfterOpening` identifies the opponent's first call after opener's suit bid.
+The word *after* is deliberately specific: it does not classify balancing or later interference.
+When that call is `Double` of a one-level suit opening, responder's rules include:
+
+- Redouble with **10+ HCP**. This shows strength, without promising or denying support;
+  opener is not compelled to rebid if opponents pass. The trainer does not model later
+  penalty-double decisions or calculate a doubled/redoubled contract's score.
+- Jordan **2NT** as an artificial limit-or-better support raise, requiring 10+ shortage-
+  adjusted points and at least three-card major, four-card diamond, or five-card club
+  support. These support thresholds and use over minor openings are explicit partnership
+  choices. A qualifying Redouble remains a visible alternative; rank sets presentation,
+  not exclusive selection. Jordan is independent of the uncontested Jacoby 2NT setting.
+- Natural one-level new suit: four cards, 6+ HCP, forcing one round (possibly 10+ HCP).
+  Natural *nonjump* two-level new suit: good six-card suit and 5-9 HCP, nonforcing.
+- Jump shift: weak, six-card or longer suit and 4-7 HCP, independent of the uncontested
+  weak/strong jump-shift setting. Jump raise to three: weak, 0-6 HCP, no more than nine
+  support points, and four-card major/diamond or five-card club support.
+- Natural 1NT with 6-9 HCP and strict balanced shape; no specific opposing-suit stopper
+  is required because the opponent has doubled rather than bid a suit.
+
+Unchanged weak Pass and ordinary simple raises continue to use shared responder rules.
+`getBidStage` intentionally returns `null` for later contested opener turns until those
+rebid meanings are audited: prematurely returning `openerRebid` would select unreviewed
+uncontested rules, including rules that rely on the original meaning of responder's raise.
+That is a coverage boundary, not an auction-legality or scoring restriction.

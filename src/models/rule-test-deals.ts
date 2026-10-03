@@ -4351,6 +4351,115 @@ export const RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Responder to an opponent's takeout double of partner's one-level suit opening.
+/// The double is backed by East's actual holding; no penalty scoring is exercised.
+export const RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-(Double)-Redouble: 10+ HCP without any requirement to deny heart support; ' +
+                 'Jordan 2NT is also available with three hearts and limit-or-better support.',
+    practiceAuction: ['1H', 'Double', 'Redouble'],
+    expectedResponseCalls: [
+      { call: 'Redouble', ruleIds: ['respond-after-double-redouble-values'] },
+      { call: '2NT', ruleIds: ['respond-after-double-jordan-2nt-support'] },
+    ],
+    expectedResponseCallOrder: [['2NT', 'Redouble']],
+    rejectedResponseCalls: ['3H', '1NT'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98', H: 'QJ5', D: 'AJ6', C: 'AK73' },
+  },
+  {
+    description: '1H-(Double)-Redouble: 10+ HCP still qualifies with only one heart; ' +
+                 'Jordan 2NT does require a fit.',
+    practiceAuction: ['1H', 'Double', 'Redouble'],
+    expectedResponseCalls: [
+      { call: 'Redouble', ruleIds: ['respond-after-double-redouble-values'] },
+      { call: '1S', ruleIds: ['respond-after-double-new-suit-one-level'] },
+    ],
+    rejectedResponseCalls: ['2NT'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T9865', H: 'Q', D: 'AJT9', C: 'AKT' },
+  },
+  {
+    description: '1H-(Double)-3H: weak preemptive raise with four trumps, not a limit raise.',
+    practiceAuction: ['1H', 'Double', '3H'],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-after-double-weak-jump-raise'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Redouble'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98', H: 'J875', D: 'T96', C: '932' },
+  },
+  {
+    description: '1H-(Double)-2D: 6 diamonds with adequate suit texture, 5-9 HCP, nonforcing.',
+    practiceAuction: ['1H', 'Double', '2D'],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-after-double-new-suit-two-level'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Redouble'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98', H: 'J7', D: 'AJT962', C: '93' },
+  },
+  {
+    description: '1H-(Double)-1S: natural 4-card suit, forcing even when responder has 10+ HCP.',
+    practiceAuction: ['1H', 'Double', '1S'],
+    expectedResponseCalls: [
+      { call: '1S', ruleIds: ['respond-after-double-new-suit-one-level'] },
+      { call: 'Redouble', ruleIds: ['respond-after-double-redouble-values'] },
+    ],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T986', H: 'QJ5', D: 'AJ6', C: 'A73' },
+  },
+  {
+    description: '1H-(Double)-1NT: balanced 6-9 HCP, without a named opposing suit to stop.',
+    practiceAuction: ['1H', 'Double', '1NT'],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-after-double-natural-1nt'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Redouble'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+  },
+  {
+    description: '1H-(Double)-2S: weak jump shift in a six-card suit, independent of jump-shift setting.',
+    practiceAuction: ['1H', 'Double', '2S'],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-after-double-weak-jump-shift'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Redouble'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98653', H: 'J7', D: 'AT9', C: '93' },
+  },
+  {
+    description: '1D-(Double)-2NT: Jordan with four diamonds and 10+ support points; ' +
+                 'Redouble remains possible with 10+ HCP.',
+    practiceAuction: ['1D', 'Double', '2NT'],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-after-double-jordan-2nt-support'] },
+      { call: 'Redouble', ruleIds: ['respond-after-double-redouble-values'] },
+    ],
+    north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    east: { S: 'AQJ4', H: 'K762', D: '8', C: 'QJ96' },
+    south: { S: 'T98', H: 'QJ5', D: 'KT96', C: 'AKT' },
+  },
+  {
+    description: '1C-(Double)-2NT: Jordan after clubs explicitly needs five-card support.',
+    practiceAuction: ['1C', 'Double', '2NT'],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-after-double-jordan-2nt-support'] },
+    ],
+    north: { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' },
+    east: { S: 'AQJ4', H: 'K762', D: 'QJ96', C: '8' },
+    south: { S: 'T98', H: 'QJ5', D: 'AK', C: 'KT965' },
+  },
+];
+
 /// The dropdown groups opening, overcalling, responding, and rebidding practice.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
@@ -4367,6 +4476,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'response-after-suit-overcall', group: 'Responding',
     label: 'After natural suit overcall', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },
+  { id: 'response-after-takeout-double', group: 'Responding',
+    label: 'After takeout double', practiceStages: ['responding'] as BidStage[],
+    deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS },
   { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
     deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
   { id: 'response-major-opening', group: 'Responding', label: 'Major opening',

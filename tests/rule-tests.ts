@@ -1,11 +1,12 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
-import { compareSuitBids, getBidStage, getDirectInterference, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
+import { compareSuitBids, getBidStage, getInterferenceAfterOpening, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RULE_TEST_DEAL_BUCKETS,
+import { RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+         RULE_TEST_DEAL_BUCKETS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/rule-test-deals';
 
@@ -171,6 +172,7 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1D', 'Double', 'Pass'], expected: 'advancing' },
     { auction: ['1D', 'Double', '2D'], expected: 'advancing' },
     { auction: ['1D', 'Double', 'Pass', 'Pass'], expected: null },
+    { auction: ['1D', 'Double', 'Redouble', 'Pass'], expected: null },
     { auction: ['1D', 'Pass', '1H', 'Pass'], expected: 'openerRebid' },
   ];
   for (const testCase of stages) {
@@ -239,7 +241,7 @@ function runCompetitionBoundaryTests (): number {
   }
   // A non-jump 2C over 1D is distinct from a jump 2H over 1D.  A later responder
   // patch must not expose uncontested treatments after either intervention by accident.
-  const interferenceCases: { auction: Call[]; expected: ReturnType<typeof getDirectInterference> }[] = [
+  const interferenceCases: { auction: Call[]; expected: ReturnType<typeof getInterferenceAfterOpening> }[] = [
     { auction: ['1D', 'Pass'], expected: 'none' },
     { auction: ['1C', '1D'], expected: 'suitOvercall' },
     { auction: ['1D', '2C'], expected: 'suitOvercall' },
@@ -251,7 +253,7 @@ function runCompetitionBoundaryTests (): number {
   ];
   for (const testCase of interferenceCases) {
     checks += 1;
-    if (getDirectInterference('N', testCase.auction) !== testCase.expected) {
+    if (getInterferenceAfterOpening('N', testCase.auction) !== testCase.expected) {
       failures += 1;
       console.error(`FAIL intervention classification: ${testCase.auction.join(' ')}.`);
     }
@@ -306,9 +308,24 @@ function runCompetitionBoundaryTests (): number {
     failures += 1;
     console.error('FAIL raised 3H after preemptive 2S is deferred, not ordinary limit raise.');
   }
-  // Every recorded competitive response setup must itself be a legitimate opening and
-  // natural overcall with the supplied physical hands, not merely an injected auction string.
-  for (const deal of RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS) {
+  const redoubleCases: { auction: Call[]; expected: boolean }[] = [
+    { auction: ['1H', 'Double'], expected: true },
+    { auction: ['1H', 'Double', 'Pass'], expected: false },
+    { auction: ['1H', 'Double', 'Pass', 'Pass'], expected: true },
+    { auction: ['1H', 'Double', '1S'], expected: false },
+    { auction: ['1H', 'Pass'], expected: false },
+  ];
+  for (const testCase of redoubleCases) {
+    checks += 1;
+    if (isCallAvailableInAuction('Redouble', testCase.auction) !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL Redouble availability after ${testCase.auction.join(' ')}.`);
+    }
+  }
+  // Recorded competitive setups must themselves be plausible with the supplied hands;
+  // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
+  for (const deal of [...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
+                      ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS]) {
     const { board: practiceBoard } = makeRuleTestBoard(deal);
     for (const index of [0, 1]) {
       const call = deal.practiceAuction[index];

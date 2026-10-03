@@ -65,9 +65,9 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   return null;
 }
 
-/// getDirectInterference classifies the call immediately after an opening.  For responder
-/// rules this separates natural non-jump suit overcalls from preemptive jumps and doubles.
-export function getDirectInterference (dealer: Seat, auction: Call[]): DirectInterference {
+/// getInterferenceAfterOpening classifies the opponent's first call immediately after opener's
+/// bid, distinguishing natural suit overcalls, preemptive jumps, and a takeout double.
+export function getInterferenceAfterOpening (dealer: Seat, auction: Call[]): DirectInterference {
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
     return 'none';
@@ -96,8 +96,17 @@ export function getDirectInterference (dealer: Seat, auction: Call[]): DirectInt
 }
 
 /// isCallAvailableInAuction checks contract ordering independently of bidding-rule meaning.
-/// Pass is always mechanically available here; doubles/redoubles await their specific treatments.
+/// Pass is always mechanically available. Double meanings are evaluated by bidding rules;
+/// Redouble is available only to the doubled contract's partnership while Double is in force.
 export function isCallAvailableInAuction (call: Call, auction: Call[]): boolean {
+  if (call === 'Redouble') {
+    const lastActionIndex = auction.findLastIndex((action) => action !== 'Pass');
+    if (lastActionIndex < 0 || auction[lastActionIndex] !== 'Double') {
+      return false;
+    }
+    const contractIndex = auction.findLastIndex((action) => isContractBid(action));
+    return contractIndex >= 0 && contractIndex % 2 === auction.length % 2;
+  }
   if (! isContractBid(call)) {
     return true;
   }

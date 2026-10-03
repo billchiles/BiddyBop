@@ -1417,6 +1417,67 @@ export function refineResponderCuebidAfterOvercall (calls: Call[], context: Rule
 }
 
 ///
+//// Responder After an Opponent's Takeout Double
+///
+
+/// responderTwoLevelSuitAfterDoubleApplies selects a non-jump, natural two-level new suit:
+/// a good six-card suit and 5-9 HCP. Unlike an uncontested 2/1 response, it is nonforcing.
+///
+export function responderTwoLevelSuitAfterDoubleApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const candidate = parseSuitBid(call);
+  if (candidate === null || candidate.strain === 'NT' || candidate.level !== 2) {
+    return { success: false, telemetryLines: ['A natural two-level suit response is required.'] };
+  }
+  const suit = candidate.strain as Suit;
+  const length = context.handFacts.lengths[suit];
+  const hcp = context.handFacts.hcp;
+  const enough = length >= 6 && hasPreemptSuitQuality(context.hand, suit) && hcp >= 5 && hcp <= 9;
+  return { success: enough, telemetryLines: [
+    `${enough ? 'PASS' : 'FAIL'}: nonforcing two-level new suit needs a good six-card ` +
+      `${suit} suit and 5-9 HCP (have ${length} cards, ${hcp} HCP).`,
+  ] };
+}
+
+/// responderJordanTwoNtAfterDoubleApplies uses 10+ shortage-adjusted support points and
+/// enough trump support for an artificial limit-or-better raise: 3+ majors, 4+ D, or 5+ C.
+///
+export function responderJordanTwoNtAfterDoubleApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['Jordan 2NT requires a one-level suit opening.'] };
+  }
+  const suit = opening.strain as Suit;
+  const support = context.handFacts.lengths[suit];
+  const minimum = suit === 'C' ? 5 : suit === 'D' ? 4 : 3;
+  const points = context.handFacts.totalPointsWShortage;
+  const enough = support >= minimum && points >= 10;
+  return { success: enough, telemetryLines: [
+    `${enough ? 'PASS' : 'FAIL'}: Jordan 2NT needs 10+ support points and ` +
+      `${minimum}+ ${suit} cards (have ${points} points, ${support} cards).`,
+  ] };
+}
+
+/// responderWeakJumpRaiseAfterDoubleApplies requires a weak hand and substantial trump
+/// support for a preemptive raise: four cards in a major or diamonds, five in clubs.
+///
+export function responderWeakJumpRaiseAfterDoubleApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getPartnerOpeningBid(context);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['A one-level suit opening is required.'] };
+  }
+  const suit = opening.strain as Suit;
+  const minimum = suit === 'C' ? 5 : 4;
+  const support = context.handFacts.lengths[suit];
+  const hcp = context.handFacts.hcp;
+  const points = context.handFacts.totalPointsWShortage;
+  const enough = support >= minimum && hcp <= 6 && points <= 9;
+  return { success: enough, telemetryLines: [
+    `${enough ? 'PASS' : 'FAIL'}: weak jump raise needs ${minimum}+ ${suit}, ` +
+      `0-6 HCP, and no more than 9 support points (have ${support}, ${hcp}, ${points}).`,
+  ] };
+}
+
+///
 //// Bidding Rule When Applies Functions
 ///
 
