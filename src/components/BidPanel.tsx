@@ -116,6 +116,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   }
 
   const inputDisabled = auctionComplete || auctionIsComplete(auction);
+  const activeSeat = inputDisabled ? null : getNextSeat(board.dealer, auction);
   const nextBidLabel = getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
@@ -123,7 +124,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     <section className="bidPanel" aria-label="Bid evaluation">
       <section className="trainerWorkspace">
         <section className="trainerLeftColumn">
-          <DealCompass deal={board.deal} />
+          <DealCompass deal={board.deal} activeSeat={activeSeat} />
           <form className="bidForm" onSubmit={handleSubmit}>
             <label className="bidLabel" htmlFor="bidInput">{nextBidLabel}</label>
             <input

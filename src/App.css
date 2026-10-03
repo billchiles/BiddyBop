@@ -176,14 +176,17 @@ textarea {
 
 .northSeat {
   grid-area: north;
+  transform: translateX(15px);
 }
 
 .eastSeat {
   grid-area: east;
+  transform: translateX(8px);
 }
 
 .southSeat {
   grid-area: south;
+  transform: translateX(15px);
 }
 
 .westSeat {
@@ -198,6 +201,11 @@ textarea {
   padding: 5px 7px;
   background: white;
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.08);
+}
+
+.activeSeat .handCard {
+  outline: 3px solid #264b80;
+  outline-offset: 2px;
 }
 
 .handTitle {
