@@ -28,12 +28,12 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 261 deals, with 729 positive call/rule assertions, 196 elimination
-assertions, 27 call-order assertions, and 654 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 927 eligible deal/configuration combinations and 2322 recorded calls.
+The current corpus contains 274 deals, with 746 positive call/rule assertions, 219 elimination
+assertions, 28 call-order assertions, and 667 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 979 eligible deal/configuration combinations and 2374 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
-preempts. Response coverage is 78/86; the eight uncovered response rules are the intentionally
+preempts. Response coverage is 80/88; the eight uncovered response rules are the intentionally
 deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
 
 Seven `overcall-simple` practice deals fix West's opening hand and North's overcall hand,
@@ -63,6 +63,12 @@ on an opponent-suit cuebid, blocks 1NT without a stopper, and leaves responder a
 a preemptive jump unmodeled rather than importing ordinary limit-raise semantics.
 The nine fixtures fix three physical hands (North, East, South) without duplicate cards;
 the opening and overcall in each setup are independently required to qualify.
+
+Four `response-after-1nt-overcall` deals check good six-card nonforcing two-level suits
+(including `1C-(1NT)-2D`, whose cheapest level must be measured above the overcall),
+an unchanged simple raise, and a weak three-level jump raise. Ordinary penalty Doubles and
+unagreed 2NT treatments remain excluded. The Jordan 2NT explanation now explicitly notes
+that shortage points can bring a hand below 10 HCP to the required 10 support points.
 
 Twenty-five existing notrump response deals were extended through opener's next call and **moved**,
 not copied, into the `nt-1nt` and `nt-2nt` opener-rebid dropdown buckets. Two existing minor-raise

@@ -4460,6 +4460,55 @@ export const RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Responder after a natural opposing 1NT overcall: two-level new suits are weak and nonforcing,
+/// ordinary simple raises remain available, and jump raises are preemptive rather than invitational.
+export const RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-(1NT)-2D: five HCP and good six-card diamonds, nonforcing at two level.',
+    practiceAuction: ['1H', '1NT', '2D'],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-over-1nt-new-suit-two-level'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Double', '3H'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQ4', H: 'QJ8', D: 'K874', C: 'KQ9' },
+    south: { S: 'T83', H: '73', D: 'AJT962', C: 'T3' },
+  },
+  {
+    description: '1C-(1NT)-2D: measure the new-suit bid above opposing 1NT, not opener 1C.',
+    practiceAuction: ['1C', '1NT', '2D'],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-over-1nt-new-suit-two-level'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Double'],
+    north: { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' },
+    east: { S: 'AQ4', H: 'KJ8', D: 'Q76', C: 'K962' },
+    south: { S: 'T83', H: 'Q75', D: 'AJT952', C: 'T' },
+  },
+  {
+    description: '1H-(1NT)-2H: shared simple raise with three hearts and eight HCP.',
+    practiceAuction: ['1H', '1NT', '2H'],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    rejectedResponseCalls: ['2D', '3H', '2NT', 'Double'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQ4', H: 'QJ8', D: 'K874', C: 'KQ9' },
+    south: { S: 'T83', H: '754', D: 'AT9', C: 'A832' },
+  },
+  {
+    description: '1S-(1NT)-3S: weak four-card support makes a preemptive jump raise.',
+    practiceAuction: ['1S', '1NT', '3S'],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-over-1nt-preemptive-jump-raise'] },
+    ],
+    rejectedResponseCalls: ['2S', '2NT', 'Double'],
+    north: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    east: { S: 'Q85', H: 'AQ3', D: 'KJ72', C: 'KQ9' },
+    south: { S: 'T963', H: 'J75', D: 'T86', C: 'A42' },
+  },
+];
+
 /// The dropdown groups opening, overcalling, responding, and rebidding practice.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
@@ -4479,6 +4528,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'response-after-takeout-double', group: 'Responding',
     label: 'After takeout double', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS },
+  { id: 'response-after-1nt-overcall', group: 'Responding',
+    label: 'After natural 1NT overcall', practiceStages: ['responding'] as BidStage[],
+    deals: RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS },
   { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
     deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
   { id: 'response-major-opening', group: 'Responding', label: 'Major opening',

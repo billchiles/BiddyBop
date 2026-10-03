@@ -432,9 +432,8 @@ After a *natural non-jump suit overcall*, the new responder rules offer:
   suit, and respective 6-10, 11-12, or 13-15 HCP bands. The same stopper
   approximation is reused by natural 1NT overcalls.
 
-Raises forced above two of opener's suit by *jump* preempts (e.g., `1H-(2S)-3H`),
-response after an opponent's natural 1NT overcall, and subsequent competitive
-opener rebids are not yet modeled. Zero remaining candidate bids is not a rule to Pass.
+Responder's raises pushed above the two level by a *jump* preempt (e.g.,
+`1H-(2S)-3H`) and subsequent competitive opener rebids remain unmodeled. Zero remaining candidate bids is not a rule to Pass.
 These responder treatments rely on outside competitive-bidding teaching references;
 they are not attributed to source pages 18-21, which address overcalls and advances.
 
@@ -451,7 +450,9 @@ When that call is `Double` of a one-level suit opening, responder's rules includ
   adjusted points and at least three-card major, four-card diamond, or five-card club
   support. These support thresholds and use over minor openings are explicit partnership
   choices. A qualifying Redouble remains a visible alternative; rank sets presentation,
-  not exclusive selection. Jordan is independent of the uncontested Jacoby 2NT setting.
+  not exclusive selection. Support points include HCP plus appropriate shortage points,
+  so a hand can qualify with fewer than 10 HCP. Jordan is independent of the uncontested
+  Jacoby 2NT setting.
 - Natural one-level new suit: four cards, 6+ HCP, forcing one round (possibly 10+ HCP).
   Natural *nonjump* two-level new suit: good six-card suit and 5-9 HCP, nonforcing.
 - Jump shift: weak, six-card or longer suit and 4-7 HCP, independent of the uncontested
@@ -465,3 +466,21 @@ Unchanged weak Pass and ordinary simple raises continue to use shared responder 
 rebid meanings are audited: prematurely returning `openerRebid` would select unreviewed
 uncontested rules, including rules that rely on the original meaning of responder's raise.
 That is a coverage boundary, not an auction-legality or scoring restriction.
+
+## Responder after an opponent's natural 1NT overcall
+
+After `1m/M-(1NT)` where the opponent's overcall is natural, the chosen treatment is:
+
+- An ordinary, nonforcing simple raise of opener's suit remains available with the existing
+  support-length and shortage-adjusted 6-10 support-point criteria. Weak Pass rules remain shared.
+- An economical new suit at the **two level** is natural, nonforcing, and requires a good six-card-
+  or-longer suit and 5-9 HCP. The refiner measures the cheapest suit bid above the opponent's
+  1NT, rather than partner's opening; it never treats opener's suit as a new suit. This conservative
+  range intentionally leaves some strong hands unsupported rather than assigning them weak calls.
+- A three-level jump raise of opener's suit is weak and preemptive: 0-6 HCP, no more than nine
+  shortage-adjusted points, and four-card major/diamond or five-card club support. This is
+  independent of uncontested invitational jump-raise agreements.
+- Double is usually penalty-oriented over an opposing natural 1NT and remains unmodeled here.
+  No natural or artificial 2NT response is assigned without a partnership agreement; the
+  otherwise eligible responder can have no modeled action. Advancer and opener continuations
+  remain deferred.

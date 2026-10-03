@@ -9,9 +9,10 @@ import { guidelineOf17Applies, guidelineOf20Applies, majorDirectThreeNtApplies, 
          twoNtNaturalMinorForcingApplies, ordinaryTakeoutDoubleApplies,
          naturalOneNtOvercallApplies,
          responderNegativeDoubleAfterOvercallApplies, responderNotrumpAfterOvercallApplies,
-         responderCuebidAfterOvercallApplies, responderTwoLevelSuitAfterDoubleApplies,
-         responderJordanTwoNtAfterDoubleApplies, responderWeakJumpRaiseAfterDoubleApplies,
+         responderCuebidAfterOvercallApplies, responderWeakTwoLevelNewSuitApplies,
+         responderJordanTwoNtAfterDoubleApplies, responderWeakJumpRaiseAfterInterferenceApplies,
          refineResponderNewSuitAfterOvercall, refineResponderRaiseAfterOvercall, refineResponderCuebidAfterOvercall,
+         refineResponderNewSuitAfterNotrumpOvercall,
          refineForcingOneNtMinorFallback, refineMajorSupportNewSuitFirst,
          refineMajorTwoLevelNewSuitByLength, refineNaturalMajorGameOver2Nt,
          refineNewSuitByExtraLevels,
@@ -1783,6 +1784,8 @@ export const ResponseBidRules: BidRule[] = [
              'points and 3+ major, 4+ diamond, or 5+ club support.',
     guidance: ['The minor-suit treatment and exact point floor are partnership agreements. ' +
                'This trainer uses the specified support lengths and 10+ support points.',
+               'Support points combine HCP with appropriate shortage points. A hand may qualify ' +
+               'with fewer than 10 HCP when its shortage-adjusted total reaches 10.',
                'Redouble remains visible with 10+ HCP; Jordan is not the only strength-showing call.'],
     certainty: 'medium',
   },
@@ -1812,7 +1815,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineToCheapestNewSuitBids,
     callCategory: ['natural'],
-    appliesWhen: responderTwoLevelSuitAfterDoubleApplies,
+    appliesWhen: responderWeakTwoLevelNewSuitApplies,
     priority: { rank: 65 },
     meaning: 'Nonforcing new suit at two level: 5-9 HCP and a good six-card suit, ' +
              'rather than uncontested 2/1 forcing values.',
@@ -1844,7 +1847,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineRaisePartnerSuitBy2,
     callCategory: ['signoff', 'natural'],
-    appliesWhen: responderWeakJumpRaiseAfterDoubleApplies,
+    appliesWhen: responderWeakJumpRaiseAfterInterferenceApplies,
     priority: { rank: 55 },
     meaning: 'Weak preemptive jump raise with 0-6 HCP and 4+ major/diamond or 5+ club ' +
              'support, not an invitational limit raise.',
@@ -1864,6 +1867,44 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural 1NT with 6-9 HCP and balanced shape; no opponent-suit stopper is required ' +
              'because the opponent doubled rather than naming a suit.',
     certainty: 'high',
+  },
+  //
+  // After a natural opposing 1NT overcall, constructive two-level new suits are nonforcing.
+  // The simple raise and weak Pass keep their ordinary shared meanings. Double is for penalties
+  // in common methods and remains outside this trainer, as does an unagreed 2NT response.
+  //
+  {
+    id: 'respond-over-1nt-new-suit-two-level',
+    kind: 'responseBid',
+    title: 'Natural nonforcing new suit after opponent overcalls 1NT',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refineResponderNewSuitAfterNotrumpOvercall,
+    callCategory: ['natural'],
+    appliesWhen: responderWeakTwoLevelNewSuitApplies,
+    priority: { rank: 65 },
+    meaning: 'Natural nonforcing new suit with a good six-card-or-longer suit and 5-9 HCP. ' +
+             'The usual uncontested two-level strength requirement does not apply.',
+    guidance: ['This is a conservative partnership treatment; strong hands that would normally ' +
+               'double for penalties are deliberately not assigned a weaker response.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-over-1nt-preemptive-jump-raise',
+    kind: 'responseBid',
+    title: 'Preemptively jump-raise partner after opponent overcalls 1NT',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineRaisePartnerSuitBy2,
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: responderWeakJumpRaiseAfterInterferenceApplies,
+    priority: { rank: 55 },
+    meaning: 'Weak, preemptive jump raise with 0-6 HCP, at most nine support points, ' +
+             'and 4+ major/diamond or 5+ club support; not an invitational limit raise.',
+    certainty: 'medium',
   },
  ]; // ResponseBiddingRules
 

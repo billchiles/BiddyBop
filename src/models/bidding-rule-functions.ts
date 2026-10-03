@@ -1417,13 +1417,36 @@ export function refineResponderCuebidAfterOvercall (calls: Call[], context: Rule
 }
 
 ///
+//// Responder After an Opponent's Natural 1NT Overcall
+///
+
+/// refineResponderNewSuitAfterNotrumpOvercall measures the cheapest natural new-suit response
+/// from the opposing 1NT contract, not from partner's earlier one-level opening.
+///
+export function refineResponderNewSuitAfterNotrumpOvercall (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const parsedOpening = opening === null ? null : parseSuitBid(opening.call);
+  if (opening === null || parsedOpening === null || parsedOpening.level !== 1 ||
+      parsedOpening.strain === 'NT' || context.auction[opening.index + 1] !== '1NT') {
+    return { calls: [], telemetryLines: ['No natural 1NT overcall of a one-level suit opening.'] };
+  }
+  return { calls: calls.filter((call) => {
+    const candidate = parseSuitBid(call);
+    return candidate !== null && candidate.strain !== 'NT' &&
+      candidate.strain !== parsedOpening.strain &&
+      cheapestBidInStrainAfter({ level: 1, strain: 'NT' }, candidate.strain) === call;
+  }), telemetryLines: ['Natural new suit must be the cheapest available bid above opposing 1NT.'] };
+}
+
+///
 //// Responder After an Opponent's Takeout Double
 ///
 
-/// responderTwoLevelSuitAfterDoubleApplies selects a non-jump, natural two-level new suit:
-/// a good six-card suit and 5-9 HCP. Unlike an uncontested 2/1 response, it is nonforcing.
+/// responderWeakTwoLevelNewSuitApplies checks a good six-card suit and 5-9 HCP for a natural,
+/// nonforcing two-level response after a takeout double or a natural 1NT overcall.
 ///
-export function responderTwoLevelSuitAfterDoubleApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
+export function responderWeakTwoLevelNewSuitApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
   const candidate = parseSuitBid(call);
   if (candidate === null || candidate.strain === 'NT' || candidate.level !== 2) {
     return { success: false, telemetryLines: ['A natural two-level suit response is required.'] };
@@ -1457,10 +1480,10 @@ export function responderJordanTwoNtAfterDoubleApplies (_call: Call, context: Ru
   ] };
 }
 
-/// responderWeakJumpRaiseAfterDoubleApplies requires a weak hand and substantial trump
-/// support for a preemptive raise: four cards in a major or diamonds, five in clubs.
+/// responderWeakJumpRaiseAfterInterferenceApplies requires a weak hand and substantial
+/// support for a preemptive raise after Double or 1NT: four trumps in a major/D, five in C.
 ///
-export function responderWeakJumpRaiseAfterDoubleApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+export function responderWeakJumpRaiseAfterInterferenceApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
   const opening = getPartnerOpeningBid(context);
   if (opening === null || opening.level !== 1 || opening.strain === 'NT') {
     return { success: false, telemetryLines: ['A one-level suit opening is required.'] };
