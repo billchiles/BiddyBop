@@ -4509,6 +4509,114 @@ export const RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Responder after two- and three-level preemptive jump overcalls. Positive and negative
+/// expectations distinguish cheapest raises, new suits, stoppers, support cuebids, and Doubles.
+export const RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-(2S)-Pass: eight HCP without an economical raise; Pass after preemptive interference.',
+    practiceAuction: ['1H', '2S', 'Pass'],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-over-jump-pass-limited'] },
+    ],
+    rejectedResponseCalls: ['3H', 'Double', '2NT', '3NT'],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: 'T43', H: '8', D: 'T52', C: 'AKJ863' },
+  },
+  {
+    description: '1H-(2S)-3H: three-card support and nine adjusted points; three hearts is the cheapest raise.',
+    practiceAuction: ['1H', '2S', '3H'],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-over-jump-raise-cheapest-to-three'] },
+    ],
+    rejectedResponseCalls: ['Double', '3S', '2NT'],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: 'T4', H: '752', D: 'KJ952', C: 'A62' },
+  },
+  {
+    description: '1C-(2D)-2S: eleven HCP and five spades; forcing nonjump two-level new suit.',
+    practiceAuction: ['1C', '2D', '2S'],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-over-jump-new-suit-two-level'] },
+    ],
+    rejectedResponseCalls: ['2D', '2NT', 'Double'],
+    north: { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' },
+    east: { S: '84', H: 'T65', D: 'KQJT97', C: '92' },
+    south: { S: 'AJ963', H: 'K87', D: '42', C: 'K86' },
+  },
+  {
+    description: '1H-(2S)-3C: a long club suit and game values; separate support cuebid and game routes remain visible.',
+    practiceAuction: ['1H', '2S', '3C'],
+    expectedResponseCalls: [
+      { call: '3C', ruleIds: ['respond-over-jump-new-suit-three-level'] },
+      { call: '3S', ruleIds: ['respond-over-jump-support-cuebid-major'] },
+      { call: '4H', ruleIds: ['respond-over-jump-major-game-constructive'] },
+    ],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: '', H: 'Q75', D: 'KJ2', C: 'AKQJ632' },
+  },
+  {
+    description: '1H-(2S)-2NT: 12 balanced HCP with a spade stopper; informational Double also qualifies.',
+    practiceAuction: ['1H', '2S', '2NT'],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-over-jump-natural-notrump'] },
+      { call: 'Double', ruleIds: ['respond-over-jump-negative-double'] },
+      { call: '3S', ruleIds: ['respond-over-jump-support-cuebid-major'] },
+    ],
+    rejectedResponseCalls: ['3NT', '3C'],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: 'KT', H: 'Q82', D: 'K976', C: 'KJ62' },
+  },
+  {
+    description: '1S-(3H)-3NT: 15 balanced HCP and a heart stopper; 4S is a constructive alternative.',
+    practiceAuction: ['1S', '3H', '3NT'],
+    expectedResponseCalls: [
+      { call: '3NT', ruleIds: ['respond-over-jump-natural-notrump'] },
+      { call: '4S', ruleIds: ['respond-over-jump-major-game-constructive'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Double', '3H'],
+    north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
+    south: { S: 'T96', H: 'AK3', D: 'J5', C: 'AK843' },
+  },
+  {
+    description: '1S-(3H)-Double: 12 HCP and four cards in both unbid minors after a three-level jump.',
+    practiceAuction: ['1S', '3H', 'Double'],
+    expectedResponseCalls: [
+      { call: 'Double', ruleIds: ['respond-over-jump-negative-double'] },
+    ],
+    rejectedResponseCalls: ['3NT', '4S'],
+    north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
+    south: { S: '6', H: 'A43', D: 'KT942', C: 'KQ43' },
+  },
+  {
+    description: '1S-(3H)-3S: cheapest raise stays available at three, with just nine support points.',
+    practiceAuction: ['1S', '3H', '3S'],
+    expectedResponseCalls: [
+      { call: '3S', ruleIds: ['respond-over-jump-raise-cheapest-to-three'] },
+    ],
+    rejectedResponseCalls: ['2NT', 'Double', '4S'],
+    north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
+    south: { S: 'T92', H: 'K3', D: 'KT65', C: 'Q874' },
+  },
+  {
+    description: '1H-(3S)-4H: constructive major game over a three-level preempt with adequate support.',
+    practiceAuction: ['1H', '3S', '4H'],
+    expectedResponseCalls: [
+      { call: '4H', ruleIds: ['respond-over-jump-major-game-constructive'] },
+    ],
+    rejectedResponseCalls: ['3NT', 'Double'],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJT965', H: '43', D: '84', C: 'T9' },
+    south: { S: 'K43', H: 'QJ8', D: 'KT9', C: 'AK83' },
+  },
+];
+
 /// The dropdown groups opening, overcalling, responding, and rebidding practice.
 /// 'all' concatenates compatible deals in the same order.
 export const RULE_TEST_DEAL_BUCKETS = [
@@ -4531,6 +4639,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'response-after-1nt-overcall', group: 'Responding',
     label: 'After natural 1NT overcall', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS },
+  { id: 'response-after-jump-overcall', group: 'Responding',
+    label: 'After preemptive jump overcall', practiceStages: ['responding'] as BidStage[],
+    deals: RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS },
   { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
     deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
   { id: 'response-major-opening', group: 'Responding', label: 'Major opening',

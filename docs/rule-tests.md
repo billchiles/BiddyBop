@@ -28,12 +28,12 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 274 deals, with 746 positive call/rule assertions, 219 elimination
-assertions, 28 call-order assertions, and 667 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 979 eligible deal/configuration combinations and 2374 recorded calls.
+The current corpus contains 283 deals, with 760 positive call/rule assertions, 241 elimination
+assertions, 28 call-order assertions, and 676 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1015 eligible deal/configuration combinations and 2410 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
-preempts. Response coverage is 80/88; the eight uncovered response rules are the intentionally
+preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
 deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
 
 Seven `overcall-simple` practice deals fix West's opening hand and North's overcall hand,
@@ -43,7 +43,7 @@ reserved for the strong-double treatment. Two `overcall-takeout-double` deals di
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
 that does not require that shape. These are informational doubles only; later responses and
 penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 44 competitive-boundary checks protect
+call-availability checks occur before refinement; 87 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
 heart response is obstructed. The new negative Double and stopper-qualified 1NT
 now supply alternatives in that example; other intervention families remain pending.
@@ -57,10 +57,10 @@ Nine `response-after-suit-overcall` deals fix North's opening, East's actual nat
 non-jump suit overcall, and South's response. They cover negative Double, an artificial
 support cuebid, retained economical single raise, weak true jump raise, four-card
 one-level major, minor-suit cuebid, natural stopped 1NT, natural forcing two-level
-new suit, and game-forcing three-level nonjump new suit. A suite of 44 competition
-boundary checks distinguishes true jumps from nonjumps, forbids old jump-shift meanings
-on an opponent-suit cuebid, blocks 1NT without a stopper, and leaves responder after
-a preemptive jump unmodeled rather than importing ordinary limit-raise semantics.
+new suit, and game-forcing three-level nonjump new suit. Competition
+boundary checks distinguish true jumps from nonjumps, forbid old jump-shift meanings
+on an opponent-suit cuebid, block 1NT without a stopper, and prevent the ordinary
+limit-raise meaning from leaking after a preemptive jump.
 The nine fixtures fix three physical hands (North, East, South) without duplicate cards;
 the opening and overcall in each setup are independently required to qualify.
 
@@ -69,6 +69,14 @@ Four `response-after-1nt-overcall` deals check good six-card nonforcing two-leve
 an unchanged simple raise, and a weak three-level jump raise. Ordinary penalty Doubles and
 unagreed 2NT treatments remain excluded. The Jordan 2NT explanation now explicitly notes
 that shortage points can bring a hand below 10 HCP to the required 10 support points.
+
+Nine `response-after-jump-overcall` deals exercise limited Pass with eight HCP,
+forced-up economical three-level raises, forcing economical new suits at two and three,
+negative Doubles at both supported levels, game-going major-support cuebids, natural
+2NT/3NT with an opponent-suit stopper, and a constructive major-game raise. The
+setup of each deal requires the actual opening and jump overcall to qualify on the
+fixed physical hands; a separate boundary check suppresses weak game raises after
+four-level jump interference. The negative-double rules are informational only.
 
 Twenty-five existing notrump response deals were extended through opener's next call and **moved**,
 not copied, into the `nt-1nt` and `nt-2nt` opener-rebid dropdown buckets. Two existing minor-raise

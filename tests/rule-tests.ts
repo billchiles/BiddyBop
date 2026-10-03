@@ -6,6 +6,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+         RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/rule-test-deals';
@@ -292,8 +293,8 @@ function runCompetitionBoundaryTests (): number {
     failures += 1;
     console.error('FAIL competitive natural 1NT requires a stopper in spades.');
   }
-  // A weak jump after a suit opening has a different response treatment; this first
-  // patch deliberately leaves it unmodeled rather than importing uncontested rules.
+  // A three-level economical raise after a preemptive overcall requires 8-10 support points.
+  // The old 11-12-point uncontested limit-raise meaning must not leak into this auction.
   const { board: jumpedBoard } = makeRuleTestBoard({
     description: 'Responder after a preemptive 2S jump over 1H.',
     practiceAuction: ['1H', '2S', '3H'],
@@ -306,7 +307,23 @@ function runCompetitionBoundaryTests (): number {
   checks += 1;
   if (jumpedCandidates.some(({ call }) => call === '3H')) {
     failures += 1;
-    console.error('FAIL raised 3H after preemptive 2S is deferred, not ordinary limit raise.');
+    console.error('FAIL three-level raise after a 2S jump must not be the old limit raise.');
+  }
+  // A four-level jump removes the newly modeled responder options and must not inherit the
+  // shared weak major game-raise rule merely because four of the major is still legal.
+  const { board: fourLevelJumpBoard } = makeRuleTestBoard({
+    description: 'A four-level preempt blocks the shared weak game raise.',
+    practiceAuction: ['1S', '4H', 'Pass'],
+    north: { S: 'AKJ74', H: '82', D: 'AQ3', C: '965' },
+    east: { S: '83', H: 'KQJT9765', D: '87', C: 'T' },
+    south: { S: 'QT965', H: 'A3', D: 'T964', C: 'J2' },
+  });
+  const fourLevelCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('4S', fourLevelJumpBoard, ['1S', '4H'], defaultBiddingSystem));
+  checks += 1;
+  if (fourLevelCandidates.some(({ call }) => call === '4S')) {
+    failures += 1;
+    console.error('FAIL four-level jump-overcall response must not inherit a weak 4S raise.');
   }
   const redoubleCases: { auction: Call[]; expected: boolean }[] = [
     { auction: ['1H', 'Double'], expected: true },
@@ -325,7 +342,8 @@ function runCompetitionBoundaryTests (): number {
   // Recorded competitive setups must themselves be plausible with the supplied hands;
   // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
   for (const deal of [...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
-                      ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS]) {
+                      ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+                      ...RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS]) {
     const { board: practiceBoard } = makeRuleTestBoard(deal);
     for (const index of [0, 1]) {
       const call = deal.practiceAuction[index];

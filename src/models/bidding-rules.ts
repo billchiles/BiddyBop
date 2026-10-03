@@ -13,6 +13,10 @@ import { guidelineOf17Applies, guidelineOf20Applies, majorDirectThreeNtApplies, 
          responderJordanTwoNtAfterDoubleApplies, responderWeakJumpRaiseAfterInterferenceApplies,
          refineResponderNewSuitAfterOvercall, refineResponderRaiseAfterOvercall, refineResponderCuebidAfterOvercall,
          refineResponderNewSuitAfterNotrumpOvercall,
+         responderPassAfterJumpOvercallApplies, responderNegativeDoubleAfterJumpOvercallApplies,
+         responderNotrumpAfterJumpOvercallApplies, responderCuebidAfterJumpOvercallApplies,
+         refineResponderNewSuitAfterJumpOvercall, refineResponderRaiseAfterJumpOvercall,
+         refineResponderCuebidAfterJumpOvercall, refineResponderPreemptiveMajorGameRaise,
          refineForcingOneNtMinorFallback, refineMajorSupportNewSuitFirst,
          refineMajorTwoLevelNewSuitByLength, refineNaturalMajorGameOver2Nt,
          refineNewSuitByExtraLevels,
@@ -778,10 +782,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Preemptively raise partner major to game with five-card support',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
     calls: ['4H', '4S'],
-    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult => {
-      // The broad declaration contains both 4H and 4S; keep only four of partner's actual major.
-      return refineRaiseToLevel(calls, context, 4);
-    },
+    callRefinement: refineResponderPreemptiveMajorGameRaise,
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { max: 9, valuation: 'shortage' }, supportLength: { min: 5 } },
     meaning: 'Non-forcing preemptive raise to game w/ long support and fewer than 10 total points.',
@@ -1904,6 +1905,143 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 55 },
     meaning: 'Weak, preemptive jump raise with 0-6 HCP, at most nine support points, ' +
              'and 4+ major/diamond or 5+ club support; not an invitational limit raise.',
+    certainty: 'medium',
+  },
+  //
+  // After an opponent's preemptive jump overcall, the actual contract determines which
+  // raises and new suits remain economical. This treatment stops at three-level interference.
+  // Four-level jump overcalls and penalty-oriented doubles remain outside the model.
+  //
+  {
+    id: 'respond-over-jump-pass-limited',
+    kind: 'responseBid',
+    title: 'Pass after a jump overcall without values for a constructive action',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: responderPassAfterJumpOvercallApplies,
+    priority: { rank: 10 },
+    meaning: 'With 6-9 HCP and no qualifying competitive raise, Pass may be right after a preempt.',
+    guidance: ['The opponent has consumed bidding room; 6+ HCP does not oblige a response.',
+               'This is a limited Pass treatment, not the general inferred-Pass mechanism.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-over-jump-raise-cheapest-to-three',
+    kind: 'responseBid',
+    title: 'Raise opener at the cheapest three level after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineResponderRaiseAfterJumpOvercall(calls, context, 3),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 8, max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    priority: { rank: 70 },
+    meaning: 'Nonforcing, economical three-level raise with 8-10 support points; not a jump raise.',
+    guidance: ['For a minor opening, prefer four-card diamond or five-card club support; ' +
+               'these additional minimums are enforced by the raise refiner.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-over-jump-new-suit-two-level',
+    kind: 'responseBid',
+    title: 'Bid a natural forcing two-level suit after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['2H', '2S'],
+    callRefinement: refineResponderNewSuitAfterJumpOvercall,
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
+    priority: { rank: 80 },
+    meaning: 'Natural five-card-or-longer new suit with 10+ HCP, forcing one round.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-over-jump-new-suit-three-level',
+    kind: 'responseBid',
+    title: 'Bid a natural game-forcing three-level suit after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineResponderNewSuitAfterJumpOvercall,
+    callCategory: ['gameForcing', 'natural'],
+    appliesWhen: { hcp: { min: 13 }, suitLengths: [{ min: 5 }] },
+    priority: { rank: 85 },
+    meaning: 'Natural five-card-or-longer new suit with 13+ HCP, forcing to game; ' +
+             'the cheapest available new suit must actually be at the three level.',
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-over-jump-negative-double',
+    kind: 'responseBid',
+    title: 'Make an informational negative double after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['Double'],
+    callCategory: ['forcing', 'conventional'],
+    appliesWhen: responderNegativeDoubleAfterJumpOvercallApplies,
+    priority: { rank: 100 },
+    meaning: 'Negative double with 10+ HCP over a two-level jump or 12+ HCP over a ' +
+             'three-level jump, plus suitable unbid-suit holdings.',
+    guidance: ['Four cards in each unbid major (or each unbid minor when no major remains) ' +
+               'is the conservative modeled subset; this is never a penalty double.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-over-jump-support-cuebid-major',
+    kind: 'responseBid',
+    title: 'Cuebid a two-level jump overcall to show game-going major support',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineResponderCuebidAfterJumpOvercall,
+    callCategory: ['forcing', 'conventional'],
+    appliesWhen: responderCuebidAfterJumpOvercallApplies,
+    priority: { rank: 95 },
+    meaning: 'Artificial cuebid in the opponent suit showing 3+ major support and 13+ ' +
+             'shortage-adjusted support points, with game-going intent.',
+    guidance: ['Only cuebids of two-level jump overcalls after a major opening are modeled; ' +
+               'a minor-opening cuebid can instead ask about a stopper and is deferred.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-over-jump-natural-notrump',
+    kind: 'responseBid',
+    title: 'Bid natural notrump with a stopper after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['2NT', '3NT'],
+    callCategory: ['natural'],
+    appliesWhen: responderNotrumpAfterJumpOvercallApplies,
+    priority: { rank: 65 },
+    meaning: 'Natural balanced 2NT with 11-12 HCP or 3NT with 13-15 HCP, with a stopper ' +
+             'in the opponent long suit; 2NT is unavailable over a three-level preempt.',
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'respond-over-jump-major-game-constructive',
+    kind: 'responseBid',
+    title: 'Bid game in opener major with constructive support after a jump overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 4),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    priority: { rank: 75 },
+    meaning: 'Constructive major-suit game bid with 13+ shortage-adjusted support points and 3+ trumps.',
+    guidance: ['The already modeled weak raise to game with 5+ support remains a separate ' +
+               'preemptive alternative; this rule does not calculate playing tricks.'],
     certainty: 'medium',
   },
  ]; // ResponseBiddingRules

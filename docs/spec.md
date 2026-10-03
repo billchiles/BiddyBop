@@ -308,8 +308,9 @@ The app should help the user practice bidding decisions using structured convent
 
 - The ordinary one-level/notrump, weak-preempt, and strong artificial `2C` families are modeled
   through opener's rebid. Common direct natural suit, 1NT, jump, and takeout-double
-  overcalls are modeled; responses after direct non-jump suit overcalls are the first
-  competitive responder slice. Other interference and advances remain pending.
+  overcalls are modeled; first responses after natural suit overcalls, takeout doubles,
+  natural 1NT overcalls, and selected jump preempts are modeled. Advancer and later
+  competitive opener turns remain pending.
   Responder rebids remain a later phase; for strong `2C`, the selected source also
   teaches the cheaper-minor 0-4 second negative after a suit rebid and ordinary notrump methods
   after a balanced rebid; those responder-second-bid rules are not yet modeled. `advancing` is
@@ -397,8 +398,8 @@ seven at the three level (under 10 HCP), or eight at the four level (under 10 HC
 These exact lengths and HCP interpretations are deterministic choices from the source's
 weak-hand guidance. Balancing, advancing, and competitive opener continuations are not
 yet implemented. `responding` remains the stage after the opponent's first call following
-an opening. Natural non-jump suit overcalls and takeout doubles now have responder treatments;
-responses after a natural 1NT overcall or preemptive jump remain pending.
+an opening. The initial responder treatments now cover all four modeled interference
+families; four-level jump-overcall responses and many stronger continuations remain deferred.
 With no modeled candidate, the user can Pass, but no general inferred-Pass rule exists.
 Double is evaluated only for specifically declared informational treatments, never penalties.
 
@@ -433,7 +434,8 @@ After a *natural non-jump suit overcall*, the new responder rules offer:
   approximation is reused by natural 1NT overcalls.
 
 Responder's raises pushed above the two level by a *jump* preempt (e.g.,
-`1H-(2S)-3H`) and subsequent competitive opener rebids remain unmodeled. Zero remaining candidate bids is not a rule to Pass.
+`1H-(2S)-3H`) are treated separately below. Subsequent competitive opener rebids remain
+unmodeled. Zero remaining candidate bids is not a rule to Pass.
 These responder treatments rely on outside competitive-bidding teaching references;
 they are not attributed to source pages 18-21, which address overcalls and advances.
 
@@ -484,3 +486,34 @@ After `1m/M-(1NT)` where the opponent's overcall is natural, the chosen treatmen
   No natural or artificial 2NT response is assigned without a partnership agreement; the
   otherwise eligible responder can have no modeled action. Advancer and opener continuations
   remain deferred.
+
+
+## Responder after an opponent's preemptive jump suit overcall
+
+The selected first-round treatment covers natural two- and three-level jump suit overcalls
+of a one-level suit opening, not four-level jumps. Bids are evaluated above the *actual*
+opposing contract, so `1H-(2S)-3H` and `1S-(3H)-3S` are economical raises, not jump raises.
+
+- A cheapest three-level raise is nonforcing with 8-10 shortage-adjusted support points;
+  require 3+ major, 4+ diamond, or 5+ club support. Responder with 6-9 HCP may Pass
+  when no such raise qualifies. This is an explicit limited rule; no general inferred
+  Pass is enabled, and unmodeled strong hands are not automatically treated as weak.
+- New suits at their cheapest available level are natural: at the two level, 5+ cards
+  and 10+ HCP, forcing one round; at the three level, 5+ cards and 13+ HCP, game forcing.
+  The opponent's suit is reserved for an artificial cuebid, not a natural new-suit call.
+- Negative Double is informational with 10+ HCP over a two-level jump or 12+ HCP over
+  a three-level jump, requiring four cards in each unbid major (or each unbid minor
+  if no major remains). This is a conservative subset, never a penalty treatment.
+- After a two-level jump overcall of a major opening, the economical opponent-suit
+  cuebid shows game-going support: 3+ trumps and 13+ shortage-adjusted points.
+  Minor-opening cuebids and higher cuebids remain undefined; they may have a stopper-
+  asking meaning in some partnerships.
+- Natural, strictly balanced 2NT shows 11-12 HCP, and 3NT shows 13-15 HCP; both
+  require the existing A/Kx/Qxx/Jxxx stopper approximation in the opponent's suit.
+  2NT cannot be bid above a three-level preempt. Constructive 4M needs 3+ support
+  and 13+ shortage-adjusted points. The separately modeled weak 4M preemptive raise
+  can still qualify with five trumps and very limited strength.
+
+These are explicit deterministic thresholds, not universal agreements or playing-trick
+calculations. Other responses after a four-level jump preempt, penalty doubles, scoring,
+and later advancer/opener continuations remain unmodeled.

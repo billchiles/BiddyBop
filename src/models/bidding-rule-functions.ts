@@ -6,7 +6,8 @@ import { biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenR
 import { getCardsForSuit, hasPreemptSuitQuality, hasSolidWeakTwoSuit, hasTwoOfTopThreeHonors,
          SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getOpeningCallInfo,
-         getPartnerOpeningCall, getResponderCall, openerRebidIsReverse, parseSuitBid,
+         getInterferenceAfterOpening, getPartnerOpeningCall, getResponderCall,
+         openerRebidIsReverse, parseSuitBid,
          type ParsedSuitBid } from './auction';
 
 ///
@@ -1497,6 +1498,172 @@ export function responderWeakJumpRaiseAfterInterferenceApplies (_call: Call, con
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: weak jump raise needs ${minimum}+ ${suit}, ` +
       `0-6 HCP, and no more than 9 support points (have ${support}, ${hcp}, ${points}).`,
+  ] };
+}
+
+///
+//// Responder After an Opponent's Preemptive Jump Overcall
+///
+
+/// refineResponderPreemptiveMajorGameRaise preserves the ordinary weak four-of-a-major
+/// response except after a four-level jump overcall, where continuations are not modeled.
+///
+export function refineResponderPreemptiveMajorGameRaise (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const overcall = openingInfo === null ? null : parseSuitBid(context.auction[openingInfo.index + 1] ?? 'Pass');
+  if (getInterferenceAfterOpening(context.dealer, context.auction) === 'jumpSuitOvercall' &&
+      overcall !== null && overcall.level >= 4) {
+    return { calls: [], telemetryLines: ['Four-level jump-overcall responses remain unmodeled.'] };
+  }
+  return refineRaiseToLevel(calls, context, 4);
+}
+
+/// getJumpOvercallForResponder identifies an opposing two- or three-level jump suit
+/// overcall of partner's one-level opening; four-level interference stays unmodeled.
+///
+function getJumpOvercallForResponder (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  if (getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const opening = openingInfo === null ? null : parseSuitBid(openingInfo.call);
+  const action = openingInfo === null ? undefined : context.auction[openingInfo.index + 1];
+  const overcall = action === undefined ? null : parseSuitBid(action);
+  if (opening === null || overcall === null || opening.level !== 1 ||
+      opening.strain === 'NT' || overcall.strain === 'NT' ||
+      (overcall.level !== 2 && overcall.level !== 3)) {
+    return null;
+  }
+  return { opening, overcall };
+}
+
+/// refineResponderRaiseAfterJumpOvercall selects only the cheapest legal three-level raise,
+/// enforcing four-card D support or five-card C support in addition to major support.
+///
+export function refineResponderRaiseAfterJumpOvercall (calls: Call[], context: RuleEvalContext,
+                                                       level: number): CallRefinementResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null || auction.opening.strain === 'NT') {
+    return { calls: [], telemetryLines: ['No supported jump-overcall raise auction.'] };
+  }
+  const suit = auction.opening.strain as Suit;
+  const minimum = suit === 'C' ? 5 : suit === 'D' ? 4 : 3;
+  const cheapest = cheapestBidInStrainAfter(auction.overcall, suit);
+  return { calls: context.handFacts.lengths[suit] < minimum ? [] :
+    calls.filter((call) => call === cheapest && parseSuitBid(call)?.level === level),
+    telemetryLines: [`Cheapest raise after opponent preempt; need ${minimum}+ ${suit} trumps.`] };
+}
+
+/// refineResponderNewSuitAfterJumpOvercall retains only an economical natural new suit
+/// above the preempt, excluding both opener's strain and the opponent's cuebid strain.
+///
+export function refineResponderNewSuitAfterJumpOvercall (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const auction = getJumpOvercallForResponder(context);
+  return { calls: auction === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.strain !== 'NT' &&
+      bid.strain !== auction.opening.strain && bid.strain !== auction.overcall.strain &&
+      cheapestBidInStrainAfter(auction.overcall, bid.strain) === call;
+  }), telemetryLines: ['Natural new suit must be economical over the actual preempt.'] };
+}
+
+/// refineResponderCuebidAfterJumpOvercall restricts the artificial three-level opponent-suit
+/// cuebid to a two-level jump overcall after a major-suit opening.
+///
+export function refineResponderCuebidAfterJumpOvercall (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null || auction.overcall.level !== 2 ||
+      (auction.opening.strain !== 'H' && auction.opening.strain !== 'S')) {
+    return { calls: [], telemetryLines: ['Only a two-level jump overcall of a major is modeled.'] };
+  }
+  const wanted = cheapestBidInStrainAfter(auction.overcall, auction.overcall.strain);
+  return { calls: calls.filter((call) => call === wanted),
+    telemetryLines: ['Opponent suit is a game-going support cuebid, not a natural suit.'] };
+}
+
+/// responderPassAfterJumpOvercallApplies allows 6-9 HCP to Pass when responder lacks
+/// sufficient support points and trump length for an economical competitive raise.
+///
+export function responderPassAfterJumpOvercallApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null) {
+    return { success: false, telemetryLines: ['No supported jump-overcall Pass auction.'] };
+  }
+  const suit = auction.opening.strain as Suit;
+  const minimum = suit === 'C' ? 5 : suit === 'D' ? 4 : 3;
+  const economical = cheapestBidInStrainAfter(auction.overcall, suit);
+  const raiseIsAvailable = economical !== null && parseSuitBid(economical)?.level === 3 &&
+    context.handFacts.lengths[suit] >= minimum && context.handFacts.totalPointsWShortage >= 8;
+  const hcp = context.handFacts.hcp;
+  const success = hcp >= 6 && hcp <= 9 && ! raiseIsAvailable;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: limited Pass needs 6-9 HCP and no qualifying economical raise; ` +
+      `have ${hcp} HCP, economical raise ${economical ?? 'none'}.`,
+  ] };
+}
+
+/// responderNegativeDoubleAfterJumpOvercallApplies checks 10+ HCP at the two level or
+/// 12+ at the three level and four cards in each relevant unbid suit.
+///
+export function responderNegativeDoubleAfterJumpOvercallApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null) {
+    return { success: false, telemetryLines: ['No supported jump-overcall negative double.'] };
+  }
+  const unbid = SUITS.filter((suit) => suit !== auction.opening.strain &&
+                                   suit !== auction.overcall.strain);
+  const majors = unbid.filter((suit) => suit === 'H' || suit === 'S');
+  const relevant = majors.length > 0 ? majors : unbid;
+  const suitsOkay = relevant.every((suit) => context.handFacts.lengths[suit] >= 4);
+  const minimum = auction.overcall.level === 2 ? 10 : 12;
+  const success = context.handFacts.hcp >= minimum && suitsOkay;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: jump-overcall negative double needs ${minimum}+ HCP and ` +
+      `4+ in ${relevant.join(', ')}; have ${context.handFacts.hcp} HCP.`,
+  ] };
+}
+
+/// responderCuebidAfterJumpOvercallApplies checks a 13+ support-point game-going
+/// cuebid with three or more cards in opener's major.
+///
+export function responderCuebidAfterJumpOvercallApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null || auction.overcall.level !== 2 ||
+      (auction.opening.strain !== 'H' && auction.opening.strain !== 'S')) {
+    return { success: false, telemetryLines: ['No supported major-opening cuebid.'] };
+  }
+  const support = context.handFacts.lengths[auction.opening.strain];
+  const points = context.handFacts.totalPointsWShortage;
+  const success = support >= 3 && points >= 13;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: support cuebid needs 3+ trump and 13+ support points; ` +
+      `have ${support} trump, ${points} points.`,
+  ] };
+}
+
+/// responderNotrumpAfterJumpOvercallApplies checks balanced 2NT/3NT strength and the
+/// shared conservative stopper in the opponent's preempt suit.
+///
+export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const auction = getJumpOvercallForResponder(context);
+  if (auction === null || (call !== '2NT' && call !== '3NT')) {
+    return { success: false, telemetryLines: ['No supported natural notrump response.'] };
+  }
+  const hcp = context.handFacts.hcp;
+  const pointsOkay = call === '2NT' ? hcp >= 11 && hcp <= 12 : hcp >= 13 && hcp <= 15;
+  const stopper = hasBasicSuitStopper(context, auction.overcall.strain as Suit);
+  const success = pointsOkay && context.handFacts.balanced && stopper;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${call} needs ${call === '2NT' ? '11-12' : '13-15'} HCP, ` +
+      `balanced shape, and a ${auction.overcall.strain} stopper.`,
   ] };
 }
 
