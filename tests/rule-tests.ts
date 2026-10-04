@@ -70,6 +70,8 @@ function runAuctionHelperTests (): number {
   }
   console.log(`Auction helpers: ${cases.length} responseJump checks and ${comparisonCases.length} ` +
               `bid-order comparisons; ${failureCount} failures.`);
+  console.log('  Verifies jump sizes (including zero) and correct suit-bid ordering.');
+  console.log('  These are fundamental calculations used throughout the bidding rules.');
   return failureCount;
 }
 
@@ -152,6 +154,8 @@ function runAuctionContextTests (): number {
     }
   }
   console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} failures.`);
+  console.log('  Verifies that mock rules match the correct opening level, suit, and auction');
+  console.log('  sequence, without accidentally matching unrelated auctions.');
   return failureCount;
 }
 
@@ -370,6 +374,8 @@ function runCompetitionBoundaryTests (): number {
     }
   }
   console.log(`Competition boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Checks bidding stages, legal calls, interference classifications, and');
+  console.log('  eligibility of competitive bids, including calls pre-set in test deals.');
   return failures;
 }
 
@@ -484,6 +490,8 @@ function runRuleTests (): number {
   console.log(`Primary: ${dealCount} deals; ${positiveCount} positive, ${eliminationCount} elimination, ` +
               `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks; ` +
               `${failureCount} failures.`);
+  console.log('  Runs practice deals through the production bidding evaluator, checking');
+  console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.');
   // Independently verify that practice calls also work in representative dropdown configurations.
   const compatibilityFailures = runConventionCompatibilityChecks();
   return failureCount + compatibilityFailures === 0 ? 0 : 1;
@@ -551,6 +559,9 @@ function runConventionCompatibilityChecks (): number {
   console.log('Compatibility meta-check for the four Stayman/Jacoby/Texas setting combinations: ' +
               `${compatibleDeals} eligible deal/configuration runs, ` +
               `${recordedCalls} recorded practice-call checks; ${failureCount} failures.`);
+  console.log('  Replays eligible practice auctions under four representative convention');
+  console.log('  configurations to ensure their recorded calls remain valid.');
+  console.log();
   return failureCount;
 }
 
@@ -654,6 +665,8 @@ function runAdvancingBoundaryTests (): number {
     console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
   }
   console.log(`Advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Prevents ordinary suit-overcall advances from appearing in unsupported');
+  console.log('  auctions; checks stoppers, suit quality, and strength requirements.');
   return failures;
 }
 
@@ -719,6 +732,8 @@ function runTakeoutAdvanceBoundaryTests (): number {
     console.error('FAIL takeout double 1NT needs a stopper.');
   }
   console.log(`Takeout advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Checks takeout-double auction eligibility, the exceptional three-card');
+  console.log('  suit response, and stopper requirements for notrump advances.');
   return failures;
 }
 
@@ -771,6 +786,8 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
     }
   }
   console.log(`Shared 1NT advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
+  console.log('  respect partnership range settings, and exclude unrelated auctions.');
   return failures;
 }
 
@@ -841,6 +858,8 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
   }
   console.log(`Jump-overcall advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Checks genuine jump overcalls, unsupported auctions and calls, and');
+  console.log('  the strength and suit quality required for forcing new-suit advances.');
   return failures;
 }
 
