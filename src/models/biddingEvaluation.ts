@@ -916,6 +916,16 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
     return strain === 'NT' ? null : strain;
   }
 
+  if (context.stage === 'advancing') {
+    const opening = getOpeningCallInfo(context.dealer, context.auction);
+    const overcall = opening === null ? undefined : context.auction[opening.index + 1];
+    if (overcall === undefined || ! isContractBid(overcall)) {
+      return null;
+    }
+    const strain = getStrainFromSuitBid(overcall);
+    return strain === 'NT' ? null : strain;
+  }
+
   return null;
 }
 

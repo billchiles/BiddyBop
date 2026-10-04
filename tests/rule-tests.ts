@@ -5,7 +5,8 @@ import { compareSuitBids, getBidStage, getInterferenceAfterOpening, isCallAvaila
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+         RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
          type RuleTestDeal, type RuleTestExpectedCall }
@@ -547,12 +548,58 @@ function runConventionCompatibilityChecks (): number {
   return failureCount;
 }
 
+/// This first advancer family must not leak into interfering or higher-level auctions.
+/// The stopper boundary tests the hand rather than merely omitting an NT expectation.
+function runAdvancingBoundaryTests (): number {
+  const deal = ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS[4];
+  if (deal === undefined) {
+    console.error('FAIL advancing boundaries require the 1NT advance fixture.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(deal);
+  const excluded: Call[][] = [
+    ['1D', '1S', '2D'], // Opponents' responder did not pass.
+    ['1D', '1S', 'Double'],
+    ['1D', '2C', 'Pass'], // A natural two-level non-jump overcall.
+    ['1D', '2H', 'Pass'], // A preemptive jump overcall.
+    ['1D', 'Double', 'Pass'],
+    ['1D', '1NT', 'Pass'],
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const auction of excluded) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
+    if (candidates.length !== 0) {
+      failures += 1;
+      console.error(`FAIL advancing rules leaked into ${auction.join(' ')}: ` +
+                    formatCandidates(candidates));
+    }
+  }
+  const { board: noStopperBoard } = makeRuleTestBoard({
+    ...deal,
+    south: { ...deal.south, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
+  });
+  checks += 1;
+  const candidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', noStopperBoard, ['1D', '1S', 'Pass'], defaultBiddingSystem));
+  if (candidates.some((candidate) => candidate.call === '1NT')) {
+    failures += 1;
+    console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
+  }
+  console.log(`Advancing boundaries: ${checks} checks; ${failures} failures.`);
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
       rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
     { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
       rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
+    { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
+      rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
     { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
       rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
     { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
@@ -572,7 +619,7 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 }
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
-  runCompetitionBoundaryTests() + runRuleTests();
+  runCompetitionBoundaryTests() + runAdvancingBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

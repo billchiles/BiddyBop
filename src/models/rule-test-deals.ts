@@ -8,6 +8,7 @@ import type { BidStage, BiddingSystem, Call } from './bidding-types';
 import type { Seat } from './cards';
 import type { Suit } from './cards';
 import { OPENING_BID_TEST_DEALS } from './opening-test-deals';
+import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS } from './advancing-test-deals';
 import { SIMPLE_OVERCALL_TEST_DEALS,
          TAKEOUT_DOUBLE_TEST_DEALS,
          NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -54,6 +55,9 @@ export interface RuleTestDeal {
   expectedOvercallCalls?: RuleTestExpectedCall[];
   rejectedOvercallCalls?: Call[];
   expectedOvercallCallOrder?: [Call, Call][];
+  expectedAdvanceCalls?: RuleTestExpectedCall[];
+  rejectedAdvanceCalls?: Call[];
+  expectedAdvanceCallOrder?: [Call, Call][];
   // Each expected call/rule pair is an assertion of what we should see.
   requiredSystem?: Partial<BiddingSystem>;
   expectedOpeningCalls?: RuleTestExpectedCall[];
@@ -79,6 +83,7 @@ export interface RuleTestExpectedCall {
 /// Preserve existing array exports for the test runner and other consumers.
 export {
   OPENING_BID_TEST_DEALS,
+  ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   SIMPLE_OVERCALL_TEST_DEALS,
   TAKEOUT_DOUBLE_TEST_DEALS,
   NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -127,6 +132,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
     practiceStages: ['overcalling'] as BidStage[], deals: NATURAL_1NT_OVERCALL_TEST_DEALS },
   { id: 'overcall-preemptive-jump', group: 'Overcalling', label: 'Preemptive jump overcalls',
     practiceStages: ['overcalling'] as BidStage[], deals: PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS },
+  { id: 'advance-one-level-suit-overcall', group: 'Advancing',
+    label: 'After natural one-level suit overcall', practiceStages: ['advancing'] as BidStage[],
+    deals: ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS },
   { id: 'response-after-suit-overcall', group: 'Responding',
     label: 'After natural suit overcall', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },

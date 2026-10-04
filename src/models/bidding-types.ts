@@ -202,7 +202,7 @@ export interface HandConstraint {
   suitLengths?: SuitLengthConstraint[]; // if no suit specified, it means the candidate call suit
   shape?: HandShapeConstraint;
   // Length in partner's relevant naturally bid suit for this stage.  While responding this is
-  // opener's suit; on opener's rebid it is responder's suit.
+  // opener's suit; on opener's rebid it is responder's suit; on advancing it is the overcaller's suit.
   supportLength?: PointRange;
 }
 

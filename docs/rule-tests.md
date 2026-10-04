@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 283 deals, with 760 positive call/rule assertions, 241 elimination
-assertions, 28 call-order assertions, and 676 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1015 eligible deal/configuration combinations and 2410 recorded calls.
+The current corpus contains 294 deals, with 776 positive call/rule assertions, 265 elimination
+assertions, 29 call-order assertions, and 691 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1059 eligible deal/configuration combinations and 2470 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
@@ -52,6 +52,15 @@ Two natural `1NT` overcall deals require 15-18 HCP, balanced shape, and a stoppe
 opponent's suit (A, Kx, Qxx, or Jxxx approximation); a separate boundary check excludes
 1NT without a stopper. Four preemptive-jump deals exercise six-card two-level, seven-card
 three-level, and eight-card four-level natural jumps, with an explicit non-jump rejection.
+
+Eleven `advance-one-level-suit-overcall` deals fix West's opening, North's natural
+one-level suit overcall, and South's advance after East passes. They cover constructive
+3-card raises, preemptive 4-card jump raises, the 6-support-point overlap, a forcing
+support cuebid, natural 1NT/2NT with a stopper, nonforcing one-level new suits, and
+forcing economical two-level new suits. Seven boundary checks reject advancing rules
+after responder action or unsupported overcall types and reject 1NT without a stopper.
+Strong jump-new-suit advances, later overcaller continuations, and inferred Pass are
+not yet modeled.
 
 Nine `response-after-suit-overcall` deals fix North's opening, East's actual natural
 non-jump suit overcall, and South's response. They cover negative Double, an artificial
