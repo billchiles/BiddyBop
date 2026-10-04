@@ -1,7 +1,9 @@
 /// Advancing Overcalls and Competitive Bidding
 
 import { type BidRule } from './bidding-types';
-import { naturalNotrumpAdvanceApplies, naturalTwoLevelNotrumpAdvanceApplies,
+import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies,
+         naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
+         refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
          refineAdvancerCuebid, refineAdvancerNewSuit, refineAdvancerRaise,
          refineAdvancerTwoLevelCuebid, refineAdvancerTwoLevelNewSuit,
          refineAdvancerTwoLevelRaise } from './advancing-functions';
@@ -205,6 +207,121 @@ export const AdvanceRules: BidRule[] = [
              'forcing one round.',
     guidance: ['Suit quality uses the shared test: two of A/K/Q or three of A/K/Q/J/T. ' +
                'Jump new-suit advances remain unmodeled.'],
+    certainty: 'high',
+  },
+  // Third family: Advancer responds to partner's takeout double of an opposing one-level suit
+  // opening.  When opener's partner passes, advancer ordinarily must select a suit even with no
+  // points.
+  {
+    id: 'advance-takeout-double-minimum-suit',
+    kind: 'advance',
+    title: 'Select an unbid suit after partner’s takeout double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1H', '1S', '2C', '2D', '2H', '2S'],
+    callRefinement: (calls, context) => refineTakeoutDoubleSuitAdvance(calls, context, 0),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { max: 8, valuation: 'length' } },
+    meaning: 'A nonforcing, cheapest-level suit advance with 0-8 length-adjusted points; ' +
+             'normally 4+ cards.',
+    guidance: ['Partner’s takeout double normally requests a bid even with no HCP.',
+               'With no four-card unbid suit, a three-card unbid suit is a necessary fallback.',
+               'An 18+ HCP doubler may have doubled without the usual unbid-suit support.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-invitational-jump',
+    kind: 'advance',
+    title: 'Invite with a jump in an unbid suit',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineTakeoutDoubleSuitAdvance(calls, context, 1),
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: { totalPoints: { min: 9, max: 11, valuation: 'length' } },
+    meaning: 'Invitational single jump in an unbid suit: 9-11 length-adjusted points ' +
+             'and 4+ cards.',
+    guidance: ['A jump is measured against the cheapest legal bid in that same suit, ' +
+               'not merely by its numbered level.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-strong-cuebid',
+    kind: 'advance',
+    title: 'Cuebid opener’s suit after partner’s takeout double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refineTakeoutDoubleCuebid,
+    callCategory: ['conventional', 'forcing'],
+    priority: { rank: 15 },
+    appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
+    meaning: 'A strong, forcing cuebid with 12+ length-adjusted points; ' +
+             'it does not promise support for a particular unbid suit.',
+    guidance: ['Unlike a cuebid after partner’s suit overcall, this is not a raise. ' +
+               'Partner should describe the doubled hand further.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-one-notrump',
+    kind: 'advance',
+    title: 'Bid natural 1NT after partner’s takeout double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1NT'],
+    callCategory: ['natural'],
+    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies, // 8-11 HCP, balanced, stopper
+    meaning: 'Natural 1NT: 8-11 HCP, balanced, and a stopper in opener’s suit.',
+    guidance: ['This is not a suit preference. It offers to play notrump with protection ' +
+               'against the opponents’ opening suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-two-notrump',
+    kind: 'advance',
+    title: 'Invite with natural 2NT after partner’s double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 18 },
+    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies, // 12-13 HCP, balanced, stopper
+    meaning: 'Natural invitational 2NT: 12-13 HCP, balanced, and a stopper in opener’s suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-three-notrump',
+    kind: 'advance',
+    title: 'Bid natural 3NT after partner’s double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies, // 14-16 HCP, balanced, stopper
+    meaning: 'Natural game in 3NT: 14-16 HCP, balanced, and a stopper in opener’s suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-major-game',
+    kind: 'advance',
+    title: 'Bid game directly in an unbid major',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callRefinement: refineTakeoutDoubleMajorGame,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
+    meaning: 'Direct major-suit game with 12+ length-adjusted points and a 5+ card unbid major.',
+    guidance: ['This deterministic game treatment assumes partner has an ordinary takeout double. ' +
+               'It does not replace judgment about honor location or a strong off-shape double.'],
     certainty: 'high',
   },
 ];

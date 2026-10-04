@@ -7,6 +7,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
 import { makeRuleTestBoard } from '../src/models/cards';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
@@ -344,6 +345,7 @@ function runCompetitionBoundaryTests (): number {
   // Recorded competitive setups must themselves be plausible with the supplied hands;
   // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
   for (const deal of [...ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+                      ...ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
                       ...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
                       ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
                       ...RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS]) {
@@ -563,7 +565,6 @@ function runAdvancingBoundaryTests (): number {
     ['1D', '1S', '2D'], // Opponents' responder did not pass.
     ['1D', '1S', 'Double'],
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
-    ['1D', 'Double', 'Pass'],
     ['1D', '1NT', 'Pass'],
   ];
   let checks = 0;
@@ -655,6 +656,71 @@ function runAdvancingBoundaryTests (): number {
   return failures;
 }
 
+/// Guard takeout-double advances against unsupported auctions and check suit-length
+/// fallback behavior independently from the representative practice deals.
+function runTakeoutAdvanceBoundaryTests (): number {
+  const zeroDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[1];
+  const jumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[3];
+  const notrumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[6];
+  if (zeroDeal === undefined || jumpDeal === undefined || notrumpDeal === undefined) {
+    console.error('FAIL takeout-double boundaries require saved advancing fixtures.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(zeroDeal);
+  let checks = 0;
+  let failures = 0;
+  for (const auction of [
+    ['1D', 'Double', '1H'], // Responder acts: the compulsory weak suit choice disappears.
+    ['1NT', 'Double', 'Pass'], // No agreed takeout-double meaning over natural 1NT.
+    ['2D', 'Double', 'Pass'], // Weak-two defenses are a separate future family.
+    ['1D', '1S', 'Pass'], // A suit overcall is not a takeout double.
+    ['1D', 'Pass', 'Pass'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.startsWith('advance-takeout-double-'))) {
+      failures += 1;
+      console.error(`FAIL takeout advances leaked into ${auction.join(' ')}.`);
+    }
+  }
+  // Zero HCP and no four-card unbid suit must allow a three-card suit.
+  checks += 1;
+  const rescue = getApplicableCandidateCalls(evaluateUserCall(
+    '1H', board, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (! rescue.some(({ call, rule }) => call === '1H' &&
+      rule.id === 'advance-takeout-double-minimum-suit')) {
+    failures += 1;
+    console.error('FAIL takeout double needs a weak three-card suit escape.');
+  }
+  // In contrast, a three-card unbid suit is not offered if a four-card option exists.
+  const { board: fourCardBoard } = makeRuleTestBoard({
+    ...jumpDeal,
+    south: { S: 'QJ5', H: '762', D: 'T95', C: 'JT42' }, // 4 points and four clubs.
+  });
+  checks += 1;
+  const fourCardChoices = getApplicableCandidateCalls(evaluateUserCall(
+    '1H', fourCardBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (fourCardChoices.some(({ call, rule }) => call === '1H' &&
+      rule.id === 'advance-takeout-double-minimum-suit')) {
+    failures += 1;
+    console.error('FAIL three-card fallback activated when another unbid suit has four cards.');
+  }
+  const { board: notrumpBoard } = makeRuleTestBoard({
+    ...notrumpDeal,
+    south: { S: 'QJ5', H: 'T762', D: '83', C: 'AJ42' }, // 8 HCP, balanced, no D stopper.
+  });
+  checks += 1;
+  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', notrumpBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (ntCandidates.some(({ call }) => call === '1NT')) {
+    failures += 1;
+    console.error('FAIL takeout double 1NT needs a stopper.');
+  }
+  console.log(`Takeout advancing boundaries: ${checks} checks; ${failures} failures.`);
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
@@ -682,7 +748,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 }
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
-  runCompetitionBoundaryTests() + runAdvancingBoundaryTests() + runRuleTests();
+  runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
+  runTakeoutAdvanceBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }
