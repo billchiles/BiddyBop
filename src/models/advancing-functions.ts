@@ -232,3 +232,94 @@ export function naturalTakeoutDoubleNotrumpAdvanceApplies (call: Call, context: 
     'PASS: natural NT advance after takeout double with proper range, shape, and stopper.' :
     'FAIL: requires 1-suit Double Pass, balanced shape, appropriate HCP, and a stopper.'] };
 }
+
+
+/// Advances of partner's preemptive jump overcall are restricted to a one-level
+/// suit opening, an actual jump in a different suit, and responder's Pass.
+/// This is distinct from an economical two-level overcall.
+function getJumpOvercallForAdvancer (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  if (context.stage !== 'advancing' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3 ||
+      context.auction[openingInfo.index + 2] !== 'Pass') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' || overcall.strain === opening.strain ||
+      overcall.level < 2 || overcall.level > 4) {
+    return null;
+  }
+  const cheapest = cheapestBidInStrainAfter(opening, overcall.strain);
+  const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+  return parsedCheapest !== null && overcall.level > parsedCheapest.level ?
+    { opening, overcall } : null;
+}
+
+/// Limited advancer values and insufficient fit favor Pass after a lower-level
+/// jump. After a four-level preempt, Pass remains normal regardless of HCP.
+export function jumpOvercallPassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getJumpOvercallForAdvancer(context);
+  const hcp = context.handFacts.hcp;
+  const support = info === null ? 0 : context.handFacts.lengths[info.overcall.strain as Suit];
+  const success = info !== null && (info.overcall.level === 4 ||
+    (hcp <= 11 && support < (info.overcall.level === 3 ? 4 : 3)));
+  return { success, telemetryLines: [success ?
+    'PASS: leave partner’s preempt in place.' :
+    'FAIL: Pass requires a preemptive jump overcall with no preferred further action.'] };
+}
+
+/// A two-level jump promises six trumps, so a modest raise with three-card support
+/// competes at three.  After a seven-card three-level jump, require four trumps
+/// for a conservative, preemptive minor-suit raise to four.
+export function refineJumpOvercallRaise (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getJumpOvercallForAdvancer(context);
+  if (info === null) {
+    return { calls: [], telemetryLines: [] };
+  }
+  const suit = info.overcall.strain as Suit;
+  const targetLevel = info.overcall.level + 1;
+  const suitable = (info.overcall.level === 2 && context.handFacts.lengths[suit] >= 3) ||
+    (info.overcall.level === 3 && (suit === 'C' || suit === 'D') &&
+     context.handFacts.lengths[suit] >= 4);
+  return { calls: suitable ? calls.filter((call) =>
+    call === `${targetLevel}${suit}`) : [], telemetryLines: [] };
+}
+
+/// A major game needs a good trump fit and some useful values.  Partner's
+/// two-level jump typically shows six trumps; a three-level jump shows seven.
+export function refineJumpOvercallMajorGame (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getJumpOvercallForAdvancer(context);
+  if (info === null || (info.overcall.strain !== 'H' && info.overcall.strain !== 'S')) {
+    return { calls: [], telemetryLines: [] };
+  }
+  const suit = info.overcall.strain;
+  const support = context.handFacts.lengths[suit];
+  return { calls: (info.overcall.level === 2 && support >= 4) ||
+                  (info.overcall.level === 3 && support >= 3) ?
+    calls.filter((call) => call === `4${suit}`) : [], telemetryLines: [] };
+}
+
+/// A new suit after a preempt is forcing, unlike a casual preference.
+/// Require an economical call no higher than the three level and a good suit;
+/// any jump-new-suit advance or four-level new suit remains unsupported.
+export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getJumpOvercallForAdvancer(context);
+  return { calls: info === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.strain !== 'NT' && bid.level <= 3 &&
+      bid.strain !== info.overcall.strain && bid.strain !== info.opening.strain &&
+      cheapestBidInStrainAfter(info.overcall, bid.strain) === call &&
+      hasPreemptSuitQuality(context.hand, bid.strain as Suit);
+  }), telemetryLines: [] };
+}

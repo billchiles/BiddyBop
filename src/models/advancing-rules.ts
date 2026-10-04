@@ -7,7 +7,9 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
          refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
          refineAdvancerCuebid, refineAdvancerNewSuit, refineAdvancerRaise,
          refineAdvancerTwoLevelCuebid, refineAdvancerTwoLevelNewSuit,
-         refineAdvancerTwoLevelRaise } from './advancing-functions';
+         refineAdvancerTwoLevelRaise, jumpOvercallPassApplies,
+         refineJumpOvercallRaise, refineJumpOvercallMajorGame,
+         refineJumpOvercallNewSuit } from './advancing-functions';
 
 
 export const AdvanceRules: BidRule[] = [
@@ -326,4 +328,92 @@ export const AdvanceRules: BidRule[] = [
                'It does not replace judgment about honor location or a strong off-shape double.'],
     certainty: 'high',
   },
+  // Fourth family: partner makes a preemptive jump overcall and opener's partner passes.
+  // The jump describes a limited hand with a long suit; advancer rarely needs to explore.
+  {
+    id: 'advance-jump-overcall-pass',
+    kind: 'advance',
+    title: 'Pass partner’s preemptive jump overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: jumpOvercallPassApplies,
+    meaning: 'Leave partner’s preempt in place without a worthwhile further action.',
+    guidance: ['Unlike partner’s takeout double, a preempt does not require advancer to bid.',
+               'Even with support, a four-level jump overcall usually ends the auction.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-jump-overcall-raise',
+    kind: 'advance',
+    title: 'Make a preemptive raise of partner’s weak jump overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineJumpOvercallRaise,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'A preemptive single raise with 3+ trumps and at most 10 support points.',
+    guidance: ['Partner normally has six cards in the overcalled suit. ' +
+               'Three-card support gives the partnership at least nine trumps.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-three-level-jump-overcall-minor-raise',
+    kind: 'advance',
+    title: 'Raise a seven-card minor-suit preempt to four',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['4C', '4D'],
+    callRefinement: refineJumpOvercallRaise,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { max: 8, valuation: 'shortage' },
+                   supportLength: { min: 4 } },
+    meaning: 'A competitive, preemptive minor raise with 4+ trumps and up to 8 support points.',
+    guidance: ['This conservative rule requires at least eleven combined trumps. ' +
+               'No automatic five-level contract is suggested.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-jump-overcall-major-game',
+    kind: 'advance',
+    title: 'Bid game in partner’s preemptive major',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['4H', '4S'],
+    callRefinement: refineJumpOvercallMajorGame,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 9, valuation: 'shortage' } },
+    meaning: 'A major-suit game with at least 9 support points and a substantial trump fit.',
+    guidance: ['Require four-card support after a six-card two-level jump; ' +
+               'three-card support after a seven-card three-level jump.',
+               'Playing strength and vulnerability can override this simplified guideline.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-jump-overcall-forcing-new-suit',
+    kind: 'advance',
+    title: 'Introduce a good new suit after partner’s preempt',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineJumpOvercallNewSuit,
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
+    meaning: 'A non-jump, forcing new suit with 12+ HCP and a good five-card-or-longer suit.',
+    guidance: ['A new suit over a preempt is not a casual signoff. ' +
+               'The suit must have two of A/K/Q or three of A/K/Q/J/T.',
+               'Four-level new suits and jump-new-suit treatments are deferred.'],
+    certainty: 'high',
+  },
+
 ];

@@ -9,6 +9,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
@@ -773,6 +774,76 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Jump-overcall advances must require a real jump and responder's Pass. The
+/// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
+function runJumpOvercallAdvanceBoundaryTests (): number {
+  const weakJump = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS[0];
+  const strongNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[3] === '3D');
+  if (weakJump === undefined || strongNewSuit === undefined) {
+    console.error('FAIL jump-overcall advances require saved practice fixtures.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(weakJump);
+  let checks = 0;
+  let failures = 0;
+  const unsupportedAuctions: Call[][] = [
+    ['1D', '1H', 'Pass'], // Natural one-level overcall, not a jump.
+    ['1S', '2H', 'Pass'], // Natural non-jump two-level overcall.
+    ['1D', '2H', '2S'],   // Opponents' responder did not pass.
+    ['1NT', '2H', 'Pass'], // Defense to 1NT is not yet supported.
+    ['2D', '3H', 'Pass'], // Two-level opening is outside this family.
+  ];
+  for (const auction of unsupportedAuctions) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.startsWith('advance-jump-overcall-') ||
+        rule.id.startsWith('advance-two-level-jump-overcall-') ||
+        rule.id.startsWith('advance-three-level-jump-overcall-'))) {
+      failures += 1;
+      console.error(`FAIL weak-jump advancing rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+  // 2NT inquiries and five-level raises are intentionally unsupported here.
+  for (const call of ['2NT', '5H'] as Call[]) {
+    checks += 1;
+    const bids = getApplicableCandidateCalls(evaluateUserCall(
+      call, board, ['1D', '2H', 'Pass'], defaultBiddingSystem));
+    if (bids.some(({ call: candidateCall }) => candidateCall === call)) {
+      failures += 1;
+      console.error(`FAIL jump overcall unexpectedly admits ${call}.`);
+    }
+  }
+  const weakSuitBoard = makeRuleTestBoard({
+    ...strongNewSuit,
+    south: { S: 'T8', H: 'QJ8', D: 'JT976', C: 'AKQ' },
+  }).board;
+  checks += 1;
+  const qualityCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', weakSuitBoard, ['1H', '2S', 'Pass'], defaultBiddingSystem));
+  if (qualityCandidates.some(({ call, rule }) =>
+    call === '3D' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+    failures += 1;
+    console.error('FAIL jump-overcall new suit needs concentrated honor quality.');
+  }
+  const weakHandBoard = makeRuleTestBoard({
+    ...ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+      deal.practiceAuction[3] === '3C')!,
+    south: { S: 'QJ6', H: 'T8', D: '932', C: 'AKJ76' }, // Good clubs, but only 11 HCP.
+  }).board;
+  checks += 1;
+  const strengthCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3C', weakHandBoard, ['1D', '2H', 'Pass'], defaultBiddingSystem));
+  if (strengthCandidates.some(({ call, rule }) =>
+    call === '3C' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+    failures += 1;
+    console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
+  }
+  console.log(`Jump-overcall advancing boundaries: ${checks} checks; ${failures} failures.`);
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
@@ -801,7 +872,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
-  runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() + runRuleTests();
+  runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
+  runJumpOvercallAdvanceBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

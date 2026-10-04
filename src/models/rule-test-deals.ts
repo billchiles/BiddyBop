@@ -11,7 +11,8 @@ import { OPENING_BID_TEST_DEALS } from './opening-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
-         ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS } from './advancing-test-deals';
+         ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS } from './advancing-test-deals';
 import { SIMPLE_OVERCALL_TEST_DEALS,
          TAKEOUT_DOUBLE_TEST_DEALS,
          NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -90,6 +91,7 @@ export {
   ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
   ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+  ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
   SIMPLE_OVERCALL_TEST_DEALS,
   TAKEOUT_DOUBLE_TEST_DEALS,
   NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -150,6 +152,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'advance-natural-1nt-overcall', group: 'Advancing',
     label: 'After natural 1NT overcall', practiceStages: ['advancing'] as BidStage[],
     deals: ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS },
+  { id: 'advance-jump-overcall', group: 'Advancing',
+    label: 'After preemptive jump overcall', practiceStages: ['advancing'] as BidStage[],
+    deals: ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS },
   { id: 'response-after-suit-overcall', group: 'Responding',
     label: 'After natural suit overcall', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },

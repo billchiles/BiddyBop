@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 303 deals, with 793 positive call/rule assertions, 293 elimination
-assertions, 29 call-order assertions, and 708 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1095 eligible deal/configuration combinations and 2538 recorded calls.
+The current corpus contains 338 deals, with 847 positive call/rule assertions, 359 elimination
+assertions, 29 call-order assertions, and 762 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1223 eligible deal/configuration combinations and 2740 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
@@ -65,6 +65,14 @@ new suits at two, and 12+ HCP forcing economical good new suits at three. New bo
 checks reject responder actions, jump overcalls, and natural 2NT without a stopper.
 Strong jump-new-suit advances, later overcaller continuations, and inferred Pass are
 not yet modeled.
+
+Fourteen `advance-jump-overcall` deals exercise explicit Pass after two-, three-, and
+four-level jumps; preemptive three-level raises, conservative four-level minor raises,
+major game with sufficient fit and support points, and economical forcing new suits with
+12+ HCP and honor quality. Separate boundary checks exclude ordinary overcalls, responder
+interference, unsupported higher openings, artificial 2NT inquiries, five-level raises,
+weak new-suit honor quality, and insufficient strength. This explicit Pass is limited to
+jump-overcall advances; there is still no general inferred-Pass mechanism.
 
 Nine `response-after-suit-overcall` deals fix North's opening, East's actual natural
 non-jump suit overcall, and South's response. They cover negative Double, an artificial
