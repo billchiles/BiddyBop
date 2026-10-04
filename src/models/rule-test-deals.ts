@@ -8,7 +8,8 @@ import type { BidStage, BiddingSystem, Call } from './bidding-types';
 import type { Seat } from './cards';
 import type { Suit } from './cards';
 import { OPENING_BID_TEST_DEALS } from './opening-test-deals';
-import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS } from './advancing-test-deals';
+import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS } from './advancing-test-deals';
 import { SIMPLE_OVERCALL_TEST_DEALS,
          TAKEOUT_DOUBLE_TEST_DEALS,
          NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -84,6 +85,7 @@ export interface RuleTestExpectedCall {
 export {
   OPENING_BID_TEST_DEALS,
   ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+  ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   SIMPLE_OVERCALL_TEST_DEALS,
   TAKEOUT_DOUBLE_TEST_DEALS,
   NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -135,6 +137,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'advance-one-level-suit-overcall', group: 'Advancing',
     label: 'After natural one-level suit overcall', practiceStages: ['advancing'] as BidStage[],
     deals: ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS },
+  { id: 'advance-two-level-suit-overcall', group: 'Advancing',
+    label: 'After natural two-level suit overcall', practiceStages: ['advancing'] as BidStage[],
+    deals: ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS },
   { id: 'response-after-suit-overcall', group: 'Responding',
     label: 'After natural suit overcall', practiceStages: ['responding'] as BidStage[],
     deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },

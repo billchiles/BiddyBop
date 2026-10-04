@@ -5,14 +5,13 @@ import { type AppliesWhenResult, type Call, type CallRefinementResult,
 import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
          parseSuitBid, type ParsedSuitBid } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
-import { type Suit } from './cards';
+import { hasPreemptSuitQuality, type Suit } from './cards';
 
 
-/// First advancing family: opener bids one of a suit, partner makes a natural non-jump
-/// one-level suit overcall, and the opponents' responder passes.  Other interventions,
-/// including a two-level non-jump overcall, are deliberately outside this family.
+/// Advancer after a natural, non-jump suit overcall of the given level, with the
+/// opponents' responder passing.  Jump overcalls and responder interference are excluded.
 ///
-function getOneLevelSuitOvercallForAdvancer (context: RuleEvalContext):
+function getNaturalSuitOvercallForAdvancer (context: RuleEvalContext, level: 1 | 2):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
@@ -27,7 +26,8 @@ function getOneLevelSuitOvercallForAdvancer (context: RuleEvalContext):
   const overcallCall = context.auction[openingInfo.index + 1];
   const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
   if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
-      overcall === null || overcall.level !== 1 || overcall.strain === 'NT') {
+      overcall === null || overcall.level !== level || overcall.strain === 'NT' ||
+      cheapestBidInStrainAfter(opening, overcall.strain) !== overcallCall) {
     return null;
   }
   return { opening, overcall };
@@ -35,7 +35,7 @@ function getOneLevelSuitOvercallForAdvancer (context: RuleEvalContext):
 
 export function refineAdvancerRaise (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
-  const info = getOneLevelSuitOvercallForAdvancer(context);
+  const info = getNaturalSuitOvercallForAdvancer(context, 1);
   return {
     calls: info === null ? [] : calls.filter((call) =>
       parseSuitBid(call)?.strain === info.overcall.strain),
@@ -45,7 +45,7 @@ export function refineAdvancerRaise (calls: Call[], context: RuleEvalContext):
 
 export function refineAdvancerCuebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
-  const info = getOneLevelSuitOvercallForAdvancer(context);
+  const info = getNaturalSuitOvercallForAdvancer(context, 1);
   return {
     calls: info === null ? [] : calls.filter((call) =>
       parseSuitBid(call)?.strain === info.opening.strain),
@@ -57,7 +57,7 @@ export function refineAdvancerCuebid (calls: Call[], context: RuleEvalContext):
 /// particular, a 2-level call is not necessarily economical after every overcall.
 export function refineAdvancerNewSuit (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
-  const info = getOneLevelSuitOvercallForAdvancer(context);
+  const info = getNaturalSuitOvercallForAdvancer(context, 1);
   return {
     calls: info === null ? [] : calls.filter((call) => {
       const bid = parseSuitBid(call);
@@ -73,7 +73,7 @@ export function refineAdvancerNewSuit (calls: Call[], context: RuleEvalContext):
 /// appropriate range; these are distinct from notrump responses to an opening bid.
 export function naturalNotrumpAdvanceApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
-  const info = getOneLevelSuitOvercallForAdvancer(context);
+  const info = getNaturalSuitOvercallForAdvancer(context, 1);
   const hcp = context.handFacts.hcp;
   const rangeMatches = call === '1NT' ? hcp >= 8 && hcp <= 11 :
     call === '2NT' && hcp >= 12 && hcp <= 14;
@@ -84,5 +84,61 @@ export function naturalNotrumpAdvanceApplies (call: Call, context: RuleEvalConte
     telemetryLines: [success ? 'PASS: natural NT advance with range, shape, and stopper.' :
       'FAIL: natural NT advance needs a passed responder, 1-level suit overcall, ' +
       'balanced shape, proper HCP, and opening-suit stopper.'],
+  };
+}
+
+
+/// Second advancing family: non-jump natural two-level suit overcalls.  Raising
+/// to the three level is a simple raise, not the weak jump raise used after 1-level overcalls.
+export function refineAdvancerTwoLevelRaise (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  return {
+    calls: info === null ? [] : calls.filter((call) =>
+      parseSuitBid(call)?.strain === info.overcall.strain),
+    telemetryLines: [],
+  };
+}
+
+export function refineAdvancerTwoLevelCuebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  return {
+    calls: info === null ? [] : calls.filter((call) =>
+      cheapestBidInStrainAfter(info.overcall, info.opening.strain) === call),
+    telemetryLines: [],
+  };
+}
+
+/// At either the two or three level, the new suit must be the cheapest available
+/// bid in that strain; a three-level five-card suit also needs concentrated honors.
+export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  return {
+    calls: info === null ? [] : calls.filter((call) => {
+      const bid = parseSuitBid(call);
+      return bid !== null && bid.strain !== 'NT' &&
+        bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
+        cheapestBidInStrainAfter(info.overcall, bid.strain) === call &&
+        (bid.level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
+    }),
+    telemetryLines: [],
+  };
+}
+
+/// A natural invitational 2NT advance requires a balanced 11-13 HCP hand and
+/// a stopper in the opponents' opening suit.
+export function naturalTwoLevelNotrumpAdvanceApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  const hcp = context.handFacts.hcp;
+  const success = info !== null && hcp >= 11 && hcp <= 13 && context.handFacts.balanced &&
+    hasBasicSuitStopper(context, info.opening.strain as Suit);
+  return {
+    success,
+    telemetryLines: [success ? 'PASS: 2NT advance with range, shape, and stopper.' :
+      'FAIL: 2NT advance needs a passed responder, natural 2-level non-jump overcall, ' +
+      '11-13 HCP, balanced shape, and opening-suit stopper.'],
   };
 }

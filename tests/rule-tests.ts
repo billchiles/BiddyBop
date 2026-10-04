@@ -6,6 +6,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
@@ -342,7 +343,8 @@ function runCompetitionBoundaryTests (): number {
   }
   // Recorded competitive setups must themselves be plausible with the supplied hands;
   // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
-  for (const deal of [...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
+  for (const deal of [...ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
+                      ...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
                       ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
                       ...RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS]) {
     const { board: practiceBoard } = makeRuleTestBoard(deal);
@@ -560,7 +562,6 @@ function runAdvancingBoundaryTests (): number {
   const excluded: Call[][] = [
     ['1D', '1S', '2D'], // Opponents' responder did not pass.
     ['1D', '1S', 'Double'],
-    ['1D', '2C', 'Pass'], // A natural two-level non-jump overcall.
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
     ['1D', 'Double', 'Pass'],
     ['1D', '1NT', 'Pass'],
@@ -576,6 +577,68 @@ function runAdvancingBoundaryTests (): number {
       console.error(`FAIL advancing rules leaked into ${auction.join(' ')}: ` +
                     formatCandidates(candidates));
     }
+  }
+  // The two-level family must also stay inactive when East acts, or North jumps.
+  for (const auction of [
+    ['1D', '2C', '2D'], ['1D', '2C', 'Double'], ['1D', '3C', 'Pass'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
+    if (candidates.length !== 0) {
+      failures += 1;
+      console.error(`FAIL two-level advancing rules leaked into ${auction.join(' ')}: ` +
+                    formatCandidates(candidates));
+    }
+  }
+  const twoLevelNtDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[2];
+  if (twoLevelNtDeal === undefined) {
+    failures += 1;
+    console.error('FAIL advancing boundaries require the two-level 2NT fixture.');
+  } else {
+    const { board: noTwoLevelStopperBoard } = makeRuleTestBoard({
+      ...twoLevelNtDeal,
+      south: { S: 'JT98', H: 'KQJ', D: 'T983', C: 'A4' }, // 11 HCP; no diamond stopper.
+    });
+    checks += 1;
+    const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
+      '2NT', noTwoLevelStopperBoard, ['1D', '2C', 'Pass'], defaultBiddingSystem));
+    if (ntCandidates.some(({ call }) => call === '2NT')) {
+      failures += 1;
+      console.error('FAIL advancing 2NT requires a stopper in opener’s suit.');
+    }
+  }
+  const threeLevelDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[7];
+  if (threeLevelDeal === undefined) {
+    failures += 1;
+    console.error('FAIL advancing boundaries require the 3D fixture.');
+  } else {
+    const { board: insufficientHcpBoard } = makeRuleTestBoard({
+      ...threeLevelDeal,
+      south: { S: 'T9', H: 'T7', D: 'AJT54', C: 'KQJ9' }, // 11 HCP, despite good diamonds.
+    });
+    checks += 1;
+    const newSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+      '3D', insufficientHcpBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
+    if (newSuitCandidates.some(({ call }) => call === '3D')) {
+      failures += 1;
+      console.error('FAIL three-level new-suit advance requires at least 12 HCP.');
+    }
+  }
+  // Holding 12 HCP is not sufficient if an economical three-level new suit lacks quality.
+  const { board: weakSuitBoard } = makeRuleTestBoard({
+    description: '3D suit-quality rejection after a genuine 2H overcall.',
+    dealer: 'W', practiceAuction: ['1S', '2H', 'Pass', '3D'],
+    west: { S: 'KQJ74', H: 'K82', D: 'A93', C: '65' },
+    north: { S: '3', H: 'AQJT96', D: 'K86', C: 'Q72' },
+    south: { S: 'AT', H: '75', D: 'T7542', C: 'AKJ9' },
+  });
+  checks += 1;
+  const weakSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', weakSuitBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
+  if (weakSuitCandidates.some(({ call }) => call === '3D')) {
+    failures += 1;
+    console.error('FAIL three-level new-suit advance requires concentrated suit honors.');
   }
   const { board: noStopperBoard } = makeRuleTestBoard({
     ...deal,

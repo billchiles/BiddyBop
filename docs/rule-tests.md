@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 294 deals, with 776 positive call/rule assertions, 265 elimination
-assertions, 29 call-order assertions, and 691 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1059 eligible deal/configuration combinations and 2470 recorded calls.
+The current corpus contains 303 deals, with 793 positive call/rule assertions, 293 elimination
+assertions, 29 call-order assertions, and 708 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1095 eligible deal/configuration combinations and 2538 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
@@ -43,7 +43,7 @@ reserved for the strong-double treatment. Two `overcall-takeout-double` deals di
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
 that does not require that shape. These are informational doubles only; later responses and
 penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 87 competitive-boundary checks protect
+call-availability checks occur before refinement; 105 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
 heart response is obstructed. The new negative Double and stopper-qualified 1NT
 now supply alternatives in that example; other intervention families remain pending.
@@ -59,6 +59,10 @@ one-level suit overcall, and South's advance after East passes. They cover const
 support cuebid, natural 1NT/2NT with a stopper, nonforcing one-level new suits, and
 forcing economical two-level new suits. Seven boundary checks reject advancing rules
 after responder action or unsupported overcall types and reject 1NT without a stopper.
+Nine `advance-two-level-suit-overcall` deals cover 7-10 support-point simple raises,
+11+ forcing support cuebids, 11-13 balanced 2NT with a stopper, 10+ HCP forcing economical
+new suits at two, and 12+ HCP forcing economical good new suits at three. New boundary
+checks reject responder actions, jump overcalls, and natural 2NT without a stopper.
 Strong jump-new-suit advances, later overcaller continuations, and inferred Pass are
 not yet modeled.
 

@@ -1,8 +1,10 @@
 /// Advancing Overcalls and Competitive Bidding
 
 import { type BidRule } from './bidding-types';
-import { naturalNotrumpAdvanceApplies, refineAdvancerCuebid, refineAdvancerNewSuit,
-         refineAdvancerRaise } from './advancing-functions';
+import { naturalNotrumpAdvanceApplies, naturalTwoLevelNotrumpAdvanceApplies,
+         refineAdvancerCuebid, refineAdvancerNewSuit, refineAdvancerRaise,
+         refineAdvancerTwoLevelCuebid, refineAdvancerTwoLevelNewSuit,
+         refineAdvancerTwoLevelRaise } from './advancing-functions';
 
 
 export const AdvanceRules: BidRule[] = [
@@ -122,6 +124,87 @@ export const AdvanceRules: BidRule[] = [
              'forcing one round.',
     guidance: ['Bid economically; a jump in a new suit would require a different, ' +
                'stronger agreement that is not yet modeled.'],
+    certainty: 'high',
+  },
+  // Second family: partner makes a natural, non-jump two-level suit overcall.
+  // The refiners require responder's Pass and distinguish simple bids from jumps.
+  {
+    id: 'advance-two-level-suit-overcall-simple-raise',
+    kind: 'advance',
+    title: 'Raise a two-level suit overcall to three',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineAdvancerTwoLevelRaise,
+    callCategory: ['natural'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'A nonforcing single raise to the three level: 7-10 support points and 3+ trumps.',
+    guidance: ['This is not a preemptive jump raise: partner has already overcalled at two.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-support-cuebid',
+    kind: 'advance',
+    title: 'Cuebid opener’s suit after a two-level overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: refineAdvancerTwoLevelCuebid,
+    callCategory: ['conventional', 'forcing'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'An artificial cuebid: 11+ support points, 3+ trumps, and forcing one round.',
+    guidance: ['Cuebid the opponents’ opening suit to show a strong raise, not a natural suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-two-notrump',
+    kind: 'advance',
+    title: 'Invite with 2NT after a two-level suit overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: naturalTwoLevelNotrumpAdvanceApplies, // 11-13 HCP, balanced, opening-suit stopper
+    meaning: 'Natural, invitational 2NT: 11-13 HCP, balanced, with an opener-suit stopper.',
+    guidance: ['Partner’s two-level overcall is stronger than a typical one-level overcall.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-new-suit-at-two-level',
+    kind: 'advance',
+    title: 'Show a new suit economically at the two level',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: refineAdvancerTwoLevelNewSuit,
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
+    meaning: 'An economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
+    guidance: ['The suit must differ from both the opener’s suit and partner’s overcall.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-new-suit-at-three-level',
+    kind: 'advance',
+    title: 'Show a good new suit economically at the three level',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineAdvancerTwoLevelNewSuit,
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Non-jump three-level new suit: 12+ HCP, a good 5+ card suit, ' +
+             'forcing one round.',
+    guidance: ['Suit quality uses the shared test: two of A/K/Q or three of A/K/Q/J/T. ' +
+               'Jump new-suit advances remain unmodeled.'],
     certainty: 'high',
   },
 ];
