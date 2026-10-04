@@ -9,8 +9,8 @@ import {
   cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getResponderCall,
   openerRebidIsReverse, parseSuitBid
 } from './auction';
-import { getOpenerOpeningBid, getResponderBid, getWeakTwoOpeningBid } from './common-rule-helpers';
-import { orderMajorSuitCandidates } from './responding-functions';
+import { getOpenerOpeningBid, getResponderBid, getWeakTwoOpeningBid,
+         orderMajorSuitCandidates } from './common-rule-helpers';
 
 
 

@@ -51,3 +51,20 @@ export function hasBasicSuitStopper (context: RuleEvalContext, suit: Suit): bool
     (cards.length >= 3 && ranks.includes('Q')) ||
     (cards.length >= 4 && ranks.includes('J'));
 }
+
+
+/// orderMajorSuitCandidates orders the at-most-two major candidates by major-suit priority:
+/// longer major first; equal four-card majors up the line; equal five-card-or-longer majors down
+/// the line.
+///
+export function orderMajorSuitCandidates<T extends { suit: Suit; length: number }> (majors: T[]): T[] {
+  if (majors.length < 2) {
+    return majors;
+  }
+  const [first, second] = majors;
+  if (first.length !== second.length) {
+    return first.length > second.length ? majors : [second, first];
+  }
+  const wantedFirst = first.length === 4 ? 'H' : 'S';
+  return first.suit === wantedFirst ? majors : [second, first];
+}

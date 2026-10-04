@@ -7,7 +7,7 @@ import { hasPreemptSuitQuality, hasTwoOfTopThreeHonors, SUITS, type Suit } from 
 import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, 
         getInterferenceAfterOpening, parseSuitBid, type ParsedSuitBid} from './auction';
 import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningBid, 
-        hasBasicSuitStopper} from './common-rule-helpers';
+        hasBasicSuitStopper, orderMajorSuitCandidates} from './common-rule-helpers';
 
 ///
 //// Responses to One-Level Suit Openings
@@ -132,22 +132,6 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
           ],
         };
 } // refineOneLevelNewSuitAfterMinor()
-
-/// orderMajorSuitCandidates orders the at-most-two major candidates by normal response priority:
-/// longer major first; equal four-card majors up the line; equal five-card-or-longer majors down
-/// the line.
-///
-export function orderMajorSuitCandidates<T extends { suit: Suit; length: number }> (majors: T[]): T[] {
-  if (majors.length < 2) {
-    return majors;
-  }
-  const [first, second] = majors;
-  if (first.length !== second.length) {
-    return first.length > second.length ? majors : [second, first];
-  }
-  const wantedFirst = first.length === 4 ? 'H' : 'S';
-  return first.suit === wantedFirst ? majors : [second, first];
-}
 
 /// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
 /// opening suit, thereby removing raises and jump shifts.  This does not yet choose among multiple
