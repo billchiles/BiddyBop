@@ -54,9 +54,9 @@ export interface BiddingSystem {
   majorOneNtResponse: MajorOneNtResponseAgreement;
   // Game-forcing major support via a new suit then raise, or artificial Jacoby 2NT with 4+ support.
   majorGameForceWithSupport: MajorGameForceWithSupportAgreement;
-  // Stayman asks a notrump opener for a four-card major.
+  // Stayman asks the 1NT or 2NT bidder for a four-card major.
   stayman: boolean;
-  // Jacoby transfers use 2D/2H over 1NT, or 3D/3H over 2NT, to transfer to responder's major.
+  // Jacoby transfers use 2D/2H over 1NT, or 3D/3H over 2NT, to show a major.
   jacobyTransfers: boolean;
   // Splinters are double-jump new-suit calls showing support and a singleton or void.
   splinters: boolean;
@@ -94,8 +94,9 @@ export type BiddingAgreement =
   | { setting: 'splinters'; value: boolean; note?: string }
   | { setting: 'texasTransfers'; value: boolean; note?: string };
 
-/// Under our 25-combined-HCP treatment, 16-18 1NT openings lower responder's
-/// ordinary HCP thresholds by one. Do not also adjust for the optional opener upgrade.
+/// Our selected 16-18 opening range lowers the 1NT bidder's partner's ordinary response
+/// thresholds by one. The same range setting applies after a natural 1NT overcall; do not also
+/// adjust for the optional opening upgrade.
 export function oneNtResponseHcpShift (system: BiddingSystem): number {
   return system.oneNtOpening === '16-18' ? 1 : 0;
 }
@@ -195,7 +196,7 @@ export type RuleKind =
 
 export interface HandConstraint {
   hcp?: PointRange;
-  // For responses to 1NT, shift the stated 15-17 HCP bounds down one with a 16-18 opener.
+  // For shared calls after partner bids 1NT, shift HCP bounds down one with 16-18 selected.
   hcpRelativeToOneNtOpening?: boolean;
   // computed with length bonuses or shortage bonuses depending on auction stage
   totalPoints?: TotalPointsRange;  
@@ -258,7 +259,10 @@ export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
 /// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
   // stage selects the bidding phase in which the rule can apply.
-  stage: BidStage;
+  stage?: BidStage;
+  // Shared natural 1NT calls apply when partner opened 1NT or overcalled 1NT and responder passed.
+  // When this is set, stage is deliberately omitted; matching uses the physical auction.
+  partnerNaturalOneNt?: boolean;
   // auction is an exact compact partnership call sequence; every listed call must match literally.
   auction?: Call[];
   // description is optional author-facing context and is not evaluator input.

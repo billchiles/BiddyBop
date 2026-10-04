@@ -8,6 +8,7 @@ import { makeRuleTestBoard } from '../src/models/cards';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+         ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
@@ -565,7 +566,6 @@ function runAdvancingBoundaryTests (): number {
     ['1D', '1S', '2D'], // Opponents' responder did not pass.
     ['1D', '1S', 'Double'],
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
-    ['1D', '1NT', 'Pass'],
   ];
   let checks = 0;
   let failures = 0;
@@ -721,6 +721,58 @@ function runTakeoutAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Check that shared 1NT declarations respect actual bidding roles and both range settings.
+function runSharedOneNtAdvanceBoundaryTests (): number {
+  const seed = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[1];
+  if (seed === undefined) {
+    console.error('FAIL natural 1NT advancing boundaries need a practice deal.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seed);
+  let checks = 0;
+  let failures = 0;
+  const cases: { auction: Call[]; shouldMatch: boolean }[] = [
+    { auction: ['1D', '1NT', 'Pass'], shouldMatch: true },
+    { auction: ['1D', '1NT', '2D'], shouldMatch: false },
+    { auction: ['1NT', 'Double', 'Pass'], shouldMatch: false },
+    { auction: ['2D', '2NT', 'Pass'], shouldMatch: false },
+    { auction: ['1D', 'Double', 'Pass'], shouldMatch: false },
+    { auction: ['1D', '1S', 'Pass'], shouldMatch: false },
+    { auction: ['1D', 'Pass'], shouldMatch: false },
+    { auction: ['Pass', '1D', '1NT', 'Pass'], shouldMatch: true },
+  ];
+  for (const testCase of cases) {
+    checks += 1;
+    const results = evaluateUserCall('2NT', board, testCase.auction, defaultBiddingSystem);
+    const contextMatches = results.ruleResults.some(({ rule }) =>
+      rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
+    if (contextMatches !== testCase.shouldMatch) {
+      failures += 1;
+      console.error(`FAIL shared 1NT context for ${testCase.auction.join(' ')}.`);
+    }
+  }
+  // The same rule IDs and setting-dependent HCP ranges apply after an opening and an overcall.
+  const sevenPointDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[8];
+  if (sevenPointDeal === undefined) {
+    return failures + 1;
+  }
+  const { board: sevenPointBoard } = makeRuleTestBoard(sevenPointDeal);
+  for (const range of ['15-17', '16-18'] as const) {
+    const system = { ...defaultBiddingSystem, oneNtOpening: range };
+    checks += 1;
+    const bids = getApplicableCandidateCalls(evaluateUserCall(
+      '2NT', sevenPointBoard, ['1D', '1NT', 'Pass'], system));
+    const invites = bids.some(({ call, rule }) =>
+      call === '2NT' && rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
+    if (invites !== (range === '16-18')) {
+      failures += 1;
+      console.error(`FAIL 1NT advance invitation under ${range} agreement.`);
+    }
+  }
+  console.log(`Shared 1NT advancing boundaries: ${checks} checks; ${failures} failures.`);
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
@@ -749,7 +801,7 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
-  runTakeoutAdvanceBoundaryTests() + runRuleTests();
+  runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

@@ -1,9 +1,9 @@
 /// Responder Bid Functions: refiners, applicability checks, and related helpers.
 
-import {biddingBaseline, oneNtResponseHcpShift, STRAIN_ORDER, type AppliesWhenResult, 
+import {biddingBaseline, STRAIN_ORDER, type AppliesWhenResult,
         type BiddingSystem, type Call, type CallRefinementResult, type RuleEvalContext, 
         type SuitBid} from './bidding-types';
-import { hasPreemptSuitQuality, hasTwoOfTopThreeHonors, SUITS, type Suit } from './cards';
+import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, 
         getInterferenceAfterOpening, parseSuitBid, type ParsedSuitBid} from './auction';
 import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningBid, 
@@ -517,33 +517,6 @@ export function refineNaturalMajorGameOver2Nt (calls: Call[], context: RuleEvalC
   };
 }
 
-/// oneNtNaturalMinorInvitationApplies requires the candidate minor to be six cards or longer
-/// with at least two of A/K/Q.  The response HCP range follows the selected 1NT opening range.
-export function oneNtNaturalMinorInvitationApplies (call: Call, context: RuleEvalContext,
-                                                     system: BiddingSystem): AppliesWhenResult {
-  const candidate = parseSuitBid(call);
-  if (candidate === null || candidate.level !== 3 ||
-      (candidate.strain !== 'C' && candidate.strain !== 'D')) {
-    return { success: false, telemetryLines: ['FAIL: natural 1NT minor invitation needs 3C or 3D.'] };
-  }
-  const shift = oneNtResponseHcpShift(system);
-  const minHcp = 8 - shift;
-  const maxHcp = 9 - shift;
-  const suit = candidate.strain as Suit;
-  const hcpApplies = context.handFacts.hcp >= minHcp && context.handFacts.hcp <= maxHcp;
-  const lengthApplies = context.handFacts.lengths[suit] >= 6;
-  const qualityApplies = hasTwoOfTopThreeHonors(context.hand, suit);
-  const success = hcpApplies && lengthApplies && qualityApplies;
-  return {
-    success,
-    telemetryLines: [
-      `${hcpApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs ${minHcp}-${maxHcp} HCP.`,
-      `${lengthApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs 6+ ${suit}.`,
-      `${qualityApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs at least two of A/K/Q.`,
-    ],
-  };
-}
-
 /// twoNtNaturalMinorForcingApplies supplies a natural descriptive minor response when the
 /// conventional meaning of 3C or 3D is disabled.  Reserve it for strong unbalanced hands;
 /// balanced hands use the normal notrump ladder, and a useful major-suit route takes precedence.
@@ -568,48 +541,6 @@ export function twoNtNaturalMinorForcingApplies (call: Call, context: RuleEvalCo
       `${lengthApplies ? 'PASS' : 'FAIL'}: natural 3${suit} over 2NT needs 5+ ${suit}.`,
       `${shapeApplies ? 'PASS' : 'FAIL'}: balanced hands use the normal notrump response ladder.`,
       `${! hasPreferredMajor ? 'PASS' : 'FAIL'}: no preferred major-suit response takes precedence.`,
-    ],
-  };
-}
-
-/// oneNtTwoNtInvitationApplies uses the ordinary balanced 2NT invitation, but when neither
-/// Stayman nor Jacoby transfers is available, 2NT is the basic natural 8-9 HCP invitation
-/// (7-8 opposite 16-18) regardless of shape.
-///
-/// The following examples assume the standard 15-17 range; reduce the responder HCP
-/// boundaries by one under the selected 16-18 treatment.
-/// ACBL instructional path starts without conventions:
-///    0–7 + 5+ major        -> 2M, weak signoff
-///    8–9                   -> 2NT, invitational
-///    10+ + exactly 5 major -> 3M, forcing / choice of games
-///    10+ + 6+ major        -> 4M, game
-///    10+ without major     -> 3NT
-/// Then adding Stayman fixes:
-///    8–9 + major           -> Stayman rather than inviting 2NT and missing a level of majors
-/// Adding transfers improves the whole 5+ major structure:
-//     all strengths + 5+ major -> transfer first, then describe strength
-/// With an unbalanced 8-9 HCP hand (5-4-3-1), with both Stayman and transfers disabled:
-///    not balanced -> current 2NT rule fails, but ACBL says to use this without stayman and jacoby
-///    too strong for the new weak 2M rule;
-///    too weak for natural forcing 3M;
-///    no Stayman, which normally provides an out to keep the level low and ask for major
-///    no transfer
-///
-/// This applies function doesn't impose the balanced condition when not using stayman and jacoby.
-///
-export function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvalContext,
-                                      system: BiddingSystem): AppliesWhenResult {
-  const shift = oneNtResponseHcpShift(system);
-  const hcpApplies = context.handFacts.hcp >= 8 - shift &&
-                     context.handFacts.hcp <= 9 - shift;
-  const shapeApplies = context.handFacts.balanced || (! system.stayman && ! system.jacobyTransfers);
-
-  return {
-    success: hcpApplies && shapeApplies,
-    telemetryLines: [
-      `${hcpApplies ? 'PASS' : 'FAIL'}: 2NT invitation needs ${8 - shift}-${9 - shift} HCP.`,
-      `${shapeApplies ? 'PASS' : 'FAIL'}: 2NT needs balanced shape unless Stayman and ` +
-        'Jacoby transfers are both off.',
     ],
   };
 }

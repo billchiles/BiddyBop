@@ -144,7 +144,9 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   const partnerOpeningCall = context.stage === 'responding'
     ? getPartnerOpeningCall(context.dealer, context.auction, context.seat)
     : null;
-  if (partnerOpeningCall === '1NT' || partnerOpeningCall === '2NT') {
+  const sharedOneNtResponse = ruleResults.some((result) =>
+    result.rule.auctionContext?.partnerNaturalOneNt === true);
+  if (sharedOneNtResponse || partnerOpeningCall === '2NT') {
     ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
     ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context, system);
     ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
@@ -941,6 +943,9 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   if (ruleContext === undefined) {
     return true;
   }
+  if (ruleContext.partnerNaturalOneNt === true) {
+    return matchesPartnerNaturalOneNt(evalContext);
+  }
   if (ruleContext.stage !== evalContext.stage) {
     return false;
   }
@@ -994,6 +999,28 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   }
 
   return true;
+}
+
+/// matchesPartnerNaturalOneNt recognizes the two genuine auctions that use shared 1NT calls.
+/// It requires the opening side's responder to pass after a direct 1NT overcall.
+///
+function matchesPartnerNaturalOneNt (context: RuleEvalContext): boolean {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null) {
+    return false;
+  }
+  if (context.stage === 'responding') {
+    return opening.call === '1NT' &&
+      context.auction.length === opening.index + 2 &&
+      context.auction[opening.index + 1] === 'Pass';
+  }
+  if (context.stage !== 'advancing' || context.auction.length !== opening.index + 3) {
+    return false;
+  }
+  const openerBid = getStrainFromSuitBid(opening.call);
+  return opening.call.startsWith('1') && openerBid !== 'NT' &&
+    context.auction[opening.index + 1] === '1NT' &&
+    context.auction[opening.index + 2] === 'Pass';
 }
 
 function responderCallMatches (constraint: ResponderCallContext, openingCall: Call,
