@@ -234,6 +234,218 @@ export function naturalTakeoutDoubleNotrumpAdvanceApplies (call: Call, context: 
 }
 
 
+/// A simple raise by opener's partner changes advancer's obligations.  These helpers
+/// recognize the real competitive auction instead of treating it like the earlier Pass cases.
+///
+function getOneLevelOvercallWithResponderRaise (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid; responderRaise: ParsedSuitBid } | null {
+  if (context.stage !== 'advancing' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3) {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const responderCall = context.auction[openingInfo.index + 2];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  const responderRaise = responderCall === undefined ? null : parseSuitBid(responderCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.level !== 1 || overcall.strain === 'NT' ||
+      responderRaise === null || responderRaise.strain !== opening.strain ||
+      cheapestBidInStrainAfter(opening, overcall.strain) !== overcallCall ||
+      cheapestBidInStrainAfter(overcall, opening.strain) !== responderCall) {
+    return null;
+  }
+  return { opening, overcall, responderRaise };
+}
+
+function getTakeoutDoubleWithResponderRaise (context: RuleEvalContext):
+    { opening: ParsedSuitBid; responderRaise: ParsedSuitBid } | null {
+  if (context.stage !== 'advancing' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3 ||
+      context.auction[openingInfo.index + 1] !== 'Double') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const responderCall = context.auction[openingInfo.index + 2];
+  const responderRaise = responderCall === undefined ? null : parseSuitBid(responderCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      responderRaise === null || responderRaise.strain !== opening.strain ||
+      cheapestBidInStrainAfter(opening, opening.strain) !== responderCall) {
+    return null;
+  }
+  return { opening, responderRaise };
+}
+
+function hasResponsiveShape (context: RuleEvalContext, unbidSuits: Suit[]): boolean {
+  const fourCardSuits = unbidSuits.filter((suit) => context.handFacts.lengths[suit] >= 4);
+  return fourCardSuits.length >= 2 &&
+    unbidSuits.every((suit) => context.handFacts.lengths[suit] < 5);
+}
+
+function hasQualifyingNewSuitAfterOvercallRaise (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; overcall: ParsedSuitBid; responderRaise: ParsedSuitBid },
+): boolean {
+  return SUITS.some((suit) => {
+    if (suit === info.opening.strain || suit === info.overcall.strain ||
+        context.handFacts.lengths[suit] < 5) {
+      return false;
+    }
+    const call = cheapestBidInStrainAfter(info.responderRaise, suit);
+    const bid = call === null ? null : parseSuitBid(call);
+    if (bid === null) return false;
+    if (bid.level === 2) return context.handFacts.hcp >= 10;
+    return bid.level === 3 && context.handFacts.hcp >= 12 &&
+      hasPreemptSuitQuality(context.hand, suit);
+  });
+}
+
+function hasQualifyingNewSuitAfterTakeoutRaise (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; responderRaise: ParsedSuitBid },
+): boolean {
+  const points = context.handFacts.totalPointsWLength;
+  return SUITS.some((suit) => {
+    if (suit === info.opening.strain || context.handFacts.lengths[suit] < 5) {
+      return false;
+    }
+    const call = cheapestBidInStrainAfter(info.responderRaise, suit);
+    const bid = call === null ? null : parseSuitBid(call);
+    if (bid === null) return false;
+    if (bid.level === 2) return points >= 6 && points <= 11;
+    return bid.level === 3 && points >= 9 && points <= 11 &&
+      hasPreemptSuitQuality(context.hand, suit);
+  });
+}
+
+export function overcallResponderRaisePassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getOneLevelOvercallWithResponderRaise(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: no supported overcall-and-raise auction.'] };
+  }
+  const support = context.handFacts.lengths[info.overcall.strain as Suit];
+  const supportPoints = context.handFacts.totalPointsWShortage;
+  const unbidSuits = SUITS.filter((suit) =>
+    suit !== info.opening.strain && suit !== info.overcall.strain);
+  const hasRaise = (support >= 4 && supportPoints <= 6) ||
+    (support >= 3 && supportPoints >= 6);
+  const hasResponsiveDouble = support < 3 && context.handFacts.totalPointsWLength >= 7 &&
+    hasResponsiveShape(context, unbidSuits);
+  const success = ! hasRaise && ! hasResponsiveDouble &&
+    ! hasQualifyingNewSuitAfterOvercallRaise(context, info);
+  return { success, telemetryLines: [success ?
+    'PASS: no preferred raise, natural new suit, or responsive double.' :
+    'FAIL: a descriptive competitive action is available after responder raises.'] };
+}
+
+export function refineAdvancerRaiseAfterResponderRaise (
+    calls: Call[], context: RuleEvalContext, jump: 0 | 1): CallRefinementResult {
+  const info = getOneLevelOvercallWithResponderRaise(context);
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const cheapest = cheapestBidInStrainAfter(info.responderRaise, info.overcall.strain);
+  const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+  return { calls: parsedCheapest === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.strain === info.overcall.strain &&
+      bid.level === parsedCheapest.level + jump;
+  }), telemetryLines: [] };
+}
+
+export function refineAdvancerCuebidAfterResponderRaise (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getOneLevelOvercallWithResponderRaise(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    cheapestBidInStrainAfter(info.responderRaise, info.opening.strain) === call),
+    telemetryLines: [] };
+}
+
+export function refineAdvancerNewSuitAfterResponderRaise (
+    calls: Call[], context: RuleEvalContext, level: 2 | 3): CallRefinementResult {
+  const info = getOneLevelOvercallWithResponderRaise(context);
+  return { calls: info === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.level === level && bid.strain !== 'NT' &&
+      bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
+      cheapestBidInStrainAfter(info.responderRaise, bid.strain) === call &&
+      (level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
+  }), telemetryLines: [] };
+}
+
+export function responsiveDoubleAfterOvercallRaiseApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getOneLevelOvercallWithResponderRaise(context);
+  const unbidSuits = info === null ? [] : SUITS.filter((suit) =>
+    suit !== info.opening.strain && suit !== info.overcall.strain);
+  const support = info === null ? 0 : context.handFacts.lengths[info.overcall.strain as Suit];
+  const success = info !== null && support < 3 && context.handFacts.totalPointsWLength >= 7 &&
+    hasResponsiveShape(context, unbidSuits);
+  return { success, telemetryLines: [success ?
+    'PASS: responsive double with values and both unbid suits.' :
+    'FAIL: responsive double needs 7+ length points, two four-card unbid suits, ' +
+    'and no clear fit.'] };
+}
+
+export function takeoutResponderRaisePassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getTakeoutDoubleWithResponderRaise(context);
+  if (info === null) {
+    return { success: false, telemetryLines: [
+      'FAIL: no supported takeout-double-and-raise auction.',
+    ] };
+  }
+  const points = context.handFacts.totalPointsWLength;
+  const unbidSuits = SUITS.filter((suit) => suit !== info.opening.strain);
+  const hasResponsiveDouble = points >= 6 && points <= 11 &&
+    hasResponsiveShape(context, unbidSuits);
+  const success = points < 12 && ! hasResponsiveDouble &&
+    ! hasQualifyingNewSuitAfterTakeoutRaise(context, info);
+  return { success, telemetryLines: [success ?
+    'PASS: responder’s raise removes the obligation to advance partner’s takeout double.' :
+    'FAIL: values and shape support a descriptive competitive action.'] };
+}
+
+export function refineTakeoutNewSuitAfterResponderRaise (
+    calls: Call[], context: RuleEvalContext, level: 2 | 3): CallRefinementResult {
+  const info = getTakeoutDoubleWithResponderRaise(context);
+  return { calls: info === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.level === level && bid.strain !== 'NT' &&
+      bid.strain !== info.opening.strain &&
+      cheapestBidInStrainAfter(info.responderRaise, bid.strain) === call &&
+      (level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
+  }), telemetryLines: [] };
+}
+
+export function refineTakeoutCuebidAfterResponderRaise (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getTakeoutDoubleWithResponderRaise(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    cheapestBidInStrainAfter(info.responderRaise, info.opening.strain) === call),
+    telemetryLines: [] };
+}
+
+export function responsiveDoubleAfterTakeoutRaiseApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getTakeoutDoubleWithResponderRaise(context);
+  const points = context.handFacts.totalPointsWLength;
+  const unbidSuits = info === null ? [] : SUITS.filter((suit) => suit !== info.opening.strain);
+  const success = info !== null && points >= 6 && points <= 11 &&
+    hasResponsiveShape(context, unbidSuits);
+  return { success, telemetryLines: [success ?
+    'PASS: responsive double asks partner to choose among the unbid suits.' :
+    'FAIL: responsive double needs 6-11 length points and at least two four-card unbid suits.'] };
+}
+
+
 /// Advances of partner's preemptive jump overcall are restricted to a one-level
 /// suit opening, an actual jump in a different suit, and responder's Pass.
 /// This is distinct from an economical two-level overcall.

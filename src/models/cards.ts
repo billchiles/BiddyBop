@@ -265,17 +265,14 @@ function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): numb
   return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
 }
 
-/// makeRuleTestDeal builds a complete physical deal from the two hands specified by the current
-/// rule-practice fixture.  An optional third fixed hand supports realistic competitive practice.
+/// makeRuleTestDeal builds a complete physical deal from the hands fixed by the current
+/// rule-practice fixture.  Unspecified seats are filled deterministically from the remaining cards.
 ///
 function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   const north = makeTestHand(testDeal.north);
   const south = makeTestHand(testDeal.south);
   const west = testDeal.west === undefined ? null : makeTestHand(testDeal.west);
   const east = testDeal.east === undefined ? null : makeTestHand(testDeal.east);
-  if (east !== null && west !== null) {
-    throw new Error('A rule-test deal can fix East or West, not both.');
-  }
   const explicit = [north, south, ...(west === null ? [] : [west]),
                     ...(east === null ? [] : [east])];
   const usedCards = new Set(explicit.flatMap((hand) => hand.cards).map(cardKey));

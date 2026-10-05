@@ -9,6 +9,8 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
@@ -575,7 +577,7 @@ function runAdvancingBoundaryTests (): number {
   }
   const { board } = makeRuleTestBoard(deal);
   const excluded: Call[][] = [
-    ['1D', '1S', '2D'], // Opponents' responder did not pass.
+    ['1D', '1S', '1NT'], // Responder's notrump bid is a separate future family.
     ['1D', '1S', 'Double'],
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
   ];
@@ -791,6 +793,104 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Responder-raise advances apply only to a simple raise of opener's suit.  These checks
+/// also keep responsive Double behind an obvious fit or a five-card natural suit.
+function runResponderRaiseAdvanceBoundaryTests (): number {
+  const overcallDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[6];
+  const takeoutDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS[3];
+  if (overcallDoubleDeal === undefined || takeoutDoubleDeal === undefined) {
+    console.error('FAIL responder-raise advancing boundaries need responsive-double fixtures.');
+    return 1;
+  }
+  const { board: overcallBoard } = makeRuleTestBoard(overcallDoubleDeal);
+  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDoubleDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '1NT'],
+    ['1D', '1S', '2C'],
+    ['1D', '1S', '3D'],
+    ['1D', '2H', '2D'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', overcallBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-one-level-suit-overcall-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL overcall responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '1NT'],
+    ['1H', 'Double', '2C'],
+    ['1H', 'Double', '3H'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', takeoutBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-takeout-double-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL takeout responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  const fitBoard = makeRuleTestBoard({
+    description: 'Responsive Double is suppressed by three-card support.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '2D', 'Double'],
+    north: overcallDoubleDeal.north,
+    south: { S: 'T95', H: 'KQJT', D: 'KT9', C: 'JT7' },
+  }).board;
+  checks += 1;
+  const fitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', fitBoard, ['1D', '1S', '2D'], defaultBiddingSystem));
+  if (fitCandidates.some(({ rule }) =>
+    rule.id === 'advance-one-level-suit-overcall-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double survived with three-card support for partner.');
+  }
+
+  const longSuitBoard = makeRuleTestBoard({
+    description: 'Responsive Double is suppressed by a five-card natural suit.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
+    north: takeoutDoubleDeal.north,
+    south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
+  }).board;
+  checks += 1;
+  const longSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', longSuitBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
+  if (longSuitCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double survived with a clear five-card natural suit.');
+  }
+
+  const strongBoard = makeRuleTestBoard({
+    description: 'Responsive Double gives way to the strong-hand cuebid.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
+    north: takeoutDoubleDeal.north,
+    south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
+  }).board;
+  checks += 1;
+  const strongCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', strongBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
+  if (strongCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double exceeded the modeled 11-point maximum.');
+  }
+
+  console.log(`Responder-raise advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Restricts the new rules to simple raises and keeps responsive Double behind');
+  console.log('  a clear fit, a five-card natural suit, or the modeled strong-hand cuebid.');
+  return failures;
+}
+
 /// Jump-overcall advances must require a real jump and responder's Pass. The
 /// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
 function runJumpOvercallAdvanceBoundaryTests (): number {
@@ -892,7 +992,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
-  runJumpOvercallAdvanceBoundaryTests() + runRuleTests();
+  runResponderRaiseAdvanceBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
+  runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

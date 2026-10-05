@@ -12,6 +12,8 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS } from './advancing-test-deals';
 import { SIMPLE_OVERCALL_TEST_DEALS,
          TAKEOUT_DOUBLE_TEST_DEALS,
@@ -51,10 +53,10 @@ export interface RuleTestDeal {
   description: string;
   // actual auction (including opponent passes) for manual practice.
   practiceAuction: Call[];
-  // An optional dealer and third fixed hand let competitive practice use real seated hands.
+  // Competitive practice may fix either or both opposing hands when the setup needs them.
   dealer?: Seat;
   west?: Record<Suit, string>;
-  east?: Record<Suit, string>; // optional opposing hand for realistic response-after-overcall practice
+  east?: Record<Suit, string>;
   // Explicitly recorded overcall expectations use the call at auction index 1.
   expectedOvercallCalls?: RuleTestExpectedCall[];
   rejectedOvercallCalls?: Call[];
@@ -91,6 +93,8 @@ export {
   ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
   ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
+  ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS,
+  ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
   ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
   SIMPLE_OVERCALL_TEST_DEALS,
   TAKEOUT_DOUBLE_TEST_DEALS,
@@ -152,6 +156,12 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'advance-natural-1nt-overcall', group: 'Advancing',
     label: 'After natural 1NT overcall', practiceStages: ['advancing'] as BidStage[],
     deals: ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS },
+  { id: 'advance-after-responder-raise-overcall', group: 'Advancing',
+    label: 'After responder raises — suit overcall', practiceStages: ['advancing'] as BidStage[],
+    deals: ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS },
+  { id: 'advance-after-responder-raise-double', group: 'Advancing',
+    label: 'After responder raises — takeout double', practiceStages: ['advancing'] as BidStage[],
+    deals: ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS },
   { id: 'advance-jump-overcall', group: 'Advancing',
     label: 'After preemptive jump overcall', practiceStages: ['advancing'] as BidStage[],
     deals: ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS },
