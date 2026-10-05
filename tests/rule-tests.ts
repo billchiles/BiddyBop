@@ -11,6 +11,8 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS,
+         ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
@@ -577,7 +579,7 @@ function runAdvancingBoundaryTests (): number {
   }
   const { board } = makeRuleTestBoard(deal);
   const excluded: Call[][] = [
-    ['1D', '1S', '1NT'], // Responder's notrump bid is a separate future family.
+    ['1D', '1S', '2S'], // An artificial responder cuebid is not a natural advance context.
     ['1D', '1S', 'Double'],
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
   ];
@@ -686,7 +688,6 @@ function runTakeoutAdvanceBoundaryTests (): number {
   let checks = 0;
   let failures = 0;
   for (const auction of [
-    ['1D', 'Double', '1H'], // Responder acts: the compulsory weak suit choice disappears.
     ['1NT', 'Double', 'Pass'], // No agreed takeout-double meaning over natural 1NT.
     ['2D', 'Double', 'Pass'], // Weak-two defenses are a separate future family.
     ['1D', '1S', 'Pass'], // A suit overcall is not a takeout double.
@@ -891,6 +892,76 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Natural responder actions after a suit overcall or takeout double have their own
+/// advancing family.  Keep those rules out of Pass, raise, artificial, and jump-response auctions.
+function runResponderNaturalActionAdvanceBoundaryTests (): number {
+  const overcallDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS[0];
+  const takeoutDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS[0];
+  if (overcallDeal === undefined || takeoutDeal === undefined) {
+    console.error('FAIL responder-action advancing boundaries need saved practice fixtures.');
+    return 1;
+  }
+  const { board: overcallBoard } = makeRuleTestBoard(overcallDeal);
+  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '2D'],
+    ['1D', '1S', '2S'],
+    ['1D', '1S', 'Double'],
+    ['1H', '2D', '2NT'],
+    ['1D', '2H', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', overcallBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
+      failures += 1;
+      console.error(`FAIL suit-overcall responder-action rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '2H'],
+    ['1H', 'Double', 'Redouble'],
+    ['1H', 'Double', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', takeoutBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
+      failures += 1;
+      console.error(`FAIL takeout responder-action rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  checks += 1;
+  const responderSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2S', takeoutBoard, ['1H', 'Double', '1S'], defaultBiddingSystem));
+  if (responderSuitCandidates.some(({ rule }) =>
+    rule.id.includes('responder-natural-action-new-suit'))) {
+    failures += 1;
+    console.error('FAIL advancer treated responder’s newly bid suit as a natural new suit.');
+  }
+
+  checks += 1;
+  const doubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', overcallBoard, ['1D', '1S', '1NT'], defaultBiddingSystem));
+  if (doubleCandidates.some(({ call, rule }) =>
+    call === 'Double' && rule.id.includes('responder-natural-action'))) {
+    failures += 1;
+    console.error('FAIL natural responder-action family introduced an unagreed Double.');
+  }
+
+  console.log(`Responder-action advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Limits these advances to natural new-suit or 1NT responses and keeps');
+  console.log('  artificial responder calls, jumps, and unrelated actions outside this family.');
+  return failures;
+}
+
 /// Jump-overcall advances must require a real jump and responder's Pass. The
 /// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
 function runJumpOvercallAdvanceBoundaryTests (): number {
@@ -992,7 +1063,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
-  runResponderRaiseAdvanceBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
+  runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
+  runJumpOvercallAdvanceBoundaryTests() +
   runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

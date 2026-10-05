@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 338 deals, with 847 positive call/rule assertions, 359 elimination
-assertions, 29 call-order assertions, and 762 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1223 eligible deal/configuration combinations and 2740 recorded calls.
+The current corpus contains 365 deals, with 928 positive call/rule assertions, 436 elimination
+assertions, 29 call-order assertions, and 843 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1331 eligible deal/configuration combinations and 3064 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
@@ -43,7 +43,7 @@ reserved for the strong-double treatment. Two `overcall-takeout-double` deals di
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
 that does not require that shape. These are informational doubles only; later responses and
 penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 105 competitive-boundary checks protect
+call-availability checks occur before refinement; 127 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
 heart response is obstructed. The new negative Double and stopper-qualified 1NT
 now supply alternatives in that example; other intervention families remain pending.
@@ -57,12 +57,12 @@ Eleven `advance-one-level-suit-overcall` deals fix West's opening, North's natur
 one-level suit overcall, and South's advance after East passes. They cover constructive
 3-card raises, preemptive 4-card jump raises, the 6-support-point overlap, a forcing
 support cuebid, natural 1NT/2NT with a stopper, nonforcing one-level new suits, and
-forcing economical two-level new suits. Seven boundary checks reject advancing rules
-after responder action or unsupported overcall types and reject 1NT without a stopper.
+forcing economical two-level new suits. Ten boundary checks keep this responder-Pass family
+out of responder-action and unsupported-overcall auctions and reject 1NT without a stopper.
 Nine `advance-two-level-suit-overcall` deals cover 7-10 support-point simple raises,
 11+ forcing support cuebids, 11-13 balanced 2NT with a stopper, 10+ HCP forcing economical
-new suits at two, and 12+ HCP forcing economical good new suits at three. New boundary
-checks reject responder actions, jump overcalls, and natural 2NT without a stopper.
+new suits at two, and 12+ HCP forcing economical good new suits at three. The same boundary
+family rejects responder actions, jump overcalls, and natural 2NT without a stopper.
 Strong jump-new-suit advances, later overcaller continuations, and inferred Pass are
 not yet modeled.
 
@@ -73,6 +73,17 @@ major game with sufficient fit and support points, and economical forcing new su
 interference, unsupported higher openings, artificial 2NT inquiries, five-level raises,
 weak new-suit honor quality, and insufficient strength. This explicit Pass is limited to
 jump-overcall advances; there is still no general inferred-Pass mechanism.
+
+Twelve responder-raise advancing deals cover the opening side's simple raise after a natural
+one-level suit overcall or takeout double. They exercise explicit Pass, natural support raises,
+strong cuebids, natural new suits, and the deliberately narrow responsive-Double treatment.
+Separate boundary checks keep those rules out of Pass, new-suit, 1NT, and higher-raise auctions.
+
+Fifteen responder-natural-action advancing deals cover an economical new-suit response or natural
+1NT response after a natural suit overcall or takeout double. They exercise explicit Pass, support
+after one- and two-level suit overcalls, strong cuebids, and economical natural new suits through
+the three level. Twelve boundary checks keep this family out of responder Pass, raises, artificial
+calls, jump responses, and unrelated intervention families.
 
 Nine `response-after-suit-overcall` deals fix North's opening, East's actual natural
 non-jump suit overcall, and South's response. They cover negative Double, an artificial

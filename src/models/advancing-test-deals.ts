@@ -627,6 +627,242 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestD
 ];
 
 
+/// Advancer after responder bids a natural new suit or 1NT over partner's natural suit overcall.
+/// These deals keep the continuation natural: Pass, support, cuebid, or an unbid long suit.
+///
+export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1D-(1S)-1NT: seven HCP, no spade fit, and no long side suit can Pass.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '1NT', 'Pass'],
+    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    east: { S: 'KT5', H: 'QJ8', D: 'Q95', C: 'JT85' },
+    south: { S: '43', H: 'KT95', D: 'T632', C: 'A72' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-pass',
+    ] }],
+    rejectedAdvanceCalls: ['2S', '2D', '2H'],
+  },
+  {
+    description: '1D-(1S)-1NT: three spades and 10 support points make a simple 2S raise.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2S'],
+    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    east: { S: 'KT', H: 'QJ85', D: 'T932', C: 'T72' },
+    south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
+    expectedAdvanceCalls: [{ call: '2S', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-natural-action-simple-raise',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3S', '2D'],
+  },
+  {
+    description: '1D-(1S)-1NT: 11 support points cuebid 2D to show the strong spade raise.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2D'],
+    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    east: { S: 'K5', H: 'QT985', D: '962', C: 'J82' },
+    south: { S: 'T43', H: 'KJ', D: 'QT53', C: 'AT75' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
+    expectedAdvanceCalls: [{ call: '2D', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-support-cuebid',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2S'],
+  },
+  {
+    description: '1H-(1S)-2C: five weak spades make a preemptive 3S raise.',
+    dealer: 'W', practiceAuction: ['1H', '1S', '2C', '3S'],
+    west: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    east: { S: '', H: '3', D: 'AKT7654', C: 'AQJ75' },
+    south: { S: 'T9543', H: 'QJ85', D: '92', C: 'T2' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3S', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-natural-action-preemptive-raise',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2S'],
+  },
+  {
+    description: '1H-(1S)-2C: without enough support or strength for diamonds, advancer Passes.',
+    dealer: 'W', practiceAuction: ['1H', '1S', '2C', 'Pass'],
+    west: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    east: { S: 'T9', H: 'QJ', D: 'AT97', C: 'AQJT5' },
+    south: { S: '543', H: '853', D: 'K6542', C: '72' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-pass',
+    ] }],
+    rejectedAdvanceCalls: ['2S', '2D', 'Double'],
+  },
+  {
+    description: '1C-(1D)-1H: a six-card spade suit and nine HCP compete naturally with 1S.',
+    dealer: 'W', practiceAuction: ['1C', '1D', '1H', '1S'],
+    west: { S: '9753', H: 'A7', D: 'AJ', C: 'AJ943' },
+    north: { S: 'KQ', H: '843', D: 'KT87542', C: '7' },
+    east: { S: 'T', H: 'KJT95', D: 'Q93', C: 'K862' },
+    south: { S: 'AJ8642', H: 'Q62', D: '6', C: 'QT5' },
+    expectedOvercallCalls: [{ call: '1D', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1H', ruleIds: ['respond-over-suit-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: '1S', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-new-suit-one-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2S'],
+  },
+  {
+    description: '1H-(1S)-2C: five diamonds and 10 HCP compete with forcing 2D.',
+    dealer: 'W', practiceAuction: ['1H', '1S', '2C', '2D'],
+    west: { S: 'T', H: 'AJ854', D: 'QJ52', C: 'KT6' },
+    north: { S: 'KQJ98642', H: '93', D: 'K86', C: '' },
+    east: { S: '3', H: 'KQ762', D: 'A', C: 'J98742' },
+    south: { S: 'A75', H: 'T', D: 'T9743', C: 'AQ53' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '2D', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-new-suit-two-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3D'],
+  },
+  {
+    description: '1H-(2D)-2S: four-card diamond support and seven support points raise to 3D.',
+    dealer: 'W', practiceAuction: ['1H', '2D', '2S', '3D'],
+    west: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    north: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    east: { S: 'J97642', H: '85', D: '', C: 'AKQ64' },
+    south: { S: '5', H: 'KT93', D: '7632', C: 'JT82' },
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3D', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-natural-action-simple-raise',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3H'],
+  },
+  {
+    description: '1H-(2D)-2S: 12 HCP and good five clubs compete with forcing 3C.',
+    dealer: 'W', practiceAuction: ['1H', '2D', '2S', '3C'],
+    west: { S: '4', H: 'KQJ987', D: '2', C: 'K9765' },
+    north: { S: 'K7', H: '42', D: 'AQT87654', C: '8' },
+    east: { S: 'AJT952', H: '653', D: 'J3', C: 'A4' },
+    south: { S: 'Q863', H: 'AT', D: 'K9', C: 'QJT32' },
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-new-suit-three-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3D'],
+  },
+];
+
+
+/// Advancer after responder bids a natural new suit or 1NT over partner's takeout double.
+/// These examples emphasize that responder's action removes the compulsory weak advance.
+///
+export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-(Double)-1S: with three HCP and no five-card unbid suit, advancer Passes.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '1S', 'Pass'],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    east: { S: 'T986', H: 'QJ5', D: 'AJ6', C: 'A73' },
+    south: { S: '53', H: '8743', D: 'T92', C: 'KT92' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1S', ruleIds: ['respond-after-double-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-pass',
+    ] }],
+    rejectedAdvanceCalls: ['2C', '2D', '2H'],
+  },
+  {
+    description: '1H-(Double)-1NT: eight HCP with no five-card suit can Pass.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '1NT', 'Pass'],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    east: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+    south: { S: '53', H: '8743', D: 'JT2', C: 'AKT2' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-after-double-natural-1nt'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-pass',
+    ] }],
+    rejectedAdvanceCalls: ['2C', '2D', '2S'],
+  },
+  {
+    description: '1H-(Double)-1NT: five clubs and nine length points compete naturally with 2C.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '1NT', '2C'],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'AQJ4', H: '82', D: 'K874', C: 'QJ8' },
+    east: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+    south: { S: '53', H: '743', D: 'JT2', C: 'AKT62' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-after-double-natural-1nt'] }],
+    expectedAdvanceCalls: [{ call: '2C', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-new-suit-two-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3C'],
+  },
+  {
+    description: '1C-(Double)-1H: six spades and six length points compete naturally with 1S.',
+    dealer: 'W', practiceAuction: ['1C', 'Double', '1H', '1S'],
+    west: { S: 'AK', H: 'T96', D: 'KT4', C: 'A9874' },
+    north: { S: 'QT8', H: 'A54', D: 'A9876', C: 'Q2' },
+    east: { S: 'J3', H: 'Q8732', D: 'QJ', C: 'KJ65' },
+    south: { S: '976542', H: 'KJ', D: '532', C: 'T3' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1H', ruleIds: ['respond-after-double-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: '1S', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-new-suit-one-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2S'],
+  },
+  {
+    description: '1H-(Double)-2D: good five clubs and 11 length points compete with 3C.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2D', '3C'],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    east: { S: 'T98', H: 'J7', D: 'AJT962', C: '93' },
+    south: { S: '653', H: 'Q8543', D: '', C: 'AKT72' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '2D', ruleIds: ['respond-after-double-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-new-suit-three-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3H'],
+  },
+  {
+    description: '1H-(Double)-1S: 12 length points cuebid opener’s hearts with 2H.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '1S', '2H'],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    east: { S: 'T8653', H: 'J54', D: 'AJ962', C: '' },
+    south: { S: '9', H: 'Q873', D: 'T', C: 'AKT9732' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1S', ruleIds: ['respond-after-double-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: '2H', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-strong-cuebid',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2C'],
+  },
+];
+
+
 /// Advance partner's preemptive jump overcall when the opponents' responder passes.
 /// These examples distinguish Pass, fit raises, major game, and forcing new suits.
 ///

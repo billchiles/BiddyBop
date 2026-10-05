@@ -12,7 +12,14 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
          refineAdvancerNewSuitAfterResponderRaise, responsiveDoubleAfterOvercallRaiseApplies,
          takeoutResponderRaisePassApplies, refineTakeoutNewSuitAfterResponderRaise,
          refineTakeoutCuebidAfterResponderRaise, responsiveDoubleAfterTakeoutRaiseApplies,
-         jumpOvercallPassApplies, refineJumpOvercallRaise, refineJumpOvercallMajorGame,
+         overcallResponderNaturalActionPassApplies,
+         refineAdvancerRaiseAfterResponderNaturalAction,
+         refineAdvancerCuebidAfterResponderNaturalAction,
+         refineAdvancerNewSuitAfterResponderNaturalAction,
+         takeoutResponderNaturalActionPassApplies,
+         refineTakeoutNewSuitAfterResponderNaturalAction,
+         refineTakeoutCuebidAfterResponderNaturalAction, jumpOvercallPassApplies,
+         refineJumpOvercallRaise, refineJumpOvercallMajorGame,
          refineJumpOvercallNewSuit } from './advancing-functions';
 
 
@@ -527,7 +534,225 @@ export const AdvanceRules: BidRule[] = [
                'for one particular suit.'],
     certainty: 'high',
   },
-  // Fourth family: partner makes a preemptive jump overcall and opener's partner passes.
+  // Responder-natural-action family: responder bids an economical new suit or natural 1NT
+  // after advancer's partner makes a natural suit overcall.  Advancer may now Pass or act
+  // naturally.
+  {
+    id: 'advance-suit-overcall-after-responder-natural-action-pass',
+    kind: 'advance',
+    title: 'Pass after responder acts without a natural competitive action',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: overcallResponderNaturalActionPassApplies,
+    meaning: 'Pass with limited values when responder has acted and no modeled natural ' +
+             'action fits.',
+    guidance: ['Responder’s natural call removes any obligation for advancer to keep bidding.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-one-level-suit-overcall-after-responder-natural-action-simple-raise',
+    kind: 'advance',
+    title: 'Raise partner’s one-level overcall after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 0),
+    callCategory: ['natural'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Competitive nonforcing raise with 6-10 support points and 3+ trumps.',
+    guidance: ['Use the same constructive support range after responder bids a new suit or 1NT.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-one-level-suit-overcall-after-responder-natural-action-preemptive-raise',
+    kind: 'advance',
+    title: 'Make a weak jump raise after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 1),
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 15 },
+    appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
+                   supportLength: { min: 4 } },
+    meaning: 'Weak competitive jump raise with 4+ trumps and at most 6 support points.',
+    guidance: ['The jump is preemptive rather than invitational.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-natural-action-simple-raise',
+    kind: 'advance',
+    title: 'Raise partner’s two-level overcall after responder bids a new suit',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 2, 0),
+    callCategory: ['natural'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Competitive nonforcing raise with 7-10 support points and 3+ trumps.',
+    guidance: ['Partner’s natural two-level overcall starts from a stronger range.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-suit-overcall-after-responder-natural-action-support-cuebid',
+    kind: 'advance',
+    title: 'Cuebid opener’s suit to show a strong raise after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineAdvancerCuebidAfterResponderNaturalAction,
+    callCategory: ['conventional', 'forcing'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
+    guidance: ['The bid names opener’s original suit, not responder’s newly bid suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-suit-overcall-after-responder-natural-action-new-suit-one-level',
+    kind: 'advance',
+    title: 'Bid a five-card new suit at the one level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['1D', '1H', '1S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 1),
+    callCategory: ['natural'],
+    appliesWhen: { hcp: { min: 8 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Natural one-level new suit with 5+ cards and 8+ HCP.',
+    guidance: ['Bid only a suit still unbid by either opponent or by partner.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-suit-overcall-after-responder-natural-action-new-suit-two-level',
+    kind: 'advance',
+    title: 'Bid a constructive new suit at the two level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 2),
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
+    guidance: ['The suit must remain unbid and the call must be economical in that strain.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-suit-overcall-after-responder-natural-action-new-suit-three-level',
+    kind: 'advance',
+    title: 'Bid a good new suit at the three level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 3),
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
+    guidance: ['At the three level, require concentrated suit honors as well as strength.'],
+    certainty: 'high',
+  },
+  // After a takeout double, responder's economical natural suit or 1NT call removes the
+  // compulsory weak advance.  Advancer may Pass, bid a clear suit, or cuebid with strength.
+  {
+    id: 'advance-takeout-double-after-responder-natural-action-pass',
+    kind: 'advance',
+    title: 'Pass after responder acts over partner’s takeout double',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: takeoutResponderNaturalActionPassApplies,
+    meaning: 'Pass with no suitable natural action after responder bids a new suit or 1NT.',
+    guidance: ['Once responder bids, advancer no longer has to choose a suit with a weak hand.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-after-responder-natural-action-new-suit-one-level',
+    kind: 'advance',
+    title: 'Bid a clear five-card suit at the one level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1D', '1H', '1S'],
+    callRefinement: (calls, context) =>
+      refineTakeoutNewSuitAfterResponderNaturalAction(calls, context, 1),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 6, max: 11, valuation: 'length' },
+                   suitLengths: [{ min: 5 }] },
+    meaning: 'Natural one-level suit: 5+ cards and 6-11 length-adjusted points.',
+    guidance: ['Responder’s suit is not available as a natural advance in this treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-after-responder-natural-action-new-suit-two-level',
+    kind: 'advance',
+    title: 'Bid a clear five-card suit at the two level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: (calls, context) =>
+      refineTakeoutNewSuitAfterResponderNaturalAction(calls, context, 2),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 6, max: 11, valuation: 'length' },
+                   suitLengths: [{ min: 5 }] },
+    meaning: 'Natural two-level suit: 5+ cards and 6-11 length-adjusted points.',
+    guidance: ['With a clear long suit, compete naturally after responder has acted.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-after-responder-natural-action-new-suit-three-level',
+    kind: 'advance',
+    title: 'Bid a good five-card suit at the three level after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) =>
+      refineTakeoutNewSuitAfterResponderNaturalAction(calls, context, 3),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 9, max: 11, valuation: 'length' },
+                   suitLengths: [{ min: 5 }] },
+    meaning: 'Natural three-level suit: a good 5+ card suit and 9-11 length-adjusted points.',
+    guidance: ['The higher level requires extra values and concentrated suit honors.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-takeout-double-after-responder-natural-action-strong-cuebid',
+    kind: 'advance',
+    title: 'Cuebid opener’s suit with a strong hand after responder acts',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineTakeoutCuebidAfterResponderNaturalAction,
+    callCategory: ['conventional', 'forcing'],
+    priority: { rank: 25 },
+    appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
+    meaning: 'Strong artificial cuebid with 12+ length-adjusted points, forcing one round.',
+    guidance: ['Cuebid opener’s original suit rather than responder’s newly bid suit.'],
+    certainty: 'high',
+  },
+  // Preemptive-jump family: partner makes a preemptive jump overcall and opener's partner passes.
   // The jump describes a limited hand with a long suit; advancer rarely needs to explore.
   {
     id: 'advance-jump-overcall-pass',
