@@ -13,6 +13,8 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS,
+         ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
+         ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
@@ -580,7 +582,6 @@ function runAdvancingBoundaryTests (): number {
   const { board } = makeRuleTestBoard(deal);
   const excluded: Call[][] = [
     ['1D', '1S', '2S'], // An artificial responder cuebid is not a natural advance context.
-    ['1D', '1S', 'Double'],
     ['1D', '2H', 'Pass'], // A preemptive jump overcall.
   ];
   let checks = 0;
@@ -595,9 +596,10 @@ function runAdvancingBoundaryTests (): number {
                     formatCandidates(candidates));
     }
   }
-  // The two-level family must also stay inactive when East acts, or North jumps.
+  // The ordinary two-level family must stay inactive after an unsupported responder action
+  // or a jump overcall.
   for (const auction of [
-    ['1D', '2C', '2D'], ['1D', '2C', 'Double'], ['1D', '3C', 'Pass'],
+    ['1D', '2C', '2D'], ['1D', '3C', 'Pass'],
   ] as Call[][]) {
     checks += 1;
     const candidates = getApplicableCandidateCalls(
@@ -962,6 +964,115 @@ function runResponderNaturalActionAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Artificial responder actions have deliberately narrow advancing meanings.  Negative-Double
+/// rules must not leak into other responder actions, and a Redoubled takeout Double supports only
+/// the weak economical escape modeled here.
+function runResponderArtificialActionAdvanceBoundaryTests (): number {
+  const negativeDoubleDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[5];
+  const takeoutRedoubleDeal = ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS[0];
+  if (negativeDoubleDeal === undefined || takeoutRedoubleDeal === undefined) {
+    console.error('FAIL artificial-action advancing boundaries need saved practice fixtures.');
+    return 1;
+  }
+  const { board: negativeDoubleBoard } = makeRuleTestBoard(negativeDoubleDeal);
+  const { board: takeoutRedoubleBoard } = makeRuleTestBoard(takeoutRedoubleDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '2D'],
+    ['1D', '1S', '1NT'],
+    ['1D', '1S', '2C'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Redouble', negativeDoubleBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('after-negative-double'))) {
+      failures += 1;
+      console.error(`FAIL negative-Double advancing rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  const sideSuitDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[4];
+  if (sideSuitDeal === undefined) {
+    console.error('FAIL negative-Double boundaries need the side-suit fixture.');
+    return failures + 1;
+  }
+  const { board: sideSuitBoard } = makeRuleTestBoard(sideSuitDeal);
+  checks += 1;
+  const impliedSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2H', sideSuitBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
+  if (impliedSuitCandidates.some(({ call, rule }) => call === '2H' &&
+      rule.id === 'advance-suit-overcall-after-negative-double-new-suit-two-level')) {
+    failures += 1;
+    console.error('FAIL negative-Double side-suit rule admitted the major implied by Double.');
+  }
+
+  const weakRedoubleBoard = makeRuleTestBoard({
+    description: 'Strength Redouble boundary at nine HCP.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Double', 'Redouble'],
+    west: { S: 'KJ53', H: 'Q4', D: 'AQT3', C: 'Q97' },
+    north: { S: 'AT9764', H: '32', D: '64', C: 'K85' },
+    east: { S: 'Q', H: 'AT8765', D: '', C: 'AT6432' },
+    south: { S: '82', H: 'KJ9', D: 'KJ98752', C: 'J' },
+  }).board;
+  checks += 1;
+  const weakRedoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Redouble', weakRedoubleBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
+  if (weakRedoubleCandidates.some(({ rule }) =>
+    rule.id === 'advance-suit-overcall-after-negative-double-redouble-values')) {
+    failures += 1;
+    console.error('FAIL strength-showing Redouble admitted fewer than 10 HCP.');
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '2H'],
+    ['1H', 'Double', '1NT'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      '2C', takeoutRedoubleBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-redouble'))) {
+      failures += 1;
+      console.error(`FAIL takeout-Redouble escape leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  checks += 1;
+  const jumpCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3C', takeoutRedoubleBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
+  if (jumpCandidates.some(({ call, rule }) =>
+    call === '3C' && rule.id.includes('responder-redouble'))) {
+    failures += 1;
+    console.error('FAIL Redoubled takeout escape admitted an invitational or preemptive jump.');
+  }
+
+  const strongEscapeBoard = makeRuleTestBoard({
+    description: 'Redoubled takeout escape boundary above eight length points.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', 'Redouble', '2C'],
+    west: { S: 'J', H: 'K98642', D: 'Q52', C: 'A74' },
+    north: { S: 'AQ53', H: 'T3', D: 'KJ93', C: 'Q63' },
+    east: { S: 'KT86', H: '', D: 'AT8764', C: 'K98' },
+    south: { S: '9742', H: 'AQJ75', D: '', C: 'JT52' },
+  }).board;
+  checks += 1;
+  const strongEscapeCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', strongEscapeBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
+  if (strongEscapeCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-redouble-weak-suit-escape')) {
+    failures += 1;
+    console.error('FAIL weak Redouble escape exceeded the modeled eight-point maximum.');
+  }
+
+  console.log(`Artificial responder-action advancing boundaries: ${checks} checks; ` +
+              `${failures} failures.`);
+  console.log('  Keeps strength-showing Redouble and weak takeout-Double escapes in their');
+  console.log('  exact auctions, excluding implied suits, jumps, and stronger runout decisions.');
+  return failures;
+}
+
 /// Jump-overcall advances must require a real jump and responder's Pass. The
 /// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
 function runJumpOvercallAdvanceBoundaryTests (): number {
@@ -1064,7 +1175,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
-  runJumpOvercallAdvanceBoundaryTests() +
+  runResponderArtificialActionAdvanceBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
   runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

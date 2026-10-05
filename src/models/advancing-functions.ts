@@ -646,6 +646,215 @@ export function refineTakeoutCuebidAfterResponderNaturalAction (
 }
 
 
+/// Responder's negative Double after a natural suit overcall is artificial and does not
+/// consume bidding space.  These helpers preserve the actual overcall level and let advancer
+/// choose among support, notrump, a clear side suit, Pass, or a strength-showing Redouble.
+///
+function getNaturalSuitOvercallWithResponderNegativeDouble (
+    context: RuleEvalContext,
+    overcallLevel?: 1 | 2,
+): { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  if (context.stage !== 'advancing' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3 ||
+      context.auction[openingInfo.index + 2] !== 'Double') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' ||
+      (overcall.level !== 1 && overcall.level !== 2) ||
+      (overcallLevel !== undefined && overcall.level !== overcallLevel) ||
+      cheapestBidInStrainAfter(opening, overcall.strain) !== overcallCall) {
+    return null;
+  }
+  return { opening, overcall };
+}
+
+function getNegativeDoubleImpliedSuits (opening: ParsedSuitBid, overcall: ParsedSuitBid): Suit[] {
+  const unbidSuits = SUITS.filter((suit) => suit !== opening.strain && suit !== overcall.strain);
+  const unbidMajors = unbidSuits.filter((suit) => suit === 'H' || suit === 'S');
+  return unbidMajors.length > 0 ? unbidMajors : unbidSuits;
+}
+
+function hasSelectedNewSuitAfterNegativeDouble (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; overcall: ParsedSuitBid },
+): boolean {
+  const impliedSuits = getNegativeDoubleImpliedSuits(info.opening, info.overcall);
+  return SUITS.some((suit) => {
+    if (suit === info.opening.strain || suit === info.overcall.strain ||
+        impliedSuits.includes(suit) || context.handFacts.lengths[suit] < 5) {
+      return false;
+    }
+    const call = cheapestBidInStrainAfter(info.overcall, suit);
+    const bid = call === null ? null : parseSuitBid(call);
+    return bid !== null && bid.level === 2 && context.handFacts.hcp >= 10;
+  });
+}
+
+function hasNaturalNotrumpAfterNegativeDouble (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; overcall: ParsedSuitBid },
+): boolean {
+  if (! context.handFacts.balanced ||
+      ! hasBasicSuitStopper(context, info.opening.strain as Suit)) {
+    return false;
+  }
+  const hcp = context.handFacts.hcp;
+  if (info.overcall.level === 1) return hcp >= 8 && hcp <= 14;
+  return hcp >= 11 && hcp <= 13;
+}
+
+function hasStrongSupportCuebidAfterNegativeDouble (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; overcall: ParsedSuitBid },
+): boolean {
+  const support = context.handFacts.lengths[info.overcall.strain as Suit];
+  return support >= 3 && context.handFacts.totalPointsWShortage >= 11;
+}
+
+export function overcallNegativeDoublePassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  if (info === null) {
+    return { success: false, telemetryLines: [
+      'FAIL: no supported negative-Double auction after a natural suit overcall.',
+    ] };
+  }
+  const support = context.handFacts.lengths[info.overcall.strain as Suit];
+  const supportPoints = context.handFacts.totalPointsWShortage;
+  const hasSupportAction = info.overcall.level === 1 ?
+    support >= 4 || (support >= 3 && supportPoints >= 6) :
+    support >= 3 && supportPoints >= 7;
+  const success = context.handFacts.hcp < 10 && ! hasSupportAction &&
+    ! hasNaturalNotrumpAfterNegativeDouble(context, info) &&
+    ! hasSelectedNewSuitAfterNegativeDouble(context, info);
+  return { success, telemetryLines: [success ?
+    'PASS: responder’s negative Double leaves no preferred constructive advance.' :
+    'FAIL: strength, fit, notrump shape, or a clear side suit supports another action.'] };
+}
+
+export function refineAdvancerRaiseAfterNegativeDouble (
+    calls: Call[], context: RuleEvalContext, overcallLevel: 1 | 2, jump: 0 | 1):
+    CallRefinementResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context, overcallLevel);
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const cheapest = cheapestBidInStrainAfter(info.overcall, info.overcall.strain);
+  const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+  return { calls: parsedCheapest === null ? [] : calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.strain === info.overcall.strain &&
+      bid.level === parsedCheapest.level + jump;
+  }), telemetryLines: [] };
+}
+
+export function refineAdvancerCuebidAfterNegativeDouble (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    cheapestBidInStrainAfter(info.overcall, info.opening.strain) === call),
+    telemetryLines: [] };
+}
+
+export function naturalNotrumpAfterNegativeDoubleApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  if (info === null || ! context.handFacts.balanced ||
+      ! hasBasicSuitStopper(context, info.opening.strain as Suit)) {
+    return { success: false, telemetryLines: [
+      'FAIL: natural NT needs the supported negative-Double auction, balance, and ' +
+      'opener-suit stopper.',
+    ] };
+  }
+  const hcp = context.handFacts.hcp;
+  const success = info.overcall.level === 1 ?
+    (call === '1NT' && hcp >= 8 && hcp <= 11) ||
+      (call === '2NT' && hcp >= 12 && hcp <= 14) :
+    call === '2NT' && hcp >= 11 && hcp <= 13;
+  return { success, telemetryLines: [success ?
+    'PASS: natural NT advance has the modeled range, balance, and opener-suit stopper.' :
+    'FAIL: natural NT strength does not match the overcall level.'] };
+}
+
+export function refineSelectedNewSuitAfterNegativeDouble (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const impliedSuits = getNegativeDoubleImpliedSuits(info.opening, info.overcall);
+  return { calls: calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.level === 2 && bid.strain !== 'NT' &&
+      bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
+      ! impliedSuits.includes(bid.strain as Suit) &&
+      cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
+  }), telemetryLines: [] };
+}
+
+export function strengthRedoubleAfterNegativeDoubleApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  const success = info !== null && context.handFacts.hcp >= 10 &&
+    ! hasStrongSupportCuebidAfterNegativeDouble(context, info) &&
+    ! hasNaturalNotrumpAfterNegativeDouble(context, info) &&
+    ! hasSelectedNewSuitAfterNegativeDouble(context, info);
+  return { success, telemetryLines: [success ?
+    'PASS: Redouble shows 10+ HCP when no clearer strong support, NT, or side-suit call applies.' :
+    'FAIL: Redouble needs 10+ HCP and no preferred descriptive action.'] };
+}
+
+
+/// After responder Redoubles partner's takeout Double, an ordinary weak advancer should
+/// escape economically rather than use the invitational jumps modeled after responder's Pass.
+///
+function getTakeoutDoubleWithResponderRedouble (context: RuleEvalContext): ParsedSuitBid | null {
+  if (context.stage !== 'advancing' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3 ||
+      context.auction[openingInfo.index + 1] !== 'Double' ||
+      context.auction[openingInfo.index + 2] !== 'Redouble') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  return opening !== null && opening.level === 1 && opening.strain !== 'NT' ? opening : null;
+}
+
+export function refineTakeoutEscapeAfterResponderRedouble (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getTakeoutDoubleWithResponderRedouble(context);
+  if (opening === null) return { calls: [], telemetryLines: [] };
+  const unbidSuits = SUITS.filter((suit) => suit !== opening.strain);
+  const hasFourCardUnbidSuit = unbidSuits.some((suit) => context.handFacts.lengths[suit] >= 4);
+  const qualifying = calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === opening.strain) return false;
+    const suit = bid.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    if (length < 4 && (hasFourCardUnbidSuit || length !== 3)) return false;
+    return cheapestBidInStrainAfter(opening, suit) === call;
+  });
+  qualifying.sort((left, right) => {
+    const leftSuit = parseSuitBid(left)!.strain as Suit;
+    const rightSuit = parseSuitBid(right)!.strain as Suit;
+    const lengthDifference =
+      context.handFacts.lengths[rightSuit] - context.handFacts.lengths[leftSuit];
+    if (lengthDifference !== 0) return lengthDifference;
+    if (leftSuit === 'H' && rightSuit === 'S') return context.handFacts.lengths.H >= 5 ? 1 : -1;
+    if (leftSuit === 'S' && rightSuit === 'H') return context.handFacts.lengths.S >= 5 ? -1 : 1;
+    return 0;
+  });
+  return { calls: qualifying, telemetryLines: [] };
+}
+
+
 /// Advances of partner's preemptive jump overcall are restricted to a one-level
 /// suit opening, an actual jump in a different suit, and responder's Pass.
 /// This is distinct from an economical two-level overcall.
