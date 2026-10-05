@@ -431,6 +431,25 @@ export const ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallCalls: [{ call: '1NT', ruleIds: ['overcall-natural-1nt-with-stopper'] }],
     expectedAdvanceCalls: [{ call: '2D', ruleIds: ['respond-to-1nt-w/-transfer-to-hearts'] }],
   },
+  {
+    description: 'After 1D-(1NT)-2H, a weak advancer can Pass.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', '2H', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'T843', H: 'T72', D: 'T83', C: 'J94' },
+    expectedOvercallCalls: [{ call: '1NT', ruleIds: ['overcall-natural-1nt-with-stopper'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['partner-of-1nt-after-interference-pass'] }],
+  },
+  {
+    description: 'After 1D-(1NT)-2H, eight balanced HCP with a heart stopper invites with 2NT.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', '2H', '2NT'],
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'Q85', H: 'Q72', D: 'A83', C: '9542' },
+    expectedOvercallCalls: [{ call: '1NT', ruleIds: ['overcall-natural-1nt-with-stopper'] }],
+    expectedAdvanceCalls: [{ call: '2NT', ruleIds: ['partner-of-1nt-after-interference-2nt'] }],
+    rejectedAdvanceCalls: ['3NT'],
+  },
 ];
 
 

@@ -2,6 +2,7 @@
 
 import { type BidRule } from './bidding-types';
 import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
+import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
 import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies,
          naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
          refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
@@ -33,6 +34,7 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
 
 export const AdvanceRules: BidRule[] = [
   ...NaturalOneNtPartnerCallRules,
+  ...NaturalOneNtInterferencePartnerCallRules,
   // First family: advance partner's natural one-level suit overcall when responder passes.
   // The refiners also require the actual auction shape and exclude other overcall levels.
   {

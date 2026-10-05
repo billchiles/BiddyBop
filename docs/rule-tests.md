@@ -28,13 +28,14 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 382 deals, with 979 positive call/rule assertions, 482 elimination
-assertions, 29 call-order assertions, and 894 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1399 eligible deal/configuration combinations and 3268 recorded calls.
+The current corpus contains 386 deals, with 988 positive call/rule assertions, 484 elimination
+assertions, 30 call-order assertions, and 902 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1415 eligible deal/configuration combinations and 3300 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
-preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
-deferred Gerber/Blackwood, forcing-5NT, and direct-7NT slam treatments.
+preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
+The uncovered rules are the intentionally deferred slam treatments plus the executable but
+selectively unpracticed three-level natural suit and 3NT calls after interference over partner's 1NT.
 
 Seven `overcall-simple` practice deals fix West's opening hand and North's overcall hand,
 with West dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
@@ -52,6 +53,14 @@ Two natural `1NT` overcall deals require 15-18 HCP, balanced shape, and a stoppe
 opponent's suit (A, Kx, Qxx, or Jxxx approximation); a separate boundary check excludes
 1NT without a stopper. Four preemptive-jump deals exercise six-card two-level, seven-card
 three-level, and eight-card four-level natural jumps, with an explicit non-jump rejection.
+
+Four shared partner-of-1NT interference deals exercise the same natural treatment in both roles:
+responder after a 1NT opening and advancer after a natural 1NT overcall. They cover weak Pass, a
+good natural two-level suit, natural 2NT with a stopper, and the 8+ HCP takeout-oriented negative
+Double. Five family-level boundary checks verify both auction contexts, turn off ordinary
+Stayman/Jacoby/Texas after natural interference, require the NT stopper, and keep this first
+treatment limited to two-level suit interference. The executable three-level natural suit and
+3NT rules remain selectively unpracticed.
 
 Eleven `advance-one-level-suit-overcall` deals fix West's opening, North's natural
 one-level suit overcall, and South's advance after East passes. They cover constructive

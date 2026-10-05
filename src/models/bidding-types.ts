@@ -263,6 +263,9 @@ export interface AuctionContext {
   // Shared natural 1NT calls apply when partner opened 1NT or overcalled 1NT and responder passed.
   // When this is set, stage is deliberately omitted; matching uses the physical auction.
   partnerNaturalOneNt?: boolean;
+  // Shared natural calls after two-level natural suit interference over partner's 1NT.
+  // Matching uses the physical auction for either the responding or advancing role.
+  partnerNaturalOneNtAfterSuitInterference?: boolean;
   // auction is an exact compact partnership call sequence; every listed call must match literally.
   auction?: Call[];
   // description is optional author-facing context and is not evaluator input.

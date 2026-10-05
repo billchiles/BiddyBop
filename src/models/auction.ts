@@ -19,6 +19,13 @@ export interface ParsedSuitBid {
   strain: Strain;
 }
 
+/// PartnerOneNtSuitInterference identifies a natural two-level suit bid over partner's natural 1NT.
+/// opponentOpening is present when partner's 1NT was an overcall rather than an opening bid.
+export interface PartnerOneNtSuitInterference {
+  interference: ParsedSuitBid;
+  opponentOpening: ParsedSuitBid | null;
+}
+
 /// getBidStage identifies bidding roles from seats and the physical auction.  Unsupported later
 /// competitive continuations return null without preventing the user from entering further calls.
 ///
@@ -63,6 +70,36 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
     return 'responderRebid';
   }
   return null;
+}
+
+/// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:
+/// responder after partner opens 1NT, and advancer after partner directly overcalls 1NT.
+/// This first treatment stops at natural two-level suit interference.
+///
+export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
+    PartnerOneNtSuitInterference | null {
+  const openingInfo = getOpeningCallInfo(dealer, auction);
+  if (openingInfo === null) {
+    return null;
+  }
+  const stage = getBidStage(dealer, auction);
+  if (stage === 'responding' && openingInfo.call === '1NT' &&
+      auction.length === openingInfo.index + 2) {
+    const interference = parseSuitBid(auction[openingInfo.index + 1] ?? 'Pass');
+    return interference !== null && interference.level === 2 && interference.strain !== 'NT'
+      ? { interference, opponentOpening: null }
+      : null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  if (stage !== 'advancing' || opening === null || opening.level !== 1 ||
+      opening.strain === 'NT' || auction.length !== openingInfo.index + 3 ||
+      auction[openingInfo.index + 1] !== '1NT') {
+    return null;
+  }
+  const interference = parseSuitBid(auction[openingInfo.index + 2] ?? 'Pass');
+  return interference !== null && interference.level === 2 && interference.strain !== 'NT'
+    ? { interference, opponentOpening: opening }
+    : null;
 }
 
 /// getInterferenceAfterOpening classifies the opponent's first call immediately after opener's

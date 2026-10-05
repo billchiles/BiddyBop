@@ -24,9 +24,11 @@ import {
   weakTwoFourLevelRaiseApplies, weakTwoPassApplies, weakTwoSimpleRaiseApplies
 } from './responding-functions';
 import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
+import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
 
 
 export const ResponseBidRules: BidRule[] = [
+  ...NaturalOneNtInterferencePartnerCallRules,
   //
   // One-level minor response rules match level 1 + minor; refiners resolve strain-dependent calls.
   //

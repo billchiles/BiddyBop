@@ -698,6 +698,33 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AK63', H: '63', D: 'AQ65', C: 'K52' },
     south: { S: 'QT8', H: 'AKQJT8', D: 'T8', C: 'QJ' },
   },
+  {
+    description: 'After 1NT-(2H), eight HCP with four spades makes a takeout-oriented Double.',
+    practiceAuction: ['1NT', '2H', 'Double'],
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
+    ],
+    rejectedResponseCalls: ['2NT'],
+    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
+    south: { S: 'KJ85', H: '72', D: 'A83', C: 'T974' },
+  },
+  {
+    description: 'After 1NT-(2H), a good five-card spade suit is more descriptive than Double.',
+    practiceAuction: ['1NT', '2H', '2S'],
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['partner-of-1nt-after-interference-natural-suit-two-level'] },
+      { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
+    ],
+    expectedResponseCallOrder: [['2S', 'Double']],
+    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
+    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+  },
 ];
 
 /// Selected 2NT-response deals also assert the ordinary 20-21 HCP balanced opening.  Conventional

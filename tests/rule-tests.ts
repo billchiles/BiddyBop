@@ -15,8 +15,9 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
-         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
-         RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
+         RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
+         RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
          type RuleTestDeal, type RuleTestExpectedCall }
@@ -1109,6 +1110,74 @@ function runResponderArtificialActionAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// Shared 1NT-interference rules must recognize both bidding roles without re-enabling the
+/// uncontested convention rules or expanding beyond the supported two-level interference.
+function runOneNtInterferencePartnerBoundaryTests (): number {
+  const responseDeal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.at(-1);
+  const advanceDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS.at(-1);
+  if (responseDeal === undefined || advanceDeal === undefined) {
+    console.error('FAIL 1NT-interference boundaries require the new shared-rule fixtures.');
+    return 1;
+  }
+  let checks = 0;
+  let failures = 0;
+
+  const { board: responseBoard } = makeRuleTestBoard(responseDeal);
+  const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], defaultBiddingSystem);
+  const responseCandidates = getApplicableCandidateCalls(responseResult);
+  checks += 1;
+  if (! responseCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-natural-suit-two-level')) {
+    failures += 1;
+    console.error('FAIL shared 1NT-interference rules did not match responder after 1NT-(2H).');
+  }
+  checks += 1;
+  if (responseResult.ruleResults.some((result) =>
+      result.rule.auctionContext?.partnerNaturalOneNt === true)) {
+    failures += 1;
+    console.error('FAIL uncontested Stayman/transfer rules remained active after 1NT-(2H).');
+  }
+
+  const { board: advanceBoard } = makeRuleTestBoard({
+    ...advanceDeal,
+    south: { S: 'Q85', H: 'T72', D: 'A83', C: 'Q542' },
+  });
+  const noStopperCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('2NT', advanceBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (noStopperCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-2nt')) {
+    failures += 1;
+    console.error('FAIL natural 2NT survived without a stopper in the interference suit.');
+  }
+
+  const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], defaultBiddingSystem);
+  checks += 1;
+  if (unsupportedResult.ruleResults.some((result) =>
+      result.rule.auctionContext?.partnerNaturalOneNtAfterSuitInterference === true)) {
+    failures += 1;
+    console.error('FAIL shared 1NT-interference rules leaked into three-level interference.');
+  }
+
+  const { board: doubleBoard } = makeRuleTestBoard({
+    ...advanceDeal,
+    south: { S: 'QJ85', H: 'T72', D: 'A32', C: 'Q43' },
+  });
+  const doubleCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('Double', doubleBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (! doubleCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-negative-double')) {
+    failures += 1;
+    console.error('FAIL negative Double did not work in the advancer 1NT-overcall context.');
+  }
+
+  console.log(`1NT-interference partner boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
+  console.log('  enforcement, negative Double, and the current two-level interference boundary.');
+  return failures;
+}
+
 /// Jump-overcall advances must require a real jump and responder's Pass. The
 /// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
 function runJumpOvercallAdvanceBoundaryTests (): number {
@@ -1211,7 +1280,8 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
-  runResponderArtificialActionAdvanceBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
+  runResponderArtificialActionAdvanceBoundaryTests() +
+  runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
   runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
