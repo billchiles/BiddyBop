@@ -10,6 +10,11 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
          refineAdvancerTwoLevelRaise, overcallResponderRaisePassApplies,
          refineAdvancerRaiseAfterResponderRaise, refineAdvancerCuebidAfterResponderRaise,
          refineAdvancerNewSuitAfterResponderRaise, responsiveDoubleAfterOvercallRaiseApplies,
+         refineAdvancerTwoLevelRaiseAfterResponderRaise,
+         refineAdvancerTwoLevelCuebidAfterResponderRaise,
+         refineAdvancerTwoLevelNewSuitAfterResponderRaise,
+         twoLevelOvercallResponderRaisePassApplies,
+         responsiveDoubleAfterTwoLevelOvercallRaiseApplies,
          takeoutResponderRaisePassApplies, refineTakeoutNewSuitAfterResponderRaise,
          refineTakeoutCuebidAfterResponderRaise, responsiveDoubleAfterTakeoutRaiseApplies,
          overcallResponderNaturalActionPassApplies,
@@ -455,6 +460,105 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['This is not a penalty Double. The modeled subset requires four cards in ' +
                'each unbid suit, no five-card natural suit, and fewer than three cards in ' +
                'partner’s suit.'],
+    certainty: 'high',
+  },
+  // Companion to the preceding family: responder raises after a natural two-level suit overcall.
+  // The auction is already high, so this subset omits game-level weak jump raises.
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-pass',
+    kind: 'advance',
+    title: 'Pass after responder raises over a two-level suit overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: twoLevelOvercallResponderRaisePassApplies,
+    meaning: 'Pass when no suitable competitive action is available after responder raises.',
+    guidance: ['Partner’s two-level overcall has already shown meaningful strength and suit ' +
+               'quality; do not compete higher without fit, shape, or values.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-simple-raise',
+    kind: 'advance',
+    title: 'Compete with a simple raise after a two-level suit overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineAdvancerTwoLevelRaiseAfterResponderRaise,
+    callCategory: ['natural'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Competitive nonforcing raise with 7-10 support points and 3+ trumps.',
+    guidance: ['The cheapest raise is usually at the three level, so require a little more than ' +
+               'for a low-level competitive raise.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-support-cuebid',
+    kind: 'advance',
+    title: 'Cuebid opener’s suit to show a strong raise after a two-level overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: refineAdvancerTwoLevelCuebidAfterResponderRaise,
+    callCategory: ['conventional', 'forcing'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
+    guidance: ['The cuebid is the cheapest legal bid in opener’s suit after responder’s raise.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-new-suit-two-level',
+    kind: 'advance',
+    title: 'Bid an economical new suit at the two level after responder raises',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2H', '2S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerTwoLevelNewSuitAfterResponderRaise(calls, context, 2),
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
+    guidance: ['A clear five-card suit is more descriptive than a responsive Double.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-new-suit-three-level',
+    kind: 'advance',
+    title: 'Bid a good new suit at the three level after responder raises',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) =>
+      refineAdvancerTwoLevelNewSuitAfterResponderRaise(calls, context, 3),
+    callCategory: ['natural', 'forcing'],
+    appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
+    meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
+    guidance: ['At the three level, require concentrated suit honors as well as strength.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'advance-two-level-suit-overcall-after-responder-raise-responsive-double',
+    kind: 'advance',
+    title: 'Make a responsive Double after a two-level overcall and raise',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: responsiveDoubleAfterTwoLevelOvercallRaiseApplies,
+    priority: { rank: 20 },
+    meaning: 'Takeout-oriented responsive Double with 9+ length points and both unbid suits.',
+    guidance: ['The modeled subset requires four cards in each unbid suit, no five-card natural ' +
+               'suit, and fewer than three cards in partner’s overcalled suit.'],
     certainty: 'high',
   },
   // Fifth family: responder raises after partner's takeout double.

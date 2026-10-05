@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 376 deals, with 961 positive call/rule assertions, 463 elimination
-assertions, 29 call-order assertions, and 876 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1375 eligible deal/configuration combinations and 3196 recorded calls.
+The current corpus contains 382 deals, with 979 positive call/rule assertions, 482 elimination
+assertions, 29 call-order assertions, and 894 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1399 eligible deal/configuration combinations and 3268 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Response coverage is 88/96; the eight uncovered response rules are the intentionally
@@ -74,10 +74,12 @@ interference, unsupported higher openings, artificial 2NT inquiries, five-level 
 weak new-suit honor quality, and insufficient strength. This explicit Pass is limited to
 jump-overcall advances; there is still no general inferred-Pass mechanism.
 
-Twelve responder-raise advancing deals cover the opening side's simple raise after a natural
-one-level suit overcall or takeout double. They exercise explicit Pass, natural support raises,
-strong cuebids, natural new suits, and the deliberately narrow responsive-Double treatment.
-Separate boundary checks keep those rules out of Pass, new-suit, 1NT, and higher-raise auctions.
+Eighteen responder-raise advancing deals cover the opening side's simple raise after a natural
+one- or two-level suit overcall or takeout double. They exercise explicit Pass, natural support
+raises, strong cuebids, natural new suits, and the deliberately narrow responsive-Double treatment.
+The two-level-overcall branch raises the responsive-Double floor to nine length points and omits
+game-level weak jump raises. Seventeen boundary checks keep these rules out of Pass, new-suit,
+1NT, jump-overcall, and higher-raise auctions.
 
 Fifteen responder-natural-action advancing deals cover an economical new-suit response or natural
 1NT response after a natural suit overcall or takeout double. They exercise explicit Pass, support

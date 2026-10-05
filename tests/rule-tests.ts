@@ -599,7 +599,7 @@ function runAdvancingBoundaryTests (): number {
   // The ordinary two-level family must stay inactive after an unsupported responder action
   // or a jump overcall.
   for (const auction of [
-    ['1D', '2C', '2D'], ['1D', '3C', 'Pass'],
+    ['1D', '2C', '3D'], ['1D', '3C', 'Pass'],
   ] as Call[][]) {
     checks += 1;
     const candidates = getApplicableCandidateCalls(
@@ -800,12 +800,15 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
 /// also keep responsive Double behind an obvious fit or a five-card natural suit.
 function runResponderRaiseAdvanceBoundaryTests (): number {
   const overcallDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[6];
+  const twoLevelDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[11];
   const takeoutDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS[3];
-  if (overcallDoubleDeal === undefined || takeoutDoubleDeal === undefined) {
+  if (overcallDoubleDeal === undefined || twoLevelDoubleDeal === undefined ||
+      takeoutDoubleDeal === undefined) {
     console.error('FAIL responder-raise advancing boundaries need responsive-double fixtures.');
     return 1;
   }
   const { board: overcallBoard } = makeRuleTestBoard(overcallDoubleDeal);
+  const { board: twoLevelBoard } = makeRuleTestBoard(twoLevelDoubleDeal);
   const { board: takeoutBoard } = makeRuleTestBoard(takeoutDoubleDeal);
   let checks = 0;
   let failures = 0;
@@ -824,6 +827,22 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
       rule.id.startsWith('advance-one-level-suit-overcall-after-responder-raise-'))) {
       failures += 1;
       console.error(`FAIL overcall responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1S', '2H', 'Pass'],
+    ['1S', '2H', '3S'],
+    ['1S', '3H', '3S'],
+    ['1S', '1H', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', twoLevelBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-two-level-suit-overcall-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL two-level responder-raise rules leaked into ${auction.join(' ')}.`);
     }
   }
 
@@ -871,6 +890,23 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
     rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
     failures += 1;
     console.error('FAIL responsive Double survived with a clear five-card natural suit.');
+  }
+
+  const { board: lowTwoLevelDoubleBoard } = makeRuleTestBoard({
+    description: 'Higher-level responsive Double needs nine length points.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Double'],
+    west: twoLevelDoubleDeal.west,
+    north: twoLevelDoubleDeal.north,
+    east: { S: '852', H: '43', D: 'JT2', C: 'AKJT4' },
+    south: { S: 'T96', H: 'T7', D: 'A754', C: 'Q983' },
+  });
+  checks += 1;
+  const lowTwoLevelDoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', lowTwoLevelDoubleBoard, ['1S', '2H', '2S'], defaultBiddingSystem));
+  if (lowTwoLevelDoubleCandidates.some(({ rule }) =>
+    rule.id === 'advance-two-level-suit-overcall-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL higher-level responsive Double survived below nine length points.');
   }
 
   const strongBoard = makeRuleTestBoard({

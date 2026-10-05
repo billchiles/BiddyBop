@@ -434,7 +434,7 @@ export const ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 
-/// Advancer after opener's partner gives a simple raise over a natural one-level suit overcall.
+/// Advancer after opener's partner gives a simple raise over a natural suit overcall.
 /// All four hands are fixed because the opening, overcall, responder raise, and advance
 /// are meaningful.
 ///
@@ -536,6 +536,90 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS: RuleTestDeal[] 
       'advance-one-level-suit-overcall-after-responder-raise-responsive-double',
     ] }],
     rejectedAdvanceCalls: ['Pass', '2H', '3C', '2S'],
+  },
+  {
+    description: '1S-(2H)-2S: no fit or constructive action, so advancer can Pass.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Pass'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '852', H: '43', D: 'T72', C: 'AKJT4' },
+    south: { S: 'T96', H: 'T7', D: 'AJ54', C: 'Q983' },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-pass',
+    ] }],
+    rejectedAdvanceCalls: ['3H', '3S', '3C', 'Double'],
+  },
+  {
+    description: '1S-(2H)-2S: three hearts and seven support points compete with 3H.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', '3H'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '852', H: '3', D: 'T742', C: 'AKT84' },
+    south: { S: 'T96', H: 'T74', D: 'AJ5', C: 'QJ93' },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-simple-raise',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3S', 'Double'],
+  },
+  {
+    description: '1S-(2H)-2S: 11 support points cuebid 3S as a strong heart raise.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', '3S'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '852', H: '3', D: 'T742', C: 'KJT84' },
+    south: { S: 'T96', H: 'T74', D: 'AJ5', C: 'AQ93' },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: '3S', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-support-cuebid',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3H', 'Double'],
+  },
+  {
+    description: '1S-(2H)-2S: good five clubs and 12 HCP bid forcing 3C.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', '3C'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '8652', H: '', D: 'JT542', C: 'QT94' },
+    south: { S: 'T9', H: 'T743', D: 'A7', C: 'AKJ83' },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-new-suit-three-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', 'Double', '4C'],
+  },
+  {
+    description: '1S-(2H)-2S: 4-4 in diamonds and clubs uses a responsive Double.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Double'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '852', H: '43', D: 'JT2', C: 'AJT94' },
+    south: { S: 'T96', H: 'T7', D: 'A754', C: 'KQ83' },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: 'Double', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-responsive-double',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '3H', '3C'],
+  },
+  {
+    description: '1D-(2C)-2D: five hearts and 10 HCP bid natural forcing 2H.',
+    dealer: 'W', practiceAuction: ['1D', '2C', '2D', '2H'],
+    west: { S: 'K72', H: 'Q43', D: 'AQJ74', C: '83' },
+    north: { S: 'A4', H: 'J8', D: '65', C: 'KQJT965' },
+    east: { S: '653', H: 'K52', D: 'T983', C: 'A42' },
+    south: { S: 'QJT98', H: 'AT976', D: 'K2', C: '7' },
+    expectedOvercallCalls: [{ call: '2C', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] }],
+    expectedAdvanceCalls: [{ call: '2H', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-raise-new-suit-two-level',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', 'Double', '3H'],
   },
 ];
 
