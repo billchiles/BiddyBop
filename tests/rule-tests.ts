@@ -15,7 +15,8 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
-         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
+         ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, DONT_1NT_DEFENSE_TEST_DEALS,
+         RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
@@ -1250,6 +1251,84 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// DONT checks protect the family boundary rather than duplicating every practice deal.
+/// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
+/// responder or opener competes instead of passing through the basic relay.
+function runDontBoundaryTests (): number {
+  const seed = DONT_1NT_DEFENSE_TEST_DEALS[0];
+  if (seed === undefined) {
+    console.error('FAIL DONT boundaries need a practice deal.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seed);
+  let checks = 0;
+  let failures = 0;
+
+  checks += 1;
+  if (getBidStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
+      'overcallerRebid') {
+    failures += 1;
+    console.error('FAIL DONT relay should reach the overcaller-rebid stage.');
+  }
+
+  checks += 1;
+  const suitOpeningCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', board, ['1D'], defaultBiddingSystem));
+  if (suitOpeningCandidates.some(({ rule }) => rule.id.startsWith('overcall-dont-'))) {
+    failures += 1;
+    console.error('FAIL DONT direct rules leaked into a suit opening.');
+  }
+
+  const { board: weakBoard } = makeRuleTestBoard({
+    description: 'Six-card DONT suit below the app strength floor.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: '84', H: 'KJT986', D: 'Q52', C: '73' },
+    south: { S: 'T975', H: '753', D: '864', C: 'T65' },
+  });
+  checks += 1;
+  const weakCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', weakBoard, ['1NT'], defaultBiddingSystem));
+  if (weakCandidates.some(({ rule }) => rule.id === 'overcall-dont-single-suit-double')) {
+    failures += 1;
+    console.error('FAIL DONT one-suit Double survived below 7 HCP.');
+  }
+
+  const { board: fourFourBoard } = makeRuleTestBoard({
+    description: 'Four-four shape is below the modeled DONT two-suit minimum.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' },
+    south: { S: 'T975', H: '753', D: 'Q84', C: 'K65' },
+  });
+  checks += 1;
+  const fourFourCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', fourFourBoard, ['1NT'], defaultBiddingSystem));
+  if (fourFourCandidates.some(({ rule }) => rule.id === 'overcall-dont-clubs-plus-higher')) {
+    failures += 1;
+    console.error('FAIL DONT 2C survived with only 4-4 shape.');
+  }
+
+  checks += 1;
+  const interferenceCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', board, ['1NT', 'Double', '2C'], defaultBiddingSystem));
+  if (interferenceCandidates.some(({ rule }) => rule.id === 'advance-dont-pass-or-correct')) {
+    failures += 1;
+    console.error('FAIL DONT advance survived responder interference.');
+  }
+
+  checks += 1;
+  const openerCompetes = getApplicableCandidateCalls(evaluateUserCall(
+    '2H', board, ['1NT', 'Double', 'Pass', '2C', '2D'], defaultBiddingSystem));
+  if (openerCompetes.some(({ rule }) => rule.id === 'overcaller-rebid-dont-pass-or-correct')) {
+    failures += 1;
+    console.error('FAIL DONT relay correction survived opener competition.');
+  }
+
+  console.log(`DONT boundaries: ${checks} checks; ${failures} failures.`);
+  console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
+  console.log('  shape/strength floor, and stops the pass-or-correct path after interference.');
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
@@ -1258,6 +1337,8 @@ function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
       rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
     { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
       rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
+    { name: 'overcaller rebid', auctionLength: 5, expected: deal.expectedOvercallerRebidCalls,
+      rejected: deal.rejectedOvercallerRebidCalls, order: deal.expectedOvercallerRebidCallOrder },
     { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
       rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
     { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
@@ -1282,7 +1363,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
-  runRuleTests();
+  runDontBoundaryTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

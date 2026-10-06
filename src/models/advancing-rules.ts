@@ -28,13 +28,30 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
          refineAdvancerRaiseAfterNegativeDouble, refineAdvancerCuebidAfterNegativeDouble,
          naturalNotrumpAfterNegativeDoubleApplies, refineSelectedNewSuitAfterNegativeDouble,
          strengthRedoubleAfterNegativeDoubleApplies, refineTakeoutEscapeAfterResponderRedouble,
-         jumpOvercallPassApplies, refineJumpOvercallRaise, refineJumpOvercallMajorGame,
-         refineJumpOvercallNewSuit } from './advancing-functions';
+         jumpOvercallPassApplies, refineDontAdvance, refineJumpOvercallRaise,
+         refineJumpOvercallMajorGame, refineJumpOvercallNewSuit } from './advancing-functions';
 
 
 export const AdvanceRules: BidRule[] = [
   ...NaturalOneNtPartnerCallRules,
   ...NaturalOneNtInterferencePartnerCallRules,
+  // DONT advances after an opposing strong 1NT are simple pass-or-correct decisions.
+  // This first treatment stops if responder competes rather than passing.
+  {
+    id: 'advance-dont-pass-or-correct',
+    kind: 'advance',
+    title: 'Use the basic DONT pass-or-correct advance',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    calls: ['Pass', '2C', '2D', '2H', '2S'],
+    callRefinement: refineDontAdvance,
+    callCategory: ['conventional'],
+    meaning: 'Accept partner’s shown suit when it fits, or make the cheapest DONT ' +
+             'relay/correction.',
+    guidance: ['After Double, relay to 2C. After 2C or 2D, pass with a fit or bid the next suit ' +
+               'to ask partner to pass or correct. After 2H, choose the preferred major.',
+               'Game inquiries and continuations after responder competes are not modeled.'],
+    certainty: 'high',
+  },
   // First family: advance partner's natural one-level suit overcall when responder passes.
   // The refiners also require the actual auction shape and exclude other overcall levels.
   {

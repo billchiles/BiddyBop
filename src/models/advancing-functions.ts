@@ -8,6 +8,33 @@ import { hasBasicSuitStopper } from './common-rule-helpers';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 
 
+/// Basic DONT advances are pass-or-correct decisions after responder passes.  This compact
+/// treatment omits game inquiries and all continuations after responder competes.
+export function refineDontAdvance (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'advancing' || opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 3 ||
+      context.auction[opening.index + 2] !== 'Pass') {
+    return { calls: [], telemetryLines: [] };
+  }
+  const overcall = context.auction[opening.index + 1];
+  let target: Call | null = null;
+  if (overcall === 'Double') {
+    target = '2C';
+  } else if (overcall === '2C') {
+    target = context.handFacts.lengths.C >= 3 ? 'Pass' : '2D';
+  } else if (overcall === '2D') {
+    const preferMajors = context.handFacts.lengths.H >= 4 && context.handFacts.lengths.S >= 4;
+    target = context.handFacts.lengths.D >= 3 && ! preferMajors ? 'Pass' : '2H';
+  } else if (overcall === '2H') {
+    target = context.handFacts.lengths.S > context.handFacts.lengths.H ? '2S' : 'Pass';
+  } else if (overcall === '2S') {
+    target = 'Pass';
+  }
+  return { calls: target === null ? [] : calls.filter((call) => call === target),
+           telemetryLines: [] };
+}
+
 /// Advancer after a natural, non-jump suit overcall of the given level, with the
 /// opponents' responder passing.  Jump overcalls and responder interference are excluded.
 ///

@@ -96,6 +96,104 @@ export function naturalOneNtOvercallApplies (_call: Call, context: RuleEvalConte
 }
 
 ///
+//// DONT over a Strong 1NT
+///
+
+/// The compact DONT treatment in this app uses shape and suit quality rather than trying to
+/// model vulnerability.  A one-suited hand has exactly one 6+ card suit and no second 4-card suit.
+function getDontSingleSuit (context: RuleEvalContext): Suit | null {
+  const longSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 6);
+  if (longSuits.length !== 1) return null;
+  const suit = longSuits[0]!;
+  if (SUITS.some((other) => other !== suit && context.handFacts.lengths[other] >= 4) ||
+      ! hasPreemptSuitQuality(context.hand, suit)) {
+    return null;
+  }
+  return suit;
+}
+
+/// A DONT two-suiter has exactly two suits of at least four cards, at least nine cards between
+/// them, and useful honor concentration in a five-card-or-longer member of the pair.
+function getDontTwoSuits (context: RuleEvalContext, lowerSuit: Suit,
+                          higherSuits: readonly Suit[]): [Suit, Suit] | null {
+  const fourCardSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 4);
+  if (fourCardSuits.length !== 2 || ! fourCardSuits.includes(lowerSuit)) return null;
+  const higherSuit = fourCardSuits.find((suit) => higherSuits.includes(suit));
+  if (higherSuit === undefined ||
+      context.handFacts.lengths[lowerSuit] + context.handFacts.lengths[higherSuit] < 9) {
+    return null;
+  }
+  const quality = [lowerSuit, higherSuit].some((suit) =>
+    context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit));
+  return quality ? [lowerSuit, higherSuit] : null;
+}
+
+/// In this compact DONT treatment, Double shows a good one-suited club, diamond, or heart hand.
+/// Direct 2S handles the ordinary one-suited spade hand; stronger spade distinctions are deferred.
+export function dontSingleSuitDoubleApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suit = getDontSingleSuit(context);
+  const success = context.handFacts.hcp >= 7 && suit !== null && suit !== 'S';
+  return { success, telemetryLines: [success ?
+    `PASS: DONT Double shows the one-suited ${suit} hand.` :
+    'FAIL: DONT Double needs 7+ HCP and one good 6+ card non-spade suit.'] };
+}
+
+/// 2C/2D/2H show the named lower suit plus exactly one higher suit, normally at least 5-4.
+export function dontTwoSuitOvercallApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const shape = call === '2C' ? getDontTwoSuits(context, 'C', ['D', 'H', 'S']) :
+    call === '2D' ? getDontTwoSuits(context, 'D', ['H', 'S']) :
+    call === '2H' ? getDontTwoSuits(context, 'H', ['S']) : null;
+  const success = context.handFacts.hcp >= 7 && shape !== null;
+  return { success, telemetryLines: [success ?
+    `PASS: DONT ${call} shows ${shape[0]} plus ${shape[1]}.` :
+    `FAIL: DONT ${call} needs 7+ HCP and the modeled 5-4-or-better two-suit shape.`] };
+}
+
+/// Direct 2S is the app's ordinary one-suited spade action: 7+ HCP and a good 6+ card suit.
+export function dontSpadeOvercallApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const success = context.handFacts.hcp >= 7 && getDontSingleSuit(context) === 'S';
+  return { success, telemetryLines: [success ?
+    'PASS: direct 2S shows the ordinary one-suited spade DONT hand.' :
+    'FAIL: direct DONT 2S needs 7+ HCP and one good 6+ card spade suit.'] };
+}
+
+/// After advancer makes the basic DONT relay/pass-or-correct call and opener passes, the
+/// overcaller either accepts that strain or names the concealed suit.  Game-inquiry continuations
+/// and responder interference are intentionally outside this compact treatment.
+export function refineDontOvercallerCorrection (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') {
+    return { calls: [], telemetryLines: [] };
+  }
+  const overcall = context.auction[opening.index + 1];
+  const advance = context.auction[opening.index + 3];
+  let target: Call | null = null;
+  if (overcall === 'Double' && advance === '2C') {
+    const suit = getDontSingleSuit(context);
+    target = suit === null ? null : suit === 'C' ? 'Pass' : `2${suit}` as Call;
+  } else if (overcall === '2C' && advance === '2D') {
+    const shape = getDontTwoSuits(context, 'C', ['D', 'H', 'S']);
+    const higher = shape?.[1];
+    target = higher === undefined ? null : higher === 'D' ? 'Pass' : `2${higher}` as Call;
+  } else if (overcall === '2D' && advance === '2H') {
+    const shape = getDontTwoSuits(context, 'D', ['H', 'S']);
+    const higher = shape?.[1];
+    target = higher === undefined ? null : higher === 'H' ? 'Pass' : '2S';
+  } else if (overcall === '2H' && advance === '2S') {
+    target = getDontTwoSuits(context, 'H', ['S']) === null ? null : 'Pass';
+  }
+  return { calls: target === null ? [] : calls.filter((call) => call === target),
+           telemetryLines: [] };
+}
+
+///
 //// Takeout Doubles
 ///
 

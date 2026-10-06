@@ -25,7 +25,8 @@ export type BidStage =
   | 'openerRebid'
   | 'responderRebid'
   | 'overcalling'
-  | 'advancing';
+  | 'advancing'
+  | 'overcallerRebid';
 
 ///
 //// Bidding System conventions and agreements types
@@ -187,6 +188,7 @@ export type RuleKind =
   | 'openingBid'
   | 'responseBid'
   | 'overcall'
+  | 'overcallerRebid'
   | 'advance'
   | 'openerRebid'
   | 'priority'

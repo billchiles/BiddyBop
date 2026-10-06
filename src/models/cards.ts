@@ -199,6 +199,10 @@ export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
   if (testDeal.expectedAdvanceCalls !== undefined) {
     telemetryLines.push(`Expected advance: ${formatExpectedCalls(testDeal.expectedAdvanceCalls)}.`);
   }
+  if (testDeal.expectedOvercallerRebidCalls !== undefined) {
+    telemetryLines.push(`Expected overcaller rebid: ` +
+      `${formatExpectedCalls(testDeal.expectedOvercallerRebidCalls)}.`);
+  }
   if (testDeal.expectedOpeningCalls !== undefined) {
     telemetryLines.push(`Expected opening: ${formatExpectedCalls(testDeal.expectedOpeningCalls)}.`);
   }

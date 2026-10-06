@@ -53,6 +53,12 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
       overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
     return 'advancing';
   }
+  // The overcaller acts again after opener, overcaller, responder, advancer, and opener have each
+  // had their next physical turn.  Only selected overcaller-rebid meanings are modeled so far.
+  if (nextSeat === overcaller && auction.length === opening.index + 5 &&
+      overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
+    return 'overcallerRebid';
+  }
   // Later opener/responder continuation meanings after competition remain unreviewed.
   // Recognize Double as intervention here, without treating it as a penalty-double decision.
   const opponentsBid = auction.some((call, index) =>

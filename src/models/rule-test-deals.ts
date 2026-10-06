@@ -19,7 +19,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS } from './advancing-test-deals';
-import { SIMPLE_OVERCALL_TEST_DEALS,
+import { DONT_1NT_DEFENSE_TEST_DEALS, SIMPLE_OVERCALL_TEST_DEALS,
          TAKEOUT_DOUBLE_TEST_DEALS,
          NATURAL_1NT_OVERCALL_TEST_DEALS,
          PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS } from './overcalling-test-deals';
@@ -68,6 +68,9 @@ export interface RuleTestDeal {
   expectedAdvanceCalls?: RuleTestExpectedCall[];
   rejectedAdvanceCalls?: Call[];
   expectedAdvanceCallOrder?: [Call, Call][];
+  expectedOvercallerRebidCalls?: RuleTestExpectedCall[];
+  rejectedOvercallerRebidCalls?: Call[];
+  expectedOvercallerRebidCallOrder?: [Call, Call][];
   // Each expected call/rule pair is an assertion of what we should see.
   requiredSystem?: Partial<BiddingSystem>;
   expectedOpeningCalls?: RuleTestExpectedCall[];
@@ -104,6 +107,7 @@ export {
   ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
   ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
   ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS,
+  DONT_1NT_DEFENSE_TEST_DEALS,
   SIMPLE_OVERCALL_TEST_DEALS,
   TAKEOUT_DOUBLE_TEST_DEALS,
   NATURAL_1NT_OVERCALL_TEST_DEALS,
@@ -144,6 +148,9 @@ export {
 export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'opening-bids', group: 'Opening', label: 'Opening selection',
     deals: OPENING_BID_TEST_DEALS },
+  { id: 'overcall-dont-1nt', group: 'Overcalling', label: 'DONT over strong 1NT',
+    practiceStages: ['overcalling', 'advancing', 'overcallerRebid'] as BidStage[],
+    deals: DONT_1NT_DEFENSE_TEST_DEALS },
   { id: 'overcall-simple', group: 'Overcalling', label: 'Simple suit overcalls',
     practiceStages: ['overcalling'] as BidStage[], deals: SIMPLE_OVERCALL_TEST_DEALS },
   { id: 'overcall-takeout-double', group: 'Overcalling', label: 'Takeout doubles',

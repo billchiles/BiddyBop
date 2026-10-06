@@ -221,6 +221,7 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
     case 'openerRebid':
       return OpenerRebidRules;
     case 'overcalling':
+    case 'overcallerRebid':
       return OvercallRules;
     case 'advancing':
       return AdvanceRules;

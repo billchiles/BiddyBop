@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 386 deals, with 988 positive call/rule assertions, 484 elimination
-assertions, 30 call-order assertions, and 902 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1415 eligible deal/configuration combinations and 3300 recorded calls.
+The current corpus contains 392 deals, with 1004 positive call/rule assertions, 484 elimination
+assertions, 30 call-order assertions, and 918 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1439 eligible deal/configuration combinations and 3364 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
@@ -53,6 +53,14 @@ Two natural `1NT` overcall deals require 15-18 HCP, balanced shape, and a stoppe
 opponent's suit (A, Kx, Qxx, or Jxxx approximation); a separate boundary check excludes
 1NT without a stopper. Four preemptive-jump deals exercise six-card two-level, seven-card
 three-level, and eight-card four-level natural jumps, with an explicit non-jump rejection.
+
+Six `overcall-dont-1nt` deals exercise the compact DONT defense to an opposing strong 1NT:
+Double with a one-suited club/diamond/heart hand; 2C/2D/2H with the named lower suit plus one
+higher suit; and natural 2S with a one-suited spade hand. The same deals continue through the
+basic advancer pass-or-correct action and, where needed, the first modeled overcaller rebid after
+opener also passes. Six family-level boundary checks enforce the 7-HCP floor, modeled 5-4-or-
+better shape, direct strong-1NT context, and the decision to stop after responder or opener
+interference. Game inquiries, balancing-seat DONT, and stronger-spade distinctions are omitted.
 
 Four shared partner-of-1NT interference deals exercise the same natural treatment in both roles:
 responder after a 1NT opening and advancer after a natural 1NT overcall. They cover weak Pass, a

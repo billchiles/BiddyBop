@@ -2,14 +2,101 @@
 
 import { type BidRule } from './bidding-types';
 import {
-  naturalOneNtOvercallApplies, ordinaryTakeoutDoubleApplies, refinePreemptiveJumpOvercall,
-  refineSimpleSuitOvercall
+  dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
+  naturalOneNtOvercallApplies, ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
+  refinePreemptiveJumpOvercall, refineSimpleSuitOvercall
 } from './overcalling-functions';
 
 
 export const OvercallRules: BidRule[] = [
+  // Compact DONT defense to an opposing strong 1NT.  Shape and suit quality carry more weight
+  // than raw HCP; the app uses 7 HCP as a conservative floor because vulnerability is unmodeled.
+  {
+    id: 'overcall-dont-single-suit-double',
+    kind: 'overcall',
+    title: 'Use DONT Double with one long non-spade suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: dontSingleSuitDoubleApplies,
+    meaning: 'DONT Double shows one good 6+ card club, diamond, or heart suit and asks partner ' +
+             'to relay to 2C.',
+    guidance: ['This is not a penalty Double. Partner normally bids 2C; the DONT bidder then ' +
+               'passes with clubs or names the long suit.',
+               'A one-suited spade hand uses direct 2S in this compact treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-clubs-plus-higher',
+    kind: 'overcall',
+    title: 'Use DONT 2C with clubs and a higher suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2C'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2C shows clubs plus exactly one higher suit, normally at least 5-4.',
+    guidance: ['Partner may pass with a club fit; otherwise 2D asks for the higher suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-diamonds-plus-major',
+    kind: 'overcall',
+    title: 'Use DONT 2D with diamonds and a major',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2D'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2D shows diamonds plus exactly one major, normally at least 5-4.',
+    guidance: ['Partner may pass with a diamond fit; otherwise 2H asks partner to pass or ' +
+               'correct to 2S.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-majors',
+    kind: 'overcall',
+    title: 'Use DONT 2H with hearts and spades',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2H'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2H shows both majors, normally at least 5-4.',
+    guidance: ['Partner passes with a heart preference or bids 2S with a spade preference.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-natural-spades',
+    kind: 'overcall',
+    title: 'Use natural DONT 2S with one long spade suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2S'],
+    callCategory: ['natural'],
+    appliesWhen: dontSpadeOvercallApplies,
+    meaning: 'Natural DONT 2S shows one good 6+ card spade suit.',
+    guidance: ['Full DONT treatments often distinguish a stronger spade hand by doubling first; ' +
+               'that strength split is intentionally omitted here.'],
+    certainty: 'high',
+  },
+  // Basic DONT relay corrections are the first modeled overcaller rebids.  They apply only when
+  // responder and opener both pass after the DONT action and advancer makes the expected relay.
+  {
+    id: 'overcaller-rebid-dont-pass-or-correct',
+    kind: 'overcallerRebid',
+    title: 'Complete the DONT pass-or-correct sequence',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['1NT'] },
+    calls: ['Pass', '2D', '2H', '2S'],
+    callRefinement: refineDontOvercallerCorrection,
+    callCategory: ['conventional'],
+    meaning: 'Accept advancer’s relay when it reaches the concealed suit, or correct to that suit.',
+    guidance: ['This models only the basic DONT landing sequence. Game inquiries and ' +
+               'continuations after responder competes remain unsupported.'],
+    certainty: 'high',
+  },
   // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
-  // Later competitive continuations, other doubles, and 1NT-opening defenses remain unmodeled.
+  // Other opening families and most later overcaller continuations remain unmodeled.
   {
     id: 'overcall-simple-suit-at-one-level',
     kind: 'overcall',

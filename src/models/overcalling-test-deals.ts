@@ -184,3 +184,106 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'K43', H: 'AK5', D: 'Q7', C: 'J8542' },
   },
 ];
+
+/// Compact DONT against an opposing strong 1NT.  These deals practice the direct convention,
+/// advancer's basic pass-or-correct action, and the selected overcaller correction when needed.
+/// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.
+///
+export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'One-suited hearts: DONT Double, 2C relay, then reveal 2H.',
+    dealer: 'W',
+    practiceAuction: ['1NT', 'Double', 'Pass', '2C', 'Pass', '2H'],
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-dont-single-suit-double'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2C', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '2H', ruleIds: ['overcaller-rebid-dont-pass-or-correct'] },
+    ],
+    north: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    south: { S: 'T975', H: '753', D: 'Q84', C: 'T65' },
+    west: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' },
+  },
+  {
+    description: 'Clubs plus hearts: 2C, 2D asks for the higher suit, then 2H.',
+    dealer: 'W',
+    practiceAuction: ['1NT', '2C', 'Pass', '2D', 'Pass', '2H'],
+    expectedOvercallCalls: [
+      { call: '2C', ruleIds: ['overcall-dont-clubs-plus-higher'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2D', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '2H', ruleIds: ['overcaller-rebid-dont-pass-or-correct'] },
+    ],
+    north: { S: '84', H: 'T976', D: '72', C: 'AQJ65' },
+    south: { S: 'KQJ9', H: '854', D: 'QJ98', C: 'K9' },
+    west: { S: 'AT76', H: 'AKQ', D: 'KT6', C: 'T87' },
+  },
+  {
+    description: 'Clubs plus spades: advancer has three clubs and accepts 2C.',
+    dealer: 'W',
+    practiceAuction: ['1NT', '2C', 'Pass', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2C', ruleIds: ['overcall-dont-clubs-plus-higher'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    north: { S: 'KJ97', H: '63', D: '72', C: 'AQ965' },
+    south: { S: 'T85', H: 'Q752', D: 'Q84', C: 'K72' },
+    west: { S: 'AQ64', H: 'AKJ', D: 'JT9', C: 'JT8' },
+  },
+  {
+    description: 'Diamonds plus spades: 2H asks for the major, then partner corrects to 2S.',
+    dealer: 'W',
+    practiceAuction: ['1NT', '2D', 'Pass', '2H', 'Pass', '2S'],
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['overcall-dont-diamonds-plus-major'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2H', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '2S', ruleIds: ['overcaller-rebid-dont-pass-or-correct'] },
+    ],
+    north: { S: 'A987', H: '63', D: 'KQJ65', C: '72' },
+    south: { S: 'T54', H: 'QJ98', D: 'A8', C: 'T986' },
+    west: { S: 'KQJ6', H: 'AKT', D: 'T97', C: 'K54' },
+  },
+  {
+    description: 'Both majors: advancer prefers spades and the DONT bidder accepts 2S.',
+    dealer: 'W',
+    practiceAuction: ['1NT', '2H', 'Pass', '2S', 'Pass', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2H', ruleIds: ['overcall-dont-majors'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2S', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: 'Pass', ruleIds: ['overcaller-rebid-dont-pass-or-correct'] },
+    ],
+    north: { S: 'K987', H: 'AQJ65', D: '84', C: '72' },
+    south: { S: 'AQJT', H: '98', D: 'KQJ9', C: 'T96' },
+    west: { S: '6543', H: 'KT7', D: 'AT7', C: 'AKQ' },
+  },
+  {
+    description: 'One-suited spades: direct natural DONT 2S and advancer Pass.',
+    dealer: 'W',
+    practiceAuction: ['1NT', '2S', 'Pass', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['overcall-dont-natural-spades'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-dont-pass-or-correct'] },
+    ],
+    north: { S: 'AQJT96', H: '63', D: 'K52', C: '73' },
+    south: { S: '85', H: 'Q752', D: 'Q84', C: 'JT65' },
+    west: { S: 'K743', H: 'AKJ', D: 'AJT', C: '984' },
+  },
+];
