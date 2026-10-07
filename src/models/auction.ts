@@ -124,12 +124,16 @@ export function getInterferenceAfterOpening (dealer: Seat, auction: Call[]): Dir
   }
   const parsed = parseSuitBid(action);
   const openerBid = parseSuitBid(opening.call);
-  if (parsed === null || openerBid === null || openerBid.level !== 1 ||
-      openerBid.strain === 'NT') {
+  const weakTwoOpening = ['2D', '2H', '2S'].includes(opening.call);
+  if (parsed === null || openerBid === null || openerBid.strain === 'NT' ||
+      (openerBid.level !== 1 && ! weakTwoOpening)) {
     return 'other';
   }
   if (parsed.strain === 'NT') {
-    return action === '1NT' ? 'notrumpOvercall' : 'other';
+    if (openerBid.level === 1) {
+      return action === '1NT' ? 'notrumpOvercall' : 'other';
+    }
+    return action === '2NT' ? 'notrumpOvercall' : 'other';
   }
   if (parsed.strain === openerBid.strain) {
     return 'other';

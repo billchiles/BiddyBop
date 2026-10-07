@@ -212,6 +212,34 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     expectedAdvanceCalls: [{ call: '3C', ruleIds: ['advance-two-level-suit-overcall-new-suit-at-three-level'] }],
     rejectedAdvanceCalls: ['4C', '2H', '2S'],
   },
+  {
+    description: 'Weak 2D-(2H)-Pass: 8 support points and three hearts; simple 3H raise.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', '3H'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A6', H: 'AKT96', D: '42', C: 'QJ83' },
+    south: { S: 'QJ74', H: 'Q54', D: 'T65', C: 'K92' },
+    expectedOvercallCalls: [
+      { call: '2H', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3H', ruleIds: ['advance-two-level-suit-overcall-simple-raise'] },
+    ],
+    rejectedAdvanceCalls: ['2NT', '3D'],
+  },
+  {
+    description: 'Weak 2H-(2S)-Pass: 14 support points and three spades; 3H strong cuebid.',
+    dealer: 'W', practiceAuction: ['2H', '2S', 'Pass', '3H'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AKT96', H: '42', D: 'AQ65', C: 'Q8' },
+    south: { S: 'QJ7', H: '5', D: 'KJ84', C: 'A9764' },
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3H', ruleIds: ['advance-two-level-suit-overcall-support-cuebid'] },
+    ],
+    rejectedAdvanceCalls: ['3S', '2NT'],
+  },
 ];
 
 
@@ -328,6 +356,65 @@ export const ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallCalls: [{ call: 'Double', ruleIds: ['overcall-takeout-double-with-unbid-suit-support'] }],
     expectedAdvanceCalls: [{ call: '4S', ruleIds: ['advance-takeout-double-major-game'] }],
     rejectedAdvanceCalls: ['4H', '3S'],
+  },
+  {
+    description: 'Weak 2S-Double-Pass: 10 HCP and five clubs; direct 3C without Lebensohl.',
+    dealer: 'W', practiceAuction: ['2S', 'Double', 'Pass', '3C'],
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+    north: { S: 'A4', H: 'AKQJ7', D: 'A96', C: 'J62' },
+    south: { S: 'T65', H: 'T96', D: 'KJ', C: 'AQ987' },
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-weak-two-takeout-double-strong-hand'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3C', ruleIds: ['advance-takeout-double-minimum-suit'] },
+    ],
+    rejectedAdvanceCalls: ['4C', '3H'],
+  },
+  {
+    description: 'Weak 2H-Double-Pass: 10 length points and four spades; invitational 3S.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '3S'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'KT97', H: 'A54', D: 'QJ9', C: '432' },
+    expectedOvercallCalls: [
+      { call: 'Double',
+        ruleIds: ['overcall-weak-two-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3S', ruleIds: ['advance-takeout-double-invitational-jump'] },
+    ],
+    rejectedAdvanceCalls: ['2S', '4S'],
+  },
+  {
+    description: 'Weak 2H-Double-Pass: 15 length points; 3H is the strong forcing cuebid.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '3H'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'KT97', H: 'T', D: 'AQJ95', C: 'A43' },
+    expectedOvercallCalls: [
+      { call: 'Double',
+        ruleIds: ['overcall-weak-two-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3H', ruleIds: ['advance-takeout-double-strong-cuebid'] },
+    ],
+    rejectedAdvanceCalls: ['3S', '2NT'],
+  },
+  {
+    description: 'Weak 2H-Double-Pass: balanced 12 HCP with a heart stopper; natural 2NT.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '2NT'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'K97', H: 'A54', D: 'AJ9', C: '9742' },
+    expectedOvercallCalls: [
+      { call: 'Double',
+        ruleIds: ['overcall-weak-two-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2NT', ruleIds: ['advance-takeout-double-two-notrump'] },
+    ],
+    rejectedAdvanceCalls: ['3NT'],
   },
 ];
 

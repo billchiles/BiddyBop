@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 398 deals, with 1010 positive call/rule assertions, 484 elimination
-assertions, 31 call-order assertions, and 924 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1463 eligible deal/configuration combinations and 3388 recorded calls.
+The current corpus contains 404 deals, with 1022 positive call/rule assertions, 495 elimination
+assertions, 31 call-order assertions, and 936 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1487 eligible deal/configuration combinations and 3436 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
@@ -44,7 +44,7 @@ reserved for the strong-double treatment. Two `overcall-takeout-double` deals di
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
 that does not require that shape. These are informational doubles only; later responses and
 penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 141 competitive-boundary checks protect
+call-availability checks occur before refinement; 153 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
 heart response is obstructed. The new negative Double and stopper-qualified 1NT
 now supply alternatives in that example; other intervention families remain pending.
@@ -58,7 +58,9 @@ Six `overcall-weak-two-defense` deals cover direct defense to opposing weak 2D/2
 natural economical suit overcalls, the ordinary 13+ shortage-point takeout Double with 3+ cards
 in each unbid suit, the existing 18+ HCP strong-hand Double exception, and natural 2NT with a
 stopper. Two family-level checks require a stopper for 2NT and a good 6+ card suit when a natural
-overcall must start at the three level. Advancer continuations remain a separate batch.
+overcall must start at the three level. Advancer continuations after natural two-level overcalls
+and takeout Doubles now reuse the ordinary advancing rules; natural 2NT continuations remain the
+next weak-two batch.
 
 Six `overcall-dont-1nt` deals exercise the compact DONT defense to an opposing strong 1NT:
 Double with a one-suited club/diamond/heart hand; 2C/2D/2H with the named lower suit plus one
@@ -82,12 +84,18 @@ one-level suit overcall, and South's advance after East passes. They cover const
 support cuebid, natural 1NT/2NT with a stopper, nonforcing one-level new suits, and
 forcing economical two-level new suits. Eight boundary checks keep this responder-Pass family
 out of unsupported responder-action and overcall auctions and reject 1NT without a stopper.
-Nine `advance-two-level-suit-overcall` deals cover 7-10 support-point simple raises,
+Eleven `advance-two-level-suit-overcall` deals cover 7-10 support-point simple raises,
 11+ forcing support cuebids, 11-13 balanced 2NT with a stopper, 10+ HCP forcing economical
-new suits at two, and 12+ HCP forcing economical good new suits at three. The same boundary
-family rejects responder actions, jump overcalls, and natural 2NT without a stopper.
-Strong jump-new-suit advances, later overcaller continuations, and inferred Pass are
-not yet modeled.
+new suits at two, and 12+ HCP forcing economical good new suits at three. Two of the deals
+exercise the same rules after a weak-two opening. The same boundary family rejects responder
+actions, jump overcalls, and natural 2NT without a stopper. Strong jump-new-suit advances,
+later overcaller continuations, and inferred Pass are not yet modeled.
+
+Fifteen `advance-takeout-double` deals cover cheapest-level suit selection, the guarded
+three-card fallback, invitational jumps, strong cuebids, and natural notrump. Four weak-two
+examples reuse the same rule family. Without Lebensohl, a direct three-level suit after a
+weak-two Double may contain 9-11 points when bidding space does not permit an invitational
+jump; 2NT uses 11-12 HCP and 3NT uses 13-15 in that context.
 
 Fourteen `advance-jump-overcall` deals exercise explicit Pass after two-, three-, and
 four-level jumps; preemptive three-level raises, conservative four-level minor raises,

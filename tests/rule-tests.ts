@@ -727,7 +727,7 @@ function runTakeoutAdvanceBoundaryTests (): number {
   let failures = 0;
   for (const auction of [
     ['1NT', 'Double', 'Pass'], // No agreed takeout-double meaning over natural 1NT.
-    ['2D', 'Double', 'Pass'], // Weak-two defenses are a separate future family.
+    ['3D', 'Double', 'Pass'], // Three-level preempt defenses are intentionally omitted.
     ['1D', '1S', 'Pass'], // A suit overcall is not a takeout double.
     ['1D', 'Pass', 'Pass'],
   ] as Call[][]) {

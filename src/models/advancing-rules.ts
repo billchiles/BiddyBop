@@ -5,6 +5,7 @@ import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
 import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
 import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies,
          naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
+         takeoutDoubleMinimumSuitAdvanceApplies,
          refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
          refineAdvancerCuebid, refineAdvancerNewSuit, refineAdvancerRaise,
          refineAdvancerTwoLevelCuebid, refineAdvancerTwoLevelNewSuit,
@@ -170,14 +171,14 @@ export const AdvanceRules: BidRule[] = [
                'stronger agreement that is not yet modeled.'],
     certainty: 'high',
   },
-  // Second family: partner makes a natural, non-jump two-level suit overcall.
-  // The refiners require responder's Pass and distinguish simple bids from jumps.
+  // Second family: partner makes a natural, non-jump two-level suit overcall of a one-level
+  // opening or weak two.  The refiners require responder's Pass and distinguish simple bids
+  // from jumps.
   {
     id: 'advance-two-level-suit-overcall-simple-raise',
     kind: 'advance',
     title: 'Raise a two-level suit overcall to three',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'suitOvercall' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelRaise,
     callCategory: ['natural'],
@@ -193,9 +194,8 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-two-level-suit-overcall-support-cuebid',
     kind: 'advance',
     title: 'Cuebid opener’s suit after a two-level overcall',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'suitOvercall' },
-    calls: ['2D', '2H', '2S'],
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
+    calls: ['2D', '2H', '2S', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelCuebid,
     callCategory: ['conventional', 'forcing'],
     priority: { rank: 20 },
@@ -210,8 +210,7 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-two-level-suit-overcall-two-notrump',
     kind: 'advance',
     title: 'Invite with 2NT after a two-level suit overcall',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'suitOvercall' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
     calls: ['2NT'],
     callCategory: ['natural', 'invitational'],
     appliesWhen: naturalTwoLevelNotrumpAdvanceApplies, // 11-13 HCP, balanced, opening-suit stopper
@@ -224,8 +223,7 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-two-level-suit-overcall-new-suit-at-two-level',
     kind: 'advance',
     title: 'Show a new suit economically at the two level',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'suitOvercall' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
     calls: ['2D', '2H', '2S'],
     callRefinement: refineAdvancerTwoLevelNewSuit,
     callCategory: ['natural', 'forcing'],
@@ -239,8 +237,7 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-two-level-suit-overcall-new-suit-at-three-level',
     kind: 'advance',
     title: 'Show a good new suit economically at the three level',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'suitOvercall' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelNewSuit,
     callCategory: ['natural', 'forcing'],
@@ -251,23 +248,22 @@ export const AdvanceRules: BidRule[] = [
                'Jump new-suit advances remain unmodeled.'],
     certainty: 'high',
   },
-  // Third family: Advancer responds to partner's takeout double of an opposing one-level suit
-  // opening.  When opener's partner passes, advancer ordinarily must select a suit even with no
-  // points.
+  // Third family: Advancer responds to partner's takeout double of an opposing suit opening.
+  // When opener's partner passes, advancer ordinarily must select a suit even with no points.
+  // Weak-two doubles reuse the same basic structure without adding Lebensohl.
   {
     id: 'advance-takeout-double-minimum-suit',
     kind: 'advance',
     title: 'Select an unbid suit after partner’s takeout double',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'takeoutDouble' },
-    calls: ['1H', '1S', '2C', '2D', '2H', '2S'],
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'takeoutDouble' },
+    calls: ['1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls, context) => refineTakeoutDoubleSuitAdvance(calls, context, 0),
     callCategory: ['natural'],
-    appliesWhen: { totalPoints: { max: 8, valuation: 'length' } },
-    meaning: 'A nonforcing, cheapest-level suit advance with 0-8 length-adjusted points; ' +
-             'normally 4+ cards.',
+    appliesWhen: takeoutDoubleMinimumSuitAdvanceApplies,
+    meaning: 'A nonforcing, cheapest-level suit advance, normally with 4+ cards.',
     guidance: ['Partner’s takeout double normally requests a bid even with no HCP.',
                'With no four-card unbid suit, a three-card unbid suit is a necessary fallback.',
+               'Without Lebensohl, a forced direct three-level suit can also contain 9-11 points.',
                'An 18+ HCP doubler may have doubled without the usual unbid-suit support.'],
     certainty: 'high',
   },
@@ -276,8 +272,7 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-takeout-double-invitational-jump',
     kind: 'advance',
     title: 'Invite with a jump in an unbid suit',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'takeoutDouble' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'takeoutDouble' },
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls, context) => refineTakeoutDoubleSuitAdvance(calls, context, 1),
     callCategory: ['natural', 'invitational'],
@@ -293,9 +288,8 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-takeout-double-strong-cuebid',
     kind: 'advance',
     title: 'Cuebid opener’s suit after partner’s takeout double',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'takeoutDouble' },
-    calls: ['2C', '2D', '2H', '2S'],
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3D', '3H', '3S'],
     callRefinement: refineTakeoutDoubleCuebid,
     callCategory: ['conventional', 'forcing'],
     priority: { rank: 15 },
@@ -326,13 +320,14 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-takeout-double-two-notrump',
     kind: 'advance',
     title: 'Invite with natural 2NT after partner’s double',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'takeoutDouble' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'takeoutDouble' },
     calls: ['2NT'],
     callCategory: ['natural', 'invitational'],
     priority: { rank: 18 },
-    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies, // 12-13 HCP, balanced, stopper
-    meaning: 'Natural invitational 2NT: 12-13 HCP, balanced, and a stopper in opener’s suit.',
+    // HCP range depends on the opening level; balanced shape and a stopper are also required.
+    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies,
+    meaning: 'Natural invitational 2NT with a balanced hand and a stopper in opener’s suit.',
+    guidance: ['Use 12-13 HCP after a one-level opening and 11-12 after a weak two.'],
     certainty: 'high',
   },
   //
@@ -340,13 +335,14 @@ export const AdvanceRules: BidRule[] = [
     id: 'advance-takeout-double-three-notrump',
     kind: 'advance',
     title: 'Bid natural 3NT after partner’s double',
-    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
-                      interference: 'takeoutDouble' },
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'takeoutDouble' },
     calls: ['3NT'],
     callCategory: ['natural', 'signoff'],
     priority: { rank: 20 },
-    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies, // 14-16 HCP, balanced, stopper
-    meaning: 'Natural game in 3NT: 14-16 HCP, balanced, and a stopper in opener’s suit.',
+    // HCP range depends on the opening level; balanced shape and a stopper are also required.
+    appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies,
+    meaning: 'Natural 3NT game with a balanced hand and a stopper in opener’s suit.',
+    guidance: ['Use 14-16 HCP after a one-level opening and 13-15 after a weak two.'],
     certainty: 'high',
   },
   //

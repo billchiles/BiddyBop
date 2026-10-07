@@ -36,7 +36,8 @@ export function refineDontAdvance (calls: Call[], context: RuleEvalContext): Cal
 }
 
 /// Advancer after a natural, non-jump suit overcall of the given level, with the
-/// opponents' responder passing.  Jump overcalls and responder interference are excluded.
+/// opponents' responder passing.  Support one-level suit openings and weak-two openings;
+/// jump overcalls and responder interference are excluded.
 ///
 function getNaturalSuitOvercallForAdvancer (context: RuleEvalContext, level: 1 | 2):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
@@ -52,7 +53,9 @@ function getNaturalSuitOvercallForAdvancer (context: RuleEvalContext, level: 1 |
   const opening = parseSuitBid(openingInfo.call);
   const overcallCall = context.auction[openingInfo.index + 1];
   const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+  const weakTwoOpening = ['2D', '2H', '2S'].includes(openingInfo.call);
+  if (opening === null || opening.strain === 'NT' ||
+      (opening.level !== 1 && ! weakTwoOpening) ||
       overcall === null || overcall.level !== level || overcall.strain === 'NT' ||
       cheapestBidInStrainAfter(opening, overcall.strain) !== overcallCall) {
     return null;
@@ -171,7 +174,7 @@ export function naturalTwoLevelNotrumpAdvanceApplies (_call: Call, context: Rule
 }
 
 
-/// Advancer may act after a takeout double of a one-level suit opening when
+/// Advancer may act after a takeout double of a one-level suit or weak-two opening when
 /// responder passes.  Other doubles and competitive continuations are excluded.
 ///
 function getTakeoutDoubleForAdvancer (context: RuleEvalContext): ParsedSuitBid | null {
@@ -186,7 +189,8 @@ function getTakeoutDoubleForAdvancer (context: RuleEvalContext): ParsedSuitBid |
     return null;
   }
   const opening = parseSuitBid(openingInfo.call);
-  return opening !== null && opening.level === 1 && opening.strain !== 'NT' ? opening : null;
+  if (opening === null || opening.strain === 'NT') return null;
+  return opening.level === 1 || ['2D', '2H', '2S'].includes(openingInfo.call) ? opening : null;
 }
 
 /// Select an unbid suit at the cheapest level (jump=0), or exactly one level
@@ -227,6 +231,21 @@ export function refineTakeoutDoubleSuitAdvance (calls: Call[], context: RuleEval
   return { calls: qualifying, telemetryLines: [] };
 }
 
+/// Without Lebensohl, a direct three-level suit after a weak-two Double can be forced by
+/// bidding space, so allow 9-11 as well as 0-8 when the cheapest suit action is already at three.
+export function takeoutDoubleMinimumSuitAdvanceApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getTakeoutDoubleForAdvancer(context);
+  const bid = parseSuitBid(call);
+  const points = context.handFacts.totalPointsWLength;
+  const directThreeLevel = opening?.level === 2 && bid?.level === 3;
+  const success = opening !== null && points <= (directThreeLevel ? 11 : 8);
+  return { success, telemetryLines: [success ?
+    'PASS: cheapest suit advance has the modeled strength for this takeout-double auction.' :
+    'FAIL: cheapest suit advance is too strong for the modeled non-jump range.'] };
+}
+
+
 export function refineTakeoutDoubleCuebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getTakeoutDoubleForAdvancer(context);
@@ -250,14 +269,16 @@ export function naturalTakeoutDoubleNotrumpAdvanceApplies (call: Call, context: 
     AppliesWhenResult {
   const opening = getTakeoutDoubleForAdvancer(context);
   const hcp = context.handFacts.hcp;
-  const strength = call === '1NT' ? hcp >= 8 && hcp <= 11 :
-    call === '2NT' ? hcp >= 12 && hcp <= 13 :
-    call === '3NT' && hcp >= 14 && hcp <= 16;
+  const weakTwoOpening = opening?.level === 2;
+  const strength = call === '1NT' ? ! weakTwoOpening && hcp >= 8 && hcp <= 11 :
+    call === '2NT' ? (weakTwoOpening ? hcp >= 11 && hcp <= 12 : hcp >= 12 && hcp <= 13) :
+    call === '3NT' && (weakTwoOpening ? hcp >= 13 && hcp <= 15 : hcp >= 14 && hcp <= 16);
   const success = opening !== null && strength && context.handFacts.balanced &&
     hasBasicSuitStopper(context, opening.strain as Suit);
   return { success, telemetryLines: [success ?
     'PASS: natural NT advance after takeout double with proper range, shape, and stopper.' :
-    'FAIL: requires 1-suit Double Pass, balanced shape, appropriate HCP, and a stopper.'] };
+    'FAIL: takeout-double NT advance needs balanced shape, the context-specific HCP range, ' +
+    'and a stopper.'] };
 }
 
 

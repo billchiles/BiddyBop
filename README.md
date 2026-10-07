@@ -77,13 +77,14 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 | --- | --- | --- | --- | --- |
 | 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Planned |
 | Strong 1NT | Done: compact DONT | Done: basic DONT pass/correct | Omitted | Done: required compact DONT corrections |
-| Weak 2D / 2H / 2S | Done | Planned | Omitted | Planned: selected continuations |
+| Weak 2D / 2H / 2S | Done | Incomplete: suit-overcall and Double advances done; 2NT systems planned | Omitted | Planned: selected continuations |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
-The direct weak-two defense uses natural suit overcalls, takeout Double, and natural 2NT.  Continuations
-after responder passes are the next planned weak-two work; the trainer will not duplicate the full
-competitive fanout after responder also competes.
+The direct weak-two defense uses natural suit overcalls, takeout Double, and natural 2NT.  Advancer
+continuations after natural two-level overcalls and takeout Doubles reuse the ordinary advancing
+treatments when responder passes.  Natural 2NT systems remain planned; the trainer will not duplicate
+the full competitive fanout after responder also competes.
 
 ### Advancer when responder acts after a one-level suit opening
 
