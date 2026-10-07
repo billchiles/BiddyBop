@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 404 deals, with 1022 positive call/rule assertions, 495 elimination
-assertions, 31 call-order assertions, and 936 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1487 eligible deal/configuration combinations and 3436 recorded calls.
+The current corpus contains 409 deals, with 1035 positive call/rule assertions, 498 elimination
+assertions, 31 call-order assertions, and 949 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1499 eligible deal/configuration combinations and 3466 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
@@ -59,8 +59,11 @@ natural economical suit overcalls, the ordinary 13+ shortage-point takeout Doubl
 in each unbid suit, the existing 18+ HCP strong-hand Double exception, and natural 2NT with a
 stopper. Two family-level checks require a stopper for 2NT and a good 6+ card suit when a natural
 overcall must start at the three level. Advancer continuations after natural two-level overcalls
-and takeout Doubles now reuse the ordinary advancing rules; natural 2NT continuations remain the
-next weak-two batch.
+and takeout Doubles reuse the ordinary advancing rules. Five `overcall-weak-two-2nt` deals exercise
+the selected systems-on continuation after a natural 2NT overcall: Stayman, Jacoby, Texas, natural
+3NT, and a natural major signoff when transfers are off. The overcaller answers Stayman and completes
+the modeled transfers when opener also passes; two family-level checks stop those convention replies
+after either opponent competes.
 
 Six `overcall-dont-1nt` deals exercise the compact DONT defense to an opposing strong 1NT:
 Double with a one-suited club/diamond/heart hand; 2C/2D/2H with the named lower suit plus one

@@ -268,6 +268,9 @@ export interface AuctionContext {
   // Shared natural calls after two-level natural suit interference over partner's 1NT.
   // Matching uses the physical auction for either the responding or advancing role.
   partnerNaturalOneNtAfterSuitInterference?: boolean;
+  // Advancer's systems-on calls after partner naturally overcalls a weak two with 2NT.
+  // Matching requires the opening side's responder to pass.
+  partnerNaturalTwoNtOverWeakTwo?: boolean;
   // auction is an exact compact partnership call sequence; every listed call must match literally.
   auction?: Call[];
   // description is optional author-facing context and is not evaluator input.

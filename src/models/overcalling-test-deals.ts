@@ -259,6 +259,96 @@ export const WEAK_TWO_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Systems-on advances after a natural 2NT overcall of a weak two.  These deals cover the
+/// ordinary game route plus Stayman, Jacoby, and Texas mechanics without adding slam continuations.
+///
+export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Nine HCP and four hearts: use Stayman, then the 2NT overcaller shows hearts.',
+    dealer: 'W',
+    practiceAuction: ['2D', '2NT', 'Pass', '3C', 'Pass', '3H'],
+    requiredSystem: { stayman: true },
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3C', ruleIds: ['advance-weak-two-2nt-stayman'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '3H', ruleIds: ['overcaller-rebid-weak-two-2nt-stayman'] },
+    ],
+    north: { S: 'A84', H: 'KJ72', D: 'Q54', C: 'AQ6' },
+    south: { S: 'K763', H: 'QT85', D: 'A32', C: '52' },
+    west: { S: 'Q52', H: 'A3', D: 'KJT987', C: 'T4' },
+  },
+  {
+    description: 'Weak five hearts: transfer with 3D and the 2NT overcaller completes 3H.',
+    dealer: 'W',
+    practiceAuction: ['2S', '2NT', 'Pass', '3D', 'Pass', '3H'],
+    requiredSystem: { jacobyTransfers: true },
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3D', ruleIds: ['advance-weak-two-2nt-transfer-to-hearts'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '3H', ruleIds: ['overcaller-rebid-weak-two-2nt-jacoby'] },
+    ],
+    north: { S: 'A54', H: 'KQ6', D: 'AJ84', C: 'QJ3' },
+    south: { S: 'T32', H: 'JT975', D: 'K62', C: '84' },
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+  },
+  {
+    description: 'Six spades and game values: Texas 4H asks the 2NT overcaller to bid 4S.',
+    dealer: 'W',
+    practiceAuction: ['2H', '2NT', 'Pass', '4H', 'Pass', '4S'],
+    requiredSystem: { texasTransfers: true },
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '4H', ruleIds: ['advance-weak-two-2nt-texas-to-spades'] },
+    ],
+    expectedOvercallerRebidCalls: [
+      { call: '4S', ruleIds: ['overcaller-rebid-weak-two-2nt-texas'] },
+    ],
+    north: { S: 'KQ6', H: 'A54', D: 'AJ84', C: 'QJ3' },
+    south: { S: 'AJT975', H: '32', D: 'Q62', C: 'K4' },
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+  },
+  {
+    description: 'Nine balanced HCP with no four-card major: place the contract in 3NT.',
+    dealer: 'W',
+    practiceAuction: ['2D', '2NT', 'Pass', '3NT'],
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3NT', ruleIds: ['advance-weak-two-2nt-3nt-8-15'] },
+    ],
+    rejectedAdvanceCalls: ['3C', '3D', '3H'],
+    north: { S: 'A84', H: 'KJ72', D: 'Q54', C: 'AQ6' },
+    south: { S: 'K76', H: 'QT8', D: 'A32', C: '9752' },
+    west: { S: 'Q52', H: 'A3', D: 'KJT987', C: 'T4' },
+  },
+  {
+    description: 'With transfers off, a weak five-card spade suit can sign off naturally in 3S.',
+    dealer: 'W',
+    practiceAuction: ['2H', '2NT', 'Pass', '3S'],
+    requiredSystem: { jacobyTransfers: false },
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3S', ruleIds: ['advance-weak-two-2nt-natural-major-signoff'] },
+    ],
+    north: { S: 'KQ6', H: 'A54', D: 'AJ84', C: 'QJ3' },
+    south: { S: 'AJT97', H: '32', D: 'Q62', C: '864' },
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+  },
+];
+
 /// Compact DONT against an opposing strong 1NT.  These deals practice the direct convention,
 /// advancer's basic pass-or-correct action, and the selected overcaller correction when needed.
 /// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.

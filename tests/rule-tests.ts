@@ -16,7 +16,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, DONT_1NT_DEFENSE_TEST_DEALS,
-         WEAK_TWO_DEFENSE_TEST_DEALS,
+         WEAK_TWO_2NT_CONTINUATION_TEST_DEALS, WEAK_TWO_DEFENSE_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
@@ -389,10 +389,30 @@ function runCompetitionBoundaryTests (): number {
     failures += 1;
     console.error('FAIL three-level natural weak-two defense requires a good 6+ card suit.');
   }
+  // Systems-on 2NT continuations require both opponents to pass through the modeled convention.
+  const weakTwoTwoNtDeal = WEAK_TWO_2NT_CONTINUATION_TEST_DEALS[0];
+  if (weakTwoTwoNtDeal !== undefined) {
+    const { board: weakTwoTwoNtBoard } = makeRuleTestBoard(weakTwoTwoNtDeal);
+    const responderCompetes = getApplicableCandidateCalls(evaluateUserCall(
+      '3C', weakTwoTwoNtBoard, ['2D', '2NT', '2H'], defaultBiddingSystem));
+    checks += 1;
+    if (responderCompetes.some(({ rule }) => rule.id.startsWith('advance-weak-two-2nt-'))) {
+      failures += 1;
+      console.error('FAIL weak-two 2NT systems survived responder competition.');
+    }
+    const openerCompetes = getApplicableCandidateCalls(evaluateUserCall(
+      '3H', weakTwoTwoNtBoard, ['2D', '2NT', 'Pass', '3C', '3D'], defaultBiddingSystem));
+    checks += 1;
+    if (openerCompetes.some(({ rule }) => rule.id.startsWith('overcaller-rebid-weak-two-2nt-'))) {
+      failures += 1;
+      console.error('FAIL weak-two 2NT convention reply survived opener competition.');
+    }
+  }
   // Recorded competitive setups must themselves be plausible with the supplied hands;
   // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
   for (const deal of [...ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
                       ...ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+                      ...WEAK_TWO_2NT_CONTINUATION_TEST_DEALS,
                       ...WEAK_TWO_DEFENSE_TEST_DEALS,
                       ...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
                       ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,

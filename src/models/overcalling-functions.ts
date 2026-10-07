@@ -128,6 +128,51 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
   };
 }
 
+/// getWeakTwoTwoNtConventionCall returns advancer's forcing conventional call after partner's
+/// natural 2NT overcall of a weak two, provided responder and opener both pass as expected.
+function getWeakTwoTwoNtConventionCall (context: RuleEvalContext): Call | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null ||
+      ! ['2D', '2H', '2S'].includes(opening.call) ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 1] !== '2NT' ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') {
+    return null;
+  }
+  return context.auction[opening.index + 3] ?? null;
+}
+
+/// Stayman after the natural 2NT overcall uses ordinary 3D/3H/3S replies, showing hearts first
+/// when the overcaller holds both four-card majors.
+export function refineWeakTwoTwoNtStaymanReply (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  if (getWeakTwoTwoNtConventionCall(context) !== '3C') {
+    return { calls: [], telemetryLines: [] };
+  }
+  const wanted: Call = context.handFacts.lengths.H >= 4 ? '3H'
+    : context.handFacts.lengths.S >= 4 ? '3S' : '3D';
+  return { calls: calls.filter((call) => call === wanted), telemetryLines: [] };
+}
+
+/// Complete the basic 3D/3H Jacoby transfer after a natural 2NT overcall of a weak two.
+export function refineWeakTwoTwoNtJacobyCompletion (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const response = getWeakTwoTwoNtConventionCall(context);
+  const wanted: Call | null = response === '3D' ? '3H' : response === '3H' ? '3S' : null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [] };
+}
+
+/// Complete the basic 4D/4H Texas transfer after a natural 2NT overcall of a weak two.
+export function refineWeakTwoTwoNtTexasCompletion (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const response = getWeakTwoTwoNtConventionCall(context);
+  const wanted: Call | null = response === '4D' ? '4H' : response === '4H' ? '4S' : null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [] };
+}
+
 ///
 //// DONT over a Strong 1NT
 ///

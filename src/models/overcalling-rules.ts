@@ -4,11 +4,57 @@ import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
   naturalNotrumpOvercallApplies, ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
-  refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall
+  refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall,
+  refineWeakTwoTwoNtJacobyCompletion, refineWeakTwoTwoNtStaymanReply,
+  refineWeakTwoTwoNtTexasCompletion
 } from './overcalling-functions';
 
 
 export const OvercallRules: BidRule[] = [
+  // Systems-on replies after a natural 2NT overcall of a weak two are the other selected
+  // overcaller-rebid family.  The opener must pass after advancer's forcing convention.
+  {
+    id: 'overcaller-rebid-weak-two-2nt-stayman',
+    kind: 'overcallerRebid',
+    title: 'Answer Stayman after a natural 2NT overcall of a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'notrumpOvercall' },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: refineWeakTwoTwoNtStaymanReply,
+    agreement: { setting: 'stayman', value: true },
+    callCategory: ['conventional'],
+    meaning: 'Show a four-card major after Stayman, or bid 3D to deny one.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-2nt-jacoby',
+    kind: 'overcallerRebid',
+    title: 'Complete a Jacoby transfer after a natural 2NT overcall of a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'notrumpOvercall' },
+    calls: ['3H', '3S'],
+    callRefinement: refineWeakTwoTwoNtJacobyCompletion,
+    agreement: { setting: 'jacobyTransfers', value: true },
+    callCategory: ['conventional'],
+    meaning: 'Complete the transfer to advancer’s requested major.',
+    guidance: ['This compact treatment does not model transfer superaccepts.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-2nt-texas',
+    kind: 'overcallerRebid',
+    title: 'Complete a Texas transfer after a natural 2NT overcall of a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'notrumpOvercall' },
+    calls: ['4H', '4S'],
+    callRefinement: refineWeakTwoTwoNtTexasCompletion,
+    agreement: { setting: 'texasTransfers', value: true },
+    callCategory: ['conventional'],
+    meaning: 'Complete the Texas transfer to game in the requested major.',
+    certainty: 'high',
+  },
   // Compact DONT defense to an opposing strong 1NT.  Shape and suit quality carry more weight
   // than raw HCP; the app uses 7 HCP as a conservative floor because vulnerability is unmodeled.
   {

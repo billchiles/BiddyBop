@@ -147,7 +147,9 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
     : null;
   const sharedOneNtResponse = ruleResults.some((result) =>
     result.rule.auctionContext?.partnerNaturalOneNt === true);
-  if (sharedOneNtResponse || partnerOpeningCall === '2NT') {
+  const weakTwoTwoNtResponse = ruleResults.some((result) =>
+    result.rule.auctionContext?.partnerNaturalTwoNtOverWeakTwo === true);
+  if (sharedOneNtResponse || weakTwoTwoNtResponse || partnerOpeningCall === '2NT') {
     ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
     ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context, system);
     ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
@@ -951,6 +953,9 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   if (ruleContext.partnerNaturalOneNtAfterSuitInterference === true) {
     return getPartnerOneNtSuitInterference(evalContext.dealer, evalContext.auction) !== null;
   }
+  if (ruleContext.partnerNaturalTwoNtOverWeakTwo === true) {
+    return matchesPartnerNaturalTwoNtOverWeakTwo(evalContext);
+  }
   if (ruleContext.stage !== evalContext.stage) {
     return false;
   }
@@ -1025,6 +1030,17 @@ function matchesPartnerNaturalOneNt (context: RuleEvalContext): boolean {
   const openerBid = getStrainFromSuitBid(opening.call);
   return opening.call.startsWith('1') && openerBid !== 'NT' &&
     context.auction[opening.index + 1] === '1NT' &&
+    context.auction[opening.index + 2] === 'Pass';
+}
+
+/// matchesPartnerNaturalTwoNtOverWeakTwo identifies the compact systems-on context after a
+/// natural 2NT overcall of an opposing weak 2D/2H/2S opening and responder's Pass.
+function matchesPartnerNaturalTwoNtOverWeakTwo (context: RuleEvalContext): boolean {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  return context.stage === 'advancing' && opening !== null &&
+    ['2D', '2H', '2S'].includes(opening.call) &&
+    context.auction.length === opening.index + 3 &&
+    context.auction[opening.index + 1] === '2NT' &&
     context.auction[opening.index + 2] === 'Pass';
 }
 
