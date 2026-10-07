@@ -28,9 +28,9 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 392 deals, with 1004 positive call/rule assertions, 484 elimination
-assertions, 30 call-order assertions, and 918 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1439 eligible deal/configuration combinations and 3364 recorded calls.
+The current corpus contains 398 deals, with 1010 positive call/rule assertions, 484 elimination
+assertions, 31 call-order assertions, and 924 recorded-practice-call checks. The agreement-
+compatibility meta-check runs 1463 eligible deal/configuration combinations and 3388 recorded calls.
 Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
 the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
 preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
@@ -44,7 +44,7 @@ reserved for the strong-double treatment. Two `overcall-takeout-double` deals di
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
 that does not require that shape. These are informational doubles only; later responses and
 penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 127 competitive-boundary checks protect
+call-availability checks occur before refinement; 141 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
 heart response is obstructed. The new negative Double and stopper-qualified 1NT
 now supply alternatives in that example; other intervention families remain pending.
@@ -53,6 +53,12 @@ Two natural `1NT` overcall deals require 15-18 HCP, balanced shape, and a stoppe
 opponent's suit (A, Kx, Qxx, or Jxxx approximation); a separate boundary check excludes
 1NT without a stopper. Four preemptive-jump deals exercise six-card two-level, seven-card
 three-level, and eight-card four-level natural jumps, with an explicit non-jump rejection.
+
+Six `overcall-weak-two-defense` deals cover direct defense to opposing weak 2D/2H/2S openings:
+natural economical suit overcalls, the ordinary 13+ shortage-point takeout Double with 3+ cards
+in each unbid suit, the existing 18+ HCP strong-hand Double exception, and natural 2NT with a
+stopper. Two family-level checks require a stopper for 2NT and a good 6+ card suit when a natural
+overcall must start at the three level. Advancer continuations remain a separate batch.
 
 Six `overcall-dont-1nt` deals exercise the compact DONT defense to an opposing strong 1NT:
 Double with a one-suited club/diamond/heart hand; 2C/2D/2H with the named lower suit plus one

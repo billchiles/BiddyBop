@@ -185,6 +185,80 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Direct defenses to opposing weak 2D/2H/2S openings.  This first batch stops after the
+/// overcaller's action; advancer continuations are modeled separately.
+///
+export const WEAK_TWO_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Good five-card hearts and 15 points with length: natural 2H over weak 2D.',
+    dealer: 'W',
+    practiceAuction: ['2D', '2H', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2H', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
+    ],
+    north: { S: 'A6', H: 'AKT96', D: '42', C: 'QJ83' },
+    south: { S: '9743', H: '542', D: '653', C: '652' },
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+  },
+  {
+    description: 'Good five-card spades and 16 points with length: natural 2S over weak 2H.',
+    dealer: 'W',
+    practiceAuction: ['2H', '2S', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
+    ],
+    north: { S: 'AKT96', H: '42', D: 'AQ65', C: 'Q8' },
+    south: { S: 'J753', H: '653', D: '942', C: '642' },
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+  },
+  {
+    description: 'Good six-card hearts and 17 points with length: natural 3H over weak 2S.',
+    dealer: 'W',
+    practiceAuction: ['2S', '3H', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '3H', ruleIds: ['overcall-weak-two-natural-suit-at-three-level'] },
+    ],
+    north: { S: 'A4', H: 'AQJT96', D: 'K6', C: 'J83' },
+    south: { S: '6532', H: '753', D: '542', C: '642' },
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+  },
+  {
+    description: '13 HCP with 3+ cards in every unbid suit: ordinary takeout Double of weak 2H.',
+    dealer: 'W',
+    practiceAuction: ['2H', 'Double', 'Pass'],
+    expectedOvercallCalls: [
+      { call: 'Double',
+        ruleIds: ['overcall-weak-two-takeout-double-with-unbid-suit-support'] },
+    ],
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: '9753', H: '543', D: '952', C: '432' },
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+  },
+  {
+    description: '19 HCP without three-card support everywhere: strong takeout Double of weak 2S.',
+    dealer: 'W',
+    practiceAuction: ['2S', 'Double', 'Pass'],
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-weak-two-takeout-double-strong-hand'] },
+    ],
+    north: { S: 'A4', H: 'AKQJ7', D: 'A96', C: 'J62' },
+    south: { S: '6532', H: '653', D: '542', C: '743' },
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+  },
+  {
+    description: 'Balanced 15 HCP with the diamond ace: natural 2NT over weak 2D.',
+    dealer: 'W',
+    practiceAuction: ['2D', '2NT', 'Pass'],
+    expectedOvercallCalls: [
+      { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
+    ],
+    expectedOvercallCallOrder: [['2NT', 'Double']],
+    north: { S: 'AKJ4', H: 'Q96', D: 'A54', C: 'J76' },
+    south: { S: '9763', H: '542', D: '632', C: '532' },
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+  },
+];
+
 /// Compact DONT against an opposing strong 1NT.  These deals practice the direct convention,
 /// advancer's basic pass-or-correct action, and the selected overcaller correction when needed.
 /// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.

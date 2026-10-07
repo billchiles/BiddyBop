@@ -16,6 +16,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, DONT_1NT_DEFENSE_TEST_DEALS,
+         WEAK_TWO_DEFENSE_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
@@ -356,10 +357,43 @@ function runCompetitionBoundaryTests (): number {
       console.error(`FAIL Redouble availability after ${testCase.auction.join(' ')}.`);
     }
   }
+  // Weak-two defenses retain the core suit-quality/length and stopper boundaries rather than
+  // treating every legal higher call as a modeled overcall.
+  const { board: weakTwoNoStopperBoard } = makeRuleTestBoard({
+    description: 'Balanced 15 HCP without a diamond stopper after weak 2D.',
+    dealer: 'W',
+    practiceAuction: ['2D', '2NT', 'Pass'],
+    north: { S: 'AKJ4', H: 'AQ6', D: '954', C: 'J83' },
+    south: { S: '9763', H: '542', D: '632', C: '742' },
+    west: { S: '852', H: '73', D: 'KQJT87', C: '65' },
+  });
+  const weakTwoNtCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('2NT', weakTwoNoStopperBoard, ['2D'], defaultBiddingSystem));
+  checks += 1;
+  if (weakTwoNtCandidates.some(({ call }) => call === '2NT')) {
+    failures += 1;
+    console.error('FAIL natural 2NT over a weak two requires a stopper in opener\'s suit.');
+  }
+  const { board: weakTwoShortSuitBoard } = makeRuleTestBoard({
+    description: 'Only five hearts are insufficient for a three-level overcall of weak 2S.',
+    dealer: 'W',
+    practiceAuction: ['2S', '3H', 'Pass'],
+    north: { S: 'A4', H: 'AQJT9', D: 'K65', C: 'J83' },
+    south: { S: '6532', H: '653', D: '842', C: '642' },
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+  });
+  const weakTwoShortSuitCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('3H', weakTwoShortSuitBoard, ['2S'], defaultBiddingSystem));
+  checks += 1;
+  if (weakTwoShortSuitCandidates.some(({ call }) => call === '3H')) {
+    failures += 1;
+    console.error('FAIL three-level natural weak-two defense requires a good 6+ card suit.');
+  }
   // Recorded competitive setups must themselves be plausible with the supplied hands;
   // neither the opening nor the opponent's overcall/takeout double is an arbitrary script.
   for (const deal of [...ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
                       ...ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+                      ...WEAK_TWO_DEFENSE_TEST_DEALS,
                       ...RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
                       ...RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
                       ...RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS]) {

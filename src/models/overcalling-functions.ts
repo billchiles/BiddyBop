@@ -40,6 +40,34 @@ export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContex
   ] };
 }
 
+/// refineWeakTwoSuitOvercall selects the cheapest natural suit overcall after an opposing weak two.
+/// A two-level action needs a good 5+ card suit; a three-level action needs a good 6+ card suit.
+export function refineWeakTwoSuitOvercall (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+  const parsedOpening = opening === undefined ? null : parseSuitBid(opening);
+  if (opening === undefined || parsedOpening === null ||
+      ! ['2D', '2H', '2S'].includes(opening)) {
+    return { calls: [], telemetryLines: ['Requires an opposing weak-two opening.'] };
+  }
+  const qualifying = calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain) {
+      return false;
+    }
+    if (cheapestBidInStrainAfter(parsedOpening, bid.strain) !== call) {
+      return false;
+    }
+    const suit = bid.strain as Suit;
+    const minimumLength = bid.level === 2 ? 5 : bid.level === 3 ? 6 : null;
+    return minimumLength !== null && context.handFacts.lengths[suit] >= minimumLength &&
+      hasPreemptSuitQuality(context.hand, suit);
+  });
+  return { calls: qualifying, telemetryLines: [
+    'Keep the cheapest natural suit overcall: good 5+ cards at level two, good 6+ at level three.',
+  ] };
+}
+
 /// refinePreemptiveJumpOvercall selects a jump bid for the overcaller, with a good six-,
 /// seven-, or eight-card suit at level 2, 3, or 4. The bid must exceed the cheapest bid in that suit.
 export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
@@ -72,13 +100,18 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
 //// Natural Notrump Overcalls
 ///
 
-/// naturalOneNtOvercallApplies requires 15-18 HCP, balanced shape, and A, Kx, Qxx, or Jxxx
-/// in opener's suit as a simple stopper approximation, not a guaranteed trick.
-export function naturalOneNtOvercallApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+/// naturalNotrumpOvercallApplies requires 15-18 HCP, balanced shape, and A, Kx, Qxx, or Jxxx
+/// in opener's suit.  It supports natural 1NT over a one-level suit and 2NT over a weak two.
+export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
   const parsed = opening === undefined ? null : parseSuitBid(opening);
-  if (parsed === null || parsed.strain === 'NT') {
-    return { success: false, telemetryLines: ['FAIL: an opposing suit opening is required.'] };
+  if (parsed === null || parsed.strain === 'NT' ||
+      (call === '1NT' && parsed.level !== 1) ||
+      (call === '2NT' && ! ['2D', '2H', '2S'].includes(opening ?? '')) ||
+      (call !== '1NT' && call !== '2NT')) {
+    return { success: false,
+             telemetryLines: ['FAIL: unsupported natural notrump overcall context.'] };
   }
   const stopper = hasBasicSuitStopper(context, parsed.strain as Suit);
   const points = context.handFacts.hcp;
@@ -87,9 +120,9 @@ export function naturalOneNtOvercallApplies (_call: Call, context: RuleEvalConte
   return {
     success: strength && balanced && stopper,
     telemetryLines: [
-      `${strength ? 'PASS' : 'FAIL'}: 1NT overcall requires 15-18 HCP; hand has ${points}.`,
-      `${balanced ? 'PASS' : 'FAIL'}: 1NT overcall needs balanced distribution.`,
-      `${stopper ? 'PASS' : 'FAIL'}: 1NT overcall needs A, Kx, Qxx, or Jxxx in ` +
+      `${strength ? 'PASS' : 'FAIL'}: ${call} overcall requires 15-18 HCP; hand has ${points}.`,
+      `${balanced ? 'PASS' : 'FAIL'}: ${call} overcall needs balanced distribution.`,
+      `${stopper ? 'PASS' : 'FAIL'}: ${call} overcall needs A, Kx, Qxx, or Jxxx in ` +
         `opener's ${parsed.strain} suit.`,
     ],
   };
