@@ -5,6 +5,7 @@ import { compareSuitBids, getBidStage, getInterferenceAfterOpening, isCallAvaila
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
+import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
@@ -18,6 +19,10 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, DONT_1NT_DEFENSE_TEST_DEALS,
          WEAK_TWO_2NT_CONTINUATION_TEST_DEALS, WEAK_TWO_DEFENSE_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
+         RESPONSE_AFTER_2NT_OPENING_TEST_DEALS,
+         RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS,
+         RESPONSE_TO_STRONG_2C_TEST_DEALS,
+         RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
@@ -343,6 +348,20 @@ function runCompetitionBoundaryTests (): number {
     failures += 1;
     console.error('FAIL four-level jump-overcall response must not inherit a weak 4S raise.');
   }
+  const doubleCases: { auction: Call[]; expected: boolean }[] = [
+    { auction: ['1H'], expected: true },
+    { auction: ['1H', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', 'Pass'], expected: true },
+    { auction: ['1H', 'Double'], expected: false },
+    { auction: ['1H', 'Double', 'Redouble'], expected: false },
+  ];
+  for (const testCase of doubleCases) {
+    checks += 1;
+    if (isCallAvailableInAuction('Double', testCase.auction) !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL Double availability after ${testCase.auction.join(' ')}.`);
+    }
+  }
   const redoubleCases: { auction: Call[]; expected: boolean }[] = [
     { auction: ['1H', 'Double'], expected: true },
     { auction: ['1H', 'Double', 'Pass'], expected: false },
@@ -438,6 +457,73 @@ function runCompetitionBoundaryTests (): number {
   console.log(`Competition boundaries: ${checks} checks; ${failures} failures.`);
   console.log('  Checks bidding stages, legal calls, interference classifications, and');
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.');
+  return failures;
+}
+
+/// These opening families deliberately stop when responder faces interference.  Some ordinary
+/// calls may still be reasonable bridge, but the trainer must not imply that it models a complete
+/// competitive treatment merely because compact partnership-auction matching still sees the
+/// opening.
+function runResponderInterferenceScopeBoundaryTests (): number {
+  const twoNt = RESPONSE_AFTER_2NT_OPENING_TEST_DEALS[0];
+  const strongTwoC = RESPONSE_TO_STRONG_2C_TEST_DEALS[0];
+  const weakTwo = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[0] === '2H');
+  const weakThree = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[0] === '3H');
+  const weakMajorPass = RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS.find((deal) =>
+    deal.expectedResponseCalls?.some(({ ruleIds }) =>
+      ruleIds.includes('respond-to-major-w/-pass-0-5')));
+  if (twoNt === undefined || strongTwoC === undefined || weakTwo === undefined ||
+      weakThree === undefined || weakMajorPass === undefined) {
+    console.error('FAIL responder interference scope checks need saved response fixtures.');
+    return 1;
+  }
+
+  let checks = 0;
+  let failures = 0;
+  const omittedFamilies = [
+    { name: '2NT', deal: twoNt, rulePrefix: 'respond-to-2nt-' },
+    { name: 'strong 2C', deal: strongTwoC, rulePrefix: 'respond-to-2c-' },
+    { name: 'weak two', deal: weakTwo, rulePrefix: 'respond-to-weak-two-' },
+    { name: 'three-level preempt', deal: weakThree,
+      rulePrefix: 'respond-to-three-level-preempt-' },
+  ];
+  for (const family of omittedFamilies) {
+    const { board } = makeRuleTestBoard(family.deal);
+    const opening = family.deal.practiceAuction[0]!;
+    checks += 1;
+    const results = evaluateRules(ResponseBidRules,
+      makeRuleEvalContext(board, [opening, 'Double']), defaultBiddingSystem);
+    if (results.some(({ rule }) => rule.id.startsWith(family.rulePrefix))) {
+      failures += 1;
+      console.error(`FAIL ordinary ${family.name} responses survived direct interference.`);
+    }
+  }
+
+  // The ordinary weak Pass remains intentionally shared in modeled one-level competition, but it
+  // must not become an accidental treatment for arbitrary 2NT interference or a four-level jump.
+  const { board: weakPassBoard } = makeRuleTestBoard(weakMajorPass);
+  checks += 1;
+  const modeledCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Pass', weakPassBoard, ['1S', '2H'], defaultBiddingSystem));
+  if (! modeledCandidates.some(({ rule }) => rule.id === 'respond-to-major-w/-pass-0-5')) {
+    failures += 1;
+    console.error('FAIL ordinary weak Pass disappeared from modeled suit-overcall competition.');
+  }
+  for (const auction of [['1S', '2NT'], ['1S', '4H']] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', weakPassBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id === 'respond-to-major-w/-pass-0-5')) {
+      failures += 1;
+      console.error(`FAIL ordinary weak Pass leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  console.log(`Responder interference scope: ${checks} checks; ${failures} failures.`);
+  console.log('  Keeps omitted opening families outside competitive responder evaluation while');
+  console.log('  preserving the intentionally shared weak Pass in supported one-level auctions.');
   return failures;
 }
 
@@ -1412,7 +1498,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 }
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
-  runCompetitionBoundaryTests() + runAdvancingBoundaryTests() +
+  runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
+  runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +

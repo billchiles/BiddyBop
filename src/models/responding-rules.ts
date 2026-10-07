@@ -12,6 +12,7 @@ import {
   refineResponderNewSuitAfterJumpOvercall, refineResponderNewSuitAfterNotrumpOvercall,
   refineResponderNewSuitAfterOvercall, refineResponderPreemptiveMajorGameRaise,
   refineResponderRaiseAfterJumpOvercall, refineResponderRaiseAfterOvercall, refineStrongJumpShift,
+  refineSharedWeakResponderPass,
   refineStrongTwoCPositiveSuitResponse, refineThreeCardLimitRaiseOneNtFallback,
   refineThreeCardMajorSupportNewSuitFirst, refineThreeLevelPreemptNewSuitResponse,
   refineToCheapestNewSuitBids, refineWeakJumpShift, refineWeakTwoNewSuitResponse,
@@ -250,6 +251,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Pass with support and 0-5',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
     calls: ['Pass'],
+    callRefinement: refineSharedWeakResponderPass,
     appliesWhen: { totalPoints: { max: 5, valuation: 'shortage' }, supportLength: { min: 3 } },
     meaning: 'Game is unlikely.',
     certainty: 'high',
@@ -262,6 +264,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Pass one of a major with 0-5',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
     calls: ['Pass'],
+    callRefinement: refineSharedWeakResponderPass,
     appliesWhen: { hcp: { max: 5 }, supportLength: { max: 2 }, },
     meaning: 'Responder has too few points to bid.',
     certainty: 'high',
@@ -274,6 +277,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Pass one of a minor with 0-5',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
     calls: ['Pass'],
+    callRefinement: refineSharedWeakResponderPass,
     callCategory: ['signoff'],
     appliesWhen: { hcp: { max: 5 } },
     meaning: 'Responder has too few points to bid.',
@@ -632,12 +636,15 @@ export const ResponseBidRules: BidRule[] = [
   //
   ...NaturalOneNtPartnerCallRules,
   //
+  // The ordinary 2NT response system is intentionally uncontested-only.  Interference after
+  // our 2NT opening is a documented scope boundary rather than an implicit reuse of these rules.
+  //
   {
     id: 'respond-to-2nt-w/-pass-0-3',
     // Pass a 2NT opening with 0-3 HCP when no useful conventional response takes precedence.
     kind: 'responseBid',
     title: 'Pass 2NT with 0-3 HCP',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 0, max: 3 } },
@@ -652,7 +659,7 @@ export const ResponseBidRules: BidRule[] = [
     // With 4-10 HCP, 3NT is the ordinary game destination when no preferred suit response applies.
     kind: 'responseBid',
     title: 'Bid 3NT over 2NT with ordinary game values',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
     appliesWhen: { hcp: { min: 4, max: 10 } },
@@ -667,7 +674,7 @@ export const ResponseBidRules: BidRule[] = [
     // With Stayman disabled, 3C can recover a natural descriptive meaning for a strong long club suit.
     kind: 'responseBid',
     title: 'Bid 3C naturally over 2NT with a strong unbalanced club hand',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3C'],
     agreement: { setting: 'stayman', value: false,
                  note: 'Without Stayman, 3C is available as a natural forcing club response.' },
@@ -685,7 +692,7 @@ export const ResponseBidRules: BidRule[] = [
     // With Jacoby transfers disabled, 3D can recover a natural descriptive meaning for diamonds.
     kind: 'responseBid',
     title: 'Bid 3D naturally over 2NT with a strong unbalanced diamond hand',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3D'],
     agreement: { setting: 'jacobyTransfers', value: false,
                  note: 'Without Jacoby transfers, 3D is available as a natural forcing diamond response.' },
@@ -704,7 +711,7 @@ export const ResponseBidRules: BidRule[] = [
     // no four-card other major.  With 6-4 majors, use Stayman first to look for the 4-4 fit.
     kind: 'responseBid',
     title: 'Bid four of a major naturally over 2NT with game values',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['4H', '4S'],
     callRefinement: refineNaturalMajorGameOver2Nt,
     agreement: { setting: 'texasTransfers', value: false,
@@ -722,7 +729,7 @@ export const ResponseBidRules: BidRule[] = [
     // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to hearts over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['4D'],
     callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
@@ -740,7 +747,7 @@ export const ResponseBidRules: BidRule[] = [
     // With 6-4 majors start with Stayman; with two 5+ majors use the lower-level transfer route.
     kind: 'responseBid',
     title: 'Texas transfer to spades over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['4H'],
     callCategory: ['gameForcing', 'conventional'],
     agreement: { setting: 'texasTransfers', value: true,
@@ -757,7 +764,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 4C as Gerber after 2NT to ask opener for aces with 13+ HCP.
     kind: 'responseBid',
     title: 'Gerber over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['4C'],
     callCategory: ['forcing', 'conventional'],
     priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
@@ -775,7 +782,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use quantitative 4NT over 2NT with 11-12 balanced HCP to invite a small slam.
     kind: 'responseBid',
     title: 'Invite slam over 2NT with 11-12 balanced',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['4NT'],
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
@@ -788,7 +795,7 @@ export const ResponseBidRules: BidRule[] = [
     // Bid 6NT directly over 2NT with 13-15 balanced HCP.
     kind: 'responseBid',
     title: 'Bid 6NT over 2NT with 13-15 balanced',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['6NT'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true } },
@@ -801,7 +808,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use forcing 5NT over 2NT with exactly 16 balanced HCP to invite a grand slam.
     kind: 'responseBid',
     title: 'Invite grand slam over 2NT with 16 balanced',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['5NT'],
     callCategory: ['forcing'],
     appliesWhen: { hcp: { min: 16, max: 16 }, shape: { balanced: true } },
@@ -814,7 +821,7 @@ export const ResponseBidRules: BidRule[] = [
     // Bid 7NT directly over 2NT with 17+ balanced HCP.
     kind: 'responseBid',
     title: 'Bid grand slam over 2NT with 17+ balanced',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['7NT'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 17 }, shape: { balanced: true } },
@@ -827,7 +834,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 3C Stayman over 2NT with 4+ HCP and at least one four-card major.
     kind: 'responseBid',
     title: 'Stayman over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3C'],
     agreement: { setting: 'stayman', value: true,
                  note: 'Stayman asks a notrump opener for a four-card major.' },
@@ -842,7 +849,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 3D as a Jacoby transfer over 2NT with a 5+ card heart suit.
     kind: 'responseBid',
     title: 'Transfer to hearts over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3D'],
     agreement: { setting: 'jacobyTransfers', value: true,
                  note: 'Jacoby transfer to responder major.' },
@@ -859,7 +866,7 @@ export const ResponseBidRules: BidRule[] = [
     // Use 3H as a Jacoby transfer over 2NT with a 5+ card spade suit.
     kind: 'responseBid',
     title: 'Transfer to spades over 2NT',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3H'],
     agreement: { setting: 'jacobyTransfers', value: true,
                  note: 'Jacoby transfer to responder major.' },
@@ -877,7 +884,7 @@ export const ResponseBidRules: BidRule[] = [
     // with enough strength to force to game opposite a 20-21 HCP 2NT opening.
     kind: 'responseBid',
     title: 'Bid three of a major naturally over 2NT with game-forcing values',
-    auctionContext: { stage: 'responding', auction: ['2NT'] },
+    auctionContext: { stage: 'responding', interference: 'none', auction: ['2NT'] },
     calls: ['3H', '3S'],
     agreement: { setting: 'jacobyTransfers', value: false,
                  note: 'Without Jacoby transfers, a direct 3H or 3S is natural and game forcing.' },
@@ -888,13 +895,14 @@ export const ResponseBidRules: BidRule[] = [
   },
   //
   // Responses to the artificial strong 2C opening.  2D is a waiting response; immediate positive
-  // responses show about 8+ HCP and either a good 5+ suit or a balanced hand.
+  // responses show about 8+ HCP and either a good 5+ suit or a balanced hand.  These treatments
+  // are intentionally uncontested-only; competitive responses to strong 2C are outside scope.
   //
   {
     id: 'respond-to-2c-w/-2d-waiting',
     kind: 'responseBid',
     title: 'Respond 2D as the artificial waiting bid after strong 2C',
-    auctionContext: { stage: 'responding', openerCalls: ['2C'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2C'] },
     calls: ['2D'],
     callCategory: ['forcing', 'conventional'],
     priority: { rank: -10, note: 'Waiting remains available behind more descriptive positive responses.' },
@@ -910,7 +918,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-2c-w/-positive-suit',
     kind: 'responseBid',
     title: 'Make an immediate positive suit response after strong 2C',
-    auctionContext: { stage: 'responding', openerCalls: ['2C'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2C'] },
     calls: ['2H', '2S', '3C', '3D'],
     callRefinement: refineStrongTwoCPositiveSuitResponse,
     callCategory: ['gameForcing', 'natural'],
@@ -927,7 +935,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-2c-w/-2nt-positive-balanced',
     kind: 'responseBid',
     title: 'Respond 2NT positively after strong 2C with a balanced hand',
-    auctionContext: { stage: 'responding', openerCalls: ['2C'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2C'] },
     calls: ['2NT'],
     callCategory: ['gameForcing', 'natural'],
     priority: { rank: 10, note: 'The source labels this positive balanced response as relatively rare.' },
@@ -940,13 +948,14 @@ export const ResponseBidRules: BidRule[] = [
   //
   // Responses to weak preemptive openings.  The app models the structural parts of the chosen
   // treatment and leaves direct game placement that depends only on playing-trick judgment in
-  // guidance rather than inventing an HCP threshold.
+  // guidance rather than inventing an HCP threshold.  Responder interference after our weak
+  // preempt is deliberately outside the modeled treatment.
   //
   {
     id: 'respond-to-weak-two-w/-pass',
     kind: 'responseBid',
     title: 'Pass a weak two without game interest or a fit',
-    auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: weakTwoPassApplies, // Guideline of 17 below 17 and at most two trumps
@@ -958,7 +967,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-weak-two-w/-raise-to-three',
     kind: 'responseBid',
     title: 'Further a weak two to the three level with three-card support',
-    auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['3D', '3H', '3S'],
     callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 3),
     callCategory: ['signoff', 'natural'],
@@ -971,7 +980,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-weak-two-w/-raise-to-four',
     kind: 'responseBid',
     title: 'Raise a weak two to the four level with four-card-or-longer support',
-    auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['4D', '4H', '4S'],
     callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 4),
     callCategory: ['signoff', 'natural'],
@@ -985,7 +994,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-weak-two-w/-2nt-inquiry',
     kind: 'responseBid',
     title: 'Ask for more information with forcing 2NT after a weak two',
-    auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['2NT'],
     callCategory: ['forcing', 'conventional'],
     appliesWhen: guidelineOf17Applies, // HCP + cards in opener's suit >= 17 is the rough game-interest test
@@ -998,7 +1007,7 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-weak-two-w/-new-suit-forcing',
     kind: 'responseBid',
     title: 'Bid a good new suit forcing after a weak two',
-    auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+    auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineWeakTwoNewSuitResponse, // good 5+ suit at the cheapest legal level
     callCategory: ['forcing', 'natural'],
@@ -1012,7 +1021,9 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-three-level-preempt-w/-pass',
     kind: 'responseBid',
     title: 'Pass a three-level preempt without a fit when game is not expected',
-    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    auctionContext: {
+      stage: 'responding', interference: 'none', openerLevel: 3, openerStrain: 'suit',
+    },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: threeLevelPreemptPassApplies, // structural check only; playing tricks remain judgment
@@ -1025,7 +1036,9 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-three-level-preempt-w/-raise-to-four',
     kind: 'responseBid',
     title: 'Further a three-level preempt with three-card-or-longer support',
-    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    auctionContext: {
+      stage: 'responding', interference: 'none', openerLevel: 3, openerStrain: 'suit',
+    },
     calls: ['4C', '4D', '4H', '4S'],
     callRefinement: (calls, context) => refineRaiseToLevel(calls, context, 4),
     callCategory: ['signoff', 'natural'],
@@ -1039,7 +1052,9 @@ export const ResponseBidRules: BidRule[] = [
     id: 'respond-to-three-level-preempt-w/-new-suit-forcing',
     kind: 'responseBid',
     title: 'Bid a long new suit below game after a three-level preempt',
-    auctionContext: { stage: 'responding', openerLevel: 3, openerStrain: 'suit' },
+    auctionContext: {
+      stage: 'responding', interference: 'none', openerLevel: 3, openerStrain: 'suit',
+    },
     calls: ['3D', '3H', '3S', '4C', '4D'],
     callRefinement: refineThreeLevelPreemptNewSuitResponse, // cheapest good 5+/6+ suit below game
     callCategory: ['forcing', 'natural'],

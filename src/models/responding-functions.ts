@@ -52,6 +52,31 @@ export function refineRaiseToLevel (calls: Call[], context: RuleEvalContext,
           telemetryLines: [`Raise partner's ${opening.strain} to ${targetLevel}${opening.strain}.`] };
 }
 
+/// refineSharedWeakResponderPass keeps the ordinary weak Pass available in uncontested and
+/// explicitly modeled one-level competitive auctions, but does not let it define behavior once
+/// the auction has crossed an intentionally unsupported interference boundary.
+///
+export function refineSharedWeakResponderPass (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  if (interference === 'other') {
+    return { calls: [], telemetryLines: ['Weak Pass is not modeled for this interference.'] };
+  }
+  if (interference === 'jumpSuitOvercall') {
+    const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+    const overcall = openingInfo === null ? null :
+      parseSuitBid(context.auction[openingInfo.index + 1] ?? 'Pass');
+    if (overcall === null || overcall.level >= 4) {
+      return {
+        calls: [], telemetryLines: ['Four-level jump-overcall responses remain unmodeled.'],
+      };
+    }
+  }
+  return {
+    calls, telemetryLines: ['Weak Pass remains available in this modeled responder auction.'],
+  };
+}
+
 /// refineOneLevelNewSuitAfterMinor chooses among legal one-level new-suit responses after a
 /// minor opening.  A candidate suit must be four cards or longer.
 ///

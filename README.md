@@ -68,6 +68,32 @@ means we considered the area and deliberately chose not to model it as part of t
 | Weak 2D / 2H / 2S | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 
+The omitted responder-interference areas above are deliberate scope boundaries, not claims that
+every ordinary response becomes wrong whenever an opponent acts.
+
+**After a 2NT opening**, some partnerships may keep familiar conventions available after a Double,
+but Pass and Redouble acquire different meanings and suit interference quickly becomes
+space-sensitive and agreement-dependent.  That creates a relatively large competitive branch for
+an uncommon auction, so the trainer stops rather than teaching only a fragment of a 2NT
+interference system.
+
+**After a strong 2C opening**, some normal calls can remain sensible after a Double, including a
+waiting response under common methods.  But the opening is already rare and artificial, competitive
+meanings vary by partnership, and a separate interference system adds little practice value for the
+amount of branching it introduces.  The trainer therefore keeps this family uncontested.
+
+**After a weak-two opening**, several ordinary continuations can still make bridge sense after
+interference, and this is the most plausible of these omitted families to reconsider later.  Still,
+Pass into a doubled contract is no longer the same decision, suit overcalls create different
+constraints from a Double, and a useful treatment would need more than simply reusing every
+uncontested rule.  For now the trainer stops rather than presenting an incomplete competitive
+system.
+
+**After a three-level preempt**, the auction is already high enough that available space, fit,
+playing strength, vulnerability, and judgment become important quickly.  The frequency and training
+value do not justify another high-level competitive continuation tree, so responder interference is
+intentionally omitted.
+
 Responder's later rebid after opener has rebid is Planned.  The trainer deliberately goes
 deeper in some deterministic auctions than in judgment-heavy or highly partnership-dependent ones.
 

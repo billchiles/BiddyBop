@@ -143,9 +143,19 @@ export function getInterferenceAfterOpening (dealer: Seat, auction: Call[]): Dir
 }
 
 /// isCallAvailableInAuction checks contract ordering independently of bidding-rule meaning.
-/// Pass is always mechanically available. Double meanings are evaluated by bidding rules;
-/// Redouble is available only to the doubled contract's partnership while Double is in force.
+/// Pass is always mechanically available. Double requires the opponents to own the current
+/// undoubled contract; Redouble is available only to that contract's partnership while Double
+/// is in force. Bidding rules still decide whether a legal Double or Redouble has a modeled
+/// meaning.
 export function isCallAvailableInAuction (call: Call, auction: Call[]): boolean {
+  if (call === 'Double') {
+    const lastActionIndex = auction.findLastIndex((action) => action !== 'Pass');
+    const lastAction = lastActionIndex < 0 ? undefined : auction[lastActionIndex];
+    if (lastAction === undefined || ! isContractBid(lastAction)) {
+      return false;
+    }
+    return lastActionIndex % 2 !== auction.length % 2;
+  }
   if (call === 'Redouble') {
     const lastActionIndex = auction.findLastIndex((action) => action !== 'Pass');
     if (lastActionIndex < 0 || auction[lastActionIndex] !== 'Double') {
