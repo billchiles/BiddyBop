@@ -46,6 +46,59 @@ Some decisions cannot usefully be reduced to a simple formula.  Suit quality, bo
 
 When a situation sufficiently fits clear bidding rules, the app can model it and provide solid bidding practice. Where judgment becomes more important, the app may instead provide guidance, retain multiple reasonable candidates, or leave the treatment unmodeled.  For example, judging if you need to ask for aces or kings to bid slam is subtle enough, guidance and rules admit these bids exist, but the app doesn't provide real training in this situation.
 
+
+## Current bidding coverage
+
+The tables below are a development snapshot of the trainer's current scope.  `Done` means the intended
+treatment for that area is implemented, with no current plan to expand it.  `Partial (done)` means the
+trainer intentionally implements only a useful subset and has no pending work for the omitted portion.
+`Incomplete` means useful coverage exists but known work remains.  `Planned` means we intend to analyze
+and probably implement the area, although that analysis may lead us to narrow or omit it.  `Omitted`
+means we considered the area and deliberately chose not to model it as part of the trainer's intended scope.
+
+### When our partnership opens
+
+| Our opening | Ordinary response | Response after interference | Uncontested opener rebid | Opener rebid after interference |
+| --- | --- | --- | --- | --- |
+| 1C / 1D | Done | Done: selected common interference | Done | Planned |
+| 1H / 1S | Done | Done: selected common interference | Done | Planned |
+| 1NT | Done | Partial (done): natural two-level suit interference | Done | Planned |
+| 2NT | Done | Omitted | Partial (done): selected continuations | Omitted |
+| Strong 2C | Done | Omitted | Partial (done): selected continuations | Omitted |
+| Weak 2D / 2H / 2S | Done | Omitted | Partial (done): selected continuations | Omitted |
+| Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
+
+Responder's later rebid after opener has rebid is Planned.  The trainer deliberately goes
+deeper in some deterministic auctions than in judgment-heavy or highly partnership-dependent ones.
+
+### When the opponents open
+
+| Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
+| --- | --- | --- | --- | --- |
+| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Planned |
+| Strong 1NT | Done: compact DONT | Done: basic DONT pass/correct | Omitted | Done: required compact DONT corrections |
+| Weak 2D / 2H / 2S | Done | Planned | Omitted | Planned: selected continuations |
+| Three-level preempt | Omitted | Omitted | Omitted | Omitted |
+| Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
+
+The direct weak-two defense uses natural suit overcalls, takeout Double, and natural 2NT.  Continuations
+after responder passes are the next planned weak-two work; the trainer will not duplicate the full
+competitive fanout after responder also competes.
+
+### Advancer when responder acts after a one-level suit opening
+
+| Partner's intervention | Responder passes | Responder raises opener | Responder bids a new suit / NT | Responder Doubles / Redoubles |
+| --- | --- | --- | --- | --- |
+| One-level natural suit overcall | Done | Done | Done | Done |
+| Two-level natural suit overcall | Done | Done | Partial (done): natural new suit; higher NT actions are not separately modeled | Partial (done): where the negative Double treatment applies |
+| Takeout Double | Done | Done | Done | Done |
+| Natural 1NT overcall | Done: normal 1NT systems | Partial (done): natural two-level suit interference | Partial (done): natural two-level suit interference | Omitted |
+| Preemptive jump overcall | Done | Omitted | Omitted | Omitted |
+
+This table intentionally stops short of treating matrix completeness as a goal.  Once the auction becomes
+high-level, heavily judgment-dependent, or convention-dependent, the trainer may stop rather than invent a
+mechanical recommendation.
+
 ## Stoppers and notrump judgment
 
 Outside-suit weakness can be important when deciding whether notrump is attractive.
@@ -60,15 +113,36 @@ Holdings such as `Qx` or `Jxx`, or holdings whose effectiveness depends on which
 
 The trainer does not automatically require a stopper in every outside suit for every uncontested natural notrump bid.  Stopper requirements are used only where the particular bidding treatment calls for them.
 
-## Treatments intentionally not modeled
+## Treatments intentionally omitted or deferred
 
-Not every commonly played convention or follow-up treatment is included.
+The trainer intentionally does not try to implement every named convention or every possible continuation.
+This list records some of the choices we have discussed so that an unfamiliar name does not look like an
+accidental omission.
 
-For example, the trainer's natural minor-suit response structure does not currently use inverted minors. Inverted minors are a common partnership agreement among more experienced players, but they change both the meanings of the minor raises and the subsequent auction. Stopper-showing side-suit continuations associated with that treatment are therefore not part of the modeled rules.
+| Treatment or feature | Current decision | What it means |
+| --- | --- | --- |
+| Inverted minors | Omitted | A partnership agreement that reverses the usual strength meanings of minor-suit raises and creates additional follow-up auctions. |
+| Stopper-showing continuations after a minor raise | Omitted with inverted minors | Side-suit bids can be used to show stoppers while exploring 3NT; this creates more partnership-specific continuation rules. |
+| Michaels cuebid | Omitted | A conventional cuebid of opener's suit that shows a two-suited hand rather than a natural suit. |
+| Unusual 2NT | Omitted | A conventional jump to 2NT that normally shows the two lowest unbid suits. |
+| Lebensohl after a weak-two takeout Double | Omitted | Uses an artificial 2NT relay to separate weak escape hands from stronger constructive hands after partner Doubles a weak two. |
+| Cappelletti over 1NT | Omitted | A common defense to 1NT with a penalty-oriented Double and conventional two-suited calls; this trainer uses compact DONT instead. |
+| DONT defense to strong 1NT | Partial (done) | DONT (Disturb Opponents' NoTrump) uses Double for a one-suited hand and two-level suit bids to show one- or two-suited hands.  The trainer models the core meanings and basic pass/correct auction, but omits game-inquiry 2NT, the stronger Double-then-2S distinction, and continuations after responder competes. |
+| Snapdragon / fourth-suit competitive Double | Omitted | A specialized Double after opener, overcaller, and responder have shown three different suits, usually suggesting the fourth suit plus tolerance for partner. |
+| Responsive Doubles in every competitive auction | Partial (done) | Responsive Double is modeled in the common responder-raise situations we chose, but it is not given a universal meaning in every later competitive auction. |
+| General penalty Double / Redouble system | Omitted | The app models specific functional Doubles and Redoubles such as takeout, negative, responsive, and strength-showing actions, but does not decide when to defend a contract for penalties. |
+| Defense to opposing three-level preempts | Omitted | Beginners can practice the same underlying ideas through weak-two defenses without creating another high-level, judgment-heavy continuation tree. |
+| Defense to opposing strong 2C or 2NT | Omitted | These uncommon defensive auctions are outside the current training scope. |
+| Competitive continuations after our preemptive jump overcall | Omitted | Once responder also competes, vulnerability, fit, and playing-strength judgment become more important than the deterministic rules this trainer emphasizes. |
+| Four- and five-level opening systems | Omitted | Rare opening treatments at these levels are not part of the current practice system. |
+| Detailed slam mechanisms | Partial (done) | Gerber replies, forcing 5NT, direct 7NT, many suit-auction Blackwood replies, and similar rare continuations are not full practice families. |
+| Responder's later rebid | Planned | After opener rebids, many of responder's next decisions are still outside the modeled auction depth. |
+| Balancing-seat defensive bidding | Planned | This is the fourth-seat situation where opener is followed by two Passes and the next player may compete more lightly because another Pass would end the auction. |
+| Full opponent autobidder | Planned | All four seats can be bid manually.  We plan to analyze whether a trustworthy autobidder is feasible; a simplistic one that becomes unreliable in judgment-heavy or intentionally unsupported auctions would be worse than having none. |
+| Scoring and card play | Omitted | The project is a bidding trainer rather than a duplicate-scoring or card-play engine. |
 
-Other advanced, highly partnership-dependent, or judgment-heavy sequences may also be represented only partially or not at all.
-
-This is intended to make the boundaries of the trainer clear rather than imply that every bridge decision can be reduced to a deterministic rule.  Situations the app does not model can also be useful prompts for further study with bidding books, teachers, partners, or other bridge references.
+These statuses describe the trainer's intended scope as it stands now.  Manual practice and user feedback
+may still justify revisiting an Omitted treatment if it proves common, deterministic, and valuable enough to add.
 
 ## Rule-practice deals
 
