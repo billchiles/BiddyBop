@@ -14,8 +14,8 @@ The app should help the user practice bidding decisions using structured convent
 - Do not preserve source/provenance wrappers in code unless there is a concrete app need.
 - Convention data represents my evolving bidding system, not a named book/system.
 - Prefer plain rule arrays over knowledge-base wrapper objects.
-- Start browser-only with Vite React TypeScript.
-- Add Electron later only after the core bidding slice works.
+- Keep the core app browser-first with Vite React TypeScript; any desktop wrapper should remain
+  outside the core bidding model.
 
 ## Code Style
 
@@ -39,8 +39,9 @@ The app should help the user practice bidding decisions using structured convent
 
 - `Suit` means one of `C`, `D`, `H`, or `S`.
 - `Strain` means a `Suit` or `NT`.
-- `SuitBid` is the current type name for a level plus strain, such as `1C`, `1H`, or `3NT`.
+- `SuitBid` is the type name for a level plus strain, such as `1C`, `1H`, or `3NT`.
 - `Call` means anything a player can say in the auction: a `SuitBid`, `Pass`, `Double`, or `Redouble`.
+- `advancing` means responding to partner's overcall or double.
 - Use `Call` in auction data, not `Bid`.
 - Use `calls: Call[]` on rules, even when there is only one call.
 - Do not use both `call` and `calls`.
@@ -106,6 +107,10 @@ The app should help the user practice bidding decisions using structured convent
   optional opener-side splinters.
 - Refiners operate within one rule; cross-rule suppressors resolve relationships among
   independently evaluated rules.
+- Evaluation diagnostics should preserve per-call rejection provenance at the point where a
+  candidate is rejected or removed. Explanations should be able to distinguish a specific recorded
+  rejection reason from a user call that simply has no modeled candidate. Do not assume evaluator
+  or refiner early returns provide a complete rejection history.
 
 ## Constraint Semantics
 
@@ -138,28 +143,26 @@ The app should help the user practice bidding decisions using structured convent
 - Natural 1NT and 2NT opening rules require the strict `balanced` shapes, not
   `balancedOrSemiBalanced`.
 
-## Current GUI Interaction
+## GUI Interaction Design
 
 - A `Board` contains the physical `deal` plus `dealer`; the UI shows all four hands.
 - Random practice generation accepts the dealer as an input and can require the dealer to receive a
-  practice-opening hand.  The current React caller uses North as dealer, but the generation and
-  bidding APIs do not assume North.
+  practice-opening hand. Generation and bidding APIs do not assume a particular compass seat.
 - Keep one authoritative physical auction. Practice scenarios may insert recorded setup calls,
   but ordinary bidding records each of the user-entered calls for all four seats.
 - Model code derives the next physical seat, acting hand, and bidding stage from board + auction.
   React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
-- The current UI lets the user bid all four visible hands. A later single-seat mode may show
-  South only and automate the other seats; no autobidder is implemented yet.
+- The interaction model permits user-entered calls for all four physical seats and does not require
+  an automated bidder to establish auction state.
 - The auction remains open for further user-entered calls and ends after three final passes.
-  Rule evaluation remains incomplete for some later and competitive stages.
 - Show matching rules, suggested calls, and guidance.
-- Do not build DDS, simulation, scoring, penalty-double/redouble evaluation, or full auction
-  judgment. These are not project goals, including in later competitive expansions. Keep
-  bidding incremental and leave unmodeled meanings unresolved.
+- The trainer excludes DDS, simulation, scoring, penalty-double/redouble evaluation, and full
+  auction judgment. Leave meanings outside the selected bidding system unresolved rather than
+  inventing deterministic rules for them.
 - Configurable practice-hand/scenario generation belongs in model code rather than React.
 
 
-## Current Practice-System Decisions
+## Practice-System Decisions
 
 - Default 1NT range is 15-17 balanced.
 - With the alternate 16-18 1NT opening and our 25-combined-HCP game guideline, shift the
@@ -184,7 +187,7 @@ The app should help the user practice bidding decisions using structured convent
 - After natural 1NT or 2NT, ordinary Stayman replies are one level above the opening: deny
   both majors with D, show H with four or more hearts (including both four-card majors), or
   show S with four or more spades and fewer than four hearts. Jacoby and Texas transfers are
-  completed normally at the next required level; superaccepts are not executable yet.
+  completed normally at the next required level.
 - Opener passes direct natural 3NT/6NT/7NT signoffs, natural 4M with Texas off, and weak
   natural 2M signoffs over 1NT with Jacoby off. With Texas enabled, 4H is instead the
   artificial transfer to 4S, so opener must not Pass. A natural 1NT-3m invitation requires
@@ -200,7 +203,6 @@ The app should help the user practice bidding decisions using structured convent
   opener decline with Pass, with a maximum accept with 6NT, and keep both as judgment
   alternatives at middle HCP. Over a 20-21 2NT opening, 20 declines; even at 21 HCP,
   accepting a balanced 11-12 HCP invitation depends on trick-taking prospects.
-  Responder's subsequent convention rebids remain separate future rules.
 - Splinters and Texas transfers are enabled so they can appear as candidate options and explanations.
 - The existing `splinters` agreement also governs opener-side splinters. Opener-side splinters
   use rank `-100` so their teaching explanation remains visible without competing with ordinary
@@ -215,12 +217,11 @@ The app should help the user practice bidding decisions using structured convent
   five-card-or-longer side suit, using at least two of A/K/Q/J as the executable quality threshold.
   When both descriptions apply, shortness ranks ahead while the side-suit call remains visible.
   With no singleton or void, `4M` shows a minimum through 13 HCP, `3NT` shows 14-15 HCP, and `3M`
-  shows 16-21 HCP with slam interest.  Later control bids, relays, and keycard continuations are not
-  modeled in this family.
+  shows 16-21 HCP with slam interest.
 - After a four-card `1M-3M` limit raise showing 11-12 support points, opener revalues with
   shortage points: 12 declines, 14+ accepts in `4M`, and 13 keeps both Pass and game available
-  as a judgment case.  Stronger slam-exploration continuations are not modeled in this family.
-- Gerber after a notrump opening and Blackwood after a suit auction are baseline conventions, not current on/off settings.
+  as a judgment case.
+- Gerber after a notrump opening and Blackwood after a suit auction are baseline conventions rather than configurable agreements.
 - Gerber and Blackwood are rare, specialized ace-asking treatments rather than general slam
   tries. They use priority rank -100 so they remain visible but sort after ordinary descriptive,
   quantitative, and signoff choices.
@@ -243,8 +244,8 @@ The app should help the user practice bidding decisions using structured convent
 - Minor-raise 3NT rules do not hard-require opener to hold full stoppers in all outside suits.
   Guidance uses A, Kx or longer, or Qxx or longer as a conservative full-stopper heuristic when
   human judgment makes stoppers relevant; Qx, Jxx, and lead/declaring-position-dependent holdings
-  remain judgment cases.  Inverted minors and stopper-showing continuations are not executable
-  treatments in the current standard natural-minor-raise model.
+  remain judgment cases. The selected natural-minor-raise design excludes inverted minors and
+  stopper-showing continuations.
 - After a natural `1m-2NT` response showing 11-12 HCP, balanced shape, and no four-card major,
   opener declines with 12 HCP, accepts with 14+ HCP, and keeps both Pass and 3NT available with
   13 HCP as a judgment case.  The acceptance decision uses HCP rather than distribution points.
@@ -260,8 +261,8 @@ The app should help the user practice bidding decisions using structured convent
   is presented ahead of Pass.  With 18-21 HCP, quantitative `4NT` is also available between `4M`
   and Pass.  This project explicitly treats that `4NT` as quantitative in this direct-3NT family.
 - A direct `1M-4M` response with five-card support and fewer than 10 support points is a natural
-  preemptive signoff.  Opener Passes in the executable treatment; exceptional slam-oriented
-  continuations are left to later control-bid or ace-asking work.
+  preemptive signoff. Opener Passes in the executable treatment; exceptional slam-oriented
+  continuations remain judgment rather than receiving a deterministic rule.
 - Under the weak jump-shift agreement, responder uses a single jump in a six-card-or-longer new
   suit with 4-7 HCP.  With multiple qualifying suits the trainer chooses the longest, breaking an
   equal-length tie with the higher-ranking suit.  After a major opening, normal three-card-or-longer
@@ -304,84 +305,52 @@ The app should help the user practice bidding decisions using structured convent
   implications: rebid `2D` with five or more diamonds; otherwise show a four-card major up the
   line; otherwise usually rebid `2NT`, with `3C` available when notrump is unattractive.
 
-## Pending Bidding Work
-
-- The ordinary one-level/notrump, weak-preempt, and strong artificial `2C` families are modeled
-  through opener's rebid. Common direct natural suit, 1NT, jump, and takeout-double
-  overcalls are modeled; first responses after natural suit overcalls, takeout doubles,
-  natural 1NT overcalls, and selected jump preempts are modeled. Advancer and later
-  competitive opener turns remain pending.
-  Responder rebids remain a later phase; for strong `2C`, the selected source also
-  teaches the cheaper-minor 0-4 second negative after a suit rebid and ordinary notrump methods
-  after a balanced rebid; those responder-second-bid rules are not yet modeled. `advancing` is
-  responding to partner's overcall or double.
-- Design per-call rejection provenance in the bidding evaluation result.  The explanation panel
-  should eventually be able to distinguish "your bid was rejected because ..." from "your bid is
-  not a current candidate, but no specific rejection reason was recorded."  Do not assume current
-  refiner/evaluator early returns automatically provide a complete rejection history.
-
 ## Intentionally Unmodeled or Guidance-Only Bidding Treatments
 
-These are treatments we have consciously decided may never need executable trainer rules. Each item
-records whether the current trainer should still teach the idea in ordinary rule guidance and what
-would cause us to revisit the omission.
+These treatments are deliberate scope boundaries. They are omitted from executable rules, or kept
+as explanation-only guidance, because the trainer cannot assign them a sufficiently deterministic
+meaning without adding disproportionate judgment or partnership-specific machinery.
 
 ### Rare three-card raise after a one-level new-suit response
 
-- Status: Guidance only; no executable rule currently planned.
-- Explanation guidance: Yes. Normal executable raises use four-card support.  Guidance can mention
-  that a good three-card holding can occasionally justify a raise when notrump or another rebid is
+- Design: Guidance only. Normal executable raises use four-card support. Guidance may mention that a
+  good three-card holding can occasionally justify a raise when notrump or another rebid is
   unattractive.
 - Reason: This is a judgment treatment. Good support quality plus awkward shape can justify it, but
-  we do not have a crisp enough criterion to make the trainer recommend it reliably.
-- Revisit if: practice repeatedly exposes hands where accepting or suggesting the three-card raise
-  would materially improve the trainer.
+  there is no crisp enough criterion for the trainer to recommend it reliably.
 
 ### Strong `2C` playing-trick exceptions
 
-- Status: Intentionally omitted from executable rules.
-- Explanation guidance: Yes. The strong-`2C` rule uses 22+ HCP and notes that highly distributional
-  hands can be awkward to describe later and can lead to a less suitable final contract.  This app
-  does not lower the 2C HCP threshold by counting playing tricks.
+- Design: Omitted from executable rules. The strong-`2C` rule uses 22+ HCP and may explain that
+  highly distributional hands can be awkward to describe. The trainer does not lower the 2C HCP
+  threshold by counting playing tricks.
 - Reason: Playing-trick exceptions are less mechanical than the chosen 22+ HCP treatment and add
   little value for the trainer's focus on common, foundational contract bridge bidding.
-- Revisit if: strong-hand practice becomes important enough that these exceptions occur often.
-
 
 ### Partnership-specific higher rebids after a one-level new-suit response
 
-- Status: Unmodeled where no treatment has been selected.  Examples include the source's undefined
-  `3NT` rebid and jumps such as `1C-1H-3D`, where the economical `2D` rebid is already a reverse.
-- Explanation guidance: Usually no routine runtime guidance.  Ordinary natural jump shifts and the
-  configured double-jump splinter treatment remain executable when their meanings are identifiable.
+- Design: Assign no executable meaning where no treatment has been selected. Examples include an
+  undefined `3NT` rebid and jumps such as `1C-1H-3D`, where the economical `2D` rebid is already a
+  reverse. Ordinary natural jump shifts and the configured double-jump splinter treatment remain
+  executable when their meanings are identifiable.
 - Reason: The bidding material labels these higher calls as partnership agreement without assigning
-  one universal meaning.  They are specialized or undefined relative to the trainer's focus on
-  common, foundational contract bridge bidding; inventing meanings would be worse than omitting
-  the calls.
-- Revisit if: the project adopts a specific agreement assigning one of these calls a defined meaning
-  or practice shows that the omission materially limits the trainer.
+  one universal meaning. Inventing meanings would be worse than omitting the calls.
 
 ### Specialized jumps and higher-notrump continuations after a 2/1 game force
 
-- Status: Core shape-showing rebids are executable; specialized continuations remain unmodeled.
-- Explanation guidance: Yes. The 2/1 opener-rebid guidance says to describe shape economically and
-  show extra strength later, and notes that specialized higher-notrump meanings are partnership
-  choices.
-- Reason: Once game is already forced, jump rebids, jump shifts, and higher-notrump rebids can carry
-  partnership-specific meanings. The trainer gets most of the teaching value from economical
-  support, second-suit, long-opening-suit, and notrump descriptions without selecting a detailed
-  2/1 convention package.  After `1D-2C`, the specialized solid-six-card `3D` exception remains
-  guidance-only rather than becoming a routine strength-showing jump.
-- Revisit if: the project adopts a more specific 2/1 continuation structure or practice shows that
-  the omitted calls are important enough to teach directly.
+- Design: Use the core economical shape-showing rebids and leave specialized jumps and
+  higher-notrump meanings unresolved. Guidance may explain that those calls can carry
+  partnership-specific meanings.
+- Reason: Once game is forced, specialized continuations add substantial agreement-specific detail.
+  The trainer gets most of the teaching value from economical support, second-suit,
+  long-opening-suit, and notrump descriptions without selecting a detailed 2/1 convention package.
+  The specialized solid-six-card `3D` exception after `1D-2C` remains guidance-only.
 
-## First competitive slice
+## Competitive Bidding Design
 
-The UI presently exposes all four hands and accepts one user-entered call at each seat. An
-Overcalling practice bucket uses the recorded opening call to reach the overcall decision;
-other recorded calls are setup, not outputs of an opponent autobidder. When a practice call
-diverges from its recorded auction, the user resumes supplying subsequent seats. Random boards
-also require the user to enter all seats' calls; no opponent auto-passes are inserted.
+Practice scenarios may use recorded setup calls to reach a bidding decision. Recorded setup calls
+establish physical auction context; they are not outputs of an opponent-bidding model. If the user
+diverges from a recorded auction, subsequent physical calls remain explicit user-entered calls.
 
 The evaluator removes contract calls that fail to outrank the last bid *before* call refinement.
 `OvercallRules` cover direct, non-jump natural suit overcalls and informational takeout doubles
@@ -396,11 +365,8 @@ and A, Kx, Qxx, or Jxxx in opener's suit as a simple stopper approximation. Pree
 jump overcalls use the shared good-suit test with six cards at the two level (5-11 HCP),
 seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
 These exact lengths and HCP interpretations are deterministic choices from the source's
-weak-hand guidance. Balancing, advancing, and competitive opener continuations are not
-yet implemented. `responding` remains the stage after the opponent's first call following
-an opening. The initial responder treatments now cover all four modeled interference
-families; four-level jump-overcall responses and many stronger continuations remain deferred.
-With no modeled candidate, the user can Pass, but no general inferred-Pass rule exists.
+weak-hand guidance. `responding` is the stage after the opponent's first call following an
+opening. The competitive rule model does not infer Pass merely because no candidate remains.
 Double is evaluated only for specifically declared informational treatments, never penalties.
 
 ## Responder after an opponent's natural suit overcall
@@ -413,7 +379,7 @@ remain shared. Other ordinary first responses use `interference: 'none'`, so ori
 2/1 forcing, natural jump shifts, limit jumps, and Jacoby 2NT cannot accidentally describe
 competitive actions. Literal compact partnership-auction matching is unchanged.
 
-After a *natural non-jump suit overcall*, the new responder rules offer:
+After a *natural non-jump suit overcall*, responder rules offer:
 
 - Informational negative Double with 6+ HCP over a one-level suit or 10+ HCP over a
   non-jump two-level suit, with explicit unbid-major holdings (at least four cards),
@@ -434,8 +400,7 @@ After a *natural non-jump suit overcall*, the new responder rules offer:
   approximation is reused by natural 1NT overcalls.
 
 Responder's raises pushed above the two level by a *jump* preempt (e.g.,
-`1H-(2S)-3H`) are treated separately below. Subsequent competitive opener rebids remain
-unmodeled. Zero remaining candidate bids is not a rule to Pass.
+`1H-(2S)-3H`) are treated separately below. Zero remaining candidate bids is not a rule to Pass.
 These responder treatments rely on outside competitive-bidding teaching references;
 they are not attributed to source pages 18-21, which address overcalls and advances.
 
@@ -463,11 +428,11 @@ When that call is `Double` of a one-level suit opening, responder's rules includ
 - Natural 1NT with 6-9 HCP and strict balanced shape; no specific opposing-suit stopper
   is required because the opponent has doubled rather than bid a suit.
 
-Unchanged weak Pass and ordinary simple raises continue to use shared responder rules.
-`getBidStage` intentionally returns `null` for later contested opener turns until those
-rebid meanings are audited: prematurely returning `openerRebid` would select unreviewed
-uncontested rules, including rules that rely on the original meaning of responder's raise.
-That is a coverage boundary, not an auction-legality or scoring restriction.
+Unchanged weak Pass and ordinary simple raises continue to use shared responder rules. When a
+contested opener turn has no selected competitive continuation treatment, `getBidStage` returns
+`null` rather than selecting uncontested `openerRebid` rules. This protects meanings that depend on
+the original uncontested response; it is a scope boundary, not an auction-legality or scoring
+restriction.
 
 ## Responder after an opponent's natural 1NT overcall
 
@@ -482,10 +447,9 @@ After `1m/M-(1NT)` where the opponent's overcall is natural, the chosen treatmen
 - A three-level jump raise of opener's suit is weak and preemptive: 0-6 HCP, no more than nine
   shortage-adjusted points, and four-card major/diamond or five-card club support. This is
   independent of uncontested invitational jump-raise agreements.
-- Double is usually penalty-oriented over an opposing natural 1NT and remains unmodeled here.
-  No natural or artificial 2NT response is assigned without a partnership agreement; the
-  otherwise eligible responder can have no modeled action. Advancer and opener continuations
-  remain deferred.
+- The selected treatment assigns no Double over an opposing natural 1NT because that call is
+  usually penalty-oriented, and assigns no natural or artificial 2NT without a partnership
+  agreement. An otherwise eligible responder can therefore have no modeled action.
 
 
 ## Responder after an opponent's preemptive jump suit overcall
@@ -497,7 +461,7 @@ opposing contract, so `1H-(2S)-3H` and `1S-(3H)-3S` are economical raises, not j
 - A cheapest three-level raise is nonforcing with 8-10 shortage-adjusted support points;
   require 3+ major, 4+ diamond, or 5+ club support. Responder with 6-9 HCP may Pass
   when no such raise qualifies. This is an explicit limited rule; no general inferred
-  Pass is enabled, and unmodeled strong hands are not automatically treated as weak.
+  Pass is enabled, and unsupported strong hands are not automatically treated as weak.
 - New suits at their cheapest available level are natural: at the two level, 5+ cards
   and 10+ HCP, forcing one round; at the three level, 5+ cards and 13+ HCP, game forcing.
   The opponent's suit is reserved for an artificial cuebid, not a natural new-suit call.
@@ -515,16 +479,5 @@ opposing contract, so `1H-(2S)-3H` and `1S-(3H)-3S` are economical raises, not j
   can still qualify with five trumps and very limited strength.
 
 These are explicit deterministic thresholds, not universal agreements or playing-trick
-calculations. Other responses after a four-level jump preempt, penalty doubles, scoring,
-and later advancer/opener continuations remain unmodeled.
-
-## Competitive bidding follow-up audit
-
-- After completing advancer and opener continuations for the current one-level suit-opening
-  interference set, audit responder rule eligibility: identify unintended inherited rules,
-  incorrect meanings, and missing supported actions, rather than assuming legal calls are modeled.
-- Consider a modest defense to weak two openings later. Opposing actions after 1NT openings
-  are low priority and may be omitted unless straightforward natural treatments prove useful.
-  Opposing overcalls after 2NT and strong 2C openings are intentionally excluded from scope.
-- Review genuinely shared auction helpers and stage-crossing imports in a separate organization
-  pass; discuss splitting the growing practice-deal file after the stage-based rule split.
+calculations. The selected responder treatment excludes responses after a four-level jump
+preempt, penalty doubles, and scoring.

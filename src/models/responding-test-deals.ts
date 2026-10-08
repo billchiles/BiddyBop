@@ -1,9 +1,9 @@
 /// Responding test deals, kept separate from the bucket registry.
 
 /// `import type` is erased by TypeScript when JavaScript is emitted. Although
-/// rule-test-deals.ts imports these values, this type import creates no runtime cycle.
+/// test-deals-registry.ts imports these values, this type import creates no runtime cycle.
 ///
-import type { RuleTestDeal } from './rule-test-deals';
+import type { RuleTestDeal } from './test-deals-registry';
 
 
 /// This bucket adds response situations missing from the opener-rebid practice test deals; it is

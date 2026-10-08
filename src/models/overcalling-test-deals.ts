@@ -1,9 +1,9 @@
 /// Overcalling test deals, kept separate from the bucket registry.
 
 /// `import type` is erased by TypeScript when JavaScript is emitted. Although
-/// rule-test-deals.ts imports these values, this type import creates no runtime cycle.
+/// test-deals-registry.ts imports these values, this type import creates no runtime cycle.
 ///
-import type { RuleTestDeal } from './rule-test-deals';
+import type { RuleTestDeal } from './test-deals-registry';
 
 /// Next seat natural overcalls: West opens, North overcalls.  With dealer West the recorded call
 /// at index 1 is North's actual call; South's hand stays visible for subsequent experiments.

@@ -1,9 +1,9 @@
 /// Responding after overcall test deals, kept separate from the bucket registry.
 
 /// `import type` is erased by TypeScript when JavaScript is emitted. Although
-/// rule-test-deals.ts imports these values, this type import creates no runtime cycle.
+/// test-deals-registry.ts imports these values, this type import creates no runtime cycle.
 ///
-import type { RuleTestDeal } from './rule-test-deals';
+import type { RuleTestDeal } from './test-deals-registry';
 
 /// Responder after a opponent non-jump natural suit overcall.  North opens, East overcalls,
 /// and South practices the response.  All three hands are fixed so the overcall is plausible.

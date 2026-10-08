@@ -28,7 +28,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS,
          type RuleTestDeal, type RuleTestExpectedCall }
-  from '../src/models/rule-test-deals';
+  from '../src/models/test-deals-registry';
 
 interface StageExpectations {
   name: string;

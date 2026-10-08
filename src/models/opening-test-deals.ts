@@ -9,9 +9,9 @@
 ///
 
 /// `import type` is erased by TypeScript when JavaScript is emitted. Although
-/// rule-test-deals.ts imports these values, this type import creates no runtime cycle.
+/// test-deals-registry.ts imports these values, this type import creates no runtime cycle.
 ///
-import type { RuleTestDeal } from './rule-test-deals';
+import type { RuleTestDeal } from './test-deals-registry';
 
 
 export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [

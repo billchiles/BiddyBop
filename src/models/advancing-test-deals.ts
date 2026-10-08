@@ -1,9 +1,9 @@
 /// Advancer deals after a natural one-level suit overcall and responder's Pass.
 
 /// `import type` is erased by TypeScript when JavaScript is emitted. Although
-/// rule-test-deals.ts imports these values, this type import creates no runtime cycle.
+/// test-deals-registry.ts imports these values, this type import creates no runtime cycle.
 ///
-import type { RuleTestDeal } from './rule-test-deals';
+import type { RuleTestDeal } from './test-deals-registry';
 
 /// West opens, North overcalls, East passes, and South advances.  Fix the first
 /// three hands so both the auction setup and advancer's decision are meaningful.

@@ -6,7 +6,7 @@ import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
 import { defaultBiddingSystem, type BidStage, type BiddingSystem } from './models/bidding-types';
 import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
-  from './models/rule-test-deals';
+  from './models/test-deals-registry';
 
 /// App owns browser-level practice controls and the board currently displayed.
 const PRACTICE_DEALER: Seat = 'N';

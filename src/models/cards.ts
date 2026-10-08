@@ -1,7 +1,7 @@
 /// Representation for cards and hands.
 ///
 
-import type { RuleTestDeal, RuleTestExpectedCall } from './rule-test-deals';
+import type { RuleTestDeal, RuleTestExpectedCall } from './test-deals-registry';
 
 
 /// Canonical suit display order; Suit remains distinct from Strain because NT is not a suit.

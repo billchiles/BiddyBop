@@ -1,7 +1,9 @@
 # Rule Tests
 
-The deterministic practice deals in `src/models/rule-test-deals.ts` are the executable record of
-selected bidding situations. Run `npm run test:rules` to evaluate every bucket, including deals
+The deterministic practice deals in the stage/family `src/models/*-test-deals.ts` files are the
+executable record of selected bidding situations. `src/models/test-deals-registry.ts` defines the
+shared deal types and assembles those files into UI/test buckets. Run `npm run test:rules` to
+evaluate every bucket, including deals
 requiring non-default partnership agreements. No application build or browser is needed. To
 capture failures and the summary, use `npm run test:rules > rule-test-results.txt 2>&1`.
 

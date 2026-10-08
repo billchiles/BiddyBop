@@ -3,7 +3,7 @@ import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, norm
   from '../models/biddingEvaluation';
 import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
-import type { RuleTestDeal } from '../models/rule-test-deals';
+import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
