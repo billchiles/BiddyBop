@@ -60,9 +60,9 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
     return 'overcallerRebid';
   }
   // Competitive opener rebids are admitted deliberately rather than by removing the general
-  // competition guard.  This treatment recognizes only responder meanings with explicit opener
-  // continuations when advancer passes.  Rule-context matching supplies a second guard so
-  // unrelated uncontested opener-rebid meanings still cannot leak into these auctions.
+  // competition guard.  This treatment recognizes only reviewed responder/advancer patterns with
+  // explicit opener continuations.  Rule-context matching supplies a second guard so unrelated
+  // uncontested opener-rebid meanings still cannot leak into these auctions.
   const opponentsBid = auction.some((call, index) =>
     index > opening.index && (isContractBid(call) || call === 'Double') &&
     getSeatForCallIndex(dealer, index) !== opening.seat &&
@@ -83,40 +83,49 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   return null;
 }
 
-/// isSupportedCompetitiveOpenerRebid recognizes only physical auctions whose responder meaning
-/// has an explicitly modeled opener continuation.  Advancer must Pass; advancer competition
-/// is a separate context rather than something inferred from these cases.
+/// isSupportedCompetitiveOpenerRebid recognizes only physical auctions whose responder/advancer
+/// pattern has an explicitly modeled opener continuation.  Passing advancer cases remain the broad
+/// selected base; natural advancer competition is admitted only for reviewed families below.
 function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
                                              opening: OpeningBidInfo): boolean {
-  if (auction.length !== opening.index + 4 ||
-      auction[opening.index + 3] !== 'Pass') {
+  if (auction.length !== opening.index + 4) {
     return false;
   }
   const openingBid = parseSuitBid(opening.call);
   const overcall = auction[opening.index + 1];
   const response = auction[opening.index + 2];
-  if (openingBid === null || overcall === undefined || response === undefined) {
+  const advance = auction[opening.index + 3];
+  if (openingBid === null || overcall === undefined || response === undefined ||
+      advance === undefined) {
     return false;
   }
 
-  // After a one-level suit opening, reuse reviewed natural one-level responses and explicitly
-  // modeled negative-Double / strength-Redouble continuations.
+  // After a one-level suit opening, reuse reviewed natural responses and explicitly modeled
+  // artificial continuations.  An advancer raise is admitted only where opener's next decision
+  // has been reviewed rather than inferred from the compact partnership auction.
   if (openingBid.level === 1 && openingBid.strain !== 'NT') {
     const interference = getInterferenceAfterOpening(dealer, auction);
     if (interference === 'suitOvercall') {
       const overcallBid = parseSuitBid(overcall);
       if (overcallBid === null || overcallBid.strain === 'NT') return false;
+      const advancerRaised = advancerSimplyRaisesOvercall(overcallBid, response, advance);
       if (response === 'Double') {
-        // This selected negative-Double continuation covers an implied major fit.  When opener
-        // and overcaller have already named both majors, responder instead implies the minors.
+        if (advance !== 'Pass' && ! advancerRaised) return false;
+        // With advancer Pass, the selected negative-Double continuation covers an implied major
+        // fit.  After advancer raises, a minimum Pass is also modeled even when both majors were
+        // already named; medium/maximum implied-major continuations remain available when present.
+        if (advancerRaised) return true;
         return (openingBid.strain !== 'H' && overcallBid.strain !== 'H') ||
           (openingBid.strain !== 'S' && overcallBid.strain !== 'S');
       }
       const responseBid = parseSuitBid(response);
       if (responseBid === null || responseBid.strain === 'NT') return false;
-      // Ordinary simple raises keep their natural meaning.  A cuebid of the opponent's suit and
-      // a cheapest natural two-level new suit have separate competitive opener continuations.
-      if (responseBid.strain === openingBid.strain && responseBid.level === 2) return true;
+      // Ordinary simple raises keep their natural meaning even when advancer competes by raising
+      // the overcall.  Other reviewed responder meanings still require advancer Pass.
+      if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
+        return advance === 'Pass' || advancerRaised;
+      }
+      if (advance !== 'Pass') return false;
       if (responseBid.strain === overcallBid.strain) {
         return cheapestBidInStrainAfter(overcallBid, overcallBid.strain) === response;
       }
@@ -126,8 +135,18 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
     if (interference === 'takeoutDouble') {
-      if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       const responseBid = parseSuitBid(response);
+      if (advance !== 'Pass') {
+        if (responseBid === null || responseBid.strain !== openingBid.strain ||
+            responseBid.level !== 2) {
+          return false;
+        }
+        const advanceBid = parseSuitBid(advance);
+        return advanceBid !== null && advanceBid.strain !== 'NT' &&
+          advanceBid.strain !== openingBid.strain &&
+          cheapestBidInStrainAfter(responseBid, advanceBid.strain) === advance;
+      }
+      if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       if (responseBid === null || responseBid.strain === 'NT') return false;
       // Shared simple raises and weak competitive actions are nonforcing.  One-level new suits
       // retain their ordinary force; two-/three-level weak actions get explicit Pass continuations.
@@ -140,13 +159,24 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
   }
 
   // The selected 1NT-interference treatment keeps natural 2NT invitation and 3NT signoff
-  // meanings.  Suit responses and negative Double are outside this shared continuation.
-  if (opening.call === '1NT') {
+  // meanings only when advancer passes.  Suit responses and negative Double are outside this
+  // shared continuation.
+  if (opening.call === '1NT' && advance === 'Pass') {
     const overcallBid = parseSuitBid(overcall);
     return overcallBid !== null && overcallBid.level === 2 && overcallBid.strain !== 'NT' &&
       (response === '2NT' || response === '3NT');
   }
   return false;
+}
+
+/// advancerSimplyRaisesOvercall identifies the cheapest legal raise of partner's natural suit
+/// overcall after responder's action.  The response may be artificial, so use the overcall itself
+/// as the previous contract when responder did not bid a contract.
+function advancerSimplyRaisesOvercall (overcall: ParsedSuitBid, response: Call,
+                                       advance: Call): boolean {
+  const responseBid = parseSuitBid(response);
+  const previousContract = responseBid ?? overcall;
+  return cheapestBidInStrainAfter(previousContract, overcall.strain) === advance;
 }
 
 /// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:

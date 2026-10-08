@@ -16,7 +16,8 @@ import {
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
   refineOpenerNewSuitAtCheapestLevel, refineOpenerNewSuitByExtraLevels,
-  refineOpenerNegativeDoubleMajorRebid, refineOpenerNonReverseNewSuitRebid,
+  refineOpenerNegativeDoubleMajorAfterAdvancerRaise, refineOpenerNegativeDoubleMajorRebid,
+  refineOpenerNonReverseNewSuitRebid, refineOpenerPassAfterNegativeDoubleAdvancerRaise,
   refineOpenerNotrumpAtCheapestLevel, refineOpenerNtMajorSlamControlBid,
   refineOpenerNtResponderMajorToGame,
   refineOpenerOpeningSuitAtCheapestLevel, refineOpenerOpeningSuitToLevel,
@@ -443,14 +444,15 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
-  // Selected competitive opener rebids after advancer Passes.  Natural one-level responder
-  // calls reuse explicitly opted-in uncontested rules below; these declarations cover artificial
-  // responder calls that have no uncontested equivalent.
+  // Selected competitive opener rebids.  Natural responder meanings reuse explicitly opted-in
+  // uncontested rules where competition has not changed the call; these declarations cover
+  // artificial or level-sensitive competitive meanings that need their own opener treatment.
   //
-  // After a negative Double, this selected family follows the simple major-fit strength ladder:
-  //   minimum 12-16 shortage points -> bid an implied four-card major economically
-  //   medium 17-18 shortage points  -> jump one level in that major
-  //   maximum 19+ shortage points   -> bid game in that major
+  // After a negative Double and advancer Pass, this selected family follows the simple major-fit
+  // strength ladder: minimum bids an implied major economically, medium jumps, and maximum bids
+  // game.  If advancer raises the overcall, competition changes that ladder: a minimum opener may
+  // Pass and leave responder another turn, a medium opener bids an implied major at the cheapest
+  // level still available, and a maximum still drives to major-suit game.
   // Other negative-Double continuations remain separate competitive decisions.
   {
     id: 'opener-rebid-major-after-negative-double-minimum',
@@ -499,6 +501,40 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Bid game with maximum values and a four-card or longer implied major.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-negative-double-advancer-raise-minimum',
+    kind: 'openerRebid',
+    title: 'Pass after advancer raises a negative-Double auction with a minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+    },
+    calls: ['Pass'],
+    callRefinement: refineOpenerPassAfterNegativeDoubleAdvancerRaise,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
+    meaning: 'Further competition removes the obligation to manufacture a rebid with a minimum.',
+    guidance: ['Responder still has another turn; this Pass does not convert the negative Double ' +
+               'into a penalty Double.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-major-after-negative-double-advancer-raise-medium',
+    kind: 'openerRebid',
+    title: 'Keep competing in an implied major after advancer raises',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+    },
+    calls: ['2H', '2S', '3H', '3S', '4H', '4S'],
+    callRefinement: refineOpenerNegativeDoubleMajorAfterAdvancerRaise,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
+    meaning: 'Medium opener bids an implied four-card major at the cheapest level competition left.',
+    guidance: ['Advancer’s raise has consumed the old jump step, so bidding on shows the extras ' +
+               'without forcing opener one level higher merely to preserve the uncontested ladder.'],
     certainty: 'high',
   },
   // A strength-showing Redouble does not force opener to choose a new strain.  With advancer

@@ -287,20 +287,19 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 ///
 
 
-/// getOpenerNegativeDoubleInfo recognizes opener's turn after a natural suit overcall, responder's
-/// negative Double, and advancer's Pass.  The negative Double's implied suits depend on both the
-/// opening and overcall, so keep that interpretation together rather than reconstructing it from
-/// the compact partnership auction.
+/// getOpenerNegativeDoubleInfo recognizes opener's turn after a natural suit overcall and
+/// responder's negative Double when advancer either Passes or makes the selected simple raise of
+/// the overcall.  The implied suits depend on both opposing calls, so keep that interpretation
+/// together rather than reconstructing it from the compact partnership auction.
 function getOpenerNegativeDoubleInfo (context: RuleEvalContext):
-    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid; advancerRaise: ParsedSuitBid | null } | null {
   if (context.stage !== 'openerRebid' ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null || context.auction.length !== openingInfo.index + 4 ||
-      context.auction[openingInfo.index + 2] !== 'Double' ||
-      context.auction[openingInfo.index + 3] !== 'Pass') {
+      context.auction[openingInfo.index + 2] !== 'Double') {
     return null;
   }
   const opening = parseSuitBid(openingInfo.call);
@@ -310,19 +309,28 @@ function getOpenerNegativeDoubleInfo (context: RuleEvalContext):
       overcall === null || overcall.strain === 'NT') {
     return null;
   }
-  return { opening, overcall };
+  const advanceCall = context.auction[openingInfo.index + 3];
+  if (advanceCall === 'Pass') {
+    return { opening, overcall, advancerRaise: null };
+  }
+  const advancerRaise = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  if (advancerRaise === null || advancerRaise.strain !== overcall.strain ||
+      cheapestBidInStrainAfter(overcall, overcall.strain) !== advanceCall) {
+    return null;
+  }
+  return { opening, overcall, advancerRaise };
 }
 
 /// refineOpenerNegativeDoubleMajorRebid implements the simple strength ladder when responder's
-/// negative Double implies an unbid major and opener has four or more cards there.  Minimum hands
-/// bid the major economically, medium hands jump one level, and maximum hands bid major-suit game.
-/// Other negative-Double continuations are separate competitive decisions and are not inferred by
-/// this refiner.
+/// negative Double implies an unbid major and advancer Passes.  Minimum hands bid economically,
+/// medium hands jump one level, and maximum hands bid major-suit game.  If advancer raises, the
+/// lower two ranges use the separate competitive continuations below because the extra bidding
+/// level changes what a jump would mean.
 export function refineOpenerNegativeDoubleMajorRebid (
     calls: Call[], context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'):
     CallRefinementResult {
   const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null) {
+  if (info === null || (info.advancerRaise !== null && strength !== 'maximum')) {
     return { calls: [], telemetryLines: [] };
   }
   let majors = getNegativeDoubleImpliedSuits(info.opening, info.overcall)
@@ -354,6 +362,50 @@ export function refineOpenerNegativeDoubleMajorRebid (
       'No four-card implied major is available for the selected negative-Double rebid.',
     ] : [
       `Negative-Double major fit: ${strength} opener follows the economical / jump / game ladder.`,
+    ],
+  };
+}
+
+/// refineOpenerPassAfterNegativeDoubleAdvancerRaise keeps the real minimum-hand option created by
+/// further competition.  Responder still has another turn, so opener need not manufacture a bid
+/// merely because the negative Double would have required action if advancer had Passed.
+export function refineOpenerPassAfterNegativeDoubleAdvancerRaise (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerNegativeDoubleInfo(context);
+  const applies = info !== null && info.advancerRaise !== null;
+  return {
+    calls: applies ? calls.filter((call) => call === 'Pass') : [],
+    telemetryLines: applies
+      ? ['Advancer raised after the negative Double, so a minimum opener may Pass.'] : [],
+  };
+}
+
+/// refineOpenerNegativeDoubleMajorAfterAdvancerRaise lets a medium opener keep competing in an
+/// implied four-card major at the cheapest level above advancer's raise.  Competition has consumed
+/// the old jump step, so the call no longer needs to jump to show the medium range.
+export function refineOpenerNegativeDoubleMajorAfterAdvancerRaise (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null || info.advancerRaise === null) {
+    return { calls: [], telemetryLines: [] };
+  }
+  const advancerRaise = info.advancerRaise;
+  let majors = getNegativeDoubleImpliedSuits(info.opening, info.overcall)
+    .filter((suit) => suit === 'H' || suit === 'S')
+    .map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
+    .filter(({ length }) => length >= 4);
+  if (majors.length > 1) {
+    majors = orderMajorSuitCandidates(majors);
+  }
+  const wanted = majors.map(({ suit }) =>
+    cheapestBidInStrainAfter(advancerRaise, suit)).filter((call): call is SuitBid =>
+      call !== null && calls.includes(call));
+  return {
+    calls: wanted,
+    telemetryLines: wanted.length === 0 ? [
+      'No four-card implied major is available above advancer’s raise.',
+    ] : [
+      'Medium opener keeps competing in an implied major at the cheapest available level.',
     ],
   };
 }

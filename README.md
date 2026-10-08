@@ -60,8 +60,8 @@ means we considered the area and deliberately chose not to model it as part of t
 
 | Our opening | Ordinary response | Response after interference | Uncontested opener rebid | Opener rebid after interference |
 | --- | --- | --- | --- | --- |
-| 1C / 1D | Done | Done: selected common interference | Done | Incomplete: selected advancer-Pass continuations |
-| 1H / 1S | Done | Done: selected common interference | Done | Incomplete: selected advancer-Pass continuations |
+| 1C / 1D | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
+| 1H / 1S | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
 | 1NT | Done | Partial (done): natural two-level suit interference | Done | Incomplete: selected 2NT/3NT continuations |
 | 2NT | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Strong 2C | Done | Omitted | Partial (done): selected continuations | Omitted |
@@ -69,11 +69,13 @@ means we considered the area and deliberately chose not to model it as part of t
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
-clear and advancer Passes.  After a natural forcing one-level response to a suit overcall or
-takeout Double, the ordinary descriptive opener-rebid family can continue.  Ordinary simple raises
-also retain their natural opener continuations.  When an uncontested natural rule is reused after
-a suit overcall, the opponent's suit is not treated as opener's natural second suit, and a notrump
-rebid requires a stopper there.
+clear.  Most current families still use advancer Pass, but selected natural advancer competition is
+also modeled when it leaves a well-defined opener decision.  After a natural forcing one-level
+response to a suit overcall or takeout Double, the ordinary descriptive opener-rebid family can
+continue when advancer Passes.  Ordinary simple raises retain their natural opener continuations
+when advancer Passes or makes the selected natural suit competition.  When an uncontested natural
+rule is reused in competition, an opponent's natural suit is not treated as opener's natural
+second/help suit, and a notrump rebid requires a stopper there.
 
 A natural two-level new-suit response after a suit overcall is handled as its own forcing-one-round
 family rather than inheriting the partnership's uncontested 2/1 setting.  Responder has promised a
@@ -88,17 +90,20 @@ floor rather than being mistaken for Jacoby 2NT.  Responder's natural 1NT, weak 
 new suits, and weak jump raise after a takeout Double are nonforcing; a clear minimum opener may
 therefore Pass rather than manufacture a continuation.
 
-After responder's negative Double, opener uses a simple major-fit strength ladder when holding four
-or more cards in an implied major: bid economically with minimum values, jump with medium values,
-and bid game with maximum values.  After a strength-showing Redouble, opener may Pass when advancer
-Passes rather than manufacture a new descriptive bid.  After natural two-level suit interference
-over our 1NT opening, the ordinary 2NT invitation accept/decline and natural 3NT signoff
-continuations retain their meanings.
+After responder's negative Double and advancer Pass, opener uses a simple major-fit strength
+ladder when holding four or more cards in an implied major: bid economically with minimum values,
+jump with medium values, and bid game with maximum values.  If advancer raises the overcall, a
+minimum opener may instead Pass and leave responder another turn; a medium opener with an implied
+major bids on at the cheapest available level rather than artificially preserving the old jump,
+while a maximum still drives to game.  After a strength-showing Redouble, opener may Pass when
+advancer Passes rather than manufacture a new descriptive bid.  After natural two-level suit
+interference over our 1NT opening, the ordinary 2NT invitation accept/decline and natural 3NT
+signoff continuations retain their meanings.
 
-These remain `Incomplete`, not scope omissions.  Auctions where advancer competes, natural responder
-notrump follows a suit overcall, three-level competitive new-suit responses, and jump-overcall
-continuations remain separate families to analyze rather than being inferred from same-looking
-uncontested auctions.
+These remain `Incomplete`, not scope omissions.  Advancer actions beyond the selected natural suit
+competition, natural responder notrump after a suit overcall, three-level competitive new-suit
+responses, and jump-overcall continuations remain separate families to analyze rather than being
+inferred from same-looking uncontested auctions.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

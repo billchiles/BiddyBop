@@ -5,9 +5,9 @@
 ///
 import type { RuleTestDeal } from './test-deals-registry';
 
-/// These deals exercise selected opener continuations after advancer Passes: reviewed natural
-/// one-level responses, the major-fit ladder after a negative Double, and natural 1NT
-/// invitations/signoffs.  Advancer competition is a separate continuation context.
+/// These deals exercise selected opener continuations after interference: reviewed natural
+/// responses, artificial competitive calls, and the first advancer-action families.  Advancer
+/// competition is included only where opener's continuation has been explicitly modeled.
 export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1C-(1D)-1H-(Pass)-1S: responder kept a natural forcing one-level meaning, so ' +
@@ -218,5 +218,108 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
     south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+  },
+  {
+    description: '1S-(2H)-2S-(3H)-Pass: after both sides find fits, a minimum opener can defend ' +
+                 'rather than manufacture another spade bid.',
+    dealer: 'W',
+    practiceAuction: ['1S', '2H', '2S', '3H', 'Pass'],
+    expectedOpeningCalls: [{ call: '1S', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '3H', ruleIds: ['advance-two-level-suit-overcall-after-responder-raise-simple-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    east: { S: '852', H: '3', D: 'T742', C: 'AKT84' },
+    south: { S: 'T96', H: 'T74', D: 'AJ5', C: 'QJ93' },
+  },
+  {
+    description: '1H-(Double)-2H-(2S)-Pass: advancer’s natural spade competition does not make ' +
+                 'responder’s simple heart raise forcing.',
+    dealer: 'W',
+    practiceAuction: ['1H', 'Double', '2H', '2S', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: '2S', ruleIds: ['advance-takeout-double-after-responder-raise-new-suit-two-level'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    east: { S: '3', H: '87543', D: '764', C: 'AQJ2' },
+    south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
+  },
+  {
+    description: '1D-(1S)-Double-(2S)-Pass: after advancer raises, a minimum opener without a ' +
+                 'clear continuation can Pass and leave responder another turn.',
+    dealer: 'W',
+    practiceAuction: ['1D', '1S', 'Double', '2S', 'Pass'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
+    expectedAdvanceCalls: [
+      { call: '2S', ruleIds: ['advance-one-level-suit-overcall-after-negative-double-simple-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-negative-double-advancer-raise-minimum'] },
+    ],
+    west: { S: 'A97', H: '87', D: 'QJ9865', C: 'K3' },
+    north: { S: 'KQJ52', H: 'AJT96', D: 'A2', C: '7' },
+    east: { S: '86', H: 'KQ42', D: '4', C: 'QJ9852' },
+    south: { S: 'T43', H: '53', D: 'KT73', C: 'AT64' },
+  },
+  {
+    description: '1D-(1S)-Double-(2S)-3H: medium opener keeps competing in responder’s implied ' +
+                 'major, but the opponent raise has consumed the old jump step.',
+    dealer: 'W',
+    practiceAuction: ['1D', '1S', 'Double', '2S', '3H'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
+    expectedAdvanceCalls: [
+      { call: '2S', ruleIds: ['advance-one-level-suit-overcall-after-negative-double-simple-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '3H', ruleIds: ['opener-rebid-major-after-negative-double-advancer-raise-medium'] },
+    ],
+    rejectedOpenerRebidCalls: ['4H'],
+    west: { S: 'Q4', H: 'AK25', D: 'AQJT8', C: '52' },
+    north: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
+    east: { S: 'A87', H: 'T763', D: 'K6', C: 'T964' },
+    south: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
+  },
+  {
+    description: '1D-(1S)-Double-(2S)-4H: maximum opener still drives to game after advancer ' +
+                 'raises the overcall.',
+    dealer: 'W',
+    practiceAuction: ['1D', '1S', 'Double', '2S', '4H'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
+    expectedAdvanceCalls: [
+      { call: '2S', ruleIds: ['advance-one-level-suit-overcall-after-negative-double-simple-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-major-after-negative-double-maximum'] },
+    ],
+    rejectedOpenerRebidCalls: ['3H'],
+    west: { S: 'Q4', H: 'AK25', D: 'AQJT86', C: '2' },
+    north: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
+    east: { S: 'A87', H: 'T763', D: 'K', C: 'T9654' },
+    south: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
   },
 ];

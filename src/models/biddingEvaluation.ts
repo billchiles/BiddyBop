@@ -1139,28 +1139,46 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
 
 
 /// filterReusedOpenerRebidCalls protects meanings that change when ordinary natural opener
-/// rules are reused after a suit overcall.  The opponent's suit is now a cuebid rather than a
-/// natural second suit, and a natural notrump rebid requires a basic stopper in that suit.
+/// rules are reused in competition.  A natural opponent suit is now a cuebid rather than opener's
+/// second/help suit, and a natural notrump rebid requires a basic stopper in that suit.
 function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
                                        context: RuleEvalContext): Call[] {
   if (context.stage !== 'openerRebid' ||
-      rule.auctionContext?.openerRebidAfterInterference !== true ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      rule.auctionContext?.openerRebidAfterInterference !== true) {
     return calls;
   }
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  const overcallCall = opening === null ? undefined : context.auction[opening.index + 1];
-  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-  if (overcall === null || overcall.strain === 'NT') {
+  const opponentSuit = getNaturalOpponentSuitForReusedOpenerRebid(context);
+  if (opponentSuit === null) {
     return calls;
   }
-  const stopper = hasBasicSuitStopper(context, overcall.strain as Suit);
+  const stopper = hasBasicSuitStopper(context, opponentSuit);
   return calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null) return true;
-    if (bid.strain === overcall.strain) return false;
+    if (bid.strain === opponentSuit) return false;
     return bid.strain !== 'NT' || stopper;
   });
+}
+
+/// getNaturalOpponentSuitForReusedOpenerRebid returns the opponent suit whose competitive meaning
+/// replaces an ordinary natural opener call.  A direct suit overcall supplies it immediately;
+/// after a takeout Double, the selected advancer-action family supplies it with advancer's natural
+/// suit bid.
+function getNaturalOpponentSuitForReusedOpenerRebid (context: RuleEvalContext): Suit | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null) return null;
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  if (interference === 'suitOvercall') {
+    const overcallCall = context.auction[opening.index + 1];
+    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+    return overcall !== null && overcall.strain !== 'NT' ? overcall.strain as Suit : null;
+  }
+  if (interference !== 'takeoutDouble') return null;
+  const advanceCall = context.auction[opening.index + 3];
+  const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  const openingBid = parseSuitBid(opening.call);
+  return advance !== null && advance.strain !== 'NT' && openingBid !== null &&
+    advance.strain !== openingBid.strain ? advance.strain as Suit : null;
 }
 
 /// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
