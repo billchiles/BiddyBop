@@ -1012,7 +1012,7 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   if (ruleContext.responderCall !== undefined) {
     const actualResponse = actualAuction[1];
     if (actualOpening === undefined || actualResponse === undefined ||
-        ! responderCallMatches(ruleContext.responderCall, actualOpening, actualResponse)) {
+        ! responderCallMatches(ruleContext.responderCall, actualOpening, actualResponse, evalContext)) {
       return false;
     }
   }
@@ -1054,14 +1054,15 @@ function matchesPartnerNaturalTwoNtOverWeakTwo (context: RuleEvalContext): boole
 }
 
 function responderCallMatches (constraint: ResponderCallContext, openingCall: Call,
-                               responseCall: Call): boolean {
+                               responseCall: Call, context: RuleEvalContext): boolean {
   if (! isContractBid(openingCall)) {
     return false;
   }
   if (responseCall === 'Double' || responseCall === 'Redouble') {
     const kind = responseCall === 'Double' ? 'double' : 'redouble';
     return (constraint.kind === undefined || constraint.kind === kind) &&
-      constraint.level === undefined && constraint.jump === undefined;
+      constraint.level === undefined && constraint.jump === undefined &&
+      constraint.opponentSuit === undefined;
   }
   if (! isContractBid(responseCall)) {
     return false;
@@ -1082,6 +1083,16 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
   if (constraint.jump !== undefined &&
       constraint.jump !== responseJump(openingCall, responseCall)) {
     return false;
+  }
+  if (constraint.opponentSuit !== undefined) {
+    const opening = getOpeningCallInfo(context.dealer, context.auction);
+    const opponentCall = opening === null ? undefined : context.auction[opening.index + 1];
+    const opponentBid = opponentCall === undefined ? null : parseSuitBid(opponentCall);
+    const matchesOpponentSuit = opponentBid !== null && opponentBid.strain !== 'NT' &&
+      responseStrain === opponentBid.strain;
+    if (constraint.opponentSuit !== matchesOpponentSuit) {
+      return false;
+    }
   }
   return true;
 }

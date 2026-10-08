@@ -622,23 +622,27 @@ export function refineOpenerNotrumpAtCheapestLevel (
 
 /// refineOpenerResponderSuitToGame raises responder's natural suit to its normal game level.
 ///
-export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEvalContext):
+export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEvalContext,
+                                                   _system: BiddingSystem,
+                                                   minimumSupport?: number):
     CallRefinementResult {
   const response = getResponderBid(context);
   if (response === null || response.strain === 'NT') {
     return { calls: [], telemetryLines: ['No responder suit is available to raise to game.'] };
   }
   const targetLevel = response.strain === 'H' || response.strain === 'S' ? 4 : 5;
-  return refineOpenerRaiseResponderSuitToLevel(calls, context, targetLevel);
+  return refineOpenerRaiseResponderSuitToLevel(calls, context, targetLevel, minimumSupport);
 }
 
 /// refineOpenerRaiseResponderSuitToLevel keeps the raise of responder's natural suit to the
 /// requested level.  Three-card support is enough when responder's bid promised five cards:
-/// non-jump 2H over 1S, or 2C over 1D in the current Standard and 2/1 treatments.  Otherwise opener
-/// needs four-card support for a new suit shown by responder.
+/// non-jump 2H over 1S, or 2C over 1D in the current uncontested treatments.  Competitive callers
+/// can pass an explicit minimum when the response itself promises five or more cards.
 ///
 export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: RuleEvalContext,
-                                                       targetLevel: number): CallRefinementResult {
+                                                       targetLevel: number,
+                                                       minimumSupport?: number):
+    CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
   if (opening === null || response === null || opening.strain === 'NT' ||
@@ -649,7 +653,7 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
   const responsePromisesFive = response.level === 2 &&
     ((opening.strain === 'S' && response.strain === 'H') ||
      (opening.strain === 'D' && response.strain === 'C'));
-  const minSupport = responsePromisesFive ? 3 : 4;
+  const minSupport = minimumSupport ?? (responsePromisesFive ? 3 : 4);
   if (context.handFacts.lengths[responseSuit] < minSupport) {
     return {calls: [],
             telemetryLines: [

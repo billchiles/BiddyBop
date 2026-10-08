@@ -202,9 +202,14 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1D', 'Double', 'Redouble', 'Pass'], expected: 'openerRebid' },
     { auction: ['1NT', '2H', '2NT', 'Pass'], expected: 'openerRebid' },
     { auction: ['1NT', '2H', '3NT', 'Pass'], expected: 'openerRebid' },
-    { auction: ['1H', '1S', '2C', 'Pass'], expected: null },
-    { auction: ['1H', '1S', '2S', 'Pass'], expected: null },
-    { auction: ['1H', 'Double', '2NT', 'Pass'], expected: null },
+    { auction: ['1H', '1S', '2C', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', '1S', '2S', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', '2D', '2H', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '2H', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '1NT', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '2D', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '3H', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '2NT', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '1S', '2C'], expected: null },
     { auction: ['1NT', '2H', '3C', 'Pass'], expected: null },
     { auction: ['1D', '2S', 'Double', 'Pass'], expected: null },
@@ -724,9 +729,9 @@ function runConventionCompatibilityChecks (): number {
   return failureCount;
 }
 
-/// Competitive opener-rebid boundaries protect the deliberately narrow selected family.  Natural
-/// one-level responses can reuse opted-in descriptive rules, while same-looking two-level, cuebid,
-/// Jordan, jump-overcall, and advancer-competition auctions are not admitted by this family.
+/// Competitive opener-rebid boundaries protect the deliberately selected advancer-Pass families.
+/// Meaning-preserving natural calls may reuse opted-in descriptive rules, while repurposed calls
+/// such as a support cuebid or Jordan 2NT use purpose-built competitive continuations.
 function runCompetitiveOpenerRebidBoundaryTests (): number {
   let checks = 0;
   let failures = 0;
@@ -795,14 +800,136 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     console.error(`  Surviving: ${formatCandidates(stopperCandidates)}`);
   }
 
+  // A competitive two-level natural response keeps its one-round force but must not acquire
+  // the partnership's uncontested 2/1 game-force meaning.  The opponent-suit discriminator also
+  // keeps that family separate from the artificial support cuebid.
+  const naturalTwoLevelDeal = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS[7]!;
+  const { board: naturalTwoLevelBoard } = makeRuleTestBoard(naturalTwoLevelDeal);
+  const naturalTwoLevelCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2NT', naturalTwoLevelBoard, ['1H', '1S', '2C', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! naturalTwoLevelCandidates.some(({ call, rule }) =>
+      call === '2NT' && rule.id === 'opener-rebid-2nt-after-overcall-two-level-new-suit') ||
+      naturalTwoLevelCandidates.some(({ rule }) =>
+        rule.id.includes('standard-two-level-new-suit') ||
+        rule.id.includes('two-over-one-new-suit'))) {
+    failures += 1;
+    console.error('FAIL competitive two-level response did not keep its separate forcing family.');
+    console.error(`  Surviving: ${formatCandidates(naturalTwoLevelCandidates)}`);
+  }
+
+  // Every competitive two-level response promises five or more cards.  Three-card opener support
+  // is therefore enough even where the same-looking uncontested response would need four cards.
+  const { board: threeCardSupportBoard } = makeRuleTestBoard({
+    description: 'Three-card opener support after a forcing competitive 2C response.',
+    practiceAuction: ['1H', '1S', '2C', 'Pass', '3C'],
+    north: { S: 'K72', H: 'AKT94', D: 'QJ', C: '873' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T9', H: 'QJ', D: 'AT97', C: 'AQJT5' },
+  });
+  const threeCardSupportCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3C', threeCardSupportBoard, ['1H', '1S', '2C', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! threeCardSupportCandidates.some(({ call, rule }) =>
+      call === '3C' &&
+      rule.id === 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum')) {
+    failures += 1;
+    console.error("FAIL three-card support did not raise responder's promised five-card suit.");
+    console.error(`  Surviving: ${formatCandidates(threeCardSupportCandidates)}`);
+  }
+
+  const supportCuebidDeal = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS[1]!;
+  const { board: supportCuebidBoard } = makeRuleTestBoard(supportCuebidDeal);
+  const supportCuebidCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '4H', supportCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! supportCuebidCandidates.some(({ call, rule }) =>
+      call === '4H' && rule.id === 'opener-rebid-game-major-after-support-cuebid') ||
+      supportCuebidCandidates.some(({ rule }) =>
+        rule.id.includes('overcall-two-level-new-suit'))) {
+    failures += 1;
+    console.error('FAIL support cuebid did not stay separate from natural two-level responses.');
+    console.error(`  Surviving: ${formatCandidates(supportCuebidCandidates)}`);
+  }
+
+  const { board: minimumCuebidBoard } = makeRuleTestBoard({
+    description: 'Minimum opener after a limit-or-better support cuebid.',
+    practiceAuction: ['1H', '1S', '2S', 'Pass', '3H'],
+    north: { S: 'K72', H: 'AKT94', D: 'Q53', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T93', H: 'QJ85', D: 'AT97', C: 'AQ' },
+  });
+  const minimumCuebidCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3H', minimumCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! minimumCuebidCandidates.some(({ call, rule }) =>
+      call === '3H' &&
+      rule.id === 'opener-rebid-three-of-suit-after-support-cuebid-minimum')) {
+    failures += 1;
+    console.error('FAIL minimum opener did not sign off below game after support cuebid.');
+    console.error(`  Surviving: ${formatCandidates(minimumCuebidCandidates)}`);
+  }
+
+  const jordanDeal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[0]!;
+  const { board: jordanBoard } = makeRuleTestBoard(jordanDeal);
+  const jordanCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3H', jordanBoard, ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! jordanCandidates.some(({ call, rule }) =>
+      call === '3H' && rule.id === 'opener-rebid-three-of-suit-after-jordan-2nt-minimum') ||
+      jordanCandidates.some(({ rule }) => rule.id.includes('jacoby'))) {
+    failures += 1;
+    console.error('FAIL Jordan 2NT continuation leaked into the Jacoby family.');
+    console.error(`  Surviving: ${formatCandidates(jordanCandidates)}`);
+  }
+
+  const { board: jordanGameBoard } = makeRuleTestBoard({
+    description: 'Game values opposite Jordan 2NT after a takeout Double.',
+    practiceAuction: ['1H', 'Double', '2NT', 'Pass', '4H'],
+    north: { S: 'K72', H: 'AKQ96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98', H: 'J75', D: 'AJ6', C: 'AK73' },
+  });
+  const jordanGameCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '4H', jordanGameBoard, ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! jordanGameCandidates.some(({ call, rule }) =>
+      call === '4H' && rule.id === 'opener-rebid-game-major-after-jordan-2nt')) {
+    failures += 1;
+    console.error('FAIL opener did not bid game with sufficient values opposite Jordan 2NT.');
+    console.error(`  Surviving: ${formatCandidates(jordanGameCandidates)}`);
+  }
+
+  const weakTwoDeal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[3]!;
+  const { board: weakTwoBoard } = makeRuleTestBoard(weakTwoDeal);
+  const weakTwoCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Pass', weakTwoBoard, ['1H', 'Double', '2D', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! weakTwoCandidates.some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-double-weak-two-level-new-suit')) {
+    failures += 1;
+    console.error("FAIL minimum opener could not Pass responder's weak nonforcing 2D.");
+  }
+
+  const weakRaiseDeal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[2]!;
+  const { board: weakRaiseBoard } = makeRuleTestBoard(weakRaiseDeal);
+  const weakRaiseCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Pass', weakRaiseBoard, ['1H', 'Double', '3H', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! weakRaiseCandidates.some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-double-weak-jump-raise')) {
+    failures += 1;
+    console.error("FAIL minimum opener could not Pass responder's weak preemptive jump raise.");
+  }
+
   const unsupported: Call[][] = [
-    ['1H', '1S', '2C', 'Pass'],       // Competitive two-level response, not ordinary 2/1.
-    ['1H', '1S', '2S', 'Pass'],       // Artificial support cuebid.
-    ['1H', 'Double', '2NT', 'Pass'],  // Jordan 2NT, not Jacoby.
     ['1H', 'Double', '1S', '2C'],     // Advancer competes instead of passing.
     ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
     ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
     ['1H', '1S', 'Double', 'Pass'],   // Double implies minors, not this major-fit family.
+    ['1H', '1S', '1NT', 'Pass'],      // Natural NT after a suit overcall is a separate family.
+    ['1H', '2D', '3C', 'Pass'],       // Three-level natural response is a separate family.
+    ['1S', '2H', '3S', 'Pass'],       // Preemptive jump raise after overcall is separate.
   ];
   for (const auction of unsupported) {
     checks += 1;

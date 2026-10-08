@@ -252,6 +252,9 @@ export interface ResponderCallContext {
   // jump is the number of levels above the cheapest legal bid in responder's strain.  0 requires
   // a non-jump, 1 a single jump, 2 a double jump, and omitted means the rule does not care.
   jump?: 0 | 1 | 2;
+  // opponentSuit distinguishes an artificial cuebid of a direct suit overcall from a natural
+  // responder new-suit bid.  Omitted means the rule does not care about that relationship.
+  opponentSuit?: boolean;
 }
 
 /// First-opponent-call classification for responder rules.  An unmodeled intervention remains

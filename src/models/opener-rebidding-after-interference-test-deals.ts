@@ -139,4 +139,84 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
     south: { S: 'KQ4', H: 'JT98', D: 'A52', C: '976' },
   },
+  {
+    description: '1H-(2D)-2H-(Pass)-Pass: the ordinary simple raise keeps its meaning after a ' +
+                 'natural overcall, so a minimum opener can still stop at two hearts.',
+    practiceAuction: ['1H', '2D', '2H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-two-level-suit-overcall-after-responder-raise-pass'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    south: { S: 'J976', H: 'KT9', D: '763', C: 'A82' },
+  },
+  {
+    description: '1H-(1S)-2C-(Pass)-2NT: responder’s competitive 2C is forcing one round but ' +
+                 'not game forcing; a minimum balanced opener with a spade stopper rebids 2NT.',
+    practiceAuction: ['1H', '1S', '2C', 'Pass', '2NT'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [
+      { call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-suit-overcall-after-responder-natural-action-pass'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-overcall-two-level-new-suit'] },
+    ],
+    north: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T9', H: 'QJ', D: 'AT97', C: 'AQJT5' },
+  },
+  {
+    description: '1H-(Double)-2H-(Pass)-Pass: a simple raise keeps its ordinary 6-10 meaning ' +
+                 'after a takeout Double, so a minimum opener may Pass.',
+    practiceAuction: ['1H', 'Double', '2H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-takeout-double-after-responder-raise-pass'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+  },
+  {
+    description: '1H-(Double)-1NT-(Pass)-Pass: responder’s 1NT is natural and nonforcing, so ' +
+                 'a minimum opener does not manufacture another bid.',
+    practiceAuction: ['1H', 'Double', '1NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['overcall-takeout-double-with-unbid-suit-support'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1NT', ruleIds: ['respond-after-double-natural-1nt'] },
+    ],
+    expectedAdvanceCalls: [
+      { call: 'Pass', ruleIds: ['advance-takeout-double-after-responder-natural-action-pass'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-double-natural-1nt-minimum'] },
+    ],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+  },
 ];

@@ -438,13 +438,30 @@ its natural candidates because that call is now a cuebid rather than an ordinary
 natural notrump rebid also requires the shared basic stopper in the overcalled suit.
 
 A natural forcing one-level response can retain its ordinary descriptive opener rebids after a
-suit overcall or takeout Double when advancer Passes. After a negative Double of a natural suit
-overcall, opener with four or more cards in an implied major bids it economically with minimum
-values, jumps one level with medium values, and bids game with maximum values. After responder's
-strength-showing Redouble of a takeout Double and advancer's Pass, opener may also Pass; this waits
-for the doubler's next turn and does not create a general penalty-double system. After natural
-two-level suit interference over a 1NT opening, the ordinary natural 2NT invitation accept/decline
-and natural 3NT signoff continuations retain their meanings.
+suit overcall or takeout Double when advancer Passes. An ordinary simple raise can likewise reuse
+its established opener continuations. Reused natural rules remain subject to the opponent-suit and
+notrump-stopper protections above.
+
+A natural two-level new-suit response after a suit overcall is a distinct forcing-one-round family,
+independent of the uncontested `twoLevelNewSuitResponse` agreement. It promises five or more cards,
+so opener may raise with three-card support. Minimum hands can otherwise repeat a six-card opening
+suit, show an economical second suit, or rebid notrump with the overcaller's suit stopped; reverses
+and selected stronger support/notrump actions retain their ordinary strength distinctions.
+
+A support cuebid and Jordan 2NT are artificial limit-or-better raises rather than natural new-suit
+or notrump responses. With a clear minimum, opener rebids the agreed suit at the three level so
+responder can continue; with a major-suit fit and enough combined values, opener bids game. The two
+treatments use their own responder point floors and must not leak into natural-response or Jacoby
+families.
+
+Natural 1NT, weak two-/three-level new suits, and a weak jump raise after a takeout Double are
+nonforcing responder actions. A minimum opener may Pass them rather than manufacture a rebid.
+After a negative Double of a natural suit overcall, opener with four or more cards in an implied
+major bids it economically with minimum values, jumps one level with medium values, and bids game
+with maximum values. After responder's strength-showing Redouble of a takeout Double and advancer's
+Pass, opener may also Pass; this waits for the doubler's next turn and does not create a general
+penalty-double system. After natural two-level suit interference over a 1NT opening, the ordinary
+natural 2NT invitation accept/decline and natural 3NT signoff continuations retain their meanings.
 
 ## Responder after an opponent's natural 1NT overcall
 

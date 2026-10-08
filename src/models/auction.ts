@@ -113,14 +113,28 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
           (openingBid.strain !== 'S' && overcallBid.strain !== 'S');
       }
       const responseBid = parseSuitBid(response);
-      return responseBid !== null && responseBid.level === 1 && responseBid.strain !== 'NT' &&
-        responseBid.strain !== openingBid.strain && responseBid.strain !== overcallBid.strain;
+      if (responseBid === null || responseBid.strain === 'NT') return false;
+      // Ordinary simple raises keep their natural meaning.  A cuebid of the opponent's suit and
+      // a cheapest natural two-level new suit have separate competitive opener continuations.
+      if (responseBid.strain === openingBid.strain && responseBid.level === 2) return true;
+      if (responseBid.strain === overcallBid.strain) {
+        return cheapestBidInStrainAfter(overcallBid, overcallBid.strain) === response;
+      }
+      if (responseBid.strain === openingBid.strain) return false;
+      if (responseBid.level === 1) return true;
+      return responseBid.level === 2 &&
+        cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
     if (interference === 'takeoutDouble') {
-      if (response === 'Redouble') return true;
+      if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       const responseBid = parseSuitBid(response);
-      return responseBid !== null && responseBid.level === 1 && responseBid.strain !== 'NT' &&
-        responseBid.strain !== openingBid.strain;
+      if (responseBid === null || responseBid.strain === 'NT') return false;
+      // Shared simple raises and weak competitive actions are nonforcing.  One-level new suits
+      // retain their ordinary force; two-/three-level weak actions get explicit Pass continuations.
+      if (responseBid.strain === openingBid.strain) {
+        return responseBid.level === 2 || responseBid.level === 3;
+      }
+      return responseBid.level >= 1 && responseBid.level <= 3;
     }
     return false;
   }

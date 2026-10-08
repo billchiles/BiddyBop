@@ -70,19 +70,35 @@ means we considered the area and deliberately chose not to model it as part of t
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear and advancer Passes.  After a natural forcing one-level response to a suit overcall or
-takeout Double, the ordinary descriptive opener-rebid family can continue; a bid in an overcaller's
-suit is not reused as a natural second-suit call, and a notrump rebid requires a stopper there.
-After responder's negative Double, opener uses
-a simple major-fit strength ladder when holding four or more cards in an implied major: bid
-economically with minimum values, jump with medium values, and bid game with maximum values.
-After a strength-showing Redouble, opener may Pass when advancer Passes rather than manufacture a
-new descriptive bid.  After natural two-level suit interference over our 1NT opening, the ordinary
-2NT invitation accept/decline and natural 3NT signoff continuations retain their meanings.
+takeout Double, the ordinary descriptive opener-rebid family can continue.  Ordinary simple raises
+also retain their natural opener continuations.  When an uncontested natural rule is reused after
+a suit overcall, the opponent's suit is not treated as opener's natural second suit, and a notrump
+rebid requires a stopper there.
 
-These are `Incomplete`, not scope omissions.  Auctions where advancer competes, or where responder's
-competitive call has a repurposed meaning such as a support cuebid, Jordan 2NT, or a competitive
-two-level new suit, remain separate continuation families to analyze rather than being inferred
-from the same-looking uncontested auction.
+A natural two-level new-suit response after a suit overcall is handled as its own forcing-one-round
+family rather than inheriting the partnership's uncontested 2/1 setting.  Responder has promised a
+five-card-or-longer suit, so three-card opener support is sufficient; opener may otherwise repeat a
+long opening suit, show a natural second suit, reverse with appropriate extras, or rebid notrump
+with a stopper.  Selected medium/maximum support continuations are also modeled.
+
+Artificial support actions keep their competitive meanings.  After a support cuebid, a minimum
+opener rebids the agreed suit at the three level, while a major opener with enough combined values
+bids game.  Jordan 2NT after a takeout Double uses the same descriptive idea with its own point
+floor rather than being mistaken for Jacoby 2NT.  Responder's natural 1NT, weak two-/three-level
+new suits, and weak jump raise after a takeout Double are nonforcing; a clear minimum opener may
+therefore Pass rather than manufacture a continuation.
+
+After responder's negative Double, opener uses a simple major-fit strength ladder when holding four
+or more cards in an implied major: bid economically with minimum values, jump with medium values,
+and bid game with maximum values.  After a strength-showing Redouble, opener may Pass when advancer
+Passes rather than manufacture a new descriptive bid.  After natural two-level suit interference
+over our 1NT opening, the ordinary 2NT invitation accept/decline and natural 3NT signoff
+continuations retain their meanings.
+
+These remain `Incomplete`, not scope omissions.  Auctions where advancer competes, natural responder
+notrump follows a suit overcall, three-level competitive new-suit responses, and jump-overcall
+continuations remain separate families to analyze rather than being inferred from same-looking
+uncontested auctions.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.
