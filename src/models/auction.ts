@@ -1,6 +1,7 @@
 /// Shared bridge-auction parsing, seat navigation, and auction-shape helpers.
 
-import { STRAIN_ORDER, type BidStage, type Call, type DirectInterference, type Strain, type SuitBid } from './bidding-types';
+import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type Call, type DirectInterference,
+         type Strain, type SuitBid } from './bidding-types';
 import { SEATS, type Seat } from './cards';
 
 /// OpeningCallInfo identifies the auction's first contract bid.
@@ -108,7 +109,8 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
     if (interference === 'suitOvercall') {
       const overcallBid = parseSuitBid(overcall);
       if (overcallBid === null || overcallBid.strain === 'NT') return false;
-      const advancerRaised = advancerSimplyRaisesOvercall(overcallBid, response, advance);
+      const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
+      const advancerRaised = advancerKind === 'raise';
       if (response === 'Double') {
         if (advance !== 'Pass' && ! advancerRaised) return false;
         // With advancer Pass, the selected negative-Double continuation covers an implied major
@@ -120,10 +122,21 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       }
       const responseBid = parseSuitBid(response);
       if (responseBid === null || responseBid.strain === 'NT') return false;
-      // Ordinary simple raises keep their natural meaning even when advancer competes by raising
-      // the overcall.  Other reviewed responder meanings still require advancer Pass.
+      // Ordinary simple raises keep their natural meaning through selected natural competition.
+      // Strong cuebids and other artificial advances remain outside this reviewed slice.
       if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
-        return advance === 'Pass' || advancerRaised;
+        if (advancerKind === 'pass' || advancerKind === 'raise' ||
+            advancerKind === 'responsiveDouble') {
+          return true;
+        }
+        if (advancerKind === 'preemptiveRaise') {
+          return overcallBid.level === 1;
+        }
+        if (advancerKind === 'newSuit') {
+          const advanceBid = parseSuitBid(advance);
+          return advanceBid !== null && advanceBid.level >= 2 && advanceBid.level <= 3;
+        }
+        return false;
       }
       if (advance !== 'Pass') return false;
       if (responseBid.strain === overcallBid.strain) {
@@ -141,10 +154,11 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
             responseBid.level !== 2) {
           return false;
         }
+        const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
+        if (advancerKind === 'responsiveDouble') return true;
+        if (advancerKind !== 'newSuit') return false;
         const advanceBid = parseSuitBid(advance);
-        return advanceBid !== null && advanceBid.strain !== 'NT' &&
-          advanceBid.strain !== openingBid.strain &&
-          cheapestBidInStrainAfter(responseBid, advanceBid.strain) === advance;
+        return advanceBid !== null && advanceBid.level >= 2 && advanceBid.level <= 3;
       }
       if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       if (responseBid === null || responseBid.strain === 'NT') return false;
@@ -169,14 +183,49 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
   return false;
 }
 
-/// advancerSimplyRaisesOvercall identifies the cheapest legal raise of partner's natural suit
-/// overcall after responder's action.  The response may be artificial, so use the overcall itself
-/// as the previous contract when responder did not bid a contract.
-function advancerSimplyRaisesOvercall (overcall: ParsedSuitBid, response: Call,
-                                       advance: Call): boolean {
-  const responseBid = parseSuitBid(response);
-  const previousContract = responseBid ?? overcall;
-  return cheapestBidInStrainAfter(previousContract, overcall.strain) === advance;
+/// getAdvancerCallKindForOpenerRebid classifies the fourth physical call by its competitive
+/// meaning before opener acts again.  This keeps opener rules from inferring meaning from text
+/// alone: for example, 3H can be a raise, a preemptive raise, or an artificial cuebid depending on
+/// the auction.
+export function getAdvancerCallKindForOpenerRebid (dealer: Seat, auction: Call[]):
+    AdvancerCallKind | null {
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null || auction.length !== opening.index + 4) return null;
+  const openingBid = parseSuitBid(opening.call);
+  const overcall = auction[opening.index + 1];
+  const response = auction[opening.index + 2];
+  const advance = auction[opening.index + 3];
+  if (openingBid === null || overcall === undefined || response === undefined ||
+      advance === undefined) {
+    return null;
+  }
+  if (advance === 'Pass') return 'pass';
+  if (advance === 'Double') return 'responsiveDouble';
+  if (advance === 'Redouble') return 'redouble';
+  const advanceBid = parseSuitBid(advance);
+  if (advanceBid === null) return 'other';
+  if (advanceBid.strain === 'NT') return 'notrump';
+
+  const interference = getInterferenceAfterOpening(dealer, auction);
+  if (interference === 'suitOvercall') {
+    const overcallBid = parseSuitBid(overcall);
+    if (overcallBid === null || overcallBid.strain === 'NT') return 'other';
+    if (advanceBid.strain === openingBid.strain) return 'cuebid';
+    if (advanceBid.strain !== overcallBid.strain) return 'newSuit';
+    const responseBid = parseSuitBid(response);
+    const previousContract = responseBid ?? overcallBid;
+    const cheapestRaise = cheapestBidInStrainAfter(previousContract, overcallBid.strain);
+    if (cheapestRaise === advance) return 'raise';
+    const cheapestRaiseBid = cheapestRaise === null ? null : parseSuitBid(cheapestRaise);
+    return cheapestRaiseBid !== null && advanceBid.level === cheapestRaiseBid.level + 1
+      ? 'preemptiveRaise'
+      : 'other';
+  }
+
+  if (interference === 'takeoutDouble') {
+    return advanceBid.strain === openingBid.strain ? 'cuebid' : 'newSuit';
+  }
+  return 'other';
 }
 
 /// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:

@@ -111,6 +111,12 @@ The app should help the user practice bidding decisions using structured convent
   candidate is rejected or removed. Explanations should be able to distinguish a specific recorded
   rejection reason from a user call that simply has no modeled candidate. Do not assume evaluator
   or refiner early returns provide a complete rejection history.
+- `kind: 'scopeBoundary'` is an explanatory stopping declaration, not a bid rule. It creates no
+  candidate `Call`. A boundary may be hand-qualified through `scopeBoundaryWhen`, and its guidance
+  should explain why the trainer stops and what judgment remains. If a concrete modeled call
+  applies to the same hand, the concrete bid suppresses the boundary.
+- Reaching a scope boundary means the trainer deliberately stops judging later calls in that branch;
+  it does not imply that Pass is correct or that further bidding is impossible.
 
 ## Constraint Semantics
 
@@ -433,16 +439,20 @@ opener rebids use two explicit gates. `getBidStage` recognizes only physical com
 turns whose responder/advancer pattern has a declared continuation treatment. Within those turns,
 an ordinary opener-rebid rule must set `openerRebidAfterInterference: true` before its uncontested
 meaning can be reused; purpose-built competitive rules declare their `interference` context instead.
-When a natural opener rule is reused in competition, an opponent's natural suit is removed from
-its natural candidates because that call is now a cuebid rather than an ordinary second/help suit;
-a natural notrump rebid also requires the shared basic stopper in that suit.  The suit can come
-from the direct overcall or, in a selected takeout-Double continuation, from advancer's natural bid.
+`AdvancerCallContext` classifies the fourth physical call by meaning (`raise`, `preemptiveRaise`,
+`newSuit`, `responsiveDouble`, `cuebid`, and so on) so opener rules do not infer semantics from the
+bid text alone. When a natural opener rule is reused in competition, every suit the opponents have
+introduced naturally is removed from opener's natural candidates, and a natural notrump rebid
+requires the shared basic stopper in each such suit. Artificial cuebids and responsive Doubles do
+not create a natural opponent suit merely because they name or affect a strain.
 
 A natural forcing one-level response can retain its ordinary descriptive opener rebids after a
 suit overcall or takeout Double when advancer Passes. An ordinary simple raise can likewise reuse
-its established opener continuations, including selected auctions where advancer competes
-naturally. Reused natural rules remain subject to the opponent-suit and notrump-stopper protections
-above.
+selected opener continuations after advancer raises, makes a weak preemptive raise, bids a natural
+new suit, or makes a responsive Double. Minimum hands may Pass and clear maximum hands can still
+bid game. Ordinary medium game tries remain reusable only in the reviewed Pass/simple-raise
+auctions; after the other advancer actions, 17-18-point hands use a `scopeBoundary` because Pass
+versus continuing depends on competitive judgment not represented by the point model alone.
 
 A natural two-level new-suit response after a suit overcall is a distinct forcing-one-round family,
 independent of the uncontested `twoLevelNewSuitResponse` agreement. It promises five or more cards,

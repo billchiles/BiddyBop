@@ -11,6 +11,7 @@ import {
   openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
   openerNtNotrumpSignoffApplies, openerNtQuantitativeInvitationApplies,
   openerNtWeakMajorSignoffApplies, openerPreemptNewSuitRaiseApplies,
+  openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
   openerPreemptNewSuitRepeatApplies, openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
@@ -2190,6 +2191,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -2205,6 +2207,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise'] },
     },
     calls: ['3C', '3D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2225,6 +2228,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
@@ -2249,6 +2253,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['5C', '5D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2792,6 +2797,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -2807,6 +2813,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2829,6 +2836,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise'] },
     },
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2851,6 +2859,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise'] },
     },
     calls: ['2NT'],
     callCategory: ['forcing', 'invitational', 'natural'],
@@ -2871,6 +2880,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
     calls: ['4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
@@ -2879,6 +2889,31 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' } },
     meaning: 'Game is likely after revaluing the known major-suit fit.',
+    certainty: 'high',
+  },
+  //
+  // Once advancer makes a new natural suit, a preemptive raise, or a responsive Double,
+  // medium 17-18-point hands no longer have a deterministic version of the ordinary game try.
+  // Keep the auction teachable by stopping with hand-specific guidance rather than inventing a bid.
+  {
+    id: 'opener-rebid-scope-boundary-after-simple-raise-continued-competition',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after a simple raise and further advancer action',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['preemptiveRaise', 'newSuit', 'responsiveDouble'] },
+    },
+    scopeBoundaryWhen: openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
+    meaning: 'Medium opener values are sufficient to consider continuing, but no single action is ' +
+             'deterministic in this competitive position.',
+    guidance: [
+      'Pass may be right, and bidding on may also be right.  The decision depends heavily on ' +
+      'shape, trump texture, honor location, vulnerability, and how high the opponents have pushed ' +
+      'the auction.',
+      'The trainer stops here rather than turn an uncontested game try into false precision after ' +
+      'the opponents have changed the available bidding space.',
+    ],
     certainty: 'high',
   },
   //

@@ -410,6 +410,30 @@ export function refineOpenerNegativeDoubleMajorAfterAdvancerRaise (
   };
 }
 
+/// openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies identifies the medium-strength
+/// simple-raise hands for which further competition has removed the trainer's ordinary game-try
+/// structure.  These hands are strong enough to consider bidding again, but Pass versus competing
+/// depends on shape, trump texture, honor location, vulnerability, and the level already reached.
+export function openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: no one-level suit opening for this boundary.'] };
+  }
+  const majorFit = opening.strain === 'H' || opening.strain === 'S';
+  const points = majorFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  const success = points >= 17 && points <= 18;
+  const label = majorFit ? 'shortage-adjusted' : 'length-adjusted';
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'PASS' : 'FAIL'}: ${points} ${label} points; boundary range is 17-18.`,
+    ],
+  };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.

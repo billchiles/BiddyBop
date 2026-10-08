@@ -69,13 +69,14 @@ means we considered the area and deliberately chose not to model it as part of t
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
-clear.  Most current families still use advancer Pass, but selected natural advancer competition is
-also modeled when it leaves a well-defined opener decision.  After a natural forcing one-level
-response to a suit overcall or takeout Double, the ordinary descriptive opener-rebid family can
-continue when advancer Passes.  Ordinary simple raises retain their natural opener continuations
-when advancer Passes or makes the selected natural suit competition.  When an uncontested natural
-rule is reused in competition, an opponent's natural suit is not treated as opener's natural
-second/help suit, and a notrump rebid requires a stopper there.
+clear.  Most current families still use advancer Pass, but selected advancer competition is also
+modeled when it leaves a well-defined opener decision.  After a natural forcing one-level response
+to a suit overcall or takeout Double, the ordinary descriptive opener-rebid family can continue
+when advancer Passes.  After responder's simple raise, opener can also continue through selected
+advancer raises, preemptive raises, natural new suits, and responsive Doubles.  Minimum hands may
+have a real Pass; clear maximum hands can still bid game.  When an uncontested natural rule is
+reused in competition, every suit naturally introduced by the opponents is excluded from opener's
+natural second/help-suit candidates, and a notrump rebid requires a stopper in each such suit.
 
 A natural two-level new-suit response after a suit overcall is handled as its own forcing-one-round
 family rather than inheriting the partnership's uncontested 2/1 setting.  Responder has promised a
@@ -100,10 +101,14 @@ advancer Passes rather than manufacture a new descriptive bid.  After natural tw
 interference over our 1NT opening, the ordinary 2NT invitation accept/decline and natural 3NT
 signoff continuations retain their meanings.
 
-These remain `Incomplete`, not scope omissions.  Advancer actions beyond the selected natural suit
-competition, natural responder notrump after a suit overcall, three-level competitive new-suit
-responses, and jump-overcall continuations remain separate families to analyze rather than being
-inferred from same-looking uncontested auctions.
+These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
+trainer may now reach a hand-specific scope boundary when the auction is understood but the next
+choice depends too heavily on judgment for one deterministic recommendation.  For example, after a
+simple raise and further advancer competition, a 17-18-point opener may have enough to consider
+continuing while Pass is also plausible.  The app explains that judgment boundary rather than
+inventing a candidate call.  Strong advancer cuebids, natural responder notrump after a suit
+overcall, three-level competitive new-suit responses, and jump-overcall continuations remain
+separate families to analyze rather than being inferred from same-looking uncontested auctions.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

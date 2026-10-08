@@ -1,7 +1,9 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
-import { compareSuitBids, getBidStage, getInterferenceAfterOpening, isCallAvailableInAuction, parseSuitBid, responseJump } from '../src/models/auction';
+import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getBidStage,
+         getInterferenceAfterOpening, isCallAvailableInAuction, parseSuitBid, responseJump }
+  from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
@@ -920,6 +922,49 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
       call === 'Pass' && rule.id === 'opener-rebid-pass-after-double-weak-jump-raise')) {
     failures += 1;
     console.error("FAIL minimum opener could not Pass responder's weak preemptive jump raise.");
+  }
+
+  // Advancer semantics are part of opener's context: the same contract text can be a natural
+  // suit, raise, or cuebid depending on the earlier calls.  Keep these classifications explicit.
+  const advancerKinds: [Call[], string][] = [
+    [['1H', '1S', '2H', '3S'], 'preemptiveRaise'],
+    [['1H', '1S', '2H', '3C'], 'newSuit'],
+    [['1D', '1S', '2D', 'Double'], 'responsiveDouble'],
+    [['1S', '2H', '2S', '3S'], 'cuebid'],
+  ];
+  for (const [auction, expectedKind] of advancerKinds) {
+    checks += 1;
+    const actualKind = getAdvancerCallKindForOpenerRebid('N', auction);
+    if (actualKind !== expectedKind) {
+      failures += 1;
+      console.error(`FAIL advancer call kind ${actualKind ?? 'null'} != ${expectedKind} for ` +
+                    auction.join(' '));
+    }
+  }
+
+  // A hand-specific scope boundary explains the judgment-heavy middle without inventing a fake
+  // candidate bid.  If a concrete bid applies instead, the boundary must disappear.
+  const boundaryDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[2]!;
+  const { board: boundaryBoard } = makeRuleTestBoard(boundaryDeal);
+  const boundaryResult = evaluateUserCall(
+    'Pass', boundaryBoard, ['1D', '1S', '2D', '3S'], defaultBiddingSystem);
+  checks += 1;
+  if (! boundaryResult.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary') ||
+      getApplicableCandidateCalls(boundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL medium opener did not stop at a no-candidate scope boundary.');
+  }
+
+  const concreteDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[6]!;
+  const { board: concreteBoard } = makeRuleTestBoard(concreteDeal);
+  const concreteResult = evaluateUserCall(
+    'Pass', concreteBoard, ['1H', '1S', '2H', '3C'], defaultBiddingSystem);
+  checks += 1;
+  if (! getApplicableCandidateCalls(concreteResult).some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-major-simple-raise') ||
+      concreteResult.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary')) {
+    failures += 1;
+    console.error('FAIL concrete minimum Pass did not suppress the scope boundary.');
   }
 
   const unsupported: Call[][] = [

@@ -1,16 +1,17 @@
 /// User input and given a hand, auction context, user call, and rules, explain which rules apply 
 /// and whether the user call is accepted by any of them.
 ///
-import { type AuctionContext, type BidRule, type Call, type HandConstraint,
-         type PointRange, type TotalPointsRange, type SuitLengthConstraint, //type Strain,
-         type BiddingSystem, type BiddingAgreement, type HandShapeConstraint,
-         type RuleEvalContext, type AppliesWhenResult, type BidStage,
-         type ResponderCallContext, oneNtResponseHcpShift } from './bidding-types';
+import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
+         type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
+         type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
+         type AppliesWhenResult, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+  from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
-         getInterferenceAfterOpening, getPartnerOneNtSuitInterference } from './auction';
+         getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
+         getPartnerOneNtSuitInterference } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 import { hasBasicSuitStopper } from './common-rule-helpers';
@@ -162,6 +163,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   if (context.stage === 'responding') {
     ruleResults = maybeSuppress1NTWhenMajorSupport(ruleResults);
   }
+  ruleResults = maybeSuppressScopeBoundaryWhenBidApplies(ruleResults);
   // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
   // order only; it does not eliminate lower-ranked qualifying rules.
   ruleResults.sort((left, right) =>
@@ -181,7 +183,10 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
     }
   }
   if (matchingRulesForUserCall.length === 0) {
-    telemetryLines.push(`User call ${inputCall} did not satisfy any currently applicable rule.`);
+    const boundary = applicableRules.find((rule) => rule.kind === 'scopeBoundary');
+    telemetryLines.push(boundary === undefined
+      ? `User call ${inputCall} did not satisfy any currently applicable rule.`
+      : `Scope boundary ${boundary.id} applies; ${inputCall} is not judged by a candidate rule.`);
   } else {
     telemetryLines.push(`User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`);
   }
@@ -246,11 +251,21 @@ export function evaluateRules (rules: BidRule[], context: RuleEvalContext,
 
 function evaluateRule (rule: BidRule, context: RuleEvalContext,
                        system: BiddingSystem): RuleEvalResult {
-  const callResult = getRuleCalls(rule, context, system);
-  const calls = callResult.calls;
   const telemetryLines: string[] = [];
   const candidates: CandidateCallMatch[] = [];
   telemetryLines.push(`Rule ${rule.id}: ${rule.title}.`);
+  if (rule.kind === 'scopeBoundary') {
+    const result = rule.scopeBoundaryWhen === undefined
+      ? { success: true, telemetryLines: ['Scope boundary applies to this auction context.'] }
+      : rule.scopeBoundaryWhen(context, system);
+    telemetryLines.push(...result.telemetryLines.map((line) => `  ${line}`));
+    telemetryLines.push(result.success
+      ? '  PASS: scope boundary reached; no candidate call is created.'
+      : '  FAIL: scope boundary does not apply to this hand.');
+    return { rule, candidates, ruleApplies: result.success, telemetryLines };
+  }
+  const callResult = getRuleCalls(rule, context, system);
+  const calls = callResult.calls;
   telemetryLines.push(...callResult.telemetryLines.map((line) => `  ${line}`));
   if (calls.length === 0) {
     telemetryLines.push('  FAIL: rule has no calls after call refinement.');
@@ -344,6 +359,22 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   return { rule, call, ruleApplies: result.success, telemetryLines };
 }
 
+
+/// A scope boundary is explanatory fallback, not a competing bid rule.  If any concrete modeled
+/// call applies to the hand, suppress the boundary so normal bidding guidance wins.
+function maybeSuppressScopeBoundaryWhenBidApplies (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
+  const concreteRuleApplies = ruleResults.some((result) =>
+    result.rule.kind !== 'scopeBoundary' && result.ruleApplies &&
+    result.candidates.some((candidate) => candidate.ruleApplies));
+  if (! concreteRuleApplies) return ruleResults;
+  for (const result of ruleResults) {
+    if (result.rule.kind === 'scopeBoundary' && result.ruleApplies) {
+      result.ruleApplies = false;
+      result.telemetryLines.push('  SUPPRESSED: a concrete modeled call applies to this hand.');
+    }
+  }
+  return ruleResults;
+}
 
 /// maybeSuppressConvenientMinor takes all applicable rules for current auction and responder's hand
 /// and removes a declarative qualifying convenient-minor opening when an already-evaluated natural
@@ -1016,6 +1047,10 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
       return false;
     }
   }
+  if (ruleContext.advancerCall !== undefined &&
+      ! advancerCallMatches(ruleContext.advancerCall, evalContext)) {
+    return false;
+  }
 
   return true;
 }
@@ -1097,6 +1132,23 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
   return true;
 }
 
+function advancerCallMatches (constraint: AdvancerCallContext,
+                              context: RuleEvalContext): boolean {
+  const kind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  if (kind === null) return false;
+  if (constraint.kind !== undefined) {
+    const kinds = Array.isArray(constraint.kind) ? constraint.kind : [constraint.kind];
+    if (! kinds.includes(kind)) return false;
+  }
+  if (constraint.level !== undefined) {
+    const opening = getOpeningCallInfo(context.dealer, context.auction);
+    const advanceCall = opening === null ? undefined : context.auction[opening.index + 3];
+    const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+    if (advance === null || advance.level !== constraint.level) return false;
+  }
+  return true;
+}
+
 /// getRuleAuction derives the compact uncontested partnership auction from the authoritative physical auction.
 /// Opponent passes stay in context.auction; an AuctionContext.auction declaration matches this compact sequence literally.
 ///
@@ -1147,38 +1199,38 @@ function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
       rule.auctionContext?.openerRebidAfterInterference !== true) {
     return calls;
   }
-  const opponentSuit = getNaturalOpponentSuitForReusedOpenerRebid(context);
-  if (opponentSuit === null) {
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context);
+  if (opponentSuits.length === 0) {
     return calls;
   }
-  const stopper = hasBasicSuitStopper(context, opponentSuit);
   return calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null) return true;
-    if (bid.strain === opponentSuit) return false;
-    return bid.strain !== 'NT' || stopper;
+    if (bid.strain !== 'NT' && opponentSuits.includes(bid.strain)) return false;
+    return bid.strain !== 'NT' || opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
   });
 }
 
-/// getNaturalOpponentSuitForReusedOpenerRebid returns the opponent suit whose competitive meaning
-/// replaces an ordinary natural opener call.  A direct suit overcall supplies it immediately;
-/// after a takeout Double, the selected advancer-action family supplies it with advancer's natural
-/// suit bid.
-function getNaturalOpponentSuitForReusedOpenerRebid (context: RuleEvalContext): Suit | null {
+/// getOpponentNaturallyBidSuitsForOpenerRebid returns every suit the opponents have naturally
+/// bid before opener's rebid.  Reused ordinary rules must not present those strains as
+/// opener's natural second/help suit, and a reused notrump call needs a basic stopper in each.
+/// Artificial cuebids and responsive Doubles deliberately add no natural opponent suit.
+function getOpponentNaturallyBidSuitsForOpenerRebid (context: RuleEvalContext): Suit[] {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null) return null;
+  if (opening === null) return [];
+  const suits = new Set<Suit>();
   const interference = getInterferenceAfterOpening(context.dealer, context.auction);
   if (interference === 'suitOvercall') {
     const overcallCall = context.auction[opening.index + 1];
     const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-    return overcall !== null && overcall.strain !== 'NT' ? overcall.strain as Suit : null;
+    if (overcall !== null && overcall.strain !== 'NT') suits.add(overcall.strain as Suit);
   }
-  if (interference !== 'takeoutDouble') return null;
-  const advanceCall = context.auction[opening.index + 3];
-  const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
-  const openingBid = parseSuitBid(opening.call);
-  return advance !== null && advance.strain !== 'NT' && openingBid !== null &&
-    advance.strain !== openingBid.strain ? advance.strain as Suit : null;
+  if (getAdvancerCallKindForOpenerRebid(context.dealer, context.auction) === 'newSuit') {
+    const advanceCall = context.auction[opening.index + 3];
+    const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+    if (advance !== null && advance.strain !== 'NT') suits.add(advance.strain as Suit);
+  }
+  return [...suits];
 }
 
 /// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,

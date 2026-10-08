@@ -173,6 +173,9 @@ export interface BidRule {
   // Developer/author notes about source ambiguity, modeling questions, or future cleanup.  Not user
   // advice and not evaluator input.
   reviewNotes?: string[];
+  // scopeBoundaryWhen qualifies a no-candidate stopping point without inventing a bid.
+  // Omitted means the boundary applies whenever its auction context matches.
+  scopeBoundaryWhen?: ScopeBoundaryWhenFunction;
 }
 
 export type CallCategory =
@@ -191,6 +194,7 @@ export type RuleKind =
   | 'overcallerRebid'
   | 'advance'
   | 'openerRebid'
+  | 'scopeBoundary'
   | 'priority'
   | 'rebidGuidance'
   | 'footnote'
@@ -257,6 +261,17 @@ export interface ResponderCallContext {
   opponentSuit?: boolean;
 }
 
+export type AdvancerCallKind = 'pass' | 'raise' | 'preemptiveRaise' | 'newSuit' | 'notrump' |
+  'responsiveDouble' | 'cuebid' | 'redouble' | 'other';
+
+export interface AdvancerCallContext {
+  // Advancer's physical call is classified by its competitive meaning, not just its text.
+  // An array means any listed meaning is accepted by the rule.
+  kind?: AdvancerCallKind | AdvancerCallKind[];
+  // level is useful for natural contract actions; omitted means the rule does not care.
+  level?: RuleBidLevel;
+}
+
 /// First-opponent-call classification for responder rules.  An unmodeled intervention remains
 /// distinct from no intervention, so uncontested treatments cannot silently leak into it.
 export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
@@ -292,7 +307,15 @@ export interface AuctionContext {
   openerRebidAfterInterference?: boolean;
   // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
+  // advancerCall constrains the fourth physical call by its competitive meaning.  This is separate
+  // from responderCall because the same text can be a raise, cuebid, or natural new suit.
+  advancerCall?: AdvancerCallContext;
 }
+
+export type ScopeBoundaryWhenFunction = (
+  context: RuleEvalContext,
+  system: BiddingSystem,
+) => AppliesWhenResult;
 
 /// appliesWhen decides whether the current hand qualifies for a rule or candidate after auction-context matching.
 export type AppliesWhenFunction = (

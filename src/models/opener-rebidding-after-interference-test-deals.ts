@@ -322,4 +322,67 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'A87', H: 'T763', D: 'K', C: 'T9654' },
     south: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
   },
+  {
+    description: '1H-(1S)-2H-(3C)-Pass: advancer introduces a natural suit, but a minimum opener ' +
+                 'can still defend rather than manufacture another heart bid.',
+    dealer: 'W',
+    practiceAuction: ['1H', '1S', '2H', '3C', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-raise-new-suit-three-level',
+    ] }],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    west: { S: 'K72', H: 'AQJ94', D: 'K53', C: '83' },
+    north: { S: 'QJT86', H: '762', D: '8', C: 'A964' },
+    east: { S: '543', H: '853', D: 'Q7642', C: 'K2' },
+    south: { S: 'A9', H: 'KT', D: 'AJT9', C: 'QJT75' },
+  },
+  {
+    description: '1D-(1S)-2D-(Double)-Pass: a responsive Double does not force a minimum opener ' +
+                 'to compete again.',
+    dealer: 'W',
+    practiceAuction: ['1D', '1S', '2D', 'Double', 'Pass'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] }],
+    expectedAdvanceCalls: [{ call: 'Double', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-raise-responsive-double',
+    ] }],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-simple-raise'] },
+    ],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    east: { S: '543', H: '985', D: '6532', C: 'AQ2' },
+    south: { S: 'T9', H: 'KQJT', D: 'KT9', C: 'JT75' },
+  },
+  {
+    description: '1H-(Double)-2H-(Double)-Pass: advancer’s responsive Double asks the opponents ' +
+                 'to find a strain; a minimum opener can Pass.',
+    dealer: 'W',
+    practiceAuction: ['1H', 'Double', '2H', 'Double', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedAdvanceCalls: [{ call: 'Double', ruleIds: [
+      'advance-takeout-double-after-responder-raise-responsive-double',
+    ] }],
+    expectedOpenerRebidCalls: [
+      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
+    ],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    east: { S: '53', H: 'J87543', D: '64', C: 'AJ2' },
+    south: { S: 'QJT6', H: 'Q', D: 'AT97', C: 'QT83' },
+  },
 ];

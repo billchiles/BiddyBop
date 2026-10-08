@@ -247,7 +247,13 @@ function buildExplanationLines (title: string, result: BidEvalResult, unmodeledS
     lines.push('This auction position has no modeled rule family yet.');
   }
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
-  if (result.userCallMatchingRules.length === 0) {
+  const scopeBoundary = result.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
+  if (scopeBoundary !== undefined && candidates.length === 0) {
+    lines.push('Scope boundary reached.');
+    appendRuleExplanation(lines, scopeBoundary);
+    lines.push('  The trainer does not judge the entered call as correct or incorrect beyond ' +
+               'this modeled boundary.');
+  } else if (result.userCallMatchingRules.length === 0) {
     lines.push('No rule satisfied by this call.');
     const preferredRule = result.handMatchingRules[0];
     if (preferredRule !== undefined) {
