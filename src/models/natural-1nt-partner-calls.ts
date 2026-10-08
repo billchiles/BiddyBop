@@ -2,6 +2,22 @@
 /// The selected 1NT opening-range agreement also governs these advances; the overcaller's
 /// possible 18 HCP does not create a separate set of thresholds.
 /// Historical rule IDs and responseBid kinds are retained for both bidding roles.
+///
+/// These declarations intentionally form a stacked response family.  Individual rules describe
+/// locally valid meanings, so one hand can initially satisfy more than one rule.  The natural-NT
+/// suppressors in biddingEvaluation.ts then remove fallback calls when a preferred suit route
+/// applies.  With the standard 15-17 range, the main routing is:
+///   weak + 5+ major                -> Jacoby transfer, or natural 2M with transfers off
+///   8-9 + four-card major          -> Stayman when enabled
+///   8-9 otherwise                  -> 2NT invitation; a good six-card minor may be descriptive
+///   5-4 / 6-4 majors               -> Stayman first when strength permits
+///   invitational+ 5-5 majors       -> strength-dependent transfer ordering
+///   weak 5-5 majors                -> both transfer choices remain visible
+///   6+ major + game-only values    -> Texas, or natural 4M with Texas off
+///   6+ major + slam interest       -> direct strong 3M treatment, not the game-only route
+///
+/// Reduce the replying hand's HCP thresholds by one with the 16-18 agreement.  This is a routing
+/// map, not a second set of rule conditions; declarations and local helpers remain authoritative.
 
 import { oneNtResponseHcpShift, type AppliesWhenResult, type BidRule, type BiddingSystem,
          type Call, type RuleEvalContext } from './bidding-types';
@@ -31,13 +47,13 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
     id: 'respond-to-1nt-w/-2nt-8-9-invitational',
     // Raise 1NT to 2NT with 8-9 HCP to invite game.  Normally this is a balanced-hand bid;
     // without Stayman or Jacoby transfers, it is the basic natural invitation regardless of shape.
-    // See appliesWhen function for explanation of bidding reasoning.
+    // See the family comment above for how this invitation fits among the major-suit routes.
     kind: 'responseBid',
     title: 'Invite game over 1NT with 8-9 HCP',
     auctionContext: { partnerNaturalOneNt: true },
     calls: ['2NT'],
     callCategory: ['invitational'],
-    appliesWhen: oneNtTwoNtInvitationApplies, // see function for bidding explanation
+    appliesWhen: oneNtTwoNtInvitationApplies, // owns only local 2NT eligibility
     guidance: ['15-17: 8-9 HCP; 16-18: 7-8 HCP.'],
     meaning: 'Invitational raise to 2NT.',
     certainty: 'high',
@@ -360,30 +376,10 @@ export function oneNtNaturalMinorInvitationApplies (call: Call, context: RuleEva
   };
 }
 
-/// oneNtTwoNtInvitationApplies uses the ordinary balanced 2NT invitation, but when neither
-/// Stayman nor Jacoby transfers is available, 2NT is the basic natural 8-9 HCP invitation
-/// (7-8 opposite 16-18) regardless of shape.
-///
-/// These examples assume a 15-17 range; reduce the replying partner's HCP thresholds
-/// by one with the selected 16-18 agreement.
-/// ACBL instructional path starts without conventions:
-///    0–7 + 5+ major        -> 2M, weak signoff
-///    8–9                   -> 2NT, invitational
-///    10+ + exactly 5 major -> 3M, forcing / choice of games
-///    10+ + 6+ major        -> 4M, game
-///    10+ without major     -> 3NT
-/// Then adding Stayman fixes:
-///    8–9 + major           -> Stayman rather than inviting 2NT and missing a level of majors
-/// Adding transfers improves the whole 5+ major structure:
-//     all strengths + 5+ major -> transfer first, then describe strength
-/// With an unbalanced 8-9 HCP hand (5-4-3-1), with both Stayman and transfers disabled:
-///    not balanced -> current 2NT rule fails, but ACBL says to use this without stayman and jacoby
-///    too strong for the new weak 2M rule;
-///    too weak for natural forcing 3M;
-///    no Stayman, which normally provides an out to keep the level low and ask for major
-///    no transfer
-///
-/// This applies function doesn't impose the balanced condition when not using stayman and jacoby.
+/// oneNtTwoNtInvitationApplies owns only local eligibility for the natural 2NT invitation.
+/// It requires the adjusted invitational HCP range and normally balanced shape.  When both Stayman
+/// and Jacoby transfers are off, 2NT becomes the basic 8-9 HCP natural invitation regardless of
+/// shape.  See the response-family comment above for how suit routes interact with this candidate.
 ///
 export function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvalContext,
                                       system: BiddingSystem): AppliesWhenResult {

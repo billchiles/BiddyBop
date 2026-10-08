@@ -121,7 +121,7 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 ///    5. After all rules have been evaluated:
 ///       run cross-rule suppression logic
 ///       - convenient-minor suppression
-///       - our proposed NT-response fallback suppression
+///       - natural-NT response fallback suppression
 ///       - existing major-response 1NT suppression
 ///    6. Sort by priority.rank for presentation
 ///
@@ -388,10 +388,13 @@ function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalR
   return ruleResults;
 } // maybeSuppressConvenientMinor()
 
-/// maybeSuppressJacobyWhenForStayman resolves the 5-4-major overlap between ordinary Stayman and a
-/// Jacoby transfer.  With enough strength and 5-4 majors, responder uses Stayman first to look for
-/// the four-card-major fit rather than forcing it.  With 5-3 or 5-5 majors, Stayman does not
-/// qualify without 4-card major, so transfer remains available.
+/// The complete natural-1NT response-family routing map lives with the declarations in
+/// natural-1nt-partner-calls.ts.  The suppressors below each own only one cross-rule overlap.
+///
+/// maybeSuppressTransfersForStayman resolves the 5-4-major overlap between ordinary Stayman and a
+/// Jacoby transfer.  With enough strength and 5-4 majors, the replying hand uses Stayman first to
+/// look for the four-card-major fit rather than forcing it.  With 5-3 or 5-5 majors, Stayman does
+/// not qualify without a four-card major, so the transfer remains available.
 ///
 /// agreement.setting === 'jacobyTransfers' by itself does not mean a rule is a Jacoby transfer;
 /// it only means that rule's meaning depends on whether Jacoby transfers are enabled.  For example,
@@ -428,11 +431,11 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
     }
   }
   return ruleResults;
-} // maybeSuppressJacobyWhenForStayman()
+} // maybeSuppressTransfersForStayman()
 
-/// maybeSuppressOneFiveFiveMajorTransfer removes one of the two Jacoby transfers when responder has
-/// exactly five cards in each major and the bidding sequence gives one transfer a preferred meaning
-/// for this strength.
+/// maybeSuppressOneFiveOrMoreMajorTransfer removes one Jacoby transfer when the replying hand has
+/// 5+ cards in each major and the bidding sequence gives one transfer a preferred meaning for this
+/// strength.
 ///
 /// This transfer ordering is separate from ordinary natural-suit ordering.  When only natural suit
 /// bids are available by partnership agreement, bidding guidelines commonly use up-the-line choices
@@ -440,16 +443,16 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
 /// however, the first artificial bid can instead be chosen to preserve a particular rebid level and
 /// thereby communicate strength.
 ///
-/// After 1NT, 8-9 HCP (7-8 with 16-18) starts with the heart transfer so responder
+/// After 1NT, 8-9 HCP (7-8 with 16-18) starts with the heart transfer so the replying hand
 /// can bid 2S invitationally; 10+ (9+ with 16-18) starts with the spade transfer
 /// so a later 3H is game forcing.  After 2NT, 4+ HCP is already
 /// game going, so start with the heart transfer and preserve 3S to show the second major.
 ///
-/// Weak 5-5 hands are intentionally left unresolved.  Modern transfer methods commonly respond with
-/// a five-card major even with fewer than eight points rather than automatically passing 1NT,
-/// because playing in the major may be better than leaving the contract in NT.  Some bidding
+/// Weak 5-5 hands are intentionally left unresolved.  Modern transfer methods commonly use a
+/// five-card-major response even with fewer than eight points because the major may play better
+/// than leaving the contract in 1NT.  Some bidding
 /// methods instead use garbage/crawling Stayman with suitable weak two-major shapes.  For now,
-/// don't compares the two major suit qualities, and both weak transfer choices remain available.
+/// don't compare the two major-suit qualities, and both weak transfer choices remain available.
 ///
 function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
                                                 context: RuleEvalContext, system: BiddingSystem):
@@ -503,7 +506,7 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
     }
   }
   return ruleResults;
-} // maybeSuppressOneFiveFiveMajorTransfer()
+} // maybeSuppressOneFiveOrMoreMajorTransfer()
 
 /// maybeSuppressJacobyForDirectMajorSlam resolves the overlap between an ordinary Jacoby transfer
 /// and our direct 3H/3S slam-interest treatment.  With Jacoby transfers enabled, a direct 3M shows
@@ -565,13 +568,7 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvalResult[]) :
 /// The major-game rules themselves exclude another four-card or longer major: 6-4 hands start with
 /// Stayman, while two 5+ card majors use a lower-level transfer sequence to describe both suits.
 /// Jacoby remains available for weaker/invitational hands and stronger hands needing bidding room.
-///
-/// 5-3 major shape                 -> Jacoby
-/// 5-4 / 6-4 + Stayman strength   -> Stayman
-/// 5-5 / 6-5                       -> lower-level transfer route
-/// 6-3 + game-only values         -> Texas
-/// 6-3 + weaker/invitational      -> Jacoby
-/// 6-3 + slam interest            -> slower strong treatment, not Texas
+/// See natural-1nt-partner-calls.ts for the full major-shape routing map.
 ///
 function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
     RuleEvalResult[] {
@@ -614,13 +611,13 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 
 
 
-/// maybeSuppressNtResponseFallback takes all applicable rules for current auction and responder's
+/// maybeSuppressNtResponseFallback takes all applicable rules for the current auction and replying
 /// hand and removes a direct Pass or natural notrump response when a preferred suit response
 /// should come first.  This keeps the point-range NT ladder declarative while resolving Stayman,
 /// transfer, natural-major, and no-convention natural-minor choices.
 ///
-/// With Jacoby transfers available, responder first shows a five-card-or-longer major and then
-/// describes strength:
+/// With Jacoby transfers available, the replying hand first shows a five-card-or-longer major and
+/// then describes strength:
 ///   0-7 + 5-card major -> transfer, then pass
 ///   8-9 + 5-card major -> transfer, then bid 2NT
 ///   10+ + 5-card major -> transfer, then bid 3NT or otherwise describe the hand
@@ -636,6 +633,9 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 ///       1NT + 5 HCP + 5S-3-3-2  -> 2S natural       (Pass removed)
 ///       1NT + 8 HCP + 5S-3-3-2  -> 2NT              (correctly remains)
 ///       1NT + 10 HCP + 5S-3-3-2 -> 3S natural       (3NT removed)
+///
+/// See natural-1nt-partner-calls.ts for the complete response-family routing map; this function
+/// owns only the Pass/notrump fallback suppression.
 ///
 function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
     RuleEvalResult[] {
@@ -677,7 +677,7 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
   return ruleResults;
 } // maybeSuppressNtResponseFallback()
 
-/// maybeSuppressMajorOneNtResponse takes all applicable rules for current auction and responder's
+/// maybeSuppress1NTWhenMajorSupport takes all applicable rules for current auction and responder's
 /// hand and removes the no-support 1NT response when responder already has a qualifying one-level
 /// new-suit response.  After 1H, four or more spades are shown with 1S; the 1NT response is the
 /// fallback when that preferred one-level response is unavailable.
@@ -711,7 +711,7 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
     }
   }
   return ruleResults;
-} // maybeSuppressMajorOneNtResponse()
+} // maybeSuppress1NTWhenMajorSupport()
 
 
 ///

@@ -243,6 +243,19 @@ export const ResponseBidRules: BidRule[] = [
   },
   //
   // One-level major response rules match level 1 + major; refiners resolve strain-dependent calls.
+  // Major-support responses are a coordinated family rather than independent point ranges:
+  //   0-5                         -> Pass
+  //   6-10 + 3+ support          -> simple raise
+  //   11-12 + 4+ support         -> direct limit raise
+  //   11-12 + exactly 3          -> show 1S over 1H when available; otherwise 1NT, then raise
+  //   13+ + exactly 3            -> new suit first, then raise to game
+  //   13+ + 4+ support           -> Jacoby 2NT or new-suit-then-raise by agreement
+  //   13-15 + 4+ and shortness   -> splinter when enabled; it outranks the generic game force
+  //   weak + 5+ support          -> preemptive game raise can also qualify as a descriptive route
+  //
+  // The weak Pass, simple raise, and long-fit preemptive game raise can retain their ordinary
+  // meanings in modeled competition.  The stronger invitational/game-forcing routes below are
+  // explicitly uncontested and are replaced by competitive meanings after interference.
   //
   {
     id: 'respond-to-major-w/-support-pass-0-5',
@@ -383,7 +396,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'With 13+ and three-card major support, bid a new suit then raise to game',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
-    callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
+    callRefinement: refineMajorSupportNewSuitFirst, // choose the descriptive new-suit route
     callCategory: ['gameForcing'],
     // supportLength: [{ min: 4 }] almost captures normal cases declaratively, but it cannot also
     // express the 5+ heart requirement for 1S-2H and the sometimes three-card-minor fallback when
@@ -403,7 +416,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'With 13+ and four-card major support, bid a new suit then raise to game',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
-    callRefinement: refineMajorSupportNewSuitFirst, // makes 3 choices, see below
+    callRefinement: refineMajorSupportNewSuitFirst, // choose the descriptive new-suit route
     callCategory: ['gameForcing'],
     agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise',
                  note: 'Show game-forcing support by bidding a new suit first, then raising.' },
@@ -1065,8 +1078,16 @@ export const ResponseBidRules: BidRule[] = [
   },
   //
   // Respond after interference
-  // Direct responses after a natural, non-jump opponent suit overcall.  These meanings are
-  // independent of the uncontested 2/1, jump-shift, Jacoby 2NT, and support-route agreements.
+  // Direct responses after a natural, non-jump opponent suit overcall form their own family; do
+  // not inherit uncontested 2/1, jump-shift, Jacoby 2NT, or limit-raise meanings.  The main routes
+  // work together as follows:
+  //   suitable unbid-major shape          -> negative Double
+  //   natural new suit                    -> forcing at one/two levels; game forcing at three
+  //   invitational-or-better support      -> cuebid the opponent's suit
+  //   weak long support                   -> preemptive jump raise
+  //   balanced values + opponent stopper  -> natural 1NT/2NT/3NT by strength
+  // Shared weak Pass and simple-raise rules declared earlier remain available where their ordinary
+  // meaning survives the modeled competition.
   //
   {
     id: 'respond-over-suit-negative-double',
@@ -1177,8 +1198,17 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  // After a takeout double, one-level new suits remain forcing, but ordinary two-level
-  // new suits and jump shifts are weak/nonforcing. Jordan 2NT is not Jacoby or natural NT.
+  // After a takeout double, the response family changes meaning rather than reusing the
+  // uncontested strong-response structure:
+  //   10+ HCP                         -> strength-showing Redouble may qualify
+  //   limit-raise-or-better support   -> Jordan 2NT
+  //   one-level new suit              -> natural and forcing
+  //   weak good two-level new suit    -> natural and nonforcing
+  //   weak long new suit / support    -> weak jump shift or preemptive jump raise
+  //   6-9 balanced                    -> natural 1NT
+  // Jordan and Redouble deliberately overlap with some 10+ hands: Jordan is the more descriptive
+  // support call and ranks higher, while Redouble remains visible as a general strength-showing
+  // action.  Shared weak Pass/simple raises can also retain their ordinary competitive meaning.
   //
   {
     id: 'respond-after-double-redouble-values',

@@ -215,7 +215,8 @@ export function refineMajorTwoLevelNewSuitByLength (
 /// refineThreeCardLimitRaiseOneNtFallback keeps 1NT for an exactly-three-card limit raise only
 /// when responder cannot first show four or more spades over a 1H opening.  After 1S there is no
 /// one-level new suit, so 1NT remains the catch-all route under either forcing or non-forcing
-/// partnership treatment.
+/// partnership treatment.  See the major-support family comment in responding-rules.ts for the
+/// surrounding direct-raise and new-suit-then-raise routes.
 ///
 export function refineThreeCardLimitRaiseOneNtFallback (
     calls: Call[], context: RuleEvalContext): CallRefinementResult {
@@ -252,7 +253,8 @@ export function refineThreeCardMajorSupportNewSuitFirst (
 /// Keep legal new-suit responses to opening, requiring 4+ spades for 1H-1S, 5+ hearts for 1S-2H,
 /// and 4+ cards for a new minor at the two level.  If no normally qualifying new suit is available,
 /// allow a three-card minor as a fallback.  Do not retain that fallback when a normally qualifying
-/// new suit exists.  Order surviving calls according to the preferred new-suit treatment.
+/// new suit exists.  Order surviving calls according to the preferred new-suit treatment.  See the
+/// major-support family comment in responding-rules.ts for when this route is chosen.
 ///
 export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEvalContext) :
       CallRefinementResult {
