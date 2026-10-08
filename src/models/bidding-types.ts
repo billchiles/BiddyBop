@@ -245,7 +245,8 @@ export type RuleBidLevel = 1 | 2 | 3 | 4;
 export interface ResponderCallContext {
   // kind classifies responder's actual call relative to opener's opening bid.
   // newSuit means a different suit, raise means opener's suit, and notrump means NT.
-  kind?: 'newSuit' | 'raise' | 'notrump';
+  // Double and Redouble are explicit artificial competitive calls rather than contract bids.
+  kind?: 'newSuit' | 'raise' | 'notrump' | 'double' | 'redouble';
   // level is the absolute bid level, not the size of a jump.
   level?: RuleBidLevel;
   // jump is the number of levels above the cheapest legal bid in responder's strain.  0 requires
@@ -281,8 +282,11 @@ export interface AuctionContext {
   openerLevel?: RuleBidLevel;
   // openerStrain constrains the opening strain; suit means non-NT, while minor/major match either suit in that family.
   openerStrain?: Strain | 'suit' | 'minor' | 'major';
-  // interference restricts responder treatments to a direct opponent action.  Omitted means any.
+  // interference restricts a rule to the direct opponent action after opener.  Omitted means any.
   interference?: DirectInterference;
+  // Ordinary opener-rebid rules must opt in before they can be reused after opponent interference.
+  // Explicit competitive opener-rebid rules instead declare their interference context directly.
+  openerRebidAfterInterference?: boolean;
   // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
 }

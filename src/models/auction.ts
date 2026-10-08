@@ -59,18 +59,23 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
       overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
     return 'overcallerRebid';
   }
-  // Later opener/responder continuation meanings after competition remain unreviewed.
-  // Recognize Double as intervention here, without treating it as a penalty-double decision.
+  // Competitive opener rebids are admitted deliberately rather than by removing the general
+  // competition guard.  This treatment recognizes only responder meanings with explicit opener
+  // continuations when advancer passes.  Rule-context matching supplies a second guard so
+  // unrelated uncontested opener-rebid meanings still cannot leak into these auctions.
   const opponentsBid = auction.some((call, index) =>
     index > opening.index && (isContractBid(call) || call === 'Double') &&
     getSeatForCallIndex(dealer, index) !== opening.seat &&
     getSeatForCallIndex(dealer, index) !== responder);
-  if (opponentsBid) {
-    return null;
-  }
   const partnershipCalls = getOpeningPartnershipCalls(dealer, auction, opening.seat);
   if (nextSeat === opening.seat && partnershipCalls.length === 2) {
-    return 'openerRebid';
+    if (! opponentsBid || isSupportedCompetitiveOpenerRebid(dealer, auction, opening)) {
+      return 'openerRebid';
+    }
+    return null;
+  }
+  if (opponentsBid) {
+    return null;
   }
   if (nextSeat === responder && partnershipCalls.length === 3) {
     return 'responderRebid';
@@ -78,9 +83,61 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   return null;
 }
 
+/// isSupportedCompetitiveOpenerRebid recognizes only physical auctions whose responder meaning
+/// has an explicitly modeled opener continuation.  Advancer must Pass; advancer competition
+/// is a separate context rather than something inferred from these cases.
+function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
+                                             opening: OpeningBidInfo): boolean {
+  if (auction.length !== opening.index + 4 ||
+      auction[opening.index + 3] !== 'Pass') {
+    return false;
+  }
+  const openingBid = parseSuitBid(opening.call);
+  const overcall = auction[opening.index + 1];
+  const response = auction[opening.index + 2];
+  if (openingBid === null || overcall === undefined || response === undefined) {
+    return false;
+  }
+
+  // After a one-level suit opening, reuse reviewed natural one-level responses and explicitly
+  // modeled negative-Double / strength-Redouble continuations.
+  if (openingBid.level === 1 && openingBid.strain !== 'NT') {
+    const interference = getInterferenceAfterOpening(dealer, auction);
+    if (interference === 'suitOvercall') {
+      const overcallBid = parseSuitBid(overcall);
+      if (overcallBid === null || overcallBid.strain === 'NT') return false;
+      if (response === 'Double') {
+        // This selected negative-Double continuation covers an implied major fit.  When opener
+        // and overcaller have already named both majors, responder instead implies the minors.
+        return (openingBid.strain !== 'H' && overcallBid.strain !== 'H') ||
+          (openingBid.strain !== 'S' && overcallBid.strain !== 'S');
+      }
+      const responseBid = parseSuitBid(response);
+      return responseBid !== null && responseBid.level === 1 && responseBid.strain !== 'NT' &&
+        responseBid.strain !== openingBid.strain && responseBid.strain !== overcallBid.strain;
+    }
+    if (interference === 'takeoutDouble') {
+      if (response === 'Redouble') return true;
+      const responseBid = parseSuitBid(response);
+      return responseBid !== null && responseBid.level === 1 && responseBid.strain !== 'NT' &&
+        responseBid.strain !== openingBid.strain;
+    }
+    return false;
+  }
+
+  // The selected 1NT-interference treatment keeps natural 2NT invitation and 3NT signoff
+  // meanings.  Suit responses and negative Double are outside this shared continuation.
+  if (opening.call === '1NT') {
+    const overcallBid = parseSuitBid(overcall);
+    return overcallBid !== null && overcallBid.level === 2 && overcallBid.strain !== 'NT' &&
+      (response === '2NT' || response === '3NT');
+  }
+  return false;
+}
+
 /// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:
 /// responder after partner opens 1NT, and advancer after partner directly overcalls 1NT.
-/// This first treatment stops at natural two-level suit interference.
+/// This treatment stops at natural two-level suit interference.
 ///
 export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
     PartnerOneNtSuitInterference | null {

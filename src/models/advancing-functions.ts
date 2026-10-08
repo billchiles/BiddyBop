@@ -4,7 +4,7 @@ import { type AppliesWhenResult, type Call, type CallRefinementResult,
          type RuleEvalContext } from './bidding-types';
 import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
          parseSuitBid, type ParsedSuitBid } from './auction';
-import { hasBasicSuitStopper } from './common-rule-helpers';
+import { getNegativeDoubleImpliedSuits, hasBasicSuitStopper } from './common-rule-helpers';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 
 
@@ -786,12 +786,6 @@ function getNaturalSuitOvercallWithResponderNegativeDouble (
     return null;
   }
   return { opening, overcall };
-}
-
-function getNegativeDoubleImpliedSuits (opening: ParsedSuitBid, overcall: ParsedSuitBid): Suit[] {
-  const unbidSuits = SUITS.filter((suit) => suit !== opening.strain && suit !== overcall.strain);
-  const unbidMajors = unbidSuits.filter((suit) => suit === 'H' || suit === 'S');
-  return unbidMajors.length > 0 ? unbidMajors : unbidSuits;
 }
 
 function hasSelectedNewSuitAfterNegativeDouble (

@@ -9,10 +9,11 @@ import { type AuctionContext, type BidRule, type Call, type HandConstraint,
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
-         getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, responseJump,
+         getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getInterferenceAfterOpening, getPartnerOneNtSuitInterference } from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
+import { hasBasicSuitStopper } from './common-rule-helpers';
 
 
 /// user input -> normalize to Call -> build RuleEvalContext
@@ -960,8 +961,16 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
     return false;
   }
 
-  if (ruleContext.interference !== undefined &&
-      ruleContext.interference !== getInterferenceAfterOpening(evalContext.dealer, evalContext.auction)) {
+  const interference = getInterferenceAfterOpening(evalContext.dealer, evalContext.auction);
+  // getBidStage admits only reviewed physical competitive opener turns.  Keep ordinary opener
+  // rules isolated as a second line of defense: reuse must be explicit, while a rule that declares
+  // interference is already a purpose-built competitive treatment.
+  if (evalContext.stage === 'openerRebid' && interference !== 'none' &&
+      ruleContext.openerRebidAfterInterference !== true &&
+      ruleContext.interference === undefined) {
+    return false;
+  }
+  if (ruleContext.interference !== undefined && ruleContext.interference !== interference) {
     return false;
   }
 
@@ -1046,7 +1055,15 @@ function matchesPartnerNaturalTwoNtOverWeakTwo (context: RuleEvalContext): boole
 
 function responderCallMatches (constraint: ResponderCallContext, openingCall: Call,
                                responseCall: Call): boolean {
-  if (! isContractBid(openingCall) || ! isContractBid(responseCall)) {
+  if (! isContractBid(openingCall)) {
+    return false;
+  }
+  if (responseCall === 'Double' || responseCall === 'Redouble') {
+    const kind = responseCall === 'Double' ? 'double' : 'redouble';
+    return (constraint.kind === undefined || constraint.kind === kind) &&
+      constraint.level === undefined && constraint.jump === undefined;
+  }
+  if (! isContractBid(responseCall)) {
     return false;
   }
 
@@ -1109,18 +1126,47 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   return callSuit === openerStrain;
 }
 
-/// getRuleCalls first removes mechanically unavailable contract calls, then refines them.
-/// Refiners must never have to select an illegal call before the alternative calls are considered.
+
+/// filterReusedOpenerRebidCalls protects meanings that change when ordinary natural opener
+/// rules are reused after a suit overcall.  The opponent's suit is now a cuebid rather than a
+/// natural second suit, and a natural notrump rebid requires a basic stopper in that suit.
+function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
+                                       context: RuleEvalContext): Call[] {
+  if (context.stage !== 'openerRebid' ||
+      rule.auctionContext?.openerRebidAfterInterference !== true ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+    return calls;
+  }
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const overcallCall = opening === null ? undefined : context.auction[opening.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (overcall === null || overcall.strain === 'NT') {
+    return calls;
+  }
+  const stopper = hasBasicSuitStopper(context, overcall.strain as Suit);
+  return calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null) return true;
+    if (bid.strain === overcall.strain) return false;
+    return bid.strain !== 'NT' || stopper;
+  });
+}
+
+/// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
+/// then refines the remaining candidates.  Refiners never have to select an illegal or
+/// semantically repurposed call before alternative calls are considered.
 ///
 function getRuleCalls (rule: BidRule, context: RuleEvalContext,
                        system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
   if (rule.calls === undefined) {
     return { calls: [], telemetryLines: [] };
   }
-  const available = rule.calls.filter((call) => isCallAvailableInAuction(call, context.auction));
-  const removed = rule.calls.filter((call) => ! available.includes(call));
+  const mechanicallyAvailable = rule.calls.filter((call) =>
+    isCallAvailableInAuction(call, context.auction));
+  const removed = rule.calls.filter((call) => ! mechanicallyAvailable.includes(call));
   const telemetryLines = removed.length === 0 ? [] :
     [`Unavailable in this auction: ${removed.join(', ')}.`];
+  const available = filterReusedOpenerRebidCalls(rule, mechanicallyAvailable, context);
   if (rule.callRefinement === undefined || available.length === 0) {
     return { calls: available, telemetryLines };
   }

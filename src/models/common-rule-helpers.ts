@@ -1,10 +1,21 @@
 /// Shared Auction and Valuation Helpers: refiners, applicability checks, and related helpers.
 
 import { type RuleEvalContext } from './bidding-types';
-import { getCardsForSuit, type Suit } from './cards';
+import { getCardsForSuit, SUITS, type Suit } from './cards';
 import { getOpeningCallInfo, getPartnerOpeningCall, getResponderCall, parseSuitBid, 
          type ParsedSuitBid } from './auction';
 
+
+
+/// getNegativeDoubleImpliedSuits returns the unbid suits responder's negative Double asks partner
+/// to consider.  When any unbid major exists, the major suit or suits are the primary implication;
+/// only when neither unbid suit is a major does the treatment imply both minors.
+export function getNegativeDoubleImpliedSuits (opening: ParsedSuitBid,
+                                               overcall: ParsedSuitBid): Suit[] {
+  const unbidSuits = SUITS.filter((suit) => suit !== opening.strain && suit !== overcall.strain);
+  const unbidMajors = unbidSuits.filter((suit) => suit === 'H' || suit === 'S');
+  return unbidMajors.length > 0 ? unbidMajors : unbidSuits;
+}
 
 export function getWeakTwoOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
   const opening = getOpenerOpeningBid(context);

@@ -428,11 +428,23 @@ When that call is `Double` of a one-level suit opening, responder's rules includ
 - Natural 1NT with 6-9 HCP and strict balanced shape; no specific opposing-suit stopper
   is required because the opponent has doubled rather than bid a suit.
 
-Unchanged weak Pass and ordinary simple raises continue to use shared responder rules. When a
-contested opener turn has no selected competitive continuation treatment, `getBidStage` returns
-`null` rather than selecting uncontested `openerRebid` rules. This protects meanings that depend on
-the original uncontested response; it is a scope boundary, not an auction-legality or scoring
-restriction.
+Unchanged weak Pass and ordinary simple raises continue to use shared responder rules. Competitive
+opener rebids use two explicit gates. `getBidStage` recognizes only physical competitive opener
+turns whose responder/advancer pattern has a declared continuation treatment. Within those turns,
+an ordinary opener-rebid rule must set `openerRebidAfterInterference: true` before its uncontested
+meaning can be reused; purpose-built competitive rules declare their `interference` context instead.
+When a natural opener rule is reused after a suit overcall, the overcaller's suit is removed from
+its natural candidates because that call is now a cuebid rather than an ordinary second suit; a
+natural notrump rebid also requires the shared basic stopper in the overcalled suit.
+
+A natural forcing one-level response can retain its ordinary descriptive opener rebids after a
+suit overcall or takeout Double when advancer Passes. After a negative Double of a natural suit
+overcall, opener with four or more cards in an implied major bids it economically with minimum
+values, jumps one level with medium values, and bids game with maximum values. After responder's
+strength-showing Redouble of a takeout Double and advancer's Pass, opener may also Pass; this waits
+for the doubler's next turn and does not create a general penalty-double system. After natural
+two-level suit interference over a 1NT opening, the ordinary natural 2NT invitation accept/decline
+and natural 3NT signoff continuations retain their meanings.
 
 ## Responder after an opponent's natural 1NT overcall
 

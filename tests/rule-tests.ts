@@ -83,7 +83,7 @@ function runAuctionHelperTests (): number {
     }
   }
   console.log(`Auction helpers: ${cases.length} responseJump checks and ${comparisonCases.length} ` +
-              `bid-order comparisons; ${failureCount} failures.`);
+              `bid-order comparisons; ${failureCount} ***FAILURES***.`);
   console.log('  Verifies jump sizes (including zero) and correct suit-bid ordering.');
   console.log('  These are fundamental calculations used throughout the bidding rules.');
   return failureCount;
@@ -167,7 +167,7 @@ function runAuctionContextTests (): number {
       }
     }
   }
-  console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} failures.`);
+  console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} ***FAILURES***.`);
   console.log('  Verifies that mock rules match the correct opening level, suit, and auction');
   console.log('  sequence, without accidentally matching unrelated auctions.');
   return failureCount;
@@ -196,7 +196,18 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1D', 'Double', 'Pass'], expected: 'advancing' },
     { auction: ['1D', 'Double', '2D'], expected: 'advancing' },
     { auction: ['1D', 'Double', 'Pass', 'Pass'], expected: null },
-    { auction: ['1D', 'Double', 'Redouble', 'Pass'], expected: null },
+    { auction: ['1D', '1S', 'Double', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1D', '1S', '1H', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', 'Double', '1S', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1D', 'Double', 'Redouble', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1NT', '2H', '2NT', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1NT', '2H', '3NT', 'Pass'], expected: 'openerRebid' },
+    { auction: ['1H', '1S', '2C', 'Pass'], expected: null },
+    { auction: ['1H', '1S', '2S', 'Pass'], expected: null },
+    { auction: ['1H', 'Double', '2NT', 'Pass'], expected: null },
+    { auction: ['1H', 'Double', '1S', '2C'], expected: null },
+    { auction: ['1NT', '2H', '3C', 'Pass'], expected: null },
+    { auction: ['1D', '2S', 'Double', 'Pass'], expected: null },
     { auction: ['1D', 'Pass', '1H', 'Pass'], expected: 'openerRebid' },
   ];
   for (const testCase of stages) {
@@ -454,7 +465,7 @@ function runCompetitionBoundaryTests (): number {
       }
     }
   }
-  console.log(`Competition boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Competition boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Checks bidding stages, legal calls, interference classifications, and');
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.');
   return failures;
@@ -521,7 +532,7 @@ function runResponderInterferenceScopeBoundaryTests (): number {
     }
   }
 
-  console.log(`Responder interference scope: ${checks} checks; ${failures} failures.`);
+  console.log(`Responder interference scope: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Keeps omitted opening families outside competitive responder evaluation while');
   console.log('  preserving the intentionally shared weak Pass in supported one-level auctions.');
   return failures;
@@ -637,7 +648,7 @@ function runRuleTests (): number {
   }
   console.log(`Primary: ${dealCount} deals; ${positiveCount} positive, ${eliminationCount} elimination, ` +
               `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks; ` +
-              `${failureCount} failures.`);
+              `${failureCount} ***FAILURES***.`);
   console.log('  Runs practice deals through the production bidding evaluator, checking');
   console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.');
   // Independently verify that practice calls also work in representative dropdown configurations.
@@ -706,11 +717,106 @@ function runConventionCompatibilityChecks (): number {
   }
   console.log('Compatibility meta-check for the four Stayman/Jacoby/Texas setting combinations: ' +
               `${compatibleDeals} eligible deal/configuration runs, ` +
-              `${recordedCalls} recorded practice-call checks; ${failureCount} failures.`);
+              `${recordedCalls} recorded practice-call checks; ${failureCount} ***FAILURES***.`);
   console.log('  Replays eligible practice auctions under four representative convention');
   console.log('  configurations to ensure their recorded calls remain valid.');
   console.log();
   return failureCount;
+}
+
+/// Competitive opener-rebid boundaries protect the deliberately narrow selected family.  Natural
+/// one-level responses can reuse opted-in descriptive rules, while same-looking two-level, cuebid,
+/// Jordan, jump-overcall, and advancer-competition auctions are not admitted by this family.
+function runCompetitiveOpenerRebidBoundaryTests (): number {
+  let checks = 0;
+  let failures = 0;
+
+  const { board: redoubleBoard } = makeRuleTestBoard(RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[0]!);
+  const redoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Pass', redoubleBoard, ['1H', 'Double', 'Redouble', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! redoubleCandidates.some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-takeout-redouble')) {
+    failures += 1;
+    console.error('FAIL opener Pass did not survive after strength Redouble and advancer Pass.');
+    console.error(`  Surviving: ${formatCandidates(redoubleCandidates)}`);
+  }
+
+  // Reusing a natural opener family after an overcall must not turn the opponent's suit into a
+  // natural second suit.  In this hand diamonds are opener's only four-card side suit.
+  const { board: cueBoard } = makeRuleTestBoard({
+    description: 'Opponent-suit exclusion for a reused opener rebid.',
+    practiceAuction: ['1C', '1D', '1H', 'Pass', 'Pass'],
+    north: { S: 'A64', H: '2', D: 'KJ63', C: 'AQ972' },
+    south: { S: 'QJT8', H: 'KQJ9', D: '854', C: '86' },
+  });
+  const cueCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2D', cueBoard, ['1C', '1D', '1H', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (cueCandidates.some(({ call, rule }) =>
+      call === '2D' && rule.id === 'opener-rebid-second-suit-after-minor-one-level-new-suit')) {
+    failures += 1;
+    console.error('FAIL reused opener rule treated opponent diamonds as a natural second suit.');
+  }
+
+  // A reused natural notrump rebid after a suit overcall needs the same conservative stopper
+  // used by the other natural NT families.  These hands differ only in the diamond holding that
+  // supplies or denies a stopper.
+  const noStopperDeal: RuleTestDeal = {
+    description: 'Reused opener 1NT requires a stopper in the overcalled suit.',
+    practiceAuction: ['1C', '1D', '1H', 'Pass', '1NT'],
+    north: { S: 'A64', H: 'K2', D: '9863', C: 'AQT7' },
+    south: { S: 'QJ8', H: 'AQ74', D: 'T52', C: 'K86' },
+  };
+  const { board: noStopperBoard } = makeRuleTestBoard(noStopperDeal);
+  const noStopperCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', noStopperBoard, ['1C', '1D', '1H', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (noStopperCandidates.some(({ call, rule }) =>
+      call === '1NT' && rule.id === 'opener-rebid-1nt-after-minor-one-level-new-suit')) {
+    failures += 1;
+    console.error('FAIL reused opener 1NT survived without a stopper in the overcalled suit.');
+  }
+
+  const stopperDeal: RuleTestDeal = {
+    ...noStopperDeal,
+    description: 'Reused opener 1NT remains available with a stopper in the overcalled suit.',
+    north: { S: 'A64', H: 'K2', D: 'J963', C: 'AQT7' },
+    south: { S: 'QJ8', H: 'AQ74', D: 'T52', C: 'K86' },
+  };
+  const { board: stopperBoard } = makeRuleTestBoard(stopperDeal);
+  const stopperCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', stopperBoard, ['1C', '1D', '1H', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! stopperCandidates.some(({ call, rule }) =>
+      call === '1NT' && rule.id === 'opener-rebid-1nt-after-minor-one-level-new-suit')) {
+    failures += 1;
+    console.error('FAIL reused opener 1NT disappeared despite a stopper in the overcalled suit.');
+    console.error(`  Surviving: ${formatCandidates(stopperCandidates)}`);
+  }
+
+  const unsupported: Call[][] = [
+    ['1H', '1S', '2C', 'Pass'],       // Competitive two-level response, not ordinary 2/1.
+    ['1H', '1S', '2S', 'Pass'],       // Artificial support cuebid.
+    ['1H', 'Double', '2NT', 'Pass'],  // Jordan 2NT, not Jacoby.
+    ['1H', 'Double', '1S', '2C'],     // Advancer competes instead of passing.
+    ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
+    ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
+    ['1H', '1S', 'Double', 'Pass'],   // Double implies minors, not this major-fit family.
+  ];
+  for (const auction of unsupported) {
+    checks += 1;
+    if (getBidStage('N', auction) !== null) {
+      failures += 1;
+      console.error(
+        `FAIL unsupported competitive opener turn reached a stage: ${auction.join(' ')}.`);
+    }
+  }
+
+  console.log(`Competitive opener-rebid boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log('  Allows the selected advancer-Pass continuations while keeping repurposed');
+  console.log('  responder meanings and advancer competition outside this selected family.');
+  return failures;
 }
 
 /// This first advancer family must not leak into interfering or higher-level auctions.
@@ -812,7 +918,7 @@ function runAdvancingBoundaryTests (): number {
     failures += 1;
     console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
   }
-  console.log(`Advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Prevents ordinary suit-overcall advances from appearing in unsupported');
   console.log('  auctions; checks stoppers, suit quality, and strength requirements.');
   return failures;
@@ -878,7 +984,7 @@ function runTakeoutAdvanceBoundaryTests (): number {
     failures += 1;
     console.error('FAIL takeout double 1NT needs a stopper.');
   }
-  console.log(`Takeout advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Takeout advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Checks takeout-double auction eligibility, the exceptional three-card');
   console.log('  suit response, and stopper requirements for notrump advances.');
   return failures;
@@ -932,7 +1038,7 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
       console.error(`FAIL 1NT advance invitation under ${range} agreement.`);
     }
   }
-  console.log(`Shared 1NT advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Shared 1NT advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
   console.log('  respect partnership range settings, and exclude unrelated auctions.');
   return failures;
@@ -1066,7 +1172,7 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
     console.error('FAIL responsive Double exceeded the modeled 11-point maximum.');
   }
 
-  console.log(`Responder-raise advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Responder-raise advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Restricts the new rules to simple raises and keeps responsive Double behind');
   console.log('  a clear fit, a five-card natural suit, or the modeled strong-hand cuebid.');
   return failures;
@@ -1136,7 +1242,7 @@ function runResponderNaturalActionAdvanceBoundaryTests (): number {
     console.error('FAIL natural responder-action family introduced an unagreed Double.');
   }
 
-  console.log(`Responder-action advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Responder-action advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Limits these advances to natural new-suit or 1NT responses and keeps');
   console.log('  artificial responder calls, jumps, and unrelated actions outside this family.');
   return failures;
@@ -1245,7 +1351,7 @@ function runResponderArtificialActionAdvanceBoundaryTests (): number {
   }
 
   console.log(`Artificial responder-action advancing boundaries: ${checks} checks; ` +
-              `${failures} failures.`);
+              `${failures} ***FAILURES***.`);
   console.log('  Keeps strength-showing Redouble and weak takeout-Double escapes in their');
   console.log('  exact auctions, excluding implied suits, jumps, and stronger runout decisions.');
   return failures;
@@ -1313,7 +1419,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL negative Double did not work in the advancer 1NT-overcall context.');
   }
 
-  console.log(`1NT-interference partner boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`1NT-interference partner boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
   console.log('  enforcement, negative Double, and the current two-level interference boundary.');
   return failures;
@@ -1385,7 +1491,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     failures += 1;
     console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
   }
-  console.log(`Jump-overcall advancing boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`Jump-overcall advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Checks genuine jump overcalls, unsupported auctions and calls, and');
   console.log('  the strength and suit quality required for forcing new-suit advances.');
   return failures;
@@ -1463,7 +1569,7 @@ function runDontBoundaryTests (): number {
     console.error('FAIL DONT relay correction survived opener competition.');
   }
 
-  console.log(`DONT boundaries: ${checks} checks; ${failures} failures.`);
+  console.log(`DONT boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
   console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
   console.log('  shape/strength floor, and stops the pass-or-correct path after interference.');
   return failures;
@@ -1499,7 +1605,7 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
 
 const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
-  runAdvancingBoundaryTests() +
+  runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +

@@ -6,11 +6,11 @@ import {
 } from './bidding-types';
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
 import {
-  cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getResponderCall,
-  openerRebidIsReverse, parseSuitBid
+  cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getInterferenceAfterOpening,
+  getOpeningCallInfo, getResponderCall, openerRebidIsReverse, parseSuitBid, type ParsedSuitBid
 } from './auction';
-import { getOpenerOpeningBid, getResponderBid, getWeakTwoOpeningBid,
-         orderMajorSuitCandidates } from './common-rule-helpers';
+import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
+         getWeakTwoOpeningBid, orderMajorSuitCandidates } from './common-rule-helpers';
 
 
 
@@ -285,6 +285,78 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 ///
 //// Opener Rebids After One-Level Suit Openings
 ///
+
+
+/// getOpenerNegativeDoubleInfo recognizes opener's turn after a natural suit overcall, responder's
+/// negative Double, and advancer's Pass.  The negative Double's implied suits depend on both the
+/// opening and overcall, so keep that interpretation together rather than reconstructing it from
+/// the compact partnership auction.
+function getOpenerNegativeDoubleInfo (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  if (context.stage !== 'openerRebid' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4 ||
+      context.auction[openingInfo.index + 2] !== 'Double' ||
+      context.auction[openingInfo.index + 3] !== 'Pass') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT') {
+    return null;
+  }
+  return { opening, overcall };
+}
+
+/// refineOpenerNegativeDoubleMajorRebid implements the simple strength ladder when responder's
+/// negative Double implies an unbid major and opener has four or more cards there.  Minimum hands
+/// bid the major economically, medium hands jump one level, and maximum hands bid major-suit game.
+/// Other negative-Double continuations are separate competitive decisions and are not inferred by
+/// this refiner.
+export function refineOpenerNegativeDoubleMajorRebid (
+    calls: Call[], context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'):
+    CallRefinementResult {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null) {
+    return { calls: [], telemetryLines: [] };
+  }
+  let majors = getNegativeDoubleImpliedSuits(info.opening, info.overcall)
+    .filter((suit) => suit === 'H' || suit === 'S')
+    .map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
+    .filter(({ length }) => length >= 4);
+  if (majors.length > 1) {
+    majors = orderMajorSuitCandidates(majors);
+  }
+  const wanted: Call[] = [];
+  for (const { suit } of majors) {
+    const cheapestCall = cheapestBidInStrainAfter(info.overcall, suit);
+    const cheapest = cheapestCall === null ? null : parseSuitBid(cheapestCall);
+    if (cheapest === null) continue;
+    let call: Call | null = cheapestCall;
+    if (strength === 'medium') {
+      const level = cheapest.level + 1;
+      call = level <= 4 ? `${level}${suit}` as SuitBid : null;
+    } else if (strength === 'maximum') {
+      call = `4${suit}` as SuitBid;
+    }
+    if (call !== null && calls.includes(call)) {
+      wanted.push(call);
+    }
+  }
+  return {
+    calls: wanted,
+    telemetryLines: wanted.length === 0 ? [
+      'No four-card implied major is available for the selected negative-Double rebid.',
+    ] : [
+      `Negative-Double major fit: ${strength} opener follows the economical / jump / game ladder.`,
+    ],
+  };
+}
 
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking

@@ -53,6 +53,8 @@ import { OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS,
          OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS } from './opener-rebidding-major-test-deals';
 import { OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
          OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS } from './opener-rebidding-nt-test-deals';
+import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
+  from './opener-rebidding-after-interference-test-deals';
 
 export interface RuleTestDeal {
   description: string;
@@ -144,6 +146,7 @@ export {
   OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS,
   OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
   OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS,
+  OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
 };
 
 /// The dropdown groups opening, overcalling, responding, and rebidding practice.
@@ -226,6 +229,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: RESPONSE_TO_STRONG_2C_TEST_DEALS },
   { id: 'response-weak-preempt', group: 'Responding', label: 'Weak preempts',
     deals: RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS },
+  { id: 'opener-after-interference', group: 'Rebidding',
+    label: 'After interference - selected', practiceStages: ['openerRebid'] as BidStage[],
+    deals: OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS },
   { id: 'nt-1nt', group: 'Rebidding', label: '1NT opening - continuations',
     deals: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS },
   { id: 'nt-2nt', group: 'Rebidding', label: '2NT opening - continuations',
