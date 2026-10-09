@@ -44,6 +44,9 @@ needs an executable choice or specific scope guidance.
 - [x] **A1.** Ordinary advancer Pass after partner's natural non-jump one-/two-level
   suit overcall when responder passes; make it a limited-strength fallback without a
   qualifying raise, natural side suit, or notrump action. Add focused practice cases.
+- [x] **A1b.** Add ordinary overcaller Pass over modeled one-level suit openings,
+  opposing 1NT (DONT), and weak twos. Suppress Pass whenever another modeled
+  competitive action qualifies; leave unmodeled very strong hands unjudged.
 - [ ] **A2.** Audit nearby advancing actions: alternative Doubles after responder's
   natural suit/NT, cuebids when responder introduces a second suit, suitable NT
   continuations (including direct natural 3NT after a one-level suit overcall), and
@@ -129,9 +132,8 @@ needs an executable choice or specific scope guidance.
 - [ ] **E6a.** Continue editorial review of all practice fixtures for excessive
   partnership HCP, unintentional slam implications, strange suit distributions,
   scripted calls unsupported by the actual opposing hands, and coherent whole auctions.
-  In particular, the two `advance-natural-1nt-overcall` fixtures after
-  `1D – 1NT – 2H` still need deliberately constructed East hands: the currently
-  fixed hands leave fewer than six hearts for the recorded 2H responder action.
+  The two `1D – 1NT – 2H` advancing fixtures now have explicit, qualifying East
+  hands; continue checking other recorded calls against their actual hands.
   The hand-construction guidelines are in `docs/spec.md`, not fixture regression tests.
 - [x] **E6b.** Replace suit-order fill-in of unspecified opponents with a simple
   reproducible shuffle and alternate dealing; keep fixed hands authoritative.

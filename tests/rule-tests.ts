@@ -1685,8 +1685,16 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL uncontested Stayman/transfer rules remained active after 1NT-(2H).');
   }
 
-  const { board: advanceBoard } = makeRuleTestBoard({
+  // These boundary hands are independent of the practice deal's explicitly constructed East.
+  // Preserve their original North/West setting when testing alternate South holdings.
+  const boundaryDeal = {
     ...advanceDeal,
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    east: undefined,
+  };
+  const { board: advanceBoard } = makeRuleTestBoard({
+    ...boundaryDeal,
     south: { S: 'Q85', H: 'T72', D: 'A83', C: 'Q542' },
   });
   const noStopperCandidates = getApplicableCandidateCalls(
@@ -1707,7 +1715,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   }
 
   const { board: doubleBoard } = makeRuleTestBoard({
-    ...advanceDeal,
+    ...boundaryDeal,
     south: { S: 'QJ85', H: 'T72', D: 'A32', C: 'Q43' },
   });
   const doubleCandidates = getApplicableCandidateCalls(

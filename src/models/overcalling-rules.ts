@@ -11,6 +11,27 @@ import {
 
 
 export const OvercallRules: BidRule[] = [
+  // Passing is normal when no modeled competitive action qualifies. The evaluator suppresses
+  // this fallback when a natural overcall, takeout Double, preempt, or DONT action applies.
+  // Limit the ordinary treatment to 17 HCP; strong hands without a modeled defense remain
+  // unjudged rather than being presented with an automatic Pass.
+  {
+    id: 'overcall-pass-no-qualifying-action',
+    kind: 'overcall',
+    title: 'Pass without a suitable overcall or takeout Double',
+    auctionContext: { stage: 'overcalling',
+                      openerCalls: ['1C', '1D', '1H', '1S', '1NT', '2D', '2H', '2S'] },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { max: 17 } },
+    meaning: 'Pass when the hand does not qualify for a modeled direct overcall, takeout Double, ' +
+             'or DONT defense.',
+    guidance: ['Partner has not bid, so you are not obliged to act over an opposing opening. ' +
+               'Passing with a marginal hand may also be reasonable, but vulnerability and ' +
+               'scoring judgment are outside this treatment.'],
+    certainty: 'high',
+  },
+  //
   // Systems-on replies after a natural 2NT overcall of a weak two are the other selected
   // overcaller-rebid family.  The opener must pass after advancer's forcing convention.
   {

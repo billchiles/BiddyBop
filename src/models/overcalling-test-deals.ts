@@ -10,6 +10,15 @@ import type { RuleTestDeal } from './test-deals-registry';
 ///
 export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   {
+    description: 'Ten HCP with no good five-card suit or takeout-Double strength: Pass over 1D.',
+    dealer: 'W', practiceAuction: ['1D', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'QJ86', H: 'K972', D: '85', C: 'A64' },
+    south: { S: 'T954', H: 'QJT', D: 'KT9', C: 'QJ7' },
+    expectedOvercallCalls: [{ call: 'Pass', ruleIds: ['overcall-pass-no-qualifying-action'] }],
+    rejectedOvercallCalls: ['1S', '1H', '1NT', 'Double'],
+  },
+  {
     description: 'Good five-card spades, 7–17 total points: 1S over 1D.',
     dealer: 'W',
     practiceAuction: ['1D', '1S', 'Pass'],
@@ -190,6 +199,15 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
 ///
 export const WEAK_TWO_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
   {
+    description: 'Ten HCP without a good overcall suit or takeout-double strength: Pass over weak 2D.',
+    dealer: 'W', practiceAuction: ['2D', 'Pass'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A64', H: 'K986', D: '42', C: 'QJ65' },
+    south: { S: 'KT93', H: 'AT5', D: 'A53', C: '987' },
+    expectedOvercallCalls: [{ call: 'Pass', ruleIds: ['overcall-pass-no-qualifying-action'] }],
+    rejectedOvercallCalls: ['2H', '2NT', '3C', 'Double'],
+  },
+  {
     description: 'Good five-card hearts and 15 points with length: natural 2H over weak 2D.',
     dealer: 'W',
     practiceAuction: ['2D', '2H', 'Pass'],
@@ -354,6 +372,15 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
 /// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.
 ///
 export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'No DONT one- or two-suited shape: Pass after an opposing 1NT opening.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    west: { S: 'AQ4', H: 'KJ2', D: 'K83', C: 'QT95' },
+    north: { S: '8763', H: 'T974', D: '42', C: '864' },
+    south: { S: 'T952', H: 'A863', D: 'Q76', C: '72' },
+    expectedOvercallCalls: [{ call: 'Pass', ruleIds: ['overcall-pass-no-qualifying-action'] }],
+    rejectedOvercallCalls: ['Double', '2C', '2D', '2H', '2S'],
+  },
   {
     description: 'One-suited hearts: DONT Double, 2C relay, then reveal 2H.',
     dealer: 'W',

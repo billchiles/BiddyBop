@@ -143,6 +143,9 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   if (context.stage === 'opening') {
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
   }
+  if (context.stage === 'overcalling') {
+    ruleResults = maybeSuppressOvercallerPass(ruleResults);
+  }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
   // only a fallback bid.  Derive partner's opening only for this response-stage behavior.
   const partnerOpeningCall = context.stage === 'responding'
@@ -360,6 +363,27 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   return { rule, call, ruleApplies: result.success, telemetryLines };
 }
 
+
+/// Ordinary overcaller Pass is a fallback only when no supported competitive call applies.
+/// Reuse evaluated candidates instead of duplicating suit-quality, stopper, Double, or DONT logic.
+function maybeSuppressOvercallerPass (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
+  const passResult = ruleResults.find((result) =>
+    result.rule.id === 'overcall-pass-no-qualifying-action' && result.ruleApplies);
+  if (passResult === undefined) return ruleResults;
+  const competingCall = ruleResults.flatMap((result) => result.candidates)
+    .find((candidate) => candidate.ruleApplies && candidate.call !== 'Pass');
+  if (competingCall === undefined) return ruleResults;
+  const suppressionLine = `SUPPRESSED: ${competingCall.call} qualifies as a competitive action.`;
+  for (const candidate of passResult.candidates) {
+    if (candidate.ruleApplies) {
+      candidate.ruleApplies = false;
+      candidate.telemetryLines.push(suppressionLine);
+    }
+  }
+  passResult.ruleApplies = false;
+  passResult.telemetryLines.push(`  ${suppressionLine}`);
+  return ruleResults;
+}
 
 /// A scope boundary is explanatory fallback, not a competing bid rule.  If any concrete modeled
 /// call applies to the hand, suppress the boundary so normal bidding guidance wins.
