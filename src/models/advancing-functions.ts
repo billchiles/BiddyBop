@@ -141,7 +141,8 @@ export function naturalNotrumpAdvanceApplies (call: Call, context: RuleEvalConte
   const info = getNaturalSuitOvercallForAdvancer(context, 1);
   const hcp = context.handFacts.hcp;
   const rangeMatches = call === '1NT' ? hcp >= 8 && hcp <= 11 :
-    call === '2NT' && hcp >= 12 && hcp <= 14;
+    call === '2NT' ? hcp >= 12 && hcp <= 14 :
+    call === '3NT' && hcp >= 15 && hcp <= 18;
   const success = info !== null && rangeMatches && context.handFacts.balanced &&
     hasBasicSuitStopper(context, info.opening.strain as Suit);
   return {
@@ -192,19 +193,21 @@ export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalC
   };
 }
 
-/// A natural invitational 2NT advance requires a balanced 11-13 HCP hand and
-/// a stopper in the opponents' opening suit.
-export function naturalTwoLevelNotrumpAdvanceApplies (_call: Call, context: RuleEvalContext):
+/// Natural 2NT/3NT advances over a two-level suit overcall require the appropriate
+/// strength, balanced shape, and a stopper in the opponents' opening suit.
+export function naturalTwoLevelNotrumpAdvanceApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const info = getNaturalSuitOvercallForAdvancer(context, 2);
   const hcp = context.handFacts.hcp;
-  const success = info !== null && hcp >= 11 && hcp <= 13 && context.handFacts.balanced &&
+  const rangeMatches = call === '2NT' ? hcp >= 11 && hcp <= 13 :
+    call === '3NT' && hcp >= 14 && hcp <= 17;
+  const success = info !== null && rangeMatches && context.handFacts.balanced &&
     hasBasicSuitStopper(context, info.opening.strain as Suit);
   return {
     success,
-    telemetryLines: [success ? 'PASS: 2NT advance with range, shape, and stopper.' :
-      'FAIL: 2NT advance needs a passed responder, natural 2-level non-jump overcall, ' +
-      '11-13 HCP, balanced shape, and opening-suit stopper.'],
+    telemetryLines: [success ? 'PASS: natural NT advance with range, shape, and stopper.' :
+      'FAIL: natural NT advance needs a passed responder, natural 2-level non-jump ' +
+      'overcall, appropriate HCP range, balanced shape, and opening-suit stopper.'],
   };
 }
 
@@ -423,7 +426,7 @@ export function overcallResponderRaisePassApplies (_call: Call, context: RuleEva
     (support >= 3 && supportPoints >= 6);
   const hasResponsiveDouble = support < 3 && context.handFacts.totalPointsWLength >= 7 &&
     hasResponsiveShape(context, unbidSuits);
-  const success = ! hasRaise && ! hasResponsiveDouble &&
+  const success = context.handFacts.hcp <= 10 && ! hasRaise && ! hasResponsiveDouble &&
     ! hasQualifyingNewSuitAfterOvercallRaise(context, info);
   return { success, telemetryLines: [success ?
     'PASS: no preferred raise, natural new suit, or responsive double.' :
@@ -529,7 +532,7 @@ export function twoLevelOvercallResponderRaisePassApplies (_call: Call, context:
   const hasRaise = support >= 3 && supportPoints >= 7;
   const hasResponsiveDouble = support < 3 && context.handFacts.totalPointsWLength >= 9 &&
     hasResponsiveShape(context, unbidSuits);
-  const success = ! hasRaise && ! hasResponsiveDouble &&
+  const success = context.handFacts.hcp <= 10 && ! hasRaise && ! hasResponsiveDouble &&
     ! hasQualifyingNewSuitAfterOvercallRaise(context, info);
   return { success, telemetryLines: [success ?
     'PASS: no preferred raise, natural new suit, or responsive double.' :
@@ -590,6 +593,91 @@ export function responsiveDoubleAfterTakeoutRaiseApplies (_call: Call, context: 
   return { success, telemetryLines: [success ?
     'PASS: responsive double asks partner to choose among the unbid suits.' :
     'FAIL: responsive double needs 6-11 length points and at least two four-card unbid suits.'] };
+}
+
+
+/// Natural NT after responder acts remains descriptive rather than penalty-oriented.
+/// A raised opening suit requires its stopper; two named natural suits require both.
+/// Jump raises/shifts are deliberately excluded from these ordinary NT ranges.
+export function naturalNotrumpAfterResponderActionApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suitRaise = getNaturalSuitOvercallWithResponderRaise(context, 1) ??
+    getNaturalSuitOvercallWithResponderRaise(context, 2);
+  const suitNatural = getNaturalSuitOvercallWithResponderNaturalActionAtEitherLevel(context);
+  const doubleRaise = getTakeoutDoubleWithResponderRaise(context);
+  const doubleNatural = getTakeoutDoubleWithResponderNaturalAction(context);
+  const info = suitRaise ?? suitNatural ?? doubleRaise ?? doubleNatural;
+  const hcp = context.handFacts.hcp;
+  const afterDouble = doubleRaise !== null || doubleNatural !== null;
+  const rangeMatches = call === '1NT' ? hcp >= 8 && hcp <= 11 :
+    call === '2NT' ? (afterDouble ? hcp >= 12 && hcp <= 13 : hcp >= 12 && hcp <= 14) :
+    call === '3NT' && (afterDouble ? hcp >= 14 && hcp <= 16 : hcp >= 15 && hcp <= 18);
+  const lastCall = context.auction[context.auction.length - 1];
+  const lastBid = lastCall === undefined ? null : parseSuitBid(lastCall);
+  const levelAllowed = lastBid !== null && (call !== '1NT' || lastBid.level === 1) &&
+    (call !== '2NT' || lastBid.level <= 2) && lastBid.level <= 3;
+  const opponentSuits = info === null ? [] : [info.opening.strain as Suit];
+  if (suitNatural !== null && suitNatural.responderAction.strain !== 'NT') {
+    opponentSuits.push(suitNatural.responderAction.strain as Suit);
+  }
+  if (doubleNatural !== null && doubleNatural.responderAction.strain !== 'NT') {
+    opponentSuits.push(doubleNatural.responderAction.strain as Suit);
+  }
+  const success = info !== null && levelAllowed && rangeMatches && context.handFacts.balanced &&
+    opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+  return { success, telemetryLines: [success ?
+    'PASS: natural competitive NT with appropriate strength, shape, and opponent-suit stoppers.' :
+    'FAIL: natural competitive NT needs a supported simple raise/natural action, legal level, ' +
+    'balanced strength, and stoppers in every naturally named opponent suit.'] };
+}
+
+/// Responder's modeled preemptive jump raise or weak jump shift takes bidding room away.
+/// This treatment stops with an ordinary weak Pass, or explains stronger judgment cases.
+function getResponderPreemptiveAction (context: RuleEvalContext):
+    'suitOvercall' | 'takeoutDouble' | null {
+  if (context.stage !== 'advancing') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 3) return null;
+  const opening = parseSuitBid(openingInfo.call);
+  const responderCall = context.auction[openingInfo.index + 2];
+  const responder = responderCall === undefined ? null : parseSuitBid(responderCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      responder === null || responder.strain === 'NT') return null;
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  if (overcallCall === undefined) return null;
+  if (interference === 'suitOvercall') {
+    const overcall = parseSuitBid(overcallCall);
+    if (overcall === null || overcall.strain === 'NT' ||
+        (overcall.level !== 1 && overcall.level !== 2) ||
+        cheapestBidInStrainAfter(opening, overcall.strain) !== overcallCall ||
+        responder.strain !== opening.strain) return null;
+    const cheapest = cheapestBidInStrainAfter(overcall, opening.strain);
+    const lowest = cheapest === null ? null : parseSuitBid(cheapest);
+    return lowest !== null && responder.level === lowest.level + 1 ? 'suitOvercall' : null;
+  }
+  if (interference !== 'takeoutDouble' || overcallCall !== 'Double') return null;
+  const cheapest = cheapestBidInStrainAfter(opening, responder.strain);
+  const lowest = cheapest === null ? null : parseSuitBid(cheapest);
+  return lowest !== null && responder.level === lowest.level + 1 ? 'takeoutDouble' : null;
+}
+
+export function responderPreemptiveActionPassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const kind = getResponderPreemptiveAction(context);
+  const success = kind !== null && context.handFacts.hcp <= 10;
+  return { success, telemetryLines: [success ?
+    'PASS: responder’s jump removes any obligation to advance with limited strength.' :
+    'FAIL: no modeled responder jump or strength warrants a separate competitive judgment.'] };
+}
+
+export function responderPreemptiveActionBoundaryApplies (context: RuleEvalContext):
+    AppliesWhenResult {
+  const success = getResponderPreemptiveAction(context) !== null &&
+    context.handFacts.hcp > 10;
+  return { success, telemetryLines: [success ?
+    'PASS: stronger advance over responder’s jump requires unmodeled competitive judgment.' :
+    'FAIL: not an unresolved stronger response to a modeled preemptive jump.'] };
 }
 
 
@@ -666,7 +754,8 @@ export function overcallResponderNaturalActionPassApplies (_call: Call, context:
     support >= 4 || (support >= 3 && supportPoints >= 6) :
     support >= 3 && supportPoints >= 7;
   const success = context.handFacts.hcp <= 10 && ! hasSupportAction &&
-    ! hasQualifyingNewSuitAfterResponderNaturalAction(context, info);
+    ! hasQualifyingNewSuitAfterResponderNaturalAction(context, info) &&
+    ! naturalNotrumpAfterResponderActionApplies('1NT', context).success;
   return { success, telemetryLines: [success ?
     'PASS: responder has acted and no modeled natural competitive action is preferred.' :
     'FAIL: strength, fit, or a natural new suit supports a competitive action.'] };
@@ -766,7 +855,8 @@ export function takeoutResponderNaturalActionPassApplies (_call: Call, context: 
   }
   const points = context.handFacts.totalPointsWLength;
   const success = points <= 11 &&
-    ! hasQualifyingNewSuitAfterTakeoutResponderNaturalAction(context, info);
+    ! hasQualifyingNewSuitAfterTakeoutResponderNaturalAction(context, info) &&
+    ! naturalNotrumpAfterResponderActionApplies('1NT', context).success;
   return { success, telemetryLines: [success ?
     'PASS: responder has acted, so a weak hand need not advance the takeout double.' :
     'FAIL: values and a natural suit or strong cuebid support further action.'] };

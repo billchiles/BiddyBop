@@ -3,7 +3,9 @@
 import { type BidRule } from './bidding-types';
 import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
 import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
-import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies,
+import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies,
+         responderPreemptiveActionPassApplies, responderPreemptiveActionBoundaryApplies,
+         naturalTakeoutDoubleNotrumpAdvanceApplies,
          naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
          takeoutDoubleMinimumSuitAdvanceApplies,
          refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
@@ -328,6 +330,21 @@ export const AdvanceRules: BidRule[] = [
                'stronger agreement that is not yet modeled.'],
     certainty: 'high',
   },
+  {
+    id: 'advance-one-level-suit-overcall-three-notrump',
+    kind: 'advance',
+    title: 'Bid game in notrump after a one-level suit overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: naturalNotrumpAdvanceApplies,
+    meaning: 'Natural 3NT: 15-18 HCP, balanced, and a stopper in opener’s suit.',
+    guidance: ['Partner has made a one-level overcall, so game values must come substantially ' +
+               'from advancer’s hand. Stronger slam investigations are outside this treatment.'],
+    certainty: 'high',
+  },
   // Second family: partner makes a natural, non-jump two-level suit overcall of a one-level
   // opening or weak two.  The refiners require responder's Pass and distinguish simple bids
   // from jumps.
@@ -417,6 +434,20 @@ export const AdvanceRules: BidRule[] = [
              'forcing one round.',
     guidance: ['Suit quality uses the shared test: two of A/K/Q or three of A/K/Q/J/T. ' +
                'Jump new-suit advances remain unmodeled.'],
+    certainty: 'high',
+  },
+  {
+    id: 'advance-two-level-suit-overcall-three-notrump',
+    kind: 'advance',
+    title: 'Bid natural 3NT after a two-level suit overcall',
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: naturalTwoLevelNotrumpAdvanceApplies,
+    meaning: 'Natural 3NT: 14-17 HCP, balanced, and a stopper in opener’s suit.',
+    guidance: ['A non-jump two-level overcall suggests enough extra strength to lower the ' +
+               'minimum advancer values needed for game.'],
     certainty: 'high',
   },
   // Third family: Advancer responds to partner's takeout double of an opposing suit opening.
@@ -531,6 +562,56 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Direct major-suit game with 12+ length-adjusted points and a 5+ card unbid major.',
     guidance: ['This deterministic game treatment assumes partner has an ordinary takeout double. ' +
                'It does not replace judgment about honor location or a strong off-shape double.'],
+    certainty: 'high',
+  },
+  // After responder makes a *modeled* preemptive jump raise or weak jump shift,
+  // advancer is no longer obligated to act. This is deliberately not the simple-raise
+  // family: the jump consumes more space and calls for a separate competitive judgment.
+  {
+    id: 'advance-after-responder-preemptive-jump-pass',
+    kind: 'advance',
+    title: 'Pass with limited values after responder’s preemptive jump',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: responderPreemptiveActionPassApplies,
+    meaning: 'With at most 10 HCP, Pass after responder makes a weak jump raise or weak ' +
+             'jump shift over partner’s natural overcall or takeout Double.',
+    guidance: ['Responder’s jump uses extra bidding space. Competing or Doubling at these ' +
+               'levels is a separate decision, not a forced response to partner.'],
+    certainty: 'high',
+  },
+  {
+    id: 'advance-after-responder-preemptive-jump-scope-boundary',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment with stronger values after responder’s jump',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit' },
+    scopeBoundaryWhen: responderPreemptiveActionBoundaryApplies,
+    meaning: 'Partner has overcalled or doubled, but responder’s preemptive jump makes ' +
+             'the next competitive choice judgment-dependent.',
+    guidance: ['With stronger values, Pass, Double, competing in partner’s suit, or naming ' +
+               'a new suit may all warrant consideration. Their meanings and safety depend on ' +
+               'shape, vulnerability, and partnership agreements not modeled here.'],
+    certainty: 'high',
+  },
+  // Selected natural NT advances after an ordinary responder raise, natural new suit,
+  // or natural 1NT. Two naturally named opposing suits both need stoppers.
+  {
+    id: 'advance-after-responder-action-natural-notrump',
+    kind: 'advance',
+    title: 'Bid natural notrump when the opponents have acted',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['1NT', '2NT', '3NT'],
+    callCategory: ['natural'],
+    priority: { rank: 15 },
+    appliesWhen: naturalNotrumpAfterResponderActionApplies,
+    meaning: 'Natural competitive notrump with a balanced hand, adequate strength, ' +
+             'and stoppers in the naturally bid opposing suits.',
+    guidance: ['After a natural suit overcall use 8-11 HCP for 1NT, 12-14 for 2NT, ' +
+               'and 15-18 for 3NT. After partner’s takeout Double use 8-11, 12-13, ' +
+               'and 14-16 respectively.',
+               'Responders’ jump bids, cuebids, and artificial notrump raises do not ' +
+               'use this simple natural ladder.'],
     certainty: 'high',
   },
   // Fourth family: opener's partner raises after a natural one-level suit overcall.

@@ -143,6 +143,18 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     expectedAdvanceCalls: [{ call: '1NT', ruleIds: ['advance-one-level-suit-overcall-one-notrump'] }],
     rejectedAdvanceCalls: ['Pass', '2S'],
   },
+  {
+    description: '1D-(1S)-Pass: a balanced 16-HCP hand with a diamond stopper bids 3NT.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', '3NT'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T9', H: 'KQJ', D: 'K9653', C: 'AQJ' },
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedAdvanceCalls: [{ call: '3NT', ruleIds: [
+      'advance-one-level-suit-overcall-three-notrump',
+    ] }],
+    rejectedAdvanceCalls: ['1NT', '2NT', 'Pass'],
+  },
 ];
 
 
@@ -287,6 +299,19 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     ],
     expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['advance-two-level-suit-overcall-pass'] }],
     rejectedAdvanceCalls: ['2NT', '3H'],
+  },
+  {
+    description: '1H-(2D)-Pass: balanced 14 HCP with a heart stopper make natural 3NT.',
+    dealer: 'W', practiceAuction: ['1H', '2D', 'Pass', '3NT'],
+    west: { S: 'K532', H: 'AQT82', D: '73', C: 'K9' },
+    north: { S: 'J7', H: '64', D: 'KQJT65', C: 'A86' },
+    east: { S: '984', H: 'J73', D: '94', C: 'Q7532' },
+    south: { S: 'AQT6', H: 'K95', D: 'A82', C: 'JT4' },
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3NT', ruleIds: [
+      'advance-two-level-suit-overcall-three-notrump',
+    ] }],
+    rejectedAdvanceCalls: ['2NT', 'Pass'],
   },
 ];
 
@@ -777,6 +802,20 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS: RuleTestDeal[] 
     ] }],
     rejectedAdvanceCalls: ['Pass', 'Double', '3H'],
   },
+  {
+    description: '1S-(2H)-3S: responder preempts; advancer with limited values need not compete.',
+    dealer: 'N', practiceAuction: ['1S', '2H', '3S', 'Pass'],
+    north: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    east: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    south: { S: 'T986', H: 'T74', D: 'JT5', C: 'A84' },
+    expectedResponseCalls: [{ call: '3S', ruleIds: [
+      'respond-over-suit-preemptive-jump-raise',
+    ] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-after-responder-preemptive-jump-pass',
+    ] }],
+    rejectedAdvanceCalls: ['Double', '4H'],
+  },
 ];
 
 
@@ -1099,6 +1138,35 @@ export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS: 
       'advance-takeout-double-after-responder-natural-action-strong-cuebid',
     ] }],
     rejectedAdvanceCalls: ['Pass', '2C'],
+  },
+  {
+    description: '1H-(Double)-1S: natural 1NT needs both a heart and spade stopper.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '1S', '1NT'],
+    west: { S: '8432', H: 'AK952', D: '842', C: 'A' },
+    north: { S: 'QJ6', H: '', D: 'AT765', C: 'KJ973' },
+    east: { S: 'KT95', H: 'T8764', D: 'Q', C: 'QT5' },
+    south: { S: 'A7', H: 'QJ3', D: 'KJ93', C: '8642' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedAdvanceCalls: [{ call: '1NT', ruleIds: [
+      'advance-after-responder-action-natural-notrump',
+    ] }],
+    rejectedAdvanceCalls: ['Pass', '2NT'],
+  },
+  {
+    description: '1H-(Double)-2S: a weak jump shift frees advancer to Pass with limited values.',
+    dealer: 'N', practiceAuction: ['1H', 'Double', '2S', 'Pass'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T98653', H: 'J7', D: 'AT9', C: '93' },
+    expectedResponseCalls: [{ call: '2S', ruleIds: [
+      'respond-after-double-weak-jump-shift',
+    ] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-after-responder-preemptive-jump-pass',
+    ] }],
+    rejectedAdvanceCalls: ['Double', '3C'],
   },
 ];
 

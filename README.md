@@ -197,11 +197,18 @@ intentionally omitted.
 
 | Partner's intervention | Responder passes | Responder raises opener | Responder bids a new suit / NT | Responder Doubles / Redoubles |
 | --- | --- | --- | --- | --- |
-| One-level natural suit overcall | Done | Done | Done | Done |
-| Two-level natural suit overcall | Done | Done | Partial (done): natural new suit; higher NT actions are not separately modeled | Partial (done): where the negative Double treatment applies |
-| Takeout Double | Done | Done | Done | Done |
+| One-level natural suit overcall | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural suits and selected NT | Done |
+| Two-level natural suit overcall | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural new suit and selected NT | Partial (done): where the negative Double treatment applies |
+| Takeout Double | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural suits/NT and weak jump-shift Pass | Done |
 | Natural 1NT overcall | Done: normal 1NT systems | Partial (done): natural two-level suit interference | Partial (done): natural two-level suit interference | Omitted |
 | Preemptive jump overcall | Done | Omitted | Omitted | Omitted |
+
+The selected continuation set now includes direct natural 3NT after a one- or two-level suit
+overcall, and natural NT advances after responder makes an ordinary raise, economical
+new-suit bid, or natural 1NT, with stoppers in the opponents’ naturally named suits.
+Advancer may Pass after a modeled responder weak jump raise or weak jump shift;
+stronger hands after those jumps receive auction-specific competitive-judgment guidance.
+More specialized Doubles and cuebid agreements remain outside scope.
 
 This table intentionally stops short of treating matrix completeness as a goal.  Once the auction becomes
 high-level, heavily judgment-dependent, or convention-dependent, the trainer may stop rather than invent a

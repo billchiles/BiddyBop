@@ -47,13 +47,16 @@ needs an executable choice or specific scope guidance.
 - [x] **A1b.** Add ordinary overcaller Pass over modeled one-level suit openings,
   opposing 1NT (DONT), and weak twos. Suppress Pass whenever another modeled
   competitive action qualifies; leave unmodeled very strong hands unjudged.
-- [ ] **A2.** Audit nearby advancing actions: alternative Doubles after responder's
+- [x] **A2.** Audit nearby advancing actions: alternative Doubles after responder's
   natural suit/NT, cuebids when responder introduces a second suit, suitable NT
   continuations (including direct natural 3NT after a one-level suit overcall), and
-  selected natural new suits. Add only useful, clearly agreed meanings.
-- [ ] **A3.** Systematically compare instructional meanings with executable advancer
+  selected natural new suits. Selected natural NT additions are in place, while
+  specialized fourth-suit Doubles and additional cuebid agreements remain omitted.
+- [x] **A3.** Systematically compare instructional meanings with executable advancer
   calls after responder raises, bids a new suit or NT, makes a negative Double, or
-  Redoubles. Decide which gaps should become rules and which should be boundaries.
+  Redoubles. Added Pass after responder’s modeled preemptive jump raise/weak jump
+  shift, a stronger-hand judgment boundary, and selected NT after ordinary natural
+  actions. Further judgment-heavy alternatives remain deliberately outside scope.
 - [ ] **A4.** Give responder an explicit Pass after an uncontested natural four-/five-
   level preempt; do not apply this to artificial 4NT.
 - [ ] **A5.** Remove the executable direct 4NT Blackwood opening; consider a guidance-
