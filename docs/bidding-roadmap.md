@@ -57,10 +57,12 @@ needs an executable choice or specific scope guidance.
   Redoubles. Added Pass after responder’s modeled preemptive jump raise/weak jump
   shift, a stronger-hand judgment boundary, and selected NT after ordinary natural
   actions. Further judgment-heavy alternatives remain deliberately outside scope.
-- [ ] **A4.** Give responder an explicit Pass after an uncontested natural four-/five-
-  level preempt; do not apply this to artificial 4NT.
-- [ ] **A5.** Remove the executable direct 4NT Blackwood opening; consider a guidance-
-  only mention if useful. Keep other, context-dependent meanings of 4NT intact.
+- [x] **A4.** Responder explicitly Passes uncontested natural four-/five-level
+  preempts. These are descriptive opening examples, not a high-level response system;
+  further bidding is left to judgment outside this treatment.
+- [x] **A5.** Removed the rare direct artificial 4NT Blackwood opening from executable
+  rules. Keep other, context-dependent meanings of 4NT intact; a direct 4NT
+  Blackwood opening remains outside scope.
 - [ ] **A6.** Complete useful strong 2C opener descriptions after a positive suit or
   positive balanced 2NT response, adding explicit boundaries where needed.
 - [ ] **A7.** After opponents interfere over our 1NT opening, address opener's reply

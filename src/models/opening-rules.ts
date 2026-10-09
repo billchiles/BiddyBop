@@ -226,22 +226,4 @@ export const OpeningBidRules: BidRule[] = [
     meaning: 'Very high-level descriptive and obstructive preempt.',
     certainty: 'medium',
   },
-  // Weird rules
-  //
-  {
-    id: 'open-4nt-blackwood-rare',
-    // Rare direct 4NT opening treatment that uses Blackwood to ask for aces.
-    kind: 'openingBid',
-    title: 'Rare 4NT opening as Blackwood',
-    auctionContext: { stage: 'opening', auction: [] },
-    calls: ['4NT'],
-    priority: { rank: -100, note: 'Specialized ace asking; deliberately present last.' },
-    callCategory: ['forcing', 'conventional'],
-    appliesWhen: { hcp: { min: 25 } },
-    guidance: ['Extremely rare and specialized: Blackwood is not a general slam try.',
-               'Use only when the hand is powerful enough that ace count, rather than ordinary ' +
-               'hand description, is the specific remaining information needed.'],
-    meaning: 'Artificial Blackwood ace-asking opening; absent interference, partner must respond.',
-    certainty: 'high',
-  },
  ];

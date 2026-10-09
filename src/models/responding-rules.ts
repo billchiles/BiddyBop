@@ -1077,6 +1077,25 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  // Four-/five-level natural preempts are opening examples, not a high-level response system.
+  // No further natural or artificial responses are modeled at this level.
+  //
+  {
+    id: 'respond-to-high-level-preempt-w/-pass',
+    kind: 'responseBid',
+    title: 'Pass partner\'s natural four- or five-level preempt',
+    auctionContext: {
+      stage: 'responding', interference: 'none', openerCalls: ['4C', '4D', '4H', '4S', '5C', '5D'],
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    meaning: 'Leave partner\'s high-level preempt in place; no further responses are modeled.',
+    guidance: ['These rare natural preempts are included as opening examples. Whether to bid on ' +
+               'depends on fit, playing tricks, vulnerability, and high-level judgment beyond ' +
+               'the chosen responder treatment. This Pass is not a universal bridge requirement.'],
+    certainty: 'high',
+  },
+  //
   // Respond after interference
   // Direct responses after a natural, non-jump opponent suit overcall form their own family; do
   // not inherit uncontested 2/1, jump-shift, Jacoby 2NT, or limit-raise meanings.  The main routes

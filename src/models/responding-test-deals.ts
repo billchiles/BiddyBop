@@ -1214,4 +1214,30 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     north: { S: '82', H: 'KQJ9876', D: '73', C: '65' },
     south: { S: 'AKQJ9', H: 'A2', D: 'A64', C: 'T84' },
   },
+  {
+    description: '4H-Pass: natural eight-card heart preempt. The trainer models the opening ' +
+                 'but intentionally teaches no further high-level response system.',
+    practiceAuction: ['4H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '4H', ruleIds: ['open-four-level-preempt'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-high-level-preempt-w/-pass'] },
+    ],
+    north: { S: '43', H: 'KQJT9876', D: '42', C: '2' },
+    south: { S: 'A72', H: '53', D: 'KQ65', C: 'J874' },
+  },
+  {
+    description: '5D-Pass: a good nine-card diamond suit is a rare five-level natural preempt. ' +
+                 'Responder passes; further bidding is outside the chosen training depth.',
+    practiceAuction: ['5D', 'Pass', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '5D', ruleIds: ['open-five-level-minor-preempt'] },
+    ],
+    expectedResponseCalls: [
+      { call: 'Pass', ruleIds: ['respond-to-high-level-preempt-w/-pass'] },
+    ],
+    north: { S: '2', H: '43', D: 'KQJT98765', C: '7' },
+    south: { S: 'AK83', H: 'QJ76', D: '2', C: 'T964' },
+  },
 ];

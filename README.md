@@ -67,6 +67,7 @@ means we considered the area and deliberately chose not to model it as part of t
 | Strong 2C | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Weak 2D / 2H / 2S | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
+| Natural four-/five-level preempt | Partial (done): Pass only | Omitted | Omitted | Omitted |
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear.  After responder's simple raise, opener can continue through selected advancer raises,
@@ -249,7 +250,8 @@ accidental omission.
 | Defense to opposing three-level preempts | Omitted | Beginners can practice the same underlying ideas through weak-two defenses without creating another high-level, judgment-heavy continuation tree. |
 | Defense to opposing strong 2C or 2NT | Omitted | These uncommon defensive auctions are outside the current training scope. |
 | Competitive continuations after our preemptive jump overcall | Omitted | Once responder also competes, vulnerability, fit, and playing-strength judgment become more important than the deterministic rules this trainer emphasizes. |
-| Four- and five-level opening systems | Omitted | Rare opening treatments at these levels are not part of the current practice system. |
+| Natural four- and five-level preemptive openings | Partial (done) | The opening bids are modeled as examples; responder has an explicit Pass, but further high-level bidding and continuations are omitted. |
+| Direct 4NT opening as Blackwood | Omitted | The rare artificial forcing opening is not executable; other meanings of 4NT in ordinary auctions are unchanged. |
 | Detailed slam mechanisms | Partial (done) | Gerber replies, forcing 5NT, direct 7NT, many suit-auction Blackwood replies, and similar rare continuations are not full practice families. |
 | Responder's later rebid | Planned | After opener rebids, many of responder's next decisions are still outside the modeled auction depth. |
 | Balancing-seat defensive bidding | Planned | This is the fourth-seat situation where opener is followed by two Passes and the next player may compete more lightly because another Pass would end the auction. |
