@@ -7,6 +7,7 @@ import { naturalNotrumpAdvanceApplies, naturalTakeoutDoubleNotrumpAdvanceApplies
          naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
          takeoutDoubleMinimumSuitAdvanceApplies,
          refineTakeoutDoubleCuebid, refineTakeoutDoubleMajorGame,
+         naturalSuitOvercallPassApplies,
          refineAdvancerCuebid, refineAdvancerNewSuit, refineAdvancerRaise,
          refineAdvancerTwoLevelCuebid, refineAdvancerTwoLevelNewSuit,
          refineAdvancerTwoLevelRaise, overcallResponderRaisePassApplies,
@@ -194,7 +195,23 @@ export const AdvanceRules: BidRule[] = [
     certainty: 'high',
   },
   // First family: advance partner's natural one-level suit overcall when responder passes.
-  // The refiners also require the actual auction shape and exclude other overcall levels.
+  // The positive refiners require the actual auction shape and exclude other overcall levels.
+  // Pass is a limited-strength fallback, not an extra candidate beside a constructive advance.
+  {
+    id: 'advance-one-level-suit-overcall-pass',
+    kind: 'advance',
+    title: 'Pass partner’s natural one-level suit overcall',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => naturalSuitOvercallPassApplies(call, context, 1),
+    meaning: 'With at most 10 HCP and no constructive action, Pass the natural overcall.',
+    guidance: ['Unlike a takeout Double, partner’s natural overcall does not force an advance.',
+               'Prefer a qualifying raise, new suit, or natural notrump action to this Pass.'],
+    certainty: 'high',
+  },
+  //
   {
     id: 'advance-one-level-suit-overcall-simple-raise',
     kind: 'advance',
@@ -314,6 +331,20 @@ export const AdvanceRules: BidRule[] = [
   // Second family: partner makes a natural, non-jump two-level suit overcall of a one-level
   // opening or weak two.  The refiners require responder's Pass and distinguish simple bids
   // from jumps.
+  {
+    id: 'advance-two-level-suit-overcall-pass',
+    kind: 'advance',
+    title: 'Pass partner’s natural two-level suit overcall',
+    auctionContext: { stage: 'advancing', openerStrain: 'suit', interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => naturalSuitOvercallPassApplies(call, context, 2),
+    meaning: 'With at most 10 HCP and no constructive action, Pass the natural overcall.',
+    guidance: ['Partner’s two-level overcall is not forcing, even when the opening was a weak two.',
+               'A suitable raise or economical forcing new suit takes precedence.'],
+    certainty: 'high',
+  },
+  //
   {
     id: 'advance-two-level-suit-overcall-simple-raise',
     kind: 'advance',

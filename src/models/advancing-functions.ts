@@ -63,6 +63,41 @@ function getNaturalSuitOvercallForAdvancer (context: RuleEvalContext, level: 1 |
   return { opening, overcall };
 }
 
+/// Partner's natural suit overcall is not forcing.  With limited values and no
+/// available constructive raise, natural new suit, or notrump advance, Pass.
+/// Use the same auction/level checks as the positive advancing rules.
+export function naturalSuitOvercallPassApplies (
+    _call: Call, context: RuleEvalContext, level: 1 | 2): AppliesWhenResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, level);
+  if (info === null) {
+    return { success: false, telemetryLines: [
+      'FAIL: Pass needs a natural non-jump suit overcall and responder Pass.',
+    ] };
+  }
+  const hcp = context.handFacts.hcp;
+  const support = context.handFacts.lengths[info.overcall.strain as Suit];
+  const supportPoints = context.handFacts.totalPointsWShortage;
+  const hasRaise = level === 1 ?
+    support >= 4 || (support >= 3 && supportPoints >= 6) :
+    support >= 3 && supportPoints >= 7;
+  const hasNotrump = level === 1 && hcp >= 8 && hcp <= 11 &&
+    context.handFacts.balanced && hasBasicSuitStopper(context, info.opening.strain as Suit);
+  const hasNewSuit = SUITS.some((suit) => {
+    if (suit === info.opening.strain || suit === info.overcall.strain ||
+        context.handFacts.lengths[suit] < 5) {
+      return false;
+    }
+    const call = cheapestBidInStrainAfter(info.overcall, suit);
+    const bid = call === null ? null : parseSuitBid(call);
+    return bid !== null && ((level === 1 && bid.level === 1 && hcp >= 8) ||
+      (bid.level === 2 && hcp >= 10));
+  });
+  const success = hcp <= 10 && ! hasRaise && ! hasNotrump && ! hasNewSuit;
+  return { success, telemetryLines: [success ?
+    'PASS: limited strength with no qualifying raise, new suit, or notrump advance.' :
+    'FAIL: stronger values or a constructive advance make this weak Pass inappropriate.'] };
+}
+
 export function refineAdvancerRaise (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const info = getNaturalSuitOvercallForAdvancer(context, 1);

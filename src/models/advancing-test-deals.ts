@@ -31,7 +31,7 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
       { call: '2S', ruleIds: ['advance-one-level-suit-overcall-simple-raise'] },
     ],
     expectedAdvanceCallOrder: [['3S', '2S']],
-    rejectedAdvanceCalls: ['2D'],
+    rejectedAdvanceCalls: ['2D', 'Pass'],
   },
   {
     description: 'Four spades but just 5 support points: weak jump raise to 3S.',
@@ -40,7 +40,7 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
     south: { S: 'T543', H: '95', D: 'KT52', C: 'JT7' },
     expectedAdvanceCalls: [{ call: '3S', ruleIds: ['advance-one-level-suit-overcall-preemptive-raise'] }],
-    rejectedAdvanceCalls: ['2S', '2D'],
+    rejectedAdvanceCalls: ['2S', '2D', 'Pass'],
   },
   {
     description: 'Three spades and 12 support points: 2D cuebid is a strong, forcing raise.',
@@ -58,7 +58,7 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
     south: { S: 'T4', H: 'JT5', D: 'K953', C: 'AQJ5' },
     expectedAdvanceCalls: [{ call: '1NT', ruleIds: ['advance-one-level-suit-overcall-one-notrump'] }],
-    rejectedAdvanceCalls: ['2NT', '2S'],
+    rejectedAdvanceCalls: ['2NT', '2S', 'Pass'],
   },
   {
     description: 'Balanced 12 HCP and diamond stopper: invite with 2NT, not 1NT.',
@@ -77,7 +77,7 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     south: { S: 'AJ953', H: 'T', D: 'KT932', C: 'K6' },
     expectedOvercallCalls: [{ call: '1H', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedAdvanceCalls: [{ call: '1S', ruleIds: ['advance-one-level-suit-overcall-new-suit-at-one-level'] }],
-    rejectedAdvanceCalls: ['2S', '2H'],
+    rejectedAdvanceCalls: ['2S', '2H', 'Pass'],
   },
   {
     description: 'After 1D-(1S), five clubs and 12 HCP: forcing economical 2C.',
@@ -115,6 +115,33 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     south: { S: 'J853', H: 'KQT962', D: 'A4', C: '5' },
     expectedAdvanceCalls: [{ call: '1H', ruleIds: ['advance-one-level-suit-overcall-new-suit-at-one-level'] }],
     rejectedAdvanceCalls: ['2H', '2D'],
+  },
+  {
+    description: '1D-(1S)-Pass: 1 HCP, two spades, and no constructive call: Pass.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T4', H: 'T985', D: '962', C: 'J752' },
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['advance-one-level-suit-overcall-pass'] }],
+    rejectedAdvanceCalls: ['1NT', '2C', '2S', '3S'],
+  },
+  {
+    description: '1D-(1S)-Pass: 6 HCP, no fit, new suit, or stopper: Pass.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T4', H: 'K985', D: 'T62', C: 'QJ72' },
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['advance-one-level-suit-overcall-pass'] }],
+    rejectedAdvanceCalls: ['1NT', '2C', '2S', '3S'],
+  },
+  {
+    description: '8 HCP with a diamond stopper and balanced shape: 1NT, not Pass.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', '1NT'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: 'T4', H: 'JT5', D: 'K953', C: 'AT75' },
+    expectedAdvanceCalls: [{ call: '1NT', ruleIds: ['advance-one-level-suit-overcall-one-notrump'] }],
+    rejectedAdvanceCalls: ['Pass', '2S'],
   },
 ];
 
@@ -170,7 +197,7 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
     south: { S: 'J985', H: 'KQJT9', D: 'KT', C: 'T4' },
     expectedOvercallCalls: [{ call: '2C', ruleIds: ['overcall-simple-suit-at-two-level'] }],
     expectedAdvanceCalls: [{ call: '2H', ruleIds: ['advance-two-level-suit-overcall-new-suit-at-two-level'] }],
-    rejectedAdvanceCalls: ['3H', '2D', '2S'],
+    rejectedAdvanceCalls: ['3H', '2D', '2S', 'Pass'],
   },
   {
     description: '1D-(2C)-Pass: five spades and 14 HCP; 2S forcing, not a jump to 3S.',
@@ -239,6 +266,27 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
       { call: '3H', ruleIds: ['advance-two-level-suit-overcall-support-cuebid'] },
     ],
     rejectedAdvanceCalls: ['3S', '2NT'],
+  },
+  {
+    description: '1S-(2H)-Pass: 1 HCP, two hearts, and no useful advance: Pass.',
+    dealer: 'W', practiceAuction: ['1S', '2H', 'Pass', 'Pass'],
+    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    south: { S: 'T96', H: 'T4', D: 'J754', C: 'T983' },
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['advance-two-level-suit-overcall-pass'] }],
+    rejectedAdvanceCalls: ['2NT', '3H', '2S'],
+  },
+  {
+    description: 'Weak 2D-(2H)-Pass: 4 HCP, two hearts, no useful advance: Pass.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', 'Pass'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A6', H: 'AKT96', D: '42', C: 'QJ83' },
+    south: { S: 'Q974', H: 'Q5', D: 'T65', C: '9762' },
+    expectedOvercallCalls: [
+      { call: '2H', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
+    ],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['advance-two-level-suit-overcall-pass'] }],
+    rejectedAdvanceCalls: ['2NT', '3H'],
   },
 ];
 
