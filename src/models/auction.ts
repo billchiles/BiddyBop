@@ -112,13 +112,20 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
       const advancerRaised = advancerKind === 'raise';
       if (response === 'Double') {
-        if (advance !== 'Pass' && ! advancerRaised) return false;
-        // With advancer Pass, the selected negative-Double continuation covers an implied major
-        // fit.  After advancer raises, a minimum Pass is also modeled even when both majors were
-        // already named; medium/maximum implied-major continuations remain available when present.
-        if (advancerRaised) return true;
-        return (openingBid.strain !== 'H' && overcallBid.strain !== 'H') ||
-          (openingBid.strain !== 'S' && overcallBid.strain !== 'S');
+        // Responder's negative Double already has a modeled meaning.  Admit only fourth-seat
+        // actions whose physical level also matches the advancing treatment: Pass/support raises,
+        // a selected two-level side suit, natural NT through 2NT, the cheapest strong support
+        // cuebid, or Redouble.  Same-category higher calls must not silently expand the family.
+        if (advancerKind === 'pass' || advancerKind === 'raise' ||
+            advancerKind === 'preemptiveRaise' || advancerKind === 'redouble') {
+          return true;
+        }
+        const advanceBid = parseSuitBid(advance);
+        if (advanceBid === null) return false;
+        if (advancerKind === 'newSuit') return advanceBid.level === 2;
+        if (advancerKind === 'notrump') return advanceBid.level <= 2;
+        return advancerKind === 'cuebid' &&
+          cheapestBidInStrainAfter(overcallBid, openingBid.strain) === advance;
       }
       const responseBid = parseSuitBid(response);
       if (responseBid === null || responseBid.strain === 'NT') return false;

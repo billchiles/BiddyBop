@@ -19,10 +19,11 @@ import {
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
   refineOpenerNewSuitAtCheapestLevel, refineOpenerNewSuitByExtraLevels,
-  refineOpenerNegativeDoubleMajorAfterAdvancerRaise, refineOpenerNegativeDoubleMajorRebid,
-  refineOpenerNonReverseNewSuitRebid,
+  openerNegativeDoubleCompetitionPassApplies, openerNegativeDoubleNtApplies,
+  openerNegativeDoubleScopeBoundaryApplies, refineOpenerNegativeDoubleImpliedSuitRebid,
+  refineOpenerNegativeDoubleOpeningSuitRebid, refineOpenerNonReverseNewSuitRebid,
   refineOpenerForcingResponseCompetitionGameRaise, refineOpenerForcingResponseCompetitionRepeat,
-  refineOpenerForcingResponseCompetitionSupport, refineOpenerPassAfterNegativeDoubleAdvancerRaise,
+  refineOpenerForcingResponseCompetitionSupport,
   refineOpenerNotrumpAtCheapestLevel, refineOpenerNtMajorSlamControlBid,
   refineOpenerNtResponderMajorToGame,
   refineOpenerOpeningSuitAtCheapestLevel, refineOpenerOpeningSuitToLevel,
@@ -453,43 +454,52 @@ export const OpenerRebidRules: BidRule[] = [
   // uncontested rules where competition has not changed the call; these declarations cover
   // artificial or level-sensitive competitive meanings that need their own opener treatment.
   //
-  // After a negative Double and advancer Pass, this selected family follows the simple major-fit
-  // strength ladder: minimum bids an implied major economically, medium jumps, and maximum bids
-  // game.  If advancer raises the overcall, competition changes that ladder: a minimum opener may
-  // Pass and leave responder another turn, a medium opener bids an implied major at the cheapest
-  // level still available, and a maximum still drives to major-suit game.
-  // Other negative-Double continuations remain separate competitive decisions.
+  // Responder's negative Double is one coordinated opener-rebid family.  It asks opener first
+  // to look for a four-card fit in the suit or suits the Double implied; if no such fit exists,
+  // opener can still describe a six-card opening suit or the ordinary balanced NT ranges.  With
+  // advancer Pass, minimum/medium hands keep the economical/jump ladder and a maximum major fit
+  // reaches game.  Once advancer acts, a still-cheap implied-suit fit remains descriptive, but
+  // competition must not promote a vanished three-level call into an automatic game.
+  //
+  // If advancer intervenes and a minimum opener has no selected descriptive call, Pass is real:
+  // responder still has another turn.  Extra-value hands without a deterministic route reach a
+  // hand-specific scope boundary instead of manufacturing a bid.  Strong support cuebids,
+  // natural NT, side suits, preemptive raises, and strength Redouble are admitted here only
+  // because the advancing rules already assign those calls explicit meanings.
   {
-    id: 'opener-rebid-major-after-negative-double-minimum',
+    id: 'opener-rebid-implied-suit-after-negative-double-minimum',
     kind: 'openerRebid',
-    title: 'Bid an implied major economically after a negative Double',
+    title: 'Bid an implied suit economically after a negative Double',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: { kind: 'pass' },
     },
-    calls: ['1H', '1S', '2H', '2S'],
+    calls: ['1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
-      refineOpenerNegativeDoubleMajorRebid(calls, context, 'minimum'),
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'minimum'),
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
-    meaning: 'Show a four-card or longer major implied by responder’s negative Double.',
-    guidance: ['With equal four-card implied majors, hearts is presented first up the line.'],
+    meaning: 'Show a four-card or longer fit in a suit implied by responder’s negative Double.',
+    guidance: ['Prefer the longer implied fit.  Equal four-card majors use the existing up-line ' +
+               'major ordering; equal implied minors are presented up the line.'],
     certainty: 'high',
   },
   {
-    id: 'opener-rebid-jump-major-after-negative-double-medium',
+    id: 'opener-rebid-jump-implied-suit-after-negative-double-medium',
     kind: 'openerRebid',
-    title: 'Jump in an implied major after a negative Double with medium values',
+    title: 'Jump in an implied suit after a negative Double with medium values',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: { kind: 'pass' },
     },
-    calls: ['2H', '2S', '3H', '3S'],
+    calls: ['2H', '2S', '3C', '3D', '3H', '3S', '4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
-      refineOpenerNegativeDoubleMajorRebid(calls, context, 'medium'),
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
-    meaning: 'Jump one level in a four-card or longer major implied by the negative Double.',
+    meaning: 'Jump one level in a four-card or longer suit implied by the negative Double.',
     certainty: 'high',
   },
   {
@@ -499,47 +509,178 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
     },
     calls: ['4H', '4S'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
-      refineOpenerNegativeDoubleMajorRebid(calls, context, 'maximum'),
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'maximum'),
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Bid game with maximum values and a four-card or longer implied major.',
     certainty: 'high',
   },
   {
-    id: 'opener-rebid-pass-after-negative-double-advancer-raise-minimum',
+    id: 'opener-rebid-jump-implied-minor-after-negative-double-maximum',
     kind: 'openerRebid',
-    title: 'Pass after advancer raises a negative-Double auction with a minimum',
+    title: 'Jump in an implied minor with maximum values and advancer passing',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: { kind: 'pass' },
     },
-    calls: ['Pass'],
-    callRefinement: refineOpenerPassAfterNegativeDoubleAdvancerRaise,
+    calls: ['3C', '3D'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'maximum'),
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
+    meaning: 'Show the strong implied-minor fit below the four level without assuming minor game.',
+    guidance: ['Five of a minor is not automatic merely because opener has maximum values.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-implied-suit-after-negative-double-competition-minimum',
+    kind: 'openerRebid',
+    title: 'Describe an implied-suit fit after advancer acts with a minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    calls: ['1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'minimum'),
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
-    meaning: 'Further competition removes the obligation to manufacture a rebid with a minimum.',
+    meaning: 'Keep describing a known implied-suit fit when competition leaves a cheap call.',
+    guidance: ['The trainer does not turn a consumed three-level fit bid into an automatic game.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-implied-suit-after-negative-double-competition-medium',
+    kind: 'openerRebid',
+    title: 'Keep competing in an implied suit with medium values',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    calls: ['1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
+    meaning: 'Medium opener uses the cheapest still-descriptive implied-suit fit through level three.',
+    guidance: ['Advancer’s action consumes the old jump step; it does not force opener one level ' +
+               'higher merely to preserve the uncontested strength ladder.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-repeat-opening-suit-after-negative-double',
+    kind: 'openerRebid',
+    title: 'Repeat a six-card opening suit after a negative Double',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerNegativeDoubleOpeningSuitRebid,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 18 } },
+    meaning: 'Without an implied-suit fit, repeat a six-card opening suit while it stays below game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-natural-nt-after-negative-double',
+    kind: 'openerRebid',
+    title: 'Rebid natural notrump after a negative Double',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    calls: ['1NT', '2NT'],
+    callCategory: ['natural'],
+    appliesWhen: openerNegativeDoubleNtApplies,
+    meaning: 'Use the ordinary balanced 12-14 or 18-19 HCP NT rebid when that exact level remains.',
+    guidance: ['Opener must stop every suit the opponents have bid naturally.  Do not promote an ' +
+               'unavailable NT level merely because competition consumed it.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-negative-double-competition-minimum',
+    kind: 'openerRebid',
+    title: 'Pass with a minimum after advancer acts when no clear description remains',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    calls: ['Pass'],
+    callCategory: ['natural'],
+    appliesWhen: openerNegativeDoubleCompetitionPassApplies,
+    meaning: 'Advancer’s intervention removes the obligation to manufacture a rebid with a minimum.',
     guidance: ['Responder still has another turn; this Pass does not convert the negative Double ' +
                'into a penalty Double.'],
     certainty: 'high',
   },
   {
-    id: 'opener-rebid-major-after-negative-double-advancer-raise-medium',
-    kind: 'openerRebid',
-    title: 'Keep competing in an implied major after advancer raises',
+    id: 'opener-rebid-scope-boundary-after-negative-double-advancer-pass',
+    kind: 'scopeBoundary',
+    title: 'Descriptive judgment after a negative Double when advancer passes',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: { kind: 'pass' },
     },
-    calls: ['2H', '2S', '3H', '3S', '4H', '4S'],
-    callRefinement: refineOpenerNegativeDoubleMajorAfterAdvancerRaise,
-    callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
-    meaning: 'Medium opener bids an implied four-card major at the cheapest level competition left.',
-    guidance: ['Advancer’s raise has consumed the old jump step, so bidding on shows the extras ' +
-               'without forcing opener one level higher merely to preserve the uncontested ladder.'],
+    scopeBoundaryWhen: openerNegativeDoubleScopeBoundaryApplies,
+    meaning: 'Responder’s negative Double requires action, but no selected deterministic ' +
+             'description fits opener’s hand.',
+    guidance: [
+      'Responder has shown the modeled unbid-suit pattern and enough strength for this negative ' +
+      'Double.  With advancer passing, opener must continue rather than treat the Double as penalty.',
+      'The trainer has no selected deterministic route when opener lacks a modeled implied-suit ' +
+      'fit, six-card repeat, natural NT rebid, or clear major game.  A cuebid or another strong ' +
+      'description may be appropriate, but choosing among those actions depends on hand texture ' +
+      'and partnership judgment beyond this treatment.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-negative-double-advancer-action',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after a negative Double and further advancer action',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: {
+        kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
+      },
+    },
+    scopeBoundaryWhen: openerNegativeDoubleScopeBoundaryApplies,
+    meaning: 'The negative Double is understood, but further competition leaves no deterministic ' +
+             'selected opener action.',
+    guidance: [
+      'Responder has shown the modeled unbid-suit pattern and enough strength for the negative ' +
+      'Double.  Advancer has now supplied additional competitive information or consumed bidding ' +
+      'space.',
+      'Pass may be right, and bidding on may also be right.  The trainer has already tried the ' +
+      'clear implied-suit fit, six-card opening-suit, natural NT, and major-game routes; the ' +
+      'remaining choice depends on playing strength, fit quality, honor location, vulnerability, ' +
+      'and the level of the opponents’ action.',
+    ],
     certainty: 'high',
   },
   // A strength-showing Redouble does not force opener to choose a new strain.  With advancer

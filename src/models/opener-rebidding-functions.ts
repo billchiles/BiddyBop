@@ -1,8 +1,8 @@
 /// Opener-Rebid Functions: refiners, applicability checks, and related helpers.
 
 import {
-  STRAIN_ORDER, type AppliesWhenResult, type BiddingSystem, type Call, type CallRefinementResult,
-  type RuleEvalContext, type SuitBid
+  STRAIN_ORDER, type AdvancerCallKind, type AppliesWhenResult, type BiddingSystem, type Call,
+  type CallRefinementResult, type RuleEvalContext, type SuitBid
 } from './bidding-types';
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
 import {
@@ -290,12 +290,18 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 ///
 
 
-/// getOpenerNegativeDoubleInfo recognizes opener's turn after a natural suit overcall and
-/// responder's negative Double when advancer either Passes or makes the selected simple raise of
-/// the overcall.  The implied suits depend on both opposing calls, so keep that interpretation
-/// together rather than reconstructing it from the compact partnership auction.
-function getOpenerNegativeDoubleInfo (context: RuleEvalContext):
-    { opening: ParsedSuitBid; overcall: ParsedSuitBid; advancerRaise: ParsedSuitBid | null } | null {
+/// getOpenerNegativeDoubleInfo keeps the full competitive meaning of responder's negative Double
+/// together for opener's second turn.  The implied suits come from the opening and overcall;
+/// advancerKind records whether fourth hand Passed, supported the overcaller, described another
+/// strain, or made one of the artificial actions already modeled by the advancing rules.
+interface OpenerNegativeDoubleInfo {
+  opening: ParsedSuitBid;
+  overcall: ParsedSuitBid;
+  impliedSuits: Suit[];
+  advancerKind: AdvancerCallKind;
+}
+
+function getOpenerNegativeDoubleInfo (context: RuleEvalContext): OpenerNegativeDoubleInfo | null {
   if (context.stage !== 'openerRebid' ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
@@ -308,108 +314,192 @@ function getOpenerNegativeDoubleInfo (context: RuleEvalContext):
   const opening = parseSuitBid(openingInfo.call);
   const overcallCall = context.auction[openingInfo.index + 1];
   const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
   if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
-      overcall === null || overcall.strain === 'NT') {
+      overcall === null || overcall.strain === 'NT' || advancerKind === null ||
+      advancerKind === 'responsiveDouble' || advancerKind === 'other') {
     return null;
   }
-  const advanceCall = context.auction[openingInfo.index + 3];
-  if (advanceCall === 'Pass') {
-    return { opening, overcall, advancerRaise: null };
-  }
-  const advancerRaise = advanceCall === undefined ? null : parseSuitBid(advanceCall);
-  if (advancerRaise === null || advancerRaise.strain !== overcall.strain ||
-      cheapestBidInStrainAfter(overcall, overcall.strain) !== advanceCall) {
-    return null;
-  }
-  return { opening, overcall, advancerRaise };
+  return {
+    opening,
+    overcall,
+    impliedSuits: getNegativeDoubleImpliedSuits(opening, overcall),
+    advancerKind,
+  };
 }
 
-/// refineOpenerNegativeDoubleMajorRebid implements the simple strength ladder when responder's
-/// negative Double implies an unbid major and advancer Passes.  Minimum hands bid economically,
-/// medium hands jump one level, and maximum hands bid major-suit game.  If advancer raises, the
-/// lower two ranges use the separate competitive continuations below because the extra bidding
-/// level changes what a jump would mean.
-export function refineOpenerNegativeDoubleMajorRebid (
+/// getOpenerNegativeDoubleFitSuits returns the implied suits in which opener actually has the
+/// four-card fit responder's Double asked opener to look for.  Prefer a longer fit; equal majors
+/// use the existing major ordering, while equal minors are presented up the line.
+function getOpenerNegativeDoubleFitSuits (
+    context: RuleEvalContext, info: OpenerNegativeDoubleInfo): Suit[] {
+  const fits = info.impliedSuits.map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
+    .filter(({ length }) => length >= 4);
+  if (fits.length > 1 && fits.every(({ suit }) => suit === 'H' || suit === 'S')) {
+    return orderMajorSuitCandidates(fits).map(({ suit }) => suit);
+  }
+  fits.sort((left, right) => right.length - left.length ||
+    STRAIN_ORDER.indexOf(left.suit) - STRAIN_ORDER.indexOf(right.suit));
+  return fits.map(({ suit }) => suit);
+}
+
+/// getCheapestAvailableSuitBidForOpener finds the lowest legal bid in a particular strain from
+/// opener's actual competitive position rather than measuring from responder's compact call.
+function getCheapestAvailableSuitBidForOpener (
+    context: RuleEvalContext, suit: Suit, maximumLevel: number): SuitBid | null {
+  for (let level = 1; level <= maximumLevel; level += 1) {
+    const call = `${level}${suit}` as SuitBid;
+    if (isCallAvailableInAuction(call, context.auction)) return call;
+  }
+  return null;
+}
+
+/// getOpenerNegativeDoubleImpliedSuitCall implements the selected strength ladder for a known
+/// implied-suit fit.  With advancer Pass, minimum opens the fit economically and medium jumps one
+/// level.  Once advancer acts, minimum/medium hands use only a still-economical bid through the
+/// three level; competition must not turn a vanished descriptive call into an automatic game.
+/// Maximum values place an implied major in game.  With an implied minor and advancer Pass, a
+/// strong jump below the four level describes the extra values without pretending five of a minor
+/// is automatic.
+function getOpenerNegativeDoubleImpliedSuitCall (
+    context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'): SuitBid | null {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null) return null;
+  for (const suit of getOpenerNegativeDoubleFitSuits(context, info)) {
+    if (strength === 'maximum') {
+      if (suit === 'H' || suit === 'S') {
+        const game = `4${suit}` as SuitBid;
+        if (isCallAvailableInAuction(game, context.auction)) return game;
+        continue;
+      }
+      if (info.advancerKind !== 'pass') continue;
+      const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 3);
+      const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+      if (parsed !== null && parsed.level + 1 <= 3) {
+        return `${parsed.level + 1}${suit}` as SuitBid;
+      }
+      continue;
+    }
+
+    if (info.advancerKind !== 'pass') {
+      const competitive = getCheapestAvailableSuitBidForOpener(context, suit, 3);
+      if (competitive !== null) return competitive;
+      continue;
+    }
+
+    const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 4);
+    const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+    if (parsed === null) continue;
+    if (strength === 'minimum') {
+      if (parsed.level <= 3) return cheapest;
+      continue;
+    }
+    const jumpLevel = parsed.level + 1;
+    if (jumpLevel <= 3 || ((suit === 'H' || suit === 'S') && jumpLevel === 4)) {
+      return `${jumpLevel}${suit}` as SuitBid;
+    }
+  }
+  return null;
+}
+
+export function refineOpenerNegativeDoubleImpliedSuitRebid (
     calls: Call[], context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'):
     CallRefinementResult {
-  const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null || (info.advancerRaise !== null && strength !== 'maximum')) {
-    return { calls: [], telemetryLines: [] };
-  }
-  let majors = getNegativeDoubleImpliedSuits(info.opening, info.overcall)
-    .filter((suit) => suit === 'H' || suit === 'S')
-    .map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
-    .filter(({ length }) => length >= 4);
-  if (majors.length > 1) {
-    majors = orderMajorSuitCandidates(majors);
-  }
-  const wanted: Call[] = [];
-  for (const { suit } of majors) {
-    const cheapestCall = cheapestBidInStrainAfter(info.overcall, suit);
-    const cheapest = cheapestCall === null ? null : parseSuitBid(cheapestCall);
-    if (cheapest === null) continue;
-    let call: Call | null = cheapestCall;
-    if (strength === 'medium') {
-      const level = cheapest.level + 1;
-      call = level <= 4 ? `${level}${suit}` as SuitBid : null;
-    } else if (strength === 'maximum') {
-      call = `4${suit}` as SuitBid;
-    }
-    if (call !== null && calls.includes(call)) {
-      wanted.push(call);
-    }
-  }
+  const wanted = getOpenerNegativeDoubleImpliedSuitCall(context, strength);
   return {
-    calls: wanted,
-    telemetryLines: wanted.length === 0 ? [
-      'No four-card implied major is available for the selected negative-Double rebid.',
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null ? [
+      `No selected ${strength} implied-suit rebid is available after the negative Double.`,
     ] : [
-      `Negative-Double major fit: ${strength} opener follows the economical / jump / game ladder.`,
+      `Negative-Double implied-suit fit: ${strength} opener selects ${wanted}.`,
     ],
   };
 }
 
-/// refineOpenerPassAfterNegativeDoubleAdvancerRaise keeps the real minimum-hand option created by
-/// further competition.  Responder still has another turn, so opener need not manufacture a bid
-/// merely because the negative Double would have required action if advancer had Passed.
-export function refineOpenerPassAfterNegativeDoubleAdvancerRaise (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+/// getOpenerNegativeDoubleOpeningSuitCall keeps the ordinary six-card fallback only when opener
+/// lacks a four-card implied-suit fit.  Competition may move that repeat upward, but this selected
+/// treatment stops once repeating opener's suit would require the four level.
+function getOpenerNegativeDoubleOpeningSuitCall (context: RuleEvalContext): SuitBid | null {
   const info = getOpenerNegativeDoubleInfo(context);
-  const applies = info !== null && info.advancerRaise !== null;
+  if (info === null || getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
+      context.handFacts.lengths[info.opening.strain as Suit] < 6) {
+    return null;
+  }
+  return getCheapestAvailableSuitBidForOpener(context, info.opening.strain as Suit, 3);
+}
+
+export function refineOpenerNegativeDoubleOpeningSuitRebid (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const wanted = getOpenerNegativeDoubleOpeningSuitCall(context);
   return {
-    calls: applies ? calls.filter((call) => call === 'Pass') : [],
-    telemetryLines: applies
-      ? ['Advancer raised after the negative Double, so a minimum opener may Pass.'] : [],
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null
+      ? ['No selected six-card opening-suit repeat is available after the negative Double.']
+      : [`Repeat opener's six-card suit economically with ${wanted}.`],
   };
 }
 
-/// refineOpenerNegativeDoubleMajorAfterAdvancerRaise lets a medium opener keep competing in an
-/// implied four-card major at the cheapest level above advancer's raise.  Competition has consumed
-/// the old jump step, so the call no longer needs to jump to show the medium range.
-export function refineOpenerNegativeDoubleMajorAfterAdvancerRaise (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+/// getOpenerNegativeDoubleNtCall retains only the normal 12-14 1NT or 18-19 2NT description.
+/// Do not promote an unavailable NT level after competition.  Opener also needs stoppers in every
+/// suit the opponents have bid naturally, and NT is a fallback only without an implied-suit fit or
+/// six-card opening-suit repeat.
+function getOpenerNegativeDoubleNtCall (context: RuleEvalContext): SuitBid | null {
   const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null || info.advancerRaise === null) {
-    return { calls: [], telemetryLines: [] };
+  if (info === null || ! context.handFacts.balanced ||
+      getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
+      context.handFacts.lengths[info.opening.strain as Suit] >= 6) {
+    return null;
   }
-  const advancerRaise = info.advancerRaise;
-  let majors = getNegativeDoubleImpliedSuits(info.opening, info.overcall)
-    .filter((suit) => suit === 'H' || suit === 'S')
-    .map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
-    .filter(({ length }) => length >= 4);
-  if (majors.length > 1) {
-    majors = orderMajorSuitCandidates(majors);
-  }
-  const wanted = majors.map(({ suit }) =>
-    cheapestBidInStrainAfter(advancerRaise, suit)).filter((call): call is SuitBid =>
-      call !== null && calls.includes(call));
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  if (! opponentSuits.every((suit) => hasBasicSuitStopper(context, suit))) return null;
+  const hcp = context.handFacts.hcp;
+  const wanted = hcp >= 12 && hcp <= 14 ? '1NT' : hcp >= 18 && hcp <= 19 ? '2NT' : null;
+  return wanted !== null && isCallAvailableInAuction(wanted, context.auction) ? wanted : null;
+}
+
+export function openerNegativeDoubleNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const wanted = getOpenerNegativeDoubleNtCall(context);
+  const success = wanted !== null && call === wanted;
   return {
-    calls: wanted,
-    telemetryLines: wanted.length === 0 ? [
-      'No four-card implied major is available above advancer’s raise.',
-    ] : [
-      'Medium opener keeps competing in an implied major at the cheapest available level.',
-    ],
+    success,
+    telemetryLines: [success
+      ? `PASS: ${wanted} keeps the ordinary balanced range with all opponent suits stopped.`
+      : 'FAIL: no selected natural NT rebid applies after the negative Double.'],
+  };
+}
+
+/// openerNegativeDoubleCompetitionPassApplies keeps Pass as a real minimum action only after
+/// advancer intervenes and no selected fit, six-card repeat, or natural NT description survives.
+/// Responder still has another turn; this is not a conversion of the negative Double to penalty.
+export function openerNegativeDoubleCompetitionPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerNegativeDoubleInfo(context);
+  const points = context.handFacts.totalPointsWShortage;
+  const noDescriptiveCall = info !== null && info.advancerKind !== 'pass' &&
+    points >= 12 && points <= 16 &&
+    getOpenerNegativeDoubleImpliedSuitCall(context, 'minimum') === null &&
+    getOpenerNegativeDoubleOpeningSuitCall(context) === null &&
+    getOpenerNegativeDoubleNtCall(context) === null;
+  return {
+    success: noDescriptiveCall,
+    telemetryLines: [noDescriptiveCall
+      ? 'PASS: advancer intervened and no selected minimum descriptive rebid remains.'
+      : 'FAIL: Pass is not the selected negative-Double continuation for this hand.'],
+  };
+}
+
+/// openerNegativeDoubleScopeBoundaryApplies marks a reviewed negative-Double continuation as a
+/// fallback boundary.  The evaluator suppresses it whenever one of the concrete fit, long-suit,
+/// NT, game, or minimum-Pass calls applies, so this reaches only the remaining judgment-heavy hand.
+export function openerNegativeDoubleScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const success = getOpenerNegativeDoubleInfo(context) !== null;
+  return {
+    success,
+    telemetryLines: [success
+      ? 'PASS: reviewed negative-Double auction can use a scope boundary if no bid applies.'
+      : 'FAIL: not a reviewed negative-Double opener continuation.'],
   };
 }
 

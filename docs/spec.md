@@ -488,16 +488,24 @@ families.
 
 Natural 1NT, weak two-/three-level new suits, and a weak jump raise after a takeout Double are
 nonforcing responder actions. A minimum opener may Pass them rather than manufacture a rebid.
-After a negative Double of a natural suit overcall and advancer Pass, opener with four or more
-cards in an implied major bids it economically with minimum values, jumps one level with medium
-values, and bids game with maximum values. If advancer instead makes the selected simple raise of
-the overcall, competition changes that ladder: a minimum opener may Pass and leave responder
-another turn, a medium opener with an implied major bids it at the cheapest available level, and a
-maximum still bids game. After responder's strength-showing Redouble of a takeout Double and
-advancer's Pass, opener may also Pass; this waits for the doubler's next turn and does not create a
-general penalty-double system. After natural two-level suit interference over a 1NT opening, the
-ordinary natural 2NT invitation accept/decline and natural 3NT signoff continuations retain their
-meanings.
+After a negative Double of a natural suit overcall, opener first looks for four-card support in
+one of the suits the Double implied. With advancer Pass, a minimum opener bids that fit economically,
+a medium opener jumps one level, and maximum values place an implied major in game. When both
+majors have already been named, the same fit logic can apply to the implied minors; maximum minor
+values use a strong descriptive jump rather than assuming five of a minor is automatic.
+
+If opener lacks an implied-suit fit, the selected fallback descriptions are a six-card opening-suit
+repeat through the three level or the ordinary 12-14 1NT / 18-19 2NT rebid when that exact NT level
+is still available and every naturally bid opponent suit is stopped. Once advancer acts, a still-
+economical implied-suit fit remains descriptive, but competition must not promote a consumed
+three-level call into an automatic game. A minimum opener with no selected descriptive route may
+Pass and leave responder another turn. If extra values remain but no deterministic action survives,
+a scope boundary explains the competing Pass/bid-on judgment rather than inventing a call.
+
+After responder's strength-showing Redouble of a takeout Double and advancer's Pass, opener may
+also Pass; this waits for the doubler's next turn and does not create a general penalty-double
+system. After natural two-level suit interference over a 1NT opening, the ordinary natural 2NT
+invitation accept/decline and natural 3NT signoff continuations retain their meanings.
 
 ## Responder after an opponent's natural 1NT overcall
 

@@ -985,15 +985,32 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     console.error('FAIL forcing-response competition did not stop at its scope boundary.');
   }
 
+  const { board: negativeDoubleBoundaryBoard } = makeRuleTestBoard({
+    description: 'Extra-value opener after a negative Double and preemptive advancer raise.',
+    practiceAuction: ['1D', '1S', 'Double', '3S'],
+    north: { S: '74', H: 'KQ3', D: 'AKJ86', C: 'A82' },
+    south: { S: 'Q3', H: 'AJT8', D: 'Q93', C: 'KT74' },
+  });
+  const negativeDoubleBoundaryResult = evaluateUserCall(
+    'Pass', negativeDoubleBoundaryBoard, ['1D', '1S', 'Double', '3S'], defaultBiddingSystem);
+  checks += 1;
+  if (! negativeDoubleBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-negative-double-advancer-action') ||
+      getApplicableCandidateCalls(negativeDoubleBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL negative-Double competition did not stop at its scope boundary.');
+  }
+
   const unsupported: Call[][] = [
     ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
     ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
-    ['1H', '1S', 'Double', 'Pass'],   // Double implies minors, not this major-fit family.
     ['1H', '1S', '1NT', 'Pass'],      // Natural NT after a suit overcall is a separate family.
     ['1C', '1S', '2H', '3H'],         // Advancer cuebids responder's natural suit.
     ['1H', 'Double', '1S', '2S'],     // Advancer cuebids responder's natural suit.
     ['1H', '2D', '3C', 'Pass'],       // Three-level natural response is a separate family.
     ['1S', '2H', '3S', 'Pass'],       // Preemptive jump raise after overcall is separate.
+    ['1C', '1S', 'Double', '3D'],     // Negative-Double side suit is modeled only at level two.
+    ['1D', '1S', 'Double', '4NT'],    // Higher NT is not the selected negative-Double advance.
   ];
   for (const auction of unsupported) {
     checks += 1;

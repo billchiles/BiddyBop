@@ -94,15 +94,24 @@ floor rather than being mistaken for Jacoby 2NT.  Responder's natural 1NT, weak 
 new suits, and weak jump raise after a takeout Double are nonforcing; a clear minimum opener may
 therefore Pass rather than manufacture a continuation.
 
-After responder's negative Double and advancer Pass, opener uses a simple major-fit strength
-ladder when holding four or more cards in an implied major: bid economically with minimum values,
-jump with medium values, and bid game with maximum values.  If advancer raises the overcall, a
-minimum opener may instead Pass and leave responder another turn; a medium opener with an implied
-major bids on at the cheapest available level rather than artificially preserving the old jump,
-while a maximum still drives to game.  After a strength-showing Redouble, opener may Pass when
-advancer Passes rather than manufacture a new descriptive bid.  After natural two-level suit
-interference over our 1NT opening, the ordinary 2NT invitation accept/decline and natural 3NT
-signoff continuations retain their meanings.
+After responder's negative Double, opener now treats the implied suit or suits as one coordinated
+family rather than only looking for an unbid major.  With advancer Pass, minimum values show a
+four-card implied fit economically, medium values jump one level, and maximum values place an
+implied major in game; when both majors have already been named, the Double can instead imply the
+minors, with a strong descriptive minor jump stopping short of assuming minor game.  Without an
+implied-suit fit, opener can still repeat a six-card opening suit through the three level or use the
+ordinary 12-14 1NT / 18-19 2NT description when that exact level remains and every naturally bid
+opponent suit is stopped.
+
+The same family continues through advancer actions that already have explicit advancing meanings:
+ordinary/preemptive raises, a natural side suit or NT call, a strong support cuebid, or a strength-
+showing Redouble.  A still-cheap implied-suit fit remains descriptive.  A minimum opener with no
+selected descriptive route may Pass and leave responder another turn; an extra-value hand with no
+deterministic continuation reaches specific scope-boundary guidance instead of having competition
+promote a vanished three-level call into an automatic game.  After a strength-showing Redouble of
+a takeout Double, opener may Pass when advancer Passes rather than manufacture a new descriptive
+bid.  After natural two-level suit interference over our 1NT opening, the ordinary 2NT invitation
+accept/decline and natural 3NT signoff continuations retain their meanings.
 
 These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
 trainer may reach a hand-specific scope boundary when the auction is understood but the next choice
@@ -111,9 +120,9 @@ responder suit, the boundary guidance states the actual promise responder made -
 5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
 bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
 opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
-candidate call.  Strong advancer cuebids, natural responder notrump after a suit overcall,
-three-level competitive new-suit responses, and jump-overcall continuations remain separate
-families to analyze rather than being inferred from same-looking uncontested auctions.
+candidate call.  Strong advancer cuebids after natural responder actions, natural responder notrump after a
+suit overcall, three-level competitive new-suit responses, and jump-overcall continuations remain
+separate families to analyze rather than being inferred from same-looking uncontested auctions.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.
