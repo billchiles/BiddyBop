@@ -6,11 +6,14 @@ import {
 } from './bidding-types';
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
 import {
-  cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids, getInterferenceAfterOpening,
-  getOpeningCallInfo, getResponderCall, openerRebidIsReverse, parseSuitBid, type ParsedSuitBid
+  cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids,
+  getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening, getOpeningCallInfo,
+  getOpponentNaturallyBidSuitsForOpenerRebid, getResponderCall, isCallAvailableInAuction,
+  openerRebidIsReverse, parseSuitBid, type ParsedSuitBid
 } from './auction';
 import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
-         getWeakTwoOpeningBid, orderMajorSuitCandidates } from './common-rule-helpers';
+         getWeakTwoOpeningBid, hasBasicSuitStopper, orderMajorSuitCandidates }
+  from './common-rule-helpers';
 
 
 
@@ -438,6 +441,226 @@ export function openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies (
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
 ///
+/// getOpenerForcingResponseCompetitionInfo recognizes the reviewed continuation where responder
+/// introduced a natural forcing suit and advancer then competed naturally.  The response meaning
+/// comes from the interference family: one-level natural responses are forcing after either a suit
+/// overcall or takeout Double, while a non-jump two-level response after a suit overcall is also
+/// forcing one round and promises five or more cards.
+function getOpenerForcingResponseCompetitionInfo (context: RuleEvalContext):
+    { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
+      minimumSupport: number } | null {
+  if (context.stage !== 'openerRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return null;
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const responseCall = context.auction[openingInfo.index + 2];
+  const advanceCall = context.auction[openingInfo.index + 3];
+  const response = responseCall === undefined ? null : parseSuitBid(responseCall);
+  const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      response === null || response.strain === 'NT' || advance === null ||
+      response.strain === opening.strain) {
+    return null;
+  }
+  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  if (interference === 'suitOvercall') {
+    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+    if (overcall === null || overcall.strain === 'NT' || response.strain === overcall.strain ||
+        (response.level !== 1 && response.level !== 2) ||
+        cheapestBidInStrainAfter(overcall, response.strain) !== responseCall ||
+        (advancerKind !== 'raise' && advancerKind !== 'preemptiveRaise' &&
+         advancerKind !== 'newSuit')) {
+      return null;
+    }
+    return { opening, response, advance, minimumSupport: response.level === 2 ? 3 : 4 };
+  }
+  if (interference === 'takeoutDouble') {
+    if (response.level !== 1 || cheapestBidInStrainAfter(opening, response.strain) !== responseCall ||
+        advancerKind !== 'newSuit') {
+      return null;
+    }
+    return { opening, response, advance, minimumSupport: 4 };
+  }
+  return null;
+}
+
+/// refineOpenerForcingResponseCompetitionSupport keeps a natural raise of responder's forcing suit
+/// only through the three level.  Competition may make the old cheap raise unavailable, but moving
+/// one level higher remains descriptive when it is still below game; a forced game-level decision
+/// is left to the separate maximum rule or scope-boundary guidance.
+export function refineOpenerForcingResponseCompetitionSupport (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
+    return { calls: [], telemetryLines: ['No supported forcing-response fit is available.'] };
+  }
+  const wanted = cheapestBidInStrainAfter(info.advance, info.response.strain);
+  const parsed = wanted === null ? null : parseSuitBid(wanted);
+  if (parsed === null || parsed.level > 3) {
+    return { calls: [], telemetryLines: ['Competition has pushed the natural raise to game level.'] };
+  }
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Support responder at the cheapest available level with ${wanted}.`],
+  };
+}
+
+/// refineOpenerForcingResponseCompetitionRepeat keeps a six-card opening suit at the cheapest
+/// available level through three.  It deliberately does not promote a blocked partscore rebid into
+/// a game-level decision merely because advancer consumed bidding space.
+export function refineOpenerForcingResponseCompetitionRepeat (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.opening.strain as Suit] < 6) {
+    return { calls: [], telemetryLines: ['No six-card opening suit is available to repeat.'] };
+  }
+  const wanted = cheapestBidInStrainAfter(info.advance, info.opening.strain);
+  const parsed = wanted === null ? null : parseSuitBid(wanted);
+  if (parsed === null || parsed.level > 3) {
+    return { calls: [], telemetryLines: ['Competition has pushed the opening-suit rebid too high.'] };
+  }
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Repeat the six-card opening suit economically with ${wanted}.`],
+  };
+}
+
+/// refineOpenerForcingResponseCompetitionGameRaise keeps only game in responder's natural suit
+/// when opener has maximum values and the support promised by this competitive response family.
+export function refineOpenerForcingResponseCompetitionGameRaise (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
+    return { calls: [], telemetryLines: ['No maximum forcing-response fit is available.'] };
+  }
+  const targetLevel = info.response.strain === 'H' || info.response.strain === 'S' ? 4 : 5;
+  const wanted = `${targetLevel}${info.response.strain}` as SuitBid;
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Maximum opener places the supported responder suit in game at ${wanted}.`],
+  };
+}
+
+/// openerForcingResponseCompetitionNtApplies retains only the ordinary balanced notrump ranges
+/// whose original contract level is still available after advancer acts.  The evaluator's shared
+/// competitive filter separately requires stoppers in every suit the opponents bid naturally.
+export function openerForcingResponseCompetitionNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || ! context.handFacts.balanced ||
+      context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport) {
+    return { success: false, telemetryLines: ['FAIL: no balanced forcing-response NT rebid.'] };
+  }
+  const hcp = context.handFacts.hcp;
+  let wanted: SuitBid | null = null;
+  if (hcp >= 12 && hcp <= 14) {
+    wanted = info.response.level === 1 ? '1NT' : '2NT';
+  } else if (hcp >= 18 && hcp <= 19) {
+    wanted = info.response.level === 1 ? '2NT' : '3NT';
+  }
+  const success = wanted !== null && call === wanted &&
+    isCallAvailableInAuction(wanted, context.auction);
+  return {
+    success,
+    telemetryLines: [success
+      ? `PASS: ${wanted} retains the natural balanced range after advancer competes.`
+      : 'FAIL: no available natural notrump rebid matches this strength and response level.'],
+  };
+}
+
+/// openerForcingResponseCompetitionPassApplies keeps a genuine minimum Pass only when competition
+/// has removed the selected descriptive continuations.  Responder still has another turn; this is
+/// not a claim that the original forcing response was weak or that opener would Pass without the
+/// intervening call.
+export function openerForcingResponseCompetitionPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
+  }
+  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
+  const points = hasFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  if (points < 12 || points > 16) {
+    return { success: false, telemetryLines: [`FAIL: minimum Pass range is 12-16; hand has ${points}.`] };
+  }
+  const clearContinuation = hasClearForcingResponseCompetitionContinuation(context, info);
+  return {
+    success: ! clearContinuation,
+    telemetryLines: [clearContinuation
+      ? 'FAIL: a selected natural descriptive continuation remains available.'
+      : 'PASS: competition removed the selected descriptive rebids; minimum opener may Pass.'],
+  };
+}
+
+/// openerForcingResponseCompetitionScopeBoundaryApplies identifies extra-value hands after a
+/// natural forcing responder suit where no concrete modeled action survives.  A concrete rule, if
+/// one applies, suppresses this explanatory fallback in the evaluator.
+export function openerForcingResponseCompetitionScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
+  }
+  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
+  const points = hasFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  const success = points >= 17 && points <= 21;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'PASS' : 'FAIL'}: extra-value boundary range is 17-21; hand has ${points}.`,
+    ],
+  };
+}
+
+/// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
+/// declared for this family.  It is intentionally narrower than general bridge judgment: support,
+/// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.
+function hasClearForcingResponseCompetitionContinuation (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
+            minimumSupport: number }): boolean {
+  const responseSuit = info.response.strain as Suit;
+  if (context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
+    const raise = cheapestBidInStrainAfter(info.advance, responseSuit);
+    const parsedRaise = raise === null ? null : parseSuitBid(raise);
+    if (parsedRaise !== null && parsedRaise.level <= 3) return true;
+  }
+  const openingSuit = info.opening.strain as Suit;
+  if (context.handFacts.lengths[openingSuit] >= 6) {
+    const repeat = cheapestBidInStrainAfter(info.advance, openingSuit);
+    const parsedRepeat = repeat === null ? null : parseSuitBid(repeat);
+    if (parsedRepeat !== null && parsedRepeat.level <= 3) return true;
+  }
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+    context.dealer, context.auction);
+  for (const suit of SUITS) {
+    if (suit === openingSuit || suit === responseSuit || opponentSuits.includes(suit) ||
+        context.handFacts.lengths[suit] < 4) {
+      continue;
+    }
+    const cheapest = cheapestBidInStrainAfter(info.response, suit);
+    const candidate = cheapest === null ? null : parseSuitBid(cheapest);
+    if (cheapest !== null && candidate !== null &&
+        ! openerRebidIsReverse(info.opening, info.response, candidate) &&
+        isCallAvailableInAuction(cheapest, context.auction)) {
+      return true;
+    }
+  }
+  if (! context.handFacts.balanced || context.handFacts.hcp < 12 || context.handFacts.hcp > 14 ||
+      context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
+    return false;
+  }
+  const ntCall = (info.response.level === 1 ? '1NT' : '2NT') as SuitBid;
+  return isCallAvailableInAuction(ntCall, context.auction) &&
+    opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+}
+
 export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);

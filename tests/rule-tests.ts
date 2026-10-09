@@ -212,7 +212,7 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1H', 'Double', '2D', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '3H', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '2NT', 'Pass'], expected: 'openerRebid' },
-    { auction: ['1H', 'Double', '1S', '2C'], expected: null },
+    { auction: ['1H', 'Double', '1S', '2C'], expected: 'openerRebid' },
     { auction: ['1NT', '2H', '3C', 'Pass'], expected: null },
     { auction: ['1D', '2S', 'Double', 'Pass'], expected: null },
     { auction: ['1D', 'Pass', '1H', 'Pass'], expected: 'openerRebid' },
@@ -931,6 +931,8 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     [['1H', '1S', '2H', '3C'], 'newSuit'],
     [['1D', '1S', '2D', 'Double'], 'responsiveDouble'],
     [['1S', '2H', '2S', '3S'], 'cuebid'],
+    [['1C', '1S', '2H', '3H'], 'cuebid'],
+    [['1H', 'Double', '1S', '2S'], 'cuebid'],
   ];
   for (const [auction, expectedKind] of advancerKinds) {
     checks += 1;
@@ -967,12 +969,29 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     console.error('FAIL concrete minimum Pass did not suppress the scope boundary.');
   }
 
+  const { board: forcingBoundaryBoard } = makeRuleTestBoard({
+    description: 'Extra-value opener after a forcing 2C response and advancer raise.',
+    practiceAuction: ['1H', '1S', '2C', '2S'],
+    north: { S: 'K7', H: 'KQJ94', D: 'AQJ3', C: 'J8' },
+    south: { S: 'AQT98', H: 'A76', D: 'K85', C: 'Q9' },
+  });
+  const forcingBoundaryResult = evaluateUserCall(
+    'Pass', forcingBoundaryBoard, ['1H', '1S', '2C', '2S'], defaultBiddingSystem);
+  checks += 1;
+  if (! forcingBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-overcall-two-level-forcing-response') ||
+      getApplicableCandidateCalls(forcingBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL forcing-response competition did not stop at its scope boundary.');
+  }
+
   const unsupported: Call[][] = [
-    ['1H', 'Double', '1S', '2C'],     // Advancer competes instead of passing.
     ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
     ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
     ['1H', '1S', 'Double', 'Pass'],   // Double implies minors, not this major-fit family.
     ['1H', '1S', '1NT', 'Pass'],      // Natural NT after a suit overcall is a separate family.
+    ['1C', '1S', '2H', '3H'],         // Advancer cuebids responder's natural suit.
+    ['1H', 'Double', '1S', '2S'],     // Advancer cuebids responder's natural suit.
     ['1H', '2D', '3C', 'Pass'],       // Three-level natural response is a separate family.
     ['1S', '2H', '3S', 'Pass'],       // Preemptive jump raise after overcall is separate.
   ];

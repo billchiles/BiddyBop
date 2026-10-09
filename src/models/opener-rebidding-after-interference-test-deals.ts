@@ -385,4 +385,80 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: '53', H: 'J87543', D: '64', C: 'AJ2' },
     south: { S: 'QJT6', H: 'Q', D: 'AT97', C: 'QT83' },
   },
+  {
+    description: '1C-(1D)-1H-(1S)-Pass: responder’s one-level heart bid was forcing, but ' +
+                 'advancer’s natural spade bid removes the obligation to manufacture a rebid ' +
+                 'when a minimum opener has no selected descriptive continuation.',
+    dealer: 'W', practiceAuction: ['1C', '1D', '1H', '1S', 'Pass'],
+    expectedOpeningCalls: [{ call: '1C', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1D', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1H', ruleIds: ['respond-over-suit-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: '1S', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-new-suit-one-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
+    ] }],
+    west: { S: '9753', H: 'A7', D: 'AJ', C: 'AJ943' },
+    north: { S: 'KQ', H: '843', D: 'KT87542', C: '7' },
+    east: { S: 'T', H: 'KJT95', D: 'Q93', C: 'K862' },
+    south: { S: 'AJ8642', H: 'Q62', D: '6', C: 'QT5' },
+  },
+  {
+    description: '1H-(1S)-2C-(2D)-3C: responder’s competitive 2C promises five or more clubs, ' +
+                 'so three-card opener support is enough to raise naturally after advancer bids.',
+    dealer: 'W', practiceAuction: ['1H', '1S', '2C', '2D', '3C'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '2D', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-new-suit-two-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3C', ruleIds: [
+      'opener-rebid-support-after-forcing-response-advancer-competition',
+    ] }],
+    west: { S: 'T', H: 'AJ854', D: 'QJ52', C: 'KT6' },
+    north: { S: 'KQJ98642', H: '93', D: 'K86', C: '' },
+    east: { S: '3', H: 'KQ762', D: 'A', C: 'J98742' },
+    south: { S: 'A75', H: 'T', D: 'T9743', C: 'AQ53' },
+  },
+  {
+    description: '1H-(2D)-2S-(3D)-3S: responder’s forcing 2S promises five or more spades, so ' +
+                 'opener can support with three cards at the cheapest level advancer leaves.',
+    dealer: 'W', practiceAuction: ['1H', '2D', '2S', '3D', '3S'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: '3D', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-natural-action-simple-raise',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
+      'opener-rebid-support-after-forcing-response-advancer-competition',
+    ] }],
+    west: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    north: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    east: { S: 'J97642', H: '85', D: '', C: 'AKQ64' },
+    south: { S: '5', H: 'KT93', D: '7632', C: 'JT82' },
+  },
+  {
+    description: '1C-(Double)-1H-(1S)-1NT: the one-level heart response remains forcing, and a ' +
+                 'minimum balanced opener can still make the original natural 1NT rebid when ' +
+                 'the opponents’ natural spade suit is stopped.',
+    dealer: 'W', practiceAuction: ['1C', 'Double', '1H', '1S', '1NT'],
+    expectedOpeningCalls: [{ call: '1C', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '1H', ruleIds: ['respond-after-double-new-suit-one-level'] }],
+    expectedAdvanceCalls: [{ call: '1S', ruleIds: [
+      'advance-takeout-double-after-responder-natural-action-new-suit-one-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '1NT', ruleIds: [
+      'opener-rebid-nt-after-forcing-response-advancer-competition',
+    ] }],
+    west: { S: 'AK', H: 'T96', D: 'KT4', C: 'A9874' },
+    north: { S: 'QT8', H: 'A54', D: 'A9876', C: 'Q2' },
+    east: { S: 'J3', H: 'Q8732', D: 'QJ', C: 'KJ65' },
+    south: { S: '976542', H: 'KJ', D: '532', C: 'T3' },
+  },
 ];

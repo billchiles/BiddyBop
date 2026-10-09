@@ -2,7 +2,7 @@
 
 import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type Call, type DirectInterference,
          type Strain, type SuitBid } from './bidding-types';
-import { SEATS, type Seat } from './cards';
+import { SEATS, type Seat, type Suit } from './cards';
 
 /// OpeningCallInfo identifies the auction's first contract bid.
 ///
@@ -138,7 +138,19 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         }
         return false;
       }
-      if (advance !== 'Pass') return false;
+      if (advance !== 'Pass') {
+        // Natural forcing responder suits can continue through selected natural advancer action.
+        // Same-looking artificial responder cuebids remain excluded by the strain checks below.
+        const forcingNaturalSuit = responseBid.strain !== openingBid.strain &&
+          responseBid.strain !== overcallBid.strain &&
+          (responseBid.level === 1 || responseBid.level === 2) &&
+          cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
+        if (! forcingNaturalSuit) return false;
+        if (advancerKind === 'raise' || advancerKind === 'preemptiveRaise') return true;
+        if (advancerKind !== 'newSuit') return false;
+        const advanceBid = parseSuitBid(advance);
+        return advanceBid !== null && advanceBid.level >= 1 && advanceBid.level <= 3;
+      }
       if (responseBid.strain === overcallBid.strain) {
         return cheapestBidInStrainAfter(overcallBid, overcallBid.strain) === response;
       }
@@ -150,15 +162,23 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
     if (interference === 'takeoutDouble') {
       const responseBid = parseSuitBid(response);
       if (advance !== 'Pass') {
-        if (responseBid === null || responseBid.strain !== openingBid.strain ||
-            responseBid.level !== 2) {
-          return false;
-        }
+        if (responseBid === null || responseBid.strain === 'NT') return false;
         const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
-        if (advancerKind === 'responsiveDouble') return true;
-        if (advancerKind !== 'newSuit') return false;
+        // Responder's ordinary simple raise keeps the selected continuations already modeled.
+        if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
+          if (advancerKind === 'responsiveDouble') return true;
+          if (advancerKind !== 'newSuit') return false;
+          const advanceBid = parseSuitBid(advance);
+          return advanceBid !== null && advanceBid.level >= 2 && advanceBid.level <= 3;
+        }
+        // A one-level natural new suit retains its ordinary one-round force after the Double.
+        // Admit only a modeled natural advancer suit; cuebids remain a separate family.
+        const forcingNaturalSuit = responseBid.strain !== openingBid.strain &&
+          responseBid.level === 1 &&
+          cheapestBidInStrainAfter(openingBid, responseBid.strain) === response;
+        if (! forcingNaturalSuit || advancerKind !== 'newSuit') return false;
         const advanceBid = parseSuitBid(advance);
-        return advanceBid !== null && advanceBid.level >= 2 && advanceBid.level <= 3;
+        return advanceBid !== null && advanceBid.level >= 1 && advanceBid.level <= 3;
       }
       if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       if (responseBid === null || responseBid.strain === 'NT') return false;
@@ -210,9 +230,14 @@ export function getAdvancerCallKindForOpenerRebid (dealer: Seat, auction: Call[]
   if (interference === 'suitOvercall') {
     const overcallBid = parseSuitBid(overcall);
     if (overcallBid === null || overcallBid.strain === 'NT') return 'other';
+    const responseBid = parseSuitBid(response);
+    const responderNaturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
+      responseBid.strain !== openingBid.strain && responseBid.strain !== overcallBid.strain;
+    // Once responder has introduced a suit naturally, advancer naming that opponent suit is not
+    // another natural new suit.  Keep it with the artificial/cuebid side of the model.
+    if (responderNaturalSuit && advanceBid.strain === responseBid.strain) return 'cuebid';
     if (advanceBid.strain === openingBid.strain) return 'cuebid';
     if (advanceBid.strain !== overcallBid.strain) return 'newSuit';
-    const responseBid = parseSuitBid(response);
     const previousContract = responseBid ?? overcallBid;
     const cheapestRaise = cheapestBidInStrainAfter(previousContract, overcallBid.strain);
     if (cheapestRaise === advance) return 'raise';
@@ -223,9 +248,34 @@ export function getAdvancerCallKindForOpenerRebid (dealer: Seat, auction: Call[]
   }
 
   if (interference === 'takeoutDouble') {
+    const responseBid = parseSuitBid(response);
+    const responderNaturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
+      responseBid.strain !== openingBid.strain;
+    if (responderNaturalSuit && advanceBid.strain === responseBid.strain) return 'cuebid';
     return advanceBid.strain === openingBid.strain ? 'cuebid' : 'newSuit';
   }
   return 'other';
+}
+
+/// getOpponentNaturallyBidSuitsForOpenerRebid returns the suits the opponents have actually
+/// introduced naturally before opener's second turn.  Artificial cuebids and Doubles do not add
+/// a suit merely because they name or imply one.
+export function getOpponentNaturallyBidSuitsForOpenerRebid (dealer: Seat, auction: Call[]): Suit[] {
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null) return [];
+  const suits = new Set<Suit>();
+  const interference = getInterferenceAfterOpening(dealer, auction);
+  if (interference === 'suitOvercall') {
+    const overcallCall = auction[opening.index + 1];
+    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+    if (overcall !== null && overcall.strain !== 'NT') suits.add(overcall.strain as Suit);
+  }
+  if (getAdvancerCallKindForOpenerRebid(dealer, auction) === 'newSuit') {
+    const advanceCall = auction[opening.index + 3];
+    const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+    if (advance !== null && advance.strain !== 'NT') suits.add(advance.strain as Suit);
+  }
+  return [...suits];
 }
 
 /// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:

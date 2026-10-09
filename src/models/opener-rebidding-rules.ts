@@ -11,6 +11,8 @@ import {
   openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
   openerNtNotrumpSignoffApplies, openerNtQuantitativeInvitationApplies,
   openerNtWeakMajorSignoffApplies, openerPreemptNewSuitRaiseApplies,
+  openerForcingResponseCompetitionNtApplies, openerForcingResponseCompetitionPassApplies,
+  openerForcingResponseCompetitionScopeBoundaryApplies,
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
   openerPreemptNewSuitRepeatApplies, openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
@@ -18,7 +20,9 @@ import {
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
   refineOpenerNewSuitAtCheapestLevel, refineOpenerNewSuitByExtraLevels,
   refineOpenerNegativeDoubleMajorAfterAdvancerRaise, refineOpenerNegativeDoubleMajorRebid,
-  refineOpenerNonReverseNewSuitRebid, refineOpenerPassAfterNegativeDoubleAdvancerRaise,
+  refineOpenerNonReverseNewSuitRebid,
+  refineOpenerForcingResponseCompetitionGameRaise, refineOpenerForcingResponseCompetitionRepeat,
+  refineOpenerForcingResponseCompetitionSupport, refineOpenerPassAfterNegativeDoubleAdvancerRaise,
   refineOpenerNotrumpAtCheapestLevel, refineOpenerNtMajorSlamControlBid,
   refineOpenerNtResponderMajorToGame,
   refineOpenerOpeningSuitAtCheapestLevel, refineOpenerOpeningSuitToLevel,
@@ -693,6 +697,209 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: "Bid game with maximum values and support for responder's natural suit.",
+    certainty: 'high',
+  },
+  //
+  // After responder makes a natural forcing suit bid and advancer then competes naturally, opener
+  // does not mechanically preserve the old uncontested ladder.  Keep only calls whose descriptive
+  // meaning remains clear at the new level: support below game, a six-card opening suit below game,
+  // an unchanged economical second suit or reverse, natural balanced NT with all opponent suits
+  // stopped, or a clear maximum game raise.  With no such action, a minimum may genuinely Pass;
+  // extra-value hands stop at family-specific scope guidance rather than receiving a fabricated bid.
+  {
+    id: 'opener-rebid-support-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: "Support responder's forcing suit after advancer competes",
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerForcingResponseCompetitionSupport,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 18, valuation: 'shortage' } },
+    meaning: 'Raise responder naturally when competition still leaves a below-game support bid.',
+    guidance: ['A two-level forcing response after a suit overcall promises five or more cards, ' +
+               'so three-card opener support is enough there; the one-level forcing families use ' +
+               'their normal four-card support threshold.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-repeat-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: 'Repeat a six-card opening suit after advancer competes',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerForcingResponseCompetitionRepeat,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 6 }] },
+    meaning: 'Describe a six-card or longer opening suit at the cheapest level competition leaves.',
+    guidance: ['The trainer keeps this descriptive continuation only through the three level; it ' +
+               'does not promote a blocked partscore rebid into game by formula.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-second-suit-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: 'Show an economical second suit that remains available after competition',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['1D', '1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerNonReverseNewSuitRebid,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
+    meaning: 'Keep an ordinary non-reverse second-suit description only if advancer has not ' +
+             'consumed that exact call.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-reverse-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: 'Keep a strength-qualified reverse that remains available after competition',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineOpenerReverseRebid,
+    callCategory: ['forcing', 'natural'],
+    appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult =>
+      openerSecondSuitApplies(call, context, 17, 21, 'competitive reverse'),
+    meaning: 'A natural reverse keeps its extra-strength meaning when the same call remains legal.',
+    guidance: ['Do not move the reverse one level higher merely because advancer consumed the ' +
+               'original descriptive call.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-nt-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: 'Retain a natural balanced notrump rebid after advancer competes',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['1NT', '2NT', '3NT'],
+    callCategory: ['natural'],
+    appliesWhen: openerForcingResponseCompetitionNtApplies,
+    meaning: 'Use the normal balanced HCP range only when its original notrump level is still ' +
+             'available after competition.',
+    guidance: ['The shared competitive filter additionally requires a basic stopper in every suit ' +
+               'the opponents have bid naturally.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-game-raise-after-forcing-response-advancer-competition',
+    kind: 'openerRebid',
+    title: "Bid game with maximum values and support for responder's forcing suit",
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['4H', '4S', '5C', '5D'],
+    callRefinement: refineOpenerForcingResponseCompetitionGameRaise,
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' } },
+    meaning: "Maximum opener can still place responder's supported natural suit in game.",
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
+    kind: 'openerRebid',
+    title: 'Pass with a minimum when competition removes the clear descriptive rebids',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    calls: ['Pass'],
+    callCategory: ['natural'],
+    appliesWhen: openerForcingResponseCompetitionPassApplies,
+    meaning: 'The intervening call removes the obligation to manufacture a rebid when a minimum ' +
+             'opener has no selected natural continuation.',
+    guidance: ['Responder still has another turn.  This Pass does not change the strength or ' +
+               'forcing meaning responder showed before advancer acted.'],
+    certainty: 'high',
+  },
+  // These three boundaries share the same hand test but keep family-specific guidance so the user
+  // sees exactly what responder promised before the auction became judgment-heavy.
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-one-level-forcing-response',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after a one-level forcing response and further competition',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 1, opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    scopeBoundaryWhen: openerForcingResponseCompetitionScopeBoundaryApplies,
+    meaning: 'Opener has extra values, but competition has removed the selected deterministic ' +
+             'descriptive route.',
+    guidance: [
+      'Responder has shown a natural suit with at least 6 HCP; it is normally five cards, with ' +
+      'the existing minor-opening/1D-overcall exception where a four-card major can qualify.  ' +
+      'Without advancer intervening, this response would force opener for one round.',
+      'Pass may be right, and bidding on may also be right.  The decision depends on playing ' +
+      'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
+      'auction.  The trainer stops rather than assign false precision to that judgment.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-two-level-forcing-response',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after a two-level forcing response and further competition',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
+    },
+    scopeBoundaryWhen: openerForcingResponseCompetitionScopeBoundaryApplies,
+    meaning: 'Opener has extra values, but competition has removed the selected deterministic ' +
+             'descriptive route.',
+    guidance: [
+      'Responder has shown a five-card-or-longer natural suit with at least 10 HCP; without ' +
+      'advancer intervening, this response would force opener for one round.  Its strength ' +
+      'meaning is independent of the partnership\'s uncontested 2/1 setting.',
+      'Pass may be right, and bidding on may also be right.  The decision depends on playing ' +
+      'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
+      'auction.  The trainer stops rather than assign false precision to that judgment.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-double-one-level-forcing-response',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after a forcing response to a takeout Double',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', interference: 'takeoutDouble',
+      responderCall: { kind: 'newSuit', level: 1, opponentSuit: false },
+      advancerCall: { kind: 'newSuit' },
+    },
+    scopeBoundaryWhen: openerForcingResponseCompetitionScopeBoundaryApplies,
+    meaning: 'Opener has extra values, but competition has removed the selected deterministic ' +
+             'descriptive route.',
+    guidance: [
+      'Responder has shown a natural four-card-or-longer suit with at least 6 HCP; without ' +
+      'advancer intervening, this response would force opener for one round after the takeout ' +
+      'Double.',
+      'Pass may be right, and bidding on may also be right.  The decision depends on playing ' +
+      'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
+      'auction.  The trainer stops rather than assign false precision to that judgment.',
+    ],
     certainty: 'high',
   },
   //

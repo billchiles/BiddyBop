@@ -446,19 +446,39 @@ introduced naturally is removed from opener's natural candidates, and a natural 
 requires the shared basic stopper in each such suit. Artificial cuebids and responsive Doubles do
 not create a natural opponent suit merely because they name or affect a strain.
 
-A natural forcing one-level response can retain its ordinary descriptive opener rebids after a
-suit overcall or takeout Double when advancer Passes. An ordinary simple raise can likewise reuse
-selected opener continuations after advancer raises, makes a weak preemptive raise, bids a natural
-new suit, or makes a responsive Double. Minimum hands may Pass and clear maximum hands can still
-bid game. Ordinary medium game tries remain reusable only in the reviewed Pass/simple-raise
-auctions; after the other advancer actions, 17-18-point hands use a `scopeBoundary` because Pass
-versus continuing depends on competitive judgment not represented by the point model alone.
+A natural forcing responder suit can retain selected descriptive opener rebids after a suit
+overcall or takeout Double even when advancer competes naturally. The reviewed advancer actions are
+a raise or weak preemptive raise of a suit overcall, or a natural unbid suit; advancer bidding a suit
+responder has already shown naturally is classified with the artificial/cuebid side instead. An
+ordinary simple raise has its own selected continuations after advancer raises, makes a weak
+preemptive raise, bids a natural new suit, or makes a responsive Double. Minimum hands may Pass and
+clear maximum hands can still bid game.
 
-A natural two-level new-suit response after a suit overcall is a distinct forcing-one-round family,
-independent of the uncontested `twoLevelNewSuitResponse` agreement. It promises five or more cards,
-so opener may raise with three-card support. Minimum hands can otherwise repeat a six-card opening
-suit, show an economical second suit, or rebid notrump with the overcaller's suit stopped; reverses
-and selected stronger support/notrump actions retain their ordinary strength distinctions.
+For a natural forcing responder suit, competition does not mechanically promote an unavailable
+uncontested rebid one level higher. Opener can support responder below game, repeat a six-card
+opening suit below game, retain an economical second suit or reverse only when that original call
+remains available, and use the ordinary balanced notrump range only when that NT level remains
+available. A reused NT call requires the shared basic stopper in every suit the opponents have bid
+naturally. The one-level forcing families use their normal four-card support threshold. A natural
+two-level new-suit response after a suit overcall is a distinct forcing-one-round family,
+independent of the uncontested `twoLevelNewSuitResponse` agreement; it promises five or more cards,
+so three-card opener support is sufficient.
+
+When a minimum opener has none of those selected descriptive continuations after advancer acts, a
+real Pass is available because responder still has another turn. For extra-value hands with no
+concrete modeled call, `scopeBoundary` guidance states what responder actually promised before
+explaining the remaining judgment. The one-level overcall family promises at least 6 HCP and
+normally five cards, subject to the existing four-card-major exception after a minor opening and
+1D overcall; the two-level overcall family promises 5+ cards and 10+ HCP; the one-level response to
+a takeout Double promises 4+ cards and 6+ HCP. Those responses would force opener for one round
+without advancer intervention. The boundary then explains that Pass versus bidding
+on can depend on playing strength, fit, honor location, vulnerability, and the level reached rather
+than pretending the point model determines one call.
+
+Ordinary medium game tries after a simple raise remain reusable only in the reviewed
+Pass/simple-raise auctions; after the other advancer actions, 17-18-point hands use a
+`scopeBoundary` because Pass versus continuing depends on competitive judgment not represented by
+the point model alone.
 
 A support cuebid and Jordan 2NT are artificial limit-or-better raises rather than natural new-suit
 or notrump responses. With a clear minimum, opener rebids the agreed suit at the three level so

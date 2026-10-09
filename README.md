@@ -69,20 +69,23 @@ means we considered the area and deliberately chose not to model it as part of t
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
-clear.  Most current families still use advancer Pass, but selected advancer competition is also
-modeled when it leaves a well-defined opener decision.  After a natural forcing one-level response
-to a suit overcall or takeout Double, the ordinary descriptive opener-rebid family can continue
-when advancer Passes.  After responder's simple raise, opener can also continue through selected
-advancer raises, preemptive raises, natural new suits, and responsive Doubles.  Minimum hands may
-have a real Pass; clear maximum hands can still bid game.  When an uncontested natural rule is
-reused in competition, every suit naturally introduced by the opponents is excluded from opener's
-natural second/help-suit candidates, and a notrump rebid requires a stopper in each such suit.
+clear.  After responder's simple raise, opener can continue through selected advancer raises,
+preemptive raises, natural new suits, and responsive Doubles.  Natural forcing responder suits also
+continue through selected natural advancer competition: a raise or preemptive raise of a suit
+overcall, or an unbid natural advancer suit.  Minimum hands may have a real Pass; clear maximum
+hands can still bid game.  When an uncontested natural rule is reused in competition, every suit
+naturally introduced by the opponents is excluded from opener's natural second/help-suit
+candidates, and a notrump rebid requires a stopper in each such suit.  Advancer bidding responder's
+naturally shown suit is treated as an artificial/cuebid action rather than another natural new suit.
 
 A natural two-level new-suit response after a suit overcall is handled as its own forcing-one-round
 family rather than inheriting the partnership's uncontested 2/1 setting.  Responder has promised a
-five-card-or-longer suit, so three-card opener support is sufficient; opener may otherwise repeat a
-long opening suit, show a natural second suit, reverse with appropriate extras, or rebid notrump
-with a stopper.  Selected medium/maximum support continuations are also modeled.
+five-card-or-longer suit, so three-card opener support is sufficient.  If advancer competes
+naturally, opener can still support below game, repeat a six-card opening suit below game, retain an
+economical second suit or reverse whose original call remains available, or use the ordinary
+balanced notrump range when that level remains available and the opponents' natural suits are
+stopped.  A maximum with support can still bid game.  The analogous one-level forcing responses
+keep their normal four-card support threshold.
 
 Artificial support actions keep their competitive meanings.  After a support cuebid, a minimum
 opener rebids the agreed suit at the three level, while a major opener with enough combined values
@@ -102,13 +105,15 @@ interference over our 1NT opening, the ordinary 2NT invitation accept/decline an
 signoff continuations retain their meanings.
 
 These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
-trainer may now reach a hand-specific scope boundary when the auction is understood but the next
-choice depends too heavily on judgment for one deterministic recommendation.  For example, after a
-simple raise and further advancer competition, a 17-18-point opener may have enough to consider
-continuing while Pass is also plausible.  The app explains that judgment boundary rather than
-inventing a candidate call.  Strong advancer cuebids, natural responder notrump after a suit
-overcall, three-level competitive new-suit responses, and jump-overcall continuations remain
-separate families to analyze rather than being inferred from same-looking uncontested auctions.
+trainer may reach a hand-specific scope boundary when the auction is understood but the next choice
+depends too heavily on judgment for one deterministic recommendation.  After a natural forcing
+responder suit, the boundary guidance states the actual promise responder made -- for example,
+5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
+bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
+opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
+candidate call.  Strong advancer cuebids, natural responder notrump after a suit overcall,
+three-level competitive new-suit responses, and jump-overcall continuations remain separate
+families to analyze rather than being inferred from same-looking uncontested auctions.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

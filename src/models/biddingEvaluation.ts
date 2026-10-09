@@ -11,7 +11,8 @@ import { getBidStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
-         getPartnerOneNtSuitInterference } from './auction';
+         getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference }
+  from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
   from './bidding-rules';
 import { hasBasicSuitStopper } from './common-rule-helpers';
@@ -1001,6 +1002,15 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
       ruleContext.interference === undefined) {
     return false;
   }
+  // Reused uncontested meanings need a second explicit opt-in once advancer actually acts.
+  // Purpose-built competitive rules can keep using their interference context and refiners.
+  const advancerKind = evalContext.stage === 'openerRebid'
+    ? getAdvancerCallKindForOpenerRebid(evalContext.dealer, evalContext.auction) : null;
+  if (evalContext.stage === 'openerRebid' && interference !== 'none' &&
+      ruleContext.openerRebidAfterInterference === true && advancerKind !== null &&
+      advancerKind !== 'pass' && ruleContext.advancerCall === undefined) {
+    return false;
+  }
   if (ruleContext.interference !== undefined && ruleContext.interference !== interference) {
     return false;
   }
@@ -1199,7 +1209,7 @@ function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
       rule.auctionContext?.openerRebidAfterInterference !== true) {
     return calls;
   }
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context);
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
   if (opponentSuits.length === 0) {
     return calls;
   }
@@ -1209,28 +1219,6 @@ function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
     if (bid.strain !== 'NT' && opponentSuits.includes(bid.strain)) return false;
     return bid.strain !== 'NT' || opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
   });
-}
-
-/// getOpponentNaturallyBidSuitsForOpenerRebid returns every suit the opponents have naturally
-/// bid before opener's rebid.  Reused ordinary rules must not present those strains as
-/// opener's natural second/help suit, and a reused notrump call needs a basic stopper in each.
-/// Artificial cuebids and responsive Doubles deliberately add no natural opponent suit.
-function getOpponentNaturallyBidSuitsForOpenerRebid (context: RuleEvalContext): Suit[] {
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null) return [];
-  const suits = new Set<Suit>();
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
-  if (interference === 'suitOvercall') {
-    const overcallCall = context.auction[opening.index + 1];
-    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-    if (overcall !== null && overcall.strain !== 'NT') suits.add(overcall.strain as Suit);
-  }
-  if (getAdvancerCallKindForOpenerRebid(context.dealer, context.auction) === 'newSuit') {
-    const advanceCall = context.auction[opening.index + 3];
-    const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
-    if (advance !== null && advance.strain !== 'NT') suits.add(advance.strain as Suit);
-  }
-  return [...suits];
 }
 
 /// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
