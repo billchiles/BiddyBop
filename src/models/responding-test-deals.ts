@@ -708,8 +708,9 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
     ],
     rejectedResponseCalls: ['2NT'],
-    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
-    south: { S: 'KJ85', H: '72', D: 'A83', C: 'T974' },
+    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
+    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
+    south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
   },
   {
     description: 'After 1NT-(2H), a good five-card spade suit is more descriptive than Double.',
@@ -722,7 +723,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
     ],
     expectedResponseCallOrder: [['2S', 'Double']],
-    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
+    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
+    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
     south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
   },
 ];

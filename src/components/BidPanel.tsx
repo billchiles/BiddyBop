@@ -23,14 +23,15 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   const [auction, setAuction] = useState<Call[]>(() =>
     setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
   const [auctionComplete, setAuctionComplete] = useState(false);
-  const [explanationLines, setExplanationLines] = useState<string[]>(['No evaluation yet.']);
+  const [explanationLines, setExplanationLines] = useState<string[]>(() =>
+    getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   const explanationRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
     setBidText('');
     setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
     setAuctionComplete(false);
-    setExplanationLines(['No evaluation yet.']);
+    setExplanationLines(getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   }, [board, biddingSystem, testDeal, practiceStages]);
 
   useEffect(() => {
@@ -72,14 +73,16 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     if (auctionIsComplete(nextAuction)) {
       setAuctionComplete(true);
     }
-    finishBidEntry(seat, stage, result);
+    const practiceNotes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
+    finishBidEntry(seat, stage, result, practiceNotes);
     if (nextAuction.length > enteredAuction.length) {
       const scripted = nextAuction.slice(enteredAuction.length);
       onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
     }
   }
 
-  function finishBidEntry(seat: Seat, stage: BidStage | null, result: BidEvalResult): void {
+  function finishBidEntry(seat: Seat, stage: BidStage | null, result: BidEvalResult,
+                          practiceNotes: string[]): void {
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
     const explanation = buildExplanationLines(title, result, stage === null);
@@ -91,6 +94,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
           'but the app does not automatically infer Pass as the best action.'
         : 'Responder treatments after this intervention may be incomplete. Pass is available, ' +
           'but no recommendation is established from the empty candidate list.');
+    }
+    if (practiceNotes.length > 0) {
+      explanation.push('', ...practiceNotes);
     }
     setExplanationLines((current) => [...current, '', ...explanation]);
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
@@ -172,6 +178,43 @@ function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTes
     next.push(call);
   }
   return next;
+}
+
+/// For recorded setup calls already shown when a deal loads, reveal only the notes for those
+/// past calls. Future decisions must remain unrevealed until the user reaches them.
+function getInitialExplanationLines (dealer: Seat, testDeal?: RuleTestDeal,
+                                     practiceStages?: BidStage[]): string[] {
+  const recorded = setupPracticeAuction(dealer, [], testDeal, practiceStages);
+  const notes = getPracticeGuidanceLines(dealer, [], recorded, testDeal);
+  return notes.length === 0 ? ['No evaluation yet.'] : ['Recorded practice setup:', ...notes];
+}
+
+/// Reveal only notes for calls just entered or inserted from the exact recorded practice auction.
+/// Indexing by physical auction position, rather than seat or stage, supports repeated North turns.
+function getPracticeGuidanceLines (dealer: Seat, previous: Call[], current: Call[],
+                                   testDeal?: RuleTestDeal): string[] {
+  if (testDeal?.practiceGuidance === undefined || testDeal.practiceGuidance.length === 0) {
+    return [];
+  }
+  const notes: string[] = [];
+  for (let index = previous.length; index < current.length; index += 1) {
+    // No deal-specific coaching after a user deviates from the recorded practice auction.
+    if (current.slice(0, index + 1).some((call, position) =>
+        call !== testDeal.practiceAuction[position])) {
+      break;
+    }
+    const seat = SEATS[(SEATS.indexOf(dealer) + index) % SEATS.length];
+    const call = current[index];
+    if (seat === undefined || call === undefined) {
+      continue;
+    }
+    for (const note of testDeal.practiceGuidance) {
+      if (note.auctionIndex === index && note.seat === seat && note.text !== '') {
+        notes.push(`Practice guidance — ${getSeatLabel(seat)} ${call}: ${note.text}`);
+      }
+    }
+  }
+  return notes;
 }
 
 function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {

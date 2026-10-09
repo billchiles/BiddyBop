@@ -1,7 +1,7 @@
 /// Opening test deals, kept separate from the bucket registry.
 ///
 /// This file's deals are opening-only deals.  Some files exercise sequences of openings with
-/// responding, such as rdinary 1NT/2NT and strong 2C openings will be exercised alongside their
+/// responding, such as ordinary 1NT/2NT and strong 2C openings will be exercised alongside their
 /// responses, rather than duplicated here solely for opening-rule coverage.  Some files exercise
 /// sequences of opening, responding, and rebidding together.  Grouping these longer sequences under
 /// opener rebids lets users practice the auction across multiple participating seats rather than
@@ -26,7 +26,7 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     ],
     expectedOpeningCallOrder: [['1NT', '1H']],
     north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
-    south: { S: 'KJ5', H: 'A42', D: 'QJ76', C: 'AQ5' },
+    south: { S: 'Q63', H: 'A42', D: 'T76', C: '8542' },
   },
   {
     description: 'The same 14-HCP balanced hand with the five-card-major upgrade disabled: ' +
@@ -38,7 +38,7 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOpeningCalls: ['1NT'],
     north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
-    south: { S: 'KJ5', H: 'A42', D: 'QJ76', C: 'AQ5' },
+    south: { S: 'Q63', H: 'A42', D: 'T76', C: '8542' },
   },
   {
     description: '15 HCP, balanced 5-3-3-2 with five spades: under the alternate 16-18 ' +
@@ -51,7 +51,7 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     ],
     expectedOpeningCallOrder: [['1NT', '1S']],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
-    south: { S: 'K63', H: 'Q85', D: 'KJ64', C: 'K94' },
+    south: { S: 'T63', H: 'Q85', D: 'KJ64', C: '965' },
   },
   {
     description: 'The same 15-HCP hand under 16-18 with the optional upgrade disabled: ' +
@@ -63,7 +63,7 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOpeningCalls: ['1NT'],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
-    south: { S: 'K63', H: 'Q85', D: 'KJ64', C: 'K94' },
+    south: { S: 'T63', H: 'Q85', D: 'KJ64', C: '965' },
   },
   {
     description: 'Exactly 10 HCP with five spades and five hearts: 10 + 5 + 5 = 20, so ' +
@@ -75,17 +75,22 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOpeningCalls: ['1H'],
     north: { S: 'AQ972', H: 'KJ864', D: '53', C: '2' },
-    south: { S: 'K63', H: 'AQ5', D: 'A642', C: 'KQ5' },
+    south: { S: 'K65', H: 'T53', D: 'QJ74', C: 'T86' },
   },
   {
     description: 'Seven hearts with 9 HCP and three length points reach ordinary one-level opening ' +
                  'values: open 1H rather than using either the six-card weak two or the weak three.',
     practiceAuction: ['1H'],
+    practiceGuidance: [
+      { auctionIndex: 0, seat: 'N', text: 'North has 9 HCP, but seven hearts add three length ' +
+        'points, reaching 12 opening points. That makes 1H the system opening rather than ' +
+        'a weak 3H preempt, even though the Rule of 20 total is only 19.' },
+    ],
     expectedOpeningCalls: [
       { call: '1H', ruleIds: ['open-five-card-major'] },
     ],
     rejectedOpeningCalls: ['2H', '3H'],
     north: { S: 'K42', H: 'KQJ9876', D: '73', C: '5' },
-    south: { S: 'A73', H: 'A52', D: 'A64', C: 'QJ84' },
+    south: { S: 'T85', H: 'A54', D: 'QJ86', C: 'T87' },
   },
 ];

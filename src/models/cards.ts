@@ -269,9 +269,8 @@ function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): numb
   return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
 }
 
-/// makeRuleTestDeal builds a complete physical deal from the hands fixed by the current
-/// rule-practice fixture.  Unspecified seats are filled deterministically from the remaining cards.
-///
+/// Complete the hands specified by the practice fixture. Unspecified opponents get shuffled
+/// remaining cards; when their bidding matters, the author should specify their hands instead.
 function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
   const north = makeTestHand(testDeal.north);
   const south = makeTestHand(testDeal.south);
@@ -292,13 +291,49 @@ function makeRuleTestDeal (testDeal: RuleTestDeal): Deal {
       }
     }
   }
+  if (east === null && west === null) {
+    // Shuffle once, then deal alternating cards to both unspecified seats.
+    shuffleRemainingCards(remainingCards, explicit);
+    return {
+      N: north,
+      E: { cards: remainingCards.filter((_, index) => index % 2 === 0).sort(compareCards) },
+      S: south,
+      W: { cards: remainingCards.filter((_, index) => index % 2 === 1).sort(compareCards) },
+    };
+  }
+  // Exactly one unspecified opponent receives the remaining thirteen cards.
   return {
     N: north,
-    E: east ?? { cards: remainingCards.slice(0, 13).sort(compareCards) },
+    E: east ?? { cards: remainingCards.sort(compareCards) },
     S: south,
-    W: west ?? { cards: remainingCards.slice(east === null ? 13 : 0,
-                                            east === null ? 26 : 13).sort(compareCards) },
+    W: west ?? { cards: remainingCards.sort(compareCards) },
   };
+}
+
+/// Seeded Fisher-Yates shuffle keeps a given practice fixture reproducible without forcing
+/// its otherwise unspecified opponents into artificial suit or point distributions.
+function shuffleRemainingCards (cards: Card[], specifiedHands: Hand[]): void {
+  let seed = 2166136261;
+  for (const hand of specifiedHands) {
+    for (const card of hand.cards) {
+      for (const letter of cardKey(card)) {
+        seed = Math.imul(seed ^ letter.charCodeAt(0), 16777619) >>> 0;
+      }
+    }
+  }
+  for (let index = cards.length - 1; index > 0; index -= 1) {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5;
+    const otherIndex = (seed >>> 0) % (index + 1);
+    const card = cards[index];
+    const otherCard = cards[otherIndex];
+    if (card === undefined || otherCard === undefined) {
+      throw new Error('Practice shuffle attempted to access a missing card.');
+    }
+    cards[index] = otherCard;
+    cards[otherIndex] = card;
+  }
 }
 
 function makeTestHand (suits: Record<Suit, string>): Hand {

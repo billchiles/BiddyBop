@@ -16,7 +16,7 @@ export const RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H'],
     north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
     east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
-    south: { S: '93', H: 'KQJ5', D: 'KT9', C: 'AQJ5' },
+    south: { S: '93', H: 'KJ85', D: 'K96', C: 'QJT5' },
   },
   {
     description: '1H-(1S)-2S: bid opponent spades artificially to show strong heart support.',

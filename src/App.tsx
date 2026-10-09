@@ -29,7 +29,7 @@ function createInitialState(): AppState {
 export default function App() {
   const [state, setState] = useState<AppState>(() => createInitialState());
   const [biddingSystem, setBiddingSystem] = useState<BiddingSystem>(() => ({ ...defaultBiddingSystem }));
-  const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>('minor-1nt');
+  const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>(RULE_TEST_DEAL_BUCKETS[0].id);
   const [testDealCount, setTestDealCount] = useState(0);
   const testDeals = getRulesBucketTestDeals(testBucketId, biddingSystem);
   const testBucketGroups = [...new Set(RULE_TEST_DEAL_BUCKETS.map((bucket) => bucket.group))];

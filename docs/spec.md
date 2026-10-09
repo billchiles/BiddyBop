@@ -168,6 +168,30 @@ The app should help the user practice bidding decisions using structured convent
 - Configurable practice-hand/scenario generation belongs in model code rather than React.
 
 
+## Practice-Deal Design
+
+- Design each deal around a specific instructional point. All four hands should support
+  the lesson, not merely make an isolated assertion pass.
+- Avoid implausibly high partnership strength that invites unrelated game or slam choices
+  unless that is the lesson. Do not apply arbitrary HCP ceilings to genuinely strong auctions.
+- Avoid extreme suit distributions and concentrated remaining suits merely to fill unused
+  seats. Seven-card or longer suits are appropriate when the lesson calls for them.
+- Specify an opponent's hand when its overcall, Double, raise, or other competitive call
+  is part of the teaching point. The neutral completion of other hands is not a bidder.
+- For unspecified opponents, reproducibly shuffle the unused cards and deal them without
+  forcing artificial balanced shapes or equal HCP. Review the result if its cards affect
+  how a student would understand the auction.
+- Keep recorded auction calls consistent with the stated lesson and required system.
+  Avoid unnecessary setup calls that create stronger alternative actions elsewhere.
+- Prefer a few useful contrasting examples over exhaustive fixture-specific regression
+  assertions. Do not add regression tests simply to police the editorial choice of hands.
+- Optional `practiceGuidance` supplements the normal rule explanation only when the
+  specific deal needs it. Each note references the zero-based physical `practiceAuction`
+  index and acting seat, so one seat can have distinct notes for opening and rebidding.
+  Notes appear after the corresponding call is entered or inserted, never before it, and
+  are suppressed following a deviation from the recorded practice auction. Unannotated
+  decisions need no placeholder entries.
+
 ## Practice-System Decisions
 
 - Default 1NT range is 15-17 balanced.

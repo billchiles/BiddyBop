@@ -13,6 +13,14 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1C-(1D)-1H-(Pass)-1S: responder kept a natural forcing one-level meaning, so ' +
                  'opener can still show four spades economically.',
     practiceAuction: ['1C', '1D', '1H', 'Pass', '1S'],
+    practiceGuidance: [
+      { auctionIndex: 0, seat: 'N', text: 'North opens the five-card club suit; ' +
+        'four spades are not sufficient to open 1S.' },
+      { auctionIndex: 1, seat: 'E', text: 'East has seven diamonds but enough honor strength ' +
+        'and outside values for a natural overcall rather than a weak jump.' },
+      { auctionIndex: 4, seat: 'N', text: 'East’s interference did not cancel South’s forcing ' +
+        'one-level 1H response. North can now show four spades at the cheapest level.' },
+    ],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
     ],
@@ -122,8 +130,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
     ],
-    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
-    south: { S: 'KQ4', H: 'JT98', D: 'Q52', C: '976' },
+    north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
+    east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
+    south: { S: 'KQ4', H: 'JT98', D: 'J52', C: 'J76' },
   },
   {
     description: '1NT-(2H)-3NT-(Pass)-Pass: responder’s natural game signoff keeps its ordinary ' +
@@ -136,8 +145,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-nt-signoff'] },
     ],
-    north: { S: '762', H: 'AKQ', D: 'KJ4', C: 'A853' },
-    south: { S: 'KQ4', H: 'JT98', D: 'A52', C: '976' },
+    north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
+    east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
+    south: { S: 'KQ4', H: 'JT98', D: 'K52', C: 'J76' },
   },
   {
     description: '1H-(2D)-2H-(Pass)-Pass: the ordinary simple raise keeps its meaning after a ' +

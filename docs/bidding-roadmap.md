@@ -41,7 +41,7 @@ needs an executable choice or specific scope guidance.
 
 ## A. Close existing advancing, responding, and opener-rebidding gaps
 
-- [ ] **A1.** Ordinary advancer Pass after partner's natural non-jump one-/two-level
+- [x] **A1.** Ordinary advancer Pass after partner's natural non-jump one-/two-level
   suit overcall when responder passes; make it a limited-strength fallback without a
   qualifying raise, natural side suit, or notrump action. Add focused practice cases.
 - [ ] **A2.** Audit nearby advancing actions: alternative Doubles after responder's
@@ -110,18 +110,36 @@ needs an executable choice or specific scope guidance.
 
 ## E. Complete system-wide checks, practice, and documentation
 
-- [ ] **E1.** Audit ordinary Passes across every modeled role. Do not insert Pass
-  automatically merely because other rules returned no candidates.
+- [ ] **E1.** Audit ordinary Passes across every modeled role, including Pass as
+  the direct overcaller when the opponent opens. Do not insert Pass automatically
+  merely because other rules returned no candidates.
 - [ ] **E2.** Audit `scopeBoundary` coverage and the auction-specific guidance it gives.
 - [ ] **E3.** Check stage recognition, auction shapes, interference classification,
   and preventing rules from surviving where their meanings no longer apply.
 - [ ] **E4.** Check asymmetric promises: every modeled forcing/artificial call either
   receives its required partner answer or a deliberate boundary.
 - [ ] **E5.** Preserve rejection provenance in the existing evaluator/refiner path
-  to explain why an otherwise plausible candidate was excluded.
+  to explain why an otherwise plausible candidate was excluded. Examples to revisit:
+  weak/poor-suit 3S jump overcall, underspecified four-card 3D jump shift,
+  Jacoby 2NT with insufficient major support, and a rejected 3H weak preempt
+  where seven-card length adds sufficient ordinary opening points.
 - [ ] **E6.** Add selective high-value practice deals for Pass, strong openings,
   overcaller/Doubler descriptions, and responder rebids. Prefer useful instructional
   contrasts and continuations over exhaustive regression matrices.
+- [ ] **E6a.** Continue editorial review of all practice fixtures for excessive
+  partnership HCP, unintentional slam implications, strange suit distributions,
+  scripted calls unsupported by the actual opposing hands, and coherent whole auctions.
+  In particular, the two `advance-natural-1nt-overcall` fixtures after
+  `1D – 1NT – 2H` still need deliberately constructed East hands: the currently
+  fixed hands leave fewer than six hearts for the recorded 2H responder action.
+  The hand-construction guidelines are in `docs/spec.md`, not fixture regression tests.
+- [x] **E6b.** Replace suit-order fill-in of unspecified opponents with a simple
+  reproducible shuffle and alternate dealing; keep fixed hands authoritative.
+  Display groups in model registry order: Rebidding, Opening, Responding,
+  Overcalling, Advancing, defaulting to the first ordinary rebid bucket.
+- [ ] **E6c.** Review practice boundaries where an opening-only example is followed
+  by unrelated free bidding. Use optional per-call practice guidance sparingly
+  when rule descriptions alone do not make the intended lesson clear.
 - [ ] **E7.** Audit dealer/seat orientation; keep ordinary opener-deal North
   orientation and retain exceptions only when they teach a specific competitive role.
 - [ ] **E8.** Reconcile README's Done / Partial (done) / Incomplete / Planned /
