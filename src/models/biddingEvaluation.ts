@@ -1051,8 +1051,11 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   }
 
   if (ruleContext.responderCall !== undefined) {
-    const actualResponse = actualAuction[1];
-    if (actualOpening === undefined || actualResponse === undefined ||
+    // responderCall describes responder's physical first action, including Pass.  The compact
+    // partnership auction intentionally omits Passes, so use the physical-auction helper here
+    // rather than assuming actualAuction[1] exists.
+    const actualResponse = getResponderCall(evalContext.dealer, evalContext.auction);
+    if (actualOpening === undefined || actualResponse === null ||
         ! responderCallMatches(ruleContext.responderCall, actualOpening, actualResponse, evalContext)) {
       return false;
     }
@@ -1102,6 +1105,10 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
                                responseCall: Call, context: RuleEvalContext): boolean {
   if (! isContractBid(openingCall)) {
     return false;
+  }
+  if (responseCall === 'Pass') {
+    return constraint.kind === 'pass' && constraint.level === undefined &&
+      constraint.jump === undefined && constraint.opponentSuit === undefined;
   }
   if (responseCall === 'Double' || responseCall === 'Redouble') {
     const kind = responseCall === 'Double' ? 'double' : 'redouble';

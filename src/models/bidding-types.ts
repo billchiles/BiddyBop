@@ -248,9 +248,10 @@ export type RuleBidLevel = 1 | 2 | 3 | 4;
 
 export interface ResponderCallContext {
   // kind classifies responder's actual call relative to opener's opening bid.
-  // newSuit means a different suit, raise means opener's suit, and notrump means NT.
+  // newSuit means a different suit, raise means opener's suit, and notrump means NT.  Pass is
+  // useful when a reviewed competitive family deliberately stops at opener's next decision.
   // Double and Redouble are explicit artificial competitive calls rather than contract bids.
-  kind?: 'newSuit' | 'raise' | 'notrump' | 'double' | 'redouble';
+  kind?: 'pass' | 'newSuit' | 'raise' | 'notrump' | 'double' | 'redouble';
   // level is the absolute bid level, not the size of a jump.
   level?: RuleBidLevel;
   // jump is the number of levels above the cheapest legal bid in responder's strain.  0 requires

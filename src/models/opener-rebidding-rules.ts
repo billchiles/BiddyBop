@@ -13,6 +13,7 @@ import {
   openerNtWeakMajorSignoffApplies, openerPreemptNewSuitRaiseApplies,
   openerForcingResponseCompetitionNtApplies, openerForcingResponseCompetitionPassApplies,
   openerForcingResponseCompetitionScopeBoundaryApplies,
+  openerThreeLevelForcingResponseThreeNtApplies,
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
   openerPreemptNewSuitRepeatApplies, openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
@@ -692,6 +693,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'redouble' },
+      advancerCall: { kind: 'pass' },
     },
     calls: ['Pass'],
     meaning: 'Wait after responder shows strength with Redouble; opener need not make a new bid.',
@@ -1111,6 +1113,404 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 15, valuation: 'shortage' } },
     meaning: 'Jordan promises 10+ support points, so 15+ opener points reach game values.',
+    certainty: 'high',
+  },
+  //
+  // Natural notrump responses after a suit overcall keep their stated balanced/stopped meaning;
+  // they are not forcing 1NT, Jacoby 2NT, or another uncontested convention.  This selected
+  // continuation keeps the clearest partscore/game decisions and stops explicitly when extra
+  // shape or slam interest makes the next action judgment-heavy.
+  {
+    id: 'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s natural 1NT after an overcall with a minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balancedOrSemiBalanced: true } },
+    meaning: 'Responder showed 6-10 HCP, balanced shape, and a stopper; a minimum opener may stop.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-repeat-suit-after-overcall-natural-1nt',
+    kind: 'openerRebid',
+    title: 'Repeat a six-card opening suit after responder\'s natural 1NT',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 2),
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
+    meaning: 'Show a six-card or longer opening suit rather than play 1NT with a shapely minimum.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-2nt-after-overcall-natural-1nt',
+    kind: 'openerRebid',
+    title: 'Invite with 2NT after responder\'s natural 1NT over an overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['2NT'],
+    callCategory: ['invitational', 'natural'],
+    appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balancedOrSemiBalanced: true } },
+    meaning: 'Natural 18-19 HCP invitation opposite responder\'s 6-10 HCP natural 1NT.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-overcall-natural-1nt',
+    kind: 'openerRebid',
+    title: 'Bid game with a 20-21 HCP semi-balanced opener after natural 1NT',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 20, max: 21 },
+                   shape: { balanced: false, balancedOrSemiBalanced: true } },
+    meaning: 'Responder\'s minimum still supplies game values opposite a 20-21 HCP semi-balanced hand.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-natural-1nt',
+    kind: 'scopeBoundary',
+    title: 'Shape judgment after responder\'s natural 1NT over an overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
+    },
+    meaning: 'Responder has described a balanced 6-10 HCP hand with a stopper, but opener has no ' +
+             'selected deterministic continuation in this treatment.',
+    guidance: [
+      'A second suit, another opening-suit rebid, or a notrump continuation may be right depending ' +
+      'on opener\'s exact shape and playing strength.  The trainer stops rather than force the ' +
+      'uncontested 1NT-response structure onto this competitive auction.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-overcall-natural-2nt',
+    kind: 'openerRebid',
+    title: 'Decline responder\'s natural 2NT invitation after an overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 12, max: 13 } },
+    meaning: 'Responder showed 11-12 HCP and a stopper; a minimum opener declines game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-overcall-natural-2nt',
+    kind: 'openerRebid',
+    title: 'Accept responder\'s natural 2NT invitation after an overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { hcp: { min: 14, max: 18 } },
+    meaning: 'Fourteen or more HCP reaches normal game strength opposite responder\'s 11-12 HCP.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-natural-2nt',
+    kind: 'scopeBoundary',
+    title: 'Slam and strain judgment after responder\'s natural 2NT invitation',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
+    },
+    meaning: 'A 19-21 HCP opener opposite 11-12 HCP has more than an ordinary game decision.',
+    guidance: [
+      'Game is secure, but deciding whether to explore slam or choose a suit contract depends on ' +
+      'shape, controls, fit, and working honors.  This competitive family stops rather than add a ' +
+      'low-value slam tree.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-overcall-natural-3nt',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s natural 3NT game response after an overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 3 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 12, max: 17 } },
+    meaning: 'Responder showed 13-15 HCP, balanced shape, and a stopper; ordinary game values Pass.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-natural-3nt',
+    kind: 'scopeBoundary',
+    title: 'Slam judgment after responder\'s natural 3NT game response',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 3 },
+    },
+    meaning: 'With 18+ HCP opposite responder\'s 13-15 HCP, opener has legitimate slam interest.',
+    guidance: [
+      'Pass at 3NT can still be right, while quantitative or suit-oriented slam exploration may ' +
+      'also be appropriate.  The trainer does not model that control-and-fit judgment here.',
+    ],
+    certainty: 'high',
+  },
+  //
+  // A competitive three-level natural new suit is explicitly game forcing.  Preserve the two
+  // clearest destinations: a known major fit or 3NT when opener has the shape and stopper(s).
+  {
+    id: 'opener-rebid-game-major-after-overcall-three-level-forcing-response',
+    kind: 'openerRebid',
+    title: 'Raise responder\'s game-forcing three-level major to game',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext, system: BiddingSystem) =>
+      refineOpenerResponderSuitToGame(calls, context, system, 3),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { supportLength: { min: 3 } },
+    meaning: 'Responder promised five or more cards and game-going values; three-card major support ' +
+             'is enough to place the partnership in game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-overcall-three-level-forcing-response',
+    kind: 'openerRebid',
+    title: 'Bid 3NT after a game-forcing three-level response with the right shape and stopper',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
+    },
+    calls: ['3NT'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: openerThreeLevelForcingResponseThreeNtApplies,
+    meaning: 'Use 3NT without a known major fit when opener is balanced/semi-balanced and stops ' +
+             'the opponent suit.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-three-level-forcing-response',
+    kind: 'scopeBoundary',
+    title: 'Game placement after a competitive three-level forcing response',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
+    },
+    meaning: 'Responder has shown a five-card-or-longer natural suit and game-going values, but ' +
+             'the selected major-fit and 3NT routes do not resolve the strain.',
+    guidance: [
+      'The partnership must still reach game.  Choosing among repeating opener\'s suit, supporting ' +
+      'a minor, 3NT without the selected shape/stoppers, or another game contract depends on fit, ' +
+      'playing strength, and stopper quality beyond this trainer\'s deterministic treatment.',
+    ],
+    certainty: 'high',
+  },
+  //
+  // Competitive jump raises are weak/preemptive, not uncontested limit raises.  A minimum opener
+  // normally leaves the three-level preempt in place; extras require judgment because responder's
+  // range is intentionally wide on the weak side.
+  {
+    id: 'opener-rebid-pass-after-overcall-preemptive-three-level-raise',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s preemptive three-level raise with a minimum',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'raise', level: 3 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { totalPoints: { min: 12, max: 15, valuation: 'shortage' } },
+    meaning: 'Responder made a weak preemptive raise, so a minimum opener does not treat 3M/3m ' +
+             'as an invitational limit raise.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-overcall-preemptive-three-level-raise',
+    kind: 'scopeBoundary',
+    title: 'Game judgment after responder\'s preemptive three-level raise',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'raise', level: 3 },
+    },
+    meaning: 'Opener has extras opposite a weak preemptive raise, but responder did not promise ' +
+             'enough strength to make game automatic.',
+    guidance: [
+      'Pass may be right and bidding game may be right.  The decision depends heavily on playing ' +
+      'strength, trump quality, fit, honor location, and vulnerability, which this trainer does ' +
+      'not model at this competitive level.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras',
+    kind: 'scopeBoundary',
+    title: 'Game placement with extra values after a minor-suit support cuebid',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      interference: 'suitOvercall', responderCall: { kind: 'newSuit', opponentSuit: true },
+    },
+    meaning: 'Responder has shown limit-or-better support for opener\'s minor, and opener has more ' +
+             'than the selected minimum 3m rebid.',
+    guidance: [
+      'Choosing among 3NT, further minor bidding, or another descriptive call depends heavily on ' +
+      'stoppers, shape, and playing strength.  The trainer stops here rather than force a minor ' +
+      'game or notrump contract from support points alone.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-suit-overcall-responder-pass',
+    kind: 'scopeBoundary',
+    title: 'Reopening judgment after responder Passes a suit overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'pass' },
+      advancerCall: { kind: 'pass' },
+    },
+    meaning: 'Responder has declined to act and the opponents have not raised, so opener is in ' +
+             'the pass-out/reopening seat.',
+    guidance: [
+      'Pass may end the auction, while reopening with extra shape or strength can also be right.  ' +
+      'This is the separate balancing/reopening judgment family rather than an ordinary opener ' +
+      'rebid inferred from responder\'s Pass.',
+    ],
+    certainty: 'high',
+  },
+  //
+  // Responder's strength Redouble can lead to a weak advancer runout.  Whether opener should
+  // Double for penalties, Pass, or continue constructively is deliberately outside the project's
+  // penalty-oriented model.  Responder Pass followed by advancer Pass is the analogous runout/
+  // stand-the-double decision before the opponents have found a strain.
+  {
+    id: 'opener-rebid-scope-boundary-after-strength-redouble-runout',
+    kind: 'scopeBoundary',
+    title: 'Penalty/runout judgment after responder Redoubles and advancer escapes',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'takeoutDouble', responderCall: { kind: 'redouble' },
+      advancerCall: { kind: 'newSuit' },
+    },
+    meaning: 'Responder showed 10+ HCP and advancer has made the selected weak suit escape.',
+    guidance: [
+      'Doubling the escape for penalties, passing, or pursuing the partnership\'s own contract ' +
+      'depends on defensive prospects and penalty judgment that this trainer deliberately does ' +
+      'not model.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-takeout-double-pass-pass',
+    kind: 'scopeBoundary',
+    title: 'Runout judgment after responder Passes a takeout Double',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'takeoutDouble', responderCall: { kind: 'pass' },
+      advancerCall: { kind: 'pass' },
+    },
+    meaning: 'The auction is about to end in opener\'s doubled contract unless opener acts.',
+    guidance: [
+      'Standing the Double or running to another strain depends on opener\'s shape, playing ' +
+      'strength, and doubled-contract judgment.  Those penalty/runout decisions are outside the ' +
+      'trainer\'s selected takeout-Double treatment.',
+    ],
+    certainty: 'high',
+  },
+  //
+  // After an opposing natural 1NT overcall, responder's two-level suit and jump raise are weak,
+  // nonforcing actions.  Keep a clear minimum Pass; stronger hands are explicitly judgmental
+  // rather than inheriting uncontested 2/1 or limit-raise meanings.
+  {
+    id: 'opener-rebid-pass-after-opponent-1nt-weak-new-suit',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s weak natural suit after an opposing 1NT overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'notrumpOvercall', responderCall: { kind: 'newSuit', level: 2 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 12, max: 15 } },
+    meaning: 'Responder showed a good six-card suit with only 5-9 HCP; a minimum opener may stop.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-opponent-1nt-weak-new-suit',
+    kind: 'scopeBoundary',
+    title: 'Extra-value judgment after responder\'s weak suit over an opposing 1NT',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'notrumpOvercall', responderCall: { kind: 'newSuit', level: 2 },
+    },
+    meaning: 'Opener has extras, but responder\'s natural suit was explicitly weak and nonforcing.',
+    guidance: [
+      'A fit, a long opening suit, or unusual playing strength can justify continuing, while Pass ' +
+      'may still be right.  The trainer does not turn this weak competitive response into a ' +
+      'forcing auction merely because opener has extras.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-pass-after-opponent-1nt-preemptive-raise',
+    kind: 'openerRebid',
+    title: 'Pass responder\'s preemptive jump raise after an opposing 1NT',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'notrumpOvercall', responderCall: { kind: 'raise', level: 3 },
+    },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { totalPoints: { min: 12, max: 15, valuation: 'shortage' } },
+    meaning: 'Responder made a weak preemptive raise, so a minimum opener normally leaves it there.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-opponent-1nt-preemptive-raise',
+    kind: 'scopeBoundary',
+    title: 'Game judgment after a preemptive raise over an opposing 1NT',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'notrumpOvercall', responderCall: { kind: 'raise', level: 3 },
+    },
+    meaning: 'Opener has extras opposite a weak preemptive raise, but game is not automatic.',
+    guidance: [
+      'Pass versus bidding on depends on fit, playing strength, trump texture, and vulnerability.  ' +
+      'The trainer stops rather than reinterpret the weak raise as an invitation.',
+    ],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-opponent-1nt-responder-pass',
+    kind: 'scopeBoundary',
+    title: 'Reopening judgment after responder Passes an opposing 1NT overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'notrumpOvercall', responderCall: { kind: 'pass' },
+      advancerCall: { kind: 'pass' },
+    },
+    meaning: 'Responder has declined to act over the natural 1NT overcall and the auction can end.',
+    guidance: [
+      'Passing, competing again, or doubling can depend on opener\'s shape, strength, and penalty ' +
+      'prospects.  That reopening decision is not inferred from responder\'s Pass in this trainer.',
+    ],
     certainty: 'high',
   },
   //
@@ -3079,7 +3479,8 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive game raise',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'major',
       responderCall: { kind: 'raise', level: 4, jump: 2 },
     },
     calls: ['Pass'],

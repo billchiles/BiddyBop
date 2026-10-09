@@ -534,4 +534,42 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'Q3', H: 'AJT8', D: 'Q93', C: 'KT74' },
     south: { S: '8652', H: '9542', D: '752', C: 'A3' },
   },
+  {
+    description: '1D-(1S)-1NT-(Pass)-Pass: responder’s 1NT is natural, balanced, and stopped; ' +
+                 'a minimum semi-balanced opener can leave the contract there.',
+    practiceAuction: ['1D', '1S', '1NT', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-pass',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+    ] }],
+    north: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    east: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    south: { S: 'KT5', H: 'QJ8', D: 'Q95', C: 'JT85' },
+    west: { S: '43', H: 'KT95', D: 'T632', C: 'A72' },
+  },
+  {
+    description: '1H-(2D)-3C-(Pass)-3NT: responder’s three-level club bid is game forcing, ' +
+                 'and a balanced opener with the diamond stopper can place the contract in 3NT.',
+    practiceAuction: ['1H', '2D', '3C', 'Pass', '3NT'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '3C', ruleIds: [
+      'respond-over-suit-new-suit-three-level',
+    ] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-suit-overcall-after-responder-natural-action-pass',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-overcall-three-level-forcing-response',
+    ] }],
+    north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    south: { S: 'J97', H: 'KT', D: '632', C: 'AKQJ8' },
+    west: { S: '6542', H: '9853', D: '7', C: 'T642' },
+  },
 ];

@@ -504,8 +504,34 @@ a scope boundary explains the competing Pass/bid-on judgment rather than inventi
 
 After responder's strength-showing Redouble of a takeout Double and advancer's Pass, opener may
 also Pass; this waits for the doubler's next turn and does not create a general penalty-double
-system. After natural two-level suit interference over a 1NT opening, the ordinary natural 2NT
-invitation accept/decline and natural 3NT signoff continuations retain their meanings.
+system. If advancer instead makes the selected weak suit escape, opener reaches an explicit
+penalty/runout scope boundary rather than reusing that Pass. Responder Pass is also a physical call
+that can matter to opener even though the compact partnership auction omits Passes: after a suit
+overcall and Pass-Pass, opener reaches reopening/balancing guidance; after a takeout Double and
+Pass-Pass, opener reaches doubled-contract runout/stand guidance. Semantic `responderCall` matching
+therefore reads responder's physical first action rather than assuming the compact partnership
+auction contains it.
+
+After a natural suit overcall, responder's natural 1NT/2NT/3NT bids keep their competitive natural
+meanings on opener's next turn rather than inheriting forcing-1NT or artificial-major-opening
+notrump meanings. Selected continuations preserve ordinary balanced ranges, a six-card opening-suit
+description where defined, invitation acceptance/decline, and 3NT signoff. Stronger hands without a
+selected continuation reach scope guidance rather than manufacturing a quantitative or slam call.
+A game-forcing three-level natural responder suit can produce major-suit game with support or 3NT
+with balanced/semi-balanced shape and stoppers in every naturally bid opponent suit; other shapes
+terminate with explicit guidance.
+
+A competitive three-level jump raise after a suit overcall is weak and preemptive, not an
+uncontested limit raise. A minimum opener may Pass; extra values use judgment guidance unless a
+separate concrete call is modeled. The shared weak four-of-a-major preemptive raise remains a
+signoff. With a minor-opening support cuebid, the minimum agreed-suit continuation remains concrete,
+but extra values reach a stopper/playing-strength boundary rather than assuming minor game or 3NT.
+After an opposing natural 1NT overcall, selected weak natural two-level suits and preemptive raises
+are nonforcing and can be passed by a minimum opener; stronger continuations are deliberately
+judgmental unless another concrete rule applies.
+
+After natural two-level suit interference over a 1NT opening, the ordinary natural 2NT invitation
+accept/decline and natural 3NT signoff continuations retain their meanings.
 
 ## Responder after an opponent's natural 1NT overcall
 

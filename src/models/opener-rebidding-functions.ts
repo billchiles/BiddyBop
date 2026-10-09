@@ -708,6 +708,33 @@ export function openerForcingResponseCompetitionScopeBoundaryApplies (
   };
 }
 
+/// openerThreeLevelForcingResponseThreeNtApplies keeps a natural 3NT rebid after responder makes
+/// the selected game-forcing three-level new-suit response to a two-level overcall.  Prefer a
+/// known major fit; otherwise opener needs a balanced/semi-balanced hand and a stopper in every
+/// naturally bid opponent suit.
+export function openerThreeLevelForcingResponseThreeNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const response = getResponderBid(context);
+  if (call !== '3NT' || response === null || response.level !== 3 || response.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: not the selected three-level forcing response.'] };
+  }
+  const majorFit = (response.strain === 'H' || response.strain === 'S') &&
+    context.handFacts.lengths[response.strain as Suit] >= 3;
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+    context.dealer, context.auction);
+  const stopped = opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+  const shapeOkay = context.handFacts.balancedOrSemiBalanced;
+  const success = ! majorFit && shapeOkay && stopped;
+  return {
+    success,
+    telemetryLines: [
+      `${majorFit ? 'FAIL' : 'PASS'}: prefer the known major fit when opener has three-card support.`,
+      `${shapeOkay ? 'PASS' : 'FAIL'}: 3NT needs balanced or semi-balanced shape.`,
+      `${stopped ? 'PASS' : 'FAIL'}: 3NT needs every naturally bid opponent suit stopped.`,
+    ],
+  };
+}
+
 /// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
 /// declared for this family.  It is intentionally narrower than general bridge judgment: support,
 /// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.

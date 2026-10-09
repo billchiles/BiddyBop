@@ -197,7 +197,7 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1D', 'Double'], expected: 'responding' },
     { auction: ['1D', 'Double', 'Pass'], expected: 'advancing' },
     { auction: ['1D', 'Double', '2D'], expected: 'advancing' },
-    { auction: ['1D', 'Double', 'Pass', 'Pass'], expected: null },
+    { auction: ['1D', 'Double', 'Pass', 'Pass'], expected: 'openerRebid' },
     { auction: ['1D', '1S', 'Double', 'Pass'], expected: 'openerRebid' },
     { auction: ['1D', '1S', '1H', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '1S', 'Pass'], expected: 'openerRebid' },
@@ -1001,14 +1001,106 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     console.error('FAIL negative-Double competition did not stop at its scope boundary.');
   }
 
+  const { board: naturalTwoNtBoard } = makeRuleTestBoard({
+    description: 'Natural 2NT response after a suit overcall reaches game with 14 HCP opener.',
+    practiceAuction: ['1H', '1S', '2NT', 'Pass'],
+    north: { S: 'K7', H: 'AQJ84', D: 'KJ3', C: '842' },
+    south: { S: 'AQ4', H: 'K3', D: 'Q965', C: 'J753' },
+  });
+  const naturalTwoNtCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3NT', naturalTwoNtBoard, ['1H', '1S', '2NT', 'Pass'], defaultBiddingSystem));
+  checks += 1;
+  if (! naturalTwoNtCandidates.some(({ call, rule }) =>
+      call === '3NT' && rule.id === 'opener-rebid-3nt-after-overcall-natural-2nt')) {
+    failures += 1;
+    console.error('FAIL opener did not accept the natural competitive 2NT invitation.');
+  }
+
+  const { board: redoubleRunoutBoard } = makeRuleTestBoard({
+    description: 'Responder Redoubles a takeout Double and weak advancer escapes to 1S.',
+    practiceAuction: ['1H', 'Double', 'Redouble', '1S'],
+    north: { S: '72', H: 'AKT96', D: 'QJ3', C: 'A54' },
+    south: { S: 'T98', H: 'QJ5', D: 'AK6', C: 'KQ73' },
+  });
+  const redoubleRunoutResult = evaluateUserCall(
+    'Pass', redoubleRunoutBoard, ['1H', 'Double', 'Redouble', '1S'], defaultBiddingSystem);
+  checks += 1;
+  if (! redoubleRunoutResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-strength-redouble-runout') ||
+      getApplicableCandidateCalls(redoubleRunoutResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL strength-Redouble runout did not stop at its penalty scope boundary.');
+  }
+
+  const { board: oneNtOvercallBoundaryBoard } = makeRuleTestBoard({
+    description: 'Extra-value opener after opponent 1NT and responder weak natural 2D.',
+    practiceAuction: ['1H', '1NT', '2D', 'Pass'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: 'A4' },
+    south: { S: 'T83', H: '73', D: 'AJT962', C: 'T3' },
+  });
+  const oneNtOvercallBoundaryResult = evaluateUserCall(
+    'Pass', oneNtOvercallBoundaryBoard, ['1H', '1NT', '2D', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (! oneNtOvercallBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-opponent-1nt-weak-new-suit') ||
+      getApplicableCandidateCalls(oneNtOvercallBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL weak suit over opposing 1NT did not reach its extra-value boundary.');
+  }
+
+  const { board: preemptiveRaiseBoundaryBoard } = makeRuleTestBoard({
+    description: 'Extra-value opener after responder makes a weak competitive jump raise.',
+    practiceAuction: ['1S', '2H', '3S', 'Pass'],
+    north: { S: 'AKJ74', H: 'K2', D: 'AQ3', C: '762' },
+    south: { S: 'T986', H: 'T74', D: 'JT5', C: 'A83' },
+  });
+  const preemptiveRaiseBoundaryResult = evaluateUserCall(
+    'Pass', preemptiveRaiseBoundaryBoard, ['1S', '2H', '3S', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (! preemptiveRaiseBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-overcall-preemptive-three-level-raise') ||
+      getApplicableCandidateCalls(preemptiveRaiseBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL competitive preemptive raise did not reach its extra-value boundary.');
+  }
+
+  const { board: minorCuebidBoundaryBoard } = makeRuleTestBoard({
+    description: 'Extra-value minor opener after responder makes a support cuebid.',
+    practiceAuction: ['1C', '1D', '2D', 'Pass'],
+    north: { S: 'AK6', H: 'Q3', D: '832', C: 'KQJ74' },
+    south: { S: 'QJ8', H: 'AJ85', D: '54', C: 'AT86' },
+  });
+  const minorCuebidBoundaryResult = evaluateUserCall(
+    'Pass', minorCuebidBoundaryBoard, ['1C', '1D', '2D', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (! minorCuebidBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras') ||
+      getApplicableCandidateCalls(minorCuebidBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL minor support cuebid extras did not reach the strain-placement boundary.');
+  }
+
+  const { board: doubledPassBoundaryBoard } = makeRuleTestBoard({
+    description: 'Responder and advancer both Pass after an opponent takeout Double.',
+    practiceAuction: ['1H', 'Double', 'Pass', 'Pass'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
+  });
+  const doubledPassBoundaryResult = evaluateUserCall(
+    'Pass', doubledPassBoundaryBoard, ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (! doubledPassBoundaryResult.handMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') ||
+      getApplicableCandidateCalls(doubledPassBoundaryResult).length !== 0) {
+    failures += 1;
+    console.error('FAIL doubled-contract runout decision did not reach its scope boundary.');
+  }
+
   const unsupported: Call[][] = [
     ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
     ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
-    ['1H', '1S', '1NT', 'Pass'],      // Natural NT after a suit overcall is a separate family.
     ['1C', '1S', '2H', '3H'],         // Advancer cuebids responder's natural suit.
     ['1H', 'Double', '1S', '2S'],     // Advancer cuebids responder's natural suit.
-    ['1H', '2D', '3C', 'Pass'],       // Three-level natural response is a separate family.
-    ['1S', '2H', '3S', 'Pass'],       // Preemptive jump raise after overcall is separate.
     ['1C', '1S', 'Double', '3D'],     // Negative-Double side suit is modeled only at level two.
     ['1D', '1S', 'Double', '4NT'],    // Higher NT is not the selected negative-Double advance.
   ];

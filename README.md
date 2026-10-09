@@ -113,6 +113,29 @@ a takeout Double, opener may Pass when advancer Passes rather than manufacture a
 bid.  After natural two-level suit interference over our 1NT opening, the ordinary 2NT invitation
 accept/decline and natural 3NT signoff continuations retain their meanings.
 
+Natural responder notrump after a suit overcall now has selected opener continuations rather
+than inheriting forcing-1NT or Jacoby meanings: minimum natural 1NT can be passed, a six-card
+opening suit can still be described, balanced 18-19 can rebid 2NT, and the natural 2NT invitation
+can be accepted or declined.  Natural 3NT is a signoff for ordinary values; stronger hands reach
+slam-judgment guidance rather than an automatic quantitative action.  A selected game-forcing
+three-level new suit can be raised to major-suit game or followed by 3NT with suitable shape and
+stoppers; other continuations use specific scope guidance rather than silently ending.
+
+Weak competitive jump raises also end explicitly: a minimum opener can Pass a three-level
+preemptive raise, the shared weak 4M game raise remains a signoff, and extra-value three-level hands
+reach judgment guidance rather than being mistaken for an uncontested limit raise.  Extra values
+after a minor support cuebid likewise produce guidance because choosing among 3NT, further minor
+bidding, and another descriptive action depends on stoppers and playing strength.
+
+Responder Pass is not treated as an ordinary opener rebid.  After a suit overcall followed by
+Pass-Pass, opener reaches explicit reopening/balancing guidance.  After a takeout Double followed by
+Pass-Pass, the boundary instead explains the separate doubled-contract runout/stand judgment.  If
+responder shows strength with Redouble and advancer makes the selected weak escape, opener reaches
+penalty/runout guidance rather than inheriting the Pass that applies only when advancer also Passes.
+After an opposing natural 1NT overcall, selected weak natural suit and preemptive-raise responses can
+be passed by a minimum opener; extra-value hands and the Pass-Pass reopening case end with explicit
+competitive guidance rather than an unrelated uncontested continuation.
+
 These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
 trainer may reach a hand-specific scope boundary when the auction is understood but the next choice
 depends too heavily on judgment for one deterministic recommendation.  After a natural forcing
@@ -120,9 +143,9 @@ responder suit, the boundary guidance states the actual promise responder made -
 5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
 bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
 opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
-candidate call.  Strong advancer cuebids after natural responder actions, natural responder notrump after a
-suit overcall, three-level competitive new-suit responses, and jump-overcall continuations remain
-separate families to analyze rather than being inferred from same-looking uncontested auctions.
+candidate call.  The largest selected opener-rebid families still to close are responder actions
+after preemptive jump overcalls and the remaining natural-suit/negative-Double responses after
+interference over our 1NT opening.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

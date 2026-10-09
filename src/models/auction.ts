@@ -69,11 +69,16 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
     getSeatForCallIndex(dealer, index) !== opening.seat &&
     getSeatForCallIndex(dealer, index) !== responder);
   const partnershipCalls = getOpeningPartnershipCalls(dealer, auction, opening.seat);
-  if (nextSeat === opening.seat && partnershipCalls.length === 2) {
-    if (! opponentsBid || isSupportedCompetitiveOpenerRebid(dealer, auction, opening)) {
+  if (nextSeat === opening.seat) {
+    // Competitive opener turns are recognized from the physical four-call round, including a
+    // responder Pass that is intentionally absent from partnershipCalls.  The competitive gate
+    // still admits only reviewed responder/advancer patterns.
+    if (opponentsBid) {
+      return isSupportedCompetitiveOpenerRebid(dealer, auction, opening) ? 'openerRebid' : null;
+    }
+    if (partnershipCalls.length === 2) {
       return 'openerRebid';
     }
-    return null;
   }
   if (opponentsBid) {
     return null;
@@ -110,7 +115,11 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       const overcallBid = parseSuitBid(overcall);
       if (overcallBid === null || overcallBid.strain === 'NT') return false;
       const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
-      const advancerRaised = advancerKind === 'raise';
+      if (response === 'Pass') {
+        // Reopening after responder declines to act is a separate competitive-judgment family.
+        // Admit the Pass-Pass auction only so the evaluator can emit explicit boundary guidance.
+        return advance === 'Pass';
+      }
       if (response === 'Double') {
         // Responder's negative Double already has a modeled meaning.  Admit only fourth-seat
         // actions whose physical level also matches the advancing treatment: Pass/support raises,
@@ -128,7 +137,10 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
           cheapestBidInStrainAfter(overcallBid, openingBid.strain) === advance;
       }
       const responseBid = parseSuitBid(response);
-      if (responseBid === null || responseBid.strain === 'NT') return false;
+      if (responseBid === null) return false;
+      if (responseBid.strain === 'NT') {
+        return advance === 'Pass' && responseBid.level >= 1 && responseBid.level <= 3;
+      }
       // Ordinary simple raises keep their natural meaning through selected natural competition.
       // Strong cuebids and other artificial advances remain outside this reviewed slice.
       if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
@@ -144,6 +156,12 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
           return advanceBid !== null && advanceBid.level >= 2 && advanceBid.level <= 3;
         }
         return false;
+      }
+      if (advance === 'Pass' && responseBid.strain === openingBid.strain) {
+        // Responder's competitive jump raise is preemptive rather than invitational.  A direct
+        // four-of-a-major raise is the shared long-fit preemptive game raise.
+        return responseBid.level === 3 ||
+          (responseBid.level === 4 && (openingBid.strain === 'H' || openingBid.strain === 'S'));
       }
       if (advance !== 'Pass') {
         // Natural forcing responder suits can continue through selected natural advancer action.
@@ -163,12 +181,19 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       }
       if (responseBid.strain === openingBid.strain) return false;
       if (responseBid.level === 1) return true;
-      return responseBid.level === 2 &&
+      return (responseBid.level === 2 || responseBid.level === 3) &&
         cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
     if (interference === 'takeoutDouble') {
       const responseBid = parseSuitBid(response);
       if (advance !== 'Pass') {
+        if (response === 'Redouble') {
+          // Advancer's selected weak runout is the cheapest natural unbid suit through level two.
+          const advanceBid = parseSuitBid(advance);
+          return advanceBid !== null && advanceBid.strain !== 'NT' &&
+            advanceBid.strain !== openingBid.strain && advanceBid.level <= 2 &&
+            cheapestBidInStrainAfter(openingBid, advanceBid.strain) === advance;
+        }
         if (responseBid === null || responseBid.strain === 'NT') return false;
         const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
         // Responder's ordinary simple raise keeps the selected continuations already modeled.
@@ -187,6 +212,7 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         const advanceBid = parseSuitBid(advance);
         return advanceBid !== null && advanceBid.level >= 1 && advanceBid.level <= 3;
       }
+      if (response === 'Pass') return true;
       if (response === 'Redouble' || response === '1NT' || response === '2NT') return true;
       if (responseBid === null || responseBid.strain === 'NT') return false;
       // Shared simple raises and weak competitive actions are nonforcing.  One-level new suits
@@ -195,6 +221,16 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         return responseBid.level === 2 || responseBid.level === 3;
       }
       return responseBid.level >= 1 && responseBid.level <= 3;
+    }
+    if (interference === 'notrumpOvercall' && advance === 'Pass') {
+      if (response === 'Pass') return true;
+      const responseBid = parseSuitBid(response);
+      if (responseBid === null || responseBid.strain === 'NT') return false;
+      if (responseBid.strain === openingBid.strain) {
+        return responseBid.level === 2 || responseBid.level === 3 ||
+          (responseBid.level === 4 && (openingBid.strain === 'H' || openingBid.strain === 'S'));
+      }
+      return responseBid.level === 2;
     }
     return false;
   }
