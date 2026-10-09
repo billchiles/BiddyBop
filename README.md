@@ -69,6 +69,14 @@ means we considered the area and deliberately chose not to model it as part of t
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 | Natural four-/five-level preempt | Partial (done): Pass only | Omitted | Omitted | Omitted |
 
+After a positive suit or balanced 2NT response to the artificial strong 2C opening, opener
+now has selected game-forcing natural descriptions: economical major support, conditional
+minor support with unbalanced shape, a five-card own suit through the three level, and a
+minimum-range balanced notrump rebid. A positive response already shows 8+ HCP, so game
+is not automatically a signoff and slam may be in view. Very strong balanced hands and
+awkward descriptive decisions reach explicit scope guidance; the responder's subsequent
+rebid remains planned rather than being invented by these opener rules.
+
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear.  After responder's simple raise, opener can continue through selected advancer raises,
 preemptive raises, natural new suits, and responsive Doubles.  Natural forcing responder suits also

@@ -30,9 +30,13 @@ import {
   refineOpenerOpeningSuitAtCheapestLevel, refineOpenerOpeningSuitToLevel,
   refineOpenerRaiseResponderSuitOneLevel, refineOpenerRaiseResponderSuitToLevel,
   refineOpenerResponderSuitToGame, refineOpenerReverseRebid, refineOpenerSplinterControlBid,
-  refineStrongTwoCUnbalancedSuitRebid, refineWeakTwoFeatureRebid,
+  refineStrongTwoCUnbalancedSuitRebid, refineStrongTwoCPositiveNewSuitRebid,
+  strongTwoCPositiveMajorSupportApplies, strongTwoCPositiveMinorSupportApplies,
+  strongTwoCPositiveBalancedNtApplies, strongTwoCPositiveScopeBoundaryApplies,
+  refineWeakTwoFeatureRebid,
   weakTwoFeatureAfterInquiryApplies, weakTwoRepeatAfterInquiryApplies, weakTwoSolidThreeNtApplies
 } from './opener-rebidding-functions';
+import { getResponderBid } from './common-rule-helpers';
 
 
 export const OpenerRebidRules: BidRule[] = [
@@ -86,6 +90,94 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: "Natural forcing rebid in opener's longest five-card-or-longer suit.",
     guidance: ['With two equal five-card or equal six-card suits, bid the higher-ranking suit.',
                'Balanced hands use the separate 2NT, 3NT, or 4NT rebids instead.'],
+    certainty: 'high',
+  },
+  //
+  // Strong 2C followed by a positive suit or balanced 2NT response is already game-forcing.
+  // Keep the opener's first description natural and economical; subsequent slam evaluation
+  // belongs to responder's rebid or an explicit judgment boundary, not an automatic jump.
+  {
+    id: 'opener-rebid-support-positive-major-after-2c',
+    kind: 'openerRebid',
+    title: 'Raise a positive major economically after strong 2C',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none',
+                      responderCall: { kind: 'newSuit', level: 2 } },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => {
+      const response = getResponderBid(context);
+      return { calls: calls.filter((call) => response !== null &&
+        (response.strain === 'H' || response.strain === 'S') && call === `3${response.strain}`),
+        telemetryLines: [] };
+    },
+    appliesWhen: strongTwoCPositiveMajorSupportApplies,
+    callCategory: ['gameForcing', 'natural'],
+    priority: { rank: 20 },
+    meaning: 'Three-card-or-longer support for responder\'s positive five-card major; forcing.',
+    guidance: ['Raise at the cheapest three-level bid to preserve space for game or slam exploration.',
+               'Do not treat this raise as a weak or invitational major raise.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-support-positive-minor-after-2c',
+    kind: 'openerRebid',
+    title: 'Show an unbalanced minor fit after a positive minor response',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none',
+                      responderCall: { kind: 'newSuit', level: 3 } },
+    calls: ['4C', '4D'],
+    callRefinement: (calls, context) => {
+      const response = getResponderBid(context);
+      return { calls: calls.filter((call) => response !== null &&
+        (response.strain === 'C' || response.strain === 'D') && call === `4${response.strain}`),
+        telemetryLines: [] };
+    },
+    appliesWhen: strongTwoCPositiveMinorSupportApplies,
+    callCategory: ['gameForcing', 'natural'],
+    meaning: 'Unbalanced four-card-or-longer support for responder\'s positive minor.',
+    guidance: ['This deliberately bypasses 3NT only with a substantial minor fit and no longer ' +
+               'natural side suit to describe. Further bidding may investigate slam.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-longest-suit-after-2c-positive',
+    kind: 'openerRebid',
+    title: 'Show an unbalanced opener\'s own long suit after a positive response',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    calls: ['2S', '3C', '3D', '3H', '3S'],
+    callRefinement: refineStrongTwoCPositiveNewSuitRebid,
+    appliesWhen: { hcp: { min: 22 } },
+    callCategory: ['gameForcing', 'natural'],
+    meaning: 'Natural five-card-or-longer opener suit, game forcing after a positive response.',
+    guidance: ['Prefer a three-card fit for responder\'s positive major when one exists.',
+               'Show the longest eligible own suit at the cheapest legal level through 3S; ' +
+               'equal lengths use the higher-ranking suit.',
+               'Do not invent a four-level new suit where it would bypass 3NT.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-natural-nt-after-2c-positive',
+    kind: 'openerRebid',
+    title: 'Describe a 22-24 balanced hand after a positive response',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    calls: ['2NT', '3NT'],
+    appliesWhen: strongTwoCPositiveBalancedNtApplies,
+    callCategory: ['gameForcing', 'natural'],
+    meaning: 'Minimum 22-24 balanced strong 2C opener; natural NT description, not a signoff.',
+    guidance: ['After a positive major, prefer 3M with a three-card fit; otherwise describe with 2NT.',
+               'After a positive minor or balanced 2NT response, the lowest available natural NT is 3NT.',
+               'Partner has shown 8+ HCP, so a game-level rebid does not end possible slam interest.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-2c-positive',
+    kind: 'scopeBoundary',
+    title: 'Strong 2C positive response: further descriptive or slam judgment',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    scopeBoundaryWhen: strongTwoCPositiveScopeBoundaryApplies,
+    meaning: 'The positive response is game-forcing, but opener has no chosen natural rebid.',
+    guidance: ['For very strong balanced hands, an awkward unbalanced shape, or a new suit ' +
+               'that would bypass 3NT, do not manufacture a signoff.',
+               'Deciding on a control bid, a strain, or a slam investigation requires more ' +
+               'judgment and agreements than this selected strong-2C treatment models.'],
     certainty: 'high',
   },
   //

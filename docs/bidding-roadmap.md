@@ -63,8 +63,12 @@ needs an executable choice or specific scope guidance.
 - [x] **A5.** Removed the rare direct artificial 4NT Blackwood opening from executable
   rules. Keep other, context-dependent meanings of 4NT intact; a direct 4NT
   Blackwood opening remains outside scope.
-- [ ] **A6.** Complete useful strong 2C opener descriptions after a positive suit or
-  positive balanced 2NT response, adding explicit boundaries where needed.
+- [x] **A6.** Added selected natural strong-2C rebids after positive suit and balanced
+  2NT responses: economical major support, conditional unbalanced minor support,
+  longest natural five-card suit through the three level, and the minimum 22-24
+  balanced NT description. Extra balanced/slam-oriented or awkward hands receive
+  explicit scope guidance, not automatic game or slam placements. Responder's next
+  decision remains part of Phase C.
 - [ ] **A7.** After opponents interfere over our 1NT opening, address opener's reply
   to responder's takeout-oriented Double and selected natural responses that require
   continuation; avoid pretending nonforcing signoffs are forcing.

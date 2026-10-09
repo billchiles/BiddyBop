@@ -1437,6 +1437,104 @@ export function refineStrongTwoCUnbalancedSuitRebid (calls: Call[], context: Rul
   };
 }
 
+/// The positive strong-2C responses are 2H/2S, 3C/3D, or balanced 2NT. A response of
+/// 2D is waiting and retains its separate rebid treatment. Interference is excluded by the rules.
+function getStrongTwoCPositiveResponse (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening?.level !== 2 || opening.strain !== 'C' || response === null) return null;
+  if ((response.level === 2 && (response.strain === 'H' || response.strain === 'S' ||
+       response.strain === 'NT')) ||
+      (response.level === 3 && (response.strain === 'C' || response.strain === 'D'))) {
+    return response;
+  }
+  return null;
+}
+
+/// Raise a positive major economically; responder has promised a five-card suit and game values.
+export function strongTwoCPositiveMajorSupportApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getStrongTwoCPositiveResponse(context);
+  const success = response !== null && response.level === 2 &&
+    (response.strain === 'H' || response.strain === 'S') &&
+    context.handFacts.lengths[response.strain] >= 3 && context.handFacts.hcp >= 22;
+  return { success, telemetryLines: [success
+    ? 'Positive five-card major plus three-card opener support establishes a game-forcing fit.'
+    : 'No positive major with at least three-card opener support.'] };
+}
+
+/// With a positive minor, a four-card fit and unbalanced shape justify selected minor support.
+/// Avoid automatically raising a balanced hand past 3NT or hiding opener's own five-card suit.
+export function strongTwoCPositiveMinorSupportApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getStrongTwoCPositiveResponse(context);
+  const otherLongSuit = response !== null && SUITS.some((suit) =>
+    suit !== response.strain && context.handFacts.lengths[suit] >= 5);
+  const success = response !== null && response.level === 3 &&
+    (response.strain === 'C' || response.strain === 'D') &&
+    !context.handFacts.balanced && !otherLongSuit &&
+    context.handFacts.lengths[response.strain] >= 4 && context.handFacts.hcp >= 22;
+  return { success, telemetryLines: [success
+    ? 'An unbalanced opener with four-card minor support and no longer side suit can raise.'
+    : 'Minor support needs four cards, unbalanced shape, and no five-card side suit.'] };
+}
+
+/// Natural 5+ suit descriptions remain available after positive responses, but only through the
+/// three level. Do not invent a four-level new suit which bypasses the convenient 3NT contract.
+/// With a major fit, support responder instead of obscuring the agreed trump suit.
+export function refineStrongTwoCPositiveNewSuitRebid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const response = getStrongTwoCPositiveResponse(context);
+  if (response === null || context.handFacts.balanced ||
+      ((response.strain === 'H' || response.strain === 'S') &&
+       context.handFacts.lengths[response.strain] >= 3)) {
+    return { calls: [], telemetryLines: ['No unbalanced positive-response new-suit description.'] };
+  }
+  const available = calls.flatMap((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === response.strain ||
+        bid.level > 3 || cheapestBidInStrainAfter(response, bid.strain) !== call) return [];
+    const suit = bid.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    return length >= 5 ? [{ call, suit, length }] : [];
+  });
+  if (available.length === 0) {
+    return { calls: [], telemetryLines: ['No natural five-card suit can be shown through 3S.'] };
+  }
+  const longest = Math.max(...available.map((item) => item.length));
+  const choices = available.filter((item) => item.length === longest);
+  choices.sort((left, right) => STRAIN_ORDER.indexOf(right.suit) - STRAIN_ORDER.indexOf(left.suit));
+  return { calls: [choices[0]!.call], telemetryLines: [
+    `Show the longest available five-card suit economically: ${choices[0]!.call}.`,
+  ] };
+}
+
+/// Only a minimum-range balanced strong opener makes a natural NT description after a positive
+/// response. Extra balanced strength is genuine slam judgment, not an automatic higher NT bid.
+export function strongTwoCPositiveBalancedNtApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getStrongTwoCPositiveResponse(context);
+  const major = response?.strain === 'H' || response?.strain === 'S';
+  const majorFit = major && context.handFacts.lengths[response.strain as Suit] >= 3;
+  const success = response !== null && context.handFacts.balanced &&
+    context.handFacts.hcp >= 22 && context.handFacts.hcp <= 24 && !majorFit &&
+    (major ? call === '2NT' : call === '3NT');
+  return { success, telemetryLines: [success
+    ? 'Minimum 22-24 balanced strong opening with no preferred positive-major fit.'
+    : 'Not the economical 22-24 balanced NT description for this positive response.'] };
+}
+
+/// With a game-forcing positive response, a hand outside these chosen natural descriptions
+/// needs judgment about strain, controls, and slam prospects; the boundary is suppressed when
+/// one of the modeled concrete rebids is available.
+export function strongTwoCPositiveScopeBoundaryApplies (context: RuleEvalContext):
+    AppliesWhenResult {
+  const success = getStrongTwoCPositiveResponse(context) !== null;
+  return { success, telemetryLines: [success
+    ? 'Positive strong-2C response: describe naturally where modeled, otherwise assess slam and strain.'
+    : 'Not a positive strong-2C response.'] };
+}
+
 ///
 //// Opener Rebids After Weak Preemptive Openings
 ///

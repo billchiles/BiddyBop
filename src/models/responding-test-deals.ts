@@ -995,7 +995,7 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     description: '2C-2H: with 10 HCP and a good five-card heart suit, responder can make the ' +
                  'immediate positive response; the artificial 2D waiting bid remains available ' +
                  'but is presented behind the more descriptive call.',
-    practiceAuction: ['2C', 'Pass', '2H'],
+    practiceAuction: ['2C', 'Pass', '2H', 'Pass', '3H'],
     expectedOpeningCalls: [
       { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
     ],
@@ -1004,13 +1004,18 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
       { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
     ],
     expectedResponseCallOrder: [['2H', '2D']],
+    practiceGuidance: [{ auctionIndex: 4, seat: 'N', text: 'South showed five or more hearts ' +
+      'and game-forcing values; North has three hearts, so 3H confirms an eight-card fit ' +
+      'and leaves room to explore game or slam.' }],
+    expectedOpenerRebidCalls: [{ call: '3H', ruleIds: ['opener-rebid-support-positive-major-after-2c'] }],
+    rejectedOpenerRebidCalls: ['2NT'],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: 'K765', H: 'QJT98', D: 'A75', C: '6' },
   },
   {
     description: '2C-3C: 12 HCP and a good five-card club suit qualify for an immediate positive ' +
                  'minor response; the lower-ranked 2D waiting response also remains valid.',
-    practiceAuction: ['2C', 'Pass', '3C'],
+    practiceAuction: ['2C', 'Pass', '3C', 'Pass', '3NT'],
     expectedOpeningCalls: [
       { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
     ],
@@ -1019,13 +1024,15 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
       { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
     ],
     expectedResponseCallOrder: [['3C', '2D']],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: ['opener-rebid-natural-nt-after-2c-positive'] }],
+    rejectedOpenerRebidCalls: ['4C'],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: '6', H: 'Q76', D: 'A765', C: 'AQT98' },
   },
   {
     description: '2C-2NT: an 11-HCP 4-3-3-3 responder qualifies for the positive balanced ' +
                  'response with no extra requirement beyond 8+ HCP and balanced shape.',
-    practiceAuction: ['2C', 'Pass', '2NT'],
+    practiceAuction: ['2C', 'Pass', '2NT', 'Pass', '3NT'],
     expectedOpeningCalls: [
       { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
     ],
@@ -1034,8 +1041,53 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
       { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
     ],
     expectedResponseCallOrder: [['2NT', '2D']],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: ['opener-rebid-natural-nt-after-2c-positive'] }],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: 'K765', H: 'Q76', D: 'A75', C: 'Q76' },
+  },
+  {
+    description: '2C-2H-2S: without heart support, the unbalanced opener describes a long spade ' +
+                 'suit economically rather than inventing a notrump rebid.',
+    practiceAuction: ['2C', 'Pass', '2H', 'Pass', '2S'],
+    expectedOpeningCalls: [{ call: '2C', ruleIds: ['open-2c-strong-artificial'] }],
+    expectedResponseCalls: [{ call: '2H', ruleIds: ['respond-to-2c-w/-positive-suit'] }],
+    expectedOpenerRebidCalls: [{ call: '2S', ruleIds: ['opener-rebid-longest-suit-after-2c-positive'] }],
+    rejectedOpenerRebidCalls: ['2NT', '3H'],
+    north: { S: 'AKQJT8', H: '2', D: 'AK4', C: 'AQ7' },
+    south: { S: '76', H: 'KQJ98', D: 'Q75', C: 'J42' },
+  },
+  {
+    description: '2C-2H-2NT: 23 balanced HCP and only two hearts; describe the balanced hand ' +
+                 'rather than raise responder\'s five-card major without a fit.',
+    practiceAuction: ['2C', 'Pass', '2H', 'Pass', '2NT'],
+    expectedOpeningCalls: [{ call: '2C', ruleIds: ['open-2c-strong-artificial'] }],
+    expectedResponseCalls: [{ call: '2H', ruleIds: ['respond-to-2c-w/-positive-suit'] }],
+    expectedOpenerRebidCalls: [{ call: '2NT', ruleIds: ['opener-rebid-natural-nt-after-2c-positive'] }],
+    rejectedOpenerRebidCalls: ['3H'],
+    north: { S: 'AKQ4', H: 'K3', D: 'AKJ2', C: 'QJT' },
+    south: { S: '765', H: 'AQJT9', D: 'Q76', C: '92' },
+  },
+  {
+    description: '2C-3D-4D: an unbalanced opener with four diamonds and no long side suit ' +
+                 'can agree responder\'s positive minor, intentionally bypassing 3NT.',
+    practiceAuction: ['2C', 'Pass', '3D', 'Pass', '4D'],
+    expectedOpeningCalls: [{ call: '2C', ruleIds: ['open-2c-strong-artificial'] }],
+    expectedResponseCalls: [{ call: '3D', ruleIds: ['respond-to-2c-w/-positive-suit'] }],
+    expectedOpenerRebidCalls: [{ call: '4D', ruleIds: ['opener-rebid-support-positive-minor-after-2c'] }],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'AKQ4', H: 'AKJ7', D: 'AQ76', C: '5' },
+    south: { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' },
+  },
+  {
+    description: '2C-2NT-3S: a positive balanced response does not prevent an unbalanced ' +
+                 'opener from showing a six-card spade suit.',
+    practiceAuction: ['2C', 'Pass', '2NT', 'Pass', '3S'],
+    expectedOpeningCalls: [{ call: '2C', ruleIds: ['open-2c-strong-artificial'] }],
+    expectedResponseCalls: [{ call: '2NT', ruleIds: ['respond-to-2c-w/-2nt-positive-balanced'] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: ['opener-rebid-longest-suit-after-2c-positive'] }],
+    rejectedOpenerRebidCalls: ['3NT'],
+    north: { S: 'AKQJT8', H: '2', D: 'AK4', C: 'AQ7' },
+    south: { S: '765', H: 'K97', D: 'Q98', C: 'KJ92' },
   },
   {
     description: '2C-2D: a 10-HCP 4-4-4-1 responder has enough strength for a positive response ' +
