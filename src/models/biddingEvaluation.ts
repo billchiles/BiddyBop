@@ -208,6 +208,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
 } //evaluateUserCall()
 
 
+//// Evaluation context and stage rule selection
 /// makeRuleEvalContext is the React/model boundary for bidding evaluation.  React supplies the
 /// board and authoritative full auction; model code derives the acting seat, hand, and stage.
 /// More specific auction facts are queried from auction.ts only by rules/evaluator code that needs
@@ -246,6 +247,7 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
   }
 }
 
+//// Individual rule and candidate evaluation
 /// evaluateRules filters the already-selected stage rules by auction context and evaluates the rule
 /// against the hand.
 ///
@@ -297,6 +299,7 @@ function evaluateRule (rule: BidRule, context: RuleEvalContext,
 }
 
 
+//// Agreement filtering
 /// Returns the rules enabled by the current bidding agreements.  Rules without an agreement are
 /// always enabled.  The bidding evaluator should receive this active rule set rather than decide
 /// between agreement variants while evaluating a hand.
@@ -338,6 +341,7 @@ function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSys
 }
 
 
+//// Individual candidate qualification
 /// evaluateCandidateCall evaluates one concrete call from one already auction-matched rule.  If
 /// there is no appliesWhen, the call has no additional hand constraint.
 ///
@@ -367,6 +371,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
 }
 
 
+//// Cross-rule suppression -- Pass and scope boundaries
 /// A stage-specific Pass fallback must not compete with an already evaluated constructive call.
 /// This avoids duplicating the suit, support, and convention requirements in each Pass rule.
 function maybeSuppressPassWithoutOtherAction (ruleResults: RuleEvalResult[],
@@ -405,6 +410,7 @@ function maybeSuppressScopeBoundaryWhenBidApplies (ruleResults: RuleEvalResult[]
   return ruleResults;
 }
 
+//// Cross-rule suppression -- Opening and 1NT response choices
 /// maybeSuppressConvenientMinor takes all applicable rules for current auction and responder's hand
 /// and removes a declarative qualifying convenient-minor opening when an already-evaluated natural
 /// 1NT or 2NT opening applies.  We can't cause this mutual exclusion declaratively only, while some
@@ -949,6 +955,7 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
   return { pass, telemetryLines };
 } //testHandShape()
 
+//// Hand constraints -- Partner support
 /// testSupportLength compares the bidder's holding in partner's relevant naturally bid suit with
 /// the declared range.  While responding this is opener's suit; on opener's rebid it is responder's
 /// suit.  supportLength does not choose how total points are valued.
@@ -1256,6 +1263,7 @@ function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
   });
 }
 
+//// Candidate call filtering and refinement
 /// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
 /// then refines the remaining candidates.  Refiners never have to select an illegal or
 /// semantically repurposed call before alternative calls are considered.

@@ -39,6 +39,7 @@ import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies
 export const AdvanceRules: BidRule[] = [
   ...NaturalOneNtPartnerCallRules,
   ...NaturalOneNtInterferencePartnerCallRules,
+  //// Natural 2NT overcall of a weak two -- Systems-on advances
   // Systems-on advances after a natural 2NT overcall of a weak two.  The convention mechanics
   // match ordinary 2NT methods, but these strength ranges reflect partner's 15-18 HCP overcall.
   {
@@ -179,6 +180,7 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Texas transfer asks the 2NT overcaller to bid 4S.',
     certainty: 'high',
   },
+  //// DONT over a strong 1NT -- Basic pass-or-correct advances
   // DONT advances after an opposing strong 1NT are simple pass-or-correct decisions.
   // This first treatment stops if responder competes rather than passing.
   {
@@ -196,6 +198,7 @@ export const AdvanceRules: BidRule[] = [
                'Game inquiries and continuations after responder competes are not modeled.'],
     certainty: 'high',
   },
+  //// Natural one-level suit overcall -- Advances after responder Pass
   // First family: advance partner's natural one-level suit overcall when responder passes.
   // The positive refiners require the actual auction shape and exclude other overcall levels.
   // Pass is a limited-strength fallback, not an extra candidate beside a constructive advance.
@@ -345,6 +348,7 @@ export const AdvanceRules: BidRule[] = [
                'from advancer’s hand. Stronger slam investigations are outside this treatment.'],
     certainty: 'high',
   },
+  //// Natural two-level suit overcall -- Advances after responder Pass
   // Second family: partner makes a natural, non-jump two-level suit overcall of a one-level
   // opening or weak two.  The refiners require responder's Pass and distinguish simple bids
   // from jumps.
@@ -450,6 +454,7 @@ export const AdvanceRules: BidRule[] = [
                'minimum advancer values needed for game.'],
     certainty: 'high',
   },
+  //// Takeout Double -- Initial advances after responder Pass
   // Third family: Advancer responds to partner's takeout double of an opposing suit opening.
   // When opener's partner passes, advancer ordinarily must select a suit even with no points.
   // Weak-two doubles reuse the same basic structure without adding Lebensohl.
@@ -564,6 +569,7 @@ export const AdvanceRules: BidRule[] = [
                'It does not replace judgment about honor location or a strong off-shape double.'],
     certainty: 'high',
   },
+  //// After responder preempts -- Pass and scope boundaries
   // After responder makes a *modeled* preemptive jump raise or weak jump shift,
   // advancer is no longer obligated to act. This is deliberately not the simple-raise
   // family: the jump consumes more space and calls for a separate competitive judgment.
@@ -594,6 +600,7 @@ export const AdvanceRules: BidRule[] = [
                'shape, vulnerability, and partnership agreements not modeled here.'],
     certainty: 'high',
   },
+  //// After responder acts -- Selected natural notrump advances
   // Selected natural NT advances after an ordinary responder raise, natural new suit,
   // or natural 1NT. Two naturally named opposing suits both need stoppers.
   {
@@ -614,6 +621,7 @@ export const AdvanceRules: BidRule[] = [
                'use this simple natural ladder.'],
     certainty: 'high',
   },
+  //// One-level suit overcall -- After responder raises opener
   // Fourth family: opener's partner raises after a natural one-level suit overcall.
   // Pass is now normal; responsive Double is takeout-oriented and used only without a clearer bid.
   {
@@ -729,6 +737,7 @@ export const AdvanceRules: BidRule[] = [
                'partner’s suit.'],
     certainty: 'high',
   },
+  //// Two-level suit overcall -- After responder raises opener
   // Companion to the preceding family: responder raises after a natural two-level suit overcall.
   // The auction is already high, so this subset omits game-level weak jump raises.
   {
@@ -828,6 +837,7 @@ export const AdvanceRules: BidRule[] = [
                'suit, and fewer than three cards in partner’s overcalled suit.'],
     certainty: 'high',
   },
+  //// Takeout Double -- After responder raises opener
   // Fifth family: responder raises after partner's takeout double.
   // The raise removes the compulsory weak response; advancer may Pass or describe values and shape.
   {
@@ -908,6 +918,7 @@ export const AdvanceRules: BidRule[] = [
                'for one particular suit.'],
     certainty: 'high',
   },
+  //// Natural suit overcall -- After responder bids a suit or notrump
   // Responder-natural-action family: responder bids an economical new suit or natural 1NT
   // after advancer's partner makes a natural suit overcall.  Advancer may now Pass or act
   // naturally.
@@ -1044,6 +1055,7 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
     certainty: 'high',
   },
+  //// Takeout Double -- After responder bids a suit or notrump
   // After a takeout double, responder's economical natural suit or 1NT call removes the
   // compulsory weak advance.  Advancer may Pass, bid a clear suit, or cuebid with strength.
   {
@@ -1126,6 +1138,7 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['Cuebid opener’s original suit rather than responder’s newly bid suit.'],
     certainty: 'high',
   },
+  //// Natural suit overcall -- After responder makes a negative Double
   // Artificial responder actions: a negative Double after a natural suit overcall and a
   // strength-showing Redouble after partner's takeout Double.  Keep these meanings narrow.
   {
@@ -1258,6 +1271,7 @@ export const AdvanceRules: BidRule[] = [
                'available.'],
     certainty: 'high',
   },
+  //// Takeout Double -- After responder Redoubles
   // After responder Redoubles partner's takeout Double, this trainer models only the ordinary
   // weak escape: choose the best unbid suit economically, with the same three-card fallback used
   // after responder's Pass.  Stronger runout and penalty decisions remain outside scope.
@@ -1277,6 +1291,7 @@ export const AdvanceRules: BidRule[] = [
                'Invitational jumps and penalty-oriented Pass decisions are not modeled here.'],
     certainty: 'high',
   },
+  //// Preemptive jump overcall -- Advances after responder Pass
   // Preemptive-jump family: partner makes a preemptive jump overcall and opener's partner passes.
   // The jump describes a limited hand with a long suit; advancer rarely needs to explore.
   {

@@ -5,6 +5,7 @@
 ///
 import type { RuleTestDeal } from './test-deals-registry';
 
+//// Advances after natural one-level suit overcalls
 /// West opens, North overcalls, East passes, and South advances.  Fix the first
 /// three hands so both the auction setup and advancer's decision are meaningful.
 ///
@@ -158,6 +159,7 @@ export const ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
 ];
 
 
+//// Advances after natural two-level suit overcalls
 /// Natural non-jump two-level suit overcalls: a three-level raise is ordinary,
 /// while a new suit is forcing and must be bid without jumping.
 ///
@@ -316,6 +318,7 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
 ];
 
 
+//// Advances after takeout Doubles
 /// After 1-suit Double Pass, the ordinary doubler asks partner to select a suit.
 /// Test the weak three-card fallback as well as invitational, forcing, and game actions.
 ///
@@ -492,6 +495,7 @@ export const ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 
+//// Advances after natural 1NT overcalls
 /// Advancer uses the shared natural-1NT treatments after a direct 1NT overcall and Pass.
 /// West opens a suit, partner overcalls 1NT, the opening side's responder passes, and advancer acts.
 ///
@@ -615,6 +619,7 @@ export const ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 
+//// Suit overcall -- Advancer after responder raises opener
 /// Advancer after opener's partner gives a simple raise over a natural suit overcall.
 /// All four hands are fixed because the opening, overcall, responder raise, and advance
 /// are meaningful.
@@ -819,6 +824,7 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS: RuleTestDeal[] 
 ];
 
 
+//// Takeout Double -- Advancer after responder raises opener
 /// Advancer after responder raises opener's suit over partner's takeout double.
 /// Passing is now normal; natural suits, responsive Double, and a strong cuebid describe action.
 ///
@@ -906,6 +912,7 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestD
 ];
 
 
+//// Suit overcall -- Advancer after responder bids naturally
 /// Advancer after responder bids a natural new suit or 1NT over partner's natural suit overcall.
 /// These deals keep the continuation natural: Pass, support, cuebid, or an unbid long suit.
 ///
@@ -1039,6 +1046,7 @@ export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS: RuleTe
 ];
 
 
+//// Takeout Double -- Advancer after responder bids naturally
 /// Advancer after responder bids a natural new suit or 1NT over partner's takeout double.
 /// These examples emphasize that responder's action removes the compulsory weak advance.
 ///
@@ -1171,6 +1179,7 @@ export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS: 
 ];
 
 
+//// Suit overcall -- Advancer after responder makes a negative Double
 /// Advancer after responder makes a negative Double of partner's natural suit overcall.
 /// Redouble is a general strength action; descriptive support, NT, and clear side-suit calls
 /// remain preferred when they fit the hand.
@@ -1307,6 +1316,7 @@ export const ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 
+//// Takeout Double -- Advancer after responder Redoubles
 /// Advancer's weak escape after responder makes a strength-showing Redouble of partner's
 /// takeout Double.  Stronger runout and penalty-oriented decisions remain deliberately unmodeled.
 ///
@@ -1350,6 +1360,7 @@ export const ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS: RuleTestDeal[] = [
 ];
 
 
+//// Advances after preemptive jump overcalls
 /// Advance partner's preemptive jump overcall when the opponents' responder passes.
 /// These examples distinguish Pass, fit raises, major game, and forcing new suits.
 ///

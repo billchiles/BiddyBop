@@ -52,6 +52,7 @@ export function refineRaiseToLevel (calls: Call[], context: RuleEvalContext,
           telemetryLines: [`Raise partner's ${opening.strain} to ${targetLevel}${opening.strain}.`] };
 }
 
+//// Weak Pass and minor-opening new-suit responses
 /// refineSharedWeakResponderPass keeps the ordinary weak Pass available in uncontested and
 /// explicitly modeled one-level competitive auctions, but does not let it define behavior once
 /// the auction has crossed an intentionally unsupported interference boundary.
@@ -212,6 +213,7 @@ export function refineMajorTwoLevelNewSuitByLength (
   };
 }
 
+//// Major support -- Indirect limit and game-forcing routes
 /// refineThreeCardLimitRaiseOneNtFallback keeps 1NT for an exactly-three-card limit raise only
 /// when responder cannot first show four or more spades over a 1H opening.  After 1S there is no
 /// one-level new suit, so 1NT remains the catch-all route under either forcing or non-forcing
@@ -296,6 +298,7 @@ export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEval
               : 'No normally supported new suit or three-card minor fallback is available.',],};
 }
 
+//// Jump shifts and economical suit-bid selection
 /// refineJumpNewSuit chooses a jump to a new suit that is the cheapest legal bid in each suit.
 /// This is a one liner so that it can be used in rule declaration to satisfy refineCandidates.
 ///
@@ -414,6 +417,7 @@ export function standardMajorTwoLevelNewSuitApplies (call: Call, context: RuleEv
   return majorTwoLevelNewSuitApplies(call, context, 11, 'Standard');
 }
 
+//// Minor raises and strong minor support
 /// minorRaiseApplies uses four-card support after 1D and five-card support after 1C.  It also
 /// enforces the rule's HCP range and the normal requirement that responder not bypass a four-card
 /// major to raise the minor.

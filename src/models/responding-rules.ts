@@ -31,6 +31,7 @@ import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interfer
 export const ResponseBidRules: BidRule[] = [
   ...NaturalOneNtInterferencePartnerCallRules,
   //
+  //// Minor openings -- Natural new-suit responses
   // One-level minor response rules match level 1 + minor; refiners resolve strain-dependent calls.
   //
   {
@@ -85,6 +86,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Minor openings -- Natural notrump responses
   {
     id: 'respond-to-minor-w/-1nt',
     // Use 1NT after a minor opening with minimum balanced values and no four-card major.
@@ -127,6 +129,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Minor openings -- Raises and strong support routes
   {
     id: 'respond-to-minor-w/-raise-to-two',
     // Make a minimum single raise of opener's minor with 6-10 HCP, long support, and no four-card
@@ -185,6 +188,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Minor openings -- Jump shifts and rare ace asking
   {
     id: 'respond-to-minor-w/-weak-jump-shift-modern',
     // Modern weak jump shift after a minor opening: jump in a long new suit with a weak hand.
@@ -242,6 +246,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// One-level openings -- Weak Pass and major-support responses
   // One-level major response rules match level 1 + major; refiners resolve strain-dependent calls.
   // Major-support responses are a coordinated family rather than independent point ranges:
   //   0-5                         -> Pass
@@ -483,6 +488,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major openings -- New suits and natural notrump without support
   {
     id: 'respond-to-major-w/o-support-new-suit-one-level',
     // Without support for opener's major, bid an available 4+ card new suit at the one
@@ -589,6 +595,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  //// Major openings -- Jump shifts and rare ace asking
   {
     id: 'respond-to-major-w-weak-jump-shift-modern',
     // Modern weak jump shift after a major opening: jump in a 6+ card new suit with 4-7 HCP.
@@ -649,6 +656,7 @@ export const ResponseBidRules: BidRule[] = [
   //
   ...NaturalOneNtPartnerCallRules,
   //
+  //// 2NT openings -- Natural responses and major-suit conventions
   // The ordinary 2NT response system is intentionally uncontested-only.  Interference after
   // our 2NT opening is a documented scope boundary rather than an implicit reuse of these rules.
   //
@@ -907,6 +915,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Strong 2C openings -- Waiting and positive responses
   // Responses to the artificial strong 2C opening.  2D is a waiting response; immediate positive
   // responses show about 8+ HCP and either a good 5+ suit or a balanced hand.  These treatments
   // are intentionally uncontested-only; competitive responses to strong 2C are outside scope.
@@ -959,6 +968,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Weak-two openings -- Responses
   // Responses to weak preemptive openings.  The app models the structural parts of the chosen
   // treatment and leaves direct game placement that depends only on playing-trick judgment in
   // guidance rather than inventing an HCP threshold.  Responder interference after our weak
@@ -1030,6 +1040,7 @@ export const ResponseBidRules: BidRule[] = [
                'than an estimate of actual playing tricks.'],
     certainty: 'high',
   },
+  //// Three-level preempts -- Responses
   {
     id: 'respond-to-three-level-preempt-w/-pass',
     kind: 'responseBid',
@@ -1077,6 +1088,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  //// Natural four- and five-level preempts -- Pass response
   // Four-/five-level natural preempts are opening examples, not a high-level response system.
   // No further natural or artificial responses are modeled at this level.
   //
@@ -1096,6 +1108,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// After an opposing natural suit overcall -- Competitive responses
   // Respond after interference
   // Direct responses after a natural, non-jump opponent suit overcall form their own family; do
   // not inherit uncontested 2/1, jump-shift, Jacoby 2NT, or limit-raise meanings.  The main routes
@@ -1217,6 +1230,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// After an opposing takeout Double -- Competitive responses
   // After a takeout double, the response family changes meaning rather than reusing the
   // uncontested strong-response structure:
   //   10+ HCP                         -> strength-showing Redouble may qualify
@@ -1348,6 +1362,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// After an opposing natural 1NT overcall -- Responses and boundaries
   // After an opposing natural 1NT overcall, Pass remains appropriate with modest values
   // when no existing raise or good six-card-suit response qualifies. Stronger hands may
   // have penalty-oriented choices that this trainer intentionally does not model.
@@ -1421,6 +1436,7 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  //// After an opposing preemptive jump overcall -- Responses
   // After an opponent's preemptive jump overcall, the actual contract determines which
   // raises and new suits remain economical. This treatment stops at three-level interference.
   // Four-level jump overcalls and penalty-oriented doubles remain outside the model.

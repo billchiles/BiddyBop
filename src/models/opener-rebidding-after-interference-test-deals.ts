@@ -9,6 +9,7 @@ import type { RuleTestDeal } from './test-deals-registry';
 /// responses, artificial competitive calls, and the first advancer-action families.  Advancer
 /// competition is included only where opener's continuation has been explicitly modeled.
 export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
+  //// Natural 1NT overcall -- Minimum opener rebid
   {
     description: '1H-(1NT)-2D-(Pass)-Pass: nine HCP plus three heart length points give ' +
                  'a legitimate 1H opening, but this is still a minimum after the weak 2D response.',
@@ -25,7 +26,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'AQ96', H: 'A53', D: 'K54', C: 'KJ9' },
     south: { S: 'T83', H: '42', D: 'AJT962', C: 'T3' },
   },
-  // A9: selected additional competition after a modeled responder action.
+  //// Additional competition after responder acts
+  // Opener must account for advancer acting after responder has already bid.
   {
     description: '1H-(2D)-3C-(3D)-3NT: responder\'s 3C remains game-forcing when the opponents ' +
                  'raise diamonds; opener has balanced shape and a genuine diamond stopper.',
@@ -102,6 +104,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'KT', H: 'QJ85', D: 'T932', C: 'T72' },
     south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
   },
+  //// Natural forcing one-level response after interference
   {
     description: '1C-(1D)-1H-(Pass)-1S: responder kept a natural forcing one-level meaning, so ' +
                  'opener can still show four spades economically.',
@@ -159,6 +162,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'T986', H: 'QJ5', D: 'AJ6', C: 'A73' },
     south: { S: '53', H: '8743', D: 'T92', C: 'KT92' },
   },
+  //// Negative Double -- Opener shows responder's implied suit
   {
     description: '1D-(1S)-Double-(Pass)-2H: minimum opener shows four hearts economically after ' +
                  'responder’s negative Double.',
@@ -212,6 +216,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: '75', H: 'JT75', D: 'Q93', C: 'AT54' },
     west: { S: '92', H: '942', D: 'JT86', C: '9832' },
   },
+  //// 1NT opening -- Opener after responder bids over interference
   {
     description: '1NT-(2H)-2NT-(Pass)-3NT: a maximum 1NT opener accepts responder’s natural ' +
                  'stopped invitation after interference.',
@@ -242,6 +247,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
     south: { S: 'KQ4', H: 'JT98', D: 'K52', C: 'J76' },
   },
+  //// One-level suit opening -- Opener after responder acts in competition
   {
     description: '1H-(2D)-2H-(Pass)-Pass: the ordinary simple raise keeps its meaning after a ' +
                  'natural overcall, so a minimum opener can still stop at two hearts.',
@@ -322,6 +328,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
     south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
   },
+  //// Opener after advancer raises or bids naturally
   {
     description: '1S-(2H)-2S-(3H)-Pass: after both sides find fits, a minimum opener can defend ' +
                  'rather than manufacture another spade bid.',
@@ -488,6 +495,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: '53', H: 'J87543', D: '64', C: 'AJ2' },
     south: { S: 'QJT6', H: 'Q', D: 'AT97', C: 'QT83' },
   },
+  //// Forcing natural response with further advancer competition
   {
     description: '1C-(1D)-1H-(1S)-Pass: responder’s one-level heart bid was forcing, but ' +
                  'advancer’s natural spade bid removes the obligation to manufacture a rebid ' +
@@ -564,6 +572,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'J3', H: 'Q8732', D: 'QJ', C: 'KJ65' },
     south: { S: '976542', H: 'KJ', D: '532', C: 'T3' },
   },
+  //// Negative Double with additional competitive contexts
   {
     description: '1H-(1S)-Double-(Pass)-2C: with both majors already named, responder’s negative ' +
                  'Double implies the minors and opener shows a four-card club fit economically.',
@@ -637,6 +646,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'Q3', H: 'AJT8', D: 'Q93', C: 'KT74' },
     south: { S: '8652', H: '9542', D: '752', C: 'A3' },
   },
+  //// Natural notrump response -- Selected opener continuation
   {
     description: '1D-(1S)-1NT-(Pass)-Pass: responder’s 1NT is natural, balanced, and stopped; ' +
                  'a minimum semi-balanced opener can leave the contract there.',
@@ -655,6 +665,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'KT5', H: 'QJ8', D: 'Q95', C: 'JT85' },
     west: { S: '43', H: 'KT95', D: 'T632', C: 'A72' },
   },
+  //// Game-forcing three-level response after a suit overcall
   {
     description: '1H-(2D)-3C-(Pass)-3NT: responder’s three-level club bid is game forcing, ' +
                  'and a balanced opener with the diamond stopper can place the contract in 3NT.',
@@ -675,6 +686,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J97', H: 'KT', D: '632', C: 'AKQJ8' },
     west: { S: '6542', H: '9853', D: '7', C: 'T642' },
   },
+  //// 1NT opening -- Negative-Double and natural response continuations
   // After natural interference over our 1NT, responder's Double is takeout-oriented.
   {
     description: '1NT-(2H)-Double-(Pass)-2S: opener answers the takeout Double with four spades.',
@@ -753,7 +765,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'K84', H: '72', D: 'K86', C: 'KQJ76' },
   },
 
-  // Selected A8 continuations after responder competes over a jump overcall.
+  //// After a preemptive jump overcall -- Selected opener rebids
+  // Responder acts over a jump overcall; opener makes the first selected continuation.
   {
     description: '1H-(2S)-3H-(Pass)-Pass: a minimum opener accepts responder\'s nonforcing ' +
                  'three-level raise rather than pushing to game.',

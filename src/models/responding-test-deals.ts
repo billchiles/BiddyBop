@@ -6,6 +6,7 @@
 import type { RuleTestDeal } from './test-deals-registry';
 
 
+//// Responses to one-level minor openings
 /// This bucket adds response situations missing from the opener-rebid practice test deals; it is
 /// not an exhaustive response quiz.  Those rebid buckets already exercise a one-level new-suit
 /// response, both Standard and 2/1 1D-2C, balanced 1NT and invitational 2NT responses, and both
@@ -158,6 +159,7 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responses to one-level major openings
 /// Supplementary major-opening response coverage.  The opener-rebid buckets already exercise simple
 /// raises, natural new-suit responses, both forcing and non-forcing 1NT responses, and the weak
 /// preemptive game raise.  Their expectedResponseCalls count toward corpus coverage; rare Blackwood
@@ -340,6 +342,7 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responses to 1NT openings
 /// Supplementary 1NT response cases also assert the ordinary 15-17 opening rule.  Natural
 /// minor-invitation hands require 6+ cards and at least two of A/K/Q.
 ///
@@ -729,6 +732,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responses to 2NT openings
 /// Selected 2NT-response deals also assert the ordinary 20-21 HCP balanced opening.  Conventional
 /// deals declare their required settings; the same hand is reused where a deliberately changed
 /// agreement produces a different response.
@@ -1106,6 +1110,7 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responses to weak-two and three-level preempt openings
 /// Responses to weak preemptive openings
 ///
 /// One compact bucket covers the preempt opening, responder's action, and the opener rebid when the
