@@ -1,10 +1,8 @@
 # Bridge Bidding Trainer
 
-This is a practice app for learning and reinforcing contract bridge bidding.  This trainer focuses on common, mostly rule-based bidding decisions.  For example, it doesn't use inverted minors or stopper-showing side-suit continuations after responder raises opener's minor since those treatments require various partnership agreements and more judgment-dependent follow-up bidding.  There are settings for many agreements that are more deterministic for computing.
-
-The goal is a trainer broad enough for solid bidding practice while remaining clear about which rules it models, which partnership agreements it assumes, and where bridge judgment begins.
-
-The trainer deals hands, lets you bid through an auction, and explains which bids match the bidding rules modeled by the app.  The goal is to turn bidding guidelines and partnership agreements into repeated practice rather than simply presenting tables to memorize.
+This is a practice app for learning and reinforcing contract bridge bidding.
+It focuses on common bidding decisions that the app can reliably teach through bidding guidelines
+and partnership agreements.  For example, the app supports several agreements and conventions options, such as Stayman, Jacoby, splinters, 2/1, jump shifts meaning, etc., but it doesn't use inverted minors or stopper-showing side-suit continuations since those treatments require various partnership agreements and more judgment-dependent follow-up bidding.  The app is broad enough for solid bidding practice while remaining clear about where the rules stop and bridge judgment begins. 
 
 ![Bridge Bidding Trainer screenshot](docs/bridge-bidding-trainer.png)
 
@@ -22,30 +20,34 @@ Desktop builds for Windows and macOS may also be available from:
 
 ## Using the trainer
 
-Start a new deal and enter bids as the auction progresses.
+Start a new deal and enter bids as the auction progresses.  You see all the hands and bid all the hands, so be careful to use only what you know from the bidding and don't enhance bids based on seeing other hands.
 
-The explanation area shows why bids qualify under the modeled rules and, where appropriate, which alternatives have higher priority.  Bridge does not always have one mechanically correct bid, so the trainer can retain multiple reasonable candidates rather than forcing every hand into a single answer.
+The explanation area shows why bids qualify under the encoded rules and, where appropriate, which alternatives have higher priority.  Bridge does not always have one mechanically correct bid, so the app shows all that apply.
 
-Use the rule-practice deal selector when you want to work on a particular bidding situation instead of receiving a random deal.  This allows you to practice different bids to nearly identical hands, but the hand's points are off by one or have an adjacent point range, with suit length restrictions, and so on.
+Use the rule-practice deal selector to focus on a particular bidding situation instead of
+receiving a random deal.  These deals illustrate specific rules, nearby strength boundaries or a ladder of bids based on partner's bid and points or structure of your hand, and differences between partnership agreements.
 
-The trainer is most useful as a practice companion: make your own bidding decision first, then compare it with the candidates and explanations produced by the app.
+The app is most useful as a practice companion: make your own bidding decision first, then compare it with the candidates and explanations produced by the app.  For now, it cannot arbitrarily tell you the next best bid.
 
 ## Bidding-system settings
 
-Partnership agreements can be changed in the app's settings.  Changing an agreement can change both the bids recommended for a hand and which rule-practice deals available.  For example, turning off 2/1 agreements leaves some groups of rule-practice deals with zero pre-formed deals.
+Partnership agreements can be changed in the app's settings. Changing an agreement can change
+both the bids recommended for a hand and which rule-practice deals are available. For example,
+turning off 2/1 agreements may leave some practice groups with zero pre-formed deals.
 
-The trainer supports multiple treatments where it is useful to practice the effect of different partnership agreements rather than assuming that all bridge players use exactly the same system.  In particular, you can practice the most basic bidding, then turn on common comventions, as you learn more about them.
+The settings let you choose between common treatments without assuming that every partnership uses
+the same system.  You can turn on common conventions, for example, convenient minors, as you learn about them. 
 
 ## What the trainer is — and isn't
 
-Bridge bidding combines rules, partnership agreements, inference, and judgment.
+Bridge bidding combines rules, partnership agreements, inference, and judgment.  Suit quality,
+borderline strength, distribution, vulnerability, and partnership style can all affect the best
+call.  The trainer concentrates on common situations that can be taught consistently as rules,
+but it does not attempt to be a complete expert bridge bidding engine.
 
-This trainer concentrates on common bidding situations that can be represented usefully and consistently as rules. It is intended to cover more than only introductory bidding, but it does not attempt to be a complete expert bridge bidding engine.
-
-Some decisions cannot usefully be reduced to a simple formula.  Suit quality, borderline strength, distribution, vulnerability, partnership style, and the likely location of missing honors can all influence the best bid at the table.
-
-When a situation sufficiently fits clear bidding rules, the app can model it and provide solid bidding practice. Where judgment becomes more important, the app may instead provide guidance, retain multiple reasonable candidates, or leave the treatment unmodeled.  For example, judging if you need to ask for aces or kings to bid slam is subtle enough, guidance and rules admit these bids exist, but the app doesn't provide real training in this situation.
-
+Where judgment matters more than a mechanical rule, the app may provide guidance, show
+multiple reasonable calls, or completely punt on the next bid.  For example, it recognizes
+some slam-related bids without teaching a complete slam-investigation system, after some very strong openings and a single responding bid, the app cannot model all the subtle considerations to decide how to continue bidding toward game or slam and only provide a general guideline on how to continue.
 
 ## Current bidding coverage
 
@@ -60,131 +62,14 @@ means we considered the area and deliberately chose not to model it as part of t
 
 | Our opening | Ordinary response | Response after interference | Uncontested opener rebid | Opener rebid after interference |
 | --- | --- | --- | --- | --- |
-| 1C / 1D | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
-| 1H / 1S | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
+| 1C / 1D | Done | Done: selected common interference | Done | Partial (done): selected competitive continuations |
+| 1H / 1S | Done | Done: selected common interference | Done | Partial (done): selected competitive continuations |
 | 1NT | Done | Partial (done): natural two-level suit interference | Done | Partial (done): selected Double, natural suit, and NT continuations |
 | 2NT | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Strong 2C | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Weak 2D / 2H / 2S | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 | Natural four-/five-level preempt | Partial (done): Pass only | Omitted | Omitted | Omitted |
-
-After a positive suit or balanced 2NT response to the artificial strong 2C opening, opener
-now has selected game-forcing natural descriptions: economical major support, conditional
-minor support with unbalanced shape, a five-card own suit through the three level, and a
-minimum-range balanced notrump rebid. A positive response already shows 8+ HCP, so game
-is not automatically a signoff and slam may be in view. Very strong balanced hands and
-awkward descriptive decisions reach explicit scope guidance; the responder's subsequent
-rebid remains planned rather than being invented by these opener rules.
-
-After natural two-level suit interference over a 1NT opening, responder's takeout-oriented
-Double now receives an opener reply: the available four-card unbid suit or, without a fit,
-a stopped natural 2NT/3NT description based on opener's range. Opener does not pass the
-takeout Double. Responder's nonforcing natural two-level suit may be passed or raised with
-suitable major support; a constructive three-level suit may lead to major game or 3NT
-with a stopper. With no defensible fit or stopped NT action, explicit scope guidance
-avoids inventing a game or penalty decision. These selected methods do not implement
-Lebensohl, penalty-oriented Doubles, or later competitive auctions.
-
-After a preemptive jump overcall of a one-level suit opening, selected opener rebids now
-answer responder's forcing negative Double, new suit, and support cuebid with a
-natural fit, economical descriptive suit, or stopped notrump. A minimum opener may
-Pass a nonforcing raise or 2NT invitation; higher values can bid a supported major
-game or accept the invitation. Natural game signoffs are normally passed. When a
-forcing response cannot be answered reliably, the trainer provides auction-specific
-scope guidance rather than invent a Pass. These cases assume the opposing advancer
-Passes; additional competition after those jump-overcall responses remains deliberately limited.
-
-Selected opener rebids after interference deliberately start where responder's meaning remains
-clear.  After responder's simple raise, opener can continue through selected advancer raises,
-preemptive raises, natural new suits, and responsive Doubles.  Natural forcing responder suits also
-continue through selected natural advancer competition: a raise or preemptive raise of a suit
-overcall, or an unbid natural advancer suit.  Minimum hands may have a real Pass; clear maximum
-hands can still bid game.  When an uncontested natural rule is reused in competition, every suit
-naturally introduced by the opponents is excluded from opener's natural second/help-suit
-candidates, and a notrump rebid requires a stopper in each such suit.  Advancer bidding responder's
-naturally shown suit is treated as an artificial/cuebid action rather than another natural new suit.
-
-A natural two-level new-suit response after a suit overcall is handled as its own forcing-one-round
-family rather than inheriting the partnership's uncontested 2/1 setting.  Responder has promised a
-five-card-or-longer suit, so three-card opener support is sufficient.  If advancer competes
-naturally, opener can still support below game, repeat a six-card opening suit below game, retain an
-economical second suit or reverse whose original call remains available, or use the ordinary
-balanced notrump range when that level remains available and the opponents' natural suits are
-stopped.  A maximum with support can still bid game.  The analogous one-level forcing responses
-keep their normal four-card support threshold.
-
-Artificial support actions keep their competitive meanings.  After a support cuebid, a minimum
-opener rebids the agreed suit at the three level, while a major opener with enough combined values
-bids game.  Jordan 2NT after a takeout Double uses the same descriptive idea with its own point
-floor rather than being mistaken for Jacoby 2NT.  Responder's natural 1NT, weak two-/three-level
-new suits, and weak jump raise after a takeout Double are nonforcing; a clear minimum opener may
-therefore Pass rather than manufacture a continuation.
-
-After responder's negative Double, opener now treats the implied suit or suits as one coordinated
-family rather than only looking for an unbid major.  With advancer Pass, minimum values show a
-four-card implied fit economically, medium values jump one level, and maximum values place an
-implied major in game; when both majors have already been named, the Double can instead imply the
-minors, with a strong descriptive minor jump stopping short of assuming minor game.  Without an
-implied-suit fit, opener can still repeat a six-card opening suit through the three level or use the
-ordinary 12-14 1NT / 18-19 2NT description when that exact level remains and every naturally bid
-opponent suit is stopped.
-
-The same family continues through advancer actions that already have explicit advancing meanings:
-ordinary/preemptive raises, a natural side suit or NT call, a strong support cuebid, or a strength-
-showing Redouble.  A still-cheap implied-suit fit remains descriptive.  A minimum opener with no
-selected descriptive route may Pass and leave responder another turn; an extra-value hand with no
-deterministic continuation reaches specific scope-boundary guidance instead of having competition
-promote a vanished three-level call into an automatic game.  After a strength-showing Redouble of
-a takeout Double, opener may Pass when advancer Passes rather than manufacture a new descriptive
-bid.  After natural two-level suit interference over our 1NT opening, the ordinary 2NT invitation
-accept/decline and natural 3NT signoff continuations retain their meanings.
-
-Natural responder notrump after a suit overcall now has selected opener continuations rather
-than inheriting forcing-1NT or Jacoby meanings: minimum natural 1NT can be passed, a six-card
-opening suit can still be described, balanced 18-19 can rebid 2NT, and the natural 2NT invitation
-can be accepted or declined.  Natural 3NT is a signoff for ordinary values; stronger hands reach
-slam-judgment guidance rather than an automatic quantitative action.  A selected game-forcing
-three-level new suit can be raised to major-suit game or followed by 3NT with suitable shape and
-stoppers; other continuations use specific scope guidance rather than silently ending.
-
-Selected additional competition after responder's action is also recognized. After a
-natural game-forcing three-level suit response, an opposing raise does not cancel game; a stopped
-3NT or a self-supporting opening major can be chosen, with scope guidance for awkward contracts.
-After a simple raise of opener's suit, advancer's cheapest bid in that same suit may be an artificial
-support cuebid rather than a natural contract. Minimum openers can defend, while selected maximum
-hands bid game; other hands receive competitive judgment guidance. After responder's natural
-1NT and an opposing raise, minimum Pass and available stopped notrump descriptions keep their
-previous meanings, rather than reverting to uncontested 1NT continuations. Upper-boundary
-strength hands after a forcing responder suit still receive guidance rather than silently ending.
-
-Weak competitive jump raises also end explicitly: a minimum opener can Pass a three-level
-preemptive raise, the shared weak 4M game raise remains a signoff, and extra-value three-level hands
-reach judgment guidance rather than being mistaken for an uncontested limit raise.  Extra values
-after a minor support cuebid likewise produce guidance because choosing among 3NT, further minor
-bidding, and another descriptive action depends on stoppers and playing strength.
-
-Responder Pass is not treated as an ordinary opener rebid.  After a suit overcall followed by
-Pass-Pass, opener reaches explicit reopening/balancing guidance.  After a takeout Double followed by
-Pass-Pass, the boundary instead explains the separate doubled-contract runout/stand judgment.  If
-responder shows strength with Redouble and advancer makes the selected weak escape, opener reaches
-penalty/runout guidance rather than inheriting the Pass that applies only when advancer also Passes.
-After an opposing natural 1NT overcall, responder can Pass with modest values and no qualifying
-raise or natural long-suit response. Strong hands without a selected constructive action receive
-specific guidance about the omitted penalty-oriented Double treatment. Selected weak natural suits
-and preemptive raises can be passed by a minimum opener, including legitimate low-HCP openings
-qualified by length points; extra-value hands and the Pass-Pass reopening case receive explicit
-competitive guidance rather than an unrelated uncontested continuation.
-
-These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
-trainer may reach a hand-specific scope boundary when the auction is understood but the next choice
-depends too heavily on judgment for one deterministic recommendation.  After a natural forcing
-responder suit, the boundary guidance states the actual promise responder made -- for example,
-5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
-bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
-opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
-candidate call. Specialized later competition after an opposing natural 1NT overcall
-remains a deliberate limit.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.
@@ -225,12 +110,12 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
-The direct weak-two defense uses natural suit overcalls, takeout Double, and natural 2NT.  Advancer
-continuations after natural two-level overcalls and takeout Doubles reuse the ordinary advancing
-treatments when responder passes.  After a natural 2NT overcall, the trainer uses its selected
-Stayman/Jacoby/Texas methods and models the immediate conventional reply.  Continuations after
-natural three-level overcalls and the full competitive fanout after responder also competes are
-intentionally omitted.
+Against a strong 1NT opening, the trainer teaches the basic compact DONT interference but stops
+before later competitive continuations.  Weak-two defenses include selected advances and immediate
+replies, but not the full competition after responder acts or continuations after natural
+three-level overcalls. Defense against opposing three-level preempts and strong 2C/2NT openings
+is omitted: those less frequent auctions quickly become high-level, agreement-dependent, or
+judgment-heavy.
 
 ### Advancer when responder acts after a one-level suit opening
 
@@ -242,16 +127,11 @@ intentionally omitted.
 | Natural 1NT overcall | Done: normal 1NT systems | Partial (done): natural two-level suit interference | Partial (done): natural two-level suit interference | Omitted |
 | Preemptive jump overcall | Done | Omitted | Omitted | Omitted |
 
-The selected continuation set now includes direct natural 3NT after a one- or two-level suit
-overcall, and natural NT advances after responder makes an ordinary raise, economical
-new-suit bid, or natural 1NT, with stoppers in the opponents’ naturally named suits.
-Advancer may Pass after a modeled responder weak jump raise or weak jump shift;
-stronger hands after those jumps receive auction-specific competitive-judgment guidance.
-More specialized Doubles and cuebid agreements remain outside scope.
-
-This table intentionally stops short of treating matrix completeness as a goal.  Once the auction becomes
-high-level, heavily judgment-dependent, or convention-dependent, the trainer may stop rather than invent a
-mechanical recommendation.
+This table shows the app's selected advances (after advancer's partner overcalled opener).  The app cannot
+teach every possible competitive auction.  Specialized
+Doubles and cuebids, later bids after preemptive jump overcalls, and high-level competition depend too heavily on partnership agreements, fit, vulnerability, and playing strength
+for reliable rule-based advice.  Where useful, the app provides auction-specific general
+guidance on how bidding might procede, rather than presenting an authoritative treatment.
 
 ## Stoppers and notrump judgment
 
@@ -285,7 +165,7 @@ accidental omission.
 | Snapdragon / fourth-suit competitive Double | Omitted | A specialized Double after opener, overcaller, and responder have shown three different suits, usually suggesting the fourth suit plus tolerance for partner. |
 | Responsive Doubles in every competitive auction | Partial (done) | Responsive Double is modeled in the common responder-raise situations we chose, but it is not given a universal meaning in every later competitive auction. |
 | General penalty Double / Redouble system | Omitted | The app models specific functional Doubles and Redoubles such as takeout, negative, responsive, and strength-showing actions, but does not decide when to defend a contract for penalties. |
-| Defense to opposing three-level preempts | Omitted | Beginners can practice the same underlying ideas through weak-two defenses without creating another high-level, judgment-heavy continuation tree. |
+| Defense to opposing three-level preempts | Omitted | The underlying defensive ideas can be practiced against weak-two openings without adding another high-level, judgment-heavy continuation tree. |
 | Defense to opposing strong 2C or 2NT | Omitted | These uncommon defensive auctions are outside the current training scope. |
 | Competitive continuations after our preemptive jump overcall | Omitted | Once responder also competes, vulnerability, fit, and playing-strength judgment become more important than the deterministic rules this trainer emphasizes. |
 | Natural four- and five-level preemptive openings | Partial (done) | The opening bids are modeled as examples; responder has an explicit Pass, but further high-level bidding and continuations are omitted. |
