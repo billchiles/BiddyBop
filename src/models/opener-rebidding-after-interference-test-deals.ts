@@ -9,6 +9,83 @@ import type { RuleTestDeal } from './test-deals-registry';
 /// responses, artificial competitive calls, and the first advancer-action families.  Advancer
 /// competition is included only where opener's continuation has been explicitly modeled.
 export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
+  // A9: selected additional competition after a modeled responder action.
+  {
+    description: '1H-(2D)-3C-(3D)-3NT: responder\'s 3C remains game-forcing when the opponents ' +
+                 'raise diamonds; opener has balanced shape and a genuine diamond stopper.',
+    practiceAuction: ['1H', '2D', '3C', '3D', '3NT'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
+    expectedResponseCalls: [{ call: '3C', ruleIds: ['respond-over-suit-new-suit-three-level'] }],
+    expectedAdvanceCalls: [{ call: '3D', ruleIds: [
+      'advance-two-level-suit-overcall-after-responder-natural-action-simple-raise',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-overcall-three-level-forcing-response',
+    ] }],
+    north: { S: 'K83', H: 'A8574', D: 'AT4', C: '95' },
+    east: { S: 'AQT64', H: '629', D: 'KQJ98', C: '' },
+    south: { S: 'J9752', H: 'KT', D: '2', C: 'AKQT8' },
+    west: { S: '', H: 'QJ3', D: '7635', C: 'J64273' },
+  },
+  {
+    description: '1D-(1S)-2D-(3D)-Pass: advancer cuebids diamonds artificially to show strong ' +
+                 'spade support. A minimum diamond opener can defend rather than bid again.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '2D', '3D', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 4, seat: 'W', text: 'South\'s 3D is an artificial spade ' +
+      'support cuebid, not a natural contract. Minimum opener need not bid again.' }],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '2D', ruleIds: ['respond-to-minor-w/-raise-to-two'] }],
+    expectedAdvanceCalls: [{ call: '3D', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-raise-support-cuebid',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-advancer-support-cuebid',
+    ] }],
+    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    east: { S: '43', H: '985', D: '96532', C: 'AQ2' },
+    south: { S: 'T95', H: 'KQJT', D: 'KT', C: 'JT75' },
+  },
+  {
+    description: '1H-(Double)-2H-(3H)-Pass: advancer cuebids opener\'s suit artificially ' +
+                 'after a takeout Double, not to play hearts. Minimum opener can defend.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', '3H', 'Pass'],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedResponseCalls: [{ call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] }],
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-takeout-double-after-responder-raise-strong-cuebid',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-advancer-support-cuebid',
+    ] }],
+    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    east: { S: '53', H: '87543', D: '764', C: 'AJ2' },
+    south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
+  },
+  {
+    description: '1D-(1S)-1NT-(2S)-Pass: after a natural 1NT response and an opposing spade ' +
+                 'raise, a minimum semi-balanced opener can defend rather than overbid.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2S', 'Pass'],
+    expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
+    expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
+    expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
+    expectedAdvanceCalls: [{ call: '2S', ruleIds: [
+      'advance-one-level-suit-overcall-after-responder-natural-action-simple-raise',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+    ] }],
+    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
+    east: { S: 'KT', H: 'QJ85', D: 'T932', C: 'T72' },
+    south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
+  },
   {
     description: '1C-(1D)-1H-(Pass)-1S: responder kept a natural forcing one-level meaning, so ' +
                  'opener can still show four spades economically.',

@@ -17,6 +17,9 @@ import {
   openerForcingResponseCompetitionNtApplies, openerForcingResponseCompetitionPassApplies,
   openerForcingResponseCompetitionScopeBoundaryApplies,
   openerThreeLevelForcingResponseThreeNtApplies,
+  openerThreeLevelForcingResponseOpeningMajorGameApplies,
+  openerSupportCuebidPassApplies, openerSupportCuebidGameApplies,
+  openerSupportCuebidScopeBoundaryApplies,
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
   openerPreemptNewSuitRepeatApplies, openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
@@ -1557,6 +1560,52 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  // A9: advancer's cheapest cuebid of opener's suit is artificial, after responder's simple
+  // raise. A minimum can defend; game with extras is selected only when clearly justified.
+  {
+    id: 'opener-rebid-pass-after-advancer-support-cuebid',
+    kind: 'openerRebid',
+    title: 'Defend after advancer cuebids our agreed suit with a minimum',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      openerRebidAfterInterference: true,
+      responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
+    calls: ['Pass'],
+    callCategory: ['natural'],
+    appliesWhen: openerSupportCuebidPassApplies,
+    meaning: "Pass over the opponents' artificial cuebid with minimum values; the bid does not " +
+             'show their willingness to play our suit.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-game-after-advancer-support-cuebid',
+    kind: 'openerRebid',
+    title: 'Bid a suitable game after the opponents cuebid our agreed suit',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      openerRebidAfterInterference: true,
+      responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
+    calls: ['3NT', '4H', '4S'],
+    callCategory: ['signoff', 'natural'],
+    priority: { rank: 20 },
+    appliesWhen: openerSupportCuebidGameApplies,
+    meaning: 'Maximum values opposite a known fit justify major game or a stopped 3NT ' +
+             'with a minor fit.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-advancer-support-cuebid',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after an artificial opposing support cuebid',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      openerRebidAfterInterference: true,
+      responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
+    scopeBoundaryWhen: openerSupportCuebidScopeBoundaryApplies,
+    meaning: 'Advancer used our suit artificially to show strength/support for their overcall or ' +
+             'takeout Double; this is not a natural suit contract.',
+    guidance: ['Minimum values often favor defending. With extras, competing or bidding game ' +
+               'requires the known fit, reliable stoppers, and playing-strength judgment.'],
+    certainty: 'high',
+  },
+  //
   // A competitive three-level natural new suit is explicitly game forcing.  Preserve the two
   // clearest destinations: a known major fit or 3NT when opener has the shape and stopper(s).
   {
@@ -1575,6 +1624,21 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { supportLength: { min: 3 } },
     meaning: 'Responder promised five or more cards and game-going values; three-card major support ' +
              'is enough to place the partnership in game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition',
+    kind: 'openerRebid',
+    title: 'Bid game in a self-supporting opening major after further competition',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
+      advancerCall: { kind: ['raise', 'preemptiveRaise'] } },
+    calls: ['4H', '4S'],
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: openerThreeLevelForcingResponseOpeningMajorGameApplies,
+    meaning: 'Responder promised game-going values; a strong six-card opening major can ' +
+             "provide the game contract even without a fit in responder's minor.",
     certainty: 'high',
   },
   {

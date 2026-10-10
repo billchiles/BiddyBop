@@ -93,7 +93,7 @@ Pass a nonforcing raise or 2NT invitation; higher values can bid a supported maj
 game or accept the invitation. Natural game signoffs are normally passed. When a
 forcing response cannot be answered reliably, the trainer provides auction-specific
 scope guidance rather than invent a Pass. These cases assume the opposing advancer
-Passes; later competition remains on the A9 review list.
+Passes; additional competition after those jump-overcall responses remains deliberately limited.
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear.  After responder's simple raise, opener can continue through selected advancer raises,
@@ -148,6 +148,16 @@ slam-judgment guidance rather than an automatic quantitative action.  A selected
 three-level new suit can be raised to major-suit game or followed by 3NT with suitable shape and
 stoppers; other continuations use specific scope guidance rather than silently ending.
 
+Selected additional competition after responder's action is also recognized. After a
+natural game-forcing three-level suit response, an opposing raise does not cancel game; a stopped
+3NT or a self-supporting opening major can be chosen, with scope guidance for awkward contracts.
+After a simple raise of opener's suit, advancer's cheapest bid in that same suit may be an artificial
+support cuebid rather than a natural contract. Minimum openers can defend, while selected maximum
+hands bid game; other hands receive competitive judgment guidance. After responder's natural
+1NT and an opposing raise, minimum Pass and available stopped notrump descriptions keep their
+previous meanings, rather than reverting to uncontested 1NT continuations. Upper-boundary
+strength hands after a forcing responder suit still receive guidance rather than silently ending.
+
 Weak competitive jump raises also end explicitly: a minimum opener can Pass a three-level
 preemptive raise, the shared weak 4M game raise remains a signoff, and extra-value three-level hands
 reach judgment guidance rather than being mistaken for an uncontested limit raise.  Extra values
@@ -170,9 +180,8 @@ responder suit, the boundary guidance states the actual promise responder made -
 5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
 bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
 opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
-candidate call.  The largest selected opener-rebid families still to close are responder actions
-after preemptive jump overcalls and the remaining natural-suit/negative-Double responses after
-interference over our 1NT opening.
+candidate call. The remaining Phase A review covers our opening when the opposing player
+intervenes with a natural 1NT overcall; specialized later competition remains a deliberate limit.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

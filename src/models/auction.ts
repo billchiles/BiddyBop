@@ -139,11 +139,18 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       const responseBid = parseSuitBid(response);
       if (responseBid === null) return false;
       if (responseBid.strain === 'NT') {
-        return advance === 'Pass' && responseBid.level >= 1 && responseBid.level <= 3;
+        if (advance === 'Pass') return responseBid.level >= 1 && responseBid.level <= 3;
+        // A9: advancer may make the ordinary cheapest raise of their natural overcall
+        // after responder's natural 1NT; later NT competition remains unmodeled.
+        return responseBid.level === 1 && advancerKind === 'raise' &&
+          cheapestBidInStrainAfter(responseBid, overcallBid.strain) === advance;
       }
-      // Ordinary simple raises keep their natural meaning through selected natural competition.
-      // Strong cuebids and other artificial advances remain outside this reviewed slice.
+      // Ordinary simple raises retain their existing natural continuations. A9 also recognizes
+      // advancer's cheapest artificial cuebid of opener's suit, without treating it as natural.
       if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
+        if (advancerKind === 'cuebid') {
+          return cheapestBidInStrainAfter(responseBid, openingBid.strain) === advance;
+        }
         if (advancerKind === 'pass' || advancerKind === 'raise' ||
             advancerKind === 'responsiveDouble') {
           return true;
@@ -164,6 +171,14 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
           (responseBid.level === 4 && (openingBid.strain === 'H' || openingBid.strain === 'S'));
       }
       if (advance !== 'Pass') {
+        // A9: responder's natural three-level new suit is game forcing. An ordinary
+        // raise of advancer's original suit cannot cancel that commitment.
+        if (responseBid.level === 3 && responseBid.strain !== openingBid.strain &&
+            responseBid.strain !== overcallBid.strain &&
+            cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response &&
+            (advancerKind === 'raise' || advancerKind === 'preemptiveRaise')) {
+          return true;
+        }
         // Natural forcing responder suits can continue through selected natural advancer action.
         // Same-looking artificial responder cuebids remain excluded by the strain checks below.
         const forcingNaturalSuit = responseBid.strain !== openingBid.strain &&
@@ -222,6 +237,9 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         const advancerKind = getAdvancerCallKindForOpenerRebid(dealer, auction);
         // Responder's ordinary simple raise keeps the selected continuations already modeled.
         if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
+          if (advancerKind === 'cuebid') {
+            return cheapestBidInStrainAfter(responseBid, openingBid.strain) === advance;
+          }
           if (advancerKind === 'responsiveDouble') return true;
           if (advancerKind !== 'newSuit') return false;
           const advanceBid = parseSuitBid(advance);

@@ -41,9 +41,6 @@ needs an executable choice or specific scope guidance.
 
 ## A. Close existing advancing, responding, and opener-rebidding gaps
 
-- [ ] **A9.** Audit remaining competitive opener rebids after natural forcing responder
-  suits and negative Doubles, including cases where advancer competes. Finish specific
-  missing obligations without rebuilding already satisfactory families.
 - [ ] **A10.** After an opponent's natural 1NT overcall of our suit opening, verify
   responder's selected meanings and opener's subsequent Passes, stronger continuations,
   and judgment boundaries.

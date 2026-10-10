@@ -1004,13 +1004,88 @@ export function openerForcingResponseCompetitionScopeBoundaryApplies (
   const points = hasFit
     ? context.handFacts.totalPointsWShortage
     : context.handFacts.totalPointsWLength;
-  const success = points >= 17 && points <= 21;
+  const success = points >= 17;
   return {
     success,
     telemetryLines: [
-      `${success ? 'PASS' : 'FAIL'}: extra-value boundary range is 17-21; hand has ${points}.`,
+      `${success ? 'PASS' : 'FAIL'}: extra-value boundary starts at 17; hand has ${points}.`,
     ],
   };
+}
+
+/// A9's cuebid is advancer's artificial bid in opener's known suit after responder's
+/// nonforcing simple raise.  This is not a natural contract in opener's suit.
+function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {
+  if (context.stage !== 'openerRebid') return false;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return false;
+  const opening = parseSuitBid(openingInfo.call);
+  const response = parseSuitBid(context.auction[openingInfo.index + 2] ?? 'Pass');
+  const advance = context.auction[openingInfo.index + 3];
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  return opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
+    response !== null && response.strain === opening.strain && response.level === 2 &&
+    (interference === 'suitOvercall' || interference === 'takeoutDouble') &&
+    getAdvancerCallKindForOpenerRebid(context.dealer, context.auction) === 'cuebid' &&
+    cheapestBidInStrainAfter(response, opening.strain) === advance;
+}
+
+/// Only a minimum, nonforcing raise admits this defensive Pass. Passing an artificial
+/// opponent cuebid does not suggest that our partnership will play in that suit.
+export function openerSupportCuebidPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const selected = openerAfterAdvancerSupportCuebid(context);
+  const points = context.handFacts.totalPointsWShortage;
+  return { success: selected && points >= 12 && points <= 16,
+    telemetryLines: [selected
+      ? `Opener has ${points} support points after opponent's artificial support cuebid.`
+      : 'Not the selected simple-raise / artificial-advancer-cuebid auction.'] };
+}
+
+export function openerSupportCuebidGameApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const selected = openerAfterAdvancerSupportCuebid(context);
+  const points = context.handFacts.totalPointsWShortage;
+  const suit = opening?.strain;
+  const correctGame = suit === 'H' || suit === 'S' ? call === `4${suit}` : call === '3NT';
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  const stopped = opponentSuits.every((named) => hasBasicSuitStopper(context, named));
+  const success = selected && correctGame && points >= 19 &&
+    (suit === 'H' || suit === 'S' || (context.handFacts.balancedOrSemiBalanced && stopped));
+  return { success, telemetryLines: [success
+    ? 'Maximum opener can bid game after partner established a fit.'
+    : 'No selected major game or stopped minor-fit 3NT continuation.'] };
+}
+
+export function openerSupportCuebidScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  return { success: openerAfterAdvancerSupportCuebid(context), telemetryLines: [
+    'Artificial advancer cuebid after our simple raise: further bidding depends on fit, ' +
+    'game prospects, and defensive judgment.'] };
+}
+
+/// Responder's game-forcing three-level suit survives a further opposing raise. With a
+/// self-supporting six-card opening major, game in that major is a selected natural route.
+export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const advanceKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  const selected = context.stage === 'openerRebid' && openingInfo !== null &&
+    context.auction.length === openingInfo.index + 4 &&
+    getInterferenceAfterOpening(context.dealer, context.auction) === 'suitOvercall' &&
+    (advanceKind === 'raise' || advanceKind === 'preemptiveRaise') &&
+    opening !== null && (opening.strain === 'H' || opening.strain === 'S') &&
+    response !== null && response.level === 3 && response.strain !== 'NT' &&
+    response.strain !== opening.strain && call === `4${opening.strain}`;
+  const goodLongMajor = selected && opening !== null &&
+    context.handFacts.lengths[opening.strain as Suit] >= 6 &&
+    context.handFacts.totalPointsWLength >= 15;
+  return { success: goodLongMajor, telemetryLines: [goodLongMajor
+    ? 'A strong six-card opening major provides a natural game destination after competition.'
+    : 'Not a selected self-supporting major game after a three-level game force.'] };
 }
 
 /// openerThreeLevelForcingResponseThreeNtApplies keeps a natural 3NT rebid after responder makes
