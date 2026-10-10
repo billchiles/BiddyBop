@@ -235,13 +235,26 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
     return false;
   }
 
-  // The selected 1NT-interference treatment keeps natural 2NT invitation and 3NT signoff
-  // meanings only when advancer passes.  Suit responses and negative Double are outside this
-  // shared continuation.
-  if (opening.call === '1NT' && advance === 'Pass') {
+  // A natural two-level intervention over our 1NT has selected continuations after
+  // responder's takeout Double, natural suit, 2NT invitation, or 3NT signoff.
+  // An opposing raise is admitted only after Double; other late competition stays out of scope.
+  if (opening.call === '1NT') {
     const overcallBid = parseSuitBid(overcall);
-    return overcallBid !== null && overcallBid.level === 2 && overcallBid.strain !== 'NT' &&
-      (response === '2NT' || response === '3NT');
+    if (overcallBid === null || overcallBid.level !== 2 || overcallBid.strain === 'NT') {
+      return false;
+    }
+    if (advance === 'Pass') {
+      if (response === 'Double' || response === '2NT' || response === '3NT') return true;
+      const responseBid = parseSuitBid(response);
+      return responseBid !== null && responseBid.strain !== 'NT' &&
+        responseBid.strain !== overcallBid.strain &&
+        (responseBid.level === 2 || responseBid.level === 3) &&
+        cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
+    }
+    // One selected competitive continuation: opponents raise their natural overcall
+    // one level after responder's takeout Double.
+    return response === 'Double' &&
+      advance === `3${overcallBid.strain}`;
   }
   return false;
 }

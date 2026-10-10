@@ -62,7 +62,7 @@ means we considered the area and deliberately chose not to model it as part of t
 | --- | --- | --- | --- | --- |
 | 1C / 1D | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
 | 1H / 1S | Done | Done: selected common interference | Done | Incomplete: selected competitive continuations |
-| 1NT | Done | Partial (done): natural two-level suit interference | Done | Incomplete: selected 2NT/3NT continuations |
+| 1NT | Done | Partial (done): natural two-level suit interference | Done | Partial (done): selected Double, natural suit, and NT continuations |
 | 2NT | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Strong 2C | Done | Omitted | Partial (done): selected continuations | Omitted |
 | Weak 2D / 2H / 2S | Done | Omitted | Partial (done): selected continuations | Omitted |
@@ -76,6 +76,15 @@ minimum-range balanced notrump rebid. A positive response already shows 8+ HCP, 
 is not automatically a signoff and slam may be in view. Very strong balanced hands and
 awkward descriptive decisions reach explicit scope guidance; the responder's subsequent
 rebid remains planned rather than being invented by these opener rules.
+
+After natural two-level suit interference over a 1NT opening, responder's takeout-oriented
+Double now receives an opener reply: the available four-card unbid suit or, without a fit,
+a stopped natural 2NT/3NT description based on opener's range. Opener does not pass the
+takeout Double. Responder's nonforcing natural two-level suit may be passed or raised with
+suitable major support; a constructive three-level suit may lead to major game or 3NT
+with a stopper. With no defensible fit or stopped NT action, explicit scope guidance
+avoids inventing a game or penalty decision. These selected methods do not implement
+Lebensohl, penalty-oriented Doubles, or later competitive auctions.
 
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear.  After responder's simple raise, opener can continue through selected advancer raises,

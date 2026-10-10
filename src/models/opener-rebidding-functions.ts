@@ -17,6 +17,155 @@ import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
 
 
 
+/// The first four physical calls identify the selected A7 continuation after an opposing
+/// natural two-level suit overcall of opener's 1NT. The fourth call can also be a simple
+/// opposing raise following responder's takeout Double.
+interface OneNtInterferenceContinuation {
+  opposingSuit: Suit;
+  response: Call;
+  advance: Call;
+  naturalSuit: Suit | null;
+  naturalLevel: number | null;
+}
+
+function getOneNtInterferenceContinuation (context: RuleEvalContext):
+    OneNtInterferenceContinuation | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 4) return null;
+  const overcall = parseSuitBid(context.auction[opening.index + 1] ?? 'Pass');
+  const response = context.auction[opening.index + 2];
+  const advance = context.auction[opening.index + 3];
+  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT' ||
+      response === undefined || advance === undefined) return null;
+  const responseBid = parseSuitBid(response);
+  const naturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
+    responseBid.strain !== overcall.strain ? responseBid.strain as Suit : null;
+  const responseIsSupported = response === 'Double' ||
+    (naturalSuit !== null && (responseBid?.level === 2 || responseBid?.level === 3) &&
+     cheapestBidInStrainAfter(overcall, naturalSuit) === response);
+  if (! responseIsSupported) return null;
+  if (advance !== 'Pass' &&
+      ! (response === 'Double' && advance === `3${overcall.strain}`)) return null;
+  return { opposingSuit: overcall.strain as Suit, response, advance, naturalSuit,
+    naturalLevel: naturalSuit === null ? null : responseBid!.level };
+}
+
+/// A takeout-oriented Double shows both majors after minor interference, the unbid
+/// major after major interference, or both minors after spade interference.
+/// Show an eight-card fit with a four-card suit, choosing the cheapest fit up the line.
+function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
+  const candidates: Suit[] = opposingSuit === 'S' ? ['C', 'D'] :
+    opposingSuit === 'H' ? ['S'] : ['H', 'S'];
+  return candidates.find((suit) => context.handFacts.lengths[suit] >= 4) ?? null;
+}
+
+export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
+  const fit = getOneNtDoubleFit(context, info.opposingSuit);
+  // Only the economical 3S action over a competing 3H is modeled after an
+  // opposing raise. Other raised auctions belong to the boundary treatment.
+  const bid = fit === null ? null : info.advance === 'Pass' ?
+    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) :
+    info.opposingSuit === 'H' && fit === 'S' ? '3S' : null;
+  const wanted = bid as Call | null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted &&
+    isCallAvailableInAuction(call, context.auction)), telemetryLines: [
+      fit === null ? 'No four-card fit for responder\'s takeout Double.' :
+      `Show the available four-card ${fit} fit at ${wanted}.`,
+  ] };
+}
+
+export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalContext,
+                                                   system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const fit = info === null ? null : getOneNtDoubleFit(context, info.opposingSuit);
+  const stopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit);
+  const success = info !== null && info.response === 'Double' && info.advance === 'Pass' &&
+    fit === null && stopped && ((call === '2NT' && hcp <= min + 1) ||
+                               (call === '3NT' && hcp >= min + 2));
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: no four-card takeout fit, stopper, and ` +
+    `${call === '2NT' ? 'minimum/middle' : 'maximum'} NT opening strength.`,
+  ] };
+}
+
+export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleEvalContext,
+                                                      system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const suit = info?.naturalSuit;
+  const hcp = context.handFacts.hcp;
+  const support = suit === null || suit === undefined ? 0 : context.handFacts.lengths[suit];
+  const isTwo = info?.naturalLevel === 2;
+  const strengthFits = isTwo && (support <= 2 ||
+    (suit !== 'H' && suit !== 'S') || (hcp === min && support === 3));
+  const success = info !== null && info.advance === 'Pass' && suit !== null &&
+    strengthFits;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: nonforcing natural suit, ` +
+    `${hcp} HCP and ${support}-card support; Pass only where no modeled improvement fits.`,
+  ] };
+}
+
+export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
+    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const suit = info?.naturalSuit;
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const support = suit === 'H' || suit === 'S' ? context.handFacts.lengths[suit] : 0;
+  const isInviting = call === `3${suit}` && info?.naturalLevel === 2 &&
+    support >= 3 && ((hcp === min && support >= 4) || hcp === min + 1 ||
+                     (hcp === min + 2 && support === 3));
+  const isGame = call === `4${suit}` && support >= 3 &&
+    ((info?.naturalLevel === 2 && hcp === min + 2 && support >= 4) ||
+     info?.naturalLevel === 3);
+  const success = info !== null && info.advance === 'Pass' && (isInviting || isGame);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: natural major support with ${support} trumps, ` +
+    `${hcp} HCP, and responder's ${info?.naturalLevel ?? '?'}-level action.`,
+  ] };
+}
+
+export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
+    context: RuleEvalContext): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const suit = info?.naturalSuit;
+  const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
+  const success = info !== null && info.advance === 'Pass' && info.naturalLevel === 3 &&
+    ! majorFit && hasBasicSuitStopper(context, info.opposingSuit);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: constructive three-level natural response; ` +
+    'prefer 3NT when the opposing suit is stopped and no major fit is present.',
+  ] };
+}
+
+export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null) return { success: false, telemetryLines: [] };
+  const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info.opposingSuit) : null;
+  let success = false;
+  if (info.response === 'Double') {
+    // After the opponents raise, bidding higher without a defined fit is judgment heavy.
+    success = info.advance !== 'Pass' ?
+      ! (info.opposingSuit === 'H' && fit === 'S') :
+      fit === null && ! hasBasicSuitStopper(context, info.opposingSuit);
+  } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
+    const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
+      context.handFacts.lengths[info.naturalSuit] >= 3;
+    success = ! majorFit && ! hasBasicSuitStopper(context, info.opposingSuit);
+  }
+  return { success, telemetryLines: [success ? 'No deterministic natural strain or stopper.' :
+    'A selected Pass, suit fit, or notrump description remains available.'] };
+}
+
+
 ///
 //// Opener Rebids After Notrump Openings
 ///

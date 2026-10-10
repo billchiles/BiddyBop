@@ -102,7 +102,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     title: 'Make a negative Double after natural interference over partner\'s 1NT',
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['Double'],
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'forcing'],
     appliesWhen: negativeDoubleAfterOneNtInterferenceApplies,
     priority: { rank: 40 },
     guidance: ['15-17: normally 8+ HCP; 16-18: normally 7+ HCP.',

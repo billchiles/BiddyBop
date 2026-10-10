@@ -213,7 +213,7 @@ function runCompetitionBoundaryTests (): number {
     { auction: ['1H', 'Double', '3H', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '2NT', 'Pass'], expected: 'openerRebid' },
     { auction: ['1H', 'Double', '1S', '2C'], expected: 'openerRebid' },
-    { auction: ['1NT', '2H', '3C', 'Pass'], expected: null },
+    { auction: ['1NT', '2H', '3C', 'Pass'], expected: 'openerRebid' },
     { auction: ['1D', '2S', 'Double', 'Pass'], expected: null },
     { auction: ['1D', 'Pass', '1H', 'Pass'], expected: 'openerRebid' },
   ];
@@ -1097,7 +1097,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   }
 
   const unsupported: Call[][] = [
-    ['1NT', '2H', '3C', 'Pass'],      // Natural competitive suit, not NT-opening convention.
+    ['1NT', '2H', '3H', 'Pass'],      // Opponent-suit cuebid is not a modeled natural response.
     ['1D', '2S', 'Double', 'Pass'],   // Jump-overcall negative Double is a separate family.
     ['1C', '1S', '2H', '3H'],         // Advancer cuebids responder's natural suit.
     ['1H', 'Double', '1S', '2S'],     // Advancer cuebids responder's natural suit.

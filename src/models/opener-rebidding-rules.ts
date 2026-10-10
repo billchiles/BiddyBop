@@ -9,6 +9,9 @@ import {
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
   openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
   openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
+  oneNtInterferenceDoubleNtApplies, oneNtInterferenceNaturalPassApplies,
+  oneNtInterferenceNaturalMajorRaiseApplies, oneNtInterferenceNaturalThreeNtApplies,
+  oneNtInterferenceScopeBoundaryApplies, refineOneNtInterferenceDoubleFit,
   openerNtNotrumpSignoffApplies, openerNtQuantitativeInvitationApplies,
   openerNtWeakMajorSignoffApplies, openerPreemptNewSuitRaiseApplies,
   openerForcingResponseCompetitionNtApplies, openerForcingResponseCompetitionPassApplies,
@@ -396,6 +399,114 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Responder may continue with additional slam interest; deeper minor-fit slam ' +
                'machinery is not modeled in this treatment.'],
     certainty: 'medium',
+  },
+  // After a natural suit overcall of our 1NT, responder's takeout Double promises
+  // unbid-suit length.  It is not a penalty Double, and opener must describe a fit
+  // or a stopped NT hand rather than pass the Double.
+  {
+    id: 'opener-rebid-fit-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show a four-card unbid-suit fit after responder Doubles 1NT interference',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    calls: ['2H', '2S', '3C', '3D', '3S'],
+    callRefinement: refineOneNtInterferenceDoubleFit,
+    callCategory: ['natural'],
+    meaning: 'Show a four-card fit for responder’s takeout-oriented Double in an unbid suit.',
+    guidance: ['After minor interference prefer hearts, then spades; after spade interference ' +
+               'show clubs before diamonds. A raise by the opponents may force a higher level.',
+               'This reply completes the takeout Double; responder can assess a game invitation ' +
+               'or game with additional values.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-2nt-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show a stopped minimum/middle 1NT hand without a takeout fit',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    calls: ['2NT'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceDoubleNtApplies,
+    meaning: 'No four-card fit in responder’s indicated suits; minimum or middle 1NT opening ' +
+             'with a stopper in the opposing suit.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-3nt-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show a stopped maximum 1NT hand without a takeout fit',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceDoubleNtApplies,
+    meaning: 'Maximum 1NT values, a stopper in the opponent’s suit, and no four-card fit ' +
+             'for responder’s takeout Double.',
+    certainty: 'medium',
+  },
+  // Responder's natural suit calls are nonforcing; partner has 8+ at the two level
+  // or 10+ at the three level, so use a conservative signoff/invitation/game ladder.
+  {
+    id: 'opener-rebid-pass-after-1nt-interference-natural-suit',
+    kind: 'openerRebid',
+    title: 'Pass a nonforcing natural response to 1NT interference',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'newSuit' } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: oneNtInterferenceNaturalPassApplies,
+    meaning: 'No constructive improvement over partner’s natural, nonforcing suit response.',
+    guidance: ['23–25 minimum combined HCP makes game possible, not automatic. ' +
+               'Strong fit and stoppers may justify an invitation or game.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-raise-major-after-1nt-interference-natural-suit',
+    kind: 'openerRebid',
+    title: 'Invite or bid game with major support after 1NT interference',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'newSuit' } },
+    calls: ['3H', '3S', '4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceNaturalMajorRaiseApplies,
+    meaning: 'A three-level raise invites with an adequate major fit; four of the major ' +
+             'places game with sufficient strength and support.',
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-3nt-after-1nt-interference-natural-suit',
+    kind: 'openerRebid',
+    title: 'Bid 3NT after a constructive natural suit response with a stopper',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'newSuit' } },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceNaturalThreeNtApplies,
+    meaning: 'Responder has 10+ HCP, making game realistic, and opener stops the opposing ' +
+             'suit without a preferred major fit.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-1nt-interference',
+    kind: 'scopeBoundary',
+    title: 'Unresolved strain after natural interference over 1NT',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      openerRebidAfterInterference: true },
+    scopeBoundaryWhen: oneNtInterferenceScopeBoundaryApplies,
+    meaning: 'The partnership has values to compete, but no selected natural fit or stopped ' +
+             'notrump description can be recommended reliably.',
+    guidance: ['After a takeout Double, opener should not Pass merely because there is no ' +
+               'four-card fit; further suit choice may require judgment.',
+               'A constructive three-level response often suggests game, but without a stopper ' +
+               'or agreed trump fit the exact strain requires additional bidding methods.'],
+    certainty: 'high',
   },
   // Natural invitations are not signoffs: minimums decline, maximums accept, and
   // the middle strength deliberately offers both choices with judgment guidance.

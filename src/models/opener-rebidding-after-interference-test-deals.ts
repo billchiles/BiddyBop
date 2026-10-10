@@ -582,4 +582,81 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J97', H: 'KT', D: '632', C: 'AKQJ8' },
     west: { S: '6542', H: '9853', D: '7', C: 'T642' },
   },
+  // After natural interference over our 1NT, responder's Double is takeout-oriented.
+  {
+    description: '1NT-(2H)-Double-(Pass)-2S: opener answers the takeout Double with four spades.',
+    practiceAuction: ['1NT', '2H', 'Double', 'Pass', '2S'],
+    practiceGuidance: [{ auctionIndex: 4, seat: 'N', text: 'Responder promised at least four ' +
+      'spades, and opener has four. Show the eight-card fit rather than pass the Double.' }],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: [
+      'partner-of-1nt-after-interference-negative-double',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '2S', ruleIds: [
+      'opener-rebid-fit-after-1nt-interference-double',
+    ] }],
+    north: { S: 'AK62', H: 'K53', D: 'AQ4', C: '853' },
+    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
+    south: { S: 'QT85', H: '72', D: 'K83', C: 'K974' },
+  },
+  {
+    description: '1NT-(2H)-Double-(Pass)-3NT: no four-card spade fit; maximum opener has ' +
+                 'a heart stopper and game prospects opposite eight or more HCP.',
+    practiceAuction: ['1NT', '2H', 'Double', 'Pass', '3NT'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: [
+      'partner-of-1nt-after-interference-negative-double',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-1nt-interference-double',
+    ] }],
+    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
+    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
+    south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
+  },
+  {
+    description: '1NT-(2H)-2S-(Pass)-Pass: nonforcing natural spades are a playable ' +
+                 'partscore on a minimum opener without a significant fit.',
+    practiceAuction: ['1NT', '2H', '2S', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: [
+      'partner-of-1nt-after-interference-natural-suit-two-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-1nt-interference-natural-suit',
+    ] }],
+    north: { S: 'A62', H: 'K53', D: 'A24', C: 'A853' },
+    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
+    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+  },
+  {
+    description: '1NT-(2H)-2S-(Pass)-3S: 17 HCP with three spades invites ' +
+                 'after responder shows a good five-card spade suit.',
+    practiceAuction: ['1NT', '2H', '2S', 'Pass', '3S'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: '2S', ruleIds: [
+      'partner-of-1nt-after-interference-natural-suit-two-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
+      'opener-rebid-raise-major-after-1nt-interference-natural-suit',
+    ] }],
+    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
+    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
+    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+  },
+  {
+    description: '1NT-(2H)-3C-(Pass)-3NT: responder is constructive with good clubs ' +
+                 'and 10+ HCP, and opener has the opposing-heart stopper.',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: '3C', ruleIds: [
+      'partner-of-1nt-after-interference-natural-suit-three-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-1nt-interference-natural-suit',
+    ] }],
+    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
+    east: { S: 'J95', H: 'AQJT98', D: 'JT9', C: 'T' },
+    south: { S: 'K84', H: '72', D: 'K86', C: 'KQJ76' },
+  },
 ];

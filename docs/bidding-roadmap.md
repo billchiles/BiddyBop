@@ -69,9 +69,12 @@ needs an executable choice or specific scope guidance.
   balanced NT description. Extra balanced/slam-oriented or awkward hands receive
   explicit scope guidance, not automatic game or slam placements. Responder's next
   decision remains part of Phase C.
-- [ ] **A7.** After opponents interfere over our 1NT opening, address opener's reply
-  to responder's takeout-oriented Double and selected natural responses that require
-  continuation; avoid pretending nonforcing signoffs are forcing.
+- [x] **A7.** After natural two-level suit interference over our 1NT opening,
+  completed selected opener replies to takeout-oriented Double (four-card fit,
+  stopped natural NT, or explicit boundary), natural nonforcing two-level suits
+  (Pass, selected major invitation/game), and constructive three-level suits
+  (major game, stopped 3NT, or boundary). Existing 2NT invitation and 3NT signoff
+  are retained. Later high-judgment competition remains outside this chosen subset.
 - [ ] **A8.** Selected opener continuations after responder acts over a preemptive jump
   overcall; decide on descriptive rebids, actual Passes, and auction-specific boundaries.
 - [ ] **A9.** Audit remaining competitive opener rebids after natural forcing responder
