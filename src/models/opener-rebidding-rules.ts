@@ -1799,8 +1799,20 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 12, max: 15 } },
-    meaning: 'Responder showed a good six-card suit with only 5-9 HCP; a minimum opener may stop.',
+    appliesWhen: (_call, context): AppliesWhenResult => {
+      const hcp = context.handFacts.hcp;
+      const lengthPoints = context.handFacts.totalPointsWLength;
+      // Our ordinary one-level opening may have fewer than 12 HCP when length supplies
+      // opening values. Do not strand that legitimate minimum opener in the extras boundary.
+      const minimum = (hcp >= 12 && hcp <= 15) ||
+        (hcp < 12 && lengthPoints >= 12 && lengthPoints <= 15);
+      return { success: minimum, telemetryLines: [
+        `${minimum ? 'PASS' : 'FAIL'}: minimum opener has ${hcp} HCP and ` +
+        `${lengthPoints} length-adjusted points.`,
+      ] };
+    },
+    meaning: 'Responder showed a good six-card suit with only 5-9 HCP; an ordinary or ' +
+             'length-qualified minimum opener may stop.',
     certainty: 'high',
   },
   {

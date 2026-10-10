@@ -39,12 +39,6 @@ needs an executable choice or specific scope guidance.
 - Ordinary opening practice deals should normally put opener in North. Competitive
   teaching situations may have a justified different dealer/seat arrangement.
 
-## A. Close existing advancing, responding, and opener-rebidding gaps
-
-- [ ] **A10.** After an opponent's natural 1NT overcall of our suit opening, verify
-  responder's selected meanings and opener's subsequent Passes, stronger continuations,
-  and judgment boundaries.
-
 ## B. Complete selected overcaller and takeout-Doubler rebids
 
 - [ ] **B1.** Natural 1NT overcall -> answer advancer's Stayman inquiry.

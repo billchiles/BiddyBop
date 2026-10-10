@@ -144,7 +144,8 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
   }
   if (context.stage === 'overcalling') {
-    ruleResults = maybeSuppressOvercallerPass(ruleResults);
+    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+      'overcall-pass-no-qualifying-action');
   }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
   // only a fallback bid.  Derive partner's opening only for this response-stage behavior.
@@ -166,6 +167,8 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   // Suppress 1NT when one of a major is better.
   if (context.stage === 'responding') {
     ruleResults = maybeSuppress1NTWhenMajorSupport(ruleResults);
+    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+      'respond-over-1nt-pass-no-constructive-action');
   }
   ruleResults = maybeSuppressScopeBoundaryWhenBidApplies(ruleResults);
   // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
@@ -364,11 +367,12 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
 }
 
 
-/// Ordinary overcaller Pass is a fallback only when no supported competitive call applies.
-/// Reuse evaluated candidates instead of duplicating suit-quality, stopper, Double, or DONT logic.
-function maybeSuppressOvercallerPass (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
+/// A stage-specific Pass fallback must not compete with an already evaluated constructive call.
+/// This avoids duplicating the suit, support, and convention requirements in each Pass rule.
+function maybeSuppressPassWithoutOtherAction (ruleResults: RuleEvalResult[],
+                                              passRuleId: string): RuleEvalResult[] {
   const passResult = ruleResults.find((result) =>
-    result.rule.id === 'overcall-pass-no-qualifying-action' && result.ruleApplies);
+    result.rule.id === passRuleId && result.ruleApplies);
   if (passResult === undefined) return ruleResults;
   const competingCall = ruleResults.flatMap((result) => result.candidates)
     .find((candidate) => candidate.ruleApplies && candidate.call !== 'Pass');

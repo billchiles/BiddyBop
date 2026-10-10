@@ -9,6 +9,22 @@ import type { RuleTestDeal } from './test-deals-registry';
 /// responses, artificial competitive calls, and the first advancer-action families.  Advancer
 /// competition is included only where opener's continuation has been explicitly modeled.
 export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1H-(1NT)-2D-(Pass)-Pass: nine HCP plus three heart length points give ' +
+                 'a legitimate 1H opening, but this is still a minimum after the weak 2D response.',
+    practiceAuction: ['1H', '1NT', '2D', 'Pass', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 0, seat: 'N', text: 'Nine HCP and a seven-card heart ' +
+      'suit give twelve opening points including length; this is not a strong opener.' }],
+    expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
+    expectedOvercallCalls: [{ call: '1NT', ruleIds: ['overcall-natural-1nt-with-stopper'] }],
+    expectedResponseCalls: [{ call: '2D', ruleIds: ['respond-over-1nt-new-suit-two-level'] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-pass-after-opponent-1nt-weak-new-suit',
+    ] }],
+    north: { S: 'K42', H: 'KQJ9876', D: '73', C: '5' },
+    east: { S: 'AQ96', H: 'A53', D: 'K54', C: 'KJ9' },
+    south: { S: 'T83', H: '42', D: 'AJT962', C: 'T3' },
+  },
   // A9: selected additional competition after a modeled responder action.
   {
     description: '1H-(2D)-3C-(3D)-3NT: responder\'s 3C remains game-forcing when the opponents ' +

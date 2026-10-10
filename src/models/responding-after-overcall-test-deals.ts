@@ -213,6 +213,18 @@ export const RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
 ///
 export const RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   {
+    description: '1H-(1NT)-Pass: eight HCP but no heart support or good six-card suit; ' +
+                 'ordinary Pass remains available rather than forcing a weak response.',
+    practiceAuction: ['1H', '1NT', 'Pass'],
+    expectedResponseCalls: [{ call: 'Pass', ruleIds: [
+      'respond-over-1nt-pass-no-constructive-action',
+    ] }],
+    rejectedResponseCalls: ['2D', '2H', '2NT', 'Double'],
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQ4', H: 'QJ8', D: 'K874', C: 'KJ9' },
+    south: { S: 'J965', H: '74', D: 'AJ62', C: 'Q86' },
+  },
+  {
     description: '1H-(1NT)-2D: five HCP and good six-card diamonds, nonforcing at two level.',
     practiceAuction: ['1H', '1NT', '2D'],
     expectedResponseCalls: [
@@ -240,7 +252,7 @@ export const RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCalls: [
       { call: '2H', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
     ],
-    rejectedResponseCalls: ['2D', '3H', '2NT', 'Double'],
+    rejectedResponseCalls: ['Pass', '2D', '3H', '2NT', 'Double'],
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     east: { S: 'AQ4', H: 'QJ8', D: 'K874', C: 'KQ9' },
     south: { S: 'T83', H: '754', D: 'AT9', C: 'A832' },

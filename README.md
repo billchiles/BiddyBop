@@ -169,8 +169,11 @@ Pass-Pass, opener reaches explicit reopening/balancing guidance.  After a takeou
 Pass-Pass, the boundary instead explains the separate doubled-contract runout/stand judgment.  If
 responder shows strength with Redouble and advancer makes the selected weak escape, opener reaches
 penalty/runout guidance rather than inheriting the Pass that applies only when advancer also Passes.
-After an opposing natural 1NT overcall, selected weak natural suit and preemptive-raise responses can
-be passed by a minimum opener; extra-value hands and the Pass-Pass reopening case end with explicit
+After an opposing natural 1NT overcall, responder can Pass with modest values and no qualifying
+raise or natural long-suit response. Strong hands without a selected constructive action receive
+specific guidance about the omitted penalty-oriented Double treatment. Selected weak natural suits
+and preemptive raises can be passed by a minimum opener, including legitimate low-HCP openings
+qualified by length points; extra-value hands and the Pass-Pass reopening case receive explicit
 competitive guidance rather than an unrelated uncontested continuation.
 
 These remain `Incomplete`, not broad scope omissions.  Within a modeled competitive family the
@@ -180,8 +183,8 @@ responder suit, the boundary guidance states the actual promise responder made -
 5+ cards and 10+ HCP for the competitive two-level response -- before explaining why Pass versus
 bidding on now depends on playing strength, fit, honor location, vulnerability, and how high the
 opponents have pushed the auction.  The app explains that judgment boundary rather than inventing a
-candidate call. The remaining Phase A review covers our opening when the opposing player
-intervenes with a natural 1NT overcall; specialized later competition remains a deliberate limit.
+candidate call. Specialized later competition after an opposing natural 1NT overcall
+remains a deliberate limit.
 
 The omitted responder-interference areas above are deliberate scope boundaries, not claims that
 every ordinary response becomes wrong whenever an opponent acts.

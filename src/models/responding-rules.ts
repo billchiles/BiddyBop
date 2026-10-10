@@ -1348,9 +1348,44 @@ export const ResponseBidRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  // After a natural opposing 1NT overcall, constructive two-level new suits are nonforcing.
-  // The simple raise and weak Pass keep their ordinary shared meanings. Double is for penalties
-  // in common methods and remains outside this trainer, as does an unagreed 2NT response.
+  // After an opposing natural 1NT overcall, Pass remains appropriate with modest values
+  // when no existing raise or good six-card-suit response qualifies. Stronger hands may
+  // have penalty-oriented choices that this trainer intentionally does not model.
+  //
+  {
+    id: 'respond-over-1nt-pass-no-constructive-action',
+    kind: 'responseBid',
+    title: 'Pass an opposing 1NT overcall without a qualifying constructive response',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 6, max: 9 } },
+    meaning: 'With modest values and no qualifying support raise or good long suit, let the ' +
+             'opponents play 1NT rather than manufacture a response.',
+    guidance: ['Pass is a fallback only: an eligible natural response or raise takes precedence.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-over-1nt-scope-boundary-strong-hand',
+    kind: 'scopeBoundary',
+    title: 'Strong responder after an opposing natural 1NT overcall',
+    auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    scopeBoundaryWhen: (context) => ({
+      success: context.handFacts.hcp >= 10,
+      telemetryLines: ['10+ HCP may warrant a penalty-oriented Double or other ' +
+                       'partnership action outside this natural-response subset.'],
+    }),
+    meaning: 'Responder has substantial values but no qualifying modeled call.',
+    guidance: ['A penalty-oriented Double is common against a natural 1NT overcall, but ' +
+               'requires defensive judgment and follow-ups not modeled here.',
+               'Do not choose a weak natural suit response merely to keep bidding.'],
+    certainty: 'high',
+  },
+  //
+  // Constructive two-level new suits are nonforcing. The simple raise and weak Pass
+  // retain their shared meanings. Double and an unagreed 2NT response remain omitted.
   //
   {
     id: 'respond-over-1nt-new-suit-two-level',
