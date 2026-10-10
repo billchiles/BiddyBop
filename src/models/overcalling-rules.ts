@@ -3,7 +3,12 @@
 import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
-  naturalNotrumpOvercallApplies, ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
+  naturalNotrumpOvercallApplies, naturalOneNtOvercallerInvitationApplies,
+  naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
+  naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
+  ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
+  refineNaturalOneNtOvercallJacoby, refineNaturalOneNtOvercallStayman,
+  refineNaturalOneNtOvercallTexas,
   refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall,
   refineWeakTwoTwoNtJacobyCompletion, refineWeakTwoTwoNtStaymanReply,
   refineWeakTwoTwoNtTexasCompletion
@@ -32,8 +37,180 @@ export const OvercallRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  // Systems-on replies after a natural 2NT overcall of a weak two are the other selected
-  // overcaller-rebid family.  The opener must pass after advancer's forcing convention.
+  //// Natural 1NT overcall -- Stayman and compulsory transfers
+  // Advancer uses the same responses as after a natural 1NT opening. Further competition
+  // by the opening side is deliberately not part of these immediate replies.
+  {
+    id: 'overcaller-rebid-1nt-stayman',
+    kind: 'overcallerRebid',
+    title: 'Answer Stayman after a natural 1NT overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['2D', '2H', '2S'],
+    agreement: { setting: 'stayman', value: true },
+    callRefinement: refineNaturalOneNtOvercallStayman,
+    callCategory: ['conventional'],
+    meaning: 'Show hearts first with four cards in both majors, or deny a major with 2D.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-jacoby',
+    kind: 'overcallerRebid',
+    title: 'Complete Jacoby transfer after a natural 1NT overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['2H', '2S'],
+    agreement: { setting: 'jacobyTransfers', value: true },
+    callRefinement: refineNaturalOneNtOvercallJacoby,
+    callCategory: ['conventional'],
+    meaning: 'Complete advancer’s artificial two-level major transfer.',
+    guidance: ['Do not superaccept in this selected treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-texas',
+    kind: 'overcallerRebid',
+    title: 'Complete Texas transfer after a natural 1NT overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['4H', '4S'],
+    agreement: { setting: 'texasTransfers', value: true },
+    callRefinement: refineNaturalOneNtOvercallTexas,
+    callCategory: ['conventional'],
+    meaning: 'Complete the artificial transfer to game in advancer’s major.',
+    certainty: 'high',
+  },
+  //
+  //// Natural 1NT overcall -- Invitations and natural signoffs
+  {
+    id: 'overcaller-rebid-1nt-decline-2nt-invitation',
+    kind: 'overcallerRebid',
+    title: 'Decline advancer’s natural 2NT invitation',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context, system) =>
+      naturalOneNtOvercallerInvitationApplies(call, context, system, '2NT', false),
+    callCategory: ['signoff'],
+    meaning: 'Stop in 2NT with minimum or borderline values.',
+    guidance: ['Use the configured 1NT strength range; the middle value permits either choice.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-accept-2nt-invitation',
+    kind: 'overcallerRebid',
+    title: 'Accept advancer’s natural 2NT invitation',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['3NT'],
+    appliesWhen: (call, context, system) =>
+      naturalOneNtOvercallerInvitationApplies(call, context, system, '2NT', true),
+    callCategory: ['natural', 'signoff'],
+    meaning: 'Accept the invitation and bid 3NT.',
+    guidance: ['Use the configured 1NT strength range; the middle value permits either choice.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-pass-natural-signoff',
+    kind: 'overcallerRebid',
+    title: 'Pass a natural signoff after a 1NT overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    appliesWhen: naturalOneNtOvercallerSignoffApplies,
+    callCategory: ['signoff'],
+    meaning: 'Pass natural 3NT/6NT/7NT, or a natural major signoff with transfers disabled.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-decline-3minor-invitation',
+    kind: 'overcallerRebid',
+    title: 'Decline a natural three-minor invitation without a fitting top honor',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context) => naturalOneNtOvercallerMinorInvitationApplies(call, context, false),
+    callCategory: ['signoff'],
+    meaning: 'Play the good six-card minor when overcaller lacks a fitting A/K/Q.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-accept-3minor-invitation',
+    kind: 'overcallerRebid',
+    title: 'Accept a natural three-minor invitation with a fitting top honor',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['3NT'],
+    appliesWhen: (call, context) => naturalOneNtOvercallerMinorInvitationApplies(call, context, true),
+    callCategory: ['natural', 'signoff'],
+    meaning: 'Bid 3NT with A, K, or Q in advancer’s long minor.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-3major-continuation',
+    kind: 'overcallerRebid',
+    title: 'Choose game after advancer’s direct three-major response',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['3NT', '4H', '4S'],
+    appliesWhen: naturalOneNtOvercallerThreeMajorApplies,
+    callCategory: ['natural'],
+    meaning: 'With Jacoby off, choose 3NT on two-card major support or major game with a fit. ' +
+             'With Jacoby on, four of the major is the bounded continuation after slam interest.',
+    guidance: ['Further control bids or slam exploration are outside this selected overcall system.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-decline-quantitative-4nt',
+    kind: 'overcallerRebid',
+    title: 'Decline a quantitative 4NT small-slam invitation',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context, system) =>
+      naturalOneNtOvercallerInvitationApplies(call, context, system, '4NT', false),
+    callCategory: ['signoff'],
+    meaning: 'Stop in 4NT rather than automatically bidding slam.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-accept-quantitative-4nt',
+    kind: 'overcallerRebid',
+    title: 'Accept a quantitative 4NT small-slam invitation',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    calls: ['6NT'],
+    appliesWhen: (call, context, system) =>
+      naturalOneNtOvercallerInvitationApplies(call, context, system, '4NT', true),
+    callCategory: ['natural', 'signoff'],
+    meaning: 'Bid 6NT when the selected range and hand strength justify accepting.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-1nt-slam-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further slam replies after 1NT overcall are outside selected scope',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'notrumpOvercall' },
+    scopeBoundaryWhen: naturalOneNtOvercallerSlamBoundaryApplies,
+    meaning: 'Advancer made a forcing ace inquiry or forcing 5NT slam invitation.',
+    guidance: ['Gerber ace replies and forcing 5NT continuations are deliberately not modeled. ' +
+               'Do not treat this as a signoff or an automatic Pass.'],
+    certainty: 'high',
+  },
+  //
+  // Systems-on replies after a natural 2NT overcall of a weak two are a separate selected
+  // overcaller-rebid family. The opening side must pass during the convention.
   {
     id: 'overcaller-rebid-weak-two-2nt-stayman',
     kind: 'overcallerRebid',

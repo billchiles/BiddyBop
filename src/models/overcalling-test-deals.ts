@@ -367,6 +367,139 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+/// Selected natural 1NT overcaller rebids. Advancer uses the shared 1NT response system;
+/// these examples complete the immediate convention or natural invitation without extending
+/// into advancer's second bid or general competitive slam exploration.
+///
+export const NATURAL_1NT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'After Stayman, the 1NT overcaller denies a four-card major with 2D.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2C', 'Pass', '2D'],
+    requiredSystem: { stayman: true },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'QJ85', H: 'Q72', D: 'A83', C: '954' },
+    expectedAdvanceCalls: [{ call: '2C', ruleIds: ['respond-to-1nt-w/-stayman'] }],
+    expectedOvercallerRebidCalls: [{ call: '2D', ruleIds: ['overcaller-rebid-1nt-stayman'] }],
+    rejectedOvercallerRebidCalls: ['2H', '2S', 'Pass'],
+  },
+  {
+    description: 'Four hearts: 1NT overcaller answers Stayman with 2H.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2C', 'Pass', '2H'],
+    requiredSystem: { stayman: true },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A9', H: 'KJ86', D: 'K65', C: 'AT76' },
+    south: { S: 'QJ85', H: 'Q72', D: 'A83', C: '954' },
+    expectedOvercallerRebidCalls: [{ call: '2H', ruleIds: ['overcaller-rebid-1nt-stayman'] }],
+    rejectedOvercallerRebidCalls: ['2D', '2S', 'Pass'],
+  },
+  {
+    description: 'Complete advancer’s artificial 2D Jacoby transfer with 2H.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2D', 'Pass', '2H'],
+    requiredSystem: { jacobyTransfers: true },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'Q85', H: 'QT975', D: 'T83', C: '54' },
+    expectedAdvanceCalls: [{ call: '2D', ruleIds: ['respond-to-1nt-w/-transfer-to-hearts'] }],
+    expectedOvercallerRebidCalls: [{ call: '2H', ruleIds: ['overcaller-rebid-1nt-jacoby'] }],
+    rejectedOvercallerRebidCalls: ['Pass', '2S'],
+  },
+  {
+    description: 'Texas 4D requires the natural 1NT overcaller to bid 4H.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '4D', 'Pass', '4H'],
+    requiredSystem: { texasTransfers: true },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'QJ', H: 'QT9752', D: 'A83', C: 'Q9' },
+    expectedOvercallerRebidCalls: [{ call: '4H', ruleIds: ['overcaller-rebid-1nt-texas'] }],
+    rejectedOvercallerRebidCalls: ['Pass', '4S'],
+  },
+  {
+    description: 'Minimum natural 1NT overcaller declines an 8-HCP 2NT invitation.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'Q85', H: 'Q72', D: 'A83', C: '9542' },
+    expectedAdvanceCalls: [{ call: '2NT', ruleIds: ['respond-to-1nt-w/-2nt-8-9-invitational'] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-1nt-decline-2nt-invitation',
+    ] }],
+    rejectedOvercallerRebidCalls: ['4NT'],
+  },
+  {
+    description: 'Maximum natural 1NT overcaller accepts an 8-HCP 2NT invitation.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2NT', 'Pass', '3NT'],
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AQ76' },
+    south: { S: 'Q85', H: 'Q72', D: 'A83', C: '9542' },
+    expectedOvercallerRebidCalls: [{ call: '3NT', ruleIds: [
+      'overcaller-rebid-1nt-accept-2nt-invitation',
+    ] }],
+  },
+  {
+    description: 'Pass advancer’s natural 3NT game signoff after a 1NT overcall.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '3NT', 'Pass', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'QJ8', H: 'Q72', D: 'A83', C: 'J954' },
+    expectedAdvanceCalls: [{ call: '3NT', ruleIds: ['respond-to-1nt-w/-3nt-10-15-balanced'] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-1nt-pass-natural-signoff',
+    ] }],
+  },
+  {
+    description: 'A fitting club ace accepts advancer’s good six-card-club invitation with 3NT.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '3C', 'Pass', '3NT'],
+    west: { S: 'K72', H: 'A43', D: 'AQJ97', C: '83' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'Q8', H: 'T5', D: '842', C: 'KQJ942' },
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'respond-to-1nt-w/-3c-3d-natural-invitational',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3NT', ruleIds: [
+      'overcaller-rebid-1nt-accept-3minor-invitation',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'With no club A/K/Q, play three clubs rather than accepting the invitation.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '3C', 'Pass', 'Pass'],
+    west: { S: 'K72', H: 'A43', D: 'AJ974', C: '83' },
+    north: { S: 'AQ9', H: 'KQJ', D: 'K65', C: 'T765' },
+    south: { S: 'J8', H: 'T5', D: 'Q82', C: 'KQJ942' },
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-1nt-decline-3minor-invitation',
+    ] }],
+    rejectedOvercallerRebidCalls: ['3NT'],
+  },
+  {
+    description: 'With Jacoby off, advancer’s forcing 3S is natural and three spades support 4S.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '3S', 'Pass', '4S'],
+    requiredSystem: { jacobyTransfers: false },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'QJT85', H: 'Q72', D: 'A83', C: 'Q4' },
+    expectedAdvanceCalls: [{ call: '3S', ruleIds: [
+      'respond-to-1nt-w/-3h-3s-natural-forcing',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '4S', ruleIds: [
+      'overcaller-rebid-1nt-3major-continuation',
+    ] }],
+    rejectedOvercallerRebidCalls: ['3NT', 'Pass'],
+  },
+  {
+    description: 'Without Jacoby, natural 2S is a weak signoff; overcaller Passes.',
+    dealer: 'W', practiceAuction: ['1D', '1NT', 'Pass', '2S', 'Pass', 'Pass'],
+    requiredSystem: { jacobyTransfers: false },
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    south: { S: 'QJT85', H: 'T72', D: 'T83', C: '54' },
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-1nt-pass-natural-signoff',
+    ] }],
+  },
+];
+
 /// Compact DONT against an opposing strong 1NT.  These deals practice the direct convention,
 /// advancer's basic pass-or-correct action, and the selected overcaller correction when needed.
 /// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.

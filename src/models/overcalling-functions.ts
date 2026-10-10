@@ -1,9 +1,10 @@
 /// Overcall Bid Functions: refiners, applicability checks, and related helpers.
 
 import {
-  type AppliesWhenResult, type Call, type CallRefinementResult, type RuleEvalContext
+  type AppliesWhenResult, type BiddingSystem, type Call, type CallRefinementResult,
+  type RuleEvalContext
 } from './bidding-types';
-import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, parseSuitBid } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
@@ -126,6 +127,119 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
         `opener's ${parsed.strain} suit.`,
     ],
   };
+}
+
+///
+//// Natural 1NT Overcall -- Advancer's Systems-On Responses
+///
+
+/// A natural 1NT overcall after a one-level suit opening uses the same response agreements as
+/// a 1NT opening. This is overcaller's first rebid, with the opening side having passed twice.
+/// Do not let these conventions survive further competition or an opposing 1NT opening (DONT).
+function getNaturalOneNtOvercallAdvance (context: RuleEvalContext): Call | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const bid = opening === null ? null : parseSuitBid(opening.call);
+  if (context.stage !== 'overcallerRebid' || opening === null || bid === null ||
+      bid.level !== 1 || bid.strain === 'NT' ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 1] !== '1NT' ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') {
+    return null;
+  }
+  return context.auction[opening.index + 3] ?? null;
+}
+
+/// The compulsory Stayman answer is the same as for a 1NT opening: hearts first with both majors.
+export function refineNaturalOneNtOvercallStayman (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  if (getNaturalOneNtOvercallAdvance(context) !== '2C') {
+    return { calls: [], telemetryLines: [] };
+  }
+  const wanted: Call = context.handFacts.lengths.H >= 4 ? '2H' :
+    context.handFacts.lengths.S >= 4 ? '2S' : '2D';
+  return { calls: calls.filter((call) => call === wanted), telemetryLines: [] };
+}
+
+/// Transfers are compulsory regardless of the overcaller's strength; superaccepts are not modeled.
+export function refineNaturalOneNtOvercallJacoby (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const wanted: Call | null = advance === '2D' ? '2H' : advance === '2H' ? '2S' : null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [] };
+}
+
+export function refineNaturalOneNtOvercallTexas (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const wanted: Call | null = advance === '4D' ? '4H' : advance === '4H' ? '4S' : null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [] };
+}
+
+/// Natural 1NT advances share the configured 15-17/16-18 thresholds, even though a natural
+/// 1NT overcall itself permits 15-18 HCP. At the middle value, both invitation decisions survive.
+export function naturalOneNtOvercallerInvitationApplies (
+  _call: Call, context: RuleEvalContext, system: BiddingSystem,
+  invitation: '2NT' | '4NT', accept: boolean): AppliesWhenResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const strengthApplies = accept ? hcp >= minimum + 1 : hcp <= minimum + 1;
+  const success = advance === invitation && strengthApplies;
+  return { success, telemetryLines: [success ?
+    `PASS: ${hcp} HCP permits ${accept ? 'accepting' : 'declining'} the ${invitation} invitation.` :
+    `FAIL: ${invitation} ${accept ? 'acceptance' : 'decline'} does not qualify at ${hcp} HCP.`] };
+}
+
+/// A good six-card minor invitation is accepted only with a fitting top honor in that minor.
+export function naturalOneNtOvercallerMinorInvitationApplies (
+  _call: Call, context: RuleEvalContext, accept: boolean): AppliesWhenResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const minor: Suit | null = advance === '3C' ? 'C' : advance === '3D' ? 'D' : null;
+  const topHonor = minor !== null && getCardsForSuit(context.hand, minor).some((card) =>
+    card.rank === 'A' || card.rank === 'K' || card.rank === 'Q');
+  const success = minor !== null && (accept ? topHonor : ! topHonor);
+  return { success, telemetryLines: [success ?
+    `PASS: ${accept ? 'accept' : 'decline'} 3${minor} with${topHonor ? '' : 'out'} a fitting A/K/Q.` :
+    'FAIL: the natural minor invitation or required fitting-honor condition is absent.'] };
+}
+
+/// With natural 3M (Jacoby off), select 3NT on doubleton support or major game with 3+ support.
+/// With Jacoby on, direct 3M shows slam interest; four of that major is the bounded next call.
+export function naturalOneNtOvercallerThreeMajorApplies (
+  call: Call, context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const suit: Suit | null = advance === '3H' ? 'H' : advance === '3S' ? 'S' : null;
+  const support = suit === null ? 0 : context.handFacts.lengths[suit];
+  const success = suit !== null && (system.jacobyTransfers
+    ? call === `4${suit}` :
+    (support === 2 && call === '3NT') || (support >= 3 && call === `4${suit}`));
+  return { success, telemetryLines: [success ?
+    `PASS: natural 3${suit} continuation with ${support}-card support.` :
+    'FAIL: no matching selected three-major continuation.'] };
+}
+
+export function naturalOneNtOvercallerSignoffApplies (
+  _call: Call, context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const success = advance === '3NT' || advance === '6NT' || advance === '7NT' ||
+    (! system.jacobyTransfers && (advance === '2H' || advance === '2S')) ||
+    (! system.texasTransfers && (advance === '4H' || advance === '4S'));
+  return { success, telemetryLines: [success ?
+    `PASS: ${advance} is a natural signoff under these agreements.` :
+    'FAIL: no matching natural signoff, or the call has an artificial meaning.'] };
+}
+
+/// Gerber and forcing 5NT require further ace or slam responses outside the chosen depth.
+export function naturalOneNtOvercallerSlamBoundaryApplies (
+  context: RuleEvalContext): AppliesWhenResult {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  const success = advance === '4C' || advance === '5NT';
+  return { success, telemetryLines: [success ?
+    'This artificial slam continuation is outside the modeled response family.' :
+    'No unsupported ace inquiry or forcing 5NT response in this auction.'] };
 }
 
 /// getWeakTwoTwoNtConventionCall returns advancer's forcing conventional call after partner's

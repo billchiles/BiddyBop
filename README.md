@@ -104,11 +104,15 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 
 | Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
 | --- | --- | --- | --- | --- |
-| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Planned |
+| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Incomplete: natural 1NT continuations done; suit and Double rebids planned |
 | Strong 1NT | Done: compact DONT | Done: basic DONT pass/correct | Omitted | Done: required compact DONT corrections |
 | Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Incomplete: 2NT convention replies done; selected competitive rebids planned |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
+
+Natural 1NT overcalls show 15–18 HCP, while advancer uses the same conventions and strength
+thresholds as for a 1NT opening under the configured 15–17 or 16–18 setting. This is an
+intentional simplification rather than a separate overcall response system.
 
 Against a strong 1NT opening, the trainer teaches the basic compact DONT interference but stops
 before later competitive continuations.  Weak-two defenses include selected advances and immediate

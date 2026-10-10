@@ -41,9 +41,6 @@ needs an executable choice or specific scope guidance.
 
 ## B. Complete selected overcaller and takeout-Doubler rebids
 
-- [ ] **B1.** Natural 1NT overcall -> answer advancer's Stayman inquiry.
-- [ ] **B2.** Natural 1NT overcall -> complete Jacoby and Texas transfers when enabled.
-- [ ] **B3.** Natural 1NT overcall -> decide invitations, signoffs, and natural NT rebids.
 - [ ] **B4.** Natural suit overcall -> respond to advancer's ordinary raise with an
   appropriate Pass, competitive raise, or selected game.
 - [ ] **B5.** Natural suit overcall -> respond to advancer's forcing support cuebid.
