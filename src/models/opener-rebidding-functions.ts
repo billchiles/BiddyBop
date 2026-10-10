@@ -170,6 +170,162 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
 //// Opener Rebids After Notrump Openings
 ///
 
+/// Selected A8 opener continuations after a natural jump overcall and advancer Pass.
+/// The physical auction is checked here as well as in getBidStage: do not infer these
+/// meanings from a compact partnership auction that hides interference.
+interface JumpOvercallContinuation {
+  opening: ParsedSuitBid;
+  overcall: ParsedSuitBid;
+  response: Call;
+  responseBid: ParsedSuitBid | null;
+  kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
+        'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
+}
+
+function getJumpOvercallContinuation (context: RuleEvalContext): JumpOvercallContinuation | null {
+  const first = getOpeningCallInfo(context.dealer, context.auction);
+  if (first === null || context.auction.length !== first.index + 4 ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
+      context.auction[first.index + 3] !== 'Pass') return null;
+  const opening = parseSuitBid(first.call);
+  const overcall = parseSuitBid(context.auction[first.index + 1] ?? 'Pass');
+  const response = context.auction[first.index + 2];
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' || response === undefined) return null;
+  const responseBid = parseSuitBid(response);
+  if (response === 'Double') {
+    return { opening, overcall, response, responseBid, kind: 'negativeDouble' };
+  }
+  if (responseBid === null) return null;
+  let kind: JumpOvercallContinuation['kind'];
+  if (response === '2NT') kind = 'notrumpTwo';
+  else if (response === '3NT') kind = 'notrumpThree';
+  else if (responseBid.strain === opening.strain && responseBid.level === 3) kind = 'raise';
+  else if (responseBid.strain === opening.strain && responseBid.level === 4 &&
+           (opening.strain === 'H' || opening.strain === 'S')) kind = 'majorGame';
+  else if (responseBid.strain === overcall.strain && overcall.level === 2 &&
+           (opening.strain === 'H' || opening.strain === 'S')) kind = 'supportCuebid';
+  else if (responseBid.strain !== opening.strain &&
+           responseBid.strain !== overcall.strain && responseBid.level === 2) kind = 'newSuitTwo';
+  else if (responseBid.strain !== opening.strain &&
+           responseBid.strain !== overcall.strain && responseBid.level === 3) kind = 'newSuitThree';
+  else return null;
+  return { opening, overcall, response, responseBid, kind };
+}
+
+/// Each selected family returns its descriptive bid, if one exists. A no-bid forcing
+/// decision is handled by a scopeBoundary, never by a fabricated Pass.
+function getJumpOvercallOpenerAction (context: RuleEvalContext): Call | null {
+  const info = getJumpOvercallContinuation(context);
+  if (info === null) return null;
+  const { opening, overcall, responseBid, kind } = info;
+  const openingSuit = opening.strain as Suit;
+  const hcp = context.handFacts.hcp;
+  const points = context.handFacts.totalPointsWShortage;
+  const stopper = hasBasicSuitStopper(context, overcall.strain as Suit);
+  const atMostThree = (suit: Suit): SuitBid | null => {
+    const next = cheapestBidInStrainAfter(responseBid ?? overcall, suit);
+    if (next === null) return null;
+    const bid = parseSuitBid(next);
+    return bid !== null && bid.level <= 3 && isCallAvailableInAuction(next, context.auction)
+      ? next : null;
+  };
+  if (kind === 'raise') {
+    if (points <= 15) return 'Pass';
+    if ((openingSuit === 'H' || openingSuit === 'S') && points >= 17) {
+      return `4${openingSuit}` as SuitBid;
+    }
+    return null;
+  }
+  // The existing preemptive major-game signoff already supplies Pass for this auction.
+  if (kind === 'majorGame') return null;
+  if (kind === 'notrumpThree') return hcp <= 17 ? 'Pass' : null;
+  if (kind === 'notrumpTwo') return hcp <= 13 ? 'Pass' : hcp <= 18 ? '3NT' : null;
+  if (kind === 'supportCuebid') return `4${openingSuit}` as SuitBid;
+  if (kind === 'negativeDouble') {
+    const implied = getNegativeDoubleImpliedSuits(opening, overcall);
+    const fit = implied.find((suit) => context.handFacts.lengths[suit] >= 4);
+    if (fit !== undefined) {
+      const bid = cheapestBidInStrainAfter(overcall, fit);
+      const parsed = bid === null ? null : parseSuitBid(bid);
+      if (bid === null || parsed === null || parsed.level > 4) return null;
+      return isCallAvailableInAuction(bid, context.auction) ? bid : null;
+    }
+    if (context.handFacts.lengths[openingSuit] >= 6) {
+      const repeat = atMostThree(openingSuit);
+      if (repeat !== null) return repeat;
+    }
+    return context.handFacts.balancedOrSemiBalanced && stopper && hcp >= 15 &&
+      isCallAvailableInAuction('3NT', context.auction) ? '3NT' : null;
+  }
+  if (responseBid === null || responseBid.strain === 'NT') return null;
+  const responseSuit = responseBid.strain as Suit;
+  const support = context.handFacts.lengths[responseSuit];
+  if (kind === 'newSuitThree') {
+    if ((responseSuit === 'H' || responseSuit === 'S') && support >= 3) {
+      return `4${responseSuit}` as SuitBid;
+    }
+    if (context.handFacts.balancedOrSemiBalanced && stopper &&
+        isCallAvailableInAuction('3NT', context.auction)) return '3NT';
+    if (responseSuit !== 'H' && responseSuit !== 'S' && support >= 4 &&
+        !context.handFacts.balancedOrSemiBalanced && !stopper) {
+      return `4${responseSuit}` as SuitBid;
+    }
+    return null;
+  }
+  // New suit at two is forcing for one round, but does not promise game values.
+  if (support >= 3) {
+    const raise = atMostThree(responseSuit);
+    if (raise !== null) return raise;
+  }
+  if (context.handFacts.lengths[openingSuit] >= 6) {
+    const repeat = atMostThree(openingSuit);
+    if (repeat !== null) return repeat;
+  }
+  if (context.handFacts.balanced && stopper) {
+    if (hcp >= 12 && hcp <= 14 && isCallAvailableInAuction('2NT', context.auction)) return '2NT';
+    if (hcp >= 18 && hcp <= 19 && isCallAvailableInAuction('3NT', context.auction)) return '3NT';
+  }
+  const second = SUITS.filter((suit) => suit !== openingSuit && suit !== responseSuit &&
+    suit !== overcall.strain && context.handFacts.lengths[suit] >= 4)
+    .map((suit) => ({ suit, bid: atMostThree(suit) }))
+    .filter((item) => {
+      if (item.bid === null) return false;
+      const bid = parseSuitBid(item.bid);
+      return bid !== null && (bid.level <= 2 || hcp >= 17) &&
+        (!openerRebidIsReverse(opening, responseBid, bid) || hcp >= 17);
+    })
+    .sort((a, b) => context.handFacts.lengths[b.suit] - context.handFacts.lengths[a.suit]);
+  return second[0]?.bid ?? null;
+}
+
+export function refineJumpOvercallOpenerAction (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const wanted = getJumpOvercallOpenerAction(context);
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: [wanted === null
+      ? 'No selected natural opener continuation; consult the auction-specific boundary.'
+      : `Selected opener description after a jump overcall: ${wanted}.`] };
+}
+
+export function jumpOvercallOpenerContinuationApplies (call: Call, context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const wanted = getJumpOvercallOpenerAction(context);
+  const success = wanted !== null && wanted === call;
+  return { success, telemetryLines: [success
+    ? `PASS: ${call} matches the selected response to partner's action over the jump overcall.`
+    : 'FAIL: this action does not match the selected continuation for the current hand.'] };
+}
+
+export function jumpOvercallOpenerBoundaryApplies (context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const applies = getJumpOvercallContinuation(context) !== null;
+  return { success: applies, telemetryLines: [applies
+    ? 'PASS: selected jump-overcall auction needs guidance when no natural rebid qualifies.'
+    : 'FAIL: not the selected jump-overcall continuation.'] };
+}
+
+
 /// refineNtStaymanReply selects the reply one level above a natural 1NT or 2NT opening.
 /// Separate declarative rules decide whether opener has no four-card major, hearts, or spades.
 export function refineNtStaymanReply (calls: Call[], context: RuleEvalContext): CallRefinementResult {

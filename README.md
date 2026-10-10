@@ -86,6 +86,15 @@ with a stopper. With no defensible fit or stopped NT action, explicit scope guid
 avoids inventing a game or penalty decision. These selected methods do not implement
 Lebensohl, penalty-oriented Doubles, or later competitive auctions.
 
+After a preemptive jump overcall of a one-level suit opening, selected opener rebids now
+answer responder's forcing negative Double, new suit, and support cuebid with a
+natural fit, economical descriptive suit, or stopped notrump. A minimum opener may
+Pass a nonforcing raise or 2NT invitation; higher values can bid a supported major
+game or accept the invitation. Natural game signoffs are normally passed. When a
+forcing response cannot be answered reliably, the trainer provides auction-specific
+scope guidance rather than invent a Pass. These cases assume the opposing advancer
+Passes; later competition remains on the A9 review list.
+
 Selected opener rebids after interference deliberately start where responder's meaning remains
 clear.  After responder's simple raise, opener can continue through selected advancer raises,
 preemptive raises, natural new suits, and responsive Doubles.  Natural forcing responder suits also

@@ -659,4 +659,101 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     east: { S: 'J95', H: 'AQJT98', D: 'JT9', C: 'T' },
     south: { S: 'K84', H: '72', D: 'K86', C: 'KQJ76' },
   },
+
+  // Selected A8 continuations after responder competes over a jump overcall.
+  {
+    description: '1H-(2S)-3H-(Pass)-Pass: a minimum opener accepts responder\'s nonforcing ' +
+                 'three-level raise rather than pushing to game.',
+    practiceAuction: ['1H', '2S', '3H', 'Pass', 'Pass'],
+    expectedResponseCalls: [{ call: '3H', ruleIds: ['respond-over-jump-raise-cheapest-to-three'] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-after-jump-overcall-nonforcing-pass',
+    ] }],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: 'T4', H: '752', D: 'KJ952', C: 'A62' },
+  },
+  {
+    description: '1C-(2D)-2S-(Pass)-3S: responder\'s forcing five-card spade suit ' +
+                 'needs only three-card opener support to establish a fit.',
+    practiceAuction: ['1C', '2D', '2S', 'Pass', '3S'],
+    expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-jump-new-suit-two-level'] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
+      'opener-rebid-after-jump-overcall-natural-suit',
+    ] }],
+    north: { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' },
+    east: { S: '84', H: 'T65', D: 'KQJT97', C: '92' },
+    south: { S: 'AJ963', H: 'K87', D: '42', C: 'K86' },
+  },
+  {
+    description: '1S-(3H)-Double-(Pass)-3S: without a four-card minor fit, opener ' +
+                 'can repeat six spades instead of inventing a negative-Double fit.',
+    practiceAuction: ['1S', '3H', 'Double', 'Pass', '3S'],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-jump-negative-double'] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
+      'opener-rebid-after-jump-overcall-natural-suit',
+    ] }],
+    north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
+    south: { S: '6', H: 'A43', D: 'KT942', C: 'KQ43' },
+  },
+  {
+    description: '1H-(2S)-3S-(Pass)-4H: the support cuebid shows hearts, not ' +
+                 'spades; opener returns directly to major game.',
+    practiceAuction: ['1H', '2S', '3S', 'Pass', '4H'],
+    expectedResponseCalls: [{ call: '3S', ruleIds: [
+      'respond-over-jump-support-cuebid-major',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '4H', ruleIds: [
+      'opener-rebid-after-jump-overcall-major-game',
+    ] }],
+    practiceGuidance: [{ auctionIndex: 4, seat: 'N',
+      text: 'South cuebid East\'s spades artificially to promise heart support. ' +
+            'North places the partnership in the agreed heart game.' }],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: '', H: 'Q75', D: 'KJ2', C: 'AKQJ632' },
+  },
+  {
+    description: '1H-(2S)-2NT-(Pass)-Pass: responder\'s stopped 12-HCP natural ' +
+                 '2NT invitation is declined with a minimum opening hand.',
+    practiceAuction: ['1H', '2S', '2NT', 'Pass', 'Pass'],
+    expectedResponseCalls: [{ call: '2NT', ruleIds: [
+      'respond-over-jump-natural-notrump',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'opener-rebid-after-jump-overcall-nonforcing-pass',
+    ] }],
+    north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
+    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
+    south: { S: 'KT', H: 'Q82', D: 'K976', C: 'KJ62' },
+  },
+  {
+    description: '1H-(2S)-3C-(Pass)-3NT: game-forcing natural clubs opposite a ' +
+                 'balanced opener with a spade stopper make 3NT a descriptive game.',
+    practiceAuction: ['1H', '2S', '3C', 'Pass', '3NT'],
+    expectedResponseCalls: [{ call: '3C', ruleIds: [
+      'respond-over-jump-new-suit-three-level',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-after-jump-overcall-natural-nt',
+    ] }],
+    north: { S: 'K3', H: 'AKT96', D: 'Q84', C: '754' },
+    east: { S: 'AQJ965', H: '43', D: 'K6', C: 'T86' },
+    south: { S: 'T7', H: 'Q7', D: 'AJ92', C: 'AKQJ9' },
+    west: { S: '842', H: 'J852', D: 'T753', C: '32' },
+  },
+  {
+    description: '1S-(3H)-Double-(Pass)-4C: opener has four clubs, so the negative ' +
+                 'Double finds an economical minor fit even though the call is at level four.',
+    practiceAuction: ['1S', '3H', 'Double', 'Pass', '4C'],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-jump-negative-double'] }],
+    expectedOpenerRebidCalls: [{ call: '4C', ruleIds: [
+      'opener-rebid-after-jump-overcall-natural-suit',
+    ] }],
+    north: { S: 'AKJ75', H: '82', D: '63', C: 'KQ72' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'T4' },
+    south: { S: 'Q64', H: 'A3', D: 'AQT4', C: 'AJ93' },
+    west: { S: 'T92', H: 'K4', D: 'KJ952', C: '865' },
+  },
 ];

@@ -41,42 +41,6 @@ needs an executable choice or specific scope guidance.
 
 ## A. Close existing advancing, responding, and opener-rebidding gaps
 
-- [x] **A1.** Ordinary advancer Pass after partner's natural non-jump one-/two-level
-  suit overcall when responder passes; make it a limited-strength fallback without a
-  qualifying raise, natural side suit, or notrump action. Add focused practice cases.
-- [x] **A1b.** Add ordinary overcaller Pass over modeled one-level suit openings,
-  opposing 1NT (DONT), and weak twos. Suppress Pass whenever another modeled
-  competitive action qualifies; leave unmodeled very strong hands unjudged.
-- [x] **A2.** Audit nearby advancing actions: alternative Doubles after responder's
-  natural suit/NT, cuebids when responder introduces a second suit, suitable NT
-  continuations (including direct natural 3NT after a one-level suit overcall), and
-  selected natural new suits. Selected natural NT additions are in place, while
-  specialized fourth-suit Doubles and additional cuebid agreements remain omitted.
-- [x] **A3.** Systematically compare instructional meanings with executable advancer
-  calls after responder raises, bids a new suit or NT, makes a negative Double, or
-  Redoubles. Added Pass after responder’s modeled preemptive jump raise/weak jump
-  shift, a stronger-hand judgment boundary, and selected NT after ordinary natural
-  actions. Further judgment-heavy alternatives remain deliberately outside scope.
-- [x] **A4.** Responder explicitly Passes uncontested natural four-/five-level
-  preempts. These are descriptive opening examples, not a high-level response system;
-  further bidding is left to judgment outside this treatment.
-- [x] **A5.** Removed the rare direct artificial 4NT Blackwood opening from executable
-  rules. Keep other, context-dependent meanings of 4NT intact; a direct 4NT
-  Blackwood opening remains outside scope.
-- [x] **A6.** Added selected natural strong-2C rebids after positive suit and balanced
-  2NT responses: economical major support, conditional unbalanced minor support,
-  longest natural five-card suit through the three level, and the minimum 22-24
-  balanced NT description. Extra balanced/slam-oriented or awkward hands receive
-  explicit scope guidance, not automatic game or slam placements. Responder's next
-  decision remains part of Phase C.
-- [x] **A7.** After natural two-level suit interference over our 1NT opening,
-  completed selected opener replies to takeout-oriented Double (four-card fit,
-  stopped natural NT, or explicit boundary), natural nonforcing two-level suits
-  (Pass, selected major invitation/game), and constructive three-level suits
-  (major game, stopped 3NT, or boundary). Existing 2NT invitation and 3NT signoff
-  are retained. Later high-judgment competition remains outside this chosen subset.
-- [ ] **A8.** Selected opener continuations after responder acts over a preemptive jump
-  overcall; decide on descriptive rebids, actual Passes, and auction-specific boundaries.
 - [ ] **A9.** Audit remaining competitive opener rebids after natural forcing responder
   suits and negative Doubles, including cases where advancer competes. Finish specific
   missing obligations without rebuilding already satisfactory families.
@@ -114,10 +78,6 @@ needs an executable choice or specific scope guidance.
 
 ## D. Opening position and balancing
 
-- [ ] **D1.** Document special third-seat lighter opening treatments as omitted;
-  do not add an executable 11-HCP third-seat system.
-- [ ] **D2.** Document fourth-seat Rule-of-15/pass-out considerations as omitted;
-  do not add special fourth-seat eligibility rules.
 - [ ] **D3.** Analyze balancing/reopening overcalls, reopening Doubles, and NT, plus
   necessary partner replies. Implement only the useful, deterministic subset.
 - [ ] **D4.** Reconcile that decision with already-present Pass-Pass reopening
@@ -147,10 +107,6 @@ needs an executable choice or specific scope guidance.
   The two `1D – 1NT – 2H` advancing fixtures now have explicit, qualifying East
   hands; continue checking other recorded calls against their actual hands.
   The hand-construction guidelines are in `docs/spec.md`, not fixture regression tests.
-- [x] **E6b.** Replace suit-order fill-in of unspecified opponents with a simple
-  reproducible shuffle and alternate dealing; keep fixed hands authoritative.
-  Display groups in model registry order: Rebidding, Opening, Responding,
-  Overcalling, Advancing, defaulting to the first ordinary rebid bucket.
 - [ ] **E6c.** Review practice boundaries where an opening-only example is followed
   by unrelated free bidding. Use optional per-call practice guidance sparingly
   when rule descriptions alone do not make the intended lesson clear.

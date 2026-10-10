@@ -37,6 +37,8 @@ import {
   strongTwoCPositiveMajorSupportApplies, strongTwoCPositiveMinorSupportApplies,
   strongTwoCPositiveBalancedNtApplies, strongTwoCPositiveScopeBoundaryApplies,
   refineWeakTwoFeatureRebid,
+  jumpOvercallOpenerContinuationApplies, jumpOvercallOpenerBoundaryApplies,
+  refineJumpOvercallOpenerAction,
   weakTwoFeatureAfterInquiryApplies, weakTwoRepeatAfterInquiryApplies, weakTwoSolidThreeNtApplies
 } from './opener-rebidding-functions';
 import { getResponderBid } from './common-rule-helpers';
@@ -448,7 +450,7 @@ export const OpenerRebidRules: BidRule[] = [
              'for responder’s takeout Double.',
     certainty: 'medium',
   },
-  // Responder's natural suit calls are nonforcing; partner has 8+ at the two level
+  // Responder\'s natural suit calls are nonforcing; partner has 8+ at the two level
   // or 10+ at the three level, so use a conservative signoff/invitation/game ladder.
   {
     id: 'opener-rebid-pass-after-1nt-interference-natural-suit',
@@ -652,6 +654,88 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerPreemptNewSuitRepeatApplies,
     meaning: "No three-card fit for responder's forcing suit; return to the preempt suit economically.",
     certainty: 'medium',
+  },
+  //
+  // A8: partner's natural and artificial continuations after an opposing jump preempt.
+  // Keep this separate from ordinary suit overcalls: passing a nonforcing raise is sensible,
+  // but a negative Double or forcing new suit requires a descriptive action or boundary.
+  {
+    id: 'opener-rebid-after-jump-overcall-nonforcing-pass',
+    kind: 'openerRebid',
+    title: 'Pass a minimum after responder competes over a jump overcall',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
+    calls: ['Pass'],
+    appliesWhen: jumpOvercallOpenerContinuationApplies,
+    callCategory: ['signoff'],
+    priority: { rank: 30 },
+    meaning: 'Pass a nonforcing three-level raise, natural 2NT invitation, or game signoff ' +
+             'when opener lacks sufficient extras to bid again.',
+    guidance: ['Do not pass a negative Double or a forcing new-suit response.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-after-jump-overcall-major-game',
+    kind: 'openerRebid',
+    title: 'Bid major game after strong support or a forcing response to a jump overcall',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
+    calls: ['4H', '4S'],
+    callRefinement: refineJumpOvercallOpenerAction,
+    appliesWhen: jumpOvercallOpenerContinuationApplies,
+    callCategory: ['natural'],
+    priority: { rank: 40 },
+    meaning: 'Show game-going major support when partner has identified a fit or forced game.',
+    guidance: ['A support cuebid is artificial: return to opener\'s agreed major, not the opponent suit.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-after-jump-overcall-natural-suit',
+    kind: 'openerRebid',
+    title: 'Describe a fit, long opening suit, or economical second suit after jump interference',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
+    calls: ['2H', '2S', '3C', '3D', '3H', '3S', '4C', '4D'],
+    callRefinement: refineJumpOvercallOpenerAction,
+    appliesWhen: jumpOvercallOpenerContinuationApplies,
+    callCategory: ['natural'],
+    priority: { rank: 35 },
+    meaning: 'Support a forcing suit, answer a negative Double, repeat a six-card opening ' +
+             'suit, or describe an eligible second suit; selected minor support is conditional.',
+    guidance: ['Choose the cheapest descriptive call; do not name the natural overcall suit. ' +
+               'A reverse needs extra values.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-after-jump-overcall-natural-nt',
+    kind: 'openerRebid',
+    title: 'Describe a stopped balanced hand or accept the 2NT invitation',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
+    calls: ['2NT', '3NT'],
+    callRefinement: refineJumpOvercallOpenerAction,
+    appliesWhen: jumpOvercallOpenerContinuationApplies,
+    callCategory: ['natural'],
+    priority: { rank: 30 },
+    meaning: 'Selected balanced natural notrump description or 3NT invitation acceptance.',
+    guidance: ['After a natural forcing suit or negative Double, opener must have a stopper ' +
+               'in the opposing preempt suit. Responder\'s natural 2NT already showed one.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-jump-overcall',
+    kind: 'scopeBoundary',
+    title: 'Competitive judgment after responder acts over a jump preempt',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
+    scopeBoundaryWhen: jumpOvercallOpenerBoundaryApplies,
+    meaning: 'Partner\'s response has a known natural or artificial meaning, but no ' +
+             'selected reliable opener continuation applies to this shape and strength.',
+    guidance: ['A negative Double or forcing new suit must not be passed just because ' +
+               'our limited continuation rules cannot place the contract.',
+               'With a minor fit, an uncertain stopper, or extra/slam-going strength, ' +
+               'choosing a game or further competition can depend on playing tricks and controls.'],
+    certainty: 'high',
   },
   //
   // Selected competitive opener rebids.  Natural responder meanings reuse explicitly opted-in

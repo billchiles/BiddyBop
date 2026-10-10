@@ -184,6 +184,30 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       return (responseBid.level === 2 || responseBid.level === 3) &&
         cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
+    if (interference === 'jumpSuitOvercall') {
+      // A8 models the first opener continuation after responder's selected action and
+      // advancer Pass. Reopening after responder Pass and later competition stay separate.
+      if (advance !== 'Pass' || response === 'Pass') return false;
+      const overcallBid = parseSuitBid(overcall);
+      if (overcallBid === null || overcallBid.strain === 'NT' ||
+          (overcallBid.level !== 2 && overcallBid.level !== 3)) return false;
+      if (response === 'Double') return true;
+      const responseBid = parseSuitBid(response);
+      if (responseBid === null) return false;
+      if (responseBid.strain === 'NT') return response === '2NT' || response === '3NT';
+      if (responseBid.strain === openingBid.strain) {
+        return (responseBid.level === 3 &&
+                cheapestBidInStrainAfter(overcallBid, openingBid.strain) === response) ||
+          (responseBid.level === 4 && (openingBid.strain === 'H' || openingBid.strain === 'S'));
+      }
+      if (responseBid.strain === overcallBid.strain) {
+        return overcallBid.level === 2 && responseBid.level === 3 &&
+          (openingBid.strain === 'H' || openingBid.strain === 'S') &&
+          cheapestBidInStrainAfter(overcallBid, overcallBid.strain) === response;
+      }
+      return (responseBid.level === 2 || responseBid.level === 3) &&
+        cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
+    }
     if (interference === 'takeoutDouble') {
       const responseBid = parseSuitBid(response);
       if (advance !== 'Pass') {
@@ -321,7 +345,7 @@ export function getOpponentNaturallyBidSuitsForOpenerRebid (dealer: Seat, auctio
   if (opening === null) return [];
   const suits = new Set<Suit>();
   const interference = getInterferenceAfterOpening(dealer, auction);
-  if (interference === 'suitOvercall') {
+  if (interference === 'suitOvercall' || interference === 'jumpSuitOvercall') {
     const overcallCall = auction[opening.index + 1];
     const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
     if (overcall !== null && overcall.strain !== 'NT') suits.add(overcall.strain as Suit);
