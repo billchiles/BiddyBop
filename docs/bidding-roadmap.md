@@ -41,9 +41,6 @@ needs an executable choice or specific scope guidance.
 
 ## B. Complete selected overcaller and takeout-Doubler rebids
 
-
-- [ ] **B8.** Selected overcaller continuation when the opponents' responder also
-  acts, without opening an unrestricted competitive bidding tree.
 - [ ] **B9.** Ordinary takeout Double -> selected continuations after forced advances.
 - [ ] **B10.** Strong takeout Double -> modeled Double-then-suit or Double-then-NT
   descriptions, with relevant strength distinctions and deliberate boundaries.

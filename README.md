@@ -71,8 +71,11 @@ means we considered the area and deliberately chose not to model it as part of t
 | Three-level preempt | Partial (done): selected responses | Omitted | Partial (done): selected continuations | Omitted |
 | Natural four-/five-level preempt | Partial (done): Pass only | Omitted | Omitted | Omitted |
 
-The omitted responder-interference areas above are deliberate scope boundaries, not claims that
-every ordinary response becomes wrong whenever an opponent acts.
+The omitted responses after interference are intentional limits of the app. Once opponents
+interfere, further bidding can require different partnership agreements, more judgment, and
+complicated decisions with less bidding room. The app provides general guidance in some of
+these situations, even when it cannot recommend a specific bid. The reasons for these
+omissions are explained below.
 
 **After a 2NT opening**, some partnerships may keep familiar conventions available after a Double,
 but Pass and Redouble acquire different meanings and suit interference quickly becomes
@@ -104,15 +107,16 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 
 | Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
 | --- | --- | --- | --- | --- |
-| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Incomplete: natural 1NT and selected suit continuations; Double and further competitive rebids planned |
-| Strong 1NT | Done: compact DONT | Done: basic DONT pass/correct | Omitted | Done: required compact DONT corrections |
+| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Incomplete: natural 1NT and selected suit continuations, including after responder acts; takeout-Doubler rebids planned |
+| Strong 1NT | Done: DONT (Disturb Opponents' NoTrump) | Done: basic responses to DONT | Omitted | Done: partner's basic DONT follow-up bids |
 | Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Incomplete: 2NT convention replies done; selected competitive rebids planned |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
 Natural 1NT overcalls show 15–18 HCP, while advancer uses the same conventions and strength
-thresholds as for a 1NT opening under the configured 15–17 or 16–18 setting. This is an
-intentional simplification rather than a separate overcall response system.
+requirements as responses to a 1NT opening, according to the configured 15–17 or 16–18 setting.
+This avoids creating a separate set of overcaller–advancer bidding rules for a small strength
+difference that adds little practice value.
 
 Against a strong 1NT opening, the trainer teaches the basic compact DONT interference but stops
 before later competitive continuations.  Weak-two defenses include selected advances and immediate
@@ -125,9 +129,9 @@ judgment-heavy.
 
 | Partner's intervention | Responder passes | Responder raises opener | Responder bids a new suit / NT | Responder Doubles / Redoubles |
 | --- | --- | --- | --- | --- |
-| One-level natural suit overcall | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural suits and selected NT | Done |
-| Two-level natural suit overcall | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural new suit and selected NT | Partial (done): where the negative Double treatment applies |
-| Takeout Double | Done | Partial (done): simple raises; weak jump-raise Pass/boundary | Partial (done): natural suits/NT and weak jump-shift Pass | Done |
+| One-level natural suit overcall | Done | Partial (done): actions after simple raises; Pass or guidance after weak jump raises | Partial (done): natural suits and selected NT | Done |
+| Two-level natural suit overcall | Done | Partial (done): actions after simple raises; Pass or guidance after weak jump raises | Partial (done): natural new suit and selected NT | Partial (done): where the negative Double treatment applies |
+| Takeout Double | Done | Partial (done): actions after simple raises; Pass or guidance after weak jump raises | Partial (done): natural suits/NT; Pass after weak jump shifts | Done |
 | Natural 1NT overcall | Done: normal 1NT systems | Partial (done): natural two-level suit interference | Partial (done): natural two-level suit interference | Omitted |
 | Preemptive jump overcall | Done | Omitted | Omitted | Omitted |
 
