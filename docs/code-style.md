@@ -89,6 +89,9 @@ when the wrapper is used once and contributes no additional logic.
 - Use line-oriented comments only.
 - Use `///` for top-level comments.
 - Use `//` for comments inside indented code.
+- Use a single `//// Descriptive section title` line to mark logical sections in large files.
+- Section titles should describe lasting code organization, not patch or chat work-item labels.
+- Preserve standalone `//` separators between related rule declarations when the file uses them.
 - Do not use block comments.
 - Comments should explain purpose, domain meaning, assumptions, inputs/outputs when useful, and important invariants.
 - Explain why something exists or why a non-obvious choice is correct.

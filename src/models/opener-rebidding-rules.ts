@@ -48,6 +48,7 @@ import { getResponderBid } from './common-rule-helpers';
 
 
 export const OpenerRebidRules: BidRule[] = [
+  //// Strong 2C -- After the 2D waiting response
   // Opener's first rebid after the artificial 2D waiting response to strong 2C.
   {
     id: 'opener-rebid-2nt-after-2c-2d',
@@ -101,6 +102,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Strong 2C -- After a positive response
   // Strong 2C followed by a positive suit or balanced 2NT response is already game-forcing.
   // Keep the opener's first description natural and economical; subsequent slam evaluation
   // belongs to responder's rebid or an explicit judgment boundary, not an automatic jump.
@@ -189,6 +191,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Notrump openings -- Stayman, transfers, and signoffs
   // These immediate, uncontested rebids apply to natural 1NT and 2NT alike.
   // Stayman shows hearts first with both four-card majors.
   {
@@ -292,6 +295,7 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Without Jacoby transfers, 2H and 2S are natural weak signoffs.',
     certainty: 'high',
   },
+  //// 1NT opening -- Natural minor invitations
   // A natural 1NT-3m invitation is about fitting honor strength, not simply minimum/maximum.
   {
     id: 'opener-rebid-pass-after-1nt-3-minor-invitation',
@@ -322,6 +326,7 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['The fitting honor, rather than raw opener HCP, is the executable acceptance test.'],
     certainty: 'high',
   },
+  //// Notrump openings -- Natural three-major response
   // Natural 3M with Jacoby off is a choice of games: two-card support favors 3NT, 3+ favors 4M.
   {
     id: 'opener-rebid-3nt-after-nt-natural-3-major',
@@ -352,6 +357,7 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Three-card support establishes the known eight-card major fit; choose the major game.',
     certainty: 'high',
   },
+  //// 1NT opening -- Direct major slam interest
   // With transfers on, direct 1NT-3M is the existing slam-interest treatment.  4M always remains
   // available; middle-or-better opener values may cooperate by showing the cheapest side control.
   {
@@ -389,6 +395,7 @@ export const OpenerRebidRules: BidRule[] = [
                'This is modest control bidding, not Gerber or Blackwood.'],
     certainty: 'medium',
   },
+  //// 2NT opening -- Natural forcing minor response
   // A strong natural 3m over 2NT is forcing; 3NT is the basic continuation rather than Pass.
   {
     id: 'opener-rebid-3nt-after-2nt-natural-3-minor',
@@ -405,6 +412,7 @@ export const OpenerRebidRules: BidRule[] = [
                'machinery is not modeled in this treatment.'],
     certainty: 'medium',
   },
+  //// 1NT opening -- Opener after responder's takeout Double
   // After a natural suit overcall of our 1NT, responder's takeout Double promises
   // unbid-suit length.  It is not a penalty Double, and opener must describe a fit
   // or a stopped NT hand rather than pass the Double.
@@ -453,6 +461,7 @@ export const OpenerRebidRules: BidRule[] = [
              'for responder’s takeout Double.',
     certainty: 'medium',
   },
+  //// 1NT opening -- Natural suit responses after interference
   // Responder\'s natural suit calls are nonforcing; partner has 8+ at the two level
   // or 10+ at the three level, so use a conservative signoff/invitation/game ladder.
   {
@@ -513,6 +522,7 @@ export const OpenerRebidRules: BidRule[] = [
                'or agreed trump fit the exact strain requires additional bidding methods.'],
     certainty: 'high',
   },
+  //// Notrump openings -- Natural and quantitative invitations
   // Natural invitations are not signoffs: minimums decline, maximums accept, and
   // the middle strength deliberately offers both choices with judgment guidance.
   {
@@ -583,6 +593,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Weak preempts -- 2NT inquiry and forcing new suits
   // Weak-preempt continuations.  The 2NT inquiry has explicit minimum/maximum messages; natural
   // forcing new-suit responses are answered economically with support or by returning to the
   // preempt suit.
@@ -659,7 +670,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
-  // A8: partner's natural and artificial continuations after an opposing jump preempt.
+  //// Suit openings -- Responder after an opposing jump overcall
   // Keep this separate from ordinary suit overcalls: passing a nonforcing raise is sensible,
   // but a negative Double or forcing new suit requires a descriptive action or boundary.
   {
@@ -745,6 +756,7 @@ export const OpenerRebidRules: BidRule[] = [
   // uncontested rules where competition has not changed the call; these declarations cover
   // artificial or level-sensitive competitive meanings that need their own opener treatment.
   //
+  //// Competitive suit-opening rebids -- Responder's negative Double
   // Responder's negative Double is one coordinated opener-rebid family.  It asks opener first
   // to look for a four-card fit in the suit or suits the Double implied; if no such fit exists,
   // opener can still describe a six-card opening suit or the ordinary balanced NT ranges.  With
@@ -974,6 +986,7 @@ export const OpenerRebidRules: BidRule[] = [
     ],
     certainty: 'high',
   },
+  //// Competitive suit-opening rebids -- Strength Redouble
   // A strength-showing Redouble does not force opener to choose a new strain.  With advancer
   // passing, opener can wait and leave the Redouble in force; the doubler still has another turn.
   {
@@ -994,6 +1007,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Forcing two-level new suit
   // A natural two-level new-suit response after a suit overcall is forcing one round but is not
   // automatically game forcing, regardless of the partnership's uncontested 2/1 setting.  This
   // selected opener family therefore mirrors the useful Standard descriptive branches without
@@ -1133,6 +1147,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Forcing suit after further competition
   // After responder makes a natural forcing suit bid and advancer then competes naturally, opener
   // does not mechanically preserve the old uncontested ladder.  Keep only calls whose descriptive
   // meaning remains clear at the new level: support below game, a six-card opening suit below game,
@@ -1336,6 +1351,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Support cuebid and Jordan 2NT
   // A support cuebid and Jordan 2NT are both artificial limit-or-better raises.  The forcing
   // responder can continue over opener's minimum rebid, so opener need only distinguish a clear
   // minimum from values that guarantee game opposite the treatment's minimum support strength.
@@ -1406,6 +1422,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Natural notrump responses
   // Natural notrump responses after a suit overcall keep their stated balanced/stopped meaning;
   // they are not forcing 1NT, Jacoby 2NT, or another uncontested convention.  This selected
   // continuation keeps the clearest partscore/game decisions and stops explicitly when extra
@@ -1560,8 +1577,9 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  // A9: advancer's cheapest cuebid of opener's suit is artificial, after responder's simple
-  // raise. A minimum can defend; game with extras is selected only when clearly justified.
+  //// Competitive suit-opening rebids -- Advancer's artificial support cuebid
+  // After responder's simple raise, a minimum can defend; game with extras is selected only
+  // when clearly justified.
   {
     id: 'opener-rebid-pass-after-advancer-support-cuebid',
     kind: 'openerRebid',
@@ -1606,6 +1624,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Game-forcing three-level new suit
   // A competitive three-level natural new suit is explicitly game forcing.  Preserve the two
   // clearest destinations: a known major fit or 3NT when opener has the shape and stopper(s).
   {
@@ -1676,6 +1695,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Weak jump raises
   // Competitive jump raises are weak/preemptive, not uncontested limit raises.  A minimum opener
   // normally leaves the three-level preempt in place; extras require judgment because responder's
   // range is intentionally wide on the weak side.
@@ -1747,6 +1767,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Redouble runouts and reopening judgment
   // Responder's strength Redouble can lead to a weak advancer runout.  Whether opener should
   // Double for penalties, Pass, or continue constructively is deliberately outside the project's
   // penalty-oriented model.  Responder Pass followed by advancer Pass is the analogous runout/
@@ -1786,6 +1807,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- After an opposing natural 1NT overcall
   // After an opposing natural 1NT overcall, responder's two-level suit and jump raise are weak,
   // nonforcing actions.  Keep a clear minimum Pass; stronger hands are explicitly judgmental
   // rather than inheriting uncontested 2/1 or limit-raise meanings.
@@ -1877,6 +1899,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Competitive suit-opening rebids -- Nonforcing responses after takeout Double
   // Weak two-/three-level new suits, weak jump raises, and natural 1NT after a takeout Double are
   // explicitly nonforcing.  A clear minimum opener may therefore Pass rather than manufacture a
   // continuation; stronger hands remain available for later, more specific treatment.
@@ -1938,6 +1961,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   //
+  //// Minor opening -- After responder bids 1NT
   // The following rules are opener rebids after a one-level minor opening and 1NT response.
   //
   {
@@ -2103,6 +2127,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Minor opening -- After a one-level new-suit response
   // The following rules are opener rebids after a minor opening and one-level new-suit response.
   //
   {
@@ -2341,6 +2366,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// 1D opening -- Standard 2C response
   // The following rules are opener rebids after 1D-2C.  Standard treats the response as forcing
   // one round; 2/1 is already game forcing, so opener describes shape economically.
   //
@@ -2509,6 +2535,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
 
   //
+  //// 1D opening -- 2/1 game-forcing 2C response
   // In the 2/1 version of 1D-2C, game is already forced.  Follow the chosen natural treatment:
   // rebid 2D with five or more diamonds; otherwise show a four-card major up the line; otherwise
   // usually rebid 2NT, with 3C available when notrump is unattractive.
@@ -2594,6 +2621,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- After responder bids 1NT
   // The following rules are opener rebids after a major opening and 1NT response.
   //
   {
@@ -2758,6 +2786,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// 1H opening -- After responder bids 1S
   // The following rules are opener rebids after a major opening and one-level new-suit response.
   // For five-card majors this family is 1H-1S.
   //
@@ -2978,6 +3007,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- Standard two-level new-suit response
   // The following rules are opener rebids after a major opening and Standard two-level new-suit
   // response.  Responder has forced one round but has not forced to game.
   //
@@ -3203,6 +3233,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- 2/1 game-forcing new-suit response
   // The following rules are opener rebids after a major opening and 2/1 game-forcing new-suit
   // response.  Game is already forced, so opener describes shape economically and can show extra
   // strength later rather than jumping merely to advertise strength.
@@ -3291,6 +3322,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Minor opening -- Simple and limit raises
   // The following rules are opener rebids after responder raises a minor opening.
   // Standard natural raises are used here: a single raise is minimum, and a jump raise is
   // invitational.  Inverted minors and their stopper-showing continuations are not modeled.
@@ -3441,6 +3473,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  //// Minor opening -- Natural invitational 2NT response
   // The following rules are opener rebids after a natural invitational 2NT response to a minor.
   // Responder has shown 11-12 HCP, balanced shape, and no four-card major.
   //
@@ -3486,6 +3519,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- Jacoby 2NT raise
   // The following rules are opener rebids after an artificial Jacoby 2NT game-forcing raise.
   // Distribution is described before generic strength: three-level new suits show shortness,
   // four-level new suits show a good five-card-or-longer side suit, and otherwise opener uses
@@ -3598,6 +3632,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- Responder's splinter
   // The following rules are opener continuations after responder makes a double-jump splinter.
   // Responder has shown 4+ major support, 13-15 support points, and singleton/void in the bid suit.
   // Four of the agreed major always remains available.  With enough working high-card strength,
@@ -3655,6 +3690,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'medium',
   },
   //
+  //// Suit opening -- Weak and strong jump shifts
   // The following rules are opener continuations after responder makes a single-jump new-suit
   // response.  Under the weak agreement the bid is preemptive and normally ends the auction.
   // Under the classic strong agreement game is already forced, so opener describes fit and shape
@@ -3755,6 +3791,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Suit opening -- Responder's game-level signoffs
   // The following rules are opener continuations after responder places the contract in game.
   // Direct 3NT responses are natural signoffs; Pass remains visible even when a strong opener can
   // make a quantitative slam try.  The direct major 3NT treatment already promises three-card
@@ -3855,6 +3892,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
 
   //
+  //// Major opening -- Four-card limit raise
   // The following rules are opener rebids after responder makes a four-card limit raise of a major.
   // Responder has shown 11-12 support points, so 13 support points is deliberately a judgment case.
   //
@@ -3900,6 +3938,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
 
   //
+  //// Major opening -- Simple raise and selected continuations
   // The following rules are opener rebids after responder raises a major opening to two.
   //
   {
@@ -4004,6 +4043,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Suit opening -- Simple raise with further competition
   // Once advancer makes a new natural suit, a preemptive raise, or a responsive Double,
   // medium 17-18-point hands no longer have a deterministic version of the ordinary game try.
   // Keep the auction teachable by stopping with hand-specific guidance rather than inventing a bid.
@@ -4029,6 +4069,7 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Major opening -- Optional splinter after a simple raise
   {
     id: 'opener-rebid-splinter-after-major-simple-raise',
     kind: 'openerRebid',
