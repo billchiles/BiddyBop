@@ -6,6 +6,7 @@ import {
   naturalNotrumpOvercallApplies, naturalOneNtOvercallerInvitationApplies,
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
+  naturalSuitOvercallerRebidApplies, naturalSuitOvercallerRebidBoundaryApplies,
   ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
   refineNaturalOneNtOvercallJacoby, refineNaturalOneNtOvercallStayman,
   refineNaturalOneNtOvercallTexas,
@@ -206,6 +207,228 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Advancer made a forcing ace inquiry or forcing 5NT slam invitation.',
     guidance: ['Gerber ace replies and forcing 5NT continuations are deliberately not modeled. ' +
                'Do not treat this as a signoff or an automatic Pass.'],
+    certainty: 'high',
+  },
+  //
+  //// Natural suit overcall -- After advancer's ordinary or weak raise
+  // A simple raise is nonforcing. Preserve a preemptive jump raise as a signoff, except
+  // when an unusually strong overcaller needs judgment about possible game.
+  {
+    id: 'overcaller-rebid-suit-raise-pass', kind: 'overcallerRebid',
+    title: 'Pass an ordinary or weak raise of a natural suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'raise-pass'),
+    callCategory: ['signoff'],
+    meaning: 'Pass the nonforcing raise with ordinary overcall values.',
+    guidance: ['A weak jump raise is preemptive, not invitational.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-suit-raise-invite', kind: 'overcallerRebid',
+    title: 'Invite game after a simple major-suit raise',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3H', '3S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'raise-invite'),
+    callCategory: ['natural', 'invitational'],
+    meaning: 'Invite game with extras after a constructive raise of a one-level major overcall.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-suit-raise-game', kind: 'overcallerRebid',
+    title: 'Bid major game after constructive overcall support',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['4H', '4S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'raise-game'),
+    callCategory: ['natural', 'signoff'],
+    meaning: 'Choose major game with a strong six-card overcall and a known fit.',
+    certainty: 'high',
+  },
+  //
+  //// Natural suit overcall -- After a forcing support cuebid
+  // The cuebid promises support and forces one reply, but does not promise game.
+  {
+    id: 'overcaller-rebid-cuebid-return', kind: 'overcallerRebid',
+    title: 'Describe a minimum overcall by returning to partner’s supported suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-return'),
+    callCategory: ['natural'],
+    meaning: 'Return economically to the overcalled suit after the forcing support cuebid.',
+    guidance: ['The cuebid is artificial and shows 11+ support points; this return is not a signoff.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-cuebid-invite', kind: 'overcallerRebid',
+    title: 'Show extras after a support cuebid of a one-level major overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3H', '3S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-invite'),
+    callCategory: ['natural', 'invitational'],
+    meaning: 'Show more than a minimum overcall after advancer’s artificial support cuebid.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-cuebid-game', kind: 'overcallerRebid',
+    title: 'Show a strong major overcall after a forcing support cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['4H', '4S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-game'),
+    callCategory: ['natural'],
+    meaning: 'Bid major game with substantial extras and a six-card trump suit.',
+    certainty: 'high',
+  },
+  //
+  //// Natural suit overcall -- After a constructive new suit
+  // One-level new suits are nonforcing; economical two-/three-level new suits are forcing
+  // under this trainer's chosen advancing agreements.
+  {
+    id: 'overcaller-rebid-new-suit-pass', kind: 'overcallerRebid',
+    title: 'Pass advancer’s nonforcing one-level new suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-pass'),
+    callCategory: ['signoff'],
+    meaning: 'Pass a nonforcing one-level advance with ordinary overcall values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-new-suit-support', kind: 'overcallerRebid',
+    title: 'Raise advancer’s natural five-card suit with three-card support',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S', '4H', '4S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-support'),
+    callCategory: ['natural'],
+    meaning: 'Support a five-card advancer suit when an eight-card fit is known.',
+    guidance: ['A two-/three-level new suit is forcing one round; do not Pass it.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-new-suit-repeat', kind: 'overcallerRebid',
+    title: 'Repeat a six-card overcall suit without support for advancer',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S', '4H', '4S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-repeat'),
+    callCategory: ['natural'],
+    meaning: 'Repeat the original six-card overcall suit when partner has forced a description.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-new-suit-nt', kind: 'overcallerRebid',
+    title: 'Describe a suitable balanced hand in notrump after a forcing new suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2NT', '3NT'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-nt'),
+    callCategory: ['natural'],
+    meaning: 'Describe strength in natural NT with a stopper in opener’s suit and no known fit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-new-suit-second', kind: 'overcallerRebid',
+    title: 'Show a second good five-card suit after a forcing new-suit advance',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-second-suit'),
+    callCategory: ['natural'],
+    meaning: 'Describe a second five-card suit with sufficient strength and no advancer fit.',
+    certainty: 'high',
+  },
+  //
+  //// Natural suit overcall -- After natural notrump advances
+  {
+    id: 'overcaller-rebid-nt-pass', kind: 'overcallerRebid',
+    title: 'Pass a natural 1NT/2NT or 3NT advance with suitable values',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-pass'),
+    callCategory: ['signoff'],
+    meaning: 'Decline a natural notrump invitation or accept a game signoff.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-nt-invite', kind: 'overcallerRebid',
+    title: 'Invite in 2NT after advancer’s natural 1NT',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['2NT'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-invite'),
+    callCategory: ['natural', 'invitational'],
+    meaning: 'Invite game with extras opposite 8–11 balanced points.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-nt-game', kind: 'overcallerRebid',
+    title: 'Bid 3NT with substantial extras after a natural NT advance',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    calls: ['3NT'],
+    appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-game'),
+    callCategory: ['natural', 'signoff'],
+    meaning: 'Bid natural 3NT with sufficient overcall strength to accept game.',
+    certainty: 'high',
+  },
+  //
+  //// Natural suit overcall -- Judgment boundaries
+  {
+    id: 'overcaller-rebid-support-cuebid-boundary', kind: 'scopeBoundary',
+    title: 'Further strength and fit decisions after advancer’s forcing support cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    scopeBoundaryWhen: (context) =>
+      naturalSuitOvercallerRebidBoundaryApplies(context, 'supportCuebid'),
+    meaning: 'Advancer’s artificial cuebid promised support and requires an overcaller reply.',
+    guidance: ['The overcall does not fit the selected minimum return or strong major description. ' +
+               'Pass cannot satisfy the cuebid’s force; further strength and game judgment ' +
+               'remain outside the modeled replies.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-forcing-new-suit-boundary', kind: 'scopeBoundary',
+    title: 'Describe an awkward hand after advancer’s forcing new suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    scopeBoundaryWhen: (context) =>
+      naturalSuitOvercallerRebidBoundaryApplies(context, 'forcingNewSuit'),
+    meaning: 'Advancer’s economical two-/three-level new suit is forcing one round.',
+    guidance: ['No selected support, long-suit repetition, natural NT, or second-suit description ' +
+               'fits this hand. Do not Pass a forcing advance merely because the app has no ' +
+               'specific natural recommendation.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-nonforcing-boundary', kind: 'scopeBoundary',
+    title: 'Judgmental improvement after a nonforcing advance',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'suitOvercall' },
+    scopeBoundaryWhen: (context) =>
+      naturalSuitOvercallerRebidBoundaryApplies(context, 'nonforcing'),
+    meaning: 'The raise, natural notrump, or one-level new suit does not require overcaller to bid.',
+    guidance: ['With substantial extras, deciding whether to invite, bid game, or stop can depend ' +
+               'on playing strength, suit quality, and partnership judgment.'],
     certainty: 'high',
   },
   //

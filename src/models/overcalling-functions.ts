@@ -130,6 +130,178 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
 }
 
 ///
+//// Natural Suit Overcall -- Responses to Advancer's First Call
+///
+/// Model overcaller's second call only after a non-jump natural one- or two-level overcall of
+/// an opposing one-level suit opening. Both players on the opening side must pass. The
+/// initial advance is classified against the *actual* bidding space: a cuebid is artificial,
+/// and a new suit is forcing here only when advancer had to bid at level two or three.
+type SuitOvercallerAdvance = {
+  opening: Suit;
+  suit: Suit;
+  level: 1 | 2;
+  advance: Call;
+  advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
+    'nonforcingNewSuit' | 'forcingNewSuit' | 'oneNt' | 'twoNt' | 'threeNt';
+  advanceSuit: Suit | null;
+  advanceBid: NonNullable<ReturnType<typeof parseSuitBid>>;
+};
+
+function getSuitOvercallerAdvance (context: RuleEvalContext): SuitOvercallerAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 2] !== 'Pass' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const openingBid = parseSuitBid(info.call);
+  const overcallCall = context.auction[info.index + 1] ?? 'Pass';
+  const overcall = parseSuitBid(overcallCall);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const advanceBid = parseSuitBid(advance);
+  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' ||
+      (overcall.level !== 1 && overcall.level !== 2) ||
+      cheapestBidInStrainAfter(openingBid, overcall.strain) !== overcallCall ||
+      advanceBid === null) return null;
+  const opening = openingBid.strain as Suit;
+  const suit = overcall.strain as Suit;
+  const level = overcall.level as 1 | 2;
+  let advanceKind: SuitOvercallerAdvance['advanceKind'] | null = null;
+  let advanceSuit: Suit | null = null;
+  if (advanceBid.strain === 'NT') {
+    if (advance === '1NT' && level === 1) advanceKind = 'oneNt';
+    if (advance === '2NT') advanceKind = 'twoNt';
+    if (advance === '3NT') advanceKind = 'threeNt';
+  } else if (advanceBid.strain === suit) {
+    if (advanceBid.level === level + 1) advanceKind = 'simpleRaise';
+    if (level === 1 && advanceBid.level === 3) advanceKind = 'weakJumpRaise';
+  } else if (advanceBid.strain === opening &&
+             cheapestBidInStrainAfter(overcall, opening) === advance) {
+    advanceKind = 'supportCuebid';
+  } else if (advanceBid.strain !== opening && advanceBid.strain !== suit &&
+             cheapestBidInStrainAfter(overcall, advanceBid.strain) === advance) {
+    advanceKind = advanceBid.level === 1 && level === 1 ?
+      'nonforcingNewSuit' : 'forcingNewSuit';
+    advanceSuit = advanceBid.strain as Suit;
+  }
+  return advanceKind === null ? null :
+    { opening, suit, level, advance, advanceKind, advanceSuit, advanceBid };
+}
+
+/// The shared bid selector below keeps one physical-auction definition for each continuation.
+/// Each treatment retains a separate BidRule and user-facing meaning; boundaries apply only
+/// when none of the selected descriptive actions can be recommended.
+type NaturalSuitRebidTreatment = 'raise-pass' | 'raise-invite' | 'raise-game' |
+  'cue-return' | 'cue-invite' | 'cue-game' | 'new-pass' | 'new-support' | 'new-repeat' |
+  'new-nt' | 'new-second-suit' | 'nt-pass' | 'nt-invite' | 'nt-game';
+
+export function naturalSuitOvercallerRebidApplies (
+    call: Call, context: RuleEvalContext, treatment: NaturalSuitRebidTreatment): AppliesWhenResult {
+  const info = getSuitOvercallerAdvance(context);
+  if (info === null) return { success: false, telemetryLines: [
+    'FAIL: requires a natural non-jump suit overcall, modeled advance, and opposing Passes.',
+  ] };
+  const hcp = context.handFacts.hcp;
+  const ownLength = context.handFacts.lengths[info.suit];
+  const other = info.advanceSuit;
+  const support = other === null ? 0 : context.handFacts.lengths[other];
+  const cheapest = (suit: Suit): Call | null =>
+    cheapestBidInStrainAfter(info.advanceBid, suit);
+  const major = info.suit === 'H' || info.suit === 'S';
+  const stopped = hasBasicSuitStopper(context, info.opening);
+  const balanced = context.handFacts.balancedOrSemiBalanced;
+  let success = false;
+  switch (treatment) {
+    case 'raise-pass':
+      success = (info.advanceKind === 'simpleRaise' &&
+                   (hcp <= (info.level === 1 ? 13 : 15) || ! major)) ||
+        (info.advanceKind === 'weakJumpRaise' && hcp <= 15);
+      success = success && call === 'Pass';
+      break;
+    case 'raise-invite':
+      success = info.advanceKind === 'simpleRaise' && info.level === 1 && major &&
+        hcp >= 14 && hcp <= 15 && ownLength >= 5 && call === cheapest(info.suit);
+      break;
+    case 'raise-game':
+      success = info.advanceKind === 'simpleRaise' && major && ownLength >= 6 &&
+        hcp >= 16 && call === `4${info.suit}`;
+      break;
+    case 'cue-return':
+      success = info.advanceKind === 'supportCuebid' &&
+        (hcp <= (info.level === 1 ? 13 : 15) || ! major) &&
+        call === cheapest(info.suit);
+      break;
+    case 'cue-invite':
+      success = info.advanceKind === 'supportCuebid' && info.level === 1 && major &&
+        hcp >= 14 && hcp <= 15 && call === `3${info.suit}` &&
+        cheapest(info.suit) === `2${info.suit}`;
+      break;
+    case 'cue-game':
+      success = info.advanceKind === 'supportCuebid' && major && ownLength >= 6 &&
+        hcp >= 16 && call === `4${info.suit}`;
+      break;
+    case 'new-pass':
+      success = info.advanceKind === 'nonforcingNewSuit' && hcp <= 12 && call === 'Pass';
+      break;
+    case 'new-support':
+      success = (info.advanceKind === 'nonforcingNewSuit' && hcp >= 13 ||
+                 info.advanceKind === 'forcingNewSuit') && support >= 3 &&
+        other !== null && call === cheapest(other) &&
+        (other === 'H' || other === 'S' ||
+         parseSuitBid(call)?.level !== undefined && parseSuitBid(call)!.level <= 3);
+      break;
+    case 'new-repeat':
+      success = (info.advanceKind === 'forcingNewSuit' ||
+                 info.advanceKind === 'nonforcingNewSuit' && hcp >= 14) &&
+        support < 3 && ownLength >= 6 && call === cheapest(info.suit);
+      break;
+    case 'new-nt':
+      success = info.advanceKind === 'forcingNewSuit' && support < 3 &&
+        ownLength < 6 && balanced && stopped &&
+        ((call === '2NT' && hcp >= 13 && hcp <= 15 &&
+          cheapestBidInStrainAfter(info.advanceBid, 'NT') === '2NT') ||
+         (call === '3NT' && hcp >= 16 &&
+          (cheapestBidInStrainAfter(info.advanceBid, 'NT') === '2NT' ||
+           cheapestBidInStrainAfter(info.advanceBid, 'NT') === '3NT')));
+      break;
+    case 'new-second-suit':
+      success = info.advanceKind === 'forcingNewSuit' && support < 3 && ownLength < 6 &&
+        hcp >= 15 && SUITS.some((suit) => suit !== info.suit && suit !== info.opening &&
+          suit !== other && context.handFacts.lengths[suit] >= 5 &&
+          call === cheapest(suit) && (parseSuitBid(call)?.level ?? 8) <= 3);
+      break;
+    case 'nt-pass':
+      success = call === 'Pass' && (info.advanceKind === 'threeNt' ||
+        info.advanceKind === 'oneNt' && hcp <= 14 ||
+        info.advanceKind === 'twoNt' && hcp <= (info.level === 1 ? 13 : 14));
+      break;
+    case 'nt-invite':
+      success = info.advanceKind === 'oneNt' && hcp >= 15 && hcp <= 16 && call === '2NT';
+      break;
+    case 'nt-game':
+      success = ((info.advanceKind === 'oneNt' && hcp >= 17) ||
+        (info.advanceKind === 'twoNt' && hcp >= (info.level === 1 ? 14 : 15))) &&
+        call === '3NT';
+      break;
+  }
+  return { success, telemetryLines: [success ?
+    `PASS: selected ${treatment} continuation after advancer's ${info.advanceKind}.` :
+    `FAIL: ${treatment} does not qualify with ${hcp} HCP and ${ownLength} ${info.suit}.`] };
+}
+
+export function naturalSuitOvercallerRebidBoundaryApplies (
+    context: RuleEvalContext, kind: 'supportCuebid' | 'forcingNewSuit' | 'nonforcing'):
+    AppliesWhenResult {
+  const info = getSuitOvercallerAdvance(context);
+  const success = info !== null && (kind === 'nonforcing' ?
+    ['simpleRaise', 'weakJumpRaise', 'nonforcingNewSuit', 'oneNt', 'twoNt']
+      .includes(info.advanceKind) : info.advanceKind === kind);
+  return { success, telemetryLines: [success ?
+    `No selected ${kind} continuation; further judgment is outside this modeled branch.` :
+    `No ${kind} boundary in this natural suit-overcall auction.`] };
+}
+
+///
 //// Natural 1NT Overcall -- Advancer's Systems-On Responses
 ///
 

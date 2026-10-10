@@ -41,12 +41,7 @@ needs an executable choice or specific scope guidance.
 
 ## B. Complete selected overcaller and takeout-Doubler rebids
 
-- [ ] **B4.** Natural suit overcall -> respond to advancer's ordinary raise with an
-  appropriate Pass, competitive raise, or selected game.
-- [ ] **B5.** Natural suit overcall -> respond to advancer's forcing support cuebid.
-- [ ] **B6.** Natural suit overcall -> selected descriptions after advancer's
-  constructive new suit, respecting forcing versus nonforcing meanings.
-- [ ] **B7.** Natural suit overcall -> evaluate responses to advancer's natural NT.
+
 - [ ] **B8.** Selected overcaller continuation when the opponents' responder also
   acts, without opening an unrestricted competitive bidding tree.
 - [ ] **B9.** Ordinary takeout Double -> selected continuations after forced advances.
