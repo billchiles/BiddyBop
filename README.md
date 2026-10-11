@@ -107,7 +107,7 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 
 | Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
 | --- | --- | --- | --- | --- |
-| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Incomplete: natural 1NT and selected suit continuations, including after responder acts; takeout-Doubler rebids planned |
+| 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Partial (done): selected natural suit, 1NT, and takeout-Doubler rebids |
 | Strong 1NT | Done: DONT (Disturb Opponents' NoTrump) | Done: basic responses to DONT | Omitted | Done: partner's basic DONT follow-up bids |
 | Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Incomplete: 2NT convention replies done; selected competitive rebids planned |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |

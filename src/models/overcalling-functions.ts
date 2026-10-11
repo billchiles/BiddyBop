@@ -827,6 +827,247 @@ export function refineDontOvercallerCorrection (calls: Call[], context: RuleEval
 }
 
 ///
+//// Takeout Double -- Doubler's Second Call
+///
+/// Distinguish an ordinary takeout hand from an 18+ HCP strong Double. The original
+/// Double does not encode a rule ID in the auction; its hand requirements must be checked
+/// again before choosing an ordinary Pass or a stronger description. Weak-two defenses
+/// and later rounds of competition are reviewed separately.
+type DoublerAdvance = {
+  opening: Suit;
+  kind: 'minimumSuit' | 'jumpSuit' | 'cuebid' | 'oneNt' | 'twoNt' |
+    'threeNt' | 'majorGame' | 'competitiveSuit' | 'responsiveDouble' | 'escape';
+  suit: Suit | null;
+  lastBid: NonNullable<ReturnType<typeof parseSuitBid>>;
+  responderActed: boolean;
+};
+
+function getDoublerAdvance (context: RuleEvalContext): DoublerAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 1] !== 'Double' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const opening = parseSuitBid(info.call);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT') return null;
+  const response = context.auction[info.index + 2] ?? 'Pass';
+  const responseBid = parseSuitBid(response);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const bid = parseSuitBid(advance);
+  const last = responseBid ?? opening;
+  const openingSuit = opening.strain as Suit;
+  const responderActed = response !== 'Pass';
+  let kind: DoublerAdvance['kind'] | null = null;
+  let suit: Suit | null = null;
+
+  if (response === 'Pass') {
+    if (bid !== null && bid.strain === 'NT') {
+      if (advance === '1NT') kind = 'oneNt';
+      if (advance === '2NT') kind = 'twoNt';
+      if (advance === '3NT') kind = 'threeNt';
+    } else if (bid !== null && bid.strain === opening.strain &&
+               cheapestBidInStrainAfter(opening, bid.strain) === advance) {
+      kind = 'cuebid';
+    } else if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain) {
+      suit = bid.strain as Suit;
+      const cheapest = cheapestBidInStrainAfter(opening, bid.strain);
+      const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+      if (advance === cheapest) kind = 'minimumSuit';
+      if (parsedCheapest !== null && bid.level === parsedCheapest.level + 1 &&
+          bid.level <= 3) kind = 'jumpSuit';
+      if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
+    }
+  } else if (response === 'Redouble') {
+    if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain &&
+        cheapestBidInStrainAfter(opening, bid.strain) === advance) {
+      kind = 'escape';
+      suit = bid.strain as Suit;
+    }
+  } else if (responseBid !== null &&
+             (responseBid.strain === opening.strain || responseBid.strain === 'NT' ||
+              cheapestBidInStrainAfter(opening, responseBid.strain) === response)) {
+    if (advance === 'Double' && responseBid.strain === opening.strain) {
+      kind = 'responsiveDouble';
+    } else if (bid !== null && bid.strain === opening.strain &&
+               cheapestBidInStrainAfter(responseBid, opening.strain) === advance) {
+      kind = 'cuebid';
+    } else if (bid !== null && bid.strain !== 'NT' &&
+               bid.strain !== opening.strain &&
+               bid.strain !== responseBid.strain &&
+               cheapestBidInStrainAfter(responseBid, bid.strain) === advance) {
+      kind = 'competitiveSuit';
+      suit = bid.strain as Suit;
+    }
+  }
+  return kind === null ? null : {
+    opening: openingSuit, kind, suit, lastBid: bid ?? last,
+    responderActed,
+  };
+}
+
+type DoublerRebidTreatment = 'minimum-pass' | 'minimum-raise' | 'maximum-raise' |
+  'jump-pass' | 'jump-game' | 'cue-suit' | 'cue-nt' |
+  'nt-pass' | 'nt-invite' | 'nt-game' | 'game-pass' |
+  'strong-suit' | 'strong-nt' | 'strong-fit' |
+  'competitive-pass' | 'competitive-raise' | 'responsive-suit' | 'escape-pass';
+
+export function takeoutDoublerRebidApplies (
+    call: Call, context: RuleEvalContext, treatment: DoublerRebidTreatment): AppliesWhenResult {
+  const info = getDoublerAdvance(context);
+  if (info === null) return { success: false, telemetryLines: [
+    'FAIL: not a supported one-level takeout Double followed by a modeled advance and Pass.',
+  ] };
+  const hcp = context.handFacts.hcp;
+  const ordinary = hcp < 18 && context.handFacts.totalPointsWShortage >= 13 &&
+    SUITS.filter((suit) => suit !== info.opening).every((suit) =>
+      context.handFacts.lengths[suit] >= 3);
+  const strong = hcp >= 18;
+  if (! ordinary && ! strong) return { success: false, telemetryLines: [
+    'FAIL: the hand does not meet the ordinary or strong takeout-Double requirements.',
+  ] };
+  const points = context.handFacts.totalPointsWShortage;
+  const support = info.suit === null ? 0 : context.handFacts.lengths[info.suit];
+  const unbid = SUITS.filter((suit) => suit !== info.opening);
+  const cheapest = (suit: Suit | 'NT') => cheapestBidInStrainAfter(info.lastBid, suit);
+  const suitBid = info.suit === null ? null : cheapest(info.suit);
+  const suitLevel = suitBid === null ? 8 : parseSuitBid(suitBid)?.level ?? 8;
+  const major = info.suit === 'H' || info.suit === 'S';
+  const bestFit = [...unbid].sort((a, b) =>
+    context.handFacts.lengths[b] - context.handFacts.lengths[a] ||
+    (a === 'H' && b === 'S' ? -1 : a === 'S' && b === 'H' ? 1 : 0))[0];
+  const fitCall = bestFit === undefined ? null : cheapest(bestFit);
+  const naturalSuit = unbid.find((suit) =>
+    context.handFacts.lengths[suit] >= 5 &&
+    (context.handFacts.lengths[suit] >= 6 || hasPreemptSuitQuality(context.hand, suit)) &&
+    cheapest(suit) === call);
+  const stopped = hasBasicSuitStopper(context, info.opening);
+  let success = false;
+  switch (treatment) {
+    case 'minimum-pass':
+      success = info.kind === 'minimumSuit' && ordinary && points <= 15 && call === 'Pass';
+      break;
+    case 'minimum-raise':
+      success = info.kind === 'minimumSuit' && ordinary && points >= 16 && points <= 18 &&
+        support >= 4 && suitLevel <= 3 && call === suitBid;
+      break;
+    case 'maximum-raise':
+      success = info.kind === 'minimumSuit' && ordinary && points >= 19 && support >= 4 &&
+        major && call === `4${info.suit}` && suitLevel <= 4;
+      break;
+    case 'jump-pass':
+      success = info.kind === 'jumpSuit' && ordinary && points <= 16 && call === 'Pass';
+      break;
+    case 'jump-game':
+      success = info.kind === 'jumpSuit' && major && support >= 4 &&
+        (strong || ordinary && points >= 17) && suitLevel <= 4 &&
+        call === `4${info.suit}`;
+      break;
+    case 'cue-suit':
+      success = info.kind === 'cuebid' && fitCall === call && bestFit !== undefined &&
+        context.handFacts.lengths[bestFit] >= 4 &&
+        (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'cue-nt':
+      success = info.kind === 'cuebid' &&
+        ! unbid.some((suit) => context.handFacts.lengths[suit] >= 4) &&
+        context.handFacts.balancedOrSemiBalanced && stopped &&
+        ((call === '2NT' && hcp <= 16 && cheapest('NT') === '2NT') ||
+         (call === '3NT' && hcp >= 17 && cheapest('NT') !== null &&
+          (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
+      break;
+    case 'nt-pass':
+      success = ordinary && call === 'Pass' &&
+        (info.kind === 'oneNt' && hcp <= 14 ||
+         info.kind === 'twoNt' && hcp <= 14);
+      break;
+    case 'nt-invite':
+      success = ordinary && info.kind === 'oneNt' && hcp >= 15 && hcp <= 16 &&
+        call === '2NT' && cheapest('NT') === '2NT';
+      break;
+    case 'nt-game':
+      success = info.kind === 'oneNt' && (strong || ordinary && hcp >= 17) &&
+        call === '3NT' || info.kind === 'twoNt' &&
+        (strong || ordinary && hcp >= 15) && call === '3NT';
+      break;
+    case 'game-pass':
+      success = (info.kind === 'threeNt' || info.kind === 'majorGame') &&
+        call === 'Pass';
+      break;
+    case 'strong-suit':
+      success = strong && ! info.responderActed &&
+        (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
+        naturalSuit !== undefined &&
+        (info.suit === null || support < 3 || info.responderActed) &&
+        (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'strong-nt':
+      success = strong && ! info.responderActed &&
+        (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
+        context.handFacts.balanced && stopped &&
+        ((call === '1NT' && hcp >= 19 && hcp <= 20 && cheapest('NT') === '1NT') ||
+         (call === '2NT' && hcp >= 21 && hcp <= 22 && cheapest('NT') !== null &&
+          (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 2) ||
+         (call === '3NT' && hcp >= 23 && cheapest('NT') !== null &&
+          (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
+      break;
+    case 'strong-fit':
+      success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
+        support >= 4 && major && suitLevel <= 4 && call === `4${info.suit}`;
+      break;
+    case 'competitive-pass':
+      success = info.responderActed && info.kind === 'competitiveSuit' && ordinary &&
+        points <= 16 && call === 'Pass';
+      break;
+    case 'competitive-raise':
+      success = info.responderActed && info.kind === 'competitiveSuit' &&
+        info.suit !== null && support >= 4 && major && hcp >= 16 &&
+        suitLevel <= 4 && call === `4${info.suit}`;
+      break;
+    case 'responsive-suit':
+      success = info.kind === 'responsiveDouble' && fitCall === call &&
+        bestFit !== undefined && context.handFacts.lengths[bestFit] >= 3 &&
+        (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'escape-pass':
+      success = info.kind === 'escape' && ordinary && call === 'Pass';
+      break;
+  }
+  return { success, telemetryLines: [success ?
+    `PASS: ${treatment} after a ${ordinary ? 'support-oriented' : 'strong'} takeout Double.` :
+    `FAIL: ${treatment} does not fit the Double, advance, and hand strength/shape.`] };
+}
+
+export function takeoutDoublerBoundaryApplies (
+    context: RuleEvalContext, kind: 'forcing' | 'strong' | 'ordinary'): AppliesWhenResult {
+  const info = getDoublerAdvance(context);
+  const forcing = info?.kind === 'cuebid' || info?.kind === 'responsiveDouble';
+  const success = info !== null && (kind === 'forcing' ? forcing :
+    ! forcing && (kind === 'strong' ? context.handFacts.hcp >= 18 :
+                  context.handFacts.hcp < 18));
+  return { success, telemetryLines: [success ?
+    `No selected ${kind} rebid; further fit, strength, or strain judgment is required.` :
+    `Not a ${kind} takeout-Doubler boundary.`] };
+}
+
+/// The opponents may compete again after advancer's action. No generic higher-level
+/// Doubler action is safe here, especially when advancer's call was forcing.
+export function takeoutDoublerFurtherCompetitionBoundaryApplies (
+    context: RuleEvalContext): AppliesWhenResult {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  const opening = info === null ? null : parseSuitBid(info.call);
+  const last = info === null ? null : context.auction[info.index + 4];
+  const success = context.stage === 'overcallerRebid' && info !== null &&
+    context.auction.length === info.index + 5 && opening !== null &&
+    opening.level === 1 && opening.strain !== 'NT' &&
+    context.auction[info.index + 1] === 'Double' &&
+    context.auction[info.index + 3] !== 'Pass' && last !== null &&
+    last !== undefined && last !== 'Pass' && (parseSuitBid(last) !== null || last === 'Double');
+  return { success, telemetryLines: [success ?
+    'Further opponent competition after the takeout Double needs separate judgment.' :
+    'No additional opposing competition in this Doubler-rebid auction.'] };
+}
+
+///
 //// Takeout Doubles
 ///
 

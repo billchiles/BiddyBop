@@ -9,7 +9,9 @@ import {
   naturalSuitOvercallerRebidApplies, naturalSuitOvercallerRebidBoundaryApplies,
   contestedSuitOvercallerRebidApplies, contestedSuitOvercallerBoundaryApplies,
   contestedOneNtOvercallerRebidApplies, contestedOneNtOvercallerBoundaryApplies,
-  ordinaryTakeoutDoubleApplies, refineDontOvercallerCorrection,
+  ordinaryTakeoutDoubleApplies, takeoutDoublerRebidApplies, takeoutDoublerBoundaryApplies,
+  takeoutDoublerFurtherCompetitionBoundaryApplies,
+  refineDontOvercallerCorrection,
   refineNaturalOneNtOvercallJacoby, refineNaturalOneNtOvercallStayman,
   refineNaturalOneNtOvercallTexas,
   refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall,
@@ -869,6 +871,299 @@ export const OvercallRules: BidRule[] = [
                'continuations after responder competes remain unsupported.'],
     certainty: 'high',
   },
+  //// Takeout Double -- Doubler rebids after advancer acts
+  // Keep ordinary and 18+ HCP doubles distinct. Forcing cuebids and responsive Doubles
+  // cannot become an automatic Pass when no deterministic description qualifies.
+  {
+    id: 'overcaller-rebid-takeout-minimum-pass',
+    kind: 'overcallerRebid',
+    title: "Pass after partner's weak forced suit response",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'minimum-pass'),
+    meaning: 'A minimum ordinary takeout Doubler may stop in the suit advancer was obliged to choose.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-minimum-raise',
+    kind: 'overcallerRebid',
+    title: "Raise advancer's selected suit with extra values",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'minimum-raise'),
+    meaning: 'Medium ordinary takeout Double with four-card support; raise economically.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-maximum-raise',
+    kind: 'overcallerRebid',
+    title: 'Bid major game with maximum support',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'maximum-raise'),
+    meaning: 'Maximum ordinary takeout Double with a clear major fit and playing strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-jump-pass',
+    kind: 'overcallerRebid',
+    title: "Decline advancer's invitational suit jump",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'jump-pass'),
+    meaning: 'Ordinary minimum doubler can decline an invitational jump.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-jump-game',
+    kind: 'overcallerRebid',
+    title: "Accept advancer's major-suit jump invitation",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'jump-game'),
+    meaning: 'Stronger doubler with a suitable major fit accepts the invitation.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-cue-suit',
+    kind: 'overcallerRebid',
+    title: 'Describe a four-card unbid suit after advancer cuebids',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'cue-suit'),
+    meaning: "Advancer's cuebid is artificial and forcing; show a four-card unbid suit.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-cue-nt',
+    kind: 'overcallerRebid',
+    title: 'Describe balanced values after advancer cuebids',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2NT', '3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'cue-nt'),
+    meaning: 'Without a four-card unbid fit, natural notrump requires balanced shape and an opening-suit stopper.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-nt-pass',
+    kind: 'overcallerRebid',
+    title: "Pass advancer's natural notrump with minimum values",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-pass'),
+    meaning: 'Advancer has already promised the opening-suit stopper; do not require it again.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-nt-invite',
+    kind: 'overcallerRebid',
+    title: 'Invite game after advancer bids natural 1NT',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2NT'],
+    callCategory: ['invitational'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-invite'),
+    meaning: 'Extra values may invite over natural 1NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-nt-game',
+    kind: 'overcallerRebid',
+    title: 'Bid 3NT with game-going combined values',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-game'),
+    meaning: 'Accept a natural notrump invitation or raise 1NT to game with sufficient strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-game-pass',
+    kind: 'overcallerRebid',
+    title: "Pass advancer's natural game signoff",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'game-pass'),
+    meaning: 'A game-level advance is ordinarily a signoff; slam exploration is outside this treatment.',
+    certainty: 'high',
+  },
+  //
+  //// Strong takeout Double -- Double then suit or notrump
+  {
+    id: 'overcaller-rebid-takeout-strong-suit',
+    kind: 'overcallerRebid',
+    title: 'Describe a strong takeout Double with a natural suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1C', '1D', '1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-suit'),
+    meaning: 'An 18+ HCP Double followed by a good natural five-card-or-longer suit shows extra values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-strong-nt',
+    kind: 'overcallerRebid',
+    title: 'Describe a strong takeout Double with natural notrump',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['1NT', '2NT', '3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-nt'),
+    meaning: 'With 18+ HCP, a balanced hand and opener-suit stopper, Double then NT shows strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-strong-fit',
+    kind: 'overcallerRebid',
+    title: "Raise advancer's major with a very strong Double",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-fit'),
+    meaning: 'A strong doubler can show a substantial fit rather than inventing a side suit.',
+    certainty: 'high',
+  },
+  //
+  //// Takeout Double -- After responder competes
+  {
+    id: 'overcaller-rebid-takeout-competitive-pass',
+    kind: 'overcallerRebid',
+    title: "Pass after voluntary advance and responder competition",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'competitive-pass'),
+    meaning: 'A voluntary natural suit advance after responder acts is not a forced response.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-competitive-raise',
+    kind: 'overcallerRebid',
+    title: 'Raise a major after responder competes',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'competitive-raise'),
+    meaning: 'Selected constructive major game with adequate support and strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-responsive-suit',
+    kind: 'overcallerRebid',
+    title: 'Choose an unbid suit after responsive Double',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'responsive-suit'),
+    meaning: 'Responsive Double asks the doubler to choose an economical unbid suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-escape-pass',
+    kind: 'overcallerRebid',
+    title: "Pass advancer's weak suit escape after Redouble",
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'escape-pass'),
+    meaning: "An ordinary doubler can stop in partner's weak escape; complex penalty choices are omitted.",
+    certainty: 'high',
+  },
+  //
+  //// Takeout Double -- Explanations at the selected stopping point
+  {
+    id: 'overcaller-rebid-takeout-forcing-boundary',
+    kind: 'scopeBoundary',
+    title: 'Forcing cuebid or responsive Double needs further judgment',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: (context) => takeoutDoublerBoundaryApplies(context, 'forcing'),
+    meaning: 'Partner asked the doubler to describe a suit or strength, not to Pass.',
+    guidance: ['Without a clear natural fit or stopped notrump description, consider the ' +
+               'best strain and playing strength; no automatic signoff is modeled.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-strong-boundary',
+    kind: 'scopeBoundary',
+    title: 'Strong Double without a clear natural rebid',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: (context) => takeoutDoublerBoundaryApplies(context, 'strong'),
+    meaning: 'An 18+ HCP Double normally needs another description after a weak advance.',
+    guidance: ['No selected good suit, fit, or suitable balanced NT rebid is available. ' +
+               'Further strength and strain judgment is outside this treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-ordinary-boundary',
+    kind: 'scopeBoundary',
+    title: 'Competitive decision after an ordinary takeout Double',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: (context) => takeoutDoublerBoundaryApplies(context, 'ordinary'),
+    meaning: 'A nonforcing advance may be passed; improving the contract may require judgment.',
+    guidance: ['A fit, playing strength, bidding space, and competition determine whether ' +
+               'to compete further. No mechanical bid is recommended for this hand.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-takeout-further-competition-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further opponent competition after a takeout Double',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: takeoutDoublerFurtherCompetitionBoundaryApplies,
+    meaning: 'After both sides compete further, the doubler cannot choose a mechanical continuation.',
+    guidance: ['Pass may be reasonable after a nonforcing advance, but a forcing call from ' +
+               'partner changes the obligation. Further competition and penalty decisions ' +
+               'require partnership judgment not modeled here.'],
+    certainty: 'high',
+  },
+  //
   // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
   // Weak-two defenses are defined separately below; most later overcaller continuations remain
   // unmodeled.
@@ -978,7 +1273,7 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Prefer four-card support in the unbid suits. Partner is being asked to select a ' +
                'suit, not to treat this as a penalty double.',
                'An 18+ HCP hand may double without this distribution, then describe its strength ' +
-               'or suit on the next turn; those continuations are not yet modeled.'],
+               'or suit on the next turn.'],
     certainty: 'high',
   },
   //
@@ -994,7 +1289,7 @@ export const OvercallRules: BidRule[] = [
              'without promising support for all unbid suits.',
     guidance: ['Exceptionally powerful distributional hands with fewer than 18 HCP require ' +
                'judgment; the app does not estimate playing tricks for this exception.',
-               'No general penalty double or doubler rebid treatment is modeled.'],
+               'General penalty decisions are not modeled; selected natural doubler rebids are modeled.'],
     certainty: 'high',
   },
   //

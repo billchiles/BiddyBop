@@ -41,9 +41,6 @@ needs an executable choice or specific scope guidance.
 
 ## B. Complete selected overcaller and takeout-Doubler rebids
 
-- [ ] **B9.** Ordinary takeout Double -> selected continuations after forced advances.
-- [ ] **B10.** Strong takeout Double -> modeled Double-then-suit or Double-then-NT
-  descriptions, with relevant strength distinctions and deliberate boundaries.
 - [ ] **B11.** Review remaining useful weak-two defense continuations. Preserve
   existing compact DONT corrections and natural 2NT-over-weak-two convention replies.
 
