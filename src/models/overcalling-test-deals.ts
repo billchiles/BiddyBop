@@ -295,6 +295,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallerRebidCalls: [
       { call: '3H', ruleIds: ['overcaller-rebid-weak-two-2nt-stayman'] },
     ],
+    rejectedOvercallerRebidCalls: ['Pass'],
     north: { S: 'A84', H: 'KJ72', D: 'Q54', C: 'AQ6' },
     south: { S: 'K763', H: 'QT85', D: 'A32', C: '52' },
     west: { S: 'Q52', H: 'A3', D: 'KJT987', C: 'T4' },
@@ -313,6 +314,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallerRebidCalls: [
       { call: '3H', ruleIds: ['overcaller-rebid-weak-two-2nt-jacoby'] },
     ],
+    rejectedOvercallerRebidCalls: ['Pass'],
     north: { S: 'A54', H: 'KQ6', D: 'AJ84', C: 'QJ3' },
     south: { S: 'T32', H: 'JT975', D: 'K62', C: '84' },
     west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
@@ -331,6 +333,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallerRebidCalls: [
       { call: '4S', ruleIds: ['overcaller-rebid-weak-two-2nt-texas'] },
     ],
+    rejectedOvercallerRebidCalls: ['Pass'],
     north: { S: 'KQ6', H: 'A54', D: 'AJ84', C: 'QJ3' },
     south: { S: 'AJT975', H: '32', D: 'Q62', C: 'K4' },
     west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
@@ -338,7 +341,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Nine balanced HCP with no four-card major: place the contract in 3NT.',
     dealer: 'W',
-    practiceAuction: ['2D', '2NT', 'Pass', '3NT'],
+    practiceAuction: ['2D', '2NT', 'Pass', '3NT', 'Pass', 'Pass'],
     expectedOvercallCalls: [
       { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
     ],
@@ -346,6 +349,9 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
       { call: '3NT', ruleIds: ['advance-weak-two-2nt-3nt-8-15'] },
     ],
     rejectedAdvanceCalls: ['3C', '3D', '3H'],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-2nt-natural-signoff-pass',
+    ] }],
     north: { S: 'A84', H: 'KJ72', D: 'Q54', C: 'AQ6' },
     south: { S: 'K76', H: 'QT8', D: 'A32', C: '9752' },
     west: { S: 'Q52', H: 'A3', D: 'KJT987', C: 'T4' },
@@ -353,7 +359,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'With transfers off, a weak five-card spade suit can sign off naturally in 3S.',
     dealer: 'W',
-    practiceAuction: ['2H', '2NT', 'Pass', '3S'],
+    practiceAuction: ['2H', '2NT', 'Pass', '3S', 'Pass', 'Pass'],
     requiredSystem: { jacobyTransfers: false },
     expectedOvercallCalls: [
       { call: '2NT', ruleIds: ['overcall-weak-two-natural-2nt-with-stopper'] },
@@ -361,9 +367,183 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
     expectedAdvanceCalls: [
       { call: '3S', ruleIds: ['advance-weak-two-2nt-natural-major-signoff'] },
     ],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-2nt-natural-signoff-pass',
+    ] }],
     north: { S: 'KQ6', H: 'A54', D: 'AJ84', C: 'QJ3' },
     south: { S: 'AJT97', H: '32', D: 'Q62', C: '864' },
     west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+  },
+  {
+    description: 'When Texas is off, a six-card heart suit can place game naturally in 4H.',
+    dealer: 'W', practiceAuction: ['2D', '2NT', 'Pass', '4H', 'Pass', 'Pass'],
+    requiredSystem: { texasTransfers: false },
+    west: { S: 'Q52', H: 'A3', D: 'KJT987', C: 'T4' },
+    north: { S: 'A84', H: 'KJ72', D: 'Q54', C: 'AQ6' },
+    south: { S: 'K76', H: 'QT9865', D: 'A63', C: 'K' },
+    expectedAdvanceCalls: [{ call: '4H', ruleIds: [
+      'advance-weak-two-2nt-natural-major-game',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-2nt-natural-signoff-pass',
+    ] }],
+  },
+];
+
+/// Selected weak-two defense rebids with complete real hands and partnership promises.
+/// The test group intentionally contrasts nonforcing signoffs with forcing advances.
+export const WEAK_TWO_REBID_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Ordinary weak-two takeout Doubler Passes a forced minimum 2S advance.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '2S', 'Pass', 'Pass'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: '9753', H: '543', D: '952', C: '432' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-weak-two-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedAdvanceCalls: [{ call: '2S', ruleIds: ['advance-takeout-double-minimum-suit'] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-double-minimum-pass',
+    ] }],
+    rejectedOvercallerRebidCalls: ['3S', '3NT'],
+  },
+  {
+    description: 'Sixteen-HCP Doubler with four hearts accepts advancer’s 3H invitation at game.',
+    dealer: 'W', practiceAuction: ['2D', 'Double', 'Pass', '3H', 'Pass', '4H'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'AQJ4', H: 'KQ86', D: '2', C: 'KJ86' },
+    south: { S: 'T976', H: 'AJ95', D: 'A63', C: '92' },
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-takeout-double-invitational-jump',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '4H', ruleIds: [
+      'overcaller-rebid-weak-two-double-jump-game',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Strong 19-HCP weak-two takeout Doubler describes a good heart suit after 3C.',
+    dealer: 'W', practiceAuction: ['2S', 'Double', 'Pass', '3C', 'Pass', '3H'],
+    west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
+    north: { S: 'A4', H: 'AKQJ7', D: 'A96', C: 'J62' },
+    south: { S: '653', H: '653', D: '542', C: '9743' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-weak-two-takeout-double-strong-hand',
+    ] }],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: ['advance-takeout-double-minimum-suit'] }],
+    expectedOvercallerRebidCalls: [{ call: '3H', ruleIds: [
+      'overcaller-rebid-weak-two-double-strong-suit',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Ordinary 13-HCP Doubler declines an 11-HCP natural 2NT invitation.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '2NT', 'Pass', 'Pass'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'K95', H: 'A63', D: 'J52', C: 'K743' },
+    expectedAdvanceCalls: [{ call: '2NT', ruleIds: [
+      'advance-takeout-double-two-notrump',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-double-nt-pass',
+    ] }],
+    rejectedOvercallerRebidCalls: ['3NT'],
+  },
+  {
+    description: 'A 16-HCP Doubler accepts the balanced, stopped 2NT invitation at 3NT.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '2NT', 'Pass', '3NT'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'KQJ8' },
+    south: { S: 'K95', H: 'A63', D: 'J52', C: 'A743' },
+    expectedAdvanceCalls: [{ call: '2NT', ruleIds: [
+      'advance-takeout-double-two-notrump',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3NT', ruleIds: [
+      'overcaller-rebid-weak-two-double-nt-game',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Forcing 3H cuebid after a weak-two Double requires a natural 3S answer.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '3H', 'Pass', '3S'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'K975', H: 'A63', D: 'AQ5', C: 'A92' },
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-takeout-double-strong-cuebid',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3S', ruleIds: [
+      'overcaller-rebid-weak-two-double-cue-suit',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'After a weak-two takeout Double, a direct 4S is natural game and partner Passes.',
+    dealer: 'W', practiceAuction: ['2H', 'Double', 'Pass', '4S', 'Pass', 'Pass'],
+    west: { S: '842', H: 'KQJ987', D: '73', C: 'T5' },
+    north: { S: 'AQJ6', H: '2', D: 'K864', C: 'QJ86' },
+    south: { S: 'K9753', H: 'A63', D: 'AQ5', C: '92' },
+    expectedAdvanceCalls: [{ call: '4S', ruleIds: [
+      'advance-weak-two-double-direct-major-game',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-double-game-pass',
+    ] }],
+  },
+  {
+    description: 'Ordinary two-level natural weak-two overcaller Passes a constructive 3H raise.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', '3H', 'Pass', 'Pass'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A6', H: 'AKT96', D: '42', C: 'QJ83' },
+    south: { S: '9743', H: 'QJ2', D: 'A63', C: '652' },
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-two-level-suit-overcall-simple-raise',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-weak-two-suit-raise-pass',
+    ] }],
+    rejectedOvercallerRebidCalls: ['4H'],
+  },
+  {
+    description: 'Upper-range six-card heart overcall accepts the constructive raise at game.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', '3H', 'Pass', '4H'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A6', H: 'AKT965', D: '4', C: 'KQJ8' },
+    south: { S: '9743', H: 'QJ2', D: 'A63', C: '652' },
+    expectedOvercallerRebidCalls: [{ call: '4H', ruleIds: [
+      'overcaller-rebid-weak-two-suit-raise-game',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Natural new-suit advance is forcing: overcaller supports five spades at 3S.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', '2S', 'Pass', '3S'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'AQ6', H: 'AKT96', D: '4', C: 'J873' },
+    south: { S: 'KJ973', H: 'QJ2', D: 'A65', C: '65' },
+    expectedAdvanceCalls: [{ call: '2S', ruleIds: [
+      'advance-two-level-suit-overcall-new-suit-at-two-level',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3S', ruleIds: [
+      'overcaller-rebid-weak-two-suit-new-support',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Strong support cuebid after a natural weak-two overcall gets a minimum 3H return.',
+    dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', '3D', 'Pass', '3H'],
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    north: { S: 'A6', H: 'AKT96', D: '42', C: 'QJ83' },
+    south: { S: 'K974', H: 'QJ2', D: 'A63', C: 'A62' },
+    expectedAdvanceCalls: [{ call: '3D', ruleIds: [
+      'advance-two-level-suit-overcall-support-cuebid',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3H', ruleIds: [
+      'overcaller-rebid-weak-two-suit-cue-return',
+    ] }],
+    rejectedOvercallerRebidCalls: ['Pass'],
   },
 ];
 

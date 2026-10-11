@@ -192,6 +192,25 @@ The app should help the user practice bidding decisions using structured convent
   are suppressed following a deviation from the recorded practice auction. Unannotated
   decisions need no placeholder entries.
 
+## Continuing Development Guidance
+
+- Treat the latest provided source as authoritative. Inspect existing rules, auction routing,
+  practice deals, documentation, and explicit omissions before extending a bidding family.
+  Favor instructional continuity and partner promises over maximizing executable rule counts.
+- Keep changes tightly scoped. Follow `docs/code-style.md`, including meaningful `////`
+  section titles and standalone `//` separators between bidding rules. Avoid historical
+  patch or phase labels in permanent code, and unnecessary one-line wrapper helpers.
+- Write `README.md` for people using the trainer, in ordinary bridge language. Preserve its
+  organization and the user's wording; explain real Pass recommendations distinctly from
+  situations needing additional judgment. Change coverage statuses only when code changes.
+- Practice deals should teach coherent auctions with plausible complete hands and supported
+  recorded calls. Prefer selected instructional contrasts and targeted tests for risky rule
+  interactions, not mechanical exhaustive regression matrices. Add per-deal guidance only
+  when it teaches something beyond the ordinary rule explanation.
+- Delete completed roadmap tasks rather than preserving checked-off items. For source patches,
+  provide a unified `.patch` and identical `.txt`, with verification details. Do not generate
+  downloadable test-output files unless explicitly requested.
+
 ## Practice-System Decisions
 
 - Default 1NT range is 15-17 balanced.

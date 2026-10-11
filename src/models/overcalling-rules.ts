@@ -16,7 +16,9 @@ import {
   refineNaturalOneNtOvercallTexas,
   refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall,
   refineWeakTwoTwoNtJacobyCompletion, refineWeakTwoTwoNtStaymanReply,
-  refineWeakTwoTwoNtTexasCompletion
+  refineWeakTwoTwoNtTexasCompletion, weakTwoTwoNtNaturalSignoffApplies,
+  weakTwoDoublerRebidApplies, weakTwoSuitOvercallerRebidApplies,
+  weakTwoDefenseBoundaryApplies
 } from './overcalling-functions';
 
 
@@ -785,6 +787,348 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Complete the Texas transfer to game in the requested major.',
     certainty: 'high',
   },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-2nt-natural-signoff-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass advancer’s natural signoff after a 2NT overcall of a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'notrumpOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: weakTwoTwoNtNaturalSignoffApplies,
+    meaning: 'A natural 3NT or major-suit signoff is intended as the final contract. ' +
+             'Transfer requests must instead be completed.',
+    certainty: 'high',
+  },
+  //// Weak-two takeout Double -- Selected rebids after advancer Pass-side response
+  // An economical advance may have few values, even when forced to the three level.
+  // The Doubler must not Pass a strong forcing cuebid or conceal a strong 18+ HCP hand.
+  {
+    id: 'overcaller-rebid-weak-two-double-minimum-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass advancer’s minimum suit after an ordinary weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'minimum-pass'),
+    meaning: 'Pass an unforced minimum advance with ordinary takeout-Double strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-jump-pass',
+    kind: 'overcallerRebid',
+    title: 'Decline a constructive suit jump after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'jump-pass'),
+    meaning: 'A minimum Doubler may stop in advancer’s invitational jump suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-jump-game',
+    kind: 'overcallerRebid',
+    title: 'Accept an invitational major-suit jump after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'jump-game'),
+    meaning: 'With extra Doubler values and four-card support, accept advancer’s ' +
+             'constructive major-suit invitation.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-minimum-raise',
+    kind: 'overcallerRebid',
+    title: 'Support advancer’s major after a strong weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'minimum-raise'),
+    meaning: 'With strong Doubler values and four-card support, make an economical constructive raise.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-nt-pass',
+    kind: 'overcallerRebid',
+    title: 'Decline a natural 2NT invitation after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'nt-pass'),
+    meaning: 'With a minimum ordinary Double, stop in advancer’s natural 2NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-nt-game',
+    kind: 'overcallerRebid',
+    title: 'Accept advancer’s natural 2NT invitation after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'nt-game'),
+    meaning: 'Bid 3NT with suitable combined values opposite the 11–12 HCP invitation.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-game-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass advancer’s natural game after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'game-pass'),
+    meaning: 'Advancer has selected a game contract; no further action is normally needed.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-cue-suit',
+    kind: 'overcallerRebid',
+    title: 'Show an economical unbid suit after a forcing cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'cue-suit'),
+    meaning: 'Answer the strong cuebid with a four-card-or-longer unbid suit where space permits.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-cue-nt',
+    kind: 'overcallerRebid',
+    title: 'Show stopped notrump after a weak-two cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'cue-nt'),
+    meaning: 'Bid 3NT with sufficient values, suitable shape, and a stopper in the opening suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-strong-suit',
+    kind: 'overcallerRebid',
+    title: 'Show a good suit after a strong weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'strong-suit'),
+    meaning: 'After a minimum or jump advance, show a good five-card-or-longer suit with 18+ HCP.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-strong-nt',
+    kind: 'overcallerRebid',
+    title: 'Show a strong balanced hand after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['2NT', '3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'strong-nt'),
+    meaning: 'After a weak suit advance, a natural notrump rebid shows extra strength and an opening-suit stopper.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-forcing-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further strength and strain choice after a weak-two Double cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: (context) => weakTwoDefenseBoundaryApplies(context, 'Double', true),
+    meaning: 'Advancer’s cuebid is forcing; the Doubler must describe the hand further.',
+    guidance: ['When no clear unbid suit or stopped notrump bid is available, choosing a ' +
+               'strain at the remaining level requires judgment. Pass is not a signoff here.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-double-other-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further constructive choices after a weak-two Double',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    scopeBoundaryWhen: (context) => weakTwoDefenseBoundaryApplies(context, 'Double', false),
+    meaning: 'No further automatic continuation is supported for this combination of strength ' +
+             'and available bidding room.',
+    guidance: ['After a nonforcing advance, Pass may be reasonable; a very strong Double ' +
+               'usually needs a further description.'],
+    certainty: 'high',
+  },
+  //// Weak-two natural two-level suit overcall -- Selected rebids
+  {
+    id: 'overcaller-rebid-weak-two-suit-raise-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass advancer’s simple raise of a weak-two defense overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'raise-pass'),
+    meaning: 'Accept a nonforcing three-level raise without enough extra playing strength for game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-raise-game',
+    kind: 'overcallerRebid',
+    title: 'Raise a supported major overcall to game after a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'raise-game'),
+    meaning: 'An upper-range six-card major overcall can accept a three-level simple raise.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-nt-pass',
+    kind: 'overcallerRebid',
+    title: 'Decline advancer’s 2NT invitation after a weak-two suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'nt-pass'),
+    meaning: 'Stop in natural 2NT with lower-range overcall values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-nt-game',
+    kind: 'overcallerRebid',
+    title: 'Accept advancer’s 2NT invitation after a weak-two suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'nt-game'),
+    meaning: 'With upper-range values and suitable shape, raise the natural invitation to game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-game-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass natural 3NT after a weak-two suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'game-pass'),
+    meaning: 'Advancer has already placed the contract in notrump game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-cue-return',
+    kind: 'overcallerRebid',
+    title: 'Return to the overcalled major after a forcing support cuebid',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'cue-return'),
+    meaning: 'An economical return to the original major describes a lower-range overcall.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-cue-game',
+    kind: 'overcallerRebid',
+    title: 'Bid major game after a strong support cuebid of a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['4H', '4S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'cue-game'),
+    meaning: 'With an upper-range six-card major and known support, place the contract in game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-new-support',
+    kind: 'overcallerRebid',
+    title: 'Support advancer’s forcing new suit over a weak two',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-support'),
+    meaning: 'Show three-card or longer support for advancer’s natural forcing new suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-new-repeat',
+    kind: 'overcallerRebid',
+    title: 'Repeat a six-card major after a forcing new-suit advance',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['3H', '3S'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-repeat'),
+    meaning: 'A six-card original major supplies a natural response to advancer’s forcing suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-new-nt',
+    kind: 'overcallerRebid',
+    title: 'Bid stopped notrump after a forcing new-suit advance',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-nt'),
+    meaning: 'A higher-range semi-balanced overcaller with an opening-suit stopper may choose 3NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-forcing-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further judgment after a strong advance of a weak-two suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    scopeBoundaryWhen: (context) => weakTwoDefenseBoundaryApplies(context, 'suit', true),
+    meaning: 'A support cuebid or natural new suit asks for another description, not Pass.',
+    guidance: ['Without a clear fit, repeatable major, or suitable stopped notrump, ' +
+               'the remaining bidding space calls for judgment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-weak-two-suit-other-boundary',
+    kind: 'scopeBoundary',
+    title: 'Judgment after an ordinary advance of a weak-two suit overcall',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'suitOvercall' },
+    scopeBoundaryWhen: (context) => weakTwoDefenseBoundaryApplies(context, 'suit', false),
+    meaning: 'A nonforcing raise or notrump invitation may be accepted; ' +
+             'other constructive continuations need judgment.',
+    certainty: 'high',
+  },
   // Compact DONT defense to an opposing strong 1NT.  Shape and suit quality carry more weight
   // than raw HCP; the app uses 7 HCP as a conservative floor because vulnerability is unmodeled.
   {
@@ -1165,8 +1509,7 @@ export const OvercallRules: BidRule[] = [
   },
   //
   // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
-  // Weak-two defenses are defined separately below; most later overcaller continuations remain
-  // unmodeled.
+  // Weak-two defenses are defined separately below; their selected later rebids are above.
   {
     id: 'overcall-simple-suit-at-one-level',
     kind: 'overcall',
@@ -1293,8 +1636,8 @@ export const OvercallRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  // Direct defenses to opposing weak 2D/2H/2S openings.  These reuse the existing takeout-double
-  // shape treatment and stop at the overcaller's first action; advancing is a separate batch.
+  // Direct defenses to opposing weak 2D/2H/2S openings. They reuse the existing
+  // takeout-Double shape treatment, followed by selected advances and natural rebids.
   {
     id: 'overcall-weak-two-natural-suit-at-two-level',
     kind: 'overcall',
@@ -1351,7 +1694,7 @@ export const OvercallRules: BidRule[] = [
     meaning: 'An 18+ HCP takeout double can precede a later natural suit or notrump bid without ' +
              'promising support for all unbid suits.',
     guidance: ['The strong-hand exception is the same one used over a one-level suit opening; ' +
-               'later doubler continuations are not part of this patch.'],
+               'Later rebids distinguish this strong Double from an ordinary takeout Double.'],
     certainty: 'high',
   },
   //

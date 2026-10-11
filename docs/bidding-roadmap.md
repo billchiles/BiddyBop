@@ -39,11 +39,6 @@ needs an executable choice or specific scope guidance.
 - Ordinary opening practice deals should normally put opener in North. Competitive
   teaching situations may have a justified different dealer/seat arrangement.
 
-## B. Complete selected overcaller and takeout-Doubler rebids
-
-- [ ] **B11.** Review remaining useful weak-two defense continuations. Preserve
-  existing compact DONT corrections and natural 2NT-over-weak-two convention replies.
-
 ## C. Complete responder's rebid
 
 - [ ] **C1.** After opener's natural suit/NT rebid, select common signoffs,
@@ -52,6 +47,12 @@ needs an executable choice or specific scope guidance.
   taught; handle chosen competitive responder rebids as appropriate.
 - [ ] **C3.** Where the next decision at this depth cannot reliably be modeled,
   provide an auction-specific scope boundary instead of a silent no-rule ending.
+
+After Phase C, consider whether advancer's next turn and opener's third call need
+any further executable treatment. If remaining calls are routine known completions or
+substantially judgment-dependent, clear instructional guidance may be more useful
+than adding general bidding stages. This is an open design discussion, not a commitment
+to implement those stages.
 
 ## D. Opening position and balancing
 

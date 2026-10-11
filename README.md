@@ -109,7 +109,7 @@ deeper in some deterministic auctions than in judgment-heavy or highly partnersh
 | --- | --- | --- | --- | --- |
 | 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Partial (done): selected natural suit, 1NT, and takeout-Doubler rebids |
 | Strong 1NT | Done: DONT (Disturb Opponents' NoTrump) | Done: basic responses to DONT | Omitted | Done: partner's basic DONT follow-up bids |
-| Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Incomplete: 2NT convention replies done; selected competitive rebids planned |
+| Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Partial (done): selected natural suit, 2NT, and takeout-Double continuations |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
@@ -119,11 +119,12 @@ This avoids creating a separate set of overcaller–advancer bidding rules for a
 difference that adds little practice value.
 
 Against a strong 1NT opening, the trainer teaches the basic compact DONT interference but stops
-before later competitive continuations.  Weak-two defenses include selected advances and immediate
-replies, but not the full competition after responder acts or continuations after natural
-three-level overcalls. Defense against opposing three-level preempts and strong 2C/2NT openings
-is omitted: those less frequent auctions quickly become high-level, agreement-dependent, or
-judgment-heavy.
+before later competitive continuations.  Weak-two defenses include selected advances, natural
+Pass decisions, and immediate responses to forcing or conventional calls. They do not include
+full competition after responder acts, continuations after natural three-level overcalls, or a
+general system for repeated high-level bidding. Defense against opposing three-level preempts
+and strong 2C/2NT openings is omitted: those less frequent auctions quickly become high-level,
+agreement-dependent, or judgment-heavy.
 
 ### Advancer when responder acts after a one-level suit opening
 

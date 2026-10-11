@@ -683,8 +683,8 @@ export function naturalOneNtOvercallerSlamBoundaryApplies (
     'No unsupported ace inquiry or forcing 5NT response in this auction.'] };
 }
 
-/// getWeakTwoTwoNtConventionCall returns advancer's forcing conventional call after partner's
-/// natural 2NT overcall of a weak two, provided responder and opener both pass as expected.
+/// getWeakTwoTwoNtConventionCall identifies advancer's call after partner's natural 2NT
+/// overcall of a weak two, provided responder and opener both pass as expected.
 function getWeakTwoTwoNtConventionCall (context: RuleEvalContext): Call | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   if (context.stage !== 'overcallerRebid' || opening === null ||
@@ -726,6 +726,252 @@ export function refineWeakTwoTwoNtTexasCompletion (calls: Call[], context: RuleE
   const wanted: Call | null = response === '4D' ? '4H' : response === '4H' ? '4S' : null;
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
            telemetryLines: [] };
+}
+
+/// A natural game or partscore chosen by advancer is a signoff, not a Stayman,
+/// Jacoby, or Texas request. Inspect the agreement so identical calls cannot be
+/// treated as both artificial transfers and natural signoffs.
+export function weakTwoTwoNtNaturalSignoffApplies (
+    call: Call, context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const advance = getWeakTwoTwoNtConventionCall(context);
+  const natural = advance === '3NT' ||
+    (! system.jacobyTransfers && (advance === '3H' || advance === '3S')) ||
+    (! system.texasTransfers && (advance === '4H' || advance === '4S'));
+  const success = call === 'Pass' && natural;
+  return { success, telemetryLines: [success ?
+    `PASS: ${advance} is a natural signoff after 2NT under these agreements.` :
+    'FAIL: not a natural signoff, or advancer made a conventional request.'] };
+}
+
+///
+//// Selected Rebids after Defending a Weak Two
+///
+
+/// The opening side must pass twice. Keep these classifications separate from
+/// one-level defenses: the opening level changes the meaning of economical advances.
+type WeakTwoDefenseAdvance = {
+  opening: Suit;
+  defense: 'Double' | 'suit';
+  overcallSuit: Suit | null;
+  kind: 'minimumSuit' | 'jumpSuit' | 'cuebid' | 'twoNt' | 'threeNt' |
+    'majorGame' | 'simpleRaise' | 'forcingNewSuit';
+  advanceSuit: Suit | null;
+  lastBid: NonNullable<ReturnType<typeof parseSuitBid>>;
+};
+
+function getWeakTwoDefenseAdvance (context: RuleEvalContext): WeakTwoDefenseAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      ! ['2D', '2H', '2S'].includes(info.call) ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 2] !== 'Pass' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const opening = parseSuitBid(info.call)!;
+  const defenseCall = context.auction[info.index + 1] ?? 'Pass';
+  const defenseBid = parseSuitBid(defenseCall);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const bid = parseSuitBid(advance);
+  if (bid === null) return null;
+  const doubled = defenseCall === 'Double';
+  if (! doubled && (defenseBid === null || defenseBid.level !== 2 ||
+      defenseBid.strain === 'NT' ||
+      cheapestBidInStrainAfter(opening, defenseBid.strain) !== defenseCall)) return null;
+  const openingSuit = opening.strain as Suit;
+  const overcallSuit = doubled ? null : defenseBid!.strain as Suit;
+  let kind: WeakTwoDefenseAdvance['kind'] | null = null;
+  let advanceSuit: Suit | null = null;
+  if (advance === '2NT') kind = 'twoNt';
+  if (advance === '3NT') kind = 'threeNt';
+  if (bid.strain !== 'NT') {
+    const suit = bid.strain as Suit;
+    if (doubled) {
+      if (suit === openingSuit &&
+          cheapestBidInStrainAfter(opening, suit) === advance) kind = 'cuebid';
+      if (suit !== openingSuit) {
+        const cheapest = cheapestBidInStrainAfter(opening, suit);
+        const cheapestLevel = cheapest === null ? null : parseSuitBid(cheapest)?.level;
+        if (advance === cheapest) kind = 'minimumSuit';
+        if (cheapestLevel !== undefined && cheapestLevel !== null &&
+            bid.level === cheapestLevel + 1 && bid.level <= 3) kind = 'jumpSuit';
+        if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
+        advanceSuit = suit;
+      }
+    } else if (suit === overcallSuit && bid.level === 3) {
+      kind = 'simpleRaise';
+      advanceSuit = suit;
+    } else if (suit === openingSuit &&
+               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
+      kind = 'cuebid';
+    } else if (suit !== openingSuit && suit !== overcallSuit &&
+               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
+      kind = 'forcingNewSuit';
+      advanceSuit = suit;
+    }
+  }
+  return kind === null ? null : { opening: openingSuit,
+    defense: doubled ? 'Double' : 'suit', overcallSuit,
+    kind, advanceSuit, lastBid: bid };
+}
+
+/// Weak-two Double rebids distinguish the involuntary minimum suit response from
+/// constructive jumps, natural notrump, and forcing cuebids. In particular an
+/// 18+ HCP Double is never silently passed after a weak minimum advance.
+type WeakTwoDoublerAction = 'minimum-pass' | 'jump-pass' | 'jump-game' | 'minimum-raise' |
+  'nt-pass' | 'nt-game' | 'game-pass' | 'cue-suit' | 'cue-nt' |
+  'strong-suit' | 'strong-nt';
+
+export function weakTwoDoublerRebidApplies (
+    call: Call, context: RuleEvalContext, action: WeakTwoDoublerAction): AppliesWhenResult {
+  const info = getWeakTwoDefenseAdvance(context);
+  if (info === null || info.defense !== 'Double') return { success: false, telemetryLines: [
+    'FAIL: requires a weak-two takeout Double, supported advance, and opposing Passes.',
+  ] };
+  const hcp = context.handFacts.hcp;
+  const ordinary = hcp < 18 && context.handFacts.totalPointsWShortage >= 13 &&
+    SUITS.filter((suit) => suit !== info.opening).every((suit) =>
+      context.handFacts.lengths[suit] >= 3);
+  const strong = hcp >= 18;
+  const suit = info.advanceSuit;
+  const support = suit === null ? 0 : context.handFacts.lengths[suit];
+  const cheapest = (strain: Suit | 'NT') => cheapestBidInStrainAfter(info.lastBid, strain);
+  const suitRebid = suit === null ? null : cheapest(suit);
+  const unbid = SUITS.filter((candidate) => candidate !== info.opening);
+  const strongSuit = unbid.some((candidate) =>
+    context.handFacts.lengths[candidate] >= 5 &&
+    (context.handFacts.lengths[candidate] >= 6 || hasPreemptSuitQuality(context.hand, candidate)) &&
+    cheapest(candidate) === call && (parseSuitBid(call)?.level ?? 8) <= 3);
+  const stopper = hasBasicSuitStopper(context, info.opening);
+  let success = false;
+  if (ordinary || strong) switch (action) {
+    case 'minimum-pass':
+      success = ordinary && info.kind === 'minimumSuit' && call === 'Pass';
+      break;
+    case 'jump-pass':
+      success = ordinary && info.kind === 'jumpSuit' && hcp <= 15 && call === 'Pass';
+      break;
+    case 'jump-game':
+      success = info.kind === 'jumpSuit' && suit !== null && support >= 4 &&
+        (suit === 'H' || suit === 'S') && (strong || ordinary && hcp >= 16) &&
+        call === `4${suit}`;
+      break;
+    case 'minimum-raise':
+      success = info.kind === 'minimumSuit' && strong && support >= 4 &&
+        (suit === 'H' || suit === 'S') && suitRebid === call &&
+        (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'nt-pass':
+      success = info.kind === 'twoNt' && ordinary && hcp <= 14 && call === 'Pass';
+      break;
+    case 'nt-game':
+      success = info.kind === 'twoNt' && (strong || ordinary && hcp >= 15) &&
+        call === '3NT';
+      break;
+    case 'game-pass':
+      success = (info.kind === 'threeNt' || info.kind === 'majorGame') && call === 'Pass';
+      break;
+    case 'cue-suit':
+      success = info.kind === 'cuebid' && unbid.some((candidate) =>
+        context.handFacts.lengths[candidate] >= 4 && cheapest(candidate) === call &&
+        (parseSuitBid(call)?.level ?? 8) <= 3);
+      break;
+    case 'cue-nt':
+      success = info.kind === 'cuebid' && call === '3NT' &&
+        context.handFacts.balancedOrSemiBalanced && stopper && hcp >= 14;
+      break;
+    case 'strong-suit':
+      success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') && strongSuit;
+      break;
+    case 'strong-nt':
+      success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
+        context.handFacts.balanced && stopper &&
+        ((call === '2NT' && hcp >= 18 && hcp <= 21 && cheapest('NT') === '2NT') ||
+         (call === '3NT' && hcp >= 21 && cheapest('NT') !== null &&
+          (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
+      break;
+  }
+  return { success, telemetryLines: [success ?
+    `PASS: ${action} after a ${ordinary ? 'support-oriented' : 'strong'} weak-two Double.` :
+    `FAIL: ${action} does not fit this weak-two Double and advance.`] };
+}
+
+/// The two-level overcall is natural and not forcing. A simple raise or 3NT may
+/// be accepted, while a cuebid or a forcing new suit requires a real response.
+type WeakTwoSuitAction = 'raise-pass' | 'raise-game' | 'nt-pass' | 'nt-game' |
+  'game-pass' | 'cue-return' | 'cue-game' |
+  'new-support' | 'new-repeat' | 'new-nt';
+
+export function weakTwoSuitOvercallerRebidApplies (
+    call: Call, context: RuleEvalContext, action: WeakTwoSuitAction): AppliesWhenResult {
+  const info = getWeakTwoDefenseAdvance(context);
+  if (info === null || info.defense !== 'suit' || info.overcallSuit === null) {
+    return { success: false, telemetryLines: [
+      'FAIL: requires a natural two-level overcall of a weak two and opposing Passes.',
+    ] };
+  }
+  const ownSuit = info.overcallSuit;
+  const ownLength = context.handFacts.lengths[ownSuit];
+  const hcp = context.handFacts.hcp;
+  const support = info.advanceSuit === null ? 0 : context.handFacts.lengths[info.advanceSuit];
+  const cheapest = (suit: Suit | 'NT') => cheapestBidInStrainAfter(info.lastBid, suit);
+  let success = false;
+  switch (action) {
+    case 'raise-pass':
+      success = info.kind === 'simpleRaise' && call === 'Pass' &&
+        (hcp <= 15 || ownLength < 6);
+      break;
+    case 'raise-game':
+      success = info.kind === 'simpleRaise' && hcp >= 16 && ownLength >= 6 &&
+        (ownSuit === 'H' || ownSuit === 'S') && call === `4${ownSuit}`;
+      break;
+    case 'nt-pass':
+      success = info.kind === 'twoNt' && hcp <= 14 && call === 'Pass';
+      break;
+    case 'nt-game':
+      success = info.kind === 'twoNt' && hcp >= 15 &&
+        context.handFacts.balancedOrSemiBalanced && call === '3NT';
+      break;
+    case 'game-pass':
+      success = info.kind === 'threeNt' && call === 'Pass';
+      break;
+    case 'cue-return':
+      success = info.kind === 'cuebid' && hcp <= 15 &&
+        cheapest(ownSuit) === call && (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'cue-game':
+      success = info.kind === 'cuebid' && hcp >= 16 && ownLength >= 6 &&
+        (ownSuit === 'H' || ownSuit === 'S') && call === `4${ownSuit}`;
+      break;
+    case 'new-support':
+      success = info.kind === 'forcingNewSuit' && support >= 3 &&
+        info.advanceSuit !== null && cheapest(info.advanceSuit) === call &&
+        (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'new-repeat':
+      success = info.kind === 'forcingNewSuit' && ownLength >= 6 &&
+        cheapest(ownSuit) === call && (parseSuitBid(call)?.level ?? 8) <= 3;
+      break;
+    case 'new-nt':
+      success = info.kind === 'forcingNewSuit' && hcp >= 15 &&
+        context.handFacts.balancedOrSemiBalanced &&
+        hasBasicSuitStopper(context, info.opening) && call === '3NT';
+      break;
+  }
+  return { success, telemetryLines: [success ?
+    `PASS: selected ${action} after a natural weak-two-defense overcall.` :
+    `FAIL: no selected ${action} in this weak-two-defense auction.`] };
+}
+
+/// Boundaries at the selected rebid depth are explicit when the available space
+/// or partner's forcing call prevents a reliable natural continuation.
+export function weakTwoDefenseBoundaryApplies (
+    context: RuleEvalContext, defense: 'Double' | 'suit', forcing: boolean): AppliesWhenResult {
+  const info = getWeakTwoDefenseAdvance(context);
+  const isForcing = defense === 'Double' ? info?.kind === 'cuebid' :
+    info?.kind === 'cuebid' || info?.kind === 'forcingNewSuit';
+  const success = info !== null && info.defense === defense && isForcing === forcing;
+  return { success, telemetryLines: [success ?
+    'This next choice depends on playing strength, fit, and available bidding room.' :
+    'No matching weak-two defensive continuation boundary.'] };
 }
 
 ///

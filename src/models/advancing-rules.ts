@@ -569,6 +569,27 @@ export const AdvanceRules: BidRule[] = [
                'It does not replace judgment about honor location or a strong off-shape double.'],
     certainty: 'high',
   },
+  //
+  // A direct major game after a weak-two Double needs a real five-card suit and
+  // constructive values. It is a natural signoff, not a forcing request to rebid.
+  {
+    id: 'advance-weak-two-double-direct-major-game',
+    kind: 'advance',
+    title: 'Bid game directly in an unbid major after a weak-two Double',
+    auctionContext: { stage: 'advancing', openerCalls: ['2D', '2H', '2S'],
+                      interference: 'takeoutDouble' },
+    calls: ['4H', '4S'],
+    callRefinement: refineTakeoutDoubleMajorGame,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20 },
+    appliesWhen: { totalPoints: { min: 13, valuation: 'length' },
+                   suitLengths: [{ min: 5 }] },
+    meaning: 'Natural major-suit game with 13+ length-adjusted points and five or more cards ' +
+             'in the unbid major.',
+    guidance: ['This is a selected common action, not a general high-level response system. ' +
+               'Partner normally passes the game signoff.'],
+    certainty: 'high',
+  },
   //// After responder preempts -- Pass and scope boundaries
   // After responder makes a *modeled* preemptive jump raise or weak jump shift,
   // advancer is no longer obligated to act. This is deliberately not the simple-raise
