@@ -57,7 +57,9 @@ import { OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS,
 import { OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
          OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS } from './opener-rebidding-nt-test-deals';
 import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
-         RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS }
+         RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
+         RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS,
+         RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS }
   from './responder-rebidding-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
@@ -112,6 +114,8 @@ export interface RuleTestExpectedCall {
 export {
   RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
   RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
+  RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS,
+  RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS,
   OPENING_BID_TEST_DEALS,
   ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -176,6 +180,12 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'responder-rebid-after-major-raise', group: 'Responder rebids',
     label: 'After opener raises major', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS },
+  { id: 'responder-rebid-after-repeated-hearts', group: 'Responder rebids',
+    label: 'After opener repeats hearts', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS },
+  { id: 'responder-rebid-after-repeated-minor', group: 'Responder rebids',
+    label: 'After opener repeats a minor', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS },
   { id: 'minor-1nt', group: 'Rebidding', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'opener-after-interference', group: 'Rebidding',

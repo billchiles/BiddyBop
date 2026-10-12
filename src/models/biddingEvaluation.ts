@@ -1059,6 +1059,13 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
        actualAuction[2] !== ruleContext.openerRebidCall)) {
     return false;
   }
+  if (ruleContext.openerRepeatedOpeningSuitAtTwo === true &&
+      (evalContext.stage !== 'responderRebid' || actualAuction.length !== 3 ||
+       actualOpening === undefined || ! isContractBid(actualOpening) ||
+       ! /^1[CDHS]$/.test(actualOpening) ||
+       actualAuction[2] !== `2${actualOpening.substring(1)}`)) {
+    return false;
+  }
   if (ruleContext.openerRaiseResponderMajorTo !== undefined) {
     const originalResponse = getResponderCall(evalContext.dealer, evalContext.auction);
     const raise = actualAuction[2];

@@ -43,6 +43,10 @@ needs an executable choice or specific scope guidance.
 
 - [ ] **C1.** After opener's natural suit/NT rebid, select common signoffs,
   invitations, preferences, raises, repetitions, and other worthwhile continuations.
+  Use the natural responder-rebid guidance in Audrey Grant's *Better Bridge*,
+  pp. 14-15, as a teaching reference: ordinary minimum decisions through 10 points,
+  invitations at 11-12, and game choices at 13-16, with auction and fit requirements
+  taking precedence. Stronger hands may need slam guidance rather than an automatic Pass.
 - [ ] **C2.** Complete the next response in artificial or forcing auctions already
   taught; handle chosen competitive responder rebids as appropriate.
 - [ ] **C3.** Where the next decision at this depth cannot reliably be modeled,

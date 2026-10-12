@@ -1903,13 +1903,13 @@ function runResponderRebidContextTests (): number {
       call === 'Pass' && rule.id === 'responder-rebid-pass-after-minimum-1nt');
     if (offered !== testCase.shouldOfferPass ||
         (! testCase.shouldOfferPass && candidates.some(({rule}) =>
-          rule.id.startsWith('responder-rebid-')))) {
+          rule.id.includes('after-minimum-1nt')))) {
       failures += 1;
       console.error(`FAIL responder rebid context: ${testCase.auction.join(' ')}`);
     }
   }
   console.log(`Responder rebid context: ${cases.length} checks; ${failures} ***FAILURES***.`);
-  console.log('  Keeps responder bids after a natural 1NT rebid out of minor responses,');
+  console.log('  Keeps the natural 1NT-rebid rules out of minor responses,');
   console.log('  opener suit rebids, and artificial Stayman auctions.\n');
   return failures;
 }
@@ -1940,10 +1940,84 @@ function runResponderMajorRaiseContextTests (): number {
       console.error(`FAIL responder major raise context: ${testCase.auction.join(' ')}.`);
     }
   }
-  console.log(`Responder major-raise context: ${cases.length} checks; ` +
-              `${failures} ***FAILURES***.`);
-  console.log('  Requires opener to raise the same one-level major that responder showed;');
-  console.log('  rejects new suits and other raise levels.\n');
+  // Avoid an automatic game or Pass when responder has enough strength to investigate slam.
+  const slamInterestCases: { description: string; auction: Call[]; rejected: Call;
+                             north: RuleTestDeal['north']; south: RuleTestDeal['south'] }[] = [
+    {
+      description: 'Fifteen support points after an invitational spade raise need slam guidance.',
+      auction: ['1H', 'Pass', '1S', 'Pass', '3S', 'Pass'], rejected: '4S',
+      north: { S: 'AJ84', H: 'QJ875', D: 'KJ', C: 'A3' },
+      south: { S: 'KQ62', H: 'AK3', D: 'Q82', C: 'J94' },
+    },
+    {
+      description: 'Thirteen support points after a direct heart game raise must not auto-Pass.',
+      auction: ['1D', 'Pass', '1H', 'Pass', '4H', 'Pass'], rejected: 'Pass',
+      north: { S: 'AQ3', H: 'AK84', D: 'AJ73', C: 'Q5' },
+      south: { S: 'KJ9', H: 'QJ76', D: 'K82', C: 'K93' },
+    },
+  ];
+  for (const testCase of slamInterestCases) {
+    const { board: strongBoard } = makeRuleTestBoard({
+      description: testCase.description, practiceAuction: testCase.auction,
+      north: testCase.north, south: testCase.south,
+    });
+    const result = evaluateUserCall(testCase.rejected, strongBoard, testCase.auction,
+                                    defaultBiddingSystem);
+    if (getApplicableCandidateCalls(result).some(({ call }) => call === testCase.rejected) ||
+        ! result.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary')) {
+      failures += 1;
+      console.error(`FAIL responder major-raise slam guidance: ${testCase.description}`);
+    }
+  }
+  console.log(`Responder major-raise context: ${cases.length} context and ` +
+              `${slamInterestCases.length} strong-hand checks; ${failures} ***FAILURES***.`);
+  console.log('  Requires opener to raise responder\'s original major, not a new suit;');
+  console.log('  keeps slam-oriented hands out of automatic game or Pass recommendations.\n');
+  return failures;
+}
+
+/// A minimum repeated opening suit may follow a one-level natural new-suit response,
+/// but not 1NT, a two-level forcing response, a new opener suit, or a jump rebid.
+/// The original heart/spade example must still retain its ranked invitational alternatives.
+function runResponderRepeatedSuitContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id ===
+    'responder-rebid-after-repeated-hearts')?.deals[3];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; expected: boolean; heartAlternative?: boolean }[] = [
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'], expected: true,
+      heartAlternative: true },
+    { auction: ['1C', 'Pass', '1S', 'Pass', '2C', 'Pass'], expected: true },
+    { auction: ['1D', 'Pass', '1S', 'Pass', '2D', 'Pass'], expected: true },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '3H', 'Pass'], expected: false },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2S', 'Pass'], expected: false },
+    { auction: ['1S', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Double'], expected: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      '3S', board, testCase.auction, defaultBiddingSystem));
+    const invitation = candidates.some(({ call, rule }) => call === '3S' &&
+      rule.id === 'responder-rebid-three-original-suit-after-minimum-repeat');
+    if (invitation !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL responder repeated suit context: ${testCase.auction.join(' ')}.`);
+    }
+    if (testCase.heartAlternative) {
+      const spadeIndex = candidates.findIndex(({ call }) => call === '3S');
+      const heartIndex = candidates.findIndex(({ call }) => call === '3H');
+      if (spadeIndex < 0 || heartIndex < 0 || spadeIndex >= heartIndex) {
+        failures += 1;
+        console.error('FAIL repeated-heart invitations must retain the heart alternative.');
+      }
+    }
+  }
+  console.log(`Responder repeated suit: ${cases.length} context checks and one ` +
+              `alternative-order check; ${failures} ***FAILURES***.`);
+  console.log('  Shares natural minimum suit repetitions across the one-level new-suit auctions,');
+  console.log('  without admitting forcing responses, other rebids, or opponent interference.\n');
   return failures;
 }
 
@@ -2000,7 +2074,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
-  runResponderMajorRaiseContextTests() +
+  runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

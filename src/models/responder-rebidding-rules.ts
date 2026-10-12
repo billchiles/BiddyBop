@@ -1,11 +1,13 @@
 /// Responder's selected natural second decisions.
 import type { BidRule } from './bidding-types';
-import { refineResponderOriginalMajor } from './responder-rebidding-functions';
+import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassApplies,
+         responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// After opener rebids a natural minimum 1NT
   // These cases follow an ordinary one-level major response to a one-level suit opening.
   // Opener has shown 12-14 balanced HCP and no normal four-card raise of the major.
+  // The ordinary strength ladder is 6-10 to stop, 11-12 to invite, and 13-16 for game.
   {
     id: 'responder-rebid-pass-after-minimum-1nt',
     kind: 'responderRebid',
@@ -30,9 +32,9 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRebidCall: '1NT' },
     calls: ['2H', '2S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
-    appliesWhen: { hcp: { min: 6, max: 9 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 6, max: 10 }, suitLengths: [{ min: 6 }] },
     meaning: 'A nonforcing preference for the six-card major already shown.',
     guidance: ['Opener usually passes this signoff; it is not a new-suit force.'],
     certainty: 'high',
@@ -61,9 +63,9 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRebidCall: '1NT' },
     calls: ['3H', '3S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'invitational'],
-    appliesWhen: { hcp: { min: 10, max: 12 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 11, max: 12 }, suitLengths: [{ min: 6 }] },
     meaning: "Invite game in responder's six-card major without forcing game.",
     guidance: ['Opener can pass or accept the invitation with sufficient strength and fit.'],
     certainty: 'high',
@@ -78,7 +80,7 @@ export const ResponderRebidRules: BidRule[] = [
                       openerRebidCall: '1NT' },
     calls: ['3NT'],
     callCategory: ['natural', 'signoff'],
-    appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true } },
+    appliesWhen: { hcp: { min: 13, max: 16 }, shape: { balanced: true } },
     meaning: 'Choose notrump game after opener has limited the hand to 12-14 HCP.',
     guidance: ['The partnership generally leaves the contract in 3NT; strong slam-oriented ' +
                'hands need further judgment and are not forced into this rule.'],
@@ -93,9 +95,9 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRebidCall: '1NT' },
     calls: ['4H', '4S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
-    appliesWhen: { hcp: { min: 13, max: 15 }, suitLengths: [{ min: 6 }] },
+    appliesWhen: { hcp: { min: 13, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: "Place the contract in responder's six-card major with enough values for game.",
     guidance: ['The balanced opener has at least two cards in the major. Further slam exploration ' +
                'with exceptional strength requires additional judgment.'],
@@ -119,6 +121,7 @@ export const ResponderRebidRules: BidRule[] = [
   //// After opener naturally raises responder's one-level major
   // Opener shows four-card support.  Responder already showed four or more cards in the major,
   // so total points with shortage are appropriate after the fit is known.
+  // Beyond ordinary game decisions, strong responder hands receive slam guidance.
   {
     id: 'responder-rebid-pass-after-simple-major-raise',
     kind: 'responderRebid',
@@ -128,7 +131,7 @@ export const ResponderRebidRules: BidRule[] = [
                       openerRaiseResponderMajorTo: 2 },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { totalPoints: { min: 6, max: 9, valuation: 'shortage' } },
+    appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' } },
     meaning: 'Opener has raised with 12-16 support points. Responder has no invitation to offer.',
     certainty: 'high',
   },
@@ -141,10 +144,10 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRaiseResponderMajorTo: 2 },
     calls: ['3H', '3S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'invitational'],
-    appliesWhen: { totalPoints: { min: 10, max: 12, valuation: 'shortage' } },
-    meaning: 'Invite game with 10-12 support points opposite opener\'s minimum raise.',
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' } },
+    meaning: 'Invite game with 11-12 support points opposite opener\'s minimum raise.',
     guidance: ['Opener may pass or bid game depending on strength and playing quality.'],
     certainty: 'high',
   },
@@ -157,9 +160,9 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRaiseResponderMajorTo: 2 },
     calls: ['4H', '4S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
-    appliesWhen: { totalPoints: { min: 13, max: 15, valuation: 'shortage' } },
+    appliesWhen: { totalPoints: { min: 13, max: 16, valuation: 'shortage' } },
     meaning: 'Choose game in the agreed major with ordinary game-going responder values.',
     certainty: 'high',
   },
@@ -186,9 +189,9 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRaiseResponderMajorTo: 3 },
     calls: ['4H', '4S'],
-    callRefinement: refineResponderOriginalMajor,
+    callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
-    appliesWhen: { totalPoints: { min: 8, max: 15, valuation: 'shortage' } },
+    appliesWhen: { totalPoints: { min: 8, max: 14, valuation: 'shortage' } },
     meaning: 'Accept game with enough support points opposite opener\'s stronger jump raise.',
     certainty: 'high',
   },
@@ -202,9 +205,9 @@ export const ResponderRebidRules: BidRule[] = [
                       openerRaiseResponderMajorTo: 4 },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { totalPoints: { min: 6, max: 15, valuation: 'shortage' } },
+    appliesWhen: { totalPoints: { min: 6, max: 12, valuation: 'shortage' } },
     meaning: 'Opener has shown maximum values and placed the partnership in major-suit game.',
-    guidance: ['Opener\'s game bid is ordinarily the final contract without unusual slam values.'],
+    guidance: ['With these values, opener\'s game bid ordinarily settles the contract.'],
     certainty: 'high',
   },
   //
@@ -229,8 +232,8 @@ export const ResponderRebidRules: BidRule[] = [
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRaiseResponderMajorTo: 3 },
-    meaning: 'Opener\'s invitational jump raise has found a major fit. Responder with exceptional ' +
-             'strength may consider further exploration rather than an ordinary game choice.',
+    meaning: 'Opener\'s invitational jump raise has found a major fit. With 15 or more ' +
+             'support points, responder may want to investigate slam rather than sign off in game.',
     guidance: ['Those continuations rely on too many variables and judgment for this app to ' +
                'reliably provide practice.'],
     certainty: 'high',
@@ -243,10 +246,153 @@ export const ResponderRebidRules: BidRule[] = [
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRaiseResponderMajorTo: 4 },
-    meaning: 'Opener has already placed the contract in a major game. Exceptional responder ' +
-             'strength may justify investigating slam rather than an ordinary Pass.',
+    meaning: 'Opener has shown maximum values and already bid major-suit game. Responder ' +
+             'with 13 or more support points should consider slam rather than automatically Pass.',
     guidance: ['Slam decisions rely on too many variables and judgment for this app to ' +
                'reliably provide practice.'],
+    certainty: 'high',
+  },
+  //
+  //// After a minimum repetition of opener's six-card opening suit
+  // Share natural partscore, invitation, and notrump decisions after a one-level new-suit
+  // response.  The repeated suit must be the original opening suit, bid at the two level.
+  // Do not reuse these decisions after 1NT responses or two-level game-forcing responses.
+  // Major-fit game placement and an independently strong seven-card spade suit remain
+  // specific to the natural 1H - 1S - 2H auction.
+  {
+    id: 'responder-rebid-pass-after-minimum-suit-repeat',
+    kind: 'responderRebid',
+    title: "Accept opener's repeated six-card suit with minimum values",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: responderMinimumRepeatedSuitPassApplies,
+    meaning: 'Prefer opener\'s known six-card opening suit to a new contract strain.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-original-suit-after-minimum-repeat',
+    kind: 'responderRebid',
+    title: "Sign off in responder's original six-card suit with minimum values",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: refineResponderOriginalOneLevelSuit,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'length' },
+                   suitLengths: [{ min: 6 }] },
+    meaning: 'Prefer responder\'s six-card original suit without inviting game.',
+    guidance: ['Opener ordinarily passes this nonforcing rebid.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-2nt-after-minimum-suit-repeat',
+    kind: 'responderRebid',
+    title: 'Invite notrump game after opener repeats a six-card suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
+    meaning: 'Invite 3NT after opener has shown a minimum hand and six cards in the opening suit.',
+    guidance: ['A suit invitation may be more attractive if an eight-card major fit is known.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-three-hearts-after-repeated-hearts',
+    kind: 'responderRebid',
+    title: 'Invite game with an eight-card heart fit',
+    auctionContext: { stage: 'responderRebid', auction: ['1H', '1S', '2H'] },
+    calls: ['3H'],
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 4, note: 'A known major fit usually favors inviting in hearts.' },
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
+                   suitLengths: [{ suit: 'H', min: 2 }] },
+    meaning: 'Invite 4H with at least two hearts opposite opener\'s six or more.',
+    guidance: ['Opener can accept the invitation or settle for 3H.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-three-original-suit-after-minimum-repeat',
+    kind: 'responderRebid',
+    title: "Invite game by repeating responder's six-card suit",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    calls: ['3D', '3H', '3S'],
+    callRefinement: refineResponderOriginalOneLevelSuit,
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 5, note: 'An independent long responder suit can take priority over supporting opener.' },
+    appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'length' },
+                   suitLengths: [{ min: 6 }] },
+    meaning: 'Invite in responder\'s original six-card suit with extra strength.',
+    guidance: ['A known major fit may offer another invitation in opener\'s suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-3nt-after-minimum-suit-repeat',
+    kind: 'responderRebid',
+    title: 'Choose notrump game with a suitable balanced hand',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderRepeatedSuitThreeNtApplies,
+    meaning: 'Place the contract in notrump with game values and balanced shape.',
+    guidance: ['With a major fit, four of the major remains a reasonable alternative with ' +
+               'sufficient support when the fit is attractive.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-four-hearts-after-repeated-hearts',
+    kind: 'responderRebid',
+    title: 'Bid game with at least two hearts opposite a six-card suit',
+    auctionContext: { stage: 'responderRebid', auction: ['1H', '1S', '2H'] },
+    calls: ['4H'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 10, note: 'Prefer a known eight-card major fit over marginal notrump.' },
+    appliesWhen: { totalPoints: { min: 13, max: 16, valuation: 'shortage' },
+                   suitLengths: [{ suit: 'H', min: 2 }] },
+    meaning: 'Choose the known eight-card heart fit and bid major-suit game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-four-spades-after-repeated-hearts',
+    kind: 'responderRebid',
+    title: 'Choose game in an exceptionally long, strong spade suit',
+    auctionContext: { stage: 'responderRebid', auction: ['1H', '1S', '2H'] },
+    calls: ['4S'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 20, note: 'Seven strong spades can be preferable despite opener\'s long hearts.' },
+    appliesWhen: responderSevenSpadeGameApplies,
+    meaning: 'Place game in seven-card spades with sufficient strength and suit quality.',
+    guidance: ['Opener has not shown spade support; an independently strong suit matters here.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-minimum-suit-repeat',
+    kind: 'scopeBoundary',
+    title: 'Other choices after a minimum suit repetition need further judgment',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRepeatedOpeningSuitAtTwo: true },
+    meaning: 'Opener has shown at least six cards in the opening suit and minimum strength. Responder ' +
+             'may still need to investigate another suit, forcing action, or slam.',
+    guidance: ['Those continuations depend on too many variables and judgment for this app ' +
+               'to reliably provide practice; Pass is not automatically recommended.'],
     certainty: 'high',
   },
 ];

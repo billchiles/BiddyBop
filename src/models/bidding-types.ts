@@ -311,6 +311,9 @@ export interface AuctionContext {
   openerRebidAfterInterference?: boolean;
   // At responder's rebid, require opener's actual third partnership call (not merely a 1NT opening).
   openerRebidCall?: Call;
+  // At responder's rebid, require a simple two-level repetition of the original one-level
+  // opening suit after responder's natural one-level new-suit response.
+  openerRepeatedOpeningSuitAtTwo?: boolean;
   // At responder's rebid, require opener to have naturally raised the original one-level major
   // response to this level.  The original response and raise must name the same major.
   openerRaiseResponderMajorTo?: 2 | 3 | 4;
