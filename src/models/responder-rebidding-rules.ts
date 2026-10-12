@@ -1,7 +1,9 @@
 /// Responder's selected natural second decisions.
 import type { BidRule } from './bidding-types';
 import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassApplies,
-         responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies } from './responder-rebidding-functions';
+         responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies,
+         getResponderEconomicalSecondSuit, refineResponderEconomicalSuit,
+         responderEconomicalDecisionApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// After opener rebids a natural minimum 1NT
@@ -393,6 +395,170 @@ export const ResponderRebidRules: BidRule[] = [
              'may still need to investigate another suit, forcing action, or slam.',
     guidance: ['Those continuations depend on too many variables and judgment for this app ' +
                'to reliably provide practice; Pass is not automatically recommended.'],
+    certainty: 'high',
+  },
+  //
+  //// After opener shows an economical second natural suit
+  // The first response is a one-level natural new suit.  Opener's cheapest non-reverse second
+  // suit can show 12-18 total points, and does not automatically promise five opening-minor cards.
+  {
+    id: 'responder-rebid-economical-pass-second',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s economical second suit with minimum values',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'passSecond'),
+    meaning: 'Accept opener\'s natural second suit with at least four-card support and minimum values.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-prefer-opening',
+    kind: 'responderRebid',
+    title: 'Return to opener\'s opening suit with minimum values',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'opening', 2),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'preferOpening'),
+    meaning: 'Prefer opener\'s original suit with sufficient length to justify the fit.',
+    guidance: ['A minor opening may be only three cards, so this preference requires more support.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-repeat-response',
+    kind: 'responderRebid',
+    title: 'Sign off by repeating responder\'s six-card suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'response', 2),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'repeatResponse'),
+    meaning: 'Prefer the independently long suit responder originally showed.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-invite-notrump',
+    kind: 'responderRebid',
+    title: 'Invite notrump game after opener\'s economical second suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteNt'),
+    meaning: 'Invite 3NT with balanced values, knowing opener can still have up to 18 points.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-invite-opening',
+    kind: 'responderRebid',
+    title: 'Invite game with support for opener\'s first suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'opening', 3),
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 4, note: 'A supported long opening suit can be preferable to notrump.' },
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteOpening'),
+    meaning: 'Show constructive support for opener\'s first suit after a two-level second-suit rebid.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-invite-second',
+    kind: 'responderRebid',
+    title: 'Invite game by raising opener\'s second minor',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['3C', '3D'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'second', 3),
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 4, note: 'Fit-oriented invitations can be preferable to notrump.' },
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteSecond'),
+    meaning: 'Raise opener\'s natural second minor with invitational fit and strength.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-delayed-major-partscore',
+    kind: 'responderRebid',
+    title: 'Choose a newly discovered spade fit at the two level',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['2S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'second', 2),
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondPartscore'),
+    meaning: 'Settle in spades after opener shows four and responder has four.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-delayed-major-invite',
+    kind: 'responderRebid',
+    title: 'Invite spade game after finding a delayed fit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['3S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'second', 3),
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondInvite'),
+    meaning: 'Invite game in spades after the partnership discovers its eight-card fit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-delayed-major-game',
+    kind: 'responderRebid',
+    title: 'Bid spade game after finding a delayed fit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['4S'],
+    callRefinement: (calls, context) => refineResponderEconomicalSuit(calls, context, 'second', 4),
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondGame'),
+    meaning: 'Place the contract in spades with game values and four-card support.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-economical-game-notrump',
+    kind: 'responderRebid',
+    title: 'Choose notrump game with the remaining suit stopped',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'gameNt'),
+    meaning: 'Choose 3NT with balanced game strength and a basic stopper in the unbid suit.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-economical-second-suit',
+    kind: 'scopeBoundary',
+    title: 'Further choices after opener shows two suits require hand judgment',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderEconomicalSecondSuit(context) !== null,
+      telemetryLines: ['Check the natural economical second-suit auction before showing guidance.'],
+    }),
+    meaning: 'Opener has described two natural suits and may have as many as 18 points. ' +
+             'Further forcing inquiries, difficult strain choices, and slam interest depend ' +
+             'on partnership agreements and details of both hands.',
+    guidance: ['Those decisions rely on too many variables and judgment for this app to ' +
+               'reliably provide practice; Pass is not automatically the right action.'],
     certainty: 'high',
   },
 ];

@@ -2021,6 +2021,42 @@ function runResponderRepeatedSuitContextTests (): number {
   return failures;
 }
 
+/// The same economical second-suit treatment must work for more than one printed auction,
+/// but never after a reverse, jump, forcing response, suit repetition, or active interference.
+function runResponderSecondSuitContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id ===
+    'responder-rebid-after-economical-second-suit')?.deals[0];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; expected: boolean }[] = [
+    { auction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass'], expected: true },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass'], expected: true },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2D', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', '1NT', 'Pass', '2C', 'Pass'], expected: false },
+    { auction: ['1H', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1H', 'Double', '1S', 'Pass'], expected: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const recognized = result.handMatchingRules.some((rule) =>
+      rule.id === 'responder-rebid-boundary-after-economical-second-suit');
+    const actual = recognized || getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id.startsWith('responder-rebid-economical-'));
+    if (actual !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL economical second-suit context: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  console.log(`Responder economical second suit: ${cases.length} context checks; ` +
+              `${failures} ***FAILURES***.`);
+  console.log('  Shares genuine natural economical second suits while excluding reverses,');
+  console.log('  jumps, forcing responses, repeated suits, and opponent competition.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2075,6 +2111,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
+  runResponderSecondSuitContextTests() +
   runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

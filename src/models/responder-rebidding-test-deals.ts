@@ -278,3 +278,95 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['2NT', '3H'],
   },
 ];
+
+//// Natural responder decisions after opener shows an economical second suit
+export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: '1C-1H-1S: four-four spade fit permits a minimum responder to raise to 2S.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '2S'],
+    north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
+    south: { S: 'KT98', H: 'KJ76', D: 'Q85', C: '96' },
+    expectedResponderRebidCalls: [{ call: '2S', ruleIds: [
+      'responder-rebid-economical-delayed-major-partscore',
+    ] }],
+    rejectedResponderRebidCalls: ['4S', '2NT'],
+  },
+  {
+    description: 'After the delayed spade fit, 11 support points invite game.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '3S'],
+    north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
+    south: { S: 'KT98', H: 'AJ76', D: 'Q84', C: '93' },
+    expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
+      'responder-rebid-economical-delayed-major-invite',
+    ] }],
+    rejectedResponderRebidCalls: ['4S'],
+  },
+  {
+    description: 'After the delayed spade fit, game values choose 4S.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '4S'],
+    north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
+    south: { S: 'KT98', H: 'AK76', D: 'QJ4', C: '93' },
+    expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
+      'responder-rebid-economical-delayed-major-game',
+    ] }],
+    rejectedResponderRebidCalls: ['2S', '3S'],
+  },
+  {
+    description: '1H-1S-2C: weak responder prefers opener’s five-card hearts with three hearts.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '2H'],
+    north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
+    south: { S: 'KJ96', H: 'J74', D: 'Q85', C: '872' },
+    expectedResponderRebidCalls: [{ call: '2H', ruleIds: [
+      'responder-rebid-economical-prefer-opening',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3H', '2NT'],
+  },
+  {
+    description: '1H-1S-2C: weak responder with four clubs accepts opener’s second suit.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', 'Pass'],
+    north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
+    south: { S: 'KJ95', H: '74', D: 'Q85', C: 'K873' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-economical-pass-second',
+    ] }],
+    rejectedResponderRebidCalls: ['2NT'],
+  },
+  {
+    description: '1D-1S-2C: balanced ten HCP can invite opposite opener’s wider 12-18 range.',
+    practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2C', 'Pass', '2NT'],
+    north: { S: '72', H: 'K3', D: 'KQJT9', C: 'AQ76' },
+    south: { S: 'AK86', H: 'Q84', D: '852', C: 'J32' },
+    expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
+      'responder-rebid-economical-invite-notrump',
+    ] }],
+    rejectedResponderRebidCalls: ['3NT'],
+  },
+  {
+    description: '1D-1S-2C: game-going balanced hand with a heart stopper chooses 3NT.',
+    practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2C', 'Pass', '3NT'],
+    north: { S: '72', H: 'K3', D: 'KQJT9', C: 'AQ76' },
+    south: { S: 'KJ86', H: 'AQ4', D: '852', C: 'K32' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-economical-game-notrump',
+    ] }],
+    rejectedResponderRebidCalls: ['2NT'],
+  },
+  {
+    description: '1H-1S-2C: invitational responder can raise opener’s four-card club suit.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '3C'],
+    north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
+    south: { S: 'KJ98', H: '74', D: 'Q85', C: 'KJ83' },
+    expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
+      'responder-rebid-economical-invite-second',
+    ] }],
+  },
+  {
+    description: '1H-1S-2C: invitational responder with three hearts can invite opener in 3H.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '3H'],
+    north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
+    south: { S: 'KJ98', H: 'J74', D: 'Q85', C: 'K83' },
+    expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
+      'responder-rebid-economical-invite-opening',
+    ] }],
+  },
+];
