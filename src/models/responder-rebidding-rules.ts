@@ -4,9 +4,135 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies,
          getResponderEconomicalSecondSuit, refineResponderEconomicalSuit,
          responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
-         responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies } from './responder-rebidding-functions';
+         responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies,
+         getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
+         responderAfterMajorOneNtApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Responder after an initial 1NT response to a major opening
+  // The first 1NT may be forcing or nonforcing, and either agreement can carry a
+  // three-card limit raise. An ordinary two-level rebid satisfies a one-round force.
+  // When forcing 1NT produces a manufactured minor, that minor may have only three cards.
+  {
+    id: 'responder-rebid-pass-after-major-1nt-repeat',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s six-card major at the two level',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'passMajor'),
+    meaning: 'With minimum values, prefer opener\'s known six-card major to further bidding.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-invite-after-major-1nt-repeat',
+    kind: 'responderRebid',
+    title: 'Invite game after opener repeats the major',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNt(calls, context, 'threeMajor'),
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 10 },
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'inviteMajor'),
+    meaning: 'Invite major-suit game with constructive values and a known eight-card fit.',
+    guidance: ['Opener may Pass or accept game according to the strength of the six-card major.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-prefer-major-after-major-1nt',
+    kind: 'responderRebid',
+    title: 'Return to opener\'s major after an economical second suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['2H', '2S'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNt(calls, context, 'twoMajor'),
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 10 },
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'preferMajor'),
+    meaning: 'With minimum values, prefer opener\'s five-card major with even two cards in support.',
+    guidance: ['A two-card preference can be better than a three-card minor fallback after forcing 1NT.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-second-suit-after-major-1nt',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s economical second suit with a suitable fit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'passSecond'),
+    meaning: 'Stop in opener\'s second suit when the known partnership fit makes partscore sensible.',
+    guidance: ['With forcing 1NT, a minor rebid might have only three cards; five-card responder ' +
+               'support ensures an eight-card fit even then.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-long-minor-after-major-1nt',
+    kind: 'responderRebid',
+    title: 'Show a six-card minor that could not be bid initially',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['2C', '2D', '3C', '3D'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNt(calls, context, 'ownMinor'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'longMinor'),
+    meaning: 'After showing a hand through 1NT, identify a long minor naturally and nonforcing.',
+    guidance: ['The initial forcing 1NT obligation has been satisfied by opener\'s rebid.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-delayed-limit-after-major-1nt',
+    kind: 'responderRebid',
+    title: 'Complete a three-card limit raise through 1NT',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNt(calls, context, 'threeMajor'),
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 25 },
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'delayedLimitRaise'),
+    meaning: 'Show exactly three-card major support and 11-12 support points, inviting game.',
+    guidance: ['This finishes the planned limit raise concealed by the initial 1NT response.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-2nt-after-major-1nt-second-suit',
+    kind: 'responderRebid',
+    title: 'Invite notrump game after opener shows a lower second suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'inviteNt'),
+    meaning: 'Invite 3NT with a balanced constructive hand, without an established major fit.',
+    guidance: ['Opener may accept with extra values and suitable notrump holdings.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-major-1nt-natural',
+    kind: 'scopeBoundary',
+    title: 'Further natural choices after a major-opening 1NT response',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    scopeBoundaryWhen: (context) => ({ success: getResponderAfterMajorOneNt(context) !== null,
+      telemetryLines: ['Ordinary major-1NT continuation, with no sufficiently reliable bid.'] }),
+    meaning: 'Opener has described either a six-card major or an economical second suit. ' +
+             'Responder can choose a suitable partscore or invite game where the hand is clear.',
+    guidance: ['Other suit choices, unusual strength, and borderline fits need more information ' +
+               'and judgment than this app can reliably evaluate.'],
+    certainty: 'high',
+  },
+  //
   //// After opener rebids a natural minimum 1NT
   // These cases follow an ordinary one-level major response to a one-level suit opening.
   // Opener has shown 12-14 balanced HCP and no normal four-card raise of the major.

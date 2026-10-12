@@ -1,5 +1,5 @@
 /// Natural responder-rebid refinements and selected suit-quality checks.
-import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext } from './bidding-types';
+import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
          getResponderCall, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid } from './auction';
@@ -237,5 +237,95 @@ export function responderStrongSecondSuitGameApplies (call: Call, context: RuleE
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${info.kind} after ${info.opening}/${info.response}/${info.second}; ` +
     `game ${call}, HCP ${f.hcp}, support points ${points}.`,
+  ] };
+}
+
+//// Responder after a natural 1NT response to a major opening
+
+/// A 1NT response can be forcing, nonforcing, or a three-card limit-raise route.
+/// Classify opener's ordinary two-level rebid without claiming a manufactured minor
+/// necessarily contains four cards. Reverses, jump rebids, and strong 2NT are separate.
+export function getResponderAfterMajorOneNt (context: RuleEvalContext):
+    { opening: Suit; rebid: Suit; kind: 'repeat' | 'second' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (partnership.length !== 3 || !/^1[HS]$/.test(partnership[0] ?? '') ||
+      partnership[1] !== '1NT' || !/^2[CDHS]$/.test(partnership[2] ?? '')) return null;
+  const opening = partnership[0][1] as Suit;
+  const rebid = partnership[2][1] as Suit;
+  if (rebid !== opening && cheapestBidInStrainAfter({ level: 1, strain: 'NT' }, rebid) !==
+      partnership[2]) return null;
+  // A 2S rebid over 1H-1NT is a strong reverse, not an economical second suit.
+  if (rebid !== opening && rebid === 'S' && opening === 'H') return null;
+  return { opening, rebid, kind: rebid === opening ? 'repeat' : 'second' };
+}
+
+/// Select the suit and level from opener's real auction, not a hardcoded major.
+export function refineResponderAfterMajorOneNt (calls: Call[], context: RuleEvalContext,
+    choice: 'twoMajor' | 'threeMajor' | 'ownMinor'): CallRefinementResult {
+  const info = getResponderAfterMajorOneNt(context);
+  if (info === null) return { calls: [], telemetryLines: ['Not a natural 1NT-major continuation.'] };
+  if (choice === 'ownMinor') {
+    const wanted = (['C', 'D'] as Suit[]).map((suit) =>
+      cheapestBidInStrainAfter({ level: 2, strain: info.rebid }, suit));
+    return { calls: calls.filter((call) => wanted.some((bid) => bid === call)),
+      telemetryLines: ['Show a long unbid minor at its cheapest legal level.'] };
+  }
+  const wanted = `${choice === 'twoMajor' ? 2 : 3}${info.opening}`;
+  return { calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Show ${wanted}, referring to opener's original major.`] };
+}
+
+/// After opener has fulfilled a forcing 1NT response, these natural second calls
+/// can be nonforcing. Requirements use the actual prior promises, including the
+/// possibility of a three-card minor fallback under a forcing-1NT agreement.
+export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalContext,
+    system: BiddingSystem, decision: 'passMajor' | 'inviteMajor' | 'preferMajor' |
+    'passSecond' | 'longMinor' | 'delayedLimitRaise' | 'inviteNt'): AppliesWhenResult {
+  const info = getResponderAfterMajorOneNt(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a major-1NT continuation.'] };
+  const facts = context.handFacts;
+  const majorLength = facts.lengths[info.opening];
+  const suitLength = facts.lengths[info.rebid];
+  const minimum = facts.hcp >= 6 && facts.hcp <= 10;
+  let success = false;
+  switch (decision) {
+    case 'passMajor':
+      success = info.kind === 'repeat' && minimum && majorLength >= 2;
+      break;
+    case 'inviteMajor':
+      success = info.kind === 'repeat' && majorLength >= 2 &&
+        facts.totalPointsWShortage >= 11 && facts.totalPointsWShortage <= 12;
+      break;
+    case 'preferMajor':
+      success = info.kind === 'second' && minimum && majorLength >= 2;
+      break;
+    case 'passSecond':
+      success = info.kind === 'second' && minimum &&
+        suitLength >= (info.rebid === 'H' || system.majorOneNtResponse === 'nonForcing' ? 4 : 5);
+      break;
+    case 'longMinor': {
+      const suit = call[call.length - 1] as Suit;
+      success = info.kind === 'second' && minimum &&
+        (suit === 'C' || suit === 'D') && suit !== info.rebid &&
+        facts.lengths[suit] >= 6;
+      break;
+    }
+    case 'delayedLimitRaise':
+      success = info.kind === 'second' && majorLength === 3 &&
+        (info.opening !== 'H' || facts.lengths.S <= 3) &&
+        facts.totalPointsWShortage >= 11 && facts.totalPointsWShortage <= 12;
+      break;
+    case 'inviteNt':
+      success = info.kind === 'second' && facts.balanced && facts.hcp >= 10 &&
+        facts.hcp <= 12 && majorLength <= 2;
+      break;
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${decision} after ${info.kind} of ${info.rebid}; ` +
+    `HCP ${facts.hcp}, major length ${majorLength}, second length ${suitLength}, ` +
+    `forcing 1NT ${system.majorOneNtResponse === 'forcing'}.`,
   ] };
 }

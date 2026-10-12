@@ -469,3 +469,91 @@ export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['Pass', '3S', '3NT'],
   },
 ];
+
+//// After a natural 1NT response to a major opening
+export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'After opener repeats six hearts, minimum responder accepts the eight-card fit.',
+    practiceAuction: ['1H', 'Pass', '1NT', 'Pass', '2H', 'Pass', 'Pass'],
+    north: { S: 'Q2', H: 'AKJ874', D: 'K73', C: '86' },
+    south: { S: 'KJ3', H: 'Q2', D: 'T985', C: 'J943' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-pass-after-major-1nt-repeat',
+    ] }],
+    rejectedResponderRebidCalls: ['3H', '2NT'],
+  },
+  {
+    description: 'Constructive values and doubleton heart honor invite over six hearts.',
+    practiceAuction: ['1H', 'Pass', '1NT', 'Pass', '2H', 'Pass', '3H'],
+    north: { S: 'Q2', H: 'AKJ874', D: 'K73', C: '86' },
+    south: { S: 'AJ3', H: 'Q2', D: 'Q985', C: 'J943' },
+    expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
+      'responder-rebid-invite-after-major-1nt-repeat',
+    ] }],
+    rejectedResponderRebidCalls: ['2NT'],
+  },
+  {
+    description: 'After a manufactured three-card club rebid, return to the five-card major.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', '2S'],
+    requiredSystem: { majorOneNtResponse: 'forcing' },
+    north: { S: 'AKJ74', H: 'Q63', D: 'K4', C: 'J63' },
+    south: { S: 'Q2', H: 'J872', D: 'Q985', C: 'K84' },
+    expectedResponderRebidCalls: [{ call: '2S', ruleIds: [
+      'responder-rebid-prefer-major-after-major-1nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3S'],
+  },
+  {
+    description: "With a genuine diamond fit, accept opener's natural second suit.",
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2D', 'Pass', 'Pass'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    north: { S: 'AKQ85', H: '83', D: 'KJ74', C: '96' },
+    south: { S: 'J3', H: 'K94', D: 'A986', C: 'T853' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-pass-second-suit-after-major-1nt',
+    ] }],
+    rejectedResponderRebidCalls: ['3S', '2NT'],
+  },
+  {
+    description: 'Five clubs permit a sound Pass even if forcing 1NT manufactured only three.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', 'Pass'],
+    requiredSystem: { majorOneNtResponse: 'forcing' },
+    north: { S: 'AKJ74', H: 'Q63', D: 'K4', C: 'J63' },
+    south: { S: 'Q2', H: 'T87', D: '985', C: 'AK974' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-pass-second-suit-after-major-1nt',
+    ] }],
+    rejectedResponderRebidCalls: ['3S', '2NT'],
+  },
+  {
+    description: 'After 1NT, responder can sign off in an independently long club suit.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2D', 'Pass', '3C'],
+    north: { S: 'AKQ85', H: '83', D: 'KJ74', C: '96' },
+    south: { S: 'J2', H: 'QJ4', D: 'T8', C: 'KQ8753' },
+    expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
+      'responder-rebid-long-minor-after-major-1nt',
+    ] }],
+    rejectedResponderRebidCalls: ['3S', '2NT'],
+  },
+  {
+    description: 'Three spades and 12 support points complete the 1NT limit-raise route.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', '3S'],
+    requiredSystem: { majorOneNtResponse: 'nonForcing' },
+    north: { S: 'AKQ85', H: 'J3', D: 'K7', C: 'QJ84' },
+    south: { S: 'J74', H: 'KQ8', D: 'AQ83', C: 'T92' },
+    expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
+      'responder-rebid-delayed-limit-after-major-1nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '2S', '2NT'],
+  },
+  {
+    description: 'Ten balanced HCP invite notrump game after opener shows clubs.',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', '2NT'],
+    north: { S: 'AKQ85', H: 'J3', D: 'K7', C: 'QJ84' },
+    south: { S: 'J2', H: 'KQ8', D: 'A863', C: 'T963' },
+    expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
+      'responder-rebid-2nt-after-major-1nt-second-suit',
+    ] }],
+    rejectedResponderRebidCalls: ['3S'],
+  },
+];

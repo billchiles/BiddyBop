@@ -62,7 +62,8 @@ import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
          RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS,
          RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS,
          RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS,
-         RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS }
+         RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS }
   from './responder-rebidding-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
@@ -177,6 +178,9 @@ export {
 /// exercises first so the selector begins with useful connected bidding practice. The 'all'
 /// selection concatenates compatible deals in this same order.
 export const RULE_TEST_DEAL_BUCKETS = [
+  { id: 'responder-rebid-after-major-1nt', group: 'Responder rebids',
+    label: 'After responding 1NT to a major', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS },
   { id: 'responder-rebid-after-1nt', group: 'Responder rebids',
     label: 'After opener rebids 1NT', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS },

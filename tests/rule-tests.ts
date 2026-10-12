@@ -2179,6 +2179,71 @@ function runResponderStrongTwoNtContextTests (): number {
   return failures;
 }
 
+/// The new major-1NT family must not leak into unrelated responder rebids, and
+/// forcing 1NT must not turn a three-card minor fallback into a guaranteed fit.
+function runResponderMajorOneNtContextTests (): number {
+  const bucket = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === 'responder-rebid-after-major-1nt');
+  const seed = bucket?.deals[2];
+  const limitSeed = bucket?.deals[6];
+  if (seed === undefined || limitSeed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; recognized: boolean }[] = [
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass'], recognized: true },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2S', 'Pass'], recognized: true },
+    { auction: ['1H', 'Pass', '1NT', 'Pass', '2S', 'Pass'], recognized: false },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '3S', 'Pass'], recognized: false },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'], recognized: false },
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass'], recognized: false },
+    { auction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass'], recognized: false },
+    { auction: ['1S', 'Pass', '1NT', 'Double', '2C', 'Pass'], recognized: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const concrete = getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id.includes('major-1nt'));
+    const boundary = result.handMatchingRules.some(({ id }) =>
+      id === 'responder-rebid-boundary-after-major-1nt-natural');
+    if ((concrete || boundary) !== testCase.recognized) {
+      failures += 1;
+      console.error(`FAIL major-1NT responder context: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  const { board: fourClubsBoard } = makeRuleTestBoard({
+    description: 'Four clubs do not guarantee fit opposite a manufactured minor',
+    practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass'],
+    north: seed.north,
+    south: { S: 'Q2', H: 'J87', D: 'Q985', C: 'K842' },
+  });
+  const auction: Call[] = ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass'];
+  const forcing = evaluateUserCall('Pass', fourClubsBoard, auction,
+    { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' });
+  const nonForcing = evaluateUserCall('Pass', fourClubsBoard, auction,
+    { ...defaultBiddingSystem, majorOneNtResponse: 'nonForcing' });
+  const hasSecondSuitPass = (result: ReturnType<typeof evaluateUserCall>) =>
+    getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id === 'responder-rebid-pass-second-suit-after-major-1nt');
+  if (hasSecondSuitPass(forcing) || ! hasSecondSuitPass(nonForcing)) {
+    failures += 1;
+    console.error('FAIL manufactured-minor four-card support distinction.');
+  }
+  const { board: limitBoard } = makeRuleTestBoard(limitSeed);
+  for (const majorOneNtResponse of ['forcing', 'nonForcing'] as const) {
+    const result = evaluateUserCall('3S', limitBoard, limitSeed.practiceAuction.slice(0, 6),
+      { ...defaultBiddingSystem, majorOneNtResponse });
+    if (! getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id === 'responder-rebid-delayed-limit-after-major-1nt')) {
+      failures += 1;
+      console.error(`FAIL delayed three-card limit raise with ${majorOneNtResponse} 1NT.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Responder after major 1NT: ${cases.length} context ` +
+              'checks, one manufactured-minor comparison, and two limit-raise checks.');
+  console.log('  Keeps the nonforcing decisions out of reverses and other auction families;');
+  console.log('  protects the fallback-minor length promise and both limit-raise routes.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2234,7 +2299,8 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
-  runResponderStrongTwoNtContextTests() + runPracticeContinuationTests() + runRuleTests();
+  runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
+  runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }
