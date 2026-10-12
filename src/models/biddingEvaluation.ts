@@ -13,7 +13,8 @@ import { getBidStage, getNextSeat, getOpeningCallInfo,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference }
   from './auction';
-import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules }
+import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules,
+         ResponderRebidRules }
   from './bidding-rules';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
@@ -242,6 +243,7 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
     case 'advancing':
       return AdvanceRules;
     case 'responderRebid':
+      return ResponderRebidRules;
     case null:
       return [];
   }
@@ -1052,6 +1054,20 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
 
   const actualAuction = getRuleAuction(evalContext);
   const actualOpening = actualAuction[0];
+  if (ruleContext.openerRebidCall !== undefined &&
+      (evalContext.stage !== 'responderRebid' ||
+       actualAuction[2] !== ruleContext.openerRebidCall)) {
+    return false;
+  }
+  if (ruleContext.openerRaiseResponderMajorTo !== undefined) {
+    const originalResponse = getResponderCall(evalContext.dealer, evalContext.auction);
+    const raise = actualAuction[2];
+    if (evalContext.stage !== 'responderRebid' ||
+        (originalResponse !== '1H' && originalResponse !== '1S') ||
+        raise !== `${ruleContext.openerRaiseResponderMajorTo}${originalResponse.substring(1)}`) {
+      return false;
+    }
+  }
   if (ruleContext.openerCalls !== undefined &&
       (actualOpening === undefined || ! ruleContext.openerCalls.includes(actualOpening))) {
     return false;
@@ -1163,6 +1179,18 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
 
   if (constraint.kind !== undefined && constraint.kind !== kind) {
     return false;
+  }
+  if (constraint.strain !== undefined) {
+    if (constraint.strain === 'major' && responseStrain !== 'H' && responseStrain !== 'S') {
+      return false;
+    }
+    if (constraint.strain === 'minor' && responseStrain !== 'C' && responseStrain !== 'D') {
+      return false;
+    }
+    if (constraint.strain !== 'major' && constraint.strain !== 'minor' &&
+        constraint.strain !== responseStrain) {
+      return false;
+    }
   }
   if (constraint.level !== undefined && constraint.level !== responseLevel) {
     return false;

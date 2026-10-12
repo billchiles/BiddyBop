@@ -194,6 +194,7 @@ export type RuleKind =
   | 'overcallerRebid'
   | 'advance'
   | 'openerRebid'
+  | 'responderRebid'
   | 'scopeBoundary'
   | 'priority'
   | 'rebidGuidance'
@@ -257,6 +258,8 @@ export interface ResponderCallContext {
   // jump is the number of levels above the cheapest legal bid in responder's strain.  0 requires
   // a non-jump, 1 a single jump, 2 a double jump, and omitted means the rule does not care.
   jump?: 0 | 1 | 2;
+  // Optional strain family of responder's actual bid, distinct from openerStrain.
+  strain?: Strain | 'major' | 'minor';
   // opponentSuit distinguishes an artificial cuebid of a direct suit overcall from a natural
   // responder new-suit bid.  Omitted means the rule does not care about that relationship.
   opponentSuit?: boolean;
@@ -306,6 +309,11 @@ export interface AuctionContext {
   // Ordinary opener-rebid rules must opt in before they can be reused after opponent interference.
   // Explicit competitive opener-rebid rules instead declare their interference context directly.
   openerRebidAfterInterference?: boolean;
+  // At responder's rebid, require opener's actual third partnership call (not merely a 1NT opening).
+  openerRebidCall?: Call;
+  // At responder's rebid, require opener to have naturally raised the original one-level major
+  // response to this level.  The original response and raise must name the same major.
+  openerRaiseResponderMajorTo?: 2 | 3 | 4;
   // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
   // advancerCall constrains the fourth physical call by its competitive meaning.  This is separate

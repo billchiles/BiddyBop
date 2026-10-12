@@ -6,6 +6,7 @@ import type { BidRule } from './bidding-types';
 export { OpeningBidRules } from './opening-rules';
 export { ResponseBidRules } from './responding-rules';
 export { OpenerRebidRules } from './opener-rebidding-rules';
+export { ResponderRebidRules } from './responder-rebidding-rules';
 export { OvercallRules } from './overcalling-rules';
 export { AdvanceRules } from './advancing-rules';
 ///

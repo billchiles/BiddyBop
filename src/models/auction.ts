@@ -666,3 +666,25 @@ export function cheapestBidInStrainAfter (previous: ParsedSuitBid, strain: Strai
   }
   return `${level}${strain}` as SuitBid;
 }
+
+
+//// Recorded practice auction
+/// On a different student choice, use the recorded continuation only while the previous
+/// calls still match the exercise and its next recorded call is legal.
+export function getRecordedPracticeCorrection (auction: Call[], entered: Call,
+                                               recorded?: Call[]): Call | null {
+  if (recorded === undefined) return null;
+  const expected = recorded[auction.length];
+  if (expected === undefined || expected === entered ||
+      auction.some((call, index) => call !== recorded[index]) ||
+      ! isCallAvailableInAuction(expected, auction)) {
+    return null;
+  }
+  return expected;
+}
+
+/// A deliberately shortened lesson should finish without implying the bridge auction is over.
+export function isPracticeSequenceComplete (auction: Call[], recorded?: Call[]): boolean {
+  return recorded !== undefined && auction.length >= recorded.length &&
+    recorded.every((call, index) => call === auction[index]);
+}

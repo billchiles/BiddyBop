@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
   from '../models/biddingEvaluation';
-import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, isCallAvailableInAuction } from '../models/auction';
+import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
@@ -26,6 +26,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
     getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   const explanationRef = useRef<HTMLPreElement | null>(null);
+  const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
 
   useEffect(() => {
     setBidText('');
@@ -43,16 +44,16 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (auctionComplete || auctionIsComplete(auction)) {
-      onTelemetry(['Auction is complete.']);
+    if (auctionComplete || auctionIsComplete(auction) || practiceComplete) {
+      onTelemetry([practiceComplete ? 'Practice sequence complete.' : 'Auction is complete.']);
       return;
     }
 
     commitUserCall();
   }
 
-  /// commitUserCall records the acting seat's choice.  If it follows the practice script,
-  /// non-practice setup calls are inserted until the next practiced stage.
+  /// commitUserCall evaluates the student's choice. In a selected lesson, a different bid is
+  /// explained but replaced by the recorded continuation before inserting later setup calls.
   function commitUserCall(): void {
     const stage = getBidStage(board.dealer, auction);
     const seat = getNextSeat(board.dealer, auction);
@@ -62,19 +63,29 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       return;
     }
 
-    if (! isCallAvailableInAuction(normalizedCall, auction)) {
+    // Keep a selected exercise on its recorded path without pretending that its scripted bid
+    // is always the only reasonable bridge choice. Normal non-practice bidding is unchanged.
+    const recordedCall = getRecordedPracticeCorrection(
+      auction, normalizedCall, testDeal?.practiceAuction);
+    const useRecordedCall = recordedCall !== null;
+    if (! isCallAvailableInAuction(normalizedCall, auction) && ! useRecordedCall) {
       onTelemetry([`${normalizedCall} is not available in this auction.`]);
       return;
     }
     const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
-    const enteredAuction: Call[] = [...auction, normalizedCall];
+    const enteredAuction: Call[] = [...auction, useRecordedCall ? recordedCall : normalizedCall];
     const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
     setAuction(nextAuction);
     if (auctionIsComplete(nextAuction)) {
       setAuctionComplete(true);
     }
     const practiceNotes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
-    finishBidEntry(seat, stage, result, practiceNotes);
+    const recordedResult = useRecordedCall && recordedCall !== null
+      ? evaluateUserCall(recordedCall, board, auction, biddingSystem) : null;
+    const exerciseDone = isPracticeSequenceComplete(nextAuction, testDeal?.practiceAuction);
+    finishBidEntry(seat, stage, result, practiceNotes,
+      recordedResult === null || recordedCall === null ? null : { call: recordedCall,
+        result: recordedResult }, exerciseDone);
     if (nextAuction.length > enteredAuction.length) {
       const scripted = nextAuction.slice(enteredAuction.length);
       onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
@@ -82,7 +93,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   }
 
   function finishBidEntry(seat: Seat, stage: BidStage | null, result: BidEvalResult,
-                          practiceNotes: string[]): void {
+                          practiceNotes: string[],
+                          correction: { call: Call; result: BidEvalResult } | null,
+                          exerciseDone: boolean): void {
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
     const explanation = buildExplanationLines(title, result, stage === null);
@@ -95,8 +108,27 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
         : 'Responder treatments after this intervention may be incomplete. Pass is available, ' +
           'but no recommendation is established from the empty candidate list.');
     }
+    if (correction !== null) {
+      explanation.push('', `Practice continuation: You entered ${result.normalizedCall}, but ` +
+        `this exercise records ${correction.call}. The auction uses ${correction.call} so ` +
+        'you can continue the lesson. The recorded call is not necessarily the only sound bid.');
+      const matched = correction.result.userCallMatchingRules;
+      if (matched.length > 0) {
+        explanation.push('Reason for the recorded call:');
+        for (const rule of matched) {
+          appendRuleExplanation(explanation, rule);
+        }
+      } else {
+        explanation.push('This recorded continuation is not supported by an applicable rule ' +
+          'under the current bidding configuration.');
+      }
+    }
     if (practiceNotes.length > 0) {
       explanation.push('', ...practiceNotes);
+    }
+    if (exerciseDone) {
+      explanation.push('', 'Practice sequence complete. Later calls are outside this exercise; ' +
+        'this does not mean further bidding would be inappropriate.');
     }
     setExplanationLines((current) => [...current, '', ...explanation]);
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
@@ -121,9 +153,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
   }
 
-  const inputDisabled = auctionComplete || auctionIsComplete(auction);
+  const inputDisabled = auctionComplete || auctionIsComplete(auction) || practiceComplete;
   const activeSeat = inputDisabled ? null : getNextSeat(board.dealer, auction);
-  const nextBidLabel = getNextBidLabel(board.dealer, auction, auctionComplete);
+  const nextBidLabel = practiceComplete ? 'Practice sequence complete' :
+    getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
   return (
@@ -155,8 +188,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   );
 }
 
-/// Insert only recorded setup calls, stopping at the next practiced stage or a divergent call.
-/// A deviation from the practice auction returns control to the user for all subsequent seats.
+/// Insert recorded setup calls until the next practiced stage. A mismatched prefix still stops
+/// automatic setup, though selected practice normally restores the recorded call first.
 function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTestDeal,
                                practiceStages?: BidStage[]): Call[] {
   if (testDeal === undefined || practiceStages === undefined || practiceStages.length === 0) {
@@ -292,10 +325,9 @@ function buildExplanationLines (title: string, result: BidEvalResult, unmodeledS
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
   const scopeBoundary = result.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
   if (scopeBoundary !== undefined && candidates.length === 0) {
-    lines.push('Scope boundary reached.');
+    lines.push('Further bidding needs additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
-    lines.push('  The trainer does not judge the entered call as correct or incorrect beyond ' +
-               'this modeled boundary.');
+    lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
     lines.push('No rule satisfied by this call.');
     const preferredRule = result.handMatchingRules[0];

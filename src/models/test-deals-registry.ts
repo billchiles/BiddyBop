@@ -56,6 +56,9 @@ import { OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS,
          OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS } from './opener-rebidding-major-test-deals';
 import { OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
          OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS } from './opener-rebidding-nt-test-deals';
+import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS }
+  from './responder-rebidding-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
 
@@ -85,6 +88,8 @@ export interface RuleTestDeal {
   requiredSystem?: Partial<BiddingSystem>;
   expectedOpeningCalls?: RuleTestExpectedCall[];
   expectedResponseCalls?: RuleTestExpectedCall[];
+  expectedResponderRebidCalls?: RuleTestExpectedCall[];
+  rejectedResponderRebidCalls?: Call[];
   expectedOpenerRebidCalls?: RuleTestExpectedCall[];
   // These calls must be absent from the final candidate list; they need not have been generated.
   rejectedOpeningCalls?: Call[];
@@ -105,6 +110,8 @@ export interface RuleTestExpectedCall {
 
 /// Preserve existing array exports for the test runner and other consumers.
 export {
+  RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
+  RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
   OPENING_BID_TEST_DEALS,
   ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
   ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -163,6 +170,12 @@ export {
 /// exercises first so the selector begins with useful connected bidding practice. The 'all'
 /// selection concatenates compatible deals in this same order.
 export const RULE_TEST_DEAL_BUCKETS = [
+  { id: 'responder-rebid-after-1nt', group: 'Responder rebids',
+    label: 'After opener rebids 1NT', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS },
+  { id: 'responder-rebid-after-major-raise', group: 'Responder rebids',
+    label: 'After opener raises major', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS },
   { id: 'minor-1nt', group: 'Rebidding', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'opener-after-interference', group: 'Rebidding',

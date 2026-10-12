@@ -27,6 +27,11 @@ The explanation area shows why bids qualify under the encoded rules and, where a
 Use the rule-practice deal selector to focus on a particular bidding situation instead of
 receiving a random deal.  These deals illustrate specific rules, nearby strength boundaries or a ladder of bids based on partner's bid and points or structure of your hand, and differences between partnership agreements.
 
+In a selected practice deal, if you enter a different bid, the explanation still evaluates your
+choice, but the recorded bid is used to keep the remaining lesson on track. The recorded bid
+is not necessarily the only reasonable choice. Each exercise stops at its intended final call,
+which need not be the end of the bridge auction.
+
 The app is most useful as a practice companion: make your own bidding decision first, then compare it with the candidates and explanations produced by the app.  For now, it cannot arbitrarily tell you the next best bid.
 
 ## Bidding-system settings
@@ -100,8 +105,11 @@ playing strength, vulnerability, and judgment become important quickly.  The fre
 value do not justify another high-level competitive continuation tree, so responder interference is
 intentionally omitted.
 
-Responder's later rebid after opener has rebid is Planned.  The trainer deliberately goes
-deeper in some deterministic auctions than in judgment-heavy or highly partnership-dependent ones.
+Responder's later rebid is partially covered: after opener's minimum balanced 1NT rebid
+or a natural raise of responder's one-level major, the trainer offers natural signoffs,
+invitations, and selected game choices. Other responder rebids remain planned. The trainer deliberately
+goes deeper in some deterministic auctions than in judgment-heavy or highly partnership-dependent
+ones.
 
 ### When the opponents open
 

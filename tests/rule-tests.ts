@@ -2,7 +2,7 @@
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getBidStage,
-         getInterferenceAfterOpening, isCallAvailableInAuction, parseSuitBid, responseJump }
+         getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, parseSuitBid, responseJump }
   from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
@@ -1882,6 +1882,86 @@ function runDontBoundaryTests (): number {
   return failures;
 }
 
+/// Guard against future auction-matching changes leaking the natural 1NT responder-rebid rules
+/// into minor responses, suit rebids, or artificial Stayman continuations.
+function runResponderRebidContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === 'responder-rebid-after-1nt')
+    ?.deals[0];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; shouldOfferPass: boolean }[] = [
+    { auction: ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass'], shouldOfferPass: true },
+    { auction: ['1C', 'Pass', '1D', 'Pass', '1NT', 'Pass'], shouldOfferPass: false },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2C', 'Pass'], shouldOfferPass: false },
+    { auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], shouldOfferPass: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, testCase.auction, defaultBiddingSystem));
+    const offered = candidates.some(({call, rule}) =>
+      call === 'Pass' && rule.id === 'responder-rebid-pass-after-minimum-1nt');
+    if (offered !== testCase.shouldOfferPass ||
+        (! testCase.shouldOfferPass && candidates.some(({rule}) =>
+          rule.id.startsWith('responder-rebid-')))) {
+      failures += 1;
+      console.error(`FAIL responder rebid context: ${testCase.auction.join(' ')}`);
+    }
+  }
+  console.log(`Responder rebid context: ${cases.length} checks; ${failures} ***FAILURES***.`);
+  console.log('  Keeps responder bids after a natural 1NT rebid out of minor responses,');
+  console.log('  opener suit rebids, and artificial Stayman auctions.\n');
+  return failures;
+}
+
+/// Ensure a student's different call follows the recorded lesson, not a divergent auction,
+/// while matching calls need no correction and practice completion waits for the final call.
+/// A natural raise must match responder's original one-level major, not merely be a bid at
+/// the right level.  In particular, opener's new suit must not look like a raise.
+function runResponderMajorRaiseContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id ===
+    'responder-rebid-after-major-raise')?.deals[0];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; expected: boolean }[] = [
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass'], expected: true },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1S', 'Pass', '2H', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '3H', 'Pass'], expected: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, testCase.auction, defaultBiddingSystem));
+    const pass = candidates.some(({ call, rule }) => call === 'Pass' &&
+      rule.id === 'responder-rebid-pass-after-simple-major-raise');
+    if (pass !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL responder major raise context: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  console.log(`Responder major-raise context: ${cases.length} checks; ` +
+              `${failures} ***FAILURES***.`);
+  console.log('  Requires opener to raise the same one-level major that responder showed;');
+  console.log('  rejects new suits and other raise levels.\n');
+  return failures;
+}
+
+function runPracticeContinuationTests (): number {
+  const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
+  const prefix = recorded.slice(0, 6);
+  let failures = 0;
+  if (getRecordedPracticeCorrection(prefix, 'Pass', recorded) !== '2NT') failures += 1;
+  if (getRecordedPracticeCorrection(prefix, '2NT', recorded) !== null) failures += 1;
+  if (getRecordedPracticeCorrection(['1C', '1S'], 'Pass', recorded) !== null) failures += 1;
+  if (isPracticeSequenceComplete(prefix, recorded) ||
+      ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
+  console.log(`Practice continuation: 4 checks; ${failures} ***FAILURES***.`);
+  console.log('  Preserves the recorded exercise after a different bid, but never corrects');
+  console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
+  return failures;
+}
+
 function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
   return [
     { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
@@ -1896,6 +1976,8 @@ function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
       rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
     { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
       rejected: deal.rejectedOpenerRebidCalls, order: deal.expectedOpenerRebidCallOrder },
+    { name: 'responder rebid', auctionLength: 6, expected: deal.expectedResponderRebidCalls,
+      rejected: deal.rejectedResponderRebidCalls, order: undefined },
   ];
 }
 
@@ -1917,7 +1999,9 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
-  runDontBoundaryTests() + runRuleTests();
+  runDontBoundaryTests() + runResponderRebidContextTests() +
+  runResponderMajorRaiseContextTests() +
+  runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

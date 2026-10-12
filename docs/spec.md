@@ -160,7 +160,11 @@ The app should help the user practice bidding decisions using structured convent
   React does not select `deal.N`/`deal.S` for the evaluator or label a call as opener/responder state.
 - The interaction model permits user-entered calls for all four physical seats and does not require
   an automated bidder to establish auction state.
-- The auction remains open for further user-entered calls and ends after three final passes.
+- Free bidding remains open for user-entered calls and ends after three final passes.
+- A selected practice lesson ends at its last recorded call, even when the full bridge auction
+  would continue. When the student chooses a different call, evaluate that choice but use the
+  recorded continuation to keep teaching the remaining lesson. State that the recorded call
+  is the exercise's chosen path, not necessarily the only sound bid.
 - Show matching rules, suggested calls, and guidance.
 - The trainer excludes DDS, simulation, scoring, penalty-double/redouble evaluation, and full
   auction judgment. Leave meanings outside the selected bidding system unresolved rather than
@@ -189,7 +193,7 @@ The app should help the user practice bidding decisions using structured convent
   specific deal needs it. Each note references the zero-based physical `practiceAuction`
   index and acting seat, so one seat can have distinct notes for opening and rebidding.
   Notes appear after the corresponding call is entered or inserted, never before it, and
-  are suppressed following a deviation from the recorded practice auction. Unannotated
+  appear only when their corresponding recorded call is reached. Unannotated
   decisions need no placeholder entries.
 
 ## Continuing Development Guidance
