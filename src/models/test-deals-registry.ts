@@ -60,7 +60,8 @@ import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
          RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
          RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS,
          RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS,
-         RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS }
+         RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS }
   from './responder-rebidding-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
@@ -187,10 +188,14 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'responder-rebid-after-repeated-minor', group: 'Responder rebids',
     label: 'After opener repeats a minor', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS,
-         RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS },
+         RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS },
   { id: 'responder-rebid-after-economical-second-suit', group: 'Responder rebids',
     label: 'After opener shows a second suit', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS },
+  { id: 'responder-rebid-after-strong-second-suit', group: 'Responder rebids',
+    label: 'After a reverse or strong jump shift', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS },
   { id: 'minor-1nt', group: 'Rebidding', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'opener-after-interference', group: 'Rebidding',

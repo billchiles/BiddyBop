@@ -3,7 +3,8 @@ import type { BidRule } from './bidding-types';
 import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassApplies,
          responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies,
          getResponderEconomicalSecondSuit, refineResponderEconomicalSuit,
-         responderEconomicalDecisionApplies } from './responder-rebidding-functions';
+         responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
+         responderStrongSecondSuitGameApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// After opener rebids a natural minimum 1NT
@@ -559,6 +560,74 @@ export const ResponderRebidRules: BidRule[] = [
              'on partnership agreements and details of both hands.',
     guidance: ['Those decisions rely on too many variables and judgment for this app to ' +
                'reliably provide practice; Pass is not automatically the right action.'],
+    certainty: 'high',
+  },
+  //
+  //// After opener reverses or makes a natural strong jump shift
+  // Reverse: one-round forcing, but not necessarily to game. Jump shift: game forcing.
+  // Model only contract choices justified by clear strain and strength; an unclear continuation
+  // must not acquire an automatic Pass or a conventional waiting-bid meaning.
+  {
+    id: 'responder-rebid-strong-second-suit-major-game',
+    kind: 'responderRebid',
+    title: 'Choose a supported major game after opener shows a strong second suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['4H', '4S'],
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 5, note: 'An established major fit generally favors the major-suit game.' },
+    appliesWhen: responderStrongSecondSuitGameApplies,
+    meaning: 'Place game in a major shown by opener when responder provides enough support. ' +
+             'After a reverse, use sufficient game values; after a jump shift game is already forced.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-strong-second-suit-3nt',
+    kind: 'responderRebid',
+    title: "Choose 3NT after opener's strong natural second suit",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderStrongSecondSuitGameApplies,
+    meaning: 'Balanced values and a stopper in the unbid suit make notrump game a reasonable choice.',
+    guidance: ['An eight-card major fit may be preferable when responder can support it.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-reverse',
+    kind: 'scopeBoundary',
+    title: 'A reverse requires responder to continue even with minimum strength',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderStrongSecondSuit(context)?.kind === 'reverse',
+      telemetryLines: ['Check for a natural one-round-forcing reverse.'],
+    }),
+    meaning: 'Opener has shown extra strength with a reverse and responder must bid again. ' +
+             'This is not necessarily a game force, so a minimum responder may need to ' +
+             'make a discouraging but forcing continuation rather than jump to game.',
+    guidance: ['The best lower-level response depends on the agreed treatment of weak ' +
+               'continuations, suit fits and stoppers. Pass immediately after the reverse is not appropriate.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-strong-opener-jump-shift',
+    kind: 'scopeBoundary',
+    title: 'A strong opener jump shift commits the partnership to game',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderStrongSecondSuit(context)?.kind === 'jumpShift',
+      telemetryLines: ['Check for a natural game-forcing jump shift.'],
+    }),
+    meaning: "Opener's strong jump shift commits the partnership to game. When the " +
+             'best strain is still uncertain, responder should continue describing the hand.',
+    guidance: ['Choosing the next descriptive call or investigating slam depends on ' +
+               'partnership agreements and hand judgment; Pass below game is not appropriate.'],
     certainty: 'high',
   },
 ];

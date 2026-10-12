@@ -105,12 +105,12 @@ playing strength, vulnerability, and judgment become important quickly.  The fre
 value do not justify another high-level competitive continuation tree, so responder interference is
 intentionally omitted.
 
-Responder's later rebid is partially covered: after opener's minimum balanced 1NT rebid,
-a natural raise of responder's one-level major, or a six-card heart rebid after 1H–1S,
-the trainer offers natural signoffs, invitations, and selected game choices. Other responder
-rebids remain planned. The trainer deliberately
-goes deeper in some deterministic auctions than in judgment-heavy or highly partnership-dependent
-ones.
+Responder's later rebid is partially covered: after opener rebids 1NT, raises a major,
+repeats a six-card suit, or shows another natural suit, responder can practice selected
+signoffs, invitations, and game decisions. Strong reverses and jump shifts also teach
+when responder must continue bidding even if the best contract is not yet clear.
+Other responder rebids remain planned. The trainer deliberately goes deeper in some
+clear-cut auctions than in ones requiring extensive judgment or partnership agreements.
 
 ### When the opponents open
 

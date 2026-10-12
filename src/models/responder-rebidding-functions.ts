@@ -159,3 +159,64 @@ export function responderEconomicalDecisionApplies (_call: Call, context: RuleEv
     `length points ${lengthPoints}, support points ${fitPoints}, HCP ${f.hcp}.`,
   ] };
 }
+
+//// Responder after opener's strong natural second suit
+
+/// Classify the first three partnership bids by their established meanings. A reverse is a
+/// cheapest forcing new suit; a strong jump shift jumps one level beyond an economical new suit.
+/// Neither the printed suit combination nor the opponent's intervening Passes define the family.
+export function getResponderStrongSecondSuit (context: RuleEvalContext):
+    { kind: 'reverse' | 'jumpShift'; opening: Suit; response: Suit; second: Suit } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (partnership.length !== 3 || !/^1[CDHS]$/.test(partnership[0] ?? '') ||
+      !/^1[CDHS]$/.test(partnership[1] ?? '')) return null;
+  const opening = parseSuitBid(partnership[0]);
+  const response = parseSuitBid(partnership[1]);
+  const rebid = parseSuitBid(partnership[2]);
+  if (opening === null || response === null || rebid === null || rebid.strain === 'NT' ||
+      opening.strain === response.strain || rebid.strain === opening.strain ||
+      rebid.strain === response.strain) return null;
+  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
+  const cheapestParsed = cheapest === null ? null : parseSuitBid(cheapest);
+  if (cheapestParsed === null) return null;
+  const reverse = rebid.level === cheapestParsed.level &&
+    openerRebidIsReverse(opening, response, rebid);
+  const jumpShift = rebid.level === cheapestParsed.level + 1 &&
+    ! openerRebidIsReverse(opening, response, cheapestParsed);
+  if (!reverse && !jumpShift) return null;
+  return { kind: reverse ? 'reverse' : 'jumpShift', opening: opening.strain as Suit,
+           response: response.strain as Suit, second: rebid.strain as Suit };
+}
+
+/// Natural games can be chosen when their strain and existing force are both sufficiently clear.
+/// A game-force does not automatically license 3NT without a stopper or major game without
+/// a fit. Exceptional combined strength is left to slam-oriented judgment.
+export function responderStrongSecondSuitGameApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getResponderStrongSecondSuit(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a selected strong second-suit auction.'] };
+  const f = context.handFacts;
+  const lower = info.kind === 'reverse' ? 9 : 6;
+  const upper = info.kind === 'reverse' ? 11 : 10;
+  const points = f.totalPointsWShortage;
+  let success = false;
+  if (call === '3NT') {
+    const unbid = (['C', 'D', 'H', 'S'] as Suit[]).find((suit) =>
+      suit !== info.opening && suit !== info.response && suit !== info.second);
+    success = f.balanced && f.hcp >= lower && f.hcp <= upper &&
+      unbid !== undefined && hasBasicSuitStopper(context, unbid);
+  } else {
+    const major = call === '4H' ? 'H' : call === '4S' ? 'S' : null;
+    const secondFit = major !== null && major === info.second && f.lengths[major] >= 4;
+    const originalFit = info.kind === 'jumpShift' && major !== null &&
+      major === info.opening && f.lengths[major] >= 3;
+    success = points >= lower && points <= upper && (secondFit || originalFit);
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${info.kind} after ${info.opening}/${info.response}/${info.second}; ` +
+    `game ${call}, HCP ${f.hcp}, support points ${points}.`,
+  ] };
+}

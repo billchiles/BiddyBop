@@ -1,5 +1,6 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
+import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getBidStage,
          getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, parseSuitBid, responseJump }
@@ -2057,6 +2058,78 @@ function runResponderSecondSuitContextTests (): number {
   return failures;
 }
 
+/// Strong opener second suits must remain separate from ordinary economical actions. A reverse
+/// requires a response without promising game; a strong natural jump shift forces game.
+function runResponderStrongSecondSuitContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id ===
+    'responder-rebid-after-strong-second-suit')?.deals[0];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; expected: 'reverse' | 'jumpShift' | null }[] = [
+    { auction: ['1C', 'Pass', '1S', 'Pass', '2H', 'Pass'], expected: 'reverse' },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass'], expected: 'jumpShift' },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '3C', 'Pass'], expected: 'jumpShift' },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass'], expected: null },
+    { auction: ['1C', 'Pass', '1S', 'Pass', '3H', 'Pass'], expected: null },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2H', 'Pass'], expected: null },
+    { auction: ['1S', 'Pass', '2C', 'Pass', '2H', 'Pass'], expected: null },
+    { auction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'], expected: null },
+    { auction: ['1C', 'Pass', '1S', 'Double', '2H', 'Pass'], expected: null },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const context = makeRuleEvalContext(board, testCase.auction);
+    const family = getResponderStrongSecondSuit(context)?.kind ?? null;
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const boundaries = result.handMatchingRules.filter((rule) =>
+      rule.id === 'responder-rebid-boundary-after-reverse' ||
+      rule.id === 'responder-rebid-boundary-after-strong-opener-jump-shift');
+    const hasConcreteStrongCall = getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id === 'responder-rebid-strong-second-suit-major-game' ||
+      rule.id === 'responder-rebid-strong-second-suit-3nt');
+    const expectedBoundary = hasConcreteStrongCall ? null :
+      testCase.expected === 'reverse' ? 'responder-rebid-boundary-after-reverse' :
+      testCase.expected === 'jumpShift' ?
+      'responder-rebid-boundary-after-strong-opener-jump-shift' : null;
+    const passOffered = getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass');
+    if (family !== testCase.expected || (testCase.expected !== null && passOffered) ||
+        (expectedBoundary === null ? boundaries.length !== 0 :
+         boundaries.length !== 1 || boundaries[0].id !== expectedBoundary)) {
+      failures += 1;
+      console.error(`FAIL strong second suit context: ${testCase.auction.join(' ')}` +
+                    ` family ${family} expected ${testCase.expected} pass ${passOffered} ` +
+                    `boundaries ${boundaries.map((rule) => rule.id).join(',')}.`);
+    }
+  }
+  // With no reliable game choice, retain the force and explain it instead of offering Pass.
+  const weakHands: { auction: Call[]; expectedBoundary: string;
+                     north: RuleTestDeal['north']; south: RuleTestDeal['south'] }[] = [
+    { auction: ['1C', 'Pass', '1S', 'Pass', '2H', 'Pass'],
+      expectedBoundary: 'responder-rebid-boundary-after-reverse',
+      north: seed.north, south: { S: 'KJ74', H: '85', D: 'Q652', C: '985' } },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass'],
+      expectedBoundary: 'responder-rebid-boundary-after-strong-opener-jump-shift',
+      north: { S: 'AKJ7', H: '85', D: 'K9', C: 'AQJ64' },
+      south: { S: '8', H: 'KQT76', D: 'Q632', C: '975' } },
+  ];
+  for (const testCase of weakHands) {
+    const { board: weakBoard } = makeRuleTestBoard({
+      description: 'Weak forcing-continuation context check', practiceAuction: testCase.auction,
+      north: testCase.north, south: testCase.south,
+    });
+    const result = evaluateUserCall('Pass', weakBoard, testCase.auction, defaultBiddingSystem);
+    if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass') ||
+        ! result.handMatchingRules.some(({ id }) => id === testCase.expectedBoundary)) {
+      failures += 1;
+      console.error(`FAIL weak forcing-continuation guidance: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  console.log(`Responder strong second suit: ${cases.length} context and ${weakHands.length} guidance checks; ${failures} ***FAILURES***.`);
+  console.log('  Separates a one-round-forcing reverse from a game-forcing jump shift,');
+  console.log('  excludes unrelated auctions, and never invents a Pass after either force.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2111,7 +2184,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
-  runResponderSecondSuitContextTests() +
+  runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
   runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
