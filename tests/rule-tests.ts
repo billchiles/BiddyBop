@@ -85,8 +85,8 @@ function runAuctionHelperTests (): number {
       console.error(`FAIL compareSuitBids ordering for ${testCase.lower} and ${testCase.higher}.`);
     }
   }
-  console.log(`Auction helpers: ${cases.length} responseJump checks and ${comparisonCases.length} ` +
-              `bid-order comparisons; ${failureCount} ***FAILURES***.`);
+  console.log(`${failureCount} ***FAILURES***. Auction helpers: ${cases.length} responseJump ` +
+              `checks and ${comparisonCases.length} bid-order comparisons.`);
   console.log('  Verifies jump sizes (including zero) and correct suit-bid ordering.');
   console.log('  These are fundamental calculations used throughout the bidding rules.\n');
   return failureCount;
@@ -170,7 +170,7 @@ function runAuctionContextTests (): number {
       }
     }
   }
-  console.log(`Auction context: ${checkCount} semantic/literal matching checks; ${failureCount} ***FAILURES***.`);
+  console.log(`${failureCount} ***FAILURES***. Auction context: ${checkCount} semantic/literal matching checks.`);
   console.log('  Verifies that mock rules match the correct opening level, suit, and auction');
   console.log('  sequence, without accidentally matching unrelated auctions.\n');
   return failureCount;
@@ -473,7 +473,7 @@ function runCompetitionBoundaryTests (): number {
       }
     }
   }
-  console.log(`Competition boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Competition boundaries: ${checks} checks.`);
   console.log('  Checks bidding stages, legal calls, interference classifications, and');
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
@@ -540,7 +540,7 @@ function runResponderInterferenceScopeBoundaryTests (): number {
     }
   }
 
-  console.log(`Responder interference scope: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder interference scope: ${checks} checks.`);
   console.log('  Keeps omitted opening families outside competitive responder evaluation while');
   console.log('  preserving the intentionally shared weak Pass in supported one-level auctions.\n');
   return failures;
@@ -654,9 +654,9 @@ function runRuleTests (): number {
       }
     }
   }
-  console.log(`Primary: ${dealCount} deals; ${positiveCount} positive, ${eliminationCount} elimination, ` +
-              `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks; ` +
-              `${failureCount} ***FAILURES***.`);
+  console.log(`${failureCount} ***FAILURES***. Primary: ${dealCount} deals; ` +
+              `${positiveCount} positive, ${eliminationCount} elimination, ` +
+              `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks.`);
   console.log('  Runs practice deals through the production bidding evaluator, checking');
   console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.\n');
   // Independently verify that practice calls also work in representative dropdown configurations.
@@ -723,9 +723,10 @@ function runConventionCompatibilityChecks (): number {
       }
     }
   }
-  console.log('Compatibility meta-check for the four Stayman/Jacoby/Texas setting combinations: ' +
+  console.log(`${failureCount} ***FAILURES***. Compatibility meta-check for the four ` +
+              `Stayman/Jacoby/Texas setting combinations: ` +
               `${compatibleDeals} eligible deal/configuration runs, ` +
-              `${recordedCalls} recorded practice-call checks; ${failureCount} ***FAILURES***.`);
+              `${recordedCalls} recorded practice-call checks.`);
   console.log('  Replays eligible practice auctions under four representative convention');
   console.log('  configurations to ensure their recorded calls remain valid.\n');
   console.log();
@@ -1113,7 +1114,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     }
   }
 
-  console.log(`Competitive opener-rebid boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Competitive opener-rebid boundaries: ${checks} checks.`);
   console.log('  Allows the selected advancer-Pass continuations while keeping repurposed');
   console.log('  responder meanings and advancer competition outside this selected family.\n');
   return failures;
@@ -1218,7 +1219,7 @@ function runAdvancingBoundaryTests (): number {
     failures += 1;
     console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
   }
-  console.log(`Advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Advancing boundaries: ${checks} checks.`);
   console.log('  Prevents ordinary suit-overcall advances from appearing in unsupported');
   console.log('  auctions; checks stoppers, suit quality, and strength requirements.\n');
   return failures;
@@ -1284,7 +1285,7 @@ function runTakeoutAdvanceBoundaryTests (): number {
     failures += 1;
     console.error('FAIL takeout double 1NT needs a stopper.');
   }
-  console.log(`Takeout advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Takeout advancing boundaries: ${checks} checks.`);
   console.log('  Checks takeout-double auction eligibility, the exceptional three-card');
   console.log('  suit response, and stopper requirements for notrump advances.\n');
   return failures;
@@ -1338,7 +1339,7 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
       console.error(`FAIL 1NT advance invitation under ${range} agreement.`);
     }
   }
-  console.log(`Shared 1NT advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Shared 1NT advancing boundaries: ${checks} checks.`);
   console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
   console.log('  respect partnership range settings, and exclude unrelated auctions.\n');
   return failures;
@@ -1472,7 +1473,7 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
     console.error('FAIL responsive Double exceeded the modeled 11-point maximum.');
   }
 
-  console.log(`Responder-raise advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder-raise advancing boundaries: ${checks} checks.`);
   console.log('  Restricts the new rules to simple raises and keeps responsive Double behind');
   console.log('  a clear fit, a five-card natural suit, or the modeled strong-hand cuebid.\n');
   return failures;
@@ -1542,7 +1543,7 @@ function runResponderNaturalActionAdvanceBoundaryTests (): number {
     console.error('FAIL natural responder-action family introduced an unagreed Double.');
   }
 
-  console.log(`Responder-action advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder-action advancing boundaries: ${checks} checks.`);
   console.log('  Limits these advances to natural new-suit or 1NT responses and keeps');
   console.log('  artificial responder calls, jumps, and unrelated actions outside this family.\n');
   return failures;
@@ -1650,8 +1651,7 @@ function runResponderArtificialActionAdvanceBoundaryTests (): number {
     console.error('FAIL weak Redouble escape exceeded the modeled eight-point maximum.');
   }
 
-  console.log(`Artificial responder-action advancing boundaries: ${checks} checks; ` +
-              `${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Artificial responder-action advancing boundaries: ${checks} checks.`);
   console.log('  Keeps strength-showing Redouble and weak takeout-Double escapes in their');
   console.log('  exact auctions, excluding implied suits, jumps, and stronger runout decisions.\n');
   return failures;
@@ -1727,7 +1727,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL negative Double did not work in the advancer 1NT-overcall context.');
   }
 
-  console.log(`1NT-interference partner boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. 1NT-interference partner boundaries: ${checks} checks.`);
   console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
   console.log('  enforcement, negative Double, and the current two-level interference boundary.\n');
   return failures;
@@ -1799,7 +1799,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     failures += 1;
     console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
   }
-  console.log(`Jump-overcall advancing boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Jump-overcall advancing boundaries: ${checks} checks.`);
   console.log('  Checks genuine jump overcalls, unsupported auctions and calls, and');
   console.log('  the strength and suit quality required for forcing new-suit advances.\n');
   return failures;
@@ -1877,7 +1877,7 @@ function runDontBoundaryTests (): number {
     console.error('FAIL DONT relay correction survived opener competition.');
   }
 
-  console.log(`DONT boundaries: ${checks} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. DONT boundaries: ${checks} checks.`);
   console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
   console.log('  shape/strength floor, and stops the pass-or-correct path after interference.\n');
   return failures;
@@ -1909,7 +1909,7 @@ function runResponderRebidContextTests (): number {
       console.error(`FAIL responder rebid context: ${testCase.auction.join(' ')}`);
     }
   }
-  console.log(`Responder rebid context: ${cases.length} checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder rebid context: ${cases.length} checks.`);
   console.log('  Keeps the natural 1NT-rebid rules out of minor responses,');
   console.log('  opener suit rebids, and artificial Stayman auctions.\n');
   return failures;
@@ -1970,8 +1970,8 @@ function runResponderMajorRaiseContextTests (): number {
       console.error(`FAIL responder major-raise slam guidance: ${testCase.description}`);
     }
   }
-  console.log(`Responder major-raise context: ${cases.length} context and ` +
-              `${slamInterestCases.length} strong-hand checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder major-raise context: ${cases.length} context and ` +
+              `${slamInterestCases.length} strong-hand checks.`);
   console.log('  Requires opener to raise responder\'s original major, not a new suit;');
   console.log('  keeps slam-oriented hands out of automatic game or Pass recommendations.\n');
   return failures;
@@ -2015,8 +2015,8 @@ function runResponderRepeatedSuitContextTests (): number {
       }
     }
   }
-  console.log(`Responder repeated suit: ${cases.length} context checks and one ` +
-              `alternative-order check; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder repeated suit: ${cases.length} context checks and one ` +
+              `alternative-order check.`);
   console.log('  Shares natural minimum suit repetitions across the one-level new-suit auctions,');
   console.log('  without admitting forcing responses, other rebids, or opponent interference.\n');
   return failures;
@@ -2051,8 +2051,7 @@ function runResponderSecondSuitContextTests (): number {
       console.error(`FAIL economical second-suit context: ${testCase.auction.join(' ')}.`);
     }
   }
-  console.log(`Responder economical second suit: ${cases.length} context checks; ` +
-              `${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder economical second suit: ${cases.length} context checks.`);
   console.log('  Shares genuine natural economical second suits while excluding reverses,');
   console.log('  jumps, forcing responses, repeated suits, and opponent competition.\n');
   return failures;
@@ -2124,9 +2123,59 @@ function runResponderStrongSecondSuitContextTests (): number {
       console.error(`FAIL weak forcing-continuation guidance: ${testCase.auction.join(' ')}.`);
     }
   }
-  console.log(`Responder strong second suit: ${cases.length} context and ${weakHands.length} guidance checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Responder strong second suit: ` +
+              `${cases.length} context and ${weakHands.length} guidance checks.`);
   console.log('  Separates a one-round-forcing reverse from a game-forcing jump shift,');
   console.log('  excludes unrelated auctions, and never invents a Pass after either force.\n');
+  return failures;
+}
+
+/// Strong 2NT continuations belong only after a natural one-level new-suit response.
+/// A different initial response or active interference must not inherit these natural
+/// signoffs; exceptional responder strength needs guidance rather than an automatic game.
+function runResponderStrongTwoNtContextTests (): number {
+  const seed = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id ===
+    'responder-rebid-after-strong-2nt')?.deals[1];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; expected: boolean }[] = [
+    { auction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass'], expected: true },
+    { auction: ['1C', 'Pass', '1D', 'Pass', '2NT', 'Pass'], expected: true },
+    { auction: ['1C', 'Pass', '1NT', 'Pass', '2NT', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass'], expected: false },
+    { auction: ['1C', 'Pass', '1H', 'Double', '2NT', 'Pass'], expected: false },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const result = evaluateUserCall('3NT', board, testCase.auction, defaultBiddingSystem);
+    const recognized = getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id === 'responder-rebid-3nt-after-strong-2nt');
+    if (recognized !== testCase.expected) {
+      failures += 1;
+      console.error(`FAIL responder strong 2NT context: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  const { board: strongBoard } = makeRuleTestBoard({
+    description: 'Exceptional responder strength after opener rebids 2NT',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass'],
+    north: seed.north,
+    south: { S: 'KJ8', H: 'AQJT9', D: 'A72', C: 'K6' },
+  });
+  const strongAuction: Call[] = ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass'];
+  const result = evaluateUserCall('3H', strongBoard, strongAuction, defaultBiddingSystem);
+  const actualCandidates = getApplicableCandidateCalls(result).filter(({ rule }) =>
+    rule.id.startsWith('responder-rebid-') && rule.id.endsWith('-strong-2nt'));
+  const boundary = result.handMatchingRules.some(({ id }) =>
+    id === 'responder-rebid-boundary-after-strong-2nt');
+  if (actualCandidates.length !== 0 || ! boundary) {
+    failures += 1;
+    console.error('FAIL responder strong 2NT slam-oriented guidance and signoff exclusion.');
+  }
+  console.log(`${failures} ***FAILURES***. Responder strong 2NT: ${cases.length} context checks ` +
+              'and one strong-hand guidance check.');
+  console.log('  Distinguishes a natural one-level new-suit response from 1NT or a two-level');
+  console.log('  response, excludes interference, and avoids automatic slam-interest signoffs.\n');
   return failures;
 }
 
@@ -2139,7 +2188,7 @@ function runPracticeContinuationTests (): number {
   if (getRecordedPracticeCorrection(['1C', '1S'], 'Pass', recorded) !== null) failures += 1;
   if (isPracticeSequenceComplete(prefix, recorded) ||
       ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
-  console.log(`Practice continuation: 4 checks; ${failures} ***FAILURES***.`);
+  console.log(`${failures} ***FAILURES***. Practice continuation: 4 checks.`);
   console.log('  Preserves the recorded exercise after a different bid, but never corrects');
   console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
   return failures;
@@ -2185,7 +2234,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
-  runPracticeContinuationTests() + runRuleTests();
+  runResponderStrongTwoNtContextTests() + runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

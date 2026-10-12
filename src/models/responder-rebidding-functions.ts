@@ -76,6 +76,25 @@ export function responderRepeatedSuitThreeNtApplies (_call: Call, context: RuleE
   ] };
 }
 
+//// Responder after opener's strong balanced 2NT rebid
+
+/// After a natural one-level major response, a five-card suit should be described to let
+/// opener choose between three notrump and major game. Without that question, a balanced
+/// responder can place the game directly in notrump.
+export function responderStrongTwoNtThreeNtApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const response = getResponderCall(context.dealer, context.auction);
+  const suit = response !== null && /^1[HS]$/.test(response) ? response[1] as Suit : null;
+  const facts = context.handFacts;
+  const success = facts.balanced && facts.hcp >= 7 && facts.hcp <= 12 &&
+    (suit === null || facts.lengths[suit] <= 4);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: 3NT opposite 18-19 balanced HCP requires 7-12 HCP ` +
+    `and suitable balance without an unresolved five-card responder major; ` +
+    `response ${response}, HCP ${facts.hcp}.`,
+  ] };
+}
+
 //// Natural responder decisions after opener shows an economical second suit
 
 /// This identifies the *meaning* of the first three partnership bids, not a printed example

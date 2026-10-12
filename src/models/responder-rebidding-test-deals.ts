@@ -415,3 +415,57 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     rejectedResponderRebidCalls: ['Pass', '2NT'],
   },
 ];
+
+//// Responder after opener's strong natural 2NT rebid
+export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: "Six balanced HCP accept opener's natural 18-19 HCP 2NT invitation.",
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', 'Pass'],
+    north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
+    south: { S: 'J86', H: 'QJ74', D: 'T872', C: 'Q6' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-pass-after-strong-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['3NT', '3H', '4H'],
+  },
+  {
+    description: "Seven balanced HCP bid 3NT opposite opener's 18-19 HCP.",
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', '3NT'],
+    north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
+    south: { S: 'J86', H: 'QJ74', D: 'T872', C: 'K6' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-3nt-after-strong-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3H'],
+  },
+  {
+    description: 'A one-level diamond response can also select natural 3NT after strong 2NT.',
+    practiceAuction: ['1C', 'Pass', '1D', 'Pass', '2NT', 'Pass', '3NT'],
+    north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
+    south: { S: 'J86', H: 'Q74', D: 'JT876', C: 'K6' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-3nt-after-strong-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3H'],
+  },
+  {
+    description: 'Five hearts ask opener to select 3NT or 4H rather than guess the fit.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', '3H'],
+    north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
+    south: { S: 'T86', H: 'AQJT9', D: '872', C: 'K6' },
+    expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
+      'responder-rebid-three-major-after-strong-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3NT', '4H'],
+  },
+  {
+    description: 'Six spades establish a major fit opposite a balanced 2NT rebid.',
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2NT', 'Pass', '4S'],
+    north: { S: 'K3', H: 'AQJ85', D: 'KQ4', C: 'A72' },
+    south: { S: 'AQJT97', H: 'T6', D: 'J72', C: 'T4' },
+    expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
+      'responder-rebid-four-major-after-strong-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3S', '3NT'],
+  },
+];

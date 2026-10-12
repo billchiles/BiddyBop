@@ -4,7 +4,7 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies,
          getResponderEconomicalSecondSuit, refineResponderEconomicalSuit,
          responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
-         responderStrongSecondSuitGameApplies } from './responder-rebidding-functions';
+         responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// After opener rebids a natural minimum 1NT
@@ -118,6 +118,89 @@ export const ResponderRebidRules: BidRule[] = [
              'or careful slam investigation.',
     guidance: ['Those decisions depend on too many variables and judgment for this app to ' +
                'reliably recommend one bid, including Pass.'],
+    certainty: 'high',
+  },
+  //
+  //// After opener's strong natural 2NT rebid
+  // The initial response is a natural one-level new suit, not 1NT or a two-level force.
+  // Opener's 18-19 balanced HCP is invitational, not itself a game force. A five-card
+  // responder major asks about support; six cards provide an eight-card fit opposite a
+  // balanced opener. Later opener decisions are described without another bidding stage.
+  {
+    id: 'responder-rebid-pass-after-strong-2nt',
+    kind: 'responderRebid',
+    title: 'Pass a strong balanced 2NT rebid with minimum values',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRebidCall: '2NT' },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { min: 6, max: 6 }, shape: { balanced: true } },
+    meaning: "With only six HCP, accept 2NT opposite opener's 18-19 HCP balanced hand.",
+    guidance: ['This is a real, nonforcing Pass; opener has invited rather than forced game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-3nt-after-strong-2nt',
+    kind: 'responderRebid',
+    title: 'Choose 3NT with game values after a strong 2NT rebid',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRebidCall: '2NT' },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderStrongTwoNtThreeNtApplies,
+    meaning: "Choose 3NT with a balanced 7-12 HCP hand opposite opener's 18-19 HCP.",
+    guidance: ['With five cards in a major already shown, describing that suit first can ' +
+               'help opener choose between 3NT and major-suit game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-three-major-after-strong-2nt',
+    kind: 'responderRebid',
+    title: 'Show a five-card major forcing to game after opener rebids 2NT',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
+                      openerRebidCall: '2NT' },
+    calls: ['3H', '3S'],
+    callRefinement: refineResponderOriginalOneLevelSuit,
+    callCategory: ['natural', 'gameForcing'],
+    appliesWhen: { hcp: { min: 7, max: 12 }, suitLengths: [{ min: 5, max: 5 }] },
+    meaning: "Show exactly five cards in responder's major, asking opener to choose a game.",
+    guidance: ['With three cards in the major, opener ordinarily bids 4M; with only two, ' +
+               '3NT is usually preferred. The partnership is committed to game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-four-major-after-strong-2nt',
+    kind: 'responderRebid',
+    title: 'Place game in a six-card major after a strong balanced 2NT rebid',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
+                      openerRebidCall: '2NT' },
+    calls: ['4H', '4S'],
+    callRefinement: refineResponderOriginalOneLevelSuit,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: { hcp: { min: 7, max: 12 }, suitLengths: [{ min: 6 }] },
+    meaning: "Six cards in responder's major ensure an eight-card fit opposite balanced opener.",
+    guidance: ['The strength and known major fit favor bidding game directly.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-strong-2nt',
+    kind: 'scopeBoundary',
+    title: 'Other continuations after a strong 2NT rebid require further judgment',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+                      openerRebidCall: '2NT' },
+    meaning: 'Opener has shown 18-19 balanced HCP. The partnership may need to investigate ' +
+             'an unshown major, select another strain, or consider slam with exceptional strength.',
+    guidance: ['These choices depend on additional partnership agreements, hand details, ' +
+               'and judgment, so this app cannot reliably recommend a specific next bid.'],
     certainty: 'high',
   },
   //

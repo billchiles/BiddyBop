@@ -105,10 +105,10 @@ playing strength, vulnerability, and judgment become important quickly.  The fre
 value do not justify another high-level competitive continuation tree, so responder interference is
 intentionally omitted.
 
-Responder's later rebid is partially covered: after opener rebids 1NT, raises a major,
-repeats a six-card suit, or shows another natural suit, responder can practice selected
-signoffs, invitations, and game decisions. Strong reverses and jump shifts also teach
-when responder must continue bidding even if the best contract is not yet clear.
+Responder's later rebid is partially covered: after opener rebids 1NT or a strong balanced
+2NT, raises a major, repeats a six-card suit, or shows another natural suit, responder
+can practice selected signoffs, invitations, and game decisions. Strong reverses and jump
+shifts also teach when responder must continue bidding even if the best contract is not yet clear.
 Other responder rebids remain planned. The trainer deliberately goes deeper in some
 clear-cut auctions than in ones requiring extensive judgment or partnership agreements.
 
@@ -189,7 +189,7 @@ accidental omission.
 | Natural four- and five-level preemptive openings | Partial (done) | The opening bids are modeled as examples; responder has an explicit Pass, but further high-level bidding and continuations are omitted. |
 | Direct 4NT opening as Blackwood | Omitted | The rare artificial forcing opening is not executable; other meanings of 4NT in ordinary auctions are unchanged. |
 | Detailed slam mechanisms | Partial (done) | Gerber replies, forcing 5NT, direct 7NT, many suit-auction Blackwood replies, and similar rare continuations are not full practice families. |
-| Responder's later rebid | Incomplete | You can practice selected Passes, invitations, and game choices after opener rebids 1NT, raises responder's major, repeats a six-card opening suit, or shows an economical second natural suit. Other responder rebids are still being developed. |
+| Responder's later rebid | Incomplete | You can practice selected Passes, invitations, and game choices after opener rebids 1NT, raises responder's major, repeats a six-card opening suit, shows an economical second natural suit, or rebids a strong balanced 2NT. Other responder rebids are still being developed. |
 | Balancing-seat defensive bidding | Planned | This is the fourth-seat situation where opener is followed by two Passes and the next player may compete more lightly because another Pass would end the auction. |
 | Full opponent autobidder | Planned | All four seats can be bid manually.  We plan to analyze whether a trustworthy autobidder is feasible; a simplistic one that becomes unreliable in judgment-heavy or intentionally unsupported auctions would be worse than having none. |
 | Scoring and card play | Omitted | The project is a bidding trainer rather than a duplicate-scoring or card-play engine. |
