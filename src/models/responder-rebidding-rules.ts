@@ -6,7 +6,8 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
          responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies,
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
-         responderAfterMajorOneNtApplies,
+         responderAfterMajorOneNtApplies, getResponderAfterMajorOneNtStrong,
+         responderAfterMajorOneNtStrongApplies, refineResponderAfterMajorOneNtStrongGame,
          responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
          refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
@@ -487,6 +488,117 @@ export const ResponderRebidRules: BidRule[] = [
              'Responder can choose a suitable partscore or invite game where the hand is clear.',
     guidance: ['Other suit choices, unusual strength, and borderline fits need more information ' +
                'and judgment than this app can reliably evaluate.'],
+    certainty: 'high',
+  },
+  //
+  //// After a major-opening 1NT response: opener shows an invitational maximum
+  // A natural 2NT shows 18-19 HCP; a 3M jump shows 17-18 total points and a
+  // six-card major. Neither rebid releases responder from evaluating game.
+  {
+    id: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+    kind: 'responderRebid',
+    title: "Decline opener's natural 2NT invitation with a balanced minimum",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'declineNt'),
+    meaning: 'With 6-7 balanced HCP and no major fit, accept 2NT as the final contract.',
+    guidance: ['Opener has 18-19 HCP. The partnership may fall short of the values normally ' +
+               'needed for 3NT; with a borderline seven-count, good intermediates can matter.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+    kind: 'responderRebid',
+    title: "Accept opener's 2NT invitation with game values",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'acceptNt'),
+    meaning: 'With 8-12 balanced HCP and no known major fit, bid 3NT opposite 18-19 HCP.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+    kind: 'responderRebid',
+    title: 'Complete the concealed three-card major limit raise after 2NT',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNtStrongGame(calls, context, 'ntInvite'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'gameMajorAfterNt'),
+    meaning: 'Three-card support and 11-12 support points make major game attractive opposite 18-19 HCP.',
+    guidance: ['A three-card limit raise may have started with a 1NT response; opener has now ' +
+               'shown enough strength to accept game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+    kind: 'responderRebid',
+    title: "Decline opener's six-card major game invitation",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'declineJumpMajor'),
+    meaning: 'With minimum responder values and at least two-card support, Pass the invitational 3M rebid.',
+    guidance: ['Opener showed extra strength and a six-card major, but has not forced game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+    kind: 'responderRebid',
+    title: "Accept opener's six-card major invitation",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderAfterMajorOneNtStrongGame(calls, context, 'jumpRepeat'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'acceptJumpMajor'),
+    meaning: 'With constructive responder values and at least two cards in opener\'s six-card major, bid game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-major-1nt-strong-forcing',
+    kind: 'scopeBoundary',
+    title: "Opener's reverse or jump shift requires responder to continue",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    scopeBoundaryWhen: (context) => {
+      const info = getResponderAfterMajorOneNtStrong(context);
+      return { success: info?.kind === 'reverse' || info?.kind === 'jumpShift',
+        telemetryLines: ['Strong natural second suit after a major-opening 1NT response.'] };
+    },
+    meaning: 'A strong reverse or jump shift shows extra opener strength and is forcing; ' +
+             'responder must not Pass simply because the initial response was 1NT.',
+    guidance: ['After 1H-1NT-2S, opener\'s reverse requires another bid even from a minimum. ' +
+               'After a strong jump shift, look for an eight-card fit or suitable notrump ' +
+               'contract. Selecting a further natural description requires judgment beyond ' +
+               'these modeled continuations.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-major-1nt-invitation',
+    kind: 'scopeBoundary',
+    title: 'Other choices after a strong major-opening 1NT invitation',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    scopeBoundaryWhen: (context) => {
+      const kind = getResponderAfterMajorOneNtStrong(context)?.kind;
+      return { success: kind === 'ntInvite' || kind === 'jumpRepeat',
+        telemetryLines: ['Natural opener invitation after the major-opening 1NT response.'] };
+    },
+    meaning: 'Opener has invited game, not demanded it. Responder weighs fit and strength ' +
+             'before accepting or declining.',
+    guidance: ['A balanced minimum may Pass 2NT; constructive values normally accept 3NT ' +
+               'without a major fit. After a jump to 3M, two-card support gives an eight-card ' +
+               'fit. Borderline points, poor fit, or unusual distribution call for judgment.'],
     certainty: 'high',
   },
   //

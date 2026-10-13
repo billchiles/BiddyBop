@@ -262,6 +262,76 @@ export function getResponderAfterMajorOneNt (context: RuleEvalContext):
   return { opening, rebid, kind: rebid === opening ? 'repeat' : 'second' };
 }
 
+/// Stronger opener rebids after a major-opening 1NT response have different meanings
+/// from an economical two-level suit rebid. Keep this classification separate so
+/// ordinary signoffs and limit raises cannot leak into a reverse or jump shift.
+export function getResponderAfterMajorOneNtStrong (context: RuleEvalContext):
+    { opening: 'H' | 'S'; kind: 'reverse' | 'ntInvite' | 'jumpRepeat' | 'jumpShift' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || (bids[0] !== '1H' && bids[0] !== '1S') ||
+      bids[1] !== '1NT') return null;
+  const opening = bids[0][1] as 'H' | 'S';
+  const rebid = bids[2];
+  const kind = opening === 'H' && rebid === '2S' ? 'reverse' :
+    rebid === '2NT' ? 'ntInvite' :
+    rebid === `3${opening}` ? 'jumpRepeat' :
+    // Opener's maximum-strength jump shift is into a lower-ranking new suit.
+    /^3[CDH]$/.test(rebid) && rebid[1] !== opening &&
+      (opening === 'S' || rebid[1] === 'C' || rebid[1] === 'D') ? 'jumpShift' : null;
+  return kind === null ? null : { opening, kind };
+}
+
+/// Name opener's major, not an unbid major, when an invitation is accepted in game.
+export function refineResponderAfterMajorOneNtStrongGame (calls: Call[], context: RuleEvalContext,
+    kind: 'ntInvite' | 'jumpRepeat'): CallRefinementResult {
+  const info = getResponderAfterMajorOneNtStrong(context);
+  const wanted = info?.kind === kind ? `4${info.opening}` : null;
+  return { calls: calls.filter((call) => call === wanted),
+    telemetryLines: [wanted === null ? 'Not this major-game invitation family.' :
+      `Accept opener's invitation in ${wanted}.`] };
+}
+
+/// Simple choices opposite a natural 18-19 HCP 2NT invitation or a six-card
+/// major jump rebid. With a known three-card major fit after 2NT, the concealed
+/// 11-12-point limit raise can place 4M rather than insist on notrump.
+export function responderAfterMajorOneNtStrongApplies (call: Call, context: RuleEvalContext,
+    choice: 'declineNt' | 'acceptNt' | 'gameMajorAfterNt' |
+            'declineJumpMajor' | 'acceptJumpMajor'): AppliesWhenResult {
+  const info = getResponderAfterMajorOneNtStrong(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a selected strong major-1NT continuation.'] };
+  const f = context.handFacts;
+  const length = f.lengths[info.opening];
+  let success = false;
+  switch (choice) {
+    case 'declineNt':
+      success = info.kind === 'ntInvite' && f.balanced && f.hcp >= 6 && f.hcp <= 7 &&
+        length <= 2;
+      break;
+    case 'acceptNt':
+      success = info.kind === 'ntInvite' && f.balanced && f.hcp >= 8 && f.hcp <= 12 &&
+        length <= 2;
+      break;
+    case 'gameMajorAfterNt':
+      success = info.kind === 'ntInvite' && call === `4${info.opening}` &&
+        length === 3 && f.totalPointsWShortage >= 11 && f.totalPointsWShortage <= 12;
+      break;
+    case 'declineJumpMajor':
+      success = info.kind === 'jumpRepeat' && f.hcp >= 6 && f.hcp <= 7 && length >= 2;
+      break;
+    case 'acceptJumpMajor':
+      success = info.kind === 'jumpRepeat' && call === `4${info.opening}` &&
+        f.hcp >= 8 && f.hcp <= 12 && length >= 2;
+      break;
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${choice} after major-1NT ${info.kind}; ` +
+    `responder ${f.hcp} HCP, ${length} ${info.opening} cards.`,
+  ] };
+}
+
 /// Select the suit and level from opener's real auction, not a hardcoded major.
 export function refineResponderAfterMajorOneNt (calls: Call[], context: RuleEvalContext,
     choice: 'twoMajor' | 'threeMajor' | 'ownMinor'): CallRefinementResult {

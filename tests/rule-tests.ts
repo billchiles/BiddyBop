@@ -2264,9 +2264,10 @@ function runResponderMajorOneNtContextTests (): number {
   const cases: { auction: Call[]; recognized: boolean }[] = [
     { auction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass'], recognized: true },
     { auction: ['1S', 'Pass', '1NT', 'Pass', '2S', 'Pass'], recognized: true },
-    { auction: ['1H', 'Pass', '1NT', 'Pass', '2S', 'Pass'], recognized: false },
-    { auction: ['1S', 'Pass', '1NT', 'Pass', '3S', 'Pass'], recognized: false },
-    { auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'], recognized: false },
+    { auction: ['1H', 'Pass', '1NT', 'Pass', '2S', 'Pass'], recognized: true },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '3S', 'Pass'], recognized: true },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'], recognized: true },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '3C', 'Pass'], recognized: true },
     { auction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass'], recognized: false },
     { auction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass'], recognized: false },
     { auction: ['1S', 'Pass', '1NT', 'Double', '2C', 'Pass'], recognized: false },
@@ -2277,7 +2278,9 @@ function runResponderMajorOneNtContextTests (): number {
     const concrete = getApplicableCandidateCalls(result).some(({ rule }) =>
       rule.id.includes('major-1nt'));
     const boundary = result.handMatchingRules.some(({ id }) =>
-      id === 'responder-rebid-boundary-after-major-1nt-natural');
+      id === 'responder-rebid-boundary-after-major-1nt-natural' ||
+      id === 'responder-rebid-boundary-after-major-1nt-strong-forcing' ||
+      id === 'responder-rebid-boundary-after-major-1nt-invitation');
     if ((concrete || boundary) !== testCase.recognized) {
       failures += 1;
       console.error(`FAIL major-1NT responder context: ${testCase.auction.join(' ')}.`);
@@ -2320,6 +2323,90 @@ function runResponderMajorOneNtContextTests (): number {
 
 /// The minor-1NT rebids must stay out of other response families and forcing auctions.
 /// Previously passed responder 1NT is nonforcing even with forcing-1NT configured.
+/// Keep opener's stronger rebids after a major-opening 1NT response distinct from
+/// economical two-level suit rebids. Use both major suits and both 1NT agreements.
+function runResponderMajorOneNtStrongTests (): number {
+  const make = (north: { S: string; H: string; D: string; C: string },
+                south: { S: string; H: string; D: string; C: string }) =>
+    makeRuleTestBoard({ description: 'Major-opening 1NT strong rebid continuation',
+      practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'], north, south }).board;
+  const spadeNtOpener = { S: 'AKJ84', H: 'Q65', D: 'AQ3', C: 'K4' }; // 19 balanced HCP
+  const spadeJumpOpener = { S: 'AKJ843', H: 'Q65', D: 'K73', C: 'K' }; // 18 with length points
+  const lowSpade = { S: 'Q5', H: 'K87', D: 'J864', C: '9732' }; // 6 HCP
+  const highSpade = { S: 'Q5', H: 'KJ7', D: 'J864', C: 'Q932' }; // 9 HCP
+  const limitSpade = { S: 'Q65', H: 'KJ7', D: 'J864', C: 'A93' }; // 11 HCP, three spades
+  const heartJumpOpener = { S: 'Q65', H: 'AKJ843', D: 'K73', C: 'K' };
+  const lowHeart = { S: 'K87', H: 'Q5', D: 'J864', C: '9732' };
+  const highHeart = { S: 'KJ7', H: 'Q5', D: 'J864', C: 'Q932' };
+  const checks: { name: string; board: ReturnType<typeof make>; auction: Call[];
+                  include: string; exclude?: string }[] = [
+    { name: 'decline 2NT with six', board: make(spadeNtOpener, lowSpade),
+      auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'],
+      include: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+      exclude: 'responder-rebid-3nt-after-major-1nt-2nt-invite' },
+    { name: 'accept 2NT with nine', board: make(spadeNtOpener, highSpade),
+      auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'],
+      include: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+      exclude: 'responder-rebid-pass-after-major-1nt-2nt-invite' },
+    { name: 'concealed limit raise after 2NT', board: make(spadeNtOpener, limitSpade),
+      auction: ['1S', 'Pass', '1NT', 'Pass', '2NT', 'Pass'],
+      include: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+      exclude: 'responder-rebid-3nt-after-major-1nt-2nt-invite' },
+    { name: 'decline spade jump', board: make(spadeJumpOpener, lowSpade),
+      auction: ['1S', 'Pass', '1NT', 'Pass', '3S', 'Pass'],
+      include: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      exclude: 'responder-rebid-major-game-after-major-1nt-jump-repeat' },
+    { name: 'accept spade jump', board: make(spadeJumpOpener, highSpade),
+      auction: ['1S', 'Pass', '1NT', 'Pass', '3S', 'Pass'],
+      include: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      exclude: 'responder-rebid-pass-after-major-1nt-jump-repeat' },
+    { name: 'decline heart jump', board: make(heartJumpOpener, lowHeart),
+      auction: ['1H', 'Pass', '1NT', 'Pass', '3H', 'Pass'],
+      include: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      exclude: 'responder-rebid-major-game-after-major-1nt-jump-repeat' },
+    { name: 'accept heart jump', board: make(heartJumpOpener, highHeart),
+      auction: ['1H', 'Pass', '1NT', 'Pass', '3H', 'Pass'],
+      include: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      exclude: 'responder-rebid-pass-after-major-1nt-jump-repeat' },
+  ];
+  let failures = 0;
+  for (const agreement of ['forcing', 'nonForcing'] as const) {
+    const system = { ...defaultBiddingSystem, majorOneNtResponse: agreement };
+    for (const check of checks) {
+      const result = evaluateUserCall('Pass', check.board, check.auction, system);
+      const ids = getApplicableCandidateCalls(result).map(({ rule }) => rule.id);
+      if (! ids.includes(check.include) || (check.exclude !== undefined && ids.includes(check.exclude))) {
+        failures += 1;
+        console.error(`FAIL major-1NT ${check.name} (${agreement}): ${ids.join(', ')}.`);
+      }
+      // The ordinary economical-family boundary should never describe an invitation.
+      if (result.handMatchingRules.some(({ id }) =>
+        id === 'responder-rebid-boundary-after-major-1nt-natural')) {
+        failures += 1;
+        console.error(`FAIL economical major-1NT boundary leaked into ${check.name}.`);
+      }
+    }
+  }
+  const reverseBoard = make({ S: 'KQ65', H: 'AKJ84', D: 'A73', C: 'K' },
+                            { S: 'A87', H: 'Q5', D: 'J864', C: '9732' });
+  for (const finalCall of ['2S', '3C'] as Call[]) {
+    const openerBid = finalCall === '2S' ? '1H' : '1S';
+    const board = finalCall === '2S' ? reverseBoard : make(spadeNtOpener, lowSpade);
+    const auction: Call[] = [openerBid, 'Pass', '1NT', 'Pass', finalCall, 'Pass'];
+    const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
+    if (! result.handMatchingRules.some(({ id }) =>
+      id === 'responder-rebid-boundary-after-major-1nt-strong-forcing') ||
+      getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
+      failures += 1;
+      console.error(`FAIL strong major-1NT ${finalCall} must remain forcing with guidance.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Major-1NT strong continuations: ` +
+              `${checks.length * 2} agreement cases, two forcing boundaries.`);
+  console.log('  Tests 2NT and six-card-major invitations, concealed fit, reverse/jump-shift obligations.\n');
+  return failures;
+}
+
 function runResponderMinorOneNtAndPassedHandTests (): number {
   let failures = 0;
   const seed = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === 'responder-rebid-after-minor-1nt')
@@ -2629,7 +2716,7 @@ const failureCount = runAuctionHelperTests() + runOpeningPositionAndPassTests() 
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
-  runResponderMinorOneNtAndPassedHandTests() +
+  runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
