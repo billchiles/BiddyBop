@@ -11,9 +11,174 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
          refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
-         responderTwoOverOneReachedGame } from './responder-rebidding-functions';
+         responderTwoOverOneReachedGame, getResponderNtConvention,
+         refineResponderNtConventionalMajor, responderNtConventionApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Responder after Stayman over a natural 1NT or 2NT opening
+  // Keep these at the responder-rebid stage; they do not initiate a further auction stage.
+  // The initial Stayman response already promises at least one four-card major and the
+  // initial strength floor. Here the shown major must *actually* fit responder's hand.
+  {
+    id: 'responder-rebid-1nt-stayman-invite-2nt',
+    kind: 'responderRebid', title: 'Invite 3NT when Stayman finds no major fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['2NT'], callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanInviteNt'),
+    meaning: 'No four-four major fit; invite game with 8–9 HCP opposite 15–17 (7–8 opposite 16–18).',
+    guidance: ['Opener may accept with suitable maximum values.'], certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-1nt-stayman-game-3nt',
+    kind: 'responderRebid', title: 'Choose 3NT after Stayman without a major fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanGameNt'),
+    meaning: 'No discovered four-four major fit; choose notrump game with ordinary game-going values.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-1nt-stayman-invite-major',
+    kind: 'responderRebid', title: 'Invite game in the Stayman major fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 3),
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanInviteMajor'),
+    meaning: 'Four-card support for the major opener showed; invite game with invitational strength.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-1nt-stayman-game-major',
+    kind: 'responderRebid', title: 'Bid game in the Stayman major fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 4),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanGameMajor'),
+    meaning: 'Opener showed four of this major; responder has four or more, so choose major game.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-2nt-stayman-game-3nt',
+    kind: 'responderRebid', title: 'Choose 3NT when 2NT Stayman finds no major fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'stayman2NtGameNt'),
+    meaning: 'No four-four major fit; choose 3NT with the ordinary 4–10 HCP game-response range.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-2nt-stayman-game-major',
+    kind: 'responderRebid', title: 'Choose major game after 2NT Stayman finds a fit',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2NT'] },
+    agreement: { setting: 'stayman', value: true },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 4),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'stayman2NtGameMajor'),
+    meaning: 'Bid four of the matched major opposite a 20–21 HCP 2NT opening.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-nt-stayman',
+    kind: 'scopeBoundary', title: 'Further Stayman judgment or slam investigation',
+    auctionContext: { stage: 'responderRebid', openerStrain: 'NT' },
+    agreement: { setting: 'stayman', value: true },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderNtConvention(context)?.convention === 'stayman',
+      telemetryLines: ['Stayman response completed; check the selected natural continuations.'],
+    }),
+    meaning: 'Continue after Stayman according to the major fit and game strength.',
+    guidance: ['With no matching major, consider a natural notrump invitation or game. With a ' +
+               'matching four-card major, consider three of the major as an invitation after 1NT ' +
+               'or four of the major to play with game values.',
+               'Unusual distribution, alternative major-suit continuations, and slam ' +
+               'investigation are outside these selected executable decisions.'],
+    certainty: 'high',
+  },
+  //// Responder after opener completes a Jacoby major transfer
+  {
+    id: 'responder-rebid-nt-transfer-pass-weak',
+    kind: 'responderRebid', title: 'Pass the completed major transfer with a weak hand',
+    auctionContext: { stage: 'responderRebid', openerStrain: 'NT' },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferPass'),
+    meaning: 'Opener has completed the artificial transfer. With weak values, play the major partscore.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-1nt-transfer-invite-2nt',
+    kind: 'responderRebid', title: 'Invite game in notrump after a five-card transfer',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    calls: ['2NT'], callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferInviteNt'),
+    meaning: 'With a balanced five-card major and invitational values, offer opener a choice of games.',
+    guidance: ['With three-card support opener may prefer the major; otherwise consider 2NT or 3NT.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-1nt-transfer-invite-major',
+    kind: 'responderRebid', title: 'Invite major game after transferring with six or more cards',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 3),
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferInviteMajor'),
+    meaning: 'A six-card major supports a natural invitation at the three level.', certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-nt-transfer-game-3nt',
+    kind: 'responderRebid', title: 'Offer 3NT after a five-card major transfer',
+    auctionContext: { stage: 'responderRebid', openerStrain: 'NT' },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferGameNt'),
+    meaning: 'With balanced game values and only five in the transferred major, offer 3NT.',
+    guidance: ['Opener can choose four of the major with three-card support.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-nt-transfer-game-major-no-texas',
+    kind: 'responderRebid', title: 'Bid major game after a completed transfer without Texas',
+    auctionContext: { stage: 'responderRebid', openerStrain: 'NT' },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 4),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferGameMajor'),
+    meaning: 'With six or more cards and game strength, place the contract in the major.',
+    guidance: ['With Texas enabled a direct Texas transfer is the fast game route; a Jacoby ' +
+               'transfer followed by four of the major may convey additional slam interest.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-nt-transfer',
+    kind: 'scopeBoundary', title: 'Further Jacoby-transfer continuations',
+    auctionContext: { stage: 'responderRebid', openerStrain: 'NT' },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderNtConvention(context)?.convention === 'jacoby',
+      telemetryLines: ['Completed Jacoby transfer; check selected continuations.'],
+    }),
+    meaning: 'A completed transfer establishes a natural major-suit option for responder.',
+    guidance: ['Weak responder hands usually pass the completion; invitational hands with ' +
+               'five majors may bid 2NT after 1NT, while six-card majors can invite at three.',
+               'With Texas transfers enabled, the direct Texas route describes a routine ' +
+               'six-card-major game signoff. A Jacoby transfer followed by four of that major ' +
+               'can have a different, slam-interest meaning; this is not automatically recommended.',
+               'Further slam-oriented, two-suited, and judgment-dependent continuations are ' +
+               'not modeled.'],
+    certainty: 'high',
+  },
   //// Responder after a natural 2/1 game-forcing new-suit response
   // Opener's economical rebid has not released the game force. These continuations
   // distinguish a selected game placement from a forcing, descriptive second bid.

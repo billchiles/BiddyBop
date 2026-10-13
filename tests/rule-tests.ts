@@ -2704,7 +2704,143 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
 }
 
-const failureCount = runAuctionHelperTests() + runOpeningPositionAndPassTests() +
+/// Selected, meaningful convention-completion checks, not a new practice-deal bucket.
+/// Exercise the physical three-bid pattern, denomination, agreement shifts, and
+/// the important Texas distinction when a Jacoby transfer is followed by a jump.
+function runResponderNtConventionTests (): number {
+  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' }; // 15 HCP, both majors
+  const oneNtSpades = { S: 'AK72', H: 'QJ6', D: 'K974', C: 'Q5' }; // 15 HCP, spades only
+  const oneNtNoMajor = { S: 'AK7', H: 'QJ6', D: 'K974', C: 'A63' }; // 17 HCP, no major
+  const twoNt = { S: 'AKQ2', H: 'KJ65', D: 'AQ7', C: 'J5' }; // 20 HCP
+  const twoNtSpades = { S: 'AKQ2', H: 'K65', D: 'AQ73', C: 'K5' }; // 21 HCP, spades only
+  const make = (north: typeof oneNt, south: typeof oneNt) =>
+    makeRuleTestBoard({ description: 'NT convention rebid rule test',
+      north, south, practiceAuction: ['1NT'] }).board;
+  const cases: { name: string; board: ReturnType<typeof make>; auction: Call[];
+    expected: Call | null; ruleId?: string; config?: Partial<BiddingSystem>;
+    boundary?: 'stayman' | 'jacoby' }[] = [
+    { name: '1NT Stayman major invitation', board: make(oneNtSpades,
+      { S: 'J865', H: 'A43', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '3S',
+      ruleId: 'responder-rebid-1nt-stayman-invite-major' },
+    { name: '1NT Stayman major game', board: make(oneNt,
+      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2H', 'Pass'], expected: '4H',
+      ruleId: 'responder-rebid-1nt-stayman-game-major' },
+    { name: '1NT Stayman no-major invitation', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT Stayman other-major no fit', board: make(oneNtSpades,
+      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT Stayman 3NT', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-1nt-stayman-game-3nt' },
+    { name: '1NT Stayman HCP shift', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'A843', D: 'Q85', C: '984' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
+      config: { oneNtOpening: '16-18' }, ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT weak spade transfer signoff', board: make(oneNt,
+      { S: 'J9864', H: 'T74', D: 'J85', C: '83' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: 'Pass',
+      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
+    { name: '1NT five-spade invitation', board: make(oneNt,
+      { S: 'QJ864', H: 'A74', D: 'Q85', C: '83' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-transfer-invite-2nt' },
+    { name: '1NT six-heart invitation', board: make(oneNt,
+      { S: 'T3', H: 'AT9874', D: 'QJ5', C: 'J8' }),
+      auction: ['1NT', 'Pass', '2D', 'Pass', '2H', 'Pass'], expected: '3H',
+      ruleId: 'responder-rebid-1nt-transfer-invite-major' },
+    { name: '1NT transferred spades to 3NT', board: make(oneNt,
+      { S: 'QJ864', H: 'A74', D: 'Q85', C: 'K3' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
+    { name: '1NT six spades game without Texas', board: make(oneNt,
+      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '4S',
+      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
+    { name: '1NT six spades Texas boundary', board: make(oneNt,
+      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: null,
+      boundary: 'jacoby' },
+    { name: '2NT Stayman spade game', board: make(twoNtSpades,
+      { S: 'JT86', H: 'A843', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '4S',
+      ruleId: 'responder-rebid-2nt-stayman-game-major' },
+    { name: '2NT Stayman other-major 3NT', board: make(twoNtSpades,
+      { S: 'T86', H: 'AT84', D: 'T865', C: '64' }),
+      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-2nt-stayman-game-3nt' },
+    { name: '2NT weak heart transfer', board: make(twoNt,
+      { S: 'J86', H: 'T9874', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3D', 'Pass', '3H', 'Pass'], expected: 'Pass',
+      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
+    { name: '2NT five-spade transfer to 3NT', board: make(twoNt,
+      { S: 'JT986', H: 'A84', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
+    { name: '2NT six-spade game without Texas', board: make(twoNt,
+      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '4S',
+      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
+    { name: '2NT six-spade Texas boundary', board: make(twoNt,
+      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: null,
+      boundary: 'jacoby' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const system = { ...defaultBiddingSystem, ...test.config };
+    const result = evaluateUserCall(test.expected ?? 'Pass', test.board, test.auction, system);
+    const calls = getApplicableCandidateCalls(result);
+    const chosen = test.expected === null ? null : calls.find(({ call, rule }) =>
+      call === test.expected && rule.id === test.ruleId);
+    const wrongMajor = calls.some(({ call }) =>
+      (call === '3H' || call === '3S' || call === '4H' || call === '4S') &&
+      (test.expected === null || call !== test.expected));
+    const boundaryId = test.boundary === 'stayman'
+      ? 'responder-rebid-boundary-after-nt-stayman'
+      : 'responder-rebid-boundary-after-nt-transfer';
+    const hasBoundary = result.handMatchingRules.some(({ id }) => id === boundaryId);
+    if ((test.expected !== null && chosen === undefined) || wrongMajor ||
+        (test.expected === null && (calls.length > 0 || !hasBoundary))) {
+      failures += 1;
+      console.error(`FAIL NT convention ${test.name}: candidates ${formatCandidates(calls)}, ` +
+                    `boundary ${hasBoundary}.`);
+    }
+  }
+  // Convention-off variants must not silently reinterpret a natural responder call.
+  const offBoard = make(oneNt, { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' });
+  for (const [auction, config, forbidden] of [
+    [['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], { stayman: false }, 'stayman'],
+    [['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], { jacobyTransfers: false }, 'transfer'],
+  ] as const) {
+    const result = evaluateUserCall('Pass', offBoard, [...auction],
+      { ...defaultBiddingSystem, ...config });
+    if (getApplicableCandidateCalls(result).some(({ rule }) => rule.id.includes('nt-' + forbidden)) ||
+        result.handMatchingRules.some(({ id }) => id.includes('nt-' + forbidden))) {
+      failures += 1;
+      console.error(`FAIL ${forbidden} rules available with convention off.`);
+    }
+  }
+  // A natural one-level-suit opener's 1NT rebid is not a completed transfer or Stayman.
+  const unrelated = evaluateUserCall('Pass', offBoard,
+    ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass'], defaultBiddingSystem);
+  if (getApplicableCandidateCalls(unrelated).some(({ rule }) =>
+      rule.id.startsWith('responder-rebid-nt-transfer') || rule.id.includes('nt-stayman'))) {
+    failures += 1;
+    console.error('FAIL NT convention rules leaked into a natural suit-opening sequence.');
+  }
+  console.log(`${failures} ***FAILURES***. Responder NT conventions: ${cases.length} ` +
+              'representative continuations, two convention-off guards, and one stage guard.\n');
+  return failures;
+}
+
+const failureCount = runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

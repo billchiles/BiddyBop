@@ -1,5 +1,6 @@
 /// Natural responder-rebid refinements and selected suit-quality checks.
 import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem } from './bidding-types';
+import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
          getResponderCall, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
@@ -638,5 +639,108 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: Standard two-level ${choice}; ` +
     `${info.opening}-${info.response}-${info.rebid}, ${f.hcp} HCP.`,
+  ] };
+}
+
+//// Responder's continuation after a notrump-opening convention
+
+/// Recognize only the exact three partnership calls of an uncontested Stayman or
+/// Jacoby-transfer sequence. The 1NT opening/overcall distinction matters: an opponent's
+/// suit opening followed by our natural 1NT overcall is not an NT *opening* here.
+/// Agreement filtering of the rules separately protects natural 2C/3C or 2D/3D uses when
+/// the relevant convention is disabled.
+export function getResponderNtConvention (context: RuleEvalContext):
+    { opening: '1NT' | '2NT'; convention: 'stayman' | 'jacoby'; reply: Call;
+      major: 'H' | 'S' | null; matched: boolean } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || (opening.call !== '1NT' && opening.call !== '2NT')) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
+  if (bids.length !== 3 || bids[0] !== opening.call) return null;
+  const [ , response, reply ] = bids;
+  const base = opening.call === '1NT' ? 2 : 3;
+  const stayman = `${base}C`;
+  if (response === stayman &&
+      (reply === `${base}D` || reply === `${base}H` || reply === `${base}S`)) {
+    const major = reply === `${base}H` ? 'H' : reply === `${base}S` ? 'S' : null;
+    return { opening: opening.call, convention: 'stayman', reply,
+             major, matched: major !== null && context.handFacts.lengths[major] >= 4 };
+  }
+  if (response === `${base}D` && reply === `${base}H`) {
+    return { opening: opening.call, convention: 'jacoby', reply, major: 'H', matched: true };
+  }
+  if (response === `${base}H` && reply === `${base}S`) {
+    return { opening: opening.call, convention: 'jacoby', reply, major: 'S', matched: true };
+  }
+  return null;
+}
+
+/// A shown Stayman major is the only suit to raise; a Jacoby completion is the only
+/// major in which responder may rebid naturally. Prevent a fixed 3H/3S/4H/4S rule
+/// from qualifying in the wrong denomination.
+export function refineResponderNtConventionalMajor (calls: Call[], context: RuleEvalContext,
+    level: 3 | 4): CallRefinementResult {
+  const info = getResponderNtConvention(context);
+  const wanted = info?.major === null || info === null ? null : `${level}${info.major}`;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [wanted === null ? 'No shown convention major.' :
+             `Only ${wanted} describes the major established by this auction.`] };
+}
+
+/// Exact, deliberately limited continuations; high slam values and unusual 5-4 / 6-4
+/// decisions retain the appropriate auction-specific boundary instead of a fake bid.
+/// One-NT HCP windows track the already-selected 15-17 vs 16-18 response agreement.
+/// A Jacoby-then-4M jump is treated as natural game placement only with Texas disabled;
+/// when Texas is enabled, the fast game route is the *direct* Texas transfer.
+export function responderNtConventionApplies (call: Call, context: RuleEvalContext,
+    system: BiddingSystem, choice:
+    'staymanInviteNt' | 'staymanGameNt' | 'staymanInviteMajor' | 'staymanGameMajor' |
+    'stayman2NtGameNt' | 'stayman2NtGameMajor' |
+    'transferPass' | 'transferInviteNt' | 'transferInviteMajor' | 'transferGameNt' |
+    'transferGameMajor'): AppliesWhenResult {
+  const info = getResponderNtConvention(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a completed NT convention.'] };
+  const f = context.handFacts;
+  const first = info.opening === '1NT';
+  const shift = first ? oneNtResponseHcpShift(system) : 0;
+  const invite = first && f.hcp >= 8 - shift && f.hcp <= 9 - shift;
+  const game = first && f.hcp >= 10 - shift && f.hcp <= 15 - shift;
+  const twoNtGame = !first && f.hcp >= 4 && f.hcp <= 10;
+  const askedWithFourMajor = f.lengths.H === 4 || f.lengths.S === 4;
+  const suitLength = info.major === null ? 0 : f.lengths[info.major];
+  const otherMajor = info.major === 'H' ? 'S' : 'H';
+  const noOtherFour = f.lengths[otherMajor] <= 3;
+  let success = false;
+  switch (choice) {
+    case 'staymanInviteNt': success = info.convention === 'stayman' && askedWithFourMajor && invite &&
+      !info.matched && f.balanced && call === '2NT'; break;
+    case 'staymanGameNt': success = info.convention === 'stayman' && askedWithFourMajor && game &&
+      !info.matched && f.balanced && call === '3NT'; break;
+    case 'staymanInviteMajor': success = info.convention === 'stayman' && askedWithFourMajor && invite &&
+      info.matched && call === `3${info.major}`; break;
+    case 'staymanGameMajor': success = info.convention === 'stayman' && askedWithFourMajor && game &&
+      info.matched && call === `4${info.major}`; break;
+    case 'stayman2NtGameNt': success = info.convention === 'stayman' && askedWithFourMajor && twoNtGame &&
+      !info.matched && call === '3NT'; break;
+    case 'stayman2NtGameMajor': success = info.convention === 'stayman' && askedWithFourMajor && twoNtGame &&
+      info.matched && call === `4${info.major}`; break;
+    case 'transferPass': success = info.convention === 'jacoby' && call === 'Pass' &&
+      suitLength >= 5 &&
+      (first ? f.hcp <= 7 - shift : f.hcp <= 3); break;
+    case 'transferInviteNt': success = info.convention === 'jacoby' && invite &&
+      suitLength === 5 && noOtherFour && f.balanced && call === '2NT'; break;
+    case 'transferInviteMajor': success = info.convention === 'jacoby' && invite &&
+      suitLength >= 6 && call === `3${info.major}`; break;
+    case 'transferGameNt': success = info.convention === 'jacoby' &&
+      (first ? game : twoNtGame) && suitLength === 5 && noOtherFour &&
+      f.balanced && call === '3NT'; break;
+    case 'transferGameMajor': success = info.convention === 'jacoby' &&
+      (first ? game : twoNtGame) && suitLength >= 6 && noOtherFour &&
+      !system.texasTransfers && call === `4${info.major}`; break;
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${info.opening} ${info.convention} ${choice} ` +
+    `after ${info.reply}; HCP ${f.hcp}, major length ${suitLength}, ` +
+    `Texas ${system.texasTransfers}.`,
   ] };
 }
