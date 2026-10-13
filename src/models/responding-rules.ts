@@ -24,6 +24,7 @@ import {
   threeLevelPreemptPassApplies, threeLevelPreemptRaiseApplies, twoNtNaturalMinorForcingApplies,
   weakTwoFourLevelRaiseApplies, weakTwoPassApplies, weakTwoSimpleRaiseApplies
 } from './responding-functions';
+import { getOpeningCallInfo, responderPreviouslyPassed } from './auction';
 import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
 import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
 
@@ -556,10 +557,39 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
                  note: 'Forcing/semi-forcing 1NT response, commonly paired with 2/1 methods.' },
-    appliesWhen: { hcp: { min: 6, max: 12 }, supportLength: { max: 2 } },
+    appliesWhen: (_call, context) => {
+      const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+      const major = opening?.slice(-1) as 'H' | 'S' | undefined;
+      const success = !responderPreviouslyPassed(context.dealer, context.auction) &&
+        (major === 'H' || major === 'S') && context.handFacts.hcp >= 6 &&
+        context.handFacts.hcp <= 12 && context.handFacts.lengths[major] <= 2;
+      return { success, telemetryLines: [success ? 'Unpassed responder: forcing 1NT is available.' :
+        'Forcing 1NT requires an unpassed responder and the stated hand requirements.'] };
+    },
     guidance: ['No available preferred suit response.',
-               'Forcing if responder has not passed and opponents have not interfered.'],
+               'Forcing only when responder has not previously passed and opponents have not interfered.'],
     meaning: '1NT response to a major in 2/1 style.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-major-w/o-support-1nt-passed-hand',
+    kind: 'responseBid',
+    title: 'Natural nonforcing 1NT after a previous Pass',
+    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
+    calls: ['1NT'],
+    agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
+    callCategory: ['natural'],
+    appliesWhen: (_call, context) => {
+      const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+      const major = opening?.slice(-1) as 'H' | 'S' | undefined;
+      const success = responderPreviouslyPassed(context.dealer, context.auction) &&
+        (major === 'H' || major === 'S') && context.handFacts.hcp >= 6 &&
+        context.handFacts.hcp <= 10 && context.handFacts.lengths[major] <= 2;
+      return { success, telemetryLines: [success ? 'Passed-hand 1NT is nonforcing.' :
+        'Only a previously passed responder with minimum values uses this 1NT.'] };
+    },
+    meaning: 'A previously passed hand responds 1NT naturally; opener may Pass.',
     certainty: 'high',
   },
   //

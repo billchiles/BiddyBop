@@ -2244,6 +2244,70 @@ function runResponderMajorOneNtContextTests (): number {
   return failures;
 }
 
+/// The minor-1NT rebids must stay out of other response families and forcing auctions.
+/// Previously passed responder 1NT is nonforcing even with forcing-1NT configured.
+function runResponderMinorOneNtAndPassedHandTests (): number {
+  let failures = 0;
+  const seed = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === 'responder-rebid-after-minor-1nt')
+    ?.deals[0];
+  if (seed === undefined) return 1;
+  const { board } = makeRuleTestBoard(seed);
+  const cases: { auction: Call[]; applicable: boolean }[] = [
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '2D', 'Pass'], applicable: true },
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '2H', 'Pass'], applicable: false },
+    { auction: ['1D', 'Pass', '1H', 'Pass', '2D', 'Pass'], applicable: false },
+    { auction: ['1S', 'Pass', '1NT', 'Pass', '2S', 'Pass'], applicable: false },
+    { auction: ['1D', 'Pass', '1NT', 'Double', '2D', 'Pass'], applicable: false },
+  ];
+  for (const testCase of cases) {
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const active = getApplicableCandidateCalls(result).some(({ rule }) =>
+      rule.id === 'responder-rebid-pass-after-minor-1nt-repeat');
+    if (active !== testCase.applicable) {
+      failures += 1;
+      console.error(`FAIL minor-1NT responder context: ${testCase.auction.join(' ')}.`);
+    }
+  }
+  const { board: passedBoard } = makeRuleTestBoard({
+    description: 'The responder Passed before partner opened, making 1NT nonforcing',
+    dealer: 'N', practiceAuction: ['Pass', 'Pass', '1S', 'Pass', '1NT', 'Pass', 'Pass'],
+    north: { S: 'Q2', H: 'J872', D: 'K985', C: 'T84' },
+    south: { S: 'AKJ74', H: 'Q63', D: 'Q4', C: 'J63' },
+  });
+  const forcing = { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' as const };
+  const priorResponse = evaluateUserCall('1NT', passedBoard,
+    ['Pass', 'Pass', '1S', 'Pass'], forcing);
+  const responseRules = getApplicableCandidateCalls(priorResponse).map(({ rule }) => rule.id);
+  if (!responseRules.includes('respond-to-major-w/o-support-1nt-passed-hand') ||
+      responseRules.includes('respond-to-major-w/o-support-1nt-twooverone')) {
+    failures += 1;
+    console.error('FAIL previously passed responder still treated as forcing 1NT.');
+  }
+  const openerRebid = evaluateUserCall('Pass', passedBoard,
+    ['Pass', 'Pass', '1S', 'Pass', '1NT', 'Pass'], forcing);
+  const openerRules = getApplicableCandidateCalls(openerRebid).map(({ rule }) => rule.id);
+  if (!openerRules.includes('opener-rebid-pass-after-major-1nt-passed-hand') ||
+      openerRules.includes('opener-rebid-minor-fallback-after-major-1nt-forcing')) {
+    failures += 1;
+    console.error('FAIL passed-hand 1NT did not allow opener Pass or suppress forced fallback.');
+  }
+  const seedMajor = RULE_TEST_DEAL_BUCKETS.find((item) =>
+    item.id === 'responder-rebid-after-major-1nt')?.deals[2];
+  if (seedMajor === undefined) return failures + 1;
+  const { board: unpassedBoard } = makeRuleTestBoard(seedMajor);
+  const unpassedResponse = getApplicableCandidateCalls(evaluateUserCall('1NT', unpassedBoard,
+    ['1S', 'Pass'], forcing));
+  if (!unpassedResponse.some(({rule}) => rule.id === 'respond-to-major-w/o-support-1nt-twooverone')) {
+    failures += 1;
+    console.error('FAIL ordinary unpassed forcing 1NT was lost.');
+  }
+  console.log(`${failures} ***FAILURES***. Minor-1NT responder and passed-hand: ` +
+              `${cases.length} context checks and 3 forcing-1NT checks.`);
+  console.log('  Excludes reverse and competitive cases; keeps 1NT forcing only for unpassed');
+  console.log('  responder and does not manufacture a minor after the passed-hand response.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2300,6 +2364,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
+  runResponderMinorOneNtAndPassedHandTests() +
   runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

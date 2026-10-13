@@ -557,3 +557,64 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['3S'],
   },
 ];
+
+//// Responder after a natural 1NT response to a minor opening
+export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'With an eight-card diamond fit and minimum values, Pass opener\'s 2D.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2D', 'Pass', 'Pass'],
+    north: { S: 'A42', H: 'K4', D: 'AQJT92', C: '85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-repeat'] }],
+    rejectedResponderRebidCalls: ['2NT', '3NT'],
+  },
+  {
+    description: 'Four clubs support opener\'s natural second suit after 1D-1NT-2C.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass', 'Pass'],
+    north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-second-minor-after-1nt'] }],
+    rejectedResponderRebidCalls: ['3NT'],
+  },
+  {
+    description: 'Three clubs are insufficient for a fit; prefer the known five-card diamonds.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass', '2D'],
+    north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
+    south: { S: 'Q76', H: 'J85', D: 'K754', C: 'Q96' },
+    expectedResponderRebidCalls: [{ call: '2D', ruleIds: ['responder-rebid-prefer-diamonds-after-minor-1nt'] }],
+    rejectedResponderRebidCalls: ['Pass', '3NT'],
+  },
+  {
+    description: 'Six balanced HCP decline opener\'s 18-19 HCP 2NT invitation.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
+    south: { S: 'Q76', H: 'T95', D: 'K73', C: 'J964' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-2nt'] }],
+    rejectedResponderRebidCalls: ['3NT'],
+  },
+  {
+    description: 'Eight balanced HCP accept opener\'s 18-19 HCP 2NT invitation.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { oneNtOpening: '15-17' },
+    north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: ['responder-rebid-3nt-after-minor-1nt-2nt'] }],
+    rejectedResponderRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Minimum responder with diamond tolerance declines opener\'s jump-rebid invitation.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3D', 'Pass', 'Pass'],
+    north: { S: 'AK', H: 'Q4', D: 'AQJ982', C: '852' },
+    south: { S: 'T76', H: 'J85', D: 'K73', C: 'Q964' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-jump-repeat'] }],
+    rejectedResponderRebidCalls: ['3NT'],
+  },
+  {
+    description: 'Responder accepts opener\'s natural 3NT game without launching a new auction.',
+    practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3NT', 'Pass', 'Pass'],
+    north: { S: 'AK', H: 'KQ', D: 'AQJ982', C: 'J85' },
+    south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-game'] }],
+  },
+];

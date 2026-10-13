@@ -6,9 +6,112 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
          responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies,
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
-         responderAfterMajorOneNtApplies } from './responder-rebidding-functions';
+         responderAfterMajorOneNtApplies,
+         responderAfterMinorOneNtApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Responder after a natural 1NT response to a minor opening
+  // Responder showed 6-10 balanced HCP without a four-card major. An ordinary suit
+  // continuation is nonforcing, while opener's reverse or jump shift remains forcing.
+  {
+    id: 'responder-rebid-pass-after-minor-1nt-repeat',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s six-card opening minor',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passRepeat'),
+    meaning: 'With minimum values and two or more cards in opener\'s six-card minor, Pass.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-second-minor-after-1nt',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s natural four-card club suit',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passSecond'),
+    meaning: 'After 1D-1NT-2C, four clubs establish a suitable fit for partscore.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-prefer-diamonds-after-minor-1nt',
+    kind: 'responderRebid',
+    title: 'Prefer opener\'s original diamonds after a club rebid',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['2D'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'preferOpening'),
+    meaning: 'With three diamonds but insufficient club fit, prefer opener\'s known five-card diamonds.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-after-minor-1nt-2nt',
+    kind: 'responderRebid',
+    title: 'Decline opener\'s natural 2NT invitation with six HCP',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 }, openerRebidCall: '2NT' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'decline2Nt'),
+    meaning: 'Six HCP opposite 18-19 HCP make game uncertain; Pass is a normal choice.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-3nt-after-minor-1nt-2nt',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s natural notrump invitation',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 }, openerRebidCall: '2NT' },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'accept2Nt'),
+    meaning: 'Seven or more HCP opposite 18-19 balanced HCP normally justify 3NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-after-minor-1nt-jump-repeat',
+    kind: 'responderRebid',
+    title: 'Decline the jump-minor invitation with minimum values',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'declineJump'),
+    meaning: 'With 6-7 HCP and a minor fit, accept opener\'s invitational partscore.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-pass-after-minor-1nt-game',
+    kind: 'responderRebid',
+    title: 'Accept opener\'s natural game placement',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passGame'),
+    meaning: 'Opener has placed the contract in 3NT or a long-minor game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-minor-1nt',
+    kind: 'scopeBoundary',
+    title: 'Further natural minor-1NT continuations need judgment',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    meaning: 'Responder has shown a balanced 6-10 HCP hand without a four-card major.',
+    guidance: ['A reverse is forcing for one round, and a strong jump shift is forcing to game: ' +
+               'responder must not Pass below the level required by the partnership.',
+               'For other hands, choosing between minor-suit game, 3NT, and further ' +
+               'description relies on too many variables and judgment for this app ' +
+               'to provide reliable practice.'],
+    certainty: 'high',
+  },
+  //
   //// Responder after an initial 1NT response to a major opening
   // The first 1NT may be forcing or nonforcing, and either agreement can carry a
   // three-card limit raise. An ordinary two-level rebid satisfies a one-round force.

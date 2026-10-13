@@ -9,7 +9,7 @@ import {
   cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids,
   getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening, getOpeningCallInfo,
   getOpponentNaturallyBidSuitsForOpenerRebid, getResponderCall, isCallAvailableInAuction,
-  openerRebidIsReverse, parseSuitBid, type ParsedSuitBid
+  openerRebidIsReverse, parseSuitBid, responderPreviouslyPassed, type ParsedSuitBid
 } from './auction';
 import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
          getWeakTwoOpeningBid, hasBasicSuitStopper, orderMajorSuitCandidates }
@@ -1594,6 +1594,10 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
+  // A passed responder's 1NT is nonforcing, regardless of the configured agreement.
+  if (responderPreviouslyPassed(context.dealer, context.auction)) {
+    return { calls: [], telemetryLines: ['Passed-hand 1NT does not require a manufactured rebid.'] };
+  }
   // Ensure our situation is suit opening followed by 1NT ...
   if (opening === null || response === null || opening.strain === 'NT' || response.strain !== 'NT') {
     return { calls: [], telemetryLines: ['Forcing-1NT minor fallback needs a major opening and 1NT.'] };

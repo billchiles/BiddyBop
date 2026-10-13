@@ -329,3 +329,57 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
     `forcing 1NT ${system.majorOneNtResponse === 'forcing'}.`,
   ] };
 }
+
+//// Responder after a natural 1NT response to a minor opening
+
+/// The response denied a four-card major and was nonforcing. Distinguish the natural
+/// minimum descriptions and invitations from reverse/jump-shift forcing obligations.
+export function getResponderAfterMinorOneNt (context: RuleEvalContext):
+    { opening: 'C' | 'D'; kind: 'repeat' | 'second' | 'jumpRepeat' | 'ntInvite' |
+                           'gameNt' | 'gameMinor' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || (bids[0] !== '1C' && bids[0] !== '1D') ||
+      bids[1] !== '1NT') return null;
+  const opening = bids[0][1] as 'C' | 'D';
+  const rebid = bids[2];
+  const kind = rebid === `2${opening}` ? 'repeat' :
+    opening === 'D' && rebid === '2C' ? 'second' :
+    rebid === `3${opening}` ? 'jumpRepeat' :
+    rebid === '2NT' ? 'ntInvite' :
+    rebid === '3NT' ? 'gameNt' :
+    rebid === `5${opening}` ? 'gameMinor' : null;
+  return kind === null ? null : { opening, kind };
+}
+
+/// Minimum suit selections and a natural 2NT invitation answer use the actual opening
+/// minor and responder's balanced 6-10 HCP promise. Strong and forcing rebids are excluded.
+export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalContext,
+    choice: 'passRepeat' | 'passSecond' | 'preferOpening' | 'decline2Nt' |
+            'accept2Nt' | 'declineJump' | 'passGame'): AppliesWhenResult {
+  const info = getResponderAfterMinorOneNt(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a natural minor-1NT continuation.'] };
+  const f = context.handFacts;
+  let success = false;
+  switch (choice) {
+    case 'passRepeat': success = info.kind === 'repeat' && f.hcp >= 6 && f.hcp <= 10 &&
+      f.lengths[info.opening] >= 2; break;
+    case 'passSecond': success = info.kind === 'second' && f.hcp >= 6 && f.hcp <= 10 &&
+      f.lengths.C >= 4; break;
+    case 'preferOpening': success = info.kind === 'second' && f.hcp >= 6 && f.hcp <= 10 &&
+      f.lengths.D >= 3 && f.lengths.C <= 3; break;
+    case 'decline2Nt': success = info.kind === 'ntInvite' && f.balanced && f.hcp === 6; break;
+    case 'accept2Nt': success = info.kind === 'ntInvite' && f.balanced && f.hcp >= 7 &&
+      f.hcp <= 10; break;
+    case 'declineJump': success = info.kind === 'jumpRepeat' && f.hcp >= 6 &&
+      f.hcp <= 7 && f.lengths[info.opening] >= 2; break;
+    case 'passGame': success = (info.kind === 'gameNt' || info.kind === 'gameMinor') &&
+      f.hcp >= 6 && f.hcp <= 10; break;
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: natural minor-1NT ${choice}; opener ${info.opening}, ` +
+    `rebid ${info.kind}, responder ${f.hcp} HCP.`,
+  ] };
+}

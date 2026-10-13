@@ -92,6 +92,15 @@ to implement those stages.
 - [ ] **E6c.** Review practice boundaries where an opening-only example is followed
   by unrelated free bidding. Use optional per-call practice guidance sparingly
   when rule descriptions alone do not make the intended lesson clear.
+- [ ] **E6d.** Audit entire practice auctions against all four hands, not only the
+  rule being taught: opponents must have credible reasons to Pass or compete
+  (including natural 1NT overcalls with appropriate strength), and recorded
+  auctions must represent sensible choices by each seat. Review whether the
+  current practice-stage behavior, which preloads earlier calls in some rebid
+  exercises, provides the intended training; compare it with having the student
+  enter every seat's bid. Review bucket depth, meaningful breadth, duplicated
+  lessons, and menu navigability as the collection grows. Do not alter practice
+  behavior or rewrite deals until this review is discussed.
 - [ ] **E7.** Audit dealer/seat orientation; keep ordinary opener-deal North
   orientation and retain exceptions only when they teach a specific competitive role.
 - [ ] **E8.** Reconcile README's Done / Partial (done) / Incomplete / Planned /

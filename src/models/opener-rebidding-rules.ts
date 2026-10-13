@@ -45,6 +45,7 @@ import {
   weakTwoFeatureAfterInquiryApplies, weakTwoRepeatAfterInquiryApplies, weakTwoSolidThreeNtApplies
 } from './opener-rebidding-functions';
 import { getResponderBid } from './common-rule-helpers';
+import { responderPreviouslyPassed } from './auction';
 
 
 export const OpenerRebidRules: BidRule[] = [
@@ -2623,6 +2624,24 @@ export const OpenerRebidRules: BidRule[] = [
   //
   //// Major opening -- After responder bids 1NT
   // The following rules are opener rebids after a major opening and 1NT response.
+  //
+  {
+    id: 'opener-rebid-pass-after-major-1nt-passed-hand',
+    kind: 'openerRebid',
+    title: 'Pass a passed-hand 1NT response with a flat minimum',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'notrump', level: 1 } },
+    calls: ['Pass'],
+    agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
+    callCategory: ['signoff'],
+    appliesWhen: (_call, context) => ({
+      success: responderPreviouslyPassed(context.dealer, context.auction) &&
+        context.handFacts.hcp >= 12 && context.handFacts.hcp <= 13 && context.handFacts.balanced,
+      telemetryLines: ['A prior Pass makes the 1NT response nonforcing; a flat minimum may Pass.'],
+    }),
+    meaning: 'Responder previously Passed, so this 1NT is nonforcing despite the configured agreement.',
+    certainty: 'high',
+  },
   //
   {
     id: 'opener-rebid-pass-after-major-1nt-nonforcing',

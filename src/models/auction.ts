@@ -524,6 +524,16 @@ export function getOpeningCallInfo (dealer: Seat, auction: Call[]): OpeningBidIn
   return null;
 }
 
+/// A responder who Passed before partner opened cannot give a forcing 1NT response.
+/// Test the physical seat and the history before the opening, not simply auction length.
+export function responderPreviouslyPassed (dealer: Seat, auction: Call[]): boolean {
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null) return false;
+  const responder = getPartnerSeat(opening.seat);
+  return auction.some((call, index) => index < opening.index && call === 'Pass' &&
+    getSeatForCallIndex(dealer, index) === responder);
+}
+
 /// getOpeningPartnershipCalls returns the opening partnership's non-pass calls in auction order.
 ///
 export function getOpeningPartnershipCalls (dealer: Seat, auction: Call[], openingSeat: Seat): Call[] {
