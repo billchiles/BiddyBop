@@ -384,6 +384,107 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
   ] };
 }
 
+//// Natural responder choices after a 2/1 game-forcing response
+
+/// Identify the original game force by the first three partnership bids, not by the
+/// particular suit letters or the opponents' intervening Passes. The original minor
+/// might have been a three-card suit on the separate game-forcing major-support route.
+export function getResponderTwoOverOne (context: RuleEvalContext):
+    { opening: Suit; response: Suit; rebid: string;
+      kind: 'repeatOpening' | 'raiseResponse' | 'secondSuit' | 'twoNt' | 'other';
+      second: Suit | null } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || !/^1[DHS]$/.test(bids[0] ?? '') ||
+      !/^2[CDH]$/.test(bids[1] ?? '') ||
+      responseJump(bids[0] as `1${Suit}`, bids[1] as `2${Suit}`) !== 0 || bids[0][1] === bids[1][1]) return null;
+  const opening = bids[0][1] as Suit;
+  const response = bids[1][1] as Suit;
+  const rebid = bids[2];
+  const suit = parseSuitBid(rebid);
+  const repeat = suit !== null && suit.strain === opening && suit.level === 2;
+  const raise = suit !== null && suit.strain === response && suit.level === 3;
+  const second = suit !== null && suit.strain !== 'NT' &&
+    suit.strain !== opening && suit.strain !== response ? suit.strain as Suit : null;
+  return { opening, response, rebid,
+           kind: repeat ? 'repeatOpening' : raise ? 'raiseResponse' :
+             second !== null ? 'secondSuit' : rebid === '2NT' ? 'twoNt' : 'other', second };
+}
+
+/// Only the suit known from the auction may be chosen. A direct 4M may use two-card
+/// support when opener has repeated a six-card major; a slower 3M shows three-card
+/// support and extra strength, preserving bidding space for possible slam interest.
+export function refineResponderTwoOverOneSuit (calls: Call[], context: RuleEvalContext,
+    choice: 'openingGame' | 'openingSlowRaise' | 'secondMajorGame' | 'repeatResponse'):
+    CallRefinementResult {
+  const info = getResponderTwoOverOne(context);
+  const wanted = info === null ? null : choice === 'openingGame' ? `4${info.opening}` :
+    choice === 'openingSlowRaise' ? `3${info.opening}` :
+    choice === 'secondMajorGame' && info.second !== null ? `4${info.second}` :
+    choice === 'repeatResponse' ? `3${info.response}` : null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+           telemetryLines: [wanted === null ? 'No qualifying 2/1 natural suit.' :
+             `Keep the ${wanted} continuation of the established 2/1 game force.`] };
+}
+
+/// Require the game force to remain active. A direct game needs a known fit or a
+/// sound notrump strain; economical descriptions are forcing, not final contracts.
+export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext,
+    choice: 'openingGame' | 'openingSlowRaise' | 'secondMajorGame' |
+            'repeatResponse' | 'gameNt' | 'forcingNt'): AppliesWhenResult {
+  const info = getResponderTwoOverOne(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a natural 2/1 game-force auction.'] };
+  const f = context.handFacts;
+  const ordinary = f.hcp >= 13 && f.hcp <= 16;
+  const supportPoints = f.totalPointsWShortage;
+  const openingMajor = info.opening === 'H' || info.opening === 'S';
+  const newMajor = info.second === 'H' || info.second === 'S';
+  const knownOpeningFit = openingMajor && info.kind === 'repeatOpening' &&
+    f.lengths[info.opening] >= 2;
+  let success = false;
+  switch (choice) {
+    case 'openingGame':
+      success = ordinary && knownOpeningFit && call === `4${info.opening}` &&
+        supportPoints <= 17; break;
+    case 'openingSlowRaise':
+      success = openingMajor && f.lengths[info.opening] >= 3 &&
+        supportPoints >= 17 && supportPoints <= 21 && call === `3${info.opening}` &&
+        (info.kind === 'repeatOpening' || info.kind === 'secondSuit' || info.kind === 'twoNt'); break;
+    case 'secondMajorGame':
+      success = ordinary && newMajor && f.lengths[info.second!] >= 4 &&
+        supportPoints <= 17 && call === `4${info.second}`; break;
+    case 'repeatResponse':
+      success = ordinary && f.lengths[info.response] >= 6 &&
+        (info.kind === 'repeatOpening' || info.kind === 'secondSuit' || info.kind === 'twoNt') &&
+        call === `3${info.response}`; break;
+    case 'gameNt': {
+      const unbid = (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
+        suit !== info.opening && suit !== info.response && suit !== info.second);
+      success = call === '3NT' && ordinary && f.balanced && ! knownOpeningFit &&
+        !(newMajor && f.lengths[info.second!] >= 4) &&
+        (info.kind === 'twoNt' || info.kind === 'repeatOpening' || info.kind === 'secondSuit') &&
+        unbid.every((suit) => hasBasicSuitStopper(context, suit));
+      break;
+    }
+    case 'forcingNt': {
+      const unbid = (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
+        suit !== info.opening && suit !== info.response && suit !== info.second);
+      success = call === '2NT' && ordinary && f.balanced &&
+        (info.kind === 'repeatOpening' || info.kind === 'secondSuit') &&
+        ! knownOpeningFit && !(newMajor && f.lengths[info.second!] >= 4) &&
+        unbid.some((suit) => hasBasicSuitStopper(context, suit));
+      break;
+    }
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: 2/1 ${choice} after ${info.opening}/${info.response}/${info.rebid}; ` +
+    `HCP ${f.hcp}, support points ${supportPoints}, original/response lengths ` +
+    `${f.lengths[info.opening]}/${f.lengths[info.response]}.`,
+  ] };
+}
+
 //// Standard two-level new-suit responder continuations
 
 /// The first two partnership bids establish a one-round force. Only ordinary natural

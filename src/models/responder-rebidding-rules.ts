@@ -8,9 +8,118 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
          responderAfterMajorOneNtApplies,
          responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
-         refineResponderStandardTwoLevel, responderStandardTwoLevelApplies } from './responder-rebidding-functions';
+         refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
+         refineResponderTwoOverOneSuit, responderTwoOverOneApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Responder after a natural 2/1 game-forcing new-suit response
+  // Opener's economical rebid has not released the game force. These continuations
+  // distinguish a selected game placement from a forcing, descriptive second bid.
+  {
+    id: 'responder-rebid-two-over-one-opening-major-game',
+    kind: 'responderRebid',
+    title: "Choose game in opener's six-card major",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'openingGame'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingGame'),
+    meaning: "With a known eight-card fit, choose game in opener's six-card major; the two-card preference is enough.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-over-one-slow-major-raise',
+    kind: 'responderRebid',
+    title: "Show extra values and opener-major support without jumping to game",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['3H', '3S'],
+    callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'openingSlowRaise'),
+    callCategory: ['natural', 'gameForcing'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingSlowRaise'),
+    meaning: "With three or more of opener's major and extras, a slow 3M raise remains forcing and leaves room to investigate slam.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-over-one-discovered-major-game',
+    kind: 'responderRebid',
+    title: 'Choose major game after opener reveals a four-card major',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['4H', '4S'],
+    callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'secondMajorGame'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'secondMajorGame'),
+    meaning: 'After opener naturally shows four cards in a new major, four-card responder support establishes game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-over-one-repeat-long-suit',
+    kind: 'responderRebid',
+    title: 'Describe a six-card responder suit while preserving the game force',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['3C', '3D', '3H'],
+    callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'repeatResponse'),
+    callCategory: ['natural', 'gameForcing'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'repeatResponse'),
+    meaning: 'Natural six-card suit; unlike Standard, a 3-level repetition is forcing to game.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-over-one-game-3nt',
+    kind: 'responderRebid',
+    title: 'Place the game in notrump with balance and unbid-suit stoppers',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'gameNt'),
+    meaning: 'With suitable balanced game values, stoppers, and no known major fit, choose 3NT.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-two-over-one-forcing-2nt',
+    kind: 'responderRebid',
+    title: 'Describe a balanced hand economically without releasing the game force',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['2NT'], callCategory: ['natural', 'gameForcing'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'forcingNt'),
+    meaning: 'A natural 2NT rebid describes shape and remains forcing; opener must continue.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-two-over-one',
+    kind: 'scopeBoundary',
+    title: 'Other 2/1 continuations retain the game force',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    scopeBoundaryWhen: (context, system) => ({
+      success: system.twoLevelNewSuitResponse === 'twoOverOne' &&
+        getResponderTwoOverOne(context) !== null,
+      telemetryLines: ["2/1 established a game force; opener's minimum rebid has not ended it."],
+    }),
+    meaning: 'The partnership cannot Pass below game after its natural 2/1 game-forcing response.',
+    guidance: ['A slower major raise, natural repeated suit, or economical notrump description ' +
+               'may leave room for slam exploration. Further bidding depends on controls, ' +
+               'stoppers and distribution; this trainer stops at the selected decisions.'],
+    certainty: 'high',
+  },
+  //
   //// Responder after a Standard two-level new-suit response
   // Standard forces opener to bid once, but does not commit the partnership to game.
   // These natural continuations must not appear with the configured 2/1 game force.

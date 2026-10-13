@@ -35,7 +35,8 @@ import {
   refineOpenerNtResponderMajorToGame,
   refineOpenerOpeningSuitAtCheapestLevel, refineOpenerOpeningSuitToLevel,
   refineOpenerRaiseResponderSuitOneLevel, refineOpenerRaiseResponderSuitToLevel,
-  refineOpenerResponderSuitToGame, refineOpenerReverseRebid, refineOpenerSplinterControlBid,
+  refineOpenerResponderSuitToGame, openerTwoLevelRaiseApplies,
+  refineOpenerReverseRebid, refineOpenerSplinterControlBid,
   refineStrongTwoCUnbalancedSuitRebid, refineStrongTwoCPositiveNewSuitRebid,
   strongTwoCPositiveMajorSupportApplies, strongTwoCPositiveMinorSupportApplies,
   strongTwoCPositiveBalancedNtApplies, strongTwoCPositiveScopeBoundaryApplies,
@@ -3045,11 +3046,12 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
                  note: 'Standard two-level new-suit response is forcing one round, not to game.' },
     callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
-                   supportLength: { min: 3 } },
+    appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 12, 16),
     meaning: "Show minimum values and normal support for responder's natural suit.",
     guidance: ['Three-card support is sufficient after 1S-2H because responder promised five ' +
-               'hearts; a minor-suit response normally needs four-card opener support.'],
+               'hearts; a minor-suit response normally needs four-card opener support. ' +
+               'An exceptional three-card minor used to begin a major-support sequence ' +
+               'does not itself establish an eight-card minor fit.'],
     certainty: 'high',
   },
   //
@@ -3174,8 +3176,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['invitational', 'natural'],
-    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
-                   supportLength: { min: 3 } },
+    appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
     meaning: "Show medium values and normal support for responder's natural suit.",
     certainty: 'high',
   },
@@ -3246,8 +3247,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerResponderSuitToGame,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['signoff', 'natural'],
-    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
-                   supportLength: { min: 3 } },
+    appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 19, 21),
     meaning: "Bid game with maximum values and normal support for responder's suit.",
     certainty: 'high',
   },
@@ -3273,10 +3273,12 @@ export const OpenerRebidRules: BidRule[] = [
                  note: '2/1 response is already game forcing.' },
     callCategory: ['gameForcing', 'natural'],
     priority: { rank: 20 },
-    appliesWhen: { supportLength: { min: 3 } },
+    appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context),
     meaning: "Confirm a fit in responder's natural suit without consuming extra bidding room.",
     guidance: ['Three-card support is sufficient after 1S-2H because responder promised five ' +
-               'hearts; a minor-suit response normally needs four-card opener support.'],
+               'hearts; a minor-suit response normally needs four-card opener support. ' +
+               'An exceptional three-card minor used to begin a major-support sequence ' +
+               'does not itself establish an eight-card minor fit.'],
     certainty: 'high',
   },
   //

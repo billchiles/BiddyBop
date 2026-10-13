@@ -706,3 +706,80 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     ] }],
   },
 ];
+
+//// After a 2/1 game-forcing two-level new-suit response
+
+export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'After six spades are shown, two spades in responder establish major game.',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass', '4S'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'KQJ985', H: 'A72', D: 'K4', C: '82' },
+    east: { S: 'T7', H: 'QJ94', D: 'T985', C: 'J64' },
+    south: { S: 'A4', H: 'K63', D: 'QJ6', C: 'KQ973' },
+    expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
+      'responder-rebid-two-over-one-opening-major-game',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3S'],
+  },
+  {
+    description: 'With three-card spade support and extra values, raise slowly to 3S.',
+    practiceAuction: ['1S', 'Pass', '2D', 'Pass', '2H', 'Pass', '3S'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'KQJ98', H: 'AQ72', D: '62', C: 'K9' },
+    east: { S: 'T6', H: 'T965', D: 'T987', C: 'JT2' },
+    south: { S: 'A75', H: '4', D: 'AKQJ5', C: 'Q853' },
+    expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
+      'responder-rebid-two-over-one-slow-major-raise',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '4S'],
+  },
+  {
+    description: 'Balanced responder with unbid-suit stoppers can choose 3NT after 2/1 2NT.',
+    practiceAuction: ['1H', 'Pass', '2C', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'KQ7', H: 'AJT84', D: 'A94', C: '75' },
+    east: { S: 'T63', H: '976', D: 'T652', C: 'A64' },
+    south: { S: 'A84', H: 'K5', D: 'QJ8', C: 'KQJ93' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-two-over-one-game-3nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass'],
+  },
+  {
+    description: 'Repeat a six-card club suit naturally, retaining the 2/1 game force.',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass', '3C'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'AKQ986', H: 'K74', D: 'Q5', C: 'T2' },
+    east: { S: 'T7', H: 'T983', D: 'T987', C: '543' },
+    south: { S: '4', H: 'AQ5', D: 'K32', C: 'KQJ987' },
+    expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
+      'responder-rebid-two-over-one-repeat-long-suit',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '4S'],
+  },
+  {
+    description: 'Four hearts opposite a natural 2H rebid after 1D-2C establish major game.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2H', 'Pass', '4H'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'KQ7', H: 'KJ84', D: 'AQ86', C: '82' },
+    east: { S: 'T985', H: 'T92', D: 'J973', C: 'T5' },
+    south: { S: 'A3', H: 'Q765', D: 'K5', C: 'KQJ97' },
+    expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
+      'responder-rebid-two-over-one-discovered-major-game',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass'],
+  },
+  {
+    description: 'A balanced responder can make natural forcing 2NT after opener shows diamonds.',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass', '2NT'],
+    requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
+    north: { S: 'AK874', H: '54', D: 'KQ72', C: '92' },
+    east: { S: 'T63', H: 'JT96', D: 'T94', C: 'T76' },
+    south: { S: 'Q5', H: 'AQ7', D: 'A86', C: 'KJ843' },
+    expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
+      'responder-rebid-two-over-one-forcing-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass'],
+  },
+];

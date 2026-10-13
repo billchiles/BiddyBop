@@ -115,7 +115,9 @@ After a 1NT response to a minor, responder can practice simple suit preferences 
 accepting or declining natural notrump invitations.
 With Standard two-level new-suit responses, selected responder signoffs, suit preferences,
 and natural game choices are also available after opener has answered the one-round force.
-Other responder rebids remain planned. The trainer deliberately goes deeper in some
+With 2/1 game-forcing two-level new-suit responses, selected responder game placements,
+forcing rebids, and slow major raises preserve the game force. Other responder rebids
+remain planned. The trainer deliberately goes deeper in some
 clear-cut auctions than in ones requiring extensive judgment or partnership agreements.
 
 ### When the opponents open

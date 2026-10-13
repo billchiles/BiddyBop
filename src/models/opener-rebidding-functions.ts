@@ -1430,6 +1430,29 @@ export function refineOpenerResponderSuitToGame (calls: Call[], context: RuleEva
   return refineOpenerRaiseResponderSuitToLevel(calls, context, targetLevel, minimumSupport);
 }
 
+/// A five-card natural two-level response needs only three-card support; a four-card
+/// minor response needs four. The independent new-suit-then-raise support path may use
+/// a three-card minor, so a minor raise there is descriptive, not always an eight-card fit.
+export function openerTwoLevelRaiseApplies (_call: Call, context: RuleEvalContext,
+    minPoints?: number, maxPoints?: number): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  const responseFive = opening !== null && response !== null && response.level === 2 &&
+    ((opening.strain === 'S' && response.strain === 'H') ||
+     (opening.strain === 'D' && response.strain === 'C'));
+  const required = responseFive ? 3 : 4;
+  const support = response?.strain === undefined || response.strain === 'NT' ? 0 :
+    context.handFacts.lengths[response.strain];
+  const points = context.handFacts.totalPointsWShortage;
+  const success = opening !== null && response !== null && response.level === 2 &&
+    support >= required && (minPoints === undefined || points >= minPoints) &&
+    (maxPoints === undefined || points <= maxPoints);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${required}-card opener support required after the ` +
+    `natural two-level response; actual support ${support}, shortage points ${points}.`,
+  ] };
+}
+
 /// refineOpenerRaiseResponderSuitToLevel keeps the raise of responder's natural suit to the
 /// requested level.  Three-card support is enough when responder's bid promised five cards:
 /// non-jump 2H over 1S, or 2C over 1D in the current uncontested treatments.  Competitive callers

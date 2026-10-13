@@ -2354,6 +2354,82 @@ function runResponderStandardTwoLevelContextTests (): number {
   return failures;
 }
 
+/// 2/1 continuations must retain the game force, but the same natural auction in
+/// Standard may have completed a one-round force. The support check also distinguishes
+/// three-card heart support from an insufficient three-card minor fit.
+function runResponderTwoOverOneContextTests (): number {
+  const bucket = RULE_TEST_DEAL_BUCKETS.find((item) =>
+    item.id === 'responder-rebid-after-two-over-one');
+  if (bucket === undefined || bucket.deals.length < 6) return 1;
+  const standard = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const };
+  const twoOverOne = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+  let failures = 0;
+  const selected = (dealIndex: number, call: Call, system: BiddingSystem) => {
+    const deal = bucket.deals[dealIndex];
+    const { board } = makeRuleTestBoard(deal);
+    return getApplicableCandidateCalls(evaluateUserCall(call, board,
+      deal.practiceAuction.slice(0, 6), system));
+  };
+  if (!selected(0, '4S', twoOverOne).some(({ rule, call }) =>
+    rule.id === 'responder-rebid-two-over-one-opening-major-game' && call === '4S')) {
+    failures += 1;
+    console.error('FAIL 2/1 direct major game with two cards opposite six.');
+  }
+  if (!selected(1, '3S', twoOverOne).some(({ rule, call }) =>
+    rule.id === 'responder-rebid-two-over-one-slow-major-raise' && call === '3S')) {
+    failures += 1;
+    console.error('FAIL 2/1 slower three-card major raise.');
+  }
+  if (selected(0, '4S', standard).some(({ rule }) =>
+      rule.id.startsWith('responder-rebid-two-over-one-')) ||
+      selected(1, '3S', standard).some(({ rule }) =>
+        rule.id.startsWith('responder-rebid-two-over-one-'))) {
+    failures += 1;
+    console.error('FAIL 2/1 responder rules leaked into Standard agreement.');
+  }
+  const { board } = makeRuleTestBoard(bucket.deals[3]);
+  const prefix: Call[] = ['1S', 'Pass', '2C', 'Pass', '3C', 'Pass'];
+  const forcingResult = evaluateUserCall('Pass', board, prefix, twoOverOne);
+  if (getApplicableCandidateCalls(forcingResult).some(({ call }) => call === 'Pass')) {
+    failures += 1;
+    console.error('FAIL a below-game Pass was recommended in the 2/1 game force.');
+  }
+  if (!forcingResult.handMatchingRules.some(({ id }) =>
+    id === 'responder-rebid-boundary-after-two-over-one')) {
+    failures += 1;
+    console.error('FAIL unresolved 2/1 game force had no explanatory boundary.');
+  }
+  const { board: supportBoard } = makeRuleTestBoard({
+    description: 'Five hearts need only three-card support but a minor normally needs four',
+    practiceAuction: ['1S', 'Pass', '2H', 'Pass', '3H'],
+    north: { S: 'AKJ74', H: 'K83', D: 'QT4', C: 'Q6' },
+    south: { S: 'Q5', H: 'AQJ92', D: 'A86', C: 'KJ4' },
+  });
+  const openerCandidates = (response: Call, candidate: Call, system: BiddingSystem) =>
+    getApplicableCandidateCalls(evaluateUserCall(candidate, supportBoard,
+      ['1S', 'Pass', response, 'Pass'], system));
+  if (!openerCandidates('2H', '3H', standard).some(({ rule }) =>
+    rule.id === 'opener-rebid-simple-raise-after-major-standard-two-level-new-suit')) {
+    failures += 1;
+    console.error('FAIL Standard 1S-2H correctly raising hearts with three-card support.');
+  }
+  if (!openerCandidates('2H', '3H', twoOverOne).some(({ rule }) =>
+    rule.id === 'opener-rebid-simple-raise-after-major-two-over-one-new-suit')) {
+    failures += 1;
+    console.error('FAIL 2/1 1S-2H correctly raising hearts with three-card support.');
+  }
+  if (openerCandidates('2C', '3C', standard).some(({ rule }) =>
+      rule.id === 'opener-rebid-simple-raise-after-major-standard-two-level-new-suit') ||
+      openerCandidates('2C', '3C', twoOverOne).some(({ rule }) =>
+        rule.id === 'opener-rebid-simple-raise-after-major-two-over-one-new-suit')) {
+    failures += 1;
+    console.error('FAIL opener raised a minor with only three-card support.');
+  }
+  console.log(`${failures} ***FAILURES***. 2/1 responder and opener support: 8 checks.`);
+  console.log('  Preserves game forcing, 3M slow raises and suit-sensitive opener support.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2411,7 +2487,8 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMinorOneNtAndPassedHandTests() +
-  runResponderStandardTwoLevelContextTests() + runPracticeContinuationTests() + runRuleTests();
+  runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
+  runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }
