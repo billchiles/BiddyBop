@@ -38,18 +38,23 @@ export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalConte
                             `by five-card-major/convenient-minor priorities.`]};
 }
 
-/// guidelineOf20Applies tests the Rule of 20 for a hand below the normal 12-HCP opening.  If HCP
-/// + the lengths of the two longest suits >= 20 -> open.
+/// guidelineOf20Applies tests the Rule of 20 in first or second seat for a hand below 12 HCP.
+/// This is a separate valuation explanation: under our ordinary HCP-plus-length opening method,
+/// every Rule-of-20 qualifier already satisfies the 12-total-point opening minimum.
 ///
 export function guidelineOf20Applies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
   const lengths = Object.values(context.handFacts.lengths).sort((a, b) => b - a);
   const value = context.handFacts.hcp + (lengths[0] ?? 0) + (lengths[1] ?? 0);
-  const pass = context.handFacts.hcp < 12 && value >= 20;
+  // getBidStage only identifies opening before a contract is bid, so the preceding calls here
+  // are Passes. Zero or one preceding Pass means first or second seat respectively.
+  const firstOrSecondSeat = context.auction.length <= 1;
+  const pass = firstOrSecondSeat && context.handFacts.hcp < 12 && value >= 20;
   return {
     success: pass,
     telemetryLines: [
-      `${pass ? 'APPLIES' : 'FAIL'}: Guideline of 20 for a sub-12-HCP hand = ` +
-      `HCP ${context.handFacts.hcp} + ${lengths[0] ?? 0} + ${lengths[1] ?? 0} = ${value}.`, ],
+      `${pass ? 'APPLIES' : 'FAIL'}: Guideline of 20 (first/second seat only) = ` +
+      `HCP ${context.handFacts.hcp} + ${lengths[0] ?? 0} + ${lengths[1] ?? 0} = ${value}; ` +
+      `position=${context.auction.length + 1}.`, ],
   };
 }
 

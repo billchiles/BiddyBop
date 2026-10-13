@@ -143,6 +143,8 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   // independently.
   if (context.stage === 'opening') {
     ruleResults = maybeSuppressConvenientMinor(ruleResults);
+    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+      'open-pass-no-qualifying-action');
   }
   if (context.stage === 'overcalling') {
     ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
@@ -384,7 +386,7 @@ function maybeSuppressPassWithoutOtherAction (ruleResults: RuleEvalResult[],
   const competingCall = ruleResults.flatMap((result) => result.candidates)
     .find((candidate) => candidate.ruleApplies && candidate.call !== 'Pass');
   if (competingCall === undefined) return ruleResults;
-  const suppressionLine = `SUPPRESSED: ${competingCall.call} qualifies as a competitive action.`;
+  const suppressionLine = `SUPPRESSED: ${competingCall.call} qualifies instead of fallback Pass.`;
   for (const candidate of passResult.candidates) {
     if (candidate.ruleApplies) {
       candidate.ruleApplies = false;

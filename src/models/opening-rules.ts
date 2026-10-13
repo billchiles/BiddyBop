@@ -9,6 +9,22 @@ import {
 
 export const OpeningBidRules: BidRule[] = [
   //
+  // Opening Pass (fallback only when no opening bid qualifies)
+  //
+  {
+    id: 'open-pass-no-qualifying-action',
+    kind: 'openingBid',
+    title: 'Pass without a qualifying opening bid',
+    auctionContext: { stage: 'opening', auction: [] },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    meaning: 'No opening bid qualifies under the chosen opening agreements.',
+    guidance: ['Pass rather than manufacture an opening when the hand lacks sufficient ' +
+               'strength, distribution, or preemptive suit quality.',
+               'Passing now does not prevent bidding on a later turn.'],
+    certainty: 'high',
+  },
+  //
   // Basic one bids
   //
   {
@@ -82,7 +98,9 @@ export const OpeningBidRules: BidRule[] = [
     appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 },
                    suitLengths: [ { suit: 'major', min: 5 } ] },
     meaning: 'Open 1H or 1S with a five-card or longer major suit and opening values.',
-    guidance: ['With two five-card or longer suits, open the higher-ranking suit.'],
+    guidance: ['With two five-card or longer suits, open the higher-ranking suit.',
+               'An eight-card major with ordinary opening values can still be opened at the ' +
+                 'one level; do not jump automatically to a four-level preempt.'],
     certainty: 'high',
   },
   //
@@ -108,7 +126,10 @@ export const OpeningBidRules: BidRule[] = [
   //
   {
     id: 'open-guideline-of-20',
-    // Modern rule of 20: if HCP plus two longest suits' lengths is 20+, open.
+    // Guideline of 20 is retained for useful marginal-hand explanation. Under this system's
+    // 12-total-point opening treatment (HCP plus length points), every Rule-of-20 hand already
+    // qualifies for an ordinary one-level opening: this rule does not uniquely permit any bid.
+    // It is a distinct first/second-seat valuation perspective, not a looser third-seat rule.
     kind: 'openingBid',
     title: 'Open a sub-12-HCP hand satisfying the Guideline of 20',
     auctionContext: { stage: 'opening', auction: [] },
@@ -206,8 +227,15 @@ export const OpeningBidRules: BidRule[] = [
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
-    guidance: ['Good suit with 7 playing tricks and 2 of top 3 honors or 3 of top 5 honors, ' +
-               'such as, A-Q-xxxx or Q-J-10-xxx'],
+    guidance: ['An eight-card suit with concentrated honors is a candidate for a four-level ' +
+                 'preempt, not an automatic four-level opening. Consider offensive playing ' +
+                 'tricks, defensive strength, vulnerability, and the risk of going down.',
+               'With ordinary one-level opening values, prefer describing the hand at the one ' +
+                 'level. With weaker values, a more cautious three-level preempt can sometimes ' +
+                 'be reasonable, though this app models three-level preempts with exactly ' +
+                 'seven cards; it does not automatically generate that alternative.',
+               'Vulnerability and table judgment are explanatory rather than executable ' +
+                 'opening constraints in this trainer.'],
     meaning: 'Preemptive opening with a good eight-card suit.',
     certainty: 'high',
   },

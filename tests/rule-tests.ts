@@ -29,7 +29,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
-         RULE_TEST_DEAL_BUCKETS,
+         RULE_TEST_DEAL_BUCKETS, OPENING_BID_TEST_DEALS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/test-deals-registry';
 
@@ -90,6 +90,80 @@ function runAuctionHelperTests (): number {
   console.log('  Verifies jump sizes (including zero) and correct suit-bid ordering.');
   console.log('  These are fundamental calculations used throughout the bidding rules.\n');
   return failureCount;
+}
+
+/// Opening fallback and position tests use direct evaluator checks instead of adding extra
+/// practice deals solely to exercise all four seat positions.
+function runOpeningPositionAndPassTests (): number {
+  const ruleTwentyDeal = OPENING_BID_TEST_DEALS.find((deal) =>
+    deal.expectedOpeningCalls?.some(({ ruleIds }) => ruleIds.includes('open-guideline-of-20')));
+  if (ruleTwentyDeal === undefined) {
+    console.error('FAIL missing representative Guideline-of-20 opening fixture.');
+    return 1;
+  }
+  const { board: ruleTwentyBoard } = makeRuleTestBoard(ruleTwentyDeal);
+  const { board: weakBoard } = makeRuleTestBoard({
+    description: 'Balanced eight-HCP opening Pass fallback test hand.',
+    practiceAuction: ['Pass'],
+    north: { S: 'KJ74', H: 'Q82', D: 'J65', C: 'J94' },
+    south: { S: 'A83', H: 'AK5', D: 'KQ4', C: 'A765' },
+  });
+  const positions: { dealer: typeof ruleTwentyBoard.dealer; auction: Call[] }[] = [
+    { dealer: 'N', auction: [] },
+    { dealer: 'W', auction: ['Pass'] },
+    { dealer: 'S', auction: ['Pass', 'Pass'] },
+    { dealer: 'E', auction: ['Pass', 'Pass', 'Pass'] },
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const [index, position] of positions.entries()) {
+    const ruleTwentyCandidates = getApplicableCandidateCalls(evaluateUserCall('1S',
+      { ...ruleTwentyBoard, dealer: position.dealer }, position.auction, defaultBiddingSystem));
+    const ruleTwentyFound = ruleTwentyCandidates.some(({ call, rule }) =>
+      call === '1S' && rule.id === 'open-guideline-of-20');
+    const ordinaryOpeningFound = ruleTwentyCandidates.some(({ call, rule }) =>
+      call === '1S' && rule.id === 'open-five-card-major');
+    checks += 1;
+    if (ruleTwentyFound !== (index < 2) || ! ordinaryOpeningFound ||
+        ruleTwentyCandidates.some(({ call }) => call === 'Pass')) {
+      failures += 1;
+      console.error(`FAIL opening Rule of 20/Pass at position ${index + 1}.`);
+      console.error(`  Surviving: ${formatCandidates(ruleTwentyCandidates)}`);
+    }
+
+    const weakCandidates = getApplicableCandidateCalls(evaluateUserCall('Pass',
+      { ...weakBoard, dealer: position.dealer }, position.auction, defaultBiddingSystem));
+    checks += 1;
+    if (weakCandidates.length !== 1 || weakCandidates[0]?.call !== 'Pass' ||
+        weakCandidates[0]?.rule.id !== 'open-pass-no-qualifying-action') {
+      failures += 1;
+      console.error(`FAIL opening Pass fallback at position ${index + 1}.`);
+      console.error(`  Surviving: ${formatCandidates(weakCandidates)}`);
+    }
+  }
+
+  // Eight hearts with AKJ and eight HCP: length points make 1H a regular opening, but an
+  // aggressive 4H preempt is also available at a lower priority. Do not silently offer 3H.
+  const { board: longHeartsBoard } = makeRuleTestBoard({
+    description: 'Eight-card heart suit eligible for both an ordinary opening and a preempt.',
+    practiceAuction: ['1H'],
+    north: { S: '32', H: 'AKJ98765', D: 'T4', C: '2' },
+    south: { S: 'AQJ', H: 'QT4', D: 'AK8', C: 'Q983' },
+  });
+  const heartCandidates = getApplicableCandidateCalls(evaluateUserCall('1H',
+    longHeartsBoard, [], defaultBiddingSystem));
+  checks += 1;
+  const oneHeart = heartCandidates.findIndex(({ call }) => call === '1H');
+  const fourHearts = heartCandidates.findIndex(({ call }) => call === '4H');
+  if (oneHeart < 0 || fourHearts < 0 || oneHeart >= fourHearts ||
+      heartCandidates.some(({ call }) => call === '3H')) {
+    failures += 1;
+    console.error('FAIL eight-heart hand should rank 1H ahead of 4H, without a modeled 3H.');
+    console.error(`  Surviving: ${formatCandidates(heartCandidates)}`);
+  }
+  console.log(`${failures} ***FAILURES***. Opening position, Pass, and preempt priority: ${checks} checks.`);
+  console.log('  Tests first/second-seat Guideline of 20, opening Pass at all seats, and 1H vs 4H.\n');
+  return failures;
 }
 
 /// AuctionContext fields are explicit constraints: semantic opener fields can generalize an opening,
@@ -2475,7 +2549,8 @@ function formatCandidates (candidates: CandidateCallMatch[]): string {
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
 }
 
-const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
+const failureCount = runAuctionHelperTests() + runOpeningPositionAndPassTests() +
+  runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
   runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
