@@ -413,6 +413,19 @@ export function getResponderTwoOverOne (context: RuleEvalContext):
              second !== null ? 'secondSuit' : rebid === '2NT' ? 'twoNt' : 'other', second };
 }
 
+/// Only natural games in a previously shown partnership suit (or 3NT) complete this
+/// 2/1 obligation here. A jump to game in an unbid suit could be artificial, and 4NT
+/// can be ace-asking; neither is treated as a routine Pass without further agreements.
+export function responderTwoOverOneReachedGame (context: RuleEvalContext): boolean {
+  const info = getResponderTwoOverOne(context);
+  if (info === null) return false;
+  return info.rebid === '3NT' ||
+    ((info.opening === 'H' || info.opening === 'S') && info.rebid === `4${info.opening}`) ||
+    (info.response === 'H' && info.rebid === '4H') ||
+    ((info.opening === 'C' || info.opening === 'D') && info.rebid === `5${info.opening}`) ||
+    ((info.response === 'C' || info.response === 'D') && info.rebid === `5${info.response}`);
+}
+
 /// Only the suit known from the auction may be chosen. A direct 4M may use two-card
 /// support when opener has repeated a six-card major; a slower 3M shows three-card
 /// support and extra strength, preserving bidding space for possible slam interest.
@@ -433,7 +446,7 @@ export function refineResponderTwoOverOneSuit (calls: Call[], context: RuleEvalC
 /// sound notrump strain; economical descriptions are forcing, not final contracts.
 export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext,
     choice: 'openingGame' | 'openingSlowRaise' | 'secondMajorGame' |
-            'repeatResponse' | 'gameNt' | 'forcingNt'): AppliesWhenResult {
+            'repeatResponse' | 'gameNt' | 'forcingNt' | 'passReachedGame'): AppliesWhenResult {
   const info = getResponderTwoOverOne(context);
   if (info === null) return { success: false, telemetryLines: ['Not a natural 2/1 game-force auction.'] };
   const f = context.handFacts;
@@ -445,6 +458,13 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
     f.lengths[info.opening] >= 2;
   let success = false;
   switch (choice) {
+    case 'passReachedGame': {
+      // Responder may accept a game in notrump, or a natural suit game with some fit.
+      // Stronger/slam-going hands and unsuitable game contracts retain boundary guidance.
+      success = ordinary && responderTwoOverOneReachedGame(context) &&
+        (info.rebid === '3NT' || f.lengths[info.rebid[1] as Suit] >= 2);
+      break;
+    }
     case 'openingGame':
       success = ordinary && knownOpeningFit && call === `4${info.opening}` &&
         supportPoints <= 17; break;
@@ -538,8 +558,7 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
       f.totalPointsWShortage <= 12; break;
     case 'preferDiamonds': success = info.opening === 'D' && info.response === 'C' &&
       info.kind === 'minorRepeat' && minimum && f.lengths.D >= 3; break;
-    case 'passNt': success = info.kind === 'minimumNt' && minimum && f.hcp === 11 &&
-      f.balanced; break;
+    case 'passNt': success = info.kind === 'minimumNt' && minimum && f.balanced; break;
     case 'gameNt': success = info.kind === 'minimumNt' && f.balanced &&
       f.hcp >= 13 && f.hcp <= 16; break;
     case 'majorGame': success = info.kind === 'raise' && info.response === 'H' &&

@@ -9,7 +9,8 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderAfterMajorOneNtApplies,
          responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
-         refineResponderTwoOverOneSuit, responderTwoOverOneApplies } from './responder-rebidding-functions';
+         refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
+         responderTwoOverOneReachedGame } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Responder after a natural 2/1 game-forcing new-suit response
@@ -102,6 +103,23 @@ export const ResponderRebidRules: BidRule[] = [
   },
   //
   {
+    id: 'responder-rebid-two-over-one-pass-reached-game',
+    kind: 'responderRebid',
+    title: "Accept opener's natural game after a 2/1 game force",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'passReachedGame'),
+    meaning: 'Opener has placed the partnership in a natural game. The 2/1 game force has ' +
+             'been fulfilled, so responder may Pass without breaking the forcing agreement.',
+    guidance: ['With ordinary game-going values and a suitable contract, accept opener\'s ' +
+               'choice. Unusual extra playing strength or a poor fit may justify continuing; ' +
+               'this rule does not attempt slam exploration.'],
+    certainty: 'high',
+  },
+  //
+  {
     id: 'responder-rebid-boundary-after-two-over-one',
     kind: 'scopeBoundary',
     title: 'Other 2/1 continuations retain the game force',
@@ -111,12 +129,16 @@ export const ResponderRebidRules: BidRule[] = [
     scopeBoundaryWhen: (context, system) => ({
       success: system.twoLevelNewSuitResponse === 'twoOverOne' &&
         getResponderTwoOverOne(context) !== null,
-      telemetryLines: ["2/1 established a game force; opener's minimum rebid has not ended it."],
+      telemetryLines: [responderTwoOverOneReachedGame(context) ?
+        'Opener has bid game; any further action is a judgment about strain or slam.' :
+        '2/1 established a game force; opener has not yet reached game.'],
     }),
-    meaning: 'The partnership cannot Pass below game after its natural 2/1 game-forcing response.',
-    guidance: ['A slower major raise, natural repeated suit, or economical notrump description ' +
-               'may leave room for slam exploration. Further bidding depends on controls, ' +
-               'stoppers and distribution; this trainer stops at the selected decisions.'],
+    meaning: 'A natural 2/1 commits the partnership to game, but not to bidding again ' +
+             'after opener has already reached game.',
+    guidance: ['Before a natural game is placed, responder must continue. A slower major raise, natural repeated ' +
+               'suit, or economical notrump description preserves room to find the right game. ' +
+               'After opener bids game, Pass is possible; further bidding with extra strength, ' +
+               'an unsuitable strain, or slam interest requires judgment beyond these rules.'],
     certainty: 'high',
   },
   //
@@ -173,7 +195,11 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passNt'),
-    meaning: "A balanced minimum 11 HCP need not force game opposite opener's 12-14 HCP 2NT rebid.",
+    meaning: "A balanced 11-12 HCP responder may stop in 2NT opposite opener's minimum " +
+             '12-14 HCP rebid; the Standard two-level response forced only one round.',
+    guidance: ['At 12 HCP, game can be close: the partnership may have 24-26 HCP. ' +
+               'Passing is a reasonable minimum treatment; stoppers, honors and the quality ' +
+               'of the long suit may instead favor 3NT. This is not an automatic game bid.'],
     certainty: 'high',
   },
   //

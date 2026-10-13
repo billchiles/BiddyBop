@@ -2422,8 +2422,28 @@ function runResponderStandardTwoLevelContextTests (): number {
     failures += 1;
     console.error('FAIL minimum Standard signoff appeared after an opener reverse.');
   }
-  console.log(`${failures} ***FAILURES***. Standard two-level responder rebids: 5 checks.`);
-  console.log('  Protects the one-round-force versus game-force distinction, including Pass and guidance.');
+  // The Standard 2NT continuation permits a balanced 12-count to decline game, while 2/1
+  // cannot Pass below game. This is a single constructed hand, not an extra practice deal.
+  const seedNt = bucket.deals[3];
+  const { board: twelveHcpBoard } = makeRuleTestBoard({
+    ...seedNt,
+    south: { ...seedNt.south!, C: 'QJ653' }, // Change the seed's club nine to the jack: 11 -> 12 HCP.
+  });
+  const ntPrefix: Call[] = ['1D', 'Pass', '2C', 'Pass', '2NT', 'Pass'];
+  const twelveHcp = makeRuleEvalContext(twelveHcpBoard, ntPrefix).handFacts.hcp;
+  const ntPassCandidates = (system: BiddingSystem) =>
+    getApplicableCandidateCalls(evaluateUserCall('Pass', twelveHcpBoard, ntPrefix, system));
+  if (twelveHcp !== 12 || ! ntPassCandidates(standard).some(({ call, rule }) =>
+    call === 'Pass' && rule.id === 'responder-rebid-standard-two-level-pass-2nt')) {
+    failures += 1;
+    console.error('FAIL a balanced 12-HCP Standard responder must be able to Pass 2NT.');
+  }
+  if (ntPassCandidates(twoOverOne).some(({ call }) => call === 'Pass')) {
+    failures += 1;
+    console.error('FAIL the Standard 12-HCP Pass leaked into 2/1 below game.');
+  }
+  console.log(`${failures} ***FAILURES***. Standard two-level responder rebids: 7 checks.`);
+  console.log('  Protects the one-round-force versus game-force distinction, including 12-HCP Pass.');
   console.log('  Also excludes minimum signoffs immediately after an opener reverse.\n');
   return failures;
 }
@@ -2499,8 +2519,56 @@ function runResponderTwoOverOneContextTests (): number {
     failures += 1;
     console.error('FAIL opener raised a minor with only three-card support.');
   }
-  console.log(`${failures} ***FAILURES***. 2/1 responder and opener support: 8 checks.`);
-  console.log('  Preserves game forcing, 3M slow raises and suit-sensitive opener support.\n');
+  // A game force expires at game. Test the ordinary 3NT, 4M and 5m placements without
+  // extending the practice corpus or modeling opener's later decisions.
+  const { board: ntGameBoard } = makeRuleTestBoard(bucket.deals[2]);
+  const { board: spadeGameBoard } = makeRuleTestBoard(bucket.deals[0]);
+  const { board: heartFitGameBoard } = makeRuleTestBoard({
+    description: 'Responder accepts opener raising the two-level heart response to game.',
+    practiceAuction: ['1S', 'Pass', '2H', 'Pass', '4H', 'Pass'],
+    north: { S: 'AKJ74', H: 'K83', D: 'QT4', C: 'Q6' },
+    south: { S: 'Q5', H: 'AQJ92', D: 'J86', C: 'K74' },
+  });
+  const { board: minorGameBoard } = makeRuleTestBoard({
+    description: "Responder accepts opener's natural five-club game after 2/1.",
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '5C', 'Pass'],
+    north: { S: 'A3', H: 'K84', D: 'AQ86', C: 'K972' },
+    south: { S: 'KQ8', H: 'Q76', D: 'K5', C: 'AJT83' },
+  });
+  const gameCases: { name: string; auction: Call[]; board: typeof board }[] = [
+    { name: '3NT game', auction: ['1H', 'Pass', '2C', 'Pass', '3NT', 'Pass'], board: ntGameBoard },
+    { name: '4H game in opening suit', auction: ['1H', 'Pass', '2C', 'Pass', '4H', 'Pass'], board: ntGameBoard },
+    { name: '4H game in response suit', auction: ['1S', 'Pass', '2H', 'Pass', '4H', 'Pass'], board: heartFitGameBoard },
+    { name: '4S game', auction: ['1S', 'Pass', '2C', 'Pass', '4S', 'Pass'], board: spadeGameBoard },
+    { name: '5C game', auction: ['1D', 'Pass', '2C', 'Pass', '5C', 'Pass'], board: minorGameBoard },
+  ];
+  for (const game of gameCases) {
+    const accepted = getApplicableCandidateCalls(evaluateUserCall('Pass', game.board,
+      game.auction, twoOverOne));
+    if (! accepted.some(({ call, rule }) => call === 'Pass' &&
+        rule.id === 'responder-rebid-two-over-one-pass-reached-game')) {
+      failures += 1;
+      console.error(`FAIL 2/1 responder could not accept ${game.name} with Pass.`);
+    }
+  }
+  for (const lastRebid of ['2NT', '3H', '4S', '4NT'] as Call[]) {
+    const auction: Call[] = ['1H', 'Pass', '2C', 'Pass', lastRebid, 'Pass'];
+    const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', ntGameBoard,
+      auction, twoOverOne));
+    if (candidates.some(({ call }) => call === 'Pass')) {
+      failures += 1;
+      console.error(`FAIL 2/1 Pass appeared after ${lastRebid}, before an established natural game.`);
+    }
+  }
+  const standardGameCandidates = getApplicableCandidateCalls(evaluateUserCall('Pass',
+    ntGameBoard, ['1H', 'Pass', '2C', 'Pass', '3NT', 'Pass'], standard));
+  if (standardGameCandidates.some(({ rule }) =>
+    rule.id === 'responder-rebid-two-over-one-pass-reached-game')) {
+    failures += 1;
+    console.error('FAIL 2/1 reached-game Pass leaked into Standard.');
+  }
+  console.log(`${failures} ***FAILURES***. 2/1 responder and opener support: 18 checks.`);
+  console.log('  Preserves game forcing below game, allows natural game Pass, and protects agreements.\n');
   return failures;
 }
 
