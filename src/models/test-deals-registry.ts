@@ -26,7 +26,7 @@ import { DONT_1NT_DEFENSE_TEST_DEALS, SIMPLE_OVERCALL_TEST_DEALS,
          NATURAL_1NT_OVERCALL_TEST_DEALS, NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
          NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
          TAKEOUT_DOUBLER_REBID_TEST_DEALS,
-         PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS } from './overcalling-test-deals';
+         PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS, BALANCING_TEST_DEALS } from './overcalling-test-deals';
 import { RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS,
          RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
@@ -85,6 +85,8 @@ export interface RuleTestDeal {
   east?: Record<Suit, string>;
   // Explicitly recorded overcall expectations use the call at auction index 1.
   expectedOvercallCalls?: RuleTestExpectedCall[];
+  expectedBalancingCalls?: RuleTestExpectedCall[];
+  rejectedBalancingCalls?: Call[];
   rejectedOvercallCalls?: Call[];
   expectedOvercallCallOrder?: [Call, Call][];
   expectedAdvanceCalls?: RuleTestExpectedCall[];
@@ -144,7 +146,7 @@ export {
   NATURAL_1NT_OVERCALL_TEST_DEALS, NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
   NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
          TAKEOUT_DOUBLER_REBID_TEST_DEALS,
-  PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS,
+  PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS, BALANCING_TEST_DEALS,
   RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS,
   RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS,
   RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
@@ -291,6 +293,8 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'overcall-dont-1nt', group: 'Overcalling', label: 'DONT over strong 1NT',
     practiceStages: ['overcalling', 'advancing', 'overcallerRebid'] as BidStage[],
     deals: DONT_1NT_DEFENSE_TEST_DEALS },
+  { id: 'fourth-seat-balancing', group: 'Overcalling', label: 'Fourth-seat balancing',
+    practiceStages: ['balancing'] as BidStage[], deals: BALANCING_TEST_DEALS },
   { id: 'overcall-simple', group: 'Overcalling', label: 'Simple suit overcalls',
     practiceStages: ['overcalling'] as BidStage[], deals: SIMPLE_OVERCALL_TEST_DEALS },
   { id: 'overcall-takeout-double', group: 'Overcalling', label: 'Takeout doubles',

@@ -25,6 +25,7 @@ export type BidStage =
   | 'openerRebid'
   | 'responderRebid'
   | 'overcalling'
+  | 'balancing'
   | 'advancing'
   | 'overcallerRebid';
 

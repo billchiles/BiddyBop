@@ -18,7 +18,8 @@ import {
   refineWeakTwoTwoNtJacobyCompletion, refineWeakTwoTwoNtStaymanReply,
   refineWeakTwoTwoNtTexasCompletion, weakTwoTwoNtNaturalSignoffApplies,
   weakTwoDoublerRebidApplies, weakTwoSuitOvercallerRebidApplies,
-  weakTwoDefenseBoundaryApplies
+  weakTwoDefenseBoundaryApplies, refineBalancingSuitBid, balancingTakeoutDoubleApplies,
+  balancingStrongDoubleApplies, balancingOneNtApplies, balancingPassApplies
 } from './overcalling-functions';
 
 
@@ -1709,6 +1710,128 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: naturalNotrumpOvercallApplies,
     meaning: "Natural 2NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
     guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
+    certainty: 'high',
+  },
+  //
+  //// Fourth-seat balancing after a one-level suit opening and two Passes
+  // These rules are deliberately isolated from direct-seat overcall strength, weak jumps,
+  // and takeout-double treatments.  Advancer's next turn remains explanatory only.
+  {
+    id: 'balance-natural-one-level-suit',
+    kind: 'overcall',
+    title: 'Balance in a natural suit at the one level',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['1D', '1H', '1S'],
+    callRefinement: refineBalancingSuitBid,
+    appliesWhen: { hcp: { min: 6, max: 14 } },
+    priority: { rank: 50 },
+    callCategory: ['natural'],
+    meaning: 'A balancing suit bid can be about a king lighter than a direct-seat overcall.',
+    guidance: ['Show a good five-card suit or any six-card suit at the cheapest level. ' +
+               'Partner may have values despite passing directly; do not infer full opening values.',
+               'A jump to a new suit is constructive in the balancing seat, not a weak ' +
+               'direct-seat preempt; jump bidding is outside this executable treatment.',
+               'Vulnerability and the likely defensive result still matter.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-natural-two-level-suit',
+    kind: 'overcall',
+    title: 'Balance in a good natural suit at the two level',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refineBalancingSuitBid,
+    appliesWhen: { hcp: { min: 8, max: 14 } },
+    priority: { rank: 50 },
+    callCategory: ['natural'],
+    meaning: 'A natural, non-jump two-level balance with a respectable five-card-or-longer suit.',
+    guidance: ['A balancing two-level suit bid needs more suit quality and strength than a ' +
+               'one-level balance; a mere six-card suit without honors is insufficient.',
+               'Partner must allow for the lighter balancing range when considering game.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-natural-1nt',
+    kind: 'overcall',
+    title: 'Balance with a natural 1NT',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['1NT'],
+    appliesWhen: balancingOneNtApplies,
+    priority: { rank: 70 },
+    callCategory: ['natural'],
+    meaning: 'Natural balancing 1NT: 12–15 HCP, balanced, with a stopper in opener’s suit.',
+    guidance: ['This is weaker than the 15–18 HCP direct 1NT overcall. ' +
+               'Partner should allow for the balancing range when evaluating game.',
+               'With a stronger suitable hand, Double first and describe notrump later; ' +
+               'the subsequent auction is not practiced here.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-takeout-double',
+    kind: 'overcall',
+    title: 'Make a balancing takeout Double with support for unbid suits',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Double'],
+    appliesWhen: balancingTakeoutDoubleApplies,
+    priority: { rank: 40 },
+    callCategory: ['conventional', 'forcing'],
+    meaning: 'Balancing takeout Double: suitable shortage and support for the unbid suits, ' +
+             'with less strength than a direct-seat takeout Double.',
+    guidance: ['Partner generally chooses an unbid suit, but need not assume a full opening hand.',
+               'A penalty conversion by passing requires unusual defensive strength in ' +
+               'opener’s suit; partner’s continuation is outside the practiced auction.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-strong-double',
+    kind: 'overcall',
+    title: 'Start with Double on a strong balancing hand',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Double'],
+    appliesWhen: balancingStrongDoubleApplies,
+    priority: { rank: 80 },
+    callCategory: ['conventional', 'forcing'],
+    meaning: 'Strong balancing Double may precede a natural suit or notrump description.',
+    guidance: ['A strong hand outside the 12–15 balancing 1NT range can Double and then ' +
+               'bid notrump with a stopper or show a long suit. The continuation is not practiced.',
+               'With substantial length in opener’s suit, Pass for penalties may instead be ' +
+               'preferable; that judgment is not automatic.',
+               'A strong jump to 2NT is another partnership-dependent treatment, not ' +
+               'an executable choice in this trainer.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-pass-defend',
+    kind: 'overcall',
+    title: 'Pass in the balancing seat',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Pass'],
+    appliesWhen: balancingPassApplies,
+    priority: { rank: 0 },
+    callCategory: ['signoff'],
+    meaning: 'Let the opening contract play: balancing is an option, not an obligation.',
+    guidance: ['Pass with insufficient strength or unsuitable shape, especially when holding ' +
+               'length in opener’s suit. Reopening can help the opponents find a better contract.',
+               'Some marginal hands also qualify for a light competing bid; length in opener’s ' +
+               'suit and expected defensive tricks can favor Pass.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'balance-scope-boundary',
+    kind: 'scopeBoundary',
+    title: 'Balancing choices requiring further judgment',
+    auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
+    meaning: 'Some fourth-seat hands need a partnership-specific or judgment-driven balancing call.',
+    guidance: ['Jump suit bids are constructive rather than the weak direct-seat preempts; ' +
+               'strong 2NT, penalty choices, and specialized cuebids are not executable here.',
+               'Consider opener-suit length, suit quality, strength, vulnerability and ' +
+               'whether passing would defend a favorable contract.'],
     certainty: 'high',
   },
 ];

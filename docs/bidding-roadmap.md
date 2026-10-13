@@ -60,8 +60,10 @@ to implement those stages.
 
 ## D. Opening position and balancing
 
-- [ ] **D3.** Analyze balancing/reopening overcalls, reopening Doubles, and NT, plus
-  necessary partner replies. Implement only the useful, deterministic subset.
+- [x] **D3.** Implement selected fourth-seat balancing after a one-level suit opening and
+  two Passes: natural one-/two-level suits, ordinary and strong takeout Doubles, natural
+  1NT, and a defensive Pass. Constructive jumps, partnership continuations, and
+  balancing after other opening levels are explanatory or deferred, not new stages.
 - [ ] **D4.** Reconcile that decision with already-present Pass-Pass reopening
   guidance in the competitive opener-rebid stage.
 

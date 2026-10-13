@@ -1261,3 +1261,74 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     expectedOvercallerRebidCalls: [{ call: '4S', ruleIds: ['overcaller-rebid-takeout-strong-fit'] }],
   },
 ];
+
+///
+//// Fourth-seat balancing practice: West opens; North and East each have a credible Pass.
+/// Every deal fixes all four hands. The rule tests check the *actual* Pass-only candidate
+/// set for both intervening seats, not merely the balancing decision in South.
+export const BALANCING_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'One-level balance: 1S over 1D, after genuine Passes by both intervening seats.',
+    dealer: 'W',
+    practiceAuction: ['1D', 'Pass', 'Pass', '1S'],
+    expectedBalancingCalls: [{ call: '1S', ruleIds: ['balance-natural-one-level-suit'] }],
+    rejectedBalancingCalls: ['2S', '1NT'],
+    west: { S: 'K73', H: 'QJ93', D: 'J843', C: 'AQ' },
+    north: { S: 'JT5', H: 'AK5', D: '962', C: 'J942' },
+    east: { S: '94', H: '62', D: 'QT75', C: 'KT765' },
+    south: { S: 'AQ862', H: 'T874', D: 'AK', C: '83' },
+  },
+  {
+    description: 'Two-level balance: good five-card diamonds and 14 HCP justify 2D over 1H.',
+    dealer: 'W',
+    practiceAuction: ['1H', 'Pass', 'Pass', '2D'],
+    expectedBalancingCalls: [{ call: '2D', ruleIds: ['balance-natural-two-level-suit'] }],
+    rejectedBalancingCalls: ['1D', '2S', '2H'],
+    west: { S: 'AK84', H: 'AKQT3', D: '64', C: 'K7' },
+    north: { S: 'QT', H: '75', D: 'J9875', C: 'QT95' },
+    east: { S: 'J7632', H: '9642', D: '3', C: 'J43' },
+    south: { S: '95', H: 'J8', D: 'AKQT2', C: 'A862' },
+  },
+  {
+    description: 'Balanced 12 HCP with spade stopper: natural balancing 1NT, not direct 1NT.',
+    dealer: 'W',
+    practiceAuction: ['1S', 'Pass', 'Pass', '1NT'],
+    expectedBalancingCalls: [{ call: '1NT', ruleIds: ['balance-natural-1nt'] }],
+    rejectedBalancingCalls: ['Double', '2S'],
+    west: { S: 'KQ953', H: 'AKT94', D: 'K76', C: '' },
+    north: { S: 'J72', H: 'QJ6', D: 'AJ', C: 'JT754' },
+    east: { S: 'T4', H: '872', D: '9853', C: 'K983' },
+    south: { S: 'A86', H: '53', D: 'QT42', C: 'AQ62' },
+  },
+  {
+    description: 'Takeout Double with 11 HCP, short hearts and unbid-suit support.',
+    dealer: 'W',
+    practiceAuction: ['1H', 'Pass', 'Pass', 'Double'],
+    expectedBalancingCalls: [{ call: 'Double', ruleIds: ['balance-takeout-double'] }],
+    west: { S: 'Q82', H: 'AKJ93', D: 'A6', C: 'KJ5' },
+    north: { S: 'J643', H: 'QT64', D: 'KT7', C: '84' },
+    east: { S: 'T9', H: '87', D: 'QJ842', C: 'QT92' },
+    south: { S: 'AK75', H: '52', D: '953', C: 'A763' },
+  },
+  {
+    description: 'Strong balancing Double with 16 HCP after 1C; later description is guidance only.',
+    dealer: 'W',
+    practiceAuction: ['1C', 'Pass', 'Pass', 'Double'],
+    expectedBalancingCalls: [{ call: 'Double', ruleIds: ['balance-strong-double'] }],
+    west: { S: 'AQT3', H: '983', D: 'A82', C: 'KJT' },
+    north: { S: '987', H: 'K754', D: 'Q76', C: '954' },
+    east: { S: '542', H: 'T62', D: 'J54', C: 'A763' },
+    south: { S: 'KJ6', H: 'AQJ', D: 'KT93', C: 'Q82' },
+  },
+  {
+    description: 'Defensive Pass with 11 HCP and KQ-fourth of the opening heart suit.',
+    dealer: 'W',
+    practiceAuction: ['1H', 'Pass', 'Pass', 'Pass'],
+    expectedBalancingCalls: [{ call: 'Pass', ruleIds: ['balance-pass-defend'] }],
+    rejectedBalancingCalls: ['Double', '1S', '1NT', '2D'],
+    west: { S: 'AQ87', H: 'AJ9753', D: 'A4', C: '4' },
+    north: { S: '4', H: 'T6', D: 'QJ982', C: 'KQJ95' },
+    east: { S: 'JT63', H: '2', D: 'T76', C: 'AT876' },
+    south: { S: 'K952', H: 'KQ84', D: 'K53', C: '32' },
+  },
+];

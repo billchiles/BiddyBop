@@ -29,7 +29,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
-         RULE_TEST_DEAL_BUCKETS, OPENING_BID_TEST_DEALS,
+         RULE_TEST_DEAL_BUCKETS, OPENING_BID_TEST_DEALS, BALANCING_TEST_DEALS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/test-deals-registry';
 
@@ -2680,6 +2680,8 @@ function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
       rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
     { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
       rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
+    { name: 'balancing', auctionLength: 3, expected: deal.expectedBalancingCalls,
+      rejected: deal.rejectedBalancingCalls, order: undefined },
     { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
       rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
     { name: 'overcaller rebid', auctionLength: 5, expected: deal.expectedOvercallerRebidCalls,
@@ -3003,6 +3005,79 @@ function runResponderStrongAndSupportConventionTests (): number {
   return failures;
 }
 
+/// Keep fourth-seat practice honest: BOTH intervening Passes must be sound according
+/// to the current rules, not merely preloaded calls to reach the balancing lesson.
+function runBalancingAuctionAndDealTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const deal of BALANCING_TEST_DEALS) {
+    const { board } = makeRuleTestBoard(deal);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const opening = deal.practiceAuction[0]!;
+    const openingCandidates = getApplicableCandidateCalls(evaluateUserCall(opening, board,
+      [], system));
+    checks += 1;
+    if (openingCandidates[0]?.call !== opening) {
+      failures += 1;
+      console.error(`FAIL balancing deal opening ${deal.description}: ` +
+        `${formatCandidates(openingCandidates)}`);
+    }
+    for (const prefix of [[opening], [opening, 'Pass']] as Call[][]) {
+      const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+        prefix, system));
+      checks += 1;
+      if (candidates.length !== 1 || candidates[0]?.call !== 'Pass') {
+        failures += 1;
+        console.error(`FAIL balancing deal unsupported intervening Pass: ${deal.description}, ` +
+          `${prefix.join(' ')} -> ${formatCandidates(candidates)}`);
+      }
+    }
+    const decision = evaluateUserCall(deal.practiceAuction[3]!, board,
+      deal.practiceAuction.slice(0, 3), system);
+    const calls = getApplicableCandidateCalls(decision);
+    checks += 1;
+    if (getBidStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
+        !calls.some(({ call }) => call === deal.practiceAuction[3]) ||
+        calls.some(({ rule }) => rule.id.startsWith('overcall-'))) {
+      failures += 1;
+      console.error(`FAIL balancing stage/direct-seat isolation: ${deal.description}, ` +
+        `${formatCandidates(calls)}`);
+    }
+  }
+  // Only an opposing one-level SUIT opening and exactly two intervening Passes qualify.
+  const seatCases: { auction: Call[]; expected: ReturnType<typeof getBidStage> }[] = [
+    { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
+    { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
+    { auction: ['1H'], expected: 'overcalling' },
+    { auction: ['1H', 'Pass', '2H'], expected: null },
+    { auction: ['1NT', 'Pass', 'Pass'], expected: null },
+    { auction: ['2H', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Double', 'Pass'], expected: 'advancing' },
+  ];
+  for (const { auction, expected } of seatCases) {
+    checks += 1;
+    if (getBidStage('W', auction) !== expected) {
+      failures += 1;
+      console.error(`FAIL balancing stage for ${auction.join(' ')}: ` +
+        `expected ${expected}, got ${getBidStage('W', auction)}.`);
+    }
+  }
+  const ntDeal = BALANCING_TEST_DEALS.find((deal) => deal.practiceAuction[3] === '1NT')!;
+  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall('1NT',
+    makeRuleTestBoard(ntDeal).board, ntDeal.practiceAuction.slice(0, 3), defaultBiddingSystem));
+  checks += 1;
+  if (!ntCandidates.some(({ call }) => call === 'Pass') ||
+      !ntCandidates.some(({ call, rule }) => call === '1NT' &&
+        rule.id === 'balance-natural-1nt')) {
+    failures += 1;
+    console.error('FAIL balancing 1NT and defensive Pass should coexist on a borderline hand.');
+  }
+  console.log(`${failures} ***FAILURES***. Balancing seat and complete deal plausibility: ` +
+    `${checks} checks (including both intervening Passes in all six complete hands).\n`);
+  return failures;
+}
+
 const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
@@ -3017,7 +3092,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runRuleTests();
+  runPracticeContinuationTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

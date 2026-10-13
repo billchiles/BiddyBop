@@ -286,6 +286,8 @@ function getStageLabel(stage: BidStage | null): string {
       return 'responder rebid';
     case 'overcalling':
       return 'overcall';
+    case 'balancing':
+      return 'fourth-seat balance';
     case 'overcallerRebid':
       return 'overcaller rebid';
     case 'advancing':

@@ -193,6 +193,9 @@ export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
     telemetryLines.push(`Required system: ${settings}.`);
   }
   // Report each stage's positive assertions so manual practice can check the candidate set.
+  if (testDeal.expectedBalancingCalls !== undefined) {
+    telemetryLines.push(`Expected balancing: ${formatExpectedCalls(testDeal.expectedBalancingCalls)}.`);
+  }
   if (testDeal.expectedOvercallCalls !== undefined) {
     telemetryLines.push(`Expected overcall: ${formatExpectedCalls(testDeal.expectedOvercallCalls)}.`);
   }

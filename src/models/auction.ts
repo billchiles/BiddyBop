@@ -50,9 +50,17 @@ export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   if (nextSeat === responder && auction.length === opening.index + 2) {
     return 'responding';
   }
-  if (nextSeat === advancer && auction.length === opening.index + 3 &&
-      overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
-    return 'advancing';
+  if (nextSeat === advancer && auction.length === opening.index + 3) {
+    if (overcall !== undefined && (isContractBid(overcall) || overcall === 'Double')) {
+      return 'advancing';
+    }
+    // The fourth player may reopen after the opening bidder's partner and the direct
+    // overcaller have passed.  This is a first balancing decision, not an advancer rebid.
+    const opened = parseSuitBid(opening.call);
+    if (overcall === 'Pass' && auction[opening.index + 2] === 'Pass' &&
+        opened !== null && opened.level === 1 && opened.strain !== 'NT') {
+      return 'balancing';
+    }
   }
   // The overcaller acts again after opener, overcaller, responder, advancer, and opener have each
   // had their next physical turn.  Only selected overcaller-rebid meanings are modeled so far.

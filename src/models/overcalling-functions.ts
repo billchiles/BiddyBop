@@ -1340,3 +1340,102 @@ export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalCont
     ],
   };
 }
+
+///
+//// Fourth-seat balancing after one-level suit opening, Pass, Pass
+/// The stage is identified by the physical auction in getBidStage.  These helpers never
+/// reuse direct-seat jump meanings or impose direct-seat opening strength.
+
+function getBalancingOpeningSuit (context: RuleEvalContext): Suit | null {
+  if (context.stage !== 'balancing') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const bid = opening === null ? null : parseSuitBid(opening.call);
+  if (opening === null || bid === null || bid.level !== 1 || bid.strain === 'NT' ||
+      context.auction.length !== opening.index + 3 ||
+      context.auction[opening.index + 1] !== 'Pass' ||
+      context.auction[opening.index + 2] !== 'Pass') return null;
+  return bid.strain;
+}
+
+/// Cheapest non-jump suit only.  At level one a six-card suit may compensate for
+/// modest honor quality; bidding at level two always requires a good five-plus-card suit.
+export function refineBalancingSuitBid (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const openingSuit = getBalancingOpeningSuit(context);
+  if (openingSuit === null) return { calls: [], telemetryLines: ['Not a suit balancing auction.'] };
+  const opening = { level: 1, strain: openingSuit };
+  const qualifying = calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' || bid.strain === openingSuit ||
+        cheapestBidInStrainAfter(opening, bid.strain) !== call) return false;
+    const suit = bid.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    const good = hasPreemptSuitQuality(context.hand, suit);
+    return bid.level === 1 ? length >= 6 || (length >= 5 && good) : length >= 5 && good;
+  });
+  return { calls: qualifying, telemetryLines: [
+    'Only the cheapest new-suit call; good five cards or six at level one, ' +
+    'and good five-plus cards at level two.',
+  ] };
+}
+
+export function balancingOneNtApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suit = getBalancingOpeningSuit(context);
+  const { hcp, balanced } = context.handFacts;
+  const stopper = suit !== null && hasBasicSuitStopper(context, suit);
+  const success = call === '1NT' && suit !== null && hcp >= 12 && hcp <= 15 &&
+    balanced && stopper;
+  return { success, telemetryLines: [
+    `${hcp >= 12 && hcp <= 15 ? 'PASS' : 'FAIL'}: balancing 1NT needs 12–15 HCP; has ${hcp}.`,
+    `${balanced ? 'PASS' : 'FAIL'}: natural balancing 1NT requires a balanced hand.`,
+    `${stopper ? 'PASS' : 'FAIL'}: must hold a stopper in opener's suit.`,
+  ] };
+}
+
+export function balancingTakeoutDoubleApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suit = getBalancingOpeningSuit(context);
+  if (call !== 'Double' || suit === null) return { success: false, telemetryLines: ['Not a balancing Double.'] };
+  const { hcp, lengths, totalPointsWShortage } = context.handFacts;
+  const support = SUITS.filter((unbid) => unbid !== suit)
+    .every((unbid) => lengths[unbid] >= 3);
+  const short = lengths[suit] <= 2;
+  const eligible = hcp >= 8 && hcp < 16 && totalPointsWShortage >= 10;
+  return { success: support && short && eligible, telemetryLines: [
+    `${eligible ? 'PASS' : 'FAIL'}: 8–15 HCP, at least 10 shortage points; ` +
+      `${hcp} HCP, ${totalPointsWShortage} shortage points.`,
+    `${short ? 'PASS' : 'FAIL'}: at most two cards in opener's suit.`,
+    `${support ? 'PASS' : 'FAIL'}: at least three cards in each unbid suit.`,
+  ] };
+}
+
+export function balancingStrongDoubleApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suit = getBalancingOpeningSuit(context);
+  if (call !== 'Double' || suit === null) return { success: false, telemetryLines: ['Not a balancing Double.'] };
+  const { hcp, lengths } = context.handFacts;
+  // Strong Double is flexible but not an automatic penalty-style double with a long
+  // holding in opener's suit. Strong defensive hands with four-plus there need judgment.
+  const eligible = hcp >= 16 && lengths[suit] <= 3;
+  return { success: eligible, telemetryLines: [
+    `${hcp >= 16 ? 'PASS' : 'FAIL'}: strong balancing Double requires 16+ HCP.`,
+    `${lengths[suit] <= 3 ? 'PASS' : 'FAIL'}: opener-suit length must be at most three.`,
+  ] };
+}
+
+export function balancingPassApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const suit = getBalancingOpeningSuit(context);
+  if (call !== 'Pass' || suit === null) return { success: false, telemetryLines: ['Not a balancing Pass.'] };
+  const { hcp, lengths } = context.handFacts;
+  const count = lengths[suit];
+  // Pass intentionally coexists with marginal competing calls, unlike a pure fallback.
+  // Better defensive holdings in opener's suit widen the eligible Pass range.
+  const eligible = hcp <= 9 || (hcp <= 12 && count >= 3) ||
+    (hcp <= 14 && count >= 4);
+  return { success: eligible, telemetryLines: [
+    `${eligible ? 'PASS' : 'FAIL'}: ${hcp} HCP, ${count} card(s) in opener's suit; ` +
+      'Pass remains a reasonable defensive or weak-hand choice.',
+  ] };
+}
