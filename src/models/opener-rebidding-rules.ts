@@ -46,10 +46,45 @@ import {
   weakTwoFeatureAfterInquiryApplies, weakTwoRepeatAfterInquiryApplies, weakTwoSolidThreeNtApplies
 } from './opener-rebidding-functions';
 import { getResponderBid } from './common-rule-helpers';
+import { getOpeningCallInfo, getOpeningPartnershipCalls } from './auction';
 import { responderPreviouslyPassed } from './auction';
 
 
 export const OpenerRebidRules: BidRule[] = [
+  //// Scope-only responses to direct Gerber and Blackwood asks
+  // These conventions are recommended at the response stage but their ace replies
+  // are not practiced. Provide guidance here rather than an invented Pass or a full
+  // slam-response system. Deliberately distinguish natural 4NT over notrump.
+  {
+    id: 'opener-rebid-boundary-after-direct-gerber',
+    kind: 'scopeBoundary', title: 'Gerber ace replies are outside executable coverage',
+    auctionContext: { stage: 'openerRebid', openerCalls: ['1NT', '2NT'], interference: 'none' },
+    scopeBoundaryWhen: (context) => ({
+      success: (context.auction.filter((call) => call !== 'Pass').slice(0, 2).join('-') === '1NT-4C' ||
+                context.auction.filter((call) => call !== 'Pass').slice(0, 2).join('-') === '2NT-4C') &&
+               context.auction.length >= 4 && context.auction[context.auction.length - 1] === 'Pass',
+      telemetryLines: ['Direct 4C over a natural 1NT/2NT opening is the Gerber ace ask.'],
+    }),
+    meaning: '4C is artificial Gerber, asking opener for aces; Pass is not a valid reply.',
+    guidance: ['With the common 4D/4H/4S/4NT step responses, show 0-or-4, 1, 2, or 3 aces respectively. ' +
+               'The trainer explains, but does not practice, ace-response or subsequent slam auctions.'],
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-boundary-after-direct-blackwood',
+    kind: 'scopeBoundary', title: 'Blackwood ace replies are outside executable coverage',
+    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit', interference: 'none' },
+    scopeBoundaryWhen: (context) => {
+      const partnership = getOpeningPartnershipCalls(context.dealer, context.auction,
+        getOpeningCallInfo(context.dealer, context.auction)?.seat ?? context.seat);
+      return { success: partnership.length === 2 && partnership[1] === '4NT',
+        telemetryLines: ['Direct 4NT over a one-level suit opening is the Blackwood ace ask.'] };
+    },
+    meaning: '4NT is Blackwood asking opener for aces; Pass is not a valid reply.',
+    guidance: ['Under ordinary Blackwood, 5C/5D/5H/5S conventionally show 0-or-4, 1, 2, or 3 aces.',
+               'This is explanatory only: the trainer does not execute slam responses or later auctions.'],
+    certainty: 'high',
+  },
   //// Strong 2C -- After the 2D waiting response
   // Opener's first rebid after the artificial 2D waiting response to strong 2C.
   {

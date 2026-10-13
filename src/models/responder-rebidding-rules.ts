@@ -12,9 +12,167 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
          refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
          responderTwoOverOneReachedGame, getResponderNtConvention,
-         refineResponderNtConventionalMajor, responderNtConventionApplies } from './responder-rebidding-functions';
+         refineResponderNtConventionalMajor, responderNtConventionApplies, getResponderStrongTwoC,
+         responderStrongTwoCDecisionApplies, refineResponderStrongTwoCMajorGame,
+         getResponderMajorSupportConvention, responderMajorSupportConventionApplies,
+         refineResponderSupportMajorGame } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Selected strong 2C responder continuations (no slam bidding system)
+  {
+    id: 'responder-rebid-strong-2c-waiting-pass-2nt', kind: 'responderRebid',
+    title: 'Pass a minimum balanced 2NT rebid after strong 2C waiting',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    calls: ['Pass'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'passMinimumNt'),
+    meaning: 'After 2C–2D–2NT, opener has shown 22–24 balanced HCP; with 0–2 HCP, 2NT may be the practical contract.',
+    guidance: ['Unlike an unbalanced suit rebid by the strong opener, this 2NT rebid is nonforcing.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-strong-2c-waiting-game-3nt', kind: 'responderRebid',
+    title: 'Raise a balanced 22–24 HCP rebid to 3NT',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'gameMinimumNt'),
+    meaning: 'After 2C–2D–2NT, balanced 4–9 HCP ordinarily supplies enough for notrump game.',
+    guidance: ['With exactly three HCP, a long suit or exceptional distribution, the game choice is borderline; ' +
+               'do not treat the point threshold as a guarantee of nine tricks.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'responder-rebid-strong-2c-waiting-pass-3nt', kind: 'responderRebid',
+    title: 'Pass a 25–27 HCP balanced 3NT game rebid after waiting',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'passGameNt'),
+    meaning: 'Opener has placed the partnership in 3NT with 25–27 balanced HCP.',
+    guidance: ['With substantial additional responder strength, do not assume game is the final contract.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-strong-2c-positive-pass-3nt', kind: 'responderRebid',
+    title: 'Accept a natural 3NT game after a positive strong 2C response',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    calls: ['Pass'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'positiveGameNt'),
+    meaning: 'A natural 3NT rebid has reached game after an 8+ HCP positive response.',
+    guidance: ['This rule is limited to balanced minimum-positive hands; evaluate stronger ' +
+               'hands and special suit fits individually for slam interest.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'responder-rebid-strong-2c-positive-major-game', kind: 'responderRebid',
+    title: 'Raise opener’s fit for a positive major to game',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    calls: ['4H', '4S'], callRefinement: refineResponderStrongTwoCMajorGame,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'positiveMajorGame'),
+    meaning: 'Opener raised responder’s positive five-card major with three-card support; game is forced.',
+    guidance: ['The major fit is established. Larger positive holdings may justify further slam judgment.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-strong-2c', kind: 'scopeBoundary',
+    title: 'Strong 2C: forcing suit continuations and unmodeled slam judgment',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['2C'] },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderStrongTwoC(context) !== null,
+      telemetryLines: ['Recognize the strong 2C response and opener’s first rebid.'],
+    }),
+    meaning: 'After 2C–2D, opener’s natural suit rebid remains forcing even with a weak responder. ' +
+             'An immediate positive response makes the partnership game forcing.',
+    guidance: ['Do not Pass a forcing suit rebid below game. Continue describing support, ' +
+               'your longest suit or stoppers, without assuming an artificial waiting bid.',
+               'The 28–30 HCP 4NT rebid after a waiting 2D is natural and quantitative, not Blackwood. ' +
+               'Special distribution, a borderline 2NT game decision or slam interest requires judgment.'],
+    certainty: 'high',
+  },
+  //// Jacoby 2NT and responder splinter: terminate in agreed major when appropriate.
+  // Opener 3NT following Jacoby 2NT is an artificial medium-strength rebid, NOT a
+  // proposed 3NT contract. The agreed major must remain trump.
+  {
+    id: 'responder-rebid-jacoby-2nt-major-game', kind: 'responderRebid',
+    title: 'Return to major game after a descriptive Jacoby 2NT rebid',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    calls: ['4H', '4S'], callRefinement: refineResponderSupportMajorGame,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) =>
+      responderMajorSupportConventionApplies(call, context, system, 'returnToGame', 'jacoby2NT'),
+    meaning: 'Choose game in the agreed major with an ordinary minimum game-force raise.',
+    guidance: ['Opener’s 3NT shows medium strength by convention: it is not a natural 3NT signoff.',
+               'After a strong 3M, descriptive shortness, or a side suit, slam prospects depend on ' +
+               'working honors; a 4M game choice remains available if the level permits.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'responder-rebid-jacoby-2nt-pass-major-game', kind: 'responderRebid',
+    title: 'Pass opener’s major game after Jacoby 2NT',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context, system) =>
+      responderMajorSupportConventionApplies(call, context, system, 'passGame', 'jacoby2NT'),
+    meaning: 'Opener’s 4M has already fulfilled the Jacoby 2NT game force.',
+    guidance: ['Higher values or working controls may make slam worth investigating.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-jacoby-2nt', kind: 'scopeBoundary',
+    title: 'Further game-force or slam judgment after Jacoby 2NT',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
+    scopeBoundaryWhen: (context, system) => ({
+      success: getResponderMajorSupportConvention(context, system)?.kind === 'jacoby2NT',
+      telemetryLines: ['Check the artificial Jacoby 2NT game-force sequence.'],
+    }),
+    meaning: 'The four-card major fit is agreed and the auction is game forcing.',
+    guidance: ['Opener’s 3NT is a medium-strength conventional message, not a notrump signoff.',
+               'If opener has bid a side suit above four of the agreed major, returning to ' +
+               'the major may require the five level. Do not invent an illegal 4M call.',
+               'Further control bidding and slam decisions are outside executable coverage.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-splinter-major-game', kind: 'responderRebid',
+    title: 'Settle in agreed major game after a splinter continuation',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'splinters', value: true },
+    calls: ['4H', '4S'], callRefinement: refineResponderSupportMajorGame,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context, system) =>
+      responderMajorSupportConventionApplies(call, context, system, 'returnToGame', 'splinter'),
+    meaning: 'Responder’s splinter established the fit and game force; returning to 4M declines further slam exploration.',
+    guidance: ['Consider how opener’s side-suit control works opposite responder’s shortness.'],
+    certainty: 'medium',
+  },
+  {
+    id: 'responder-rebid-splinter-pass-major-game', kind: 'responderRebid',
+    title: 'Pass agreed major game after opener declines a splinter slam try',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'splinters', value: true },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context, system) =>
+      responderMajorSupportConventionApplies(call, context, system, 'passGame', 'splinter'),
+    meaning: 'Opener bid the agreed major game after the splinter. The partnership has reached game.',
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-splinter', kind: 'scopeBoundary',
+    title: 'Further slam judgment after responder’s splinter',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major' },
+    agreement: { setting: 'splinters', value: true },
+    scopeBoundaryWhen: (context, system) => ({
+      success: getResponderMajorSupportConvention(context, system)?.kind === 'splinter',
+      telemetryLines: ['Check the natural major opening and responder double-jump splinter.'],
+    }),
+    meaning: 'The splinter established a game force, major support and shortness in the bid side suit.',
+    guidance: ['Partner’s below-game control bid shows slam interest; do not Pass it.',
+               'High-card values opposite responder’s short suit may be wasted. Where slam remains ' +
+               'plausible, further control decisions are outside the chosen teaching scope.'],
+    certainty: 'high',
+  },
   //// Responder after Stayman over a natural 1NT or 2NT opening
   // Keep these at the responder-rebid stage; they do not initiate a further auction stage.
   // The initial Stayman response already promises at least one four-card major and the

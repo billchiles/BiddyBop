@@ -1,5 +1,5 @@
 /// Natural responder-rebid refinements and selected suit-quality checks.
-import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem } from './bidding-types';
+import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
@@ -743,4 +743,119 @@ export function responderNtConventionApplies (call: Call, context: RuleEvalConte
     `after ${info.reply}; HCP ${f.hcp}, major length ${suitLength}, ` +
     `Texas ${system.texasTransfers}.`,
   ] };
+}
+
+
+//// Responder after strong 2C, Jacoby 2NT and splinter continuations
+// Only the opening partnership's first three *non-Pass* calls are used for the
+// description. Intervening opponents must actually have Passed: these are not
+// competitive continuations and must not inherit uncontested meanings.
+function getUncontestedThreeCallContinuation (context: RuleEvalContext):
+    { opening: Call; response: Call; rebid: Call } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null) return null;
+  const i = opening.index;
+  if (context.auction.length !== i + 6 ||
+      context.auction[i + 1] !== 'Pass' ||
+      context.auction[i + 3] !== 'Pass' ||
+      context.auction[i + 5] !== 'Pass') return null;
+  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
+  if (partnership.length !== 3) return null;
+  return { opening: partnership[0], response: partnership[1], rebid: partnership[2] };
+}
+
+export function getResponderStrongTwoC (context: RuleEvalContext):
+    { response: Call; rebid: Call; positive: boolean } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || seq.opening !== '2C' ||
+      !['2D', '2H', '2S', '3C', '3D', '2NT'].includes(seq.response)) return null;
+  return { response: seq.response, rebid: seq.rebid, positive: seq.response !== '2D' };
+}
+
+/// The minimum 2NT rebid after a waiting 2D is nonforcing, but a suit rebid is
+/// forcing. After a positive response game is already forced. We implement only
+/// obvious game placement, not a universal strong-two-clubs continuation system.
+export function responderStrongTwoCDecisionApplies (_call: Call, context: RuleEvalContext,
+    decision: 'passMinimumNt' | 'gameMinimumNt' | 'passGameNt' |
+              'positiveGameNt' | 'positiveMajorGame'): AppliesWhenResult {
+  const info = getResponderStrongTwoC(context);
+  const f = context.handFacts;
+  let success = false;
+  if (info !== null) {
+    switch (decision) {
+      case 'passMinimumNt':
+        success = !info.positive && info.rebid === '2NT' && f.hcp <= 2; break;
+      case 'gameMinimumNt':
+        success = !info.positive && info.rebid === '2NT' &&
+          f.hcp >= 4 && f.hcp <= 9 && f.balanced; break;
+      case 'passGameNt':
+        success = !info.positive && info.rebid === '3NT' && f.hcp <= 7; break;
+      case 'positiveGameNt':
+        success = info.positive && info.rebid === '3NT' &&
+          f.hcp >= 8 && f.hcp <= 10 && f.balanced; break;
+      case 'positiveMajorGame':
+        success = info.positive && (info.response === '2H' || info.response === '2S') &&
+          info.rebid === `3${info.response[1]}` && f.hcp >= 8 && f.hcp <= 11 &&
+          f.lengths[info.response[1] as Suit] >= 5; break;
+    }
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: strong 2C responder ${decision}; ` +
+    `response ${info?.response ?? '-'}, rebid ${info?.rebid ?? '-'}, HCP ${f.hcp}.`,
+  ] };
+}
+
+export function refineResponderStrongTwoCMajorGame (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getResponderStrongTwoC(context);
+  const suit = info !== null && (info.response === '2H' || info.response === '2S')
+    ? info.response[1] : null;
+  return { calls: suit === null ? [] : calls.filter((call) => call === `4${suit}`),
+    telemetryLines: [suit === null ? 'No positive major-suit response.' :
+      `Keep four of the positive ${suit} major.`] };
+}
+
+export function getResponderMajorSupportConvention (context: RuleEvalContext,
+    system: BiddingSystem):
+    { kind: 'jacoby2NT' | 'splinter'; major: Suit; rebid: Call } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
+  const major = seq.opening[1] as Suit;
+  if (seq.response === '2NT' && system.majorGameForceWithSupport === 'jacoby2NT' &&
+      /^3([CDHS]|NT)$|^4[CDHS]$/.test(seq.rebid)) {
+    return { kind: 'jacoby2NT', major, rebid: seq.rebid };
+  }
+  const response = parseSuitBid(seq.response);
+  if (system.splinters && response !== null && response.strain !== 'NT' &&
+      response.strain !== major && responseJump(seq.opening as '1H' | '1S', seq.response as SuitBid) === 2 &&
+      /^([34])([CDHS])$/.test(seq.rebid)) {
+    return { kind: 'splinter', major, rebid: seq.rebid };
+  }
+  return null;
+}
+
+export function responderMajorSupportConventionApplies (call: Call, context: RuleEvalContext,
+    system: BiddingSystem, decision: 'passGame' | 'returnToGame',
+    kind: 'jacoby2NT' | 'splinter'): AppliesWhenResult {
+  const info = getResponderMajorSupportConvention(context, system);
+  const fitPoints = context.handFacts.totalPointsWShortage;
+  const game = info === null ? null : `4${info.major}`;
+  const atGame = info !== null && info.rebid === game;
+  const majorFit = info !== null && context.handFacts.lengths[info.major] >= 4;
+  const success = majorFit && info?.kind === kind && fitPoints >= 13 && fitPoints <= 15 &&
+    (decision === 'passGame' ? atGame && call === 'Pass' :
+     !atGame && call === game);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${decision} after ${info?.kind ?? '-'}, ` +
+    `opener ${info?.rebid ?? '-'}, major ${info?.major ?? '-'}, support points ${fitPoints}.`,
+  ] };
+}
+
+export function refineResponderSupportMajorGame (calls: Call[], context: RuleEvalContext,
+    system: BiddingSystem): CallRefinementResult {
+  const info = getResponderMajorSupportConvention(context, system);
+  return { calls: info === null ? [] : calls.filter((call) => call === `4${info.major}`),
+    telemetryLines: [info === null ? 'No established Jacoby/splinter major fit.' :
+      `Only game in the agreed ${info.major} major is considered.`] };
 }

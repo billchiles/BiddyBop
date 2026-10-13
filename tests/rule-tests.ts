@@ -2840,7 +2840,170 @@ function runResponderNtConventionTests (): number {
   return failures;
 }
 
-const failureCount = runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+
+/// Hand-level checks for a small number of significant conventional continuations.
+/// These verify forcing boundaries and real contract placement without creating
+/// artificial four-hand practice deals simply to exercise the evaluator.
+function runResponderStrongAndSupportConventionTests (): number {
+  type Test = { name: string; north: Record<'S' | 'H' | 'D' | 'C', string>;
+    south: Record<'S' | 'H' | 'D' | 'C', string>; auction: Call[];
+    expectedCall?: Call; expectedRule?: string; boundary?: string;
+    config?: Partial<BiddingSystem>; forbidden?: string[] };
+  const strong = { S: 'AKQ4', H: 'KJ3', D: 'AQ2', C: 'K87' }; // 22 balanced HCP
+  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' };
+  const minS = { S: 'AKT74', H: 'QJ3', D: 'A52', C: '98' }; // 14 HCP
+  const minH = { S: 'QJ3', H: 'AKT74', D: 'A52', C: '98' }; // 14 HCP
+  const gameS = { S: 'AKT74', H: 'KJ3', D: '852', C: 'Q8' }; // 13 HCP
+  const gameH = { S: 'KJ3', H: 'AKT74', D: '852', C: 'Q8' }; // 13 HCP
+  const fitS = { S: 'QJ86', H: 'A74', D: 'K6', C: 'K532' }; // 14 support points
+  const fitH = { S: 'A74', H: 'QJ86', D: 'K6', C: 'K532' }; // 14 support points
+  const splS = { S: 'QJ86', H: 'Q74', D: 'AK963', C: '3' }; // 15 support points
+  const splH = { S: '2', H: 'QJ86', D: 'A9634', C: 'K74' }; // 13 support points
+  const cases: Test[] = [
+    { name: '2C waiting to 2NT: weak Pass', north: strong,
+      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-waiting-pass-2nt' },
+    { name: '2C waiting to 2NT: 3NT game', north: strong,
+      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: '3NT',
+      expectedRule: 'responder-rebid-strong-2c-waiting-game-3nt' },
+    { name: '2C waiting to 2NT: borderline 3 HCP guidance', north: strong,
+      south: { S: 'T865', H: 'T76', D: 'K43', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass', '3NT'] },
+    { name: '2C waiting to 3NT: Pass reached game', north: strong,
+      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-waiting-pass-3nt' },
+    { name: '2C waiting to 2H: forcing boundary', north: strong,
+      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2H', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
+    { name: '2C positive heart and raise: major game', north: strong,
+      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
+      auction: ['2C', 'Pass', '2H', 'Pass', '3H', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
+    { name: '2C positive spade and raise: major game', north: strong,
+      south: { S: 'JT987', H: 'A8', D: 'K73', C: 'T64' },
+      auction: ['2C', 'Pass', '2S', 'Pass', '3S', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
+    { name: '2C balanced positive and 3NT: Pass', north: strong,
+      south: { S: 'JT65', H: 'A76', D: 'K43', C: 'T62' },
+      auction: ['2C', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-positive-pass-3nt' },
+    { name: '2C positive suit to 2NT: game force boundary', north: strong,
+      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
+      auction: ['2C', 'Pass', '2H', 'Pass', '2NT', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
+    { name: '1S Jacoby 2NT medium 3NT: 4S not Pass', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game', forbidden: ['Pass', '3NT'] },
+    { name: '1H Jacoby 2NT medium 3NT: 4H', north: minH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
+    { name: '1S Jacoby 2NT to 4S: Pass', north: gameS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
+    { name: '1H Jacoby 2NT to 4H: Pass', north: gameH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
+    { name: '1S Jacoby 2NT side-suit show: 4S', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3H', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
+    { name: '1H Jacoby 2NT side-suit above 4H: boundary', north: minH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '4S', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-jacoby-2nt', forbidden: ['4H', 'Pass'] },
+    { name: 'Jacoby 2NT agreement off: no Jacoby rules', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'],
+      config: { majorGameForceWithSupport: 'newSuitThenRaise' },
+      forbidden: ['4S', 'Pass', '3NT'] },
+    { name: '1S splinter to 4S: Pass', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-splinter-pass-major-game' },
+    { name: '1H splinter to 4H: Pass', north: gameH, south: splH,
+      auction: ['1H', 'Pass', '3S', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-splinter-pass-major-game' },
+    { name: '1S splinter to 4D control: 4S', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4D', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-splinter-major-game' },
+    { name: '1H splinter to 4C control: 4H', north: gameH, south: splH,
+      auction: ['1H', 'Pass', '3S', 'Pass', '4C', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-splinter-major-game' },
+    { name: 'splinter agreement off: no splinter rules', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'],
+      config: { splinters: false }, forbidden: ['Pass'] },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    const result = evaluateUserCall(test.expectedCall ?? 'Pass', board, test.auction,
+      { ...defaultBiddingSystem, ...(test.name.includes('Jacoby 2NT') ?
+        { majorGameForceWithSupport: 'jacoby2NT' as const } : {}), ...test.config });
+    const calls = getApplicableCandidateCalls(result);
+    const matched = test.expectedCall !== undefined && calls.some(({ call, rule }) =>
+      call === test.expectedCall && rule.id === test.expectedRule);
+    const boundary = test.boundary !== undefined && result.handMatchingRules.some(({ id }) =>
+      id === test.boundary);
+    checks++;
+    if (test.expectedCall !== undefined ? !matched : test.boundary !== undefined && !boundary) {
+      failures++;
+      console.error(`FAIL ${test.name}: expected ${test.expectedRule ?? test.boundary}; ` +
+                    `candidates ${formatCandidates(calls)}; boundaries ${result.handMatchingRules.filter(({kind})=>kind==='scopeBoundary').map(({id})=>id).join(',')}`);
+    }
+    for (const forbidden of test.forbidden ?? []) {
+      checks++;
+      if (calls.some(({ call }) => call === forbidden)) {
+        failures++;
+        console.error(`FAIL ${test.name}: forbidden ${forbidden}, candidates ${formatCandidates(calls)}`);
+      }
+    }
+    if (test.config?.majorGameForceWithSupport === 'newSuitThenRaise' ||
+        test.config?.splinters === false) {
+      checks++;
+      if (result.handMatchingRules.some(({ id }) =>
+        (test.config?.splinters === false ? id.includes('-splinter-') : id.includes('-jacoby-2nt-')))) {
+        failures++;
+        console.error(`FAIL ${test.name}: convention rules active with agreement off.`);
+      }
+    }
+  }
+  // These are explanatory boundaries only; never present an invented ace reply or Pass.
+  const slamCases: { name: string; opener: Call; response: Call; boundary?: string }[] = [
+    { name: 'Gerber over 1NT', opener: '1NT', response: '4C',
+      boundary: 'opener-rebid-boundary-after-direct-gerber' },
+    { name: 'Gerber over 2NT', opener: '2NT', response: '4C',
+      boundary: 'opener-rebid-boundary-after-direct-gerber' },
+    { name: 'Blackwood after 1H', opener: '1H', response: '4NT',
+      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
+    { name: 'Blackwood after 1D', opener: '1D', response: '4NT',
+      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
+    { name: 'Quantitative NT is not Gerber or Blackwood', opener: '1NT', response: '4NT' },
+  ];
+  for (const test of slamCases) {
+    const { board } = makeRuleTestBoard({ description: test.name,
+      north: oneNt, south: { S: 'QJ86', H: 'A74', D: 'A53', C: 'K42' }, practiceAuction: [test.opener] });
+    const auction = [test.opener, 'Pass', test.response, 'Pass'] as Call[];
+    const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
+    const calls = getApplicableCandidateCalls(result);
+    const boundaries = result.handMatchingRules.filter(({ kind }) => kind === 'scopeBoundary');
+    checks++;
+    if ((test.boundary !== undefined && calls.length > 0) || (test.boundary !== undefined
+        ? !boundaries.some(({ id }) => id === test.boundary)
+        : boundaries.some(({ id }) => id.includes('gerber') || id.includes('blackwood')))) {
+      failures++;
+      console.error(`FAIL ${test.name}: candidates ${formatCandidates(calls)}, ` +
+                    `boundaries ${boundaries.map(({ id }) => id).join(', ')}`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Strong 2C, Jacoby 2NT, splinters and slam boundaries: ` +
+              `${checks} focused checks.\n`);
+  return failures;
+}
+
+const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
