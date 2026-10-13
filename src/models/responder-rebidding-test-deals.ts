@@ -618,3 +618,91 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-game'] }],
   },
 ];
+
+//// After a Standard one-round-forcing two-level new-suit response
+
+export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'After the one-round force is answered with 2D, a six-card club suit can be rebid nonforcing.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass', '3C'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    east: { S: 'T53', H: 'T975', D: 'T63', C: 'AK7' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+    expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
+      'responder-rebid-standard-two-level-repeat-response',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3NT'],
+  },
+  {
+    description: "After the Standard 1D-2C response, a minimum responder can Pass opener's 3C raise.",
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3C', 'Pass', 'Pass'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'A', H: 'KJ42', D: 'KJ972', C: 'T82' },
+    east: { S: 'Q94', H: 'T965', D: 'QT84', C: 'J7' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-standard-two-level-pass-raise',
+    ] }],
+    rejectedResponderRebidCalls: ['3NT', '5C'],
+  },
+  {
+    description: 'After 1D-2C-2D, a minimum responder with three diamonds can prefer 3D.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass', '3D'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    east: { S: 'JT63', H: 'AT65', D: 'T76', C: 'KT' },
+    south: { S: 'K7', H: 'Q83', D: 'A53', C: 'Q9653' },
+    expectedResponderRebidCalls: [{ call: '3D', ruleIds: [
+      'responder-rebid-standard-two-level-prefer-diamonds',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3NT'],
+  },
+  {
+    description: 'Minimum balanced responder can stop in 2NT after Standard 1D-2C.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2NT', 'Pass', 'Pass'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'AQJ4', H: 'KJ2', D: 'QJ92', C: '82' },
+    east: { S: '985', H: 'T94', D: 'T73', C: 'AKT4' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-standard-two-level-pass-2nt',
+    ] }],
+    rejectedResponderRebidCalls: ['3NT'],
+  },
+  {
+    description: 'Game-going balanced responder chooses 3NT after the minimum Standard 2NT rebid.',
+    practiceAuction: ['1H', 'Pass', '2C', 'Pass', '2NT', 'Pass', '3NT'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
+    east: { S: 'J943', H: 'T97', D: 'J4', C: 'AT94' },
+    south: { S: 'KQ5', H: '63', D: 'A95', C: 'KQJ72' },
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-standard-two-level-game-3nt',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass'],
+  },
+  {
+    description: "With a known eight-card heart fit and game values, accept opener's 3H raise.",
+    practiceAuction: ['1S', 'Pass', '2H', 'Pass', '3H', 'Pass', '4H'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'KQJ985', H: 'A74', D: '82', C: 'Q3' },
+    east: { S: '762', H: 'QT', D: 'K654', C: 'J974' },
+    south: { S: 'A4', H: 'J9852', D: 'QJ3', C: 'A65' },
+    expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
+      'responder-rebid-standard-two-level-game-major-raise',
+    ] }],
+    rejectedResponderRebidCalls: ['Pass', '3NT'],
+  },
+  {
+    description: 'A Standard 3NT rebid places game, so minimum responder ordinarily Passes.',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3NT', 'Pass', 'Pass'],
+    requiredSystem: { twoLevelNewSuitResponse: 'standard' },
+    north: { S: 'AQJ4', H: 'AK2', D: 'KJ92', C: '82' },
+    east: { S: 'T653', H: 'JT64', D: '76', C: 'AK4' },
+    south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
+      'responder-rebid-standard-two-level-pass-game',
+    ] }],
+  },
+];

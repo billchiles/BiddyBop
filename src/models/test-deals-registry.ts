@@ -64,7 +64,8 @@ import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
          RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS,
          RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS,
          RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS,
-         RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS }
+         RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS }
   from './responder-rebidding-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
@@ -179,6 +180,9 @@ export {
 /// exercises first so the selector begins with useful connected bidding practice. The 'all'
 /// selection concatenates compatible deals in this same order.
 export const RULE_TEST_DEAL_BUCKETS = [
+  { id: 'responder-rebid-after-standard-two-level', group: 'Responder Rebids (7 bids)',
+    label: 'After a Standard two-level new suit', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS },
   { id: 'responder-rebid-after-major-1nt', group: 'Responder Rebids (7 bids)',
     label: 'After responding 1NT to a major', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS },
@@ -207,7 +211,8 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS },
   { id: 'responder-rebid-after-minor-1nt', group: 'Responder Rebids (7 bids)',
     label: 'After responding 1NT to a minor', practiceStages: ['responderRebid'] as BidStage[],
-    deals: RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
+    deals: RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS,
+         RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS },
   { id: 'minor-1nt', group: 'Opener Rebids (5 bids)', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'opener-after-interference', group: 'Opener Rebids (5 bids)',

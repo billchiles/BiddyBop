@@ -2,7 +2,7 @@
 import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
-         getResponderCall, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid } from './auction';
+         getResponderCall, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 import type { Suit } from './cards';
 
@@ -381,5 +381,72 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: natural minor-1NT ${choice}; opener ${info.opening}, ` +
     `rebid ${info.kind}, responder ${f.hcp} HCP.`,
+  ] };
+}
+
+//// Standard two-level new-suit responder continuations
+
+/// The first two partnership bids establish a one-round force. Only ordinary natural
+/// Standard responses qualify; the same printed auction under 2/1 is game forcing.
+/// An opener repeat at the two level may be a restricted five-card major fallback.
+export function getResponderStandardTwoLevel (context: RuleEvalContext):
+    { opening: Suit; response: Suit; rebid: string;
+      kind: 'repeat' | 'raise' | 'minorRepeat' | 'minimumNt' | 'gameNt' | 'other' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || !/^1[DHS]$/.test(bids[0] ?? '') ||
+      !/^2[CDH]$/.test(bids[1] ?? '')) return null;
+  const opening = bids[0] as `1${Suit}`;
+  const response = bids[1] as `2${Suit}`;
+  if (opening[1] === response[1] || responseJump(opening, response) !== 0) return null;
+  const rebid = bids[2];
+  const repeated = rebid === `2${opening[1]}`;
+  const raised = rebid === `3${response[1]}`;
+  const kind = repeated ? (opening === '1D' ? 'minorRepeat' : 'repeat') :
+    raised ? 'raise' : rebid === '2NT' ? 'minimumNt' :
+    rebid === '3NT' ? 'gameNt' : 'other';
+  return { opening: opening[1] as Suit, response: response[1] as Suit, rebid, kind };
+}
+
+/// The bid chosen must follow from opener's actual rebid, not merely the opening suit.
+export function refineResponderStandardTwoLevel (calls: Call[], context: RuleEvalContext,
+    choice: 'repeatResponse' | 'majorGame'): CallRefinementResult {
+  const info = getResponderStandardTwoLevel(context);
+  if (info === null) return { calls: [], telemetryLines: ['Not a Standard two-level new-suit auction.'] };
+  const wanted = choice === 'repeatResponse' ? `3${info.response}` : `4${info.response}`;
+  return { calls: calls.filter((call) => call === wanted),
+           telemetryLines: [`Choose ${wanted} using the natural preceding suit promises.`] };
+}
+
+/// Select only straightforward nonforcing signoffs and game placements. The original
+/// one-round force has been satisfied, but responder's 11+ HCP is not an upper bound.
+export function responderStandardTwoLevelApplies (_call: Call, context: RuleEvalContext,
+    choice: 'repeatResponse' | 'passRaise' | 'preferDiamonds' | 'passNt' |
+            'gameNt' | 'majorGame' | 'passGame'): AppliesWhenResult {
+  const info = getResponderStandardTwoLevel(context);
+  if (info === null) return { success: false, telemetryLines: ['Not a Standard two-level new-suit auction.'] };
+  const f = context.handFacts;
+  const minimum = f.hcp >= 11 && f.hcp <= 12;
+  let success = false;
+  switch (choice) {
+    case 'repeatResponse': success = (info.kind === 'repeat' || info.kind === 'minorRepeat') &&
+      minimum && f.lengths[info.response] >= 6; break;
+    case 'passRaise': success = info.kind === 'raise' && minimum &&
+      f.totalPointsWShortage <= 12; break;
+    case 'preferDiamonds': success = info.opening === 'D' && info.response === 'C' &&
+      info.kind === 'minorRepeat' && minimum && f.lengths.D >= 3; break;
+    case 'passNt': success = info.kind === 'minimumNt' && minimum && f.hcp === 11 &&
+      f.balanced; break;
+    case 'gameNt': success = info.kind === 'minimumNt' && f.balanced &&
+      f.hcp >= 13 && f.hcp <= 16; break;
+    case 'majorGame': success = info.kind === 'raise' && info.response === 'H' &&
+      f.totalPointsWShortage >= 13 && f.totalPointsWShortage <= 16; break;
+    case 'passGame': success = info.kind === 'gameNt' && f.hcp >= 11 && f.hcp <= 12; break;
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: Standard two-level ${choice}; ` +
+    `${info.opening}-${info.response}-${info.rebid}, ${f.hcp} HCP.`,
   ] };
 }

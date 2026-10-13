@@ -7,9 +7,128 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies,
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
          responderAfterMajorOneNtApplies,
-         responderAfterMinorOneNtApplies } from './responder-rebidding-functions';
+         responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
+         refineResponderStandardTwoLevel, responderStandardTwoLevelApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
+  //// Responder after a Standard two-level new-suit response
+  // Standard forces opener to bid once, but does not commit the partnership to game.
+  // These natural continuations must not appear with the configured 2/1 game force.
+  {
+    id: 'responder-rebid-standard-two-level-repeat-response',
+    kind: 'responderRebid',
+    title: 'Rebid a six-card responder suit naturally and nonforcing',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['3C', '3D', '3H'],
+    callRefinement: (calls, context) => refineResponderStandardTwoLevel(calls, context, 'repeatResponse'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'repeatResponse'),
+    meaning: 'With minimum values and six or more cards in the response suit, rebid it nonforcing ' +
+             'after opener has satisfied the one-round force.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-pass-raise',
+    kind: 'responderRebid',
+    title: "Accept opener's minimum raise of responder's suit",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passRaise'),
+    meaning: "Opener has raised responder's natural suit, and minimum responder values can stop in partscore.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-prefer-diamonds',
+    kind: 'responderRebid',
+    title: "Prefer opener's diamonds after a minimum repetition",
+    auctionContext: { stage: 'responderRebid', auction: ['1D', '2C', '2D'] },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['3D'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'preferDiamonds'),
+    meaning: "With minimum values and three or more diamonds, prefer opener's five-card-or-longer suit.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-pass-2nt',
+    kind: 'responderRebid',
+    title: "Stop in opener's minimum balanced 2NT",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 }, openerRebidCall: '2NT' },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passNt'),
+    meaning: "A balanced minimum 11 HCP need not force game opposite opener's 12-14 HCP 2NT rebid.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-game-3nt',
+    kind: 'responderRebid',
+    title: "Choose 3NT opposite opener's minimum balanced rebid",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 }, openerRebidCall: '2NT' },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'gameNt'),
+    meaning: 'Balanced game-going responder values justify 3NT opposite a minimum 2NT rebid.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-game-major-raise',
+    kind: 'responderRebid',
+    title: "Choose major game after opener supports the five-card response suit",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['4H'],
+    callRefinement: (calls, context) => refineResponderStandardTwoLevel(calls, context, 'majorGame'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'majorGame'),
+    meaning: 'With game values and a known heart fit after opener raises, choose 4H.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-standard-two-level-pass-game',
+    kind: 'responderRebid',
+    title: "Accept opener's natural 3NT game placement",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 }, openerRebidCall: '3NT' },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passGame'),
+    meaning: "Opener has placed the contract in notrump game after a Standard natural response.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-standard-two-level',
+    kind: 'scopeBoundary',
+    title: 'Other Standard two-level continuations require further judgment',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    scopeBoundaryWhen: (context, system) => ({
+      success: system.twoLevelNewSuitResponse === 'standard' &&
+        getResponderStandardTwoLevel(context) !== null,
+      telemetryLines: ['Check the natural Standard one-round-forcing response and opener rebid.'],
+    }),
+    meaning: 'The Standard two-level response forced opener to bid once, but did not ' +
+             'necessarily force the partnership to game.',
+    guidance: ['A reverse or stronger opener rebid may create a new forcing obligation. ' +
+               'When the best suit or further invitation is unclear, those continuations ' +
+               'rely on too many variables and judgment for this app to reliably provide practice.'],
+    certainty: 'high',
+  },
+  //
   //// Responder after a natural 1NT response to a minor opening
   // Responder showed 6-10 balanced HCP without a four-card major. An ordinary suit
   // continuation is nonforcing, while opener's reverse or jump shift remains forcing.

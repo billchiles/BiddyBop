@@ -2308,6 +2308,52 @@ function runResponderMinorOneNtAndPassedHandTests (): number {
   return failures;
 }
 
+/// These checks protect the Standard/2-over-1 distinction on an identical printed auction:
+/// Standard may stop after opener answers the one-round force, while 2/1 may not.
+function runResponderStandardTwoLevelContextTests (): number {
+  const bucket = RULE_TEST_DEAL_BUCKETS.find((item) =>
+    item.id === 'responder-rebid-after-standard-two-level');
+  if (bucket === undefined || bucket.deals.length === 0) return 1;
+  const { board } = makeRuleTestBoard(bucket.deals[1]);
+  const prefix: Call[] = ['1D', 'Pass', '2C', 'Pass', '3C', 'Pass'];
+  const standard = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const };
+  const twoOverOne = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+  const relevant = (system: BiddingSystem, auction: Call[]) =>
+    getApplicableCandidateCalls(evaluateUserCall('Pass', board, auction, system))
+      .filter(({ rule }) => rule.id.startsWith('responder-rebid-standard-two-level-'));
+  let failures = 0;
+  if (! relevant(standard, prefix).some(({ call, rule }) =>
+    call === 'Pass' && rule.id === 'responder-rebid-standard-two-level-pass-raise')) {
+    failures += 1;
+    console.error('FAIL Standard one-round force did not permit the natural Pass after a raise.');
+  }
+  if (relevant(twoOverOne, prefix).length !== 0) {
+    failures += 1;
+    console.error('FAIL Standard Pass leaked into the 2/1 game-forcing auction.');
+  }
+  const boundary = (system: BiddingSystem) => {
+    const evaluation = evaluateUserCall('Pass', board, prefix, system);
+    return evaluation.handMatchingRules.some((rule) =>
+      rule.id === 'responder-rebid-boundary-after-standard-two-level');
+  };
+  if (!boundary(standard) && relevant(standard, prefix).length === 0) {
+    failures += 1;
+    console.error('FAIL Standard response neither supplies a bid nor explanatory guidance.');
+  }
+  if (boundary(twoOverOne)) {
+    failures += 1;
+    console.error('FAIL Standard explanatory boundary leaked into 2/1.');
+  }
+  if (relevant(standard, ['1D', 'Pass', '2C', 'Pass', '2H', 'Pass']).length !== 0) {
+    failures += 1;
+    console.error('FAIL minimum Standard signoff appeared after an opener reverse.');
+  }
+  console.log(`${failures} ***FAILURES***. Standard two-level responder rebids: 5 checks.`);
+  console.log('  Protects the one-round-force versus game-force distinction, including Pass and guidance.');
+  console.log('  Also excludes minimum signoffs immediately after an opener reverse.\n');
+  return failures;
+}
+
 function runPracticeContinuationTests (): number {
   const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
   const prefix = recorded.slice(0, 6);
@@ -2365,7 +2411,7 @@ const failureCount = runAuctionHelperTests() + runAuctionContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMinorOneNtAndPassedHandTests() +
-  runPracticeContinuationTests() + runRuleTests();
+  runResponderStandardTwoLevelContextTests() + runPracticeContinuationTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }
