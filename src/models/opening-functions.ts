@@ -45,7 +45,7 @@ export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalConte
 export function guidelineOf20Applies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
   const lengths = Object.values(context.handFacts.lengths).sort((a, b) => b - a);
   const value = context.handFacts.hcp + (lengths[0] ?? 0) + (lengths[1] ?? 0);
-  // getBidStage only identifies opening before a contract is bid, so the preceding calls here
+  // getNextBiddingRuleStage only identifies opening before a contract is bid, so the preceding calls here
   // are Passes. Zero or one preceding Pass means first or second seat respectively.
   const firstOrSecondSeat = context.auction.length <= 1;
   const pass = firstOrSecondSeat && context.handFacts.hcp < 12 && value >= 20;

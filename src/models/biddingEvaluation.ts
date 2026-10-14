@@ -1,14 +1,15 @@
-/// User input and given a hand, auction context, user call, and rules, explain which rules apply 
-/// and whether the user call is accepted by any of them.
-///
+/// Bidding-rule selection, student-call feedback, and next-turn interaction status.
+/// Rule evaluation is shared by the feedback and status operations; neither mutates the auction.
+
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
-         type AppliesWhenResult, type BidPosition, type ResponderCallContext, oneNtResponseHcpShift }
+         type AppliesWhenResult, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
-import { getBidStage, getNextSeat, getOpeningCallInfo,
+import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
+         isUnjudgedInterveningTurn,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference }
@@ -19,16 +20,6 @@ import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, Respons
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
 
-/// user input -> normalize to Call -> build RuleEvalContext
-///   -> filter rules by auction context applicability -> filter rules for finer-grain applicability
-///   -> expand each rule into candidate calls -> evaluate appliesWhen constraints for each call
-///   -> report:
-///        handMatchingRules
-///        userCallMatchingRules
-///        candidate calls
-///        telemetry
-
-///
 //// Bidding Input
 ///
 
@@ -54,45 +45,55 @@ export function normalizeCallInput (input: string): Call | null {
 //// Public Evaluation API
 ///
 
-/// BidEvalResult is the result type for evaluateUserCall, and it represents the bid
-/// relative to rules and hand, not the best-bid judgment.
-/// 
-export interface BidPositionEvalResult {
-  handMatchingRules: BidRule[]; // All qualifying rules for the position and hand
-  ruleResults: RuleEvalResult[];
+/// Rules selected and checked for the next bidder's hand, the actual auction, and agreements.
+/// It includes successful rule matches and explanations for rules that did not qualify.
+export interface CurrentContextRules {
+  // Rules qualifying after agreement, auction context, candidate-call, hand, and suppression
+  // checks. Includes applicable scope boundaries, which do not produce concrete calls.
+  applicableRules: BidRule[];
+  // Details of considered rules (including unsuccessful matches), their generated calls,
+  // qualification flags, and per-rule explanations. Initial context-filter failures are excluded.
+  ruleDiagnostics: RuleEvalResult[];
+  // Human-readable trace for diagnostics, not a mutable global report.
   telemetryLines: string[];
 }
 
-export interface BidEvalResult extends BidPositionEvalResult {
+/// Student-call assessment adds the actual submitted call and the rules whose qualifying
+/// candidate calls match it. No single 'best bid' is imposed on the student.
+export interface BidEvalResult extends CurrentContextRules {
   normalizedCall: Call | null;
-  userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
+  // Applicable concrete-call rules matching the submitted call; excludes scope boundaries.
+  userCallMatchingRules: BidRule[];
 }
 
-/// Represents (possibly) multiple call candidates from a matching rule because a rule can contain
-/// several calls.
-///
+/// Diagnostic outcome of one rule after agreement and auction-context filtering.
+/// Each rule can refine into multiple concrete candidate calls, not all of which qualify.
 export interface RuleEvalResult {
   rule: BidRule;
-  candidates: CandidateCallMatch[]; // Each possible call from the rule and whether it applies.
+  // Each generated legal call and its hand-specific qualification result.
+  candidates: CandidateCallMatch[];
+  // True when at least one candidate qualifies, or a scopeBoundary's predicate succeeds.
+  // Later cross-rule suppressions can turn this false even after an initial match.
   ruleApplies: boolean;
+  // Detailed rule-specific trace, including unsuccessful candidate checks.
   telemetryLines: string[];
 }
 
-/// A candidate is one possible call from one rule in an evaluation result.
+/// One candidate call generated from a rule, after auction-dependent refinement.
 export interface CandidateCallMatch {
   rule: BidRule;
   call: Call;
+  // Whether this call satisfies the rule for the current hand, after suppressions.
   ruleApplies: boolean;
   telemetryLines: string[];
 }
 
 
-/// getApplicableCandidateCalls maps an evaluated position (with or without student input) to
-/// concrete calls allowed by rules that apply to the current hand and auction context.
-///
-export function getApplicableCandidateCalls (result: BidPositionEvalResult): CandidateCallMatch[] {
+/// Collect the actual legal calls that qualified in a rule-selection result. Scope boundaries
+/// are intentionally excluded because they describe judgment limits rather than recommend calls.
+export function getApplicableCandidateCalls (result: CurrentContextRules): CandidateCallMatch[] {
   const candidates: CandidateCallMatch[] = [];
-  for (const ruleResult of result.ruleResults) {
+  for (const ruleResult of result.ruleDiagnostics) {
     for (const candidate of ruleResult.candidates) {
       if (candidate.ruleApplies) {
         candidates.push(candidate);
@@ -103,52 +104,41 @@ export function getApplicableCandidateCalls (result: BidPositionEvalResult): Can
 }
 
 
-/// evaluateUserCall evaluates one user-entered call against the currently relevant bidding rules.
-/// This does not choose the best bid like an auto-bidder, but rule refiners and suppressors invoked
-/// here will eliminate bids and order bids according to bidding books and sources.  It reports in
-/// BidEvalResult which rules apply to the hand/context and which of those rules, if any, match the
-/// user's entered call.
+/// Select and assess bidding rules for the next physical turn, without a student call.
+/// "Current context" is the full auction, the hand of the next bidder, and the agreements.
 ///
-/// Evaluator flow:
-///    1. Pick the bidding stage
-///       responder after one opening bid → ResponseBidRules
-///    2. Apply agreement settings
-///       e.g. Jacoby on removes the Jacoby-off rules
-///    3. Filter those rules by auction context
-///       e.g. after 1NT, only response rules whose context matches 1NT remain
-///    4. Evaluate EVERY remaining rule
-///       - remove contract calls that cannot legally overcall the last contract
-///       - run its callRefinement, if any, on the available calls
-///       - evaluate every surviving candidate call against appliesWhen
-///       - set candidate.ruleApplies
-///       - set ruleResult.ruleApplies = true if ANY candidate applies
-///    5. After all rules have been evaluated:
-///       run cross-rule suppression logic
-///       - convenient-minor suppression
-///       - natural-NT response fallback suppression
-///       - existing major-response 1NT suppression
-///    6. Sort by priority.rank for presentation
+/// Rule-selection flow:
+///   1. Derive the next seat, hand, and modeled bidding-rule stage from the auction.
+///   2. Select the rule bucket for that stage (empty when there is no modeled stage).
+///   3. Filter rules by the partnership's selected bidding agreements.
+///   4. Filter rules by auction-context conditions.
+///   5. For every surviving rule, generate/refine candidate calls, check legal availability
+///      and hand-specific appliesWhen requirements, and retain diagnostics for every candidate.
+///   6. Apply cross-rule suppressions (convenient minors, Pass/NT fallbacks, conventions,
+///      major responses, and scope boundaries) to reconcile overlapping rules.
+///   7. Order the results by priority.rank for presentation, without dropping lower-ranked bids.
 ///
-/// Evaluate the position once without inventing a student call.  Both termination and student
-/// feedback need exactly the same rule/context/agreement filtering and suppressions.
-export function evaluateBidPosition (board: Board, auction: Call[],
-                                     system: BiddingSystem): BidPositionEvalResult {
+/// Returns applicableRules and ruleDiagnostics plus a human-readable trace. Neither auction
+/// nor UI state changes. evaluateUserCall uses the same selection to assess student input;
+/// getBiddingTurnStatus uses it to identify supported calls, boundaries, and missing treatments.
+export function getRulesForCurrentContext (board: Board, auction: Call[],
+                                           system: BiddingSystem): CurrentContextRules {
   const context = makeRuleEvalContext(board, auction);
   const telemetryLines: string[] = [];
-  telemetryLines.push(`evaluateBidPosition: ${context.seat}; stage=${context.stage}.`);
+  telemetryLines.push(`getRulesForCurrentContext: ${context.seat}; stage=${context.stage}.`);
   // Select the rule bucket from the model-derived bidding stage, then apply partnership agreements.
   const stageRules = getRulesForStage(context.stage);
   const activeRules = getActiveBiddingRules(stageRules, system);
-  let ruleResults = evaluateRules(activeRules, context, system);
+  let ruleDiagnostics = evaluateRules(activeRules, context, system);
   // Opening rules have a few relationships that cannot be expressed by evaluating each rule
   // independently.
   if (context.stage === 'opening') {
-    ruleResults = maybeSuppressConvenientMinor(ruleResults);
-    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+    ruleDiagnostics = maybeSuppressConvenientMinor(ruleDiagnostics);
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'open-pass-no-qualifying-action');
   }
   if (context.stage === 'overcalling') {
-    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'overcall-pass-no-qualifying-action');
   }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
@@ -156,55 +146,59 @@ export function evaluateBidPosition (board: Board, auction: Call[],
   const partnerOpeningCall = context.stage === 'responding'
     ? getPartnerOpeningCall(context.dealer, context.auction, context.seat)
     : null;
-  const sharedOneNtResponse = ruleResults.some((result) =>
+  const sharedOneNtResponse = ruleDiagnostics.some((result) =>
     result.rule.auctionContext?.partnerNaturalOneNt === true);
-  const weakTwoTwoNtResponse = ruleResults.some((result) =>
+  const weakTwoTwoNtResponse = ruleDiagnostics.some((result) =>
     result.rule.auctionContext?.partnerNaturalTwoNtOverWeakTwo === true);
   if (sharedOneNtResponse || weakTwoTwoNtResponse || partnerOpeningCall === '2NT') {
-    ruleResults = maybeSuppressTransfersForStayman(ruleResults); // jacoby vs stayman
-    ruleResults = maybeSuppressOneFiveOrMoreMajorTransfer(ruleResults, context, system);
-    ruleResults = maybeSuppressJacobyForDirectMajorSlam(ruleResults);
-    ruleResults = maybeSuppressJacobyForMajorGame(ruleResults); // jacoby vs major game (and texas)
+    ruleDiagnostics = maybeSuppressTransfersForStayman(ruleDiagnostics); // jacoby vs stayman
+    ruleDiagnostics = maybeSuppressOneFiveOrMoreMajorTransfer(ruleDiagnostics, context, system);
+    ruleDiagnostics = maybeSuppressJacobyForDirectMajorSlam(ruleDiagnostics);
+    ruleDiagnostics = maybeSuppressJacobyForMajorGame(ruleDiagnostics); // jacoby vs major game (and texas)
     // Order matters for this last call; declarations make the previous suppressors mutually clean.
-    ruleResults = maybeSuppressNtResponseFallback(ruleResults); // fallback pass or NT
+    ruleDiagnostics = maybeSuppressNtResponseFallback(ruleDiagnostics); // fallback pass or NT
   }
   // Suppress 1NT when one of a major is better.
   if (context.stage === 'responding') {
-    ruleResults = maybeSuppress1NTWhenMajorSupport(ruleResults);
-    ruleResults = maybeSuppressPassWithoutOtherAction(ruleResults,
+    ruleDiagnostics = maybeSuppress1NTWhenMajorSupport(ruleDiagnostics);
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'respond-over-1nt-pass-no-constructive-action');
   }
-  ruleResults = maybeSuppressScopeBoundaryWhenBidApplies(ruleResults);
+  ruleDiagnostics = maybeSuppressScopeBoundaryWhenBidApplies(ruleDiagnostics);
   // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
   // order only; it does not eliminate lower-ranked qualifying rules.
-  ruleResults.sort((left, right) =>
+  ruleDiagnostics.sort((left, right) =>
     (right.rule.priority?.rank ?? 0) - (left.rule.priority?.rank ?? 0));
 
-  const handMatchingRules = ruleResults
+  const applicableRules = ruleDiagnostics
     .filter((result) => result.ruleApplies)
     .map((result) => result.rule);
-  for (const ruleResult of ruleResults) {
+  for (const ruleResult of ruleDiagnostics) {
     telemetryLines.push(...ruleResult.telemetryLines);
   }
-  telemetryLines.push(`Applicable rule count: ${handMatchingRules.length}.`);
-  return { handMatchingRules, ruleResults, telemetryLines };
+  telemetryLines.push(`Applicable rule count: ${applicableRules.length}.`);
+  return { applicableRules, ruleDiagnostics, telemetryLines };
 }
 
-/// Evaluate a student's actual submitted call using the same position evaluation.
+/// Judge one submitted call against the rules selected for the next bidder's actual context.
+/// Match the call against qualifying candidate calls (not merely a rule's declared calls),
+/// retain alternative qualified bids and all diagnostics, and report why a call did not match.
+/// Uses getRulesForCurrentContext, so student feedback and turn-status checks apply the same
+/// agreement, auction-context, hand, and suppression decisions.
 export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[],
                                   system: BiddingSystem): BidEvalResult {
-  const position = evaluateBidPosition(board, auction, system);
+  const currentRules = getRulesForCurrentContext(board, auction, system);
   const matchingRulesForUserCall: BidRule[] = [];
-  for (const ruleResult of position.ruleResults) {
+  for (const ruleResult of currentRules.ruleDiagnostics) {
     if (ruleResult.candidates.some((candidate) =>
         candidate.ruleApplies && candidate.call === inputCall)) {
       matchingRulesForUserCall.push(ruleResult.rule);
     }
   }
-  const boundary = position.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
+  const boundary = currentRules.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
   const telemetryLines = [
-    `evaluateUserCall: ${inputCall}; stage=${getBidStage(board.dealer, auction)}.`,
-    ...position.telemetryLines,
+    `evaluateUserCall: ${inputCall}; stage=${getNextBiddingRuleStage(board.dealer, auction)}.`,
+    ...currentRules.telemetryLines,
     matchingRulesForUserCall.length === 0
       ? boundary === undefined
         ? `User call ${inputCall} did not satisfy any currently applicable rule.`
@@ -212,7 +206,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
       : `User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`,
   ];
   return {
-    ...position,
+    ...currentRules,
     normalizedCall: inputCall,
     userCallMatchingRules: matchingRulesForUserCall,
     telemetryLines,
@@ -220,8 +214,50 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
 }
 
 
+//// Next bidding-turn status
+
+/// Whether the trainer can judge the next turn, allow an unjudged intervening call, or stop.
+/// This is derived from the actual auction and rules; it is not a persisted React state, a
+/// bidding role, or an indication that the recorded practice exercise has ended.
+export type BiddingTurnStatus =
+  // Actual bridge auction ended (four opening Passes or three Passes after a contract).
+  | { kind: 'auctionComplete' }
+  // A modeled stage has at least one concrete candidate bid that qualifies for this hand.
+  | { kind: 'supported'; stage: BidStage }
+  // A rule explicitly explains why the trainer cannot select further calls here.
+  | { kind: 'scopeBoundary'; stage: BidStage; rule: BidRule }
+  // A modeled stage exists, but no concrete rule or explanatory boundary qualifies.
+  // Treat this as a missing rule treatment, not successful termination.
+  | { kind: 'noApplicableRule'; stage: BidStage }
+  // No modeled bidding-rule stage exists for this physical turn.
+  | { kind: 'noModeledStage' }
+  // A specifically recognized intervening turn is entered legally but not judged. The current
+  // system permits this only for two opponent turns in an uncontested opening partnership auction.
+  | { kind: 'unjudgedTurn' };
+
+/// Determine what interaction the trainer can offer for the next physical auction turn.
+/// The bidder's stage comes from getNextBiddingRuleStage; a stage alone does not guarantee that
+/// a rule qualifies for the hand. Distinguish a missing rule from an explicit scope boundary.
+export function getBiddingTurnStatus (board: Board, auction: Call[],
+                                      system: BiddingSystem): BiddingTurnStatus {
+  if (auctionIsComplete(auction)) return { kind: 'auctionComplete' };
+  const stage = getNextBiddingRuleStage(board.dealer, auction);
+  if (stage === null) {
+    return isUnjudgedInterveningTurn(board.dealer, auction)
+      ? { kind: 'unjudgedTurn' }
+      : { kind: 'noModeledStage' };
+  }
+
+  const currentRules = getRulesForCurrentContext(board, auction, system);
+  if (getApplicableCandidateCalls(currentRules).length > 0) return { kind: 'supported', stage };
+  const boundary = currentRules.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
+  if (boundary !== undefined) return { kind: 'scopeBoundary', stage, rule: boundary };
+  return { kind: 'noApplicableRule', stage };
+}
+
+
 //// Evaluation context and stage rule selection
-/// makeRuleEvalContext is the React/model boundary for bidding evaluation.  React supplies the
+/// makeRuleEvalContext derives rule inputs from the board and auction.  The caller supplies the
 /// board and authoritative full auction; model code derives the acting seat, hand, and stage.
 /// More specific auction facts are queried from auction.ts only by rules/evaluator code that needs
 /// them rather than being precomputed into every RuleEvalContext.
@@ -232,15 +268,16 @@ export function makeRuleEvalContext (board: Board, auction: Call[]): RuleEvalCon
   return {
     dealer: board.dealer,
     seat,
-    stage: getBidStage(board.dealer, auction),
+    stage: getNextBiddingRuleStage(board.dealer, auction),
     auction,
     hand,
     handFacts: getHandFacts(hand),
   };
 }
 
-/// getRulesForStage chooses the relevant rule family before hand evaluation.
-export function getRulesForStage (stage: BidPosition): BidRule[] {
+/// getRulesForStage chooses the relevant rule bucket before hand evaluation. A missing stage
+/// deliberately selects no rules; termination policy is handled separately.
+export function getRulesForStage (stage: BidStage | null): BidRule[] {
   switch (stage) {
     case 'opening':
       return OpeningBidRules;
@@ -256,9 +293,7 @@ export function getRulesForStage (stage: BidPosition): BidRule[] {
       return AdvanceRules;
     case 'responderRebid':
       return ResponderRebidRules;
-    case 'opponentPassThrough':
-    case 'outsideCoverage':
-    case 'auctionComplete':
+    case null:
       return [];
   }
 }
@@ -390,14 +425,14 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
 //// Cross-rule suppression -- Pass and scope boundaries
 /// A stage-specific Pass fallback must not compete with an already evaluated constructive call.
 /// This avoids duplicating the suit, support, and convention requirements in each Pass rule.
-function maybeSuppressPassWithoutOtherAction (ruleResults: RuleEvalResult[],
+function maybeSuppressPassWithoutOtherAction (ruleDiagnostics: RuleEvalResult[],
                                               passRuleId: string): RuleEvalResult[] {
-  const passResult = ruleResults.find((result) =>
+  const passResult = ruleDiagnostics.find((result) =>
     result.rule.id === passRuleId && result.ruleApplies);
-  if (passResult === undefined) return ruleResults;
-  const competingCall = ruleResults.flatMap((result) => result.candidates)
+  if (passResult === undefined) return ruleDiagnostics;
+  const competingCall = ruleDiagnostics.flatMap((result) => result.candidates)
     .find((candidate) => candidate.ruleApplies && candidate.call !== 'Pass');
-  if (competingCall === undefined) return ruleResults;
+  if (competingCall === undefined) return ruleDiagnostics;
   const suppressionLine = `SUPPRESSED: ${competingCall.call} qualifies instead of fallback Pass.`;
   for (const candidate of passResult.candidates) {
     if (candidate.ruleApplies) {
@@ -407,23 +442,23 @@ function maybeSuppressPassWithoutOtherAction (ruleResults: RuleEvalResult[],
   }
   passResult.ruleApplies = false;
   passResult.telemetryLines.push(`  ${suppressionLine}`);
-  return ruleResults;
+  return ruleDiagnostics;
 }
 
 /// A scope boundary is explanatory fallback, not a competing bid rule.  If any concrete modeled
 /// call applies to the hand, suppress the boundary so normal bidding guidance wins.
-function maybeSuppressScopeBoundaryWhenBidApplies (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
-  const concreteRuleApplies = ruleResults.some((result) =>
+function maybeSuppressScopeBoundaryWhenBidApplies (ruleDiagnostics: RuleEvalResult[]): RuleEvalResult[] {
+  const concreteRuleApplies = ruleDiagnostics.some((result) =>
     result.rule.kind !== 'scopeBoundary' && result.ruleApplies &&
     result.candidates.some((candidate) => candidate.ruleApplies));
-  if (! concreteRuleApplies) return ruleResults;
-  for (const result of ruleResults) {
+  if (! concreteRuleApplies) return ruleDiagnostics;
+  for (const result of ruleDiagnostics) {
     if (result.rule.kind === 'scopeBoundary' && result.ruleApplies) {
       result.ruleApplies = false;
       result.telemetryLines.push('  SUPPRESSED: a concrete modeled call applies to this hand.');
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 }
 
 //// Cross-rule suppression -- Opening and 1NT response choices
@@ -434,15 +469,15 @@ function maybeSuppressScopeBoundaryWhenBidApplies (ruleResults: RuleEvalResult[]
 /// candidate-level applicability flags are changed so downstream code sees the convenient-minor
 /// rule consistently as no longer applicable.
 ///
-function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalResult[] {
-  const convenientMinorResult = ruleResults.find((result) =>
+function maybeSuppressConvenientMinor (ruleDiagnostics: RuleEvalResult[]): RuleEvalResult[] {
+  const convenientMinorResult = ruleDiagnostics.find((result) =>
     result.rule.id === 'open-convenient-minor' && result.ruleApplies);
   if (convenientMinorResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   // We have a convenient minor, so see if there's a NT that trumps the minor rule :-).
   let naturalNtCall: Call | null = null;
-  for (const result of ruleResults) {
+  for (const result of ruleDiagnostics) {
     if (! result.rule.callCategory?.includes('natural')) {
       continue;
     }
@@ -454,7 +489,7 @@ function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalR
     }
   }
   if (naturalNtCall === null) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   // Telemetry
   const suppressionLine =
@@ -468,7 +503,7 @@ function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalR
       candidate.telemetryLines.push(suppressionLine);
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressConvenientMinor()
 
 /// The complete natural-1NT response-family routing map lives with the declarations in
@@ -484,17 +519,17 @@ function maybeSuppressConvenientMinor (ruleResults: RuleEvalResult[]): RuleEvalR
 /// the direct strong 3H/3S rule also uses that setting.  A Jacoby transfer is therefore identified
 /// here by the enabled jacobyTransfers agreement plus the conventional call category.
 ///
-function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
+function maybeSuppressTransfersForStayman (ruleDiagnostics: RuleEvalResult[]):
     RuleEvalResult[] {
-  const staymanResult = ruleResults.find((result) =>
+  const staymanResult = ruleDiagnostics.find((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'stayman' &&
     result.rule.agreement.value);
   if (staymanResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   const staymanCandidate = staymanResult.candidates.find((candidate) => candidate.ruleApplies)!;
 
-  for (const result of ruleResults) {
+  for (const result of ruleDiagnostics) {
     const isJacobyTransfer =
       result.rule.agreement?.setting === 'jacobyTransfers' && result.rule.agreement.value &&
       result.rule.callCategory?.includes('conventional');
@@ -513,7 +548,7 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
       }
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressTransfersForStayman()
 
 /// maybeSuppressOneFiveOrMoreMajorTransfer removes one Jacoby transfer when the replying hand has
@@ -537,11 +572,11 @@ function maybeSuppressTransfersForStayman (ruleResults: RuleEvalResult[]):
 /// methods instead use garbage/crawling Stayman with suitable weak two-major shapes.  For now,
 /// don't compare the two major-suit qualities, and both weak transfer choices remain available.
 ///
-function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
+function maybeSuppressOneFiveOrMoreMajorTransfer (ruleDiagnostics: RuleEvalResult[],
                                                 context: RuleEvalContext, system: BiddingSystem):
     RuleEvalResult[] {
   if (context.handFacts.lengths.H < 5 || context.handFacts.lengths.S < 5) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   // A 5-card major exists; the transfer ordering depends on partner's actual NT opening.
   const partnerOpeningCall = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
@@ -557,17 +592,17 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
     preferredTransfer = '3D'; // Transfer to hearts, then 3S shows the second major below 3NT.
   }
   if (preferredTransfer === null) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   // and one is a preferred suit by bidding instructional materials
-  const jacobyResults = ruleResults.filter((result) =>
+  const jacobyResults = ruleDiagnostics.filter((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'jacobyTransfers' &&
     result.rule.agreement.value && result.rule.callCategory?.includes('conventional'));
   const preferredExists = jacobyResults.some((result) =>
     result.candidates.some((candidate) =>
       candidate.ruleApplies && candidate.call === preferredTransfer));
   if (! preferredExists) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
 
   for (const result of jacobyResults) {
@@ -588,7 +623,7 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
       result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressOneFiveOrMoreMajorTransfer()
 
 /// maybeSuppressJacobyForDirectMajorSlam resolves the overlap between an ordinary Jacoby transfer
@@ -600,25 +635,25 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleResults: RuleEvalResult[],
 /// 3H/3S rule also depends on that agreement.  The transfer rule is the conventional one; the
 /// direct 3M slam-interest rule is natural and game forcing.
 ///
-function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvalResult[]) :
+function maybeSuppressJacobyForDirectMajorSlam (ruleDiagnostics: RuleEvalResult[]) :
       RuleEvalResult[] {
-  const majorSlamResult = ruleResults.find((result) =>
+  const majorSlamResult = ruleDiagnostics.find((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'jacobyTransfers' &&
     result.rule.agreement.value && result.rule.callCategory?.includes('gameForcing') &&
     ! result.rule.callCategory?.includes('conventional') &&
     result.candidates.some((candidate) =>
       candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S')));
   if (majorSlamResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   // found game forcing direct major
   const majorSlamCandidate = majorSlamResult.candidates.find((candidate) =>
     candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S'));
   // if (majorSlamCandidate === undefined) {
-  //   return ruleResults;
+  //   return ruleDiagnostics;
   // }
   // we know we have a direct slam candidate, so see if there's a jacoby to suppress
-  for (const result of ruleResults) {
+  for (const result of ruleDiagnostics) {
     const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
                              result.rule.agreement.value && 
                              result.rule.callCategory?.includes('conventional');
@@ -638,7 +673,7 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvalResult[]) :
     result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     result.telemetryLines.push(`  ${suppressionLine}`);
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressJacobyForDirectMajorSlam()
 
 
@@ -653,23 +688,23 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleResults: RuleEvalResult[]) :
 /// Jacoby remains available for weaker/invitational hands and stronger hands needing bidding room.
 /// See natural-1nt-partner-calls.ts for the full major-shape routing map.
 ///
-function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
+function maybeSuppressJacobyForMajorGame (ruleDiagnostics: RuleEvalResult[]):
     RuleEvalResult[] {
   // do any results specify a texas transfer result ...  if texas is true, and one applies, then
   // suppress jacoby, and if texas is off for an applicable rule, and a natural 4M applies, then
   // suppress jacoby
-  const majorGameResult = ruleResults.find((result) =>
+  const majorGameResult = ruleDiagnostics.find((result) =>
     result.ruleApplies && result.rule.agreement?.setting === 'texasTransfers'); //&&
     // result.rule.agreement.value && result.rule.callCategory?.includes('conventional'));
   if (majorGameResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   const majorGameCandidate = majorGameResult.candidates.find((candidate) => candidate.ruleApplies)!;
   // if (majorGameCandidate === undefined) {
-  //   return ruleResults;
+  //   return ruleDiagnostics;
   // }
   // We have the system's direct major-game route, so see if a competing Jacoby transfer applies.
-  for (const result of ruleResults) {
+  for (const result of ruleDiagnostics) {
     const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
                              result.rule.agreement.value && 
                              result.rule.callCategory?.includes('conventional');
@@ -689,7 +724,7 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
     result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     result.telemetryLines.push(`  ${suppressionLine}`);
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressJacobyForMajorGame()
 
 
@@ -720,11 +755,11 @@ function maybeSuppressJacobyForMajorGame (ruleResults: RuleEvalResult[]):
 /// See natural-1nt-partner-calls.ts for the complete response-family routing map; this function
 /// owns only the Pass/notrump fallback suppression.
 ///
-function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
+function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
     RuleEvalResult[] {
   // Find the first applicable suit-response treatment controlled by Stayman, Jacoby, or Texas.
   // This also includes the natural 3C/3D meanings recovered when Stayman/Jacoby are disabled.
-  const suitActionResult = ruleResults.find((result) => {
+  const suitActionResult = ruleDiagnostics.find((result) => {
     if (! result.ruleApplies) {
       return false;
     }
@@ -732,11 +767,11 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
     return setting === 'stayman' || setting === 'jacobyTransfers' || setting === 'texasTransfers';
   });
   if (suitActionResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   const suitCandidate = suitActionResult.candidates.find((candidate) => candidate.ruleApplies)!;
   // A preferred suit action makes Pass or a direct notrump response only a fallback.
-  for (const result of ruleResults) {
+  for (const result of ruleDiagnostics) {
     let suppressed = false;
     for (const candidate of result.candidates) {
       const isNtFallback = candidate.call === 'Pass' ||
@@ -757,7 +792,7 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
       result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppressNtResponseFallback()
 
 /// maybeSuppress1NTWhenMajorSupport takes all applicable rules for current auction and responder's
@@ -765,22 +800,22 @@ function maybeSuppressNtResponseFallback (ruleResults: RuleEvalResult[]) :
 /// new-suit response.  After 1H, four or more spades are shown with 1S; the 1NT response is the
 /// fallback when that preferred one-level response is unavailable.
 ///
-function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
+function maybeSuppress1NTWhenMajorSupport (ruleDiagnostics: RuleEvalResult[]) :
       RuleEvalResult[] {
-  const newSuitResult = ruleResults.find((result) =>
+  const newSuitResult = ruleDiagnostics.find((result) =>
     result.rule.id === 'respond-to-major-w/o-support-new-suit-one-level' &&
     result.ruleApplies);
   if (newSuitResult === undefined) { // don't suppress anything, no valid one suit bid found
-    return ruleResults;
+    return ruleDiagnostics;
   }
   const newSuitCandidate = newSuitResult.candidates.find(
     (candidate) => candidate.ruleApplies)!;
-  const oneNtResult = ruleResults.find((result) =>
+  const oneNtResult = ruleDiagnostics.find((result) =>
     (result.rule.id === 'respond-to-major-w/o-support-1nt-twooverone' ||
      result.rule.id === 'respond-to-major-w/o-support-1nt-standard') &&
     result.ruleApplies);
   if (oneNtResult === undefined) {
-    return ruleResults;
+    return ruleDiagnostics;
   }
   const suppressionLine = // telemetry, not user facing
     `SUPPRESSED: ${newSuitCandidate.call} is the preferred one-level new-suit response, ` +
@@ -793,7 +828,7 @@ function maybeSuppress1NTWhenMajorSupport (ruleResults: RuleEvalResult[]) :
       candidate.telemetryLines.push(suppressionLine);
     }
   }
-  return ruleResults;
+  return ruleDiagnostics;
 } // maybeSuppress1NTWhenMajorSupport()
 
 
@@ -1045,7 +1080,7 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   }
 
   const interference = getInterferenceAfterOpening(evalContext.dealer, evalContext.auction);
-  // getBidStage admits only reviewed physical competitive opener turns.  Keep ordinary opener
+  // getNextBiddingRuleStage admits only reviewed physical competitive opener turns.  Keep ordinary opener
   // rules isolated as a second line of defense: reuse must be explicit, while a rule that declares
   // interference is already a purpose-built competitive treatment.
   if (evalContext.stage === 'openerRebid' && interference !== 'none' &&

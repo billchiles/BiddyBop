@@ -2,13 +2,12 @@
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
-import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getBidStage,
+import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
          getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { getTrainerCoverageState } from '../src/models/trainer-coverage';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -264,7 +263,7 @@ function runCompetitionBoundaryTests (): number {
   });
   let checks = 0;
   let failures = 0;
-  const stages: { auction: Call[]; expected: ReturnType<typeof getBidStage> }[] = [
+  const stages: { auction: Call[]; expected: ReturnType<typeof getNextBiddingRuleStage> }[] = [
     { auction: ['1D'], expected: 'overcalling' },
     { auction: ['1D', 'Pass'], expected: 'responding' },
     { auction: ['1D', '1S'], expected: 'responding' },
@@ -295,7 +294,7 @@ function runCompetitionBoundaryTests (): number {
   ];
   for (const testCase of stages) {
     checks += 1;
-    if (getBidStage(board.dealer, testCase.auction) !== testCase.expected) {
+    if (getNextBiddingRuleStage(board.dealer, testCase.auction) !== testCase.expected) {
       failures += 1;
       console.error(`FAIL competitive stage for ${testCase.auction.join(' ')}.`);
     }
@@ -352,8 +351,8 @@ function runCompetitionBoundaryTests (): number {
   }
   // Direct 1NT and jump overcalls still count as intervention when deriving responder's stage.
   checks += 1;
-  if (getBidStage('W', ['1D', '1NT']) !== 'responding' ||
-      getBidStage('W', ['1D', '3C']) !== 'responding') {
+  if (getNextBiddingRuleStage('W', ['1D', '1NT']) !== 'responding' ||
+      getNextBiddingRuleStage('W', ['1D', '3C']) !== 'responding') {
     failures += 1;
     console.error('FAIL responder stage after direct 1NT or jump overcall.');
   }
@@ -1028,7 +1027,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const boundaryResult = evaluateUserCall(
     'Pass', boundaryBoard, ['1D', '1S', '2D', '3S'], defaultBiddingSystem);
   checks += 1;
-  if (! boundaryResult.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary') ||
+  if (! boundaryResult.applicableRules.some((rule) => rule.kind === 'scopeBoundary') ||
       getApplicableCandidateCalls(boundaryResult).length !== 0) {
     failures += 1;
     console.error('FAIL medium opener did not stop at a no-candidate scope boundary.');
@@ -1041,7 +1040,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   checks += 1;
   if (! getApplicableCandidateCalls(concreteResult).some(({ call, rule }) =>
       call === 'Pass' && rule.id === 'opener-rebid-pass-after-major-simple-raise') ||
-      concreteResult.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary')) {
+      concreteResult.applicableRules.some((rule) => rule.kind === 'scopeBoundary')) {
     failures += 1;
     console.error('FAIL concrete minimum Pass did not suppress the scope boundary.');
   }
@@ -1055,7 +1054,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const forcingBoundaryResult = evaluateUserCall(
     'Pass', forcingBoundaryBoard, ['1H', '1S', '2C', '2S'], defaultBiddingSystem);
   checks += 1;
-  if (! forcingBoundaryResult.handMatchingRules.some((rule) =>
+  if (! forcingBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-overcall-two-level-forcing-response') ||
       getApplicableCandidateCalls(forcingBoundaryResult).length !== 0) {
     failures += 1;
@@ -1071,7 +1070,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const negativeDoubleBoundaryResult = evaluateUserCall(
     'Pass', negativeDoubleBoundaryBoard, ['1D', '1S', 'Double', '3S'], defaultBiddingSystem);
   checks += 1;
-  if (! negativeDoubleBoundaryResult.handMatchingRules.some((rule) =>
+  if (! negativeDoubleBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-negative-double-advancer-action') ||
       getApplicableCandidateCalls(negativeDoubleBoundaryResult).length !== 0) {
     failures += 1;
@@ -1102,7 +1101,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const redoubleRunoutResult = evaluateUserCall(
     'Pass', redoubleRunoutBoard, ['1H', 'Double', 'Redouble', '1S'], defaultBiddingSystem);
   checks += 1;
-  if (! redoubleRunoutResult.handMatchingRules.some((rule) =>
+  if (! redoubleRunoutResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-strength-redouble-runout') ||
       getApplicableCandidateCalls(redoubleRunoutResult).length !== 0) {
     failures += 1;
@@ -1118,7 +1117,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const oneNtOvercallBoundaryResult = evaluateUserCall(
     'Pass', oneNtOvercallBoundaryBoard, ['1H', '1NT', '2D', 'Pass'], defaultBiddingSystem);
   checks += 1;
-  if (! oneNtOvercallBoundaryResult.handMatchingRules.some((rule) =>
+  if (! oneNtOvercallBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-opponent-1nt-weak-new-suit') ||
       getApplicableCandidateCalls(oneNtOvercallBoundaryResult).length !== 0) {
     failures += 1;
@@ -1134,7 +1133,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const preemptiveRaiseBoundaryResult = evaluateUserCall(
     'Pass', preemptiveRaiseBoundaryBoard, ['1S', '2H', '3S', 'Pass'], defaultBiddingSystem);
   checks += 1;
-  if (! preemptiveRaiseBoundaryResult.handMatchingRules.some((rule) =>
+  if (! preemptiveRaiseBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-overcall-preemptive-three-level-raise') ||
       getApplicableCandidateCalls(preemptiveRaiseBoundaryResult).length !== 0) {
     failures += 1;
@@ -1150,7 +1149,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const minorCuebidBoundaryResult = evaluateUserCall(
     'Pass', minorCuebidBoundaryBoard, ['1C', '1D', '2D', 'Pass'], defaultBiddingSystem);
   checks += 1;
-  if (! minorCuebidBoundaryResult.handMatchingRules.some((rule) =>
+  if (! minorCuebidBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras') ||
       getApplicableCandidateCalls(minorCuebidBoundaryResult).length !== 0) {
     failures += 1;
@@ -1166,7 +1165,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   const doubledPassBoundaryResult = evaluateUserCall(
     'Pass', doubledPassBoundaryBoard, ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
   checks += 1;
-  if (! doubledPassBoundaryResult.handMatchingRules.some((rule) =>
+  if (! doubledPassBoundaryResult.applicableRules.some((rule) =>
       rule.id === 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') ||
       getApplicableCandidateCalls(doubledPassBoundaryResult).length !== 0) {
     failures += 1;
@@ -1182,7 +1181,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   ];
   for (const auction of unsupported) {
     checks += 1;
-    if (getBidStage('N', auction) !== 'outsideCoverage') {
+    if (getNextBiddingRuleStage('N', auction) !== null) {
       failures += 1;
       console.error(
         `FAIL unsupported competitive opener turn reached a stage: ${auction.join(' ')}.`);
@@ -1389,7 +1388,7 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
   for (const testCase of cases) {
     checks += 1;
     const results = evaluateUserCall('2NT', board, testCase.auction, defaultBiddingSystem);
-    const contextMatches = results.ruleResults.some(({ rule }) =>
+    const contextMatches = results.ruleDiagnostics.some(({ rule }) =>
       rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
     if (contextMatches !== testCase.shouldMatch) {
       failures += 1;
@@ -1754,7 +1753,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL shared 1NT-interference rules did not match responder after 1NT-(2H).');
   }
   checks += 1;
-  if (responseResult.ruleResults.some((result) =>
+  if (responseResult.ruleDiagnostics.some((result) =>
       result.rule.auctionContext?.partnerNaturalOneNt === true)) {
     failures += 1;
     console.error('FAIL uncontested Stayman/transfer rules remained active after 1NT-(2H).');
@@ -1783,7 +1782,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
 
   const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], defaultBiddingSystem);
   checks += 1;
-  if (unsupportedResult.ruleResults.some((result) =>
+  if (unsupportedResult.ruleDiagnostics.some((result) =>
       result.rule.auctionContext?.partnerNaturalOneNtAfterSuitInterference === true)) {
     failures += 1;
     console.error('FAIL shared 1NT-interference rules leaked into three-level interference.');
@@ -1894,7 +1893,7 @@ function runDontBoundaryTests (): number {
   let failures = 0;
 
   checks += 1;
-  if (getBidStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
+  if (getNextBiddingRuleStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
       'overcallerRebid') {
     failures += 1;
     console.error('FAIL DONT relay should reach the overcaller-rebid stage.');
@@ -2040,7 +2039,7 @@ function runResponderMajorRaiseContextTests (): number {
     const result = evaluateUserCall(testCase.rejected, strongBoard, testCase.auction,
                                     defaultBiddingSystem);
     if (getApplicableCandidateCalls(result).some(({ call }) => call === testCase.rejected) ||
-        ! result.handMatchingRules.some((rule) => rule.kind === 'scopeBoundary')) {
+        ! result.applicableRules.some((rule) => rule.kind === 'scopeBoundary')) {
       failures += 1;
       console.error(`FAIL responder major-raise slam guidance: ${testCase.description}`);
     }
@@ -2117,7 +2116,7 @@ function runResponderSecondSuitContextTests (): number {
   let failures = 0;
   for (const testCase of cases) {
     const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
-    const recognized = result.handMatchingRules.some((rule) =>
+    const recognized = result.applicableRules.some((rule) =>
       rule.id === 'responder-rebid-boundary-after-economical-second-suit');
     const actual = recognized || getApplicableCandidateCalls(result).some(({ rule }) =>
       rule.id.startsWith('responder-rebid-economical-'));
@@ -2155,7 +2154,7 @@ function runResponderStrongSecondSuitContextTests (): number {
     const context = makeRuleEvalContext(board, testCase.auction);
     const family = getResponderStrongSecondSuit(context)?.kind ?? null;
     const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
-    const boundaries = result.handMatchingRules.filter((rule) =>
+    const boundaries = result.applicableRules.filter((rule) =>
       rule.id === 'responder-rebid-boundary-after-reverse' ||
       rule.id === 'responder-rebid-boundary-after-strong-opener-jump-shift');
     const hasConcreteStrongCall = getApplicableCandidateCalls(result).some(({ rule }) =>
@@ -2193,7 +2192,7 @@ function runResponderStrongSecondSuitContextTests (): number {
     });
     const result = evaluateUserCall('Pass', weakBoard, testCase.auction, defaultBiddingSystem);
     if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass') ||
-        ! result.handMatchingRules.some(({ id }) => id === testCase.expectedBoundary)) {
+        ! result.applicableRules.some(({ id }) => id === testCase.expectedBoundary)) {
       failures += 1;
       console.error(`FAIL weak forcing-continuation guidance: ${testCase.auction.join(' ')}.`);
     }
@@ -2241,7 +2240,7 @@ function runResponderStrongTwoNtContextTests (): number {
   const result = evaluateUserCall('3H', strongBoard, strongAuction, defaultBiddingSystem);
   const actualCandidates = getApplicableCandidateCalls(result).filter(({ rule }) =>
     rule.id.startsWith('responder-rebid-') && rule.id.endsWith('-strong-2nt'));
-  const boundary = result.handMatchingRules.some(({ id }) =>
+  const boundary = result.applicableRules.some(({ id }) =>
     id === 'responder-rebid-boundary-after-strong-2nt');
   if (actualCandidates.length !== 0 || ! boundary) {
     failures += 1;
@@ -2278,7 +2277,7 @@ function runResponderMajorOneNtContextTests (): number {
     const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
     const concrete = getApplicableCandidateCalls(result).some(({ rule }) =>
       rule.id.includes('major-1nt'));
-    const boundary = result.handMatchingRules.some(({ id }) =>
+    const boundary = result.applicableRules.some(({ id }) =>
       id === 'responder-rebid-boundary-after-major-1nt-natural' ||
       id === 'responder-rebid-boundary-after-major-1nt-strong-forcing' ||
       id === 'responder-rebid-boundary-after-major-1nt-invitation');
@@ -2381,7 +2380,7 @@ function runResponderMajorOneNtStrongTests (): number {
         console.error(`FAIL major-1NT ${check.name} (${agreement}): ${ids.join(', ')}.`);
       }
       // The ordinary economical-family boundary should never describe an invitation.
-      if (result.handMatchingRules.some(({ id }) =>
+      if (result.applicableRules.some(({ id }) =>
         id === 'responder-rebid-boundary-after-major-1nt-natural')) {
         failures += 1;
         console.error(`FAIL economical major-1NT boundary leaked into ${check.name}.`);
@@ -2395,7 +2394,7 @@ function runResponderMajorOneNtStrongTests (): number {
     const board = finalCall === '2S' ? reverseBoard : make(spadeNtOpener, lowSpade);
     const auction: Call[] = [openerBid, 'Pass', '1NT', 'Pass', finalCall, 'Pass'];
     const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
-    if (! result.handMatchingRules.some(({ id }) =>
+    if (! result.applicableRules.some(({ id }) =>
       id === 'responder-rebid-boundary-after-major-1nt-strong-forcing') ||
       getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
       failures += 1;
@@ -2495,7 +2494,7 @@ function runResponderStandardTwoLevelContextTests (): number {
   }
   const boundary = (system: BiddingSystem) => {
     const evaluation = evaluateUserCall('Pass', board, prefix, system);
-    return evaluation.handMatchingRules.some((rule) =>
+    return evaluation.applicableRules.some((rule) =>
       rule.id === 'responder-rebid-boundary-after-standard-two-level');
   };
   if (!boundary(standard) && relevant(standard, prefix).length === 0) {
@@ -2576,7 +2575,7 @@ function runResponderTwoOverOneContextTests (): number {
     failures += 1;
     console.error('FAIL a below-game Pass was recommended in the 2/1 game force.');
   }
-  if (!forcingResult.handMatchingRules.some(({ id }) =>
+  if (!forcingResult.applicableRules.some(({ id }) =>
     id === 'responder-rebid-boundary-after-two-over-one')) {
     failures += 1;
     console.error('FAIL unresolved 2/1 game force had no explanatory boundary.');
@@ -2809,7 +2808,7 @@ function runResponderNtConventionTests (): number {
     const boundaryId = test.boundary === 'stayman'
       ? 'responder-rebid-boundary-after-nt-stayman'
       : 'responder-rebid-boundary-after-nt-transfer';
-    const hasBoundary = result.handMatchingRules.some(({ id }) => id === boundaryId);
+    const hasBoundary = result.applicableRules.some(({ id }) => id === boundaryId);
     if ((test.expected !== null && chosen === undefined) || wrongMajor ||
         (test.expected === null && (calls.length > 0 || !hasBoundary))) {
       failures += 1;
@@ -2826,7 +2825,7 @@ function runResponderNtConventionTests (): number {
     const result = evaluateUserCall('Pass', offBoard, [...auction],
       { ...defaultBiddingSystem, ...config });
     if (getApplicableCandidateCalls(result).some(({ rule }) => rule.id.includes('nt-' + forbidden)) ||
-        result.handMatchingRules.some(({ id }) => id.includes('nt-' + forbidden))) {
+        result.applicableRules.some(({ id }) => id.includes('nt-' + forbidden))) {
       failures += 1;
       console.error(`FAIL ${forbidden} rules available with convention off.`);
     }
@@ -2949,13 +2948,13 @@ function runResponderStrongAndSupportConventionTests (): number {
     const calls = getApplicableCandidateCalls(result);
     const matched = test.expectedCall !== undefined && calls.some(({ call, rule }) =>
       call === test.expectedCall && rule.id === test.expectedRule);
-    const boundary = test.boundary !== undefined && result.handMatchingRules.some(({ id }) =>
+    const boundary = test.boundary !== undefined && result.applicableRules.some(({ id }) =>
       id === test.boundary);
     checks++;
     if (test.expectedCall !== undefined ? !matched : test.boundary !== undefined && !boundary) {
       failures++;
       console.error(`FAIL ${test.name}: expected ${test.expectedRule ?? test.boundary}; ` +
-                    `candidates ${formatCandidates(calls)}; boundaries ${result.handMatchingRules.filter(({kind})=>kind==='scopeBoundary').map(({id})=>id).join(',')}`);
+                    `candidates ${formatCandidates(calls)}; boundaries ${result.applicableRules.filter(({kind})=>kind==='scopeBoundary').map(({id})=>id).join(',')}`);
     }
     for (const forbidden of test.forbidden ?? []) {
       checks++;
@@ -2967,7 +2966,7 @@ function runResponderStrongAndSupportConventionTests (): number {
     if (test.config?.majorGameForceWithSupport === 'newSuitThenRaise' ||
         test.config?.splinters === false) {
       checks++;
-      if (result.handMatchingRules.some(({ id }) =>
+      if (result.applicableRules.some(({ id }) =>
         (test.config?.splinters === false ? id.includes('-splinter-') : id.includes('-jacoby-2nt-')))) {
         failures++;
         console.error(`FAIL ${test.name}: convention rules active with agreement off.`);
@@ -2992,7 +2991,7 @@ function runResponderStrongAndSupportConventionTests (): number {
     const auction = [test.opener, 'Pass', test.response, 'Pass'] as Call[];
     const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
     const calls = getApplicableCandidateCalls(result);
-    const boundaries = result.handMatchingRules.filter(({ kind }) => kind === 'scopeBoundary');
+    const boundaries = result.applicableRules.filter(({ kind }) => kind === 'scopeBoundary');
     checks++;
     if ((test.boundary !== undefined && calls.length > 0) || (test.boundary !== undefined
         ? !boundaries.some(({ id }) => id === test.boundary)
@@ -3038,7 +3037,7 @@ function runBalancingAuctionAndDealTests (): number {
       deal.practiceAuction.slice(0, 3), system);
     const calls = getApplicableCandidateCalls(decision);
     checks += 1;
-    if (getBidStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
+    if (getNextBiddingRuleStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
         !calls.some(({ call }) => call === deal.practiceAuction[3]) ||
         calls.some(({ rule }) => rule.id.startsWith('overcall-'))) {
       failures += 1;
@@ -3047,22 +3046,22 @@ function runBalancingAuctionAndDealTests (): number {
     }
   }
   // Only an opposing one-level SUIT opening and exactly two intervening Passes qualify.
-  const seatCases: { auction: Call[]; expected: ReturnType<typeof getBidStage> }[] = [
+  const seatCases: { auction: Call[]; expected: ReturnType<typeof getNextBiddingRuleStage> }[] = [
     { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['1H'], expected: 'overcalling' },
-    { auction: ['1H', 'Pass', '2H'], expected: 'opponentPassThrough' },
-    { auction: ['1NT', 'Pass', 'Pass'], expected: 'outsideCoverage' },
-    { auction: ['2H', 'Pass', 'Pass'], expected: 'outsideCoverage' },
-    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: 'auctionComplete' },
+    { auction: ['1H', 'Pass', '2H'], expected: null },
+    { auction: ['1NT', 'Pass', 'Pass'], expected: null },
+    { auction: ['2H', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
     { auction: ['1H', 'Double', 'Pass'], expected: 'advancing' },
   ];
   for (const { auction, expected } of seatCases) {
     checks += 1;
-    if (getBidStage('W', auction) !== expected) {
+    if (getNextBiddingRuleStage('W', auction) !== expected) {
       failures += 1;
       console.error(`FAIL balancing stage for ${auction.join(' ')}: ` +
-        `expected ${expected}, got ${getBidStage('W', auction)}.`);
+        `expected ${expected}, got ${getNextBiddingRuleStage('W', auction)}.`);
     }
   }
   const ntDeal = BALANCING_TEST_DEALS.find((deal) => deal.practiceAuction[3] === '1NT')!;
@@ -3080,23 +3079,23 @@ function runBalancingAuctionAndDealTests (): number {
   return failures;
 }
 
-/// Coverage is independent of practice-length and bridge-auction completion.  The intervening
-/// opponent's unmodeled call is not mistaken for a terminal continuation.
-function runTrainerCoverageTests (): number {
-  const { board } = makeRuleTestBoard({ description: 'Coverage state smoke checks',
+/// Turn status is derived independently of recorded practice length; an unjudged intervening
+/// call is not mistaken for the end of modeled bidding.
+function runBiddingTurnStatusTests (): number {
+  const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
     south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
     practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] });
   let failures = 0;
-  const examples: { auction: Call[]; kind: ReturnType<typeof getTrainerCoverageState>['kind'] }[] = [
+  const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
     { auction: [], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S'], kind: 'opponentPassThrough' },
+    { auction: ['1S', 'Pass', '2S'], kind: 'unjudgedTurn' },
     { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'outsideCoverage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
   ];
   for (const { auction, kind } of examples) {
-    const actual = getTrainerCoverageState(board, auction, defaultBiddingSystem);
+    const actual = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
     if (actual.kind !== kind) {
       failures += 1;
       console.error(`FAIL coverage ${auction.join(' ')} expected ${kind}, got ${actual.kind}.`);
@@ -3107,14 +3106,29 @@ function runTrainerCoverageTests (): number {
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
     practiceAuction: ['1H', 'Double', 'Pass', 'Pass'] });
-  const boundary = getTrainerCoverageState(boundaryBoard,
+  // These are physical *unjudged* turns, not predictions that an opponent will Pass.
+  // A different legal intervention can end the modeled continuation on the following turn.
+  const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
+    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'unjudgedTurn' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'unjudgedTurn' },
+    { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },
+  ];
+  for (const { auction, kind } of intervening) {
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (status.kind !== kind) {
+      failures += 1;
+      console.error(`FAIL unjudged turn ${auction.join(' ')}: expected ${kind}, got ${status.kind}.`);
+    }
+  }
+  const boundary = getBiddingTurnStatus(boundaryBoard,
     ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
-  if (boundary.kind !== 'boundary' ||
+  if (boundary.kind !== 'scopeBoundary' ||
       boundary.rule.id !== 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') {
     failures += 1;
     console.error(`FAIL existing scope boundary was not recognized: ${boundary.kind}.`);
   }
-  console.log(`${failures} ***FAILURES***. Trainer coverage states: ${examples.length + 1} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Bidding-turn statuses: ${examples.length + intervening.length + 1} checks.\n`);
   return failures;
 }
 
@@ -3132,7 +3146,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runTrainerCoverageTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runPracticeContinuationTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

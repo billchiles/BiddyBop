@@ -495,7 +495,7 @@ When that call is `Double` of a one-level suit opening, responder's rules includ
   is required because the opponent has doubled rather than bid a suit.
 
 Unchanged weak Pass and ordinary simple raises continue to use shared responder rules. Competitive
-opener rebids use two explicit gates. `getBidStage` recognizes only physical competitive opener
+opener rebids use two explicit gates. `getNextBiddingRuleStage` recognizes only physical competitive opener
 turns whose responder/advancer pattern has a declared continuation treatment. Within those turns,
 an ordinary opener-rebid rule must set `openerRebidAfterInterference: true` before its uncontested
 meaning can be reused; purpose-built competitive rules declare their `interference` context instead.

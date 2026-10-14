@@ -19,6 +19,8 @@ export type Call =
   | 'Pass'
   | 'Double'
   | 'Redouble';
+/// A modeled bidding-rule family for the next physical turn, not a seat number or bid count.
+/// Each value selects a rule bucket; whether an individual rule qualifies is evaluated later.
 export type BidStage =
   | 'opening'
   | 'responding'
@@ -28,10 +30,6 @@ export type BidStage =
   | 'balancing'
   | 'advancing'
   | 'overcallerRebid';
-
-/// A position can also be a non-rule turn, outside selected coverage, or auction-complete.
-/// These are not bidding-rule buckets and must never be confused with a BidStage.
-export type BidPosition = BidStage | 'opponentPassThrough' | 'outsideCoverage' | 'auctionComplete';
 
 ///
 //// Bidding System conventions and agreements types
@@ -366,7 +364,9 @@ export interface CallRefinementResult {
 export interface RuleEvalContext {
   dealer: Seat;
   seat: Seat;
-  stage: BidPosition;
+  // Null when this physical turn has no modeled bidding-rule stage.  This alone does not
+  // indicate that the bridge auction or recorded practice sequence has ended.
+  stage: BidStage | null;
   auction: Call[];
   hand: Hand;
   handFacts: HandFacts;

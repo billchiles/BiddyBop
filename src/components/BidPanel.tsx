@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
-  from '../models/biddingEvaluation';
-import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
-import { getTrainerCoverageState, type TrainerCoverageState } from '../models/trainer-coverage';
+import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, normalizeCallInput,
+         type BidEvalResult, type BiddingTurnStatus } from '../models/biddingEvaluation';
+import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
-import { type BidPosition, type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
+import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
@@ -27,14 +26,16 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   const explanationRef = useRef<HTMLPreElement | null>(null);
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
-  const coverage = useMemo(() => getTrainerCoverageState(board, auction, biddingSystem),
+  // Derive whether the trainer can judge the next physical turn or must explain why input stops.
+  // This is not the completion state of the recorded practice sequence.
+  const biddingTurnStatus = useMemo(() => getBiddingTurnStatus(board, auction, biddingSystem),
     [board, auction, biddingSystem]);
-  const auctionComplete = coverage.kind === 'auctionComplete';
-  const trainerCoverageComplete = coverage.kind === 'boundary' ||
-    coverage.kind === 'uncovered' || coverage.kind === 'outsideCoverage';
+  const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
+  const biddingInputBlocked = biddingTurnStatus.kind === 'scopeBoundary' ||
+    biddingTurnStatus.kind === 'noApplicableRule' || biddingTurnStatus.kind === 'noModeledStage';
   // Display why the input is disabled as soon as the last modeled call is committed.  This
   // guidance does not depend on an impossible submission through disabled HTML controls.
-  const terminalGuidance = getTerminalGuidance(coverage, practiceComplete);
+  const terminalGuidance = getTerminalGuidance(biddingTurnStatus, practiceComplete);
   const displayedExplanation = [...explanationLines, ...terminalGuidance];
   const terminalGuidanceText = terminalGuidance.join('\n');
 
@@ -53,7 +54,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (auctionComplete || practiceComplete || trainerCoverageComplete) {
+    if (auctionComplete || practiceComplete || biddingInputBlocked) {
       setExplanationLines((current) => [...current, '',
         'Bidding input is disabled. Select New Deal or Test Deal to continue.']);
       onTelemetry(['Bidding input is disabled. Select New Deal or Test Deal.']);
@@ -66,11 +67,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   /// commitUserCall evaluates the student's choice. In a selected lesson, a different bid is
   /// explained but replaced by the recorded continuation before inserting later setup calls.
   function commitUserCall(): void {
-    const stage = getBidStage(board.dealer, auction);
     const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
     if (normalizedCall === null) {
-      reportInvalidInput(seat, stage);
+      reportInvalidInput(seat, getNextBiddingRuleStage(board.dealer, auction));
       return;
     }
 
@@ -81,18 +81,18 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       onTelemetry(lines);
       return;
     }
-    // The intervening opponent turn has no bid rules.  Pass can return to a modeled decision;
-    // any other legal action is recorded without a judgment and may end selected coverage.
+    // The unjudged intervening turn accepts any mechanically legal call; subsequent rule-stage
+    // selection always uses the actual entered call, not a hypothetical opponent Pass.
     const recordedCall = getRecordedPracticeCorrection(
       auction, normalizedCall, testDeal?.practiceAuction);
     const useRecordedCall = recordedCall !== null;
-    if (coverage.kind === 'opponentPassThrough') {
+    if (biddingTurnStatus.kind === 'unjudgedTurn') {
       const enteredAuction: Call[] = [...auction, recordedCall ?? normalizedCall];
       const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
       setAuction(nextAuction);
       setBidText('');
       const lines = [
-        `${getSeatLabel(seat)} intervening opponent turn: ${normalizedCall}.`,
+        `${getSeatLabel(seat)} unjudged intervening call: ${normalizedCall}.`,
         'This turn has no bidding rule bucket; the trainer does not judge this call.',
       ];
       if (recordedCall !== null) {
@@ -103,8 +103,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       onTelemetry(lines);
       return;
     }
-    if (coverage.kind !== 'supported') {
-      const lines = ["This bidding position is outside the trainer's active rule coverage. " +
+    if (biddingTurnStatus.kind !== 'supported') {
+      const lines = ["This bidding position is outside the trainer's active bidding rules. " +
         'Select New Deal or Test Deal to continue.'];
       setExplanationLines((current) => [...current, '', ...lines]);
       onTelemetry(lines);
@@ -118,7 +118,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     const practiceNotes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
     const recordedResult = useRecordedCall && recordedCall !== null
       ? evaluateUserCall(recordedCall, board, auction, biddingSystem) : null;
-    finishBidEntry(seat, stage, result, practiceNotes,
+    finishBidEntry(seat, biddingTurnStatus.stage, result, practiceNotes,
       recordedResult === null || recordedCall === null ? null : { call: recordedCall,
         result: recordedResult });
     if (nextAuction.length > enteredAuction.length) {
@@ -127,7 +127,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     }
   }
 
-  function finishBidEntry(seat: Seat, stage: BidPosition, result: BidEvalResult,
+  function finishBidEntry(seat: Seat, stage: BidStage, result: BidEvalResult,
                           practiceNotes: string[],
                           correction: { call: Call; result: BidEvalResult } | null): void {
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
@@ -164,7 +164,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
   }
 
-  function reportInvalidInput(seat: Seat, stage: BidPosition): void {
+  function reportInvalidInput(seat: Seat, stage: BidStage | null): void {
     const lines = [
       `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
@@ -183,10 +183,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
   }
 
-  const inputDisabled = auctionComplete || practiceComplete || trainerCoverageComplete;
+  const inputDisabled = auctionComplete || practiceComplete || biddingInputBlocked;
   const activeSeat = inputDisabled ? null : getNextSeat(board.dealer, auction);
   const nextBidLabel = practiceComplete ? 'Practice sequence complete' :
-    trainerCoverageComplete ? 'Trainer coverage complete' :
+    biddingInputBlocked ? 'Bidding input disabled' :
     getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
@@ -231,9 +231,8 @@ function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTes
     if (next.some((call, index) => call !== testDeal.practiceAuction[index])) {
       break;
     }
-    const stage = getBidStage(dealer, next);
-    if (stage !== 'opponentPassThrough' && stage !== 'outsideCoverage' &&
-        stage !== 'auctionComplete' && practiceStages.includes(stage)) {
+    const stage = getNextBiddingRuleStage(dealer, next);
+    if (stage !== null && practiceStages.includes(stage)) {
       break;
     }
     const call = testDeal.practiceAuction[next.length];
@@ -283,7 +282,7 @@ function getPracticeGuidanceLines (dealer: Seat, previous: Call[], current: Call
 }
 
 function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {
-  const stage = getBidStage(board.dealer, auction);
+  const stage = getNextBiddingRuleStage(board.dealer, auction);
   return [
     `Dealer: ${board.dealer}`,
     `North: ${formatHand(board.deal.N)}`,
@@ -308,48 +307,52 @@ function formatHand(hand: Hand): string {
 
 /// Explanation is displayed immediately on entering a disabled state.  Preserve the last
 /// evaluation above it so that a valid final bid's explanation is not lost.
-function getTerminalGuidance(coverage: TrainerCoverageState, practiceComplete: boolean): string[] {
+function getTerminalGuidance(biddingTurnStatus: BiddingTurnStatus, practiceComplete: boolean): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
-    lines.push('', 'Practice sequence complete. This is not necessarily the end of the ' +
-      'real bridge auction. Select New Deal or Test Deal to continue.');
+    lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
+      'real bridge auction.  Select New Deal or Test Deal to continue.');
   }
-  switch (coverage.kind) {
+  switch (biddingTurnStatus.kind) {
     case 'auctionComplete':
-      lines.push('', 'Bridge auction complete. Select New Deal or Test Deal to continue.');
+      lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
       break;
-    case 'boundary':
+    case 'scopeBoundary':
       if (! practiceComplete) {
-        lines.push('', 'The trainer has reached an explained scope boundary. ' +
+        lines.push('', 'The app stops reviewing and teaching bids at this point due to many ' +
+          'nuances and judgment considerations experience players use.  ' +
           'Real bridge bidding may continue, but further calls are not evaluated here.');
-        appendRuleExplanation(lines, coverage.rule);
-        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+        appendRuleExplanation(lines, biddingTurnStatus.rule);
+        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
       }
       break;
-    case 'uncovered':
+    case 'noApplicableRule':
       if (! practiceComplete) {
-        lines.push('', 'No bidding rule or scope boundary currently covers this ' +
-          `${getStageLabel(coverage.stage)} decision. This is a trainer coverage gap, not a ` +
-          'judgment that a legal bridge bid is wrong.');
-        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+        lines.push('', 'The app cannot give reliable feedback or teaching at this ' +
+          `${getStageLabel(biddingTurnStatus.stage)} stage with the current auction context.  ` +
+          'This is because of the app limitations, not a result of bid being wrong.');
+        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
       }
       break;
-    case 'outsideCoverage':
+    case 'noModeledStage':
       if (! practiceComplete) {
-        lines.push('', "This auction has reached a stage outside the trainer's selected " +
-          'bidding coverage. Real bridge bidding may continue.');
-        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+        lines.push('', 'The app stops providing feedback and teaching at this stage of the ' +
+          'bidding due to more judgment and advanced experience needed, but actual bridge ' +
+          'bidding may continue past this point.');
+        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
       }
       break;
-    case 'opponentPassThrough':
+    case 'unjudgedTurn':
     case 'supported':
       break;
   }
   return lines;
 }
 
-function getStageLabel(stage: BidPosition): string {
+function getStageLabel(stage: BidStage | null): string {
   switch (stage) {
+    case null:
+      return 'unmodeled turn';
     case 'opening':
       return 'opening';
     case 'responding':
@@ -366,12 +369,6 @@ function getStageLabel(stage: BidPosition): string {
       return 'overcaller rebid';
     case 'advancing':
       return 'advance';
-    case 'opponentPassThrough':
-      return 'intervening opponent call';
-    case 'outsideCoverage':
-      return 'unsupported continuation';
-    case 'auctionComplete':
-      return 'completed auction';
   }
 }
 
@@ -400,14 +397,14 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
-  const scopeBoundary = result.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
+  const scopeBoundary = result.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
   if (scopeBoundary !== undefined && candidates.length === 0) {
     lines.push('Further bidding needs additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
     lines.push('No rule satisfied by this call.');
-    const preferredRule = result.handMatchingRules[0];
+    const preferredRule = result.applicableRules[0];
     if (preferredRule !== undefined) {
       lines.push('');
       lines.push('Highest-priority applicable rule:');

@@ -1,6 +1,6 @@
 /// Shared bridge-auction parsing, seat navigation, and auction-shape helpers.
 
-import { STRAIN_ORDER, type AdvancerCallKind, type BidPosition, type BidStage, type Call, type DirectInterference,
+import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type Call, type DirectInterference,
          type Strain, type SuitBid } from './bidding-types';
 import { SEATS, type Seat, type Suit } from './cards';
 
@@ -27,31 +27,13 @@ export interface PartnerOneNtSuitInterference {
   opponentOpening: ParsedSuitBid | null;
 }
 
-/// getBidStage classifies the next physical turn using the auction's seats and calls, not just
-/// auction length.  BidStage values select rule buckets; reserved values explicitly distinguish
-/// an unjudged opponent turn leading to a modeled decision, an uncovered continuation, and a
-/// completed bridge auction.  None of the reserved values selects bidding rules.
-///
-export function getBidStage (dealer: Seat, auction: Call[]): BidPosition {
-  if (auctionIsComplete(auction)) return 'auctionComplete';
-  const stage = getModeledBidStage(dealer, auction);
-  if (stage !== null) return stage;
-  // A single intervening opponent Pass leads to a modeled decision by opener or responder.
-  // The opponent may physically make other legal calls, but these are not judged here.
-  const opening = getOpeningCallInfo(dealer, auction);
-  const nextSeat = getNextSeat(dealer, auction);
-  const interveningOpponent = opening !== null && nextSeat !== opening.seat &&
-    nextSeat !== getPartnerSeat(opening.seat);
-  const afterPass: Call[] = [...auction, 'Pass'];
-  if (interveningOpponent && ! auctionIsComplete(afterPass) &&
-      getModeledBidStage(dealer, afterPass) !== null) {
-    return 'opponentPassThrough';
-  }
-  return 'outsideCoverage';
-}
-
-/// Select only a currently modeled rule bucket. Null is private to this lookup, not an app state.
-function getModeledBidStage (dealer: Seat, auction: Call[]): BidStage | null {
+/// Select the bidding-rule stage for the next physical turn, using the opening bid's seat and
+/// position and the subsequent auction calls. The opening bid need not be the dealer's first call.
+/// Stages identify rule buckets, not recommended bids or which individual rules will qualify.
+/// Return null when the next turn's auction context maps to no modeled bidding-rule stage; this
+/// does not imply the real bridge auction or recorded practice exercise has ended.
+export function getNextBiddingRuleStage (dealer: Seat, auction: Call[]): BidStage | null {
+  if (auctionIsComplete(auction)) return null;
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
     return 'opening';
@@ -113,6 +95,28 @@ function getModeledBidStage (dealer: Seat, auction: Call[]): BidStage | null {
     return 'responderRebid';
   }
   return null;
+}
+
+/// Recognize the two unjudged intervening turns in an otherwise uncontested partnership
+/// auction. This is a trainer interaction policy, not a bridge role, rule stage, or Pass
+/// recommendation. We accept a mechanically legal call here without evaluating its merits;
+/// the resulting *actual* auction is classified again on the next turn.
+///
+///   1H - Pass - 1S - ?                 fourth player after responder bids
+///   1H - Pass - 1S - Pass - 2C - ?     direct opponent after opener rebids
+///
+/// Only the two physical turns are permitted, and only with the indicated earlier Passes.
+/// A different opponent call may take the later auction outside modeled coverage.
+export function isUnjudgedInterveningTurn (dealer: Seat, auction: Call[]): boolean {
+  if (auctionIsComplete(auction)) return false;
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null || getNextBiddingRuleStage(dealer, auction) !== null) return false;
+  const firstOpponentCall = auction[opening.index + 1];
+  const response = auction[opening.index + 2];
+  // The responding partner must actually have acted; otherwise this may be a balancing auction.
+  if (firstOpponentCall !== 'Pass' || response === undefined || response === 'Pass') return false;
+  if (auction.length === opening.index + 3) return true;
+  return auction.length === opening.index + 5 && auction[opening.index + 3] === 'Pass';
 }
 
 /// isSupportedCompetitiveOpenerRebid recognizes only physical auctions whose responder/advancer
@@ -412,7 +416,7 @@ export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
   if (openingInfo === null) {
     return null;
   }
-  const stage = getBidStage(dealer, auction);
+  const stage = getNextBiddingRuleStage(dealer, auction);
   if (stage === 'responding' && openingInfo.call === '1NT' &&
       auction.length === openingInfo.index + 2) {
     const interference = parseSuitBid(auction[openingInfo.index + 1] ?? 'Pass');

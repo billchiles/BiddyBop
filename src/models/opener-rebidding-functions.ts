@@ -171,7 +171,7 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
 ///
 
 /// Selected A8 opener continuations after a natural jump overcall and advancer Pass.
-/// The physical auction is checked here as well as in getBidStage: do not infer these
+/// The physical auction is checked here as well as in getNextBiddingRuleStage: do not infer these
 /// meanings from a compact partnership auction that hides interference.
 interface JumpOvercallContinuation {
   opening: ParsedSuitBid;

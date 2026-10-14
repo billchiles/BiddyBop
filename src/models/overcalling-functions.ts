@@ -1343,7 +1343,7 @@ export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalCont
 
 ///
 //// Fourth-seat balancing after one-level suit opening, Pass, Pass
-/// The stage is identified by the physical auction in getBidStage.  These helpers never
+/// The stage is identified by the physical auction in getNextBiddingRuleStage.  These helpers never
 /// reuse direct-seat jump meanings or impose direct-seat opening strength.
 
 function getBalancingOpeningSuit (context: RuleEvalContext): Suit | null {
