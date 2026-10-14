@@ -18,11 +18,10 @@ omitting a treatment and documenting the reason.
 All items below are P1 unless marked P3. Phase letters describe work sequence, not priority.
 
 **Selected depth:** Generally model opening -> response -> opener rebid -> responder rebid,
-or overcall/Double -> advance -> overcaller/Doubler rebid. Model additional convention
-replies only when needed to finish a treatment already taught. Deliberately stop rather
-than extending into indefinitely many partnership turns. Distinguish the end of the
-chosen training depth from an unmodeled mandatory call within that depth; the latter
-needs an executable choice or specific scope guidance.
+or overcall/Double -> advance -> overcaller/Doubler rebid. Do not add general opener-third-bid
+or advancer-rebid stages. At the final modeled bid, explain outstanding forcing obligations
+or invitation decisions in that bid's guidance. Within the selected depth, use a specific
+scope boundary when a required response cannot be chosen reliably.
 
 **Explicit omissions and limits:**
 
@@ -39,33 +38,19 @@ needs an executable choice or specific scope guidance.
 - Ordinary opening practice deals should normally put opener in North. Competitive
   teaching situations may have a justified different dealer/seat arrangement.
 
-## C. Complete responder's rebid
+## C. Selected responder continuations
 
-- [ ] **C1.** After opener's natural suit/NT rebid, select common signoffs,
-  invitations, preferences, raises, repetitions, and other worthwhile continuations.
-  Use the natural responder-rebid guidance in Audrey Grant's *Better Bridge*,
-  pp. 14-15, as a teaching reference: ordinary minimum decisions through 10 points,
-  invitations at 11-12, and game choices at 13-16, with auction and fit requirements
-  taking precedence. Stronger hands may need slam guidance rather than an automatic Pass.
-- [ ] **C2.** Complete the next response in artificial or forcing auctions already
-  taught; handle chosen competitive responder rebids as appropriate.
-- [ ] **C3.** Where the next decision at this depth cannot reliably be modeled,
-  provide an auction-specific scope boundary instead of a silent no-rule ending.
+The implemented second decisions cover selected natural, conventional and game-forcing
+auctions through responder's rebid. Routine signoffs, invitations, game placements and
+forcing descriptions are executable where reliable; other continuations use scoped
+guidance. This selected depth is deliberate, not a commitment to model later rounds.
+The remaining system-wide forcing and scope-boundary audits are tracked under E2/E4.
 
-After Phase C, consider whether advancer's next turn and opener's third call need
-any further executable treatment. If remaining calls are routine known completions or
-substantially judgment-dependent, clear instructional guidance may be more useful
-than adding general bidding stages. This is an open design discussion, not a commitment
-to implement those stages.
+## D. Reopening and balancing
 
-## D. Opening position and balancing
-
-- [x] **D3.** Implement selected fourth-seat balancing after a one-level suit opening and
-  two Passes: natural one-/two-level suits, ordinary and strong takeout Doubles, natural
-  1NT, and a defensive Pass. Constructive jumps, partnership continuations, and
-  balancing after other opening levels are explanatory or deferred, not new stages.
-- [ ] **D4.** Reconcile that decision with already-present Pass-Pass reopening
-  guidance in the competitive opener-rebid stage.
+Fourth-seat balancing after `1x–Pass–Pass` has a separate executable family. Reopening
+by the original opener after `1x–(overcall)–Pass–Pass` remains guidance-only; those are
+different roles and do not require new later bidding stages.
 
 ## E. Complete system-wide checks, practice, and documentation
 

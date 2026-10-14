@@ -207,6 +207,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanInviteMajor'),
     meaning: 'Four-card support for the major opener showed; invite game with invitational strength.',
+    guidance: ['Opener can Pass at three with a minimum or bid major game with suitable ' +
+               'maximum values and a useful fit.'],
     certainty: 'high',
   },
   {
@@ -291,7 +293,10 @@ export const ResponderRebidRules: BidRule[] = [
     callRefinement: (calls, context) => refineResponderNtConventionalMajor(calls, context, 3),
     callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferInviteMajor'),
-    meaning: 'A six-card major supports a natural invitation at the three level.', certainty: 'high',
+    meaning: 'A six-card major supports a natural invitation at the three level.',
+    guidance: ['With the long major already known, opener decides whether to Pass or accept ' +
+               'game according to the notrump range and the quality of the fit.'],
+    certainty: 'high',
   },
   {
     id: 'responder-rebid-nt-transfer-game-3nt',
@@ -367,6 +372,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'gameForcing'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingSlowRaise'),
     meaning: "With three or more of opener's major and extras, a slow 3M raise remains forcing and leaves room to investigate slam.",
+    guidance: ['Opener must continue toward game. With the fit established, assess working controls ' +
+               'and playing strength before choosing game or exploring higher.'],
     certainty: 'high',
   },
   //
@@ -397,6 +404,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'gameForcing'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'repeatResponse'),
     meaning: 'Natural six-card suit; unlike Standard, a 3-level repetition is forcing to game.',
+    guidance: ['Opener must not Pass below game. Support the long suit when suitable or ' +
+               'continue describing shape and notrump suitability; the final strain is unresolved.'],
     certainty: 'high',
   },
   //
@@ -423,6 +432,8 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['2NT'], callCategory: ['natural', 'gameForcing'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'forcingNt'),
     meaning: 'A natural 2NT rebid describes shape and remains forcing; opener must continue.',
+    guidance: ['Opener should further describe suit length, a fit, or notrump suitability. ' +
+               'Neither partner may stop below game under this 2/1 agreement.'],
     certainty: 'high',
   },
   //
@@ -972,7 +983,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'invitational'],
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
     meaning: "Invite game opposite opener's 12-14 balanced rebid.",
-    guidance: ['Opener judges whether the upper end of the shown range warrants 3NT.'],
+    guidance: ['Opener normally Passes with a minimum and bids 3NT with a suitable maximum; ' +
+               'the middle of the 12–14 range requires judgment.'],
     certainty: 'high',
   },
   //
@@ -1152,7 +1164,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'invitational'],
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' } },
     meaning: 'Invite game with 11-12 support points opposite opener\'s minimum raise.',
-    guidance: ['Opener may pass or bid game depending on strength and playing quality.'],
+    guidance: ['Opener may Pass with a minimum, or bid four of the major with a ' +
+               'maximum and useful working honors in the agreed fit.'],
     certainty: 'high',
   },
   //

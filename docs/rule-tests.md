@@ -30,14 +30,13 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-The current corpus contains 409 deals, with 1035 positive call/rule assertions, 498 elimination
-assertions, 31 call-order assertions, and 949 recorded-practice-call checks. The agreement-
-compatibility meta-check runs 1499 eligible deal/configuration combinations and 3466 recorded calls.
-Positive assertions cover all 132 implemented opener-rebid rule IDs. Opening coverage is 10/13;
-the uncovered opening rules are rare 4NT and the deliberately unpracticed four- and five-level
-preempts. Across responder and advancer practice, 99/109 response-rule IDs have positive coverage.
-The uncovered rules are the intentionally deferred slam treatments plus the executable but
-selectively unpracticed three-level natural suit and 3NT calls after interference over partner's 1NT.
+As of the C2f rule-test run, the corpus contains **615 deals**, with **1,479** positive
+call/rule assertions, **743** elimination assertions, **31** call-order assertions, and
+**1,389** recorded-practice-call checks. The agreement-compatibility meta-check runs **2,311**
+eligible deal/configuration combinations and **5,206** recorded-call checks. That run had zero
+failures. Counts reflect this recorded run, not an exhaustive measure of all implemented rules.
+In particular, guidance-only scope boundaries and deliberately unpracticed alternatives need
+not have corresponding positive practice assertions.
 
 Seven `overcall-simple` practice deals fix West's opening hand and North's overcall hand,
 with West dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
@@ -93,8 +92,8 @@ Eleven `advance-two-level-suit-overcall` deals cover 7-10 support-point simple r
 11+ forcing support cuebids, 11-13 balanced 2NT with a stopper, 10+ HCP forcing economical
 new suits at two, and 12+ HCP forcing economical good new suits at three. Two of the deals
 exercise the same rules after a weak-two opening. The same boundary family rejects responder
-actions, jump overcalls, and natural 2NT without a stopper. Strong jump-new-suit advances,
-later overcaller continuations, and inferred Pass are not yet modeled.
+actions, jump overcalls, and natural 2NT without a stopper. Strong jump-new-suit advances remain outside this selected treatment. Later overcaller
+continuations are modeled in separate, intentionally limited families; Pass is explicit where taught.
 
 Fifteen `advance-takeout-double` deals cover cheapest-level suit selection, the guarded
 three-card fallback, invitational jumps, strong cuebids, and natural notrump. Four weak-two

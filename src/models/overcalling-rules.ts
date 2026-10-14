@@ -242,6 +242,8 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'raise-invite'),
     callCategory: ['natural', 'invitational'],
     meaning: 'Invite game with extras after a constructive raise of a one-level major overcall.',
+    guidance: ['Advancer weighs maximum values, trump support and working honors before ' +
+               'accepting; remember that the original overcall might have been light.'],
     certainty: 'high',
   },
   //
@@ -281,6 +283,8 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-invite'),
     callCategory: ['natural', 'invitational'],
     meaning: 'Show more than a minimum overcall after advancer’s artificial support cuebid.',
+    guidance: ['The forcing cuebid has already shown support. Advancer now judges whether ' +
+               'the extra strength warrants major game; the invitation is not a game force.'],
     certainty: 'high',
   },
   //
@@ -382,6 +386,8 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-invite'),
     callCategory: ['natural', 'invitational'],
     meaning: 'Invite game with extras opposite 8–11 balanced points.',
+    guidance: ['Advancer normally declines with a minimum and accepts with sufficient ' +
+               'maximum values and adequate notrump stoppers.'],
     certainty: 'high',
   },
   //
@@ -1333,6 +1339,8 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['invitational'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-invite'),
     meaning: 'Extra values may invite over natural 1NT.',
+    guidance: ['Advancer evaluates the invitation with the originally promised opener-suit ' +
+               'stopper and useful maximum values; a minimum can Pass.'],
     certainty: 'high',
   },
   //

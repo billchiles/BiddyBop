@@ -417,10 +417,23 @@ a generic penalty-double rule. Natural 1NT overcalls use 15-18 HCP, strict balan
 and A, Kx, Qxx, or Jxxx in opener's suit as a simple stopper approximation. Preemptive
 jump overcalls use the shared good-suit test with six cards at the two level (5-11 HCP),
 seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
-These exact lengths and HCP interpretations are deterministic choices from the source's
-weak-hand guidance. `responding` is the stage after the opponent's first call following an
+These exact lengths and HCP interpretations are deterministic choices from the chosen
+weak-hand treatment. `responding` is the stage after the opponent's first call following an
 opening. The competitive rule model does not infer Pass merely because no candidate remains.
 Double is evaluated only for specifically declared informational treatments, never penalties.
+
+### Fourth-seat balancing after a one-level suit opening
+
+After `1x–Pass–Pass`, fourth seat uses a separate balancing stage, not the direct-seat
+overcall rules. A non-jump natural suit balance needs 6–14 HCP at the one level or 8–14
+at the two level; a good five-card suit is required, except that six cards suffice at
+the one level. Natural 1NT shows 12–15 HCP, balanced, with an opening-suit stopper.
+An ordinary takeout Double needs 8–15 HCP, at least 10 shortage points, at most two
+cards in opener's suit and three or more in each unbid suit. A strong balancing Double
+needs 16+ HCP and no more than three cards in opener's suit. Pass can coexist with a
+marginal balancing action; it is not an inferred default when no other rule qualifies.
+Balancing jumps and partner's subsequent actions are guidance-only. Reopening by the
+original opener after an opponent overcalls is a different, separately limited auction.
 
 ## Responder after an opponent's natural suit overcall
 
