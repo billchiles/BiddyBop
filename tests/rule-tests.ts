@@ -8,6 +8,7 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getBidStage,
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
+import { getTrainerCoverageState } from '../src/models/trainer-coverage';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -1181,7 +1182,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   ];
   for (const auction of unsupported) {
     checks += 1;
-    if (getBidStage('N', auction) !== null) {
+    if (getBidStage('N', auction) !== 'outsideCoverage') {
       failures += 1;
       console.error(
         `FAIL unsupported competitive opener turn reached a stage: ${auction.join(' ')}.`);
@@ -2666,9 +2667,10 @@ function runPracticeContinuationTests (): number {
   if (getRecordedPracticeCorrection(prefix, 'Pass', recorded) !== '2NT') failures += 1;
   if (getRecordedPracticeCorrection(prefix, '2NT', recorded) !== null) failures += 1;
   if (getRecordedPracticeCorrection(['1C', '1S'], 'Pass', recorded) !== null) failures += 1;
+  if (getRecordedPracticeCorrection([], 'Double', recorded) !== null) failures += 1;
   if (isPracticeSequenceComplete(prefix, recorded) ||
       ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
-  console.log(`${failures} ***FAILURES***. Practice continuation: 4 checks.`);
+  console.log(`${failures} ***FAILURES***. Practice continuation: 5 checks.`);
   console.log('  Preserves the recorded exercise after a different bid, but never corrects');
   console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
   return failures;
@@ -3049,10 +3051,10 @@ function runBalancingAuctionAndDealTests (): number {
     { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['1H'], expected: 'overcalling' },
-    { auction: ['1H', 'Pass', '2H'], expected: null },
-    { auction: ['1NT', 'Pass', 'Pass'], expected: null },
-    { auction: ['2H', 'Pass', 'Pass'], expected: null },
-    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Pass', '2H'], expected: 'opponentPassThrough' },
+    { auction: ['1NT', 'Pass', 'Pass'], expected: 'outsideCoverage' },
+    { auction: ['2H', 'Pass', 'Pass'], expected: 'outsideCoverage' },
+    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: 'auctionComplete' },
     { auction: ['1H', 'Double', 'Pass'], expected: 'advancing' },
   ];
   for (const { auction, expected } of seatCases) {
@@ -3078,6 +3080,44 @@ function runBalancingAuctionAndDealTests (): number {
   return failures;
 }
 
+/// Coverage is independent of practice-length and bridge-auction completion.  The intervening
+/// opponent's unmodeled call is not mistaken for a terminal continuation.
+function runTrainerCoverageTests (): number {
+  const { board } = makeRuleTestBoard({ description: 'Coverage state smoke checks',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] });
+  let failures = 0;
+  const examples: { auction: Call[]; kind: ReturnType<typeof getTrainerCoverageState>['kind'] }[] = [
+    { auction: [], kind: 'supported' },
+    { auction: ['1S', 'Pass', '2S'], kind: 'opponentPassThrough' },
+    { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'outsideCoverage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
+  ];
+  for (const { auction, kind } of examples) {
+    const actual = getTrainerCoverageState(board, auction, defaultBiddingSystem);
+    if (actual.kind !== kind) {
+      failures += 1;
+      console.error(`FAIL coverage ${auction.join(' ')} expected ${kind}, got ${actual.kind}.`);
+    }
+  }
+  const { board: boundaryBoard } = makeRuleTestBoard({
+    description: 'Scope boundary at opener return after takeout Double',
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
+    practiceAuction: ['1H', 'Double', 'Pass', 'Pass'] });
+  const boundary = getTrainerCoverageState(boundaryBoard,
+    ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
+  if (boundary.kind !== 'boundary' ||
+      boundary.rule.id !== 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') {
+    failures += 1;
+    console.error(`FAIL existing scope boundary was not recognized: ${boundary.kind}.`);
+  }
+  console.log(`${failures} ***FAILURES***. Trainer coverage states: ${examples.length + 1} checks.\n`);
+  return failures;
+}
+
 const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
@@ -3092,7 +3132,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runPracticeContinuationTests() + runTrainerCoverageTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

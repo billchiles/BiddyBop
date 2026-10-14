@@ -1,6 +1,6 @@
 /// Shared bridge-auction parsing, seat navigation, and auction-shape helpers.
 
-import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type Call, type DirectInterference,
+import { STRAIN_ORDER, type AdvancerCallKind, type BidPosition, type BidStage, type Call, type DirectInterference,
          type Strain, type SuitBid } from './bidding-types';
 import { SEATS, type Seat, type Suit } from './cards';
 
@@ -27,13 +27,31 @@ export interface PartnerOneNtSuitInterference {
   opponentOpening: ParsedSuitBid | null;
 }
 
-/// getBidStage identifies bidding roles from seats and the physical auction.  Unsupported later
-/// competitive continuations return null without preventing the user from entering further calls.
+/// getBidStage classifies the next physical turn using the auction's seats and calls, not just
+/// auction length.  BidStage values select rule buckets; reserved values explicitly distinguish
+/// an unjudged opponent turn leading to a modeled decision, an uncovered continuation, and a
+/// completed bridge auction.  None of the reserved values selects bidding rules.
 ///
-export function getBidStage (dealer: Seat, auction: Call[]): BidStage | null {
-  if (auctionIsComplete(auction)) {
-    return null;
+export function getBidStage (dealer: Seat, auction: Call[]): BidPosition {
+  if (auctionIsComplete(auction)) return 'auctionComplete';
+  const stage = getModeledBidStage(dealer, auction);
+  if (stage !== null) return stage;
+  // A single intervening opponent Pass leads to a modeled decision by opener or responder.
+  // The opponent may physically make other legal calls, but these are not judged here.
+  const opening = getOpeningCallInfo(dealer, auction);
+  const nextSeat = getNextSeat(dealer, auction);
+  const interveningOpponent = opening !== null && nextSeat !== opening.seat &&
+    nextSeat !== getPartnerSeat(opening.seat);
+  const afterPass: Call[] = [...auction, 'Pass'];
+  if (interveningOpponent && ! auctionIsComplete(afterPass) &&
+      getModeledBidStage(dealer, afterPass) !== null) {
+    return 'opponentPassThrough';
   }
+  return 'outsideCoverage';
+}
+
+/// Select only a currently modeled rule bucket. Null is private to this lookup, not an app state.
+function getModeledBidStage (dealer: Seat, auction: Call[]): BidStage | null {
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
     return 'opening';
@@ -691,7 +709,7 @@ export function cheapestBidInStrainAfter (previous: ParsedSuitBid, strain: Strai
 /// calls still match the exercise and its next recorded call is legal.
 export function getRecordedPracticeCorrection (auction: Call[], entered: Call,
                                                recorded?: Call[]): Call | null {
-  if (recorded === undefined) return null;
+  if (recorded === undefined || ! isCallAvailableInAuction(entered, auction)) return null;
   const expected = recorded[auction.length];
   if (expected === undefined || expected === entered ||
       auction.some((call, index) => call !== recorded[index]) ||

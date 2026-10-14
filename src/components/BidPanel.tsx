@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, type BidEvalResult, normalizeCallInput }
   from '../models/biddingEvaluation';
 import { auctionIsComplete, getBidStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
+import { getTrainerCoverageState, type TrainerCoverageState } from '../models/trainer-coverage';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
-import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
+import { type BidPosition, type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 
 
@@ -22,16 +23,24 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   const [bidText, setBidText] = useState('');
   const [auction, setAuction] = useState<Call[]>(() =>
     setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
-  const [auctionComplete, setAuctionComplete] = useState(false);
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
     getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   const explanationRef = useRef<HTMLPreElement | null>(null);
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
+  const coverage = useMemo(() => getTrainerCoverageState(board, auction, biddingSystem),
+    [board, auction, biddingSystem]);
+  const auctionComplete = coverage.kind === 'auctionComplete';
+  const trainerCoverageComplete = coverage.kind === 'boundary' ||
+    coverage.kind === 'uncovered' || coverage.kind === 'outsideCoverage';
+  // Display why the input is disabled as soon as the last modeled call is committed.  This
+  // guidance does not depend on an impossible submission through disabled HTML controls.
+  const terminalGuidance = getTerminalGuidance(coverage, practiceComplete);
+  const displayedExplanation = [...explanationLines, ...terminalGuidance];
+  const terminalGuidanceText = terminalGuidance.join('\n');
 
   useEffect(() => {
     setBidText('');
     setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
-    setAuctionComplete(false);
     setExplanationLines(getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   }, [board, biddingSystem, testDeal, practiceStages]);
 
@@ -40,12 +49,14 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       return;
     }
     explanationRef.current.scrollTop = explanationRef.current.scrollHeight;
-  }, [explanationLines]);
+  }, [explanationLines, terminalGuidanceText]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (auctionComplete || auctionIsComplete(auction) || practiceComplete) {
-      onTelemetry([practiceComplete ? 'Practice sequence complete.' : 'Auction is complete.']);
+    if (auctionComplete || practiceComplete || trainerCoverageComplete) {
+      setExplanationLines((current) => [...current, '',
+        'Bidding input is disabled. Select New Deal or Test Deal to continue.']);
+      onTelemetry(['Bidding input is disabled. Select New Deal or Test Deal.']);
       return;
     }
 
@@ -63,42 +74,65 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       return;
     }
 
-    // Keep a selected exercise on its recorded path without pretending that its scripted bid
-    // is always the only reasonable bridge choice. Normal non-practice bidding is unchanged.
+    // A recorded practice substitution must never bypass legality of the student's actual call.
+    if (! isCallAvailableInAuction(normalizedCall, auction)) {
+      const lines = [`${normalizedCall} is not available in this auction.`];
+      setExplanationLines((current) => [...current, '', ...lines]);
+      onTelemetry(lines);
+      return;
+    }
+    // The intervening opponent turn has no bid rules.  Pass can return to a modeled decision;
+    // any other legal action is recorded without a judgment and may end selected coverage.
     const recordedCall = getRecordedPracticeCorrection(
       auction, normalizedCall, testDeal?.practiceAuction);
     const useRecordedCall = recordedCall !== null;
-    if (! isCallAvailableInAuction(normalizedCall, auction) && ! useRecordedCall) {
-      onTelemetry([`${normalizedCall} is not available in this auction.`]);
+    if (coverage.kind === 'opponentPassThrough') {
+      const enteredAuction: Call[] = [...auction, recordedCall ?? normalizedCall];
+      const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
+      setAuction(nextAuction);
+      setBidText('');
+      const lines = [
+        `${getSeatLabel(seat)} intervening opponent turn: ${normalizedCall}.`,
+        'This turn has no bidding rule bucket; the trainer does not judge this call.',
+      ];
+      if (recordedCall !== null) {
+        lines.push(`Practice continuation uses the recorded ${recordedCall} instead.`);
+      }
+      lines.push(...getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal));
+      setExplanationLines((current) => [...current, '', ...lines]);
+      onTelemetry(lines);
       return;
     }
+    if (coverage.kind !== 'supported') {
+      const lines = ["This bidding position is outside the trainer's active rule coverage. " +
+        'Select New Deal or Test Deal to continue.'];
+      setExplanationLines((current) => [...current, '', ...lines]);
+      onTelemetry(lines);
+      return;
+    }
+    // A selected exercise stays on its recorded path after evaluating the legal student's bid.
     const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
     const enteredAuction: Call[] = [...auction, useRecordedCall ? recordedCall : normalizedCall];
     const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
     setAuction(nextAuction);
-    if (auctionIsComplete(nextAuction)) {
-      setAuctionComplete(true);
-    }
     const practiceNotes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
     const recordedResult = useRecordedCall && recordedCall !== null
       ? evaluateUserCall(recordedCall, board, auction, biddingSystem) : null;
-    const exerciseDone = isPracticeSequenceComplete(nextAuction, testDeal?.practiceAuction);
     finishBidEntry(seat, stage, result, practiceNotes,
       recordedResult === null || recordedCall === null ? null : { call: recordedCall,
-        result: recordedResult }, exerciseDone);
+        result: recordedResult });
     if (nextAuction.length > enteredAuction.length) {
       const scripted = nextAuction.slice(enteredAuction.length);
       onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
     }
   }
 
-  function finishBidEntry(seat: Seat, stage: BidStage | null, result: BidEvalResult,
+  function finishBidEntry(seat: Seat, stage: BidPosition, result: BidEvalResult,
                           practiceNotes: string[],
-                          correction: { call: Call; result: BidEvalResult } | null,
-                          exerciseDone: boolean): void {
+                          correction: { call: Call; result: BidEvalResult } | null): void {
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
     setBidText('');
-    const explanation = buildExplanationLines(title, result, stage === null);
+    const explanation = buildExplanationLines(title, result);
     const intervention = getInterferenceAfterOpening(board.dealer, auction);
     if (stage === 'responding' && intervention !== 'none' &&
         getApplicableCandidateCalls(result).length === 0) {
@@ -126,15 +160,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     if (practiceNotes.length > 0) {
       explanation.push('', ...practiceNotes);
     }
-    if (exerciseDone) {
-      explanation.push('', 'Practice sequence complete. Later calls are outside this exercise; ' +
-        'this does not mean further bidding would be inappropriate.');
-    }
     setExplanationLines((current) => [...current, '', ...explanation]);
     onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
   }
 
-  function reportInvalidInput(seat: Seat, stage: BidStage | null): void {
+  function reportInvalidInput(seat: Seat, stage: BidPosition): void {
     const lines = [
       `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
@@ -153,9 +183,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
   }
 
-  const inputDisabled = auctionComplete || auctionIsComplete(auction) || practiceComplete;
+  const inputDisabled = auctionComplete || practiceComplete || trainerCoverageComplete;
   const activeSeat = inputDisabled ? null : getNextSeat(board.dealer, auction);
   const nextBidLabel = practiceComplete ? 'Practice sequence complete' :
+    trainerCoverageComplete ? 'Trainer coverage complete' :
     getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
@@ -181,7 +212,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
 
         <section className="trainerRightColumn">
           <AuctionGrid rows={auctionRows} />
-          <ExplanationPanel lines={explanationLines} explanationRef={explanationRef} />
+          <ExplanationPanel lines={displayedExplanation} explanationRef={explanationRef} />
         </section>
       </section>
     </section>
@@ -201,7 +232,8 @@ function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTes
       break;
     }
     const stage = getBidStage(dealer, next);
-    if (stage !== null && practiceStages.includes(stage)) {
+    if (stage !== 'opponentPassThrough' && stage !== 'outsideCoverage' &&
+        stage !== 'auctionComplete' && practiceStages.includes(stage)) {
       break;
     }
     const call = testDeal.practiceAuction[next.length];
@@ -260,7 +292,7 @@ function buildDumpText(board: Board, auction: Call[], explanationLines: string[]
     `West: ${formatHand(board.deal.W)}`,
     `Auction: ${auction.length === 0 ? '(empty)' : auction.join(' ')}`,
     `Next seat: ${getSeatLabel(getNextSeat(board.dealer, auction))}`,
-    `Stage: ${stage ?? 'unresolved'}`,
+    `Stage: ${stage}`,
     '',
     'Explanation:',
     ...explanationLines,
@@ -274,7 +306,49 @@ function formatHand(hand: Hand): string {
   }).join('; ');
 }
 
-function getStageLabel(stage: BidStage | null): string {
+/// Explanation is displayed immediately on entering a disabled state.  Preserve the last
+/// evaluation above it so that a valid final bid's explanation is not lost.
+function getTerminalGuidance(coverage: TrainerCoverageState, practiceComplete: boolean): string[] {
+  const lines: string[] = [];
+  if (practiceComplete) {
+    lines.push('', 'Practice sequence complete. This is not necessarily the end of the ' +
+      'real bridge auction. Select New Deal or Test Deal to continue.');
+  }
+  switch (coverage.kind) {
+    case 'auctionComplete':
+      lines.push('', 'Bridge auction complete. Select New Deal or Test Deal to continue.');
+      break;
+    case 'boundary':
+      if (! practiceComplete) {
+        lines.push('', 'The trainer has reached an explained scope boundary. ' +
+          'Real bridge bidding may continue, but further calls are not evaluated here.');
+        appendRuleExplanation(lines, coverage.rule);
+        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+      }
+      break;
+    case 'uncovered':
+      if (! practiceComplete) {
+        lines.push('', 'No bidding rule or scope boundary currently covers this ' +
+          `${getStageLabel(coverage.stage)} decision. This is a trainer coverage gap, not a ` +
+          'judgment that a legal bridge bid is wrong.');
+        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+      }
+      break;
+    case 'outsideCoverage':
+      if (! practiceComplete) {
+        lines.push('', "This auction has reached a stage outside the trainer's selected " +
+          'bidding coverage. Real bridge bidding may continue.');
+        lines.push('Bidding input is disabled. Select New Deal or Test Deal to continue.');
+      }
+      break;
+    case 'opponentPassThrough':
+    case 'supported':
+      break;
+  }
+  return lines;
+}
+
+function getStageLabel(stage: BidPosition): string {
   switch (stage) {
     case 'opening':
       return 'opening';
@@ -292,8 +366,12 @@ function getStageLabel(stage: BidStage | null): string {
       return 'overcaller rebid';
     case 'advancing':
       return 'advance';
-    case null:
-      return 'bid';
+    case 'opponentPassThrough':
+      return 'intervening opponent call';
+    case 'outsideCoverage':
+      return 'unsupported continuation';
+    case 'auctionComplete':
+      return 'completed auction';
   }
 }
 
@@ -317,13 +395,10 @@ function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
 }
 
-function buildExplanationLines (title: string, result: BidEvalResult, unmodeledStage: boolean): string[] {
+function buildExplanationLines (title: string, result: BidEvalResult): string[] {
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
-  if (unmodeledStage) {
-    lines.push('This auction position has no modeled rule family yet.');
-  }
   lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
   const scopeBoundary = result.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
   if (scopeBoundary !== undefined && candidates.length === 0) {

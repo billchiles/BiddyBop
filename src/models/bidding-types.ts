@@ -29,6 +29,10 @@ export type BidStage =
   | 'advancing'
   | 'overcallerRebid';
 
+/// A position can also be a non-rule turn, outside selected coverage, or auction-complete.
+/// These are not bidding-rule buckets and must never be confused with a BidStage.
+export type BidPosition = BidStage | 'opponentPassThrough' | 'outsideCoverage' | 'auctionComplete';
+
 ///
 //// Bidding System conventions and agreements types
 ///
@@ -362,7 +366,7 @@ export interface CallRefinementResult {
 export interface RuleEvalContext {
   dealer: Seat;
   seat: Seat;
-  stage: BidStage | null;
+  stage: BidPosition;
   auction: Call[];
   hand: Hand;
   handFacts: HandFacts;

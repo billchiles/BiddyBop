@@ -4,7 +4,7 @@
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
-         type AppliesWhenResult, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type AppliesWhenResult, type BidPosition, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { getBidStage, getNextSeat, getOpeningCallInfo,
@@ -57,14 +57,15 @@ export function normalizeCallInput (input: string): Call | null {
 /// BidEvalResult is the result type for evaluateUserCall, and it represents the bid
 /// relative to rules and hand, not the best-bid judgment.
 /// 
-export interface BidEvalResult {
-  normalizedCall: Call | null;
-  userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
-  handMatchingRules: BidRule[]; // Rules that match the hand, ruleResults elt.ruleApplies is true
-  // ruleResults has one element for each considered rule when the auction context and hand facts
-  // satisfied constraints
+export interface BidPositionEvalResult {
+  handMatchingRules: BidRule[]; // All qualifying rules for the position and hand
   ruleResults: RuleEvalResult[];
   telemetryLines: string[];
+}
+
+export interface BidEvalResult extends BidPositionEvalResult {
+  normalizedCall: Call | null;
+  userCallMatchingRules: BidRule[]; // Subset of handMatchingRules that match user's bid
 }
 
 /// Represents (possibly) multiple call candidates from a matching rule because a rule can contain
@@ -86,11 +87,10 @@ export interface CandidateCallMatch {
 }
 
 
-/// getApplicableCandidateCalls is an entry point for the bidding panel in the GUI.  It maps the
-/// user's bid evaluation result to concrete calls allowed by rules that apply to the current 
-/// hand/context.
+/// getApplicableCandidateCalls maps an evaluated position (with or without student input) to
+/// concrete calls allowed by rules that apply to the current hand and auction context.
 ///
-export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCallMatch[] {
+export function getApplicableCandidateCalls (result: BidPositionEvalResult): CandidateCallMatch[] {
   const candidates: CandidateCallMatch[] = [];
   for (const ruleResult of result.ruleResults) {
     for (const candidate of ruleResult.candidates) {
@@ -129,12 +129,13 @@ export function getApplicableCandidateCalls (result: BidEvalResult): CandidateCa
 ///       - existing major-response 1NT suppression
 ///    6. Sort by priority.rank for presentation
 ///
-export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[],
-                                  system: BiddingSystem): BidEvalResult {
+/// Evaluate the position once without inventing a student call.  Both termination and student
+/// feedback need exactly the same rule/context/agreement filtering and suppressions.
+export function evaluateBidPosition (board: Board, auction: Call[],
+                                     system: BiddingSystem): BidPositionEvalResult {
   const context = makeRuleEvalContext(board, auction);
   const telemetryLines: string[] = [];
-  telemetryLines.push(
-    `evaluateUserCall: ${context.seat} call ${inputCall}; stage=${context.stage ?? 'unresolved'}.`);
+  telemetryLines.push(`evaluateBidPosition: ${context.seat}; stage=${context.stage}.`);
   // Select the rule bucket from the model-derived bidding stage, then apply partnership agreements.
   const stageRules = getRulesForStage(context.stage);
   const activeRules = getActiveBiddingRules(stageRules, system);
@@ -179,36 +180,44 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   ruleResults.sort((left, right) =>
     (right.rule.priority?.rank ?? 0) - (left.rule.priority?.rank ?? 0));
 
-  const applicableRules = ruleResults
+  const handMatchingRules = ruleResults
     .filter((result) => result.ruleApplies)
     .map((result) => result.rule);
-  const matchingRulesForUserCall: BidRule[] = [];
-  // Report rule eval telemetry and collect matching candidate calls.
   for (const ruleResult of ruleResults) {
     telemetryLines.push(...ruleResult.telemetryLines);
-    const matchingCandidate = ruleResult.candidates.find(
-      (candidate) => candidate.ruleApplies && candidate.call === inputCall);
-    if (matchingCandidate !== undefined) {
+  }
+  telemetryLines.push(`Applicable rule count: ${handMatchingRules.length}.`);
+  return { handMatchingRules, ruleResults, telemetryLines };
+}
+
+/// Evaluate a student's actual submitted call using the same position evaluation.
+export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[],
+                                  system: BiddingSystem): BidEvalResult {
+  const position = evaluateBidPosition(board, auction, system);
+  const matchingRulesForUserCall: BidRule[] = [];
+  for (const ruleResult of position.ruleResults) {
+    if (ruleResult.candidates.some((candidate) =>
+        candidate.ruleApplies && candidate.call === inputCall)) {
       matchingRulesForUserCall.push(ruleResult.rule);
     }
   }
-  if (matchingRulesForUserCall.length === 0) {
-    const boundary = applicableRules.find((rule) => rule.kind === 'scopeBoundary');
-    telemetryLines.push(boundary === undefined
-      ? `User call ${inputCall} did not satisfy any currently applicable rule.`
-      : `Scope boundary ${boundary.id} applies; ${inputCall} is not judged by a candidate rule.`);
-  } else {
-    telemetryLines.push(`User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`);
-  }
-  telemetryLines.push(`Applicable rule count: ${applicableRules.length}.`);
+  const boundary = position.handMatchingRules.find((rule) => rule.kind === 'scopeBoundary');
+  const telemetryLines = [
+    `evaluateUserCall: ${inputCall}; stage=${getBidStage(board.dealer, auction)}.`,
+    ...position.telemetryLines,
+    matchingRulesForUserCall.length === 0
+      ? boundary === undefined
+        ? `User call ${inputCall} did not satisfy any currently applicable rule.`
+        : `Scope boundary ${boundary.id} applies; ${inputCall} is not judged by a candidate rule.`
+      : `User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`,
+  ];
   return {
+    ...position,
     normalizedCall: inputCall,
     userCallMatchingRules: matchingRulesForUserCall,
-    handMatchingRules: applicableRules,
-    ruleResults,
     telemetryLines,
   };
-} //evaluateUserCall()
+}
 
 
 //// Evaluation context and stage rule selection
@@ -231,7 +240,7 @@ export function makeRuleEvalContext (board: Board, auction: Call[]): RuleEvalCon
 }
 
 /// getRulesForStage chooses the relevant rule family before hand evaluation.
-export function getRulesForStage (stage: BidStage | null): BidRule[] {
+export function getRulesForStage (stage: BidPosition): BidRule[] {
   switch (stage) {
     case 'opening':
       return OpeningBidRules;
@@ -247,7 +256,9 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
       return AdvanceRules;
     case 'responderRebid':
       return ResponderRebidRules;
-    case null:
+    case 'opponentPassThrough':
+    case 'outsideCoverage':
+    case 'auctionComplete':
       return [];
   }
 }
