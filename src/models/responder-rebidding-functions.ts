@@ -3,7 +3,7 @@ import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, Bi
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
-         getResponderCall, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
+         getResponderCall, isCallAvailableInAuction, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 import type { Suit } from './cards';
 
@@ -746,10 +746,10 @@ export function responderNtConventionApplies (call: Call, context: RuleEvalConte
 }
 
 
-//// Responder after strong 2C, Jacoby 2NT and splinter continuations
-// Only the opening partnership's first three *non-Pass* calls are used for the
-// description. Intervening opponents must actually have Passed: these are not
-// competitive continuations and must not inherit uncontested meanings.
+
+//// Shared uncontested opener–responder–opener sequence
+/// Read the first three partnership calls only when all three intervening opponents Passed.
+/// This prevents competitive auctions from inheriting uncontested game-try or convention meanings.
 function getUncontestedThreeCallContinuation (context: RuleEvalContext):
     { opening: Call; response: Call; rebid: Call } | null {
   if (context.stage !== 'responderRebid') return null;
@@ -765,6 +765,73 @@ function getUncontestedThreeCallContinuation (context: RuleEvalContext):
   return { opening: partnership[0], response: partnership[1], rebid: partnership[2] };
 }
 
+//// Responder after opener makes a game try following a simple major raise
+
+/// An uncontested 1M–2M–(help suit or 2NT) auction is an invitation, not opener's
+/// competitive 3M with a six-card suit.  Require the actual cheapest side-suit bid so
+/// a jump or an unrelated natural rebid cannot accidentally inherit game-try meaning.
+export function getResponderAfterMajorGameTry (context: RuleEvalContext):
+    { major: 'H' | 'S'; kind: 'helpSuit' | 'balanced'; helpSuit: Suit | null } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
+  const major = seq.opening[1] as 'H' | 'S';
+  if (seq.response !== `2${major}` || context.handFacts.lengths[major] < 3) return null;
+  if (seq.rebid === '2NT') return { major, kind: 'balanced', helpSuit: null };
+  const rebid = parseSuitBid(seq.rebid);
+  const raise = parseSuitBid(seq.response);
+  if (rebid === null || raise === null || rebid.strain === 'NT' ||
+      rebid.strain === major ||
+      cheapestBidInStrainAfter(raise, rebid.strain) !== seq.rebid ||
+      // A genuine invitation must leave a legal 3M decline available.
+      !isCallAvailableInAuction(`3${major}` as Call, context.auction)) {
+    return null;
+  }
+  return { major, kind: 'helpSuit', helpSuit: rebid.strain as Suit };
+}
+
+/// The invitation belongs to the already established major fit, even when opener
+/// used 2NT or a side suit to ask about game.
+export function refineResponderMajorGameTry (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getResponderAfterMajorGameTry(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    call === `3${info.major}` || call === `4${info.major}`),
+    telemetryLines: [info === null ? 'No qualifying major-fit game try.' :
+      `The agreed suit is ${info.major}; responder may stop at three or accept at four.`] };
+}
+
+/// A help-suit game try asks for working values in the named suit, or useful
+/// shortness for ruffing.  At an eight-point borderline, count A/K, a QJ
+/// combination, or a singleton/void as useful assistance; a lone J or Q does
+/// not by itself promise the help opener is looking for.
+function hasGameTrySuitHelp (context: RuleEvalContext, suit: Suit): boolean {
+  const cards = context.hand.cards.filter((card) => card.suit === suit);
+  return cards.length <= 1 || cards.some((card) => card.rank === 'A' || card.rank === 'K') ||
+    (cards.some((card) => card.rank === 'Q') && cards.some((card) => card.rank === 'J'));
+}
+
+/// Responder's simple raise originally showed 6–10 *support* points.  With 9–10,
+/// accept the 17–18-point opener invitation; with 6–7, decline. At eight points,
+/// use help-suit working honors/shortness; without a named suit, either game or
+/// partscore can be a sound judgment call. The inviting side suit is never trump.
+export function responderMajorGameTryApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getResponderAfterMajorGameTry(context);
+  const points = context.handFacts.totalPointsWShortage;
+  const helped = info?.helpSuit !== null && info?.helpSuit !== undefined &&
+    hasGameTrySuitHelp(context, info.helpSuit);
+  const accept = points >= 9 || (points === 8 && (info?.kind === 'balanced' || helped));
+  const decline = points <= 7 || (points === 8 && (info?.kind === 'balanced' || !helped));
+  const success = info !== null && points >= 6 && points <= 10 &&
+    (call === `4${info.major}` ? accept : call === `3${info.major}` && decline);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${info?.kind ?? 'no'} game try, ` +
+    `agreed ${info?.major ?? '-'}, help suit ${info?.helpSuit ?? '-'}, ` +
+    `responder ${points} support points, help=${helped}, call=${call}.`,
+  ] };
+}
+
+//// Responder after strong 2C, Jacoby 2NT and splinter continuations
 export function getResponderStrongTwoC (context: RuleEvalContext):
     { response: Call; rebid: Call; positive: boolean } | null {
   const seq = getUncontestedThreeCallContinuation(context);

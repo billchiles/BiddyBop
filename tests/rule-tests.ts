@@ -3079,6 +3079,86 @@ function runBalancingAuctionAndDealTests (): number {
   return failures;
 }
 
+/// B1: after responder's simple major raise, answer opener's natural help-suit or balanced
+/// game try.  Check the actual context and alternative bids, not just a recorded practice call.
+function runResponderAfterMajorGameTryTests (): number {
+  const spadeOpener = { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' };
+  const heartOpener = { S: 'K74', H: 'AQJ85', D: 'A72', C: 'K8' };
+  const cases: {
+    name: string; north: typeof spadeOpener; south: typeof spadeOpener;
+    auction: Call[]; expected: Call[]; boundary?: boolean;
+  }[] = [
+    { name: 'Six points decline 3D help-suit try in spades', north: spadeOpener,
+      south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'], expected: ['3S'] },
+    { name: 'Eight points with diamond king accept the help-suit try', north: spadeOpener,
+      south: { S: 'K63', H: 'Q85', D: 'K64', C: 'T942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'], expected: ['4S'] },
+    { name: 'Eight points without diamond help decline the help-suit try', north: spadeOpener,
+      south: { S: 'K63', H: 'Q85', D: 'J64', C: 'Q942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'], expected: ['3S'] },
+    { name: 'Nine support points accept regardless of diamond help', north: spadeOpener,
+      south: { S: 'K63', H: 'A85', D: 'Q64', C: 'T942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'], expected: ['4S'] },
+    { name: 'Balanced 2NT try admits two decisions at eight points', north: spadeOpener,
+      south: { S: 'K63', H: 'Q85', D: 'J64', C: 'Q942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '2NT', 'Pass'], expected: ['3S', '4S'] },
+    { name: 'Heart opener help-suit spade try declines at minimum', north: heartOpener,
+      south: { S: 'Q85', H: 'K63', D: 'J64', C: 'T942' },
+      auction: ['1H', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: ['3H'] },
+    { name: 'Heart opener spade try accepts with ace in spades', north: heartOpener,
+      south: { S: 'A85', H: 'K63', D: 'J64', C: 'T942' },
+      auction: ['1H', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: ['4H'] },
+    { name: 'Heart opener spade try declines without help', north: heartOpener,
+      south: { S: 'J85', H: 'K63', D: 'Q64', C: 'Q942' },
+      auction: ['1H', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: ['3H'] },
+    { name: 'Unusually strong simple raiser receives explanation, not a forced signoff', north: spadeOpener,
+      south: { S: 'K63', H: 'A85', D: 'K64', C: 'J942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'], expected: [], boundary: true },
+    { name: 'Opener 3S raise is NOT a new-suit game try', north: spadeOpener,
+      south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '3S', 'Pass'], expected: [] },
+    { name: 'A jump 3S over a heart fit is NOT the cheapest side-suit game try', north: heartOpener,
+      south: { S: 'Q85', H: 'K63', D: 'J64', C: 'T942' },
+      auction: ['1H', 'Pass', '2H', 'Pass', '3S', 'Pass'], expected: [] },
+  ];
+  let failures = 0;
+  const gameTryIds = [
+    'responder-rebid-decline-game-try-after-major-simple-raise',
+    'responder-rebid-accept-game-try-after-major-simple-raise',
+  ];
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name,
+      north: test.north, south: test.south, practiceAuction: test.auction });
+    const evaluation = evaluateUserCall('Pass', board, test.auction, defaultBiddingSystem);
+    const found = getApplicableCandidateCalls(evaluation)
+      .filter(({ rule }) => gameTryIds.includes(rule.id)).map(({ call }) => call);
+    const boundaryFound = evaluation.applicableRules.some(({ id }) =>
+      id === 'responder-rebid-boundary-after-major-simple-raise-game-try');
+    if (found.length !== test.expected.length ||
+        test.expected.some((call) => ! found.includes(call)) ||
+        boundaryFound !== (test.boundary === true)) {
+      failures += 1;
+      console.error(`FAIL B1 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+        `found ${found.join(', ') || '-'}, boundary=${boundaryFound}.`);
+    }
+    // A supported candidate should be available before input; unusual strength should stop
+    // at a scope boundary.  No invented Pass is acceptable after opener's forcing game try.
+    if (test.expected.length && getBiddingTurnStatus(board, test.auction, defaultBiddingSystem).kind !== 'supported') {
+      failures += 1;
+      console.error(`FAIL B1 ${test.name}: correct reply should have supported turn status.`);
+    }
+    if (test.expected.length && getApplicableCandidateCalls(evaluation)
+        .some(({ call }) => call === 'Pass')) {
+      failures += 1;
+      console.error(`FAIL B1 ${test.name}: Pass must not satisfy a game-try reply rule.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Responder answers to major game tries: ` +
+    `${cases.length} targeted auction/hand checks.\n`);
+  return failures;
+}
+
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
 function runBiddingTurnStatusTests (): number {
@@ -3146,7 +3226,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

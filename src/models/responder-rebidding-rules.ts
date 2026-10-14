@@ -15,7 +15,8 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          refineResponderNtConventionalMajor, responderNtConventionApplies, getResponderStrongTwoC,
          responderStrongTwoCDecisionApplies, refineResponderStrongTwoCMajorGame,
          getResponderMajorSupportConvention, responderMajorSupportConventionApplies,
-         refineResponderSupportMajorGame } from './responder-rebidding-functions';
+         refineResponderSupportMajorGame, getResponderAfterMajorGameTry,
+         refineResponderMajorGameTry, responderMajorGameTryApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Selected strong 2C responder continuations (no slam bidding system)
@@ -1131,6 +1132,62 @@ export const ResponderRebidRules: BidRule[] = [
              'an unshown major, select another strain, or consider slam with exceptional strength.',
     guidance: ['These choices depend on additional partnership agreements, hand details, ' +
                'and judgment, so this app cannot reliably recommend a specific next bid.'],
+    certainty: 'high',
+  },
+  //
+  //// After responder's simple raise of opener's major, opener invites game
+  // Do not confuse opener's help-suit or balanced 2NT game try with a direct
+  // three-level competitive raise. Responder may decline at 3M or accept at 4M.
+  // Judgment decisions at eight support points are intentionally not given false precision.
+  {
+    id: 'responder-rebid-decline-game-try-after-major-simple-raise',
+    kind: 'responderRebid',
+    title: "Decline opener's major-suit game try and stop at three",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'raise', level: 2, jump: 0 } },
+    calls: ['3H', '3S'], callRefinement: refineResponderMajorGameTry,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderMajorGameTryApplies,
+    meaning: 'Return to three of the agreed major when opener\'s game invitation is not accepted.',
+    guidance: ['With 6–7 support points, ordinarily decline.  With eight points after a help-suit ' +
+               'try, weak honors and no useful shortness in that suit favor stopping below game.',
+               'After a balanced 2NT game try, eight support points are judgmental; ' +
+               'both accepting and declining remain available.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-accept-game-try-after-major-simple-raise',
+    kind: 'responderRebid',
+    title: "Accept opener's major-suit game try",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'raise', level: 2, jump: 0 } },
+    calls: ['4H', '4S'], callRefinement: refineResponderMajorGameTry,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderMajorGameTryApplies,
+    meaning: 'Accept opener\'s game try in the known major fit, rather than bidding the help suit.',
+    guidance: ['With 9–10 support points, ordinarily accept.  With eight support points, ' +
+               'an ace, king, queen-jack combination, or shortness in opener\'s help suit ' +
+               'can make game attractive.',
+               'After a balanced 2NT game try, eight support points are judgmental; ' +
+               'both accepting and declining remain available.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-major-simple-raise-game-try',
+    kind: 'scopeBoundary',
+    title: 'Unusual continuation after a major-suit game try',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'major',
+                      responderCall: { kind: 'raise', level: 2, jump: 0 } },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderAfterMajorGameTry(context) !== null,
+      telemetryLines: ['Check the uncontested major simple raise and opener game try.'],
+    }),
+    meaning: 'Opener has made an invitational help-suit or balanced game try after the agreed major raise.',
+    guidance: ['Three or four of the major is the normal decision.  Very unusual responder ' +
+               'strength, a different final strain, or slam exploration requires additional judgment.',
+               'A game try is forcing for one round; do not Pass merely because opener bid a side suit.'],
     certainty: 'high',
   },
   //
