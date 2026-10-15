@@ -18,7 +18,8 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          refineResponderSupportMajorGame, getResponderAfterMajorGameTry,
          refineResponderMajorGameTry, responderMajorGameTryApplies,
          getResponderAfterOpenerSplinter, refineResponderOpenerSplinterMajorGame,
-         responderOpenerSplinterMajorGameApplies } from './responder-rebidding-functions';
+         responderOpenerSplinterMajorGameApplies, getResponderAfterStrongJumpShift,
+         responderAfterStrongJumpShiftGameApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Selected strong 2C responder continuations (no slam bidding system)
@@ -1684,6 +1685,48 @@ export const ResponderRebidRules: BidRule[] = [
              'on partnership agreements and details of both hands.',
     guidance: ['Those decisions rely on too many variables and judgment for this app to ' +
                'reliably provide practice; Pass is not automatically the right action.'],
+    certainty: 'high',
+  },
+  //
+  //// After responder makes a classic strong jump shift
+  // The original single-jump response shows 17+ HCP and is game forcing.  These rules
+  // handle clear game placements and stopping at an already-bid game; the remaining
+  // descriptive and slam-oriented continuations require partnership judgment.
+  {
+    id: 'responder-rebid-game-after-strong-responder-jump-shift',
+    kind: 'responderRebid',
+    title: 'Choose a clear game after a classic strong jump-shift response',
+    auctionContext: { stage: 'responderRebid', interference: 'none',
+                      openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', jump: 1 } },
+    agreement: { setting: 'jumpShift', value: 'strong' },
+    calls: ['Pass', '3NT', '4H', '4S'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderAfterStrongJumpShiftGameApplies,
+    meaning: 'The original strong jump shift already forced game. With minimum strong values, ' +
+             'choose a known major fit or balanced notrump game; Pass only when game is reached.',
+    guidance: ['A strong jump shift shows slam interest. A clear game is a practical placement ' +
+               'with minimum strong values, not a ruling out of a possible slam.'],
+    certainty: 'medium',
+  },
+  //
+  {
+    id: 'responder-rebid-boundary-after-strong-responder-jump-shift',
+    kind: 'scopeBoundary',
+    title: 'Further game-forcing or slam choices after responder jump shifts strongly',
+    auctionContext: { stage: 'responderRebid', interference: 'none',
+                      openerLevel: 1, openerStrain: 'suit',
+                      responderCall: { kind: 'newSuit', jump: 1 } },
+    agreement: { setting: 'jumpShift', value: 'strong' },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderAfterStrongJumpShift(context) !== null,
+      telemetryLines: ['Check the original responder strong jump shift and opener continuation.'],
+    }),
+    meaning: 'Responder has already forced the partnership to game and shown slam interest. ' +
+             'If game has not been reached, responder must continue; Pass below game is wrong.',
+    guidance: ['The best descriptive rebid, uncertain game strain, and slam exploration require ' +
+               'judgment beyond these selected rules. If already at game, Pass may be reasonable ' +
+               'but is not automatic with substantial additional values.'],
     certainty: 'high',
   },
   //

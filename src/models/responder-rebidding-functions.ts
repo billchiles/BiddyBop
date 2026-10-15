@@ -894,6 +894,77 @@ export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: 
       `Return to ${game} after opener's splinter in ${info!.shortSuit}.`] };
 }
 
+//// Responder after a classic strong jump-shift response
+
+/// Recognize responder's *original* single-jump new-suit response, not opener's later
+/// jump shift.  The opener rebid must be one of the natural continuations modeled for
+/// this forcing response: an economical raise, repeat, second suit, or notrump rebid.
+/// All intervening opponent calls must have been Pass.  The agreement setting is
+/// checked by the rules that use this helper.
+export function getResponderAfterStrongJumpShift (context: RuleEvalContext):
+    { opening: Suit; response: Suit; rebid: Call; kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump' } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
+  const response = parseSuitBid(seq.response);
+  const rebid = parseSuitBid(seq.rebid);
+  if (response === null || rebid === null || response.strain === 'NT' ||
+      response.strain === seq.opening[1] ||
+      responseJump(seq.opening as SuitBid, seq.response as SuitBid) !== 1) return null;
+  const opening = seq.opening[1] as Suit;
+  const responseSuit = response.strain as Suit;
+  let kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump';
+  if (rebid.strain === responseSuit && rebid.level === response.level + 1) {
+    kind = 'raise';
+  } else if (cheapestBidInStrainAfter(response, rebid.strain) === seq.rebid) {
+    kind = rebid.strain === 'NT' ? 'notrump' :
+      rebid.strain === opening ? 'repeat' : 'secondSuit';
+  } else {
+    return null;
+  }
+  return { opening, response: responseSuit, rebid: seq.rebid, kind };
+}
+
+/// The jump shift already established a game force and expresses slam interest.
+/// For a minimum strong jump shifter (17–18 HCP), support an obvious major-suit
+/// contract or balanced notrump game; leave stronger hands and unclear strain or
+/// slam choices to the explicit boundary.  Pass is permitted only *at* game,
+/// never below it.  A raise by opener confirms at least three-card support for
+/// responder's five-card suit; a repeat of an opening major shows six cards.
+export function responderAfterStrongJumpShiftGameApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getResponderAfterStrongJumpShift(context);
+  const f = context.handFacts;
+  let success = false;
+  if (info !== null && f.hcp >= 17 && f.hcp <= 18) {
+    const responseIsMajor = info.response === 'H' || info.response === 'S';
+    const openingIsMajor = info.opening === 'H' || info.opening === 'S';
+    const establishedResponderFit = info.kind === 'raise' && responseIsMajor &&
+      f.lengths[info.response] >= 5;
+    const establishedOpenerFit = info.kind === 'repeat' && openingIsMajor &&
+      f.lengths[info.opening] >= 2;
+    const majorGame = establishedResponderFit ? `4${info.response}` :
+      establishedOpenerFit ? `4${info.opening}` : null;
+    const openerNtGame = info.kind === 'notrump' && info.rebid === '3NT';
+    const openerBelowGameNt = info.kind === 'notrump' && info.rebid === '2NT';
+    // A known 5–3 (or longer) major fit takes precedence over the flat NT placement.
+    const noOpenerMajorFit = !openingIsMajor || f.lengths[info.opening] < 3;
+    if (majorGame !== null && call === majorGame) {
+      // If opener has already bid the major game, responder's ordinary choice is Pass.
+      success = info.rebid !== majorGame;
+    } else if (establishedResponderFit && info.rebid === `4${info.response}` && call === 'Pass') {
+      success = true;
+    } else if (info.kind === 'notrump' && f.balanced && noOpenerMajorFit) {
+      success = (openerNtGame && call === 'Pass') ||
+        (openerBelowGameNt && call === '3NT');
+    }
+  }
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: responder strong jump shift ${info?.opening ?? '-'} / ` +
+    `${info?.response ?? '-'}, opener ${info?.rebid ?? '-'} (${info?.kind ?? '-'}); ` +
+    `responder HCP ${f.hcp}, choice ${call}.`,
+  ] };
+}
+
 //// Responder after strong 2C, Jacoby 2NT and splinter continuations
 export function getResponderStrongTwoC (context: RuleEvalContext):
     { response: Call; rebid: Call; positive: boolean } | null {

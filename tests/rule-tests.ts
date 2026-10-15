@@ -3233,6 +3233,103 @@ function runResponderAfterOpenerSplinterTests (): number {
   return failures;
 }
 
+/// B3: responder's original classic strong jump shift (17+ HCP) is game forcing.
+/// Distinguish it from opener's strong second suit, permit Pass only at game,
+/// and leave uncertain strain or exceptional slam values at an explicit boundary.
+function runResponderAfterStrongJumpShiftTests (): number {
+  const clubOpener = { S: 'KT76', H: 'Q42', D: 'AJ5', C: 'K83' };
+  const strongHearts = { S: 'AQ5', H: 'AKJ98', D: 'K74', C: 'T6' };
+  const heartOpener = { S: 'Q42', H: 'KT764', D: 'AJ5', C: 'K8' };
+  const heartRepeatOpener = { S: 'Q42', H: 'KT9764', D: 'AJ', C: 'K8' };
+  const strongSpades = { S: 'AKJ98', H: 'AQ5', D: 'K74', C: 'T6' };
+  const spadeOpener = { S: 'KT976', H: 'Q42', D: 'AJ5', C: 'K8' };
+  const strongSpadeNtOpener = { S: 'KT976', H: 'Q2', D: 'AJ5', C: 'K83' };
+  const strongHeartNtResponder = { S: 'AQ', H: 'AKJ98', D: 'K74', C: 'T96' };
+  const extraStrongHearts = { S: 'AQ5', H: 'AKQ98', D: 'K74', C: 'J6' };
+  const extraStrongClubOpener = { S: 'KJT6', H: 'T42', D: 'AJ5', C: 'K83' };
+  const cases: { name: string; north: typeof clubOpener; south: typeof clubOpener;
+    auction: Call[]; expected: Call[]; boundary?: boolean; weak?: boolean }[] = [
+    { name: 'Raise responder hearts: 4H reaches game', north: clubOpener,
+      south: strongHearts, auction: ['1C', 'Pass', '2H', 'Pass', '3H', 'Pass'],
+      expected: ['4H'] },
+    { name: 'Raise responder spades: 4S reaches game', north: heartOpener,
+      south: strongSpades, auction: ['1H', 'Pass', '2S', 'Pass', '3S', 'Pass'],
+      expected: ['4S'] },
+    { name: 'Opener repeats six hearts, responder raises 4H with a fit',
+      north: heartRepeatOpener, south: strongSpades,
+      auction: ['1H', 'Pass', '2S', 'Pass', '3H', 'Pass'], expected: ['4H'] },
+    { name: 'Opener minimum 2NT, balanced responder raises 3NT',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '2H', 'Pass', '2NT', 'Pass'], expected: ['3NT'] },
+    { name: 'Opener raises directly to 4H: Pass is now permitted',
+      north: spadeOpener, south: strongHearts,
+      auction: ['1S', 'Pass', '3H', 'Pass', '4H', 'Pass'], expected: ['Pass'] },
+    { name: 'Opener 3NT already reaches game: balanced responder may Pass',
+      north: strongSpadeNtOpener, south: strongHeartNtResponder,
+      auction: ['1S', 'Pass', '3H', 'Pass', '3NT', 'Pass'], expected: ['Pass'] },
+    { name: 'Second-suit rebid without an established fit gets forcing guidance',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '2H', 'Pass', '2S', 'Pass'],
+      expected: [], boundary: true },
+    { name: 'Nineteen HCP needs slam judgment even after a major raise',
+      north: extraStrongClubOpener, south: extraStrongHearts,
+      auction: ['1C', 'Pass', '2H', 'Pass', '3H', 'Pass'],
+      expected: [], boundary: true },
+    { name: 'Weak jump-shift agreement excludes strong continuations',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '2H', 'Pass', '3H', 'Pass'],
+      expected: [], weak: true },
+    { name: 'Ordinary one-level response is not a strong jump shift',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass'], expected: [] },
+    { name: 'Opener strong jump shift after 1H response is a different family',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass'], expected: [] },
+    { name: 'Double jump is not a classic single strong jump shift',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '3H', 'Pass', '4H', 'Pass'], expected: [] },
+    { name: 'Competitor intervened: do not inherit uncontested response meaning',
+      north: clubOpener, south: strongHearts,
+      auction: ['1C', 'Pass', '2H', 'Double', '3H', 'Pass'], expected: [] },
+  ];
+  const gameId = 'responder-rebid-game-after-strong-responder-jump-shift';
+  const boundaryId = 'responder-rebid-boundary-after-strong-responder-jump-shift';
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    const system = { ...defaultBiddingSystem, jumpShift: test.weak ? 'weak' as const : 'strong' as const };
+    const result = evaluateUserCall('Pass', board, test.auction, system);
+    const actual = getApplicableCandidateCalls(result)
+      .filter(({ rule }) => rule.id === gameId).map(({ call }) => call);
+    const boundary = result.applicableRules.some(({ id }) => id === boundaryId);
+    if (actual.length !== test.expected.length ||
+        test.expected.some((call) => !actual.includes(call)) ||
+        boundary !== (test.boundary === true)) {
+      failures += 1;
+      console.error(`FAIL B3 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+        `got ${actual.join(', ') || '-'}, boundary ${boundary}.`);
+    }
+    if (test.expected.length || test.boundary) {
+      const status = getBiddingTurnStatus(board, test.auction, system);
+      const expectedKind = test.expected.length ? 'supported' : 'scopeBoundary';
+      if (status.kind !== expectedKind) {
+        failures += 1;
+        console.error(`FAIL B3 ${test.name}: expected ${expectedKind} status, got ${status.kind}.`);
+      }
+      const passIsAllowed = getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass');
+      if (test.auction[4] !== '3NT' && test.auction[4] !== '4H' &&
+          test.auction[4] !== '4S' && passIsAllowed) {
+        failures += 1;
+        console.error(`FAIL B3 ${test.name}: Pass below game cannot satisfy a game force.`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. B3 responder after strong jump shift: ` +
+              `${cases.length} constructed auction/hand checks.\n`);
+  return failures;
+}
+
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
 function runBiddingTurnStatusTests (): number {
@@ -3301,7 +3398,8 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
-  runResponderAfterOpenerSplinterTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
+  runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

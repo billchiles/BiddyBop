@@ -328,6 +328,11 @@ The app should help the user practice bidding decisions using structured convent
   economical raise with three-card support; otherwise opener can repeat a 6+ opening suit, show a
   four-card second suit, or rebid notrump with balanced/semi-balanced shape at the cheapest legal
   level.  Extra strength is shown later rather than by unnecessary jumps.
+  On responder's next turn, a minimum strong jump shifter (17–18 HCP) can place a clearly
+  established major fit in game, raise opener's balanced 2NT to 3NT when appropriate, or Pass
+  when opener has already bid an appropriate game.  Stronger hands, uncertain strain choices,
+  minor-fit decisions, and slam exploration receive explicit scope guidance.  The original
+  jump shift remains game forcing: Pass below game is never a modeled continuation.
 - Weak `2D`/`2H`/`2S` openings use 5-10 HCP, exactly six cards, and a good suit: at least two
   of A/K/Q or at least three of A/K/Q/J/T.  Three-level preempts use exactly seven cards, the
   same good-suit test, and stay below ordinary one-level opening values.  Vulnerability and
