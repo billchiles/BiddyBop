@@ -138,6 +138,28 @@ export const OpenerRebidRules: BidRule[] = [
                'Balanced hands use the separate 2NT, 3NT, or 4NT rebids instead.'],
     certainty: 'high',
   },
+  {
+    id: 'opener-rebid-boundary-strong-2c-waiting-4441',
+    kind: 'scopeBoundary',
+    title: 'Strong 2C opener with 4-4-4-1 shape after a waiting response',
+    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'], interference: 'none' },
+    // A 13-card hand that is unbalanced but has no five-card suit is 4-4-4-1.
+    // The natural suit rebid promises 5+ cards; the balanced NT rebids also do not apply.
+    scopeBoundaryWhen: (context) => {
+      const { hcp, balanced, lengths } = context.handFacts;
+      const success = hcp >= 22 && !balanced &&
+        Object.values(lengths).every((length) => length <= 4);
+      return { success, telemetryLines: [success
+        ? 'Strong 2C opener has 4-4-4-1 shape: no natural five-card suit or balanced NT rebid.'
+        : 'This is not a 22+ HCP unbalanced opener without a five-card suit.'] };
+    },
+    meaning: 'Strong unbalanced opener with 4-4-4-1 distribution and no standard natural rebid.',
+    guidance: ['Opener must continue after the 2D waiting response; Pass is not appropriate.',
+               'Showing a four-card suit or using notrump with a singleton requires judgment ' +
+               'and potentially additional partnership agreements.  The app cannot select a ' +
+               'reliable call for this unusual hand.'],
+    certainty: 'high',
+  },
   //
   //// Strong 2C -- After a positive response
   // Strong 2C followed by a positive suit or balanced 2NT response is already game-forcing.

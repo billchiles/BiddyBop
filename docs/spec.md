@@ -366,6 +366,10 @@ The app should help the user practice bidding decisions using structured convent
   definition and the stated HCP range.  With an unbalanced hand, opener instead shows the longest
   five-card-or-longer suit economically, choosing the higher-ranking suit when equal five- or
   six-card suits are available; that natural suit rebid is forcing.
+- With 22+ HCP and a 4-4-4-1 hand after the 2D waiting response, opener has no five-card
+  suit for a natural rebid and is not balanced for a notrump rebid.  The app gives an explicit
+  guidance boundary: opener must continue, but choosing the descriptive call requires
+  judgment or additional partnership agreements not modeled here.
 - After Standard `1D-2C`, `2H`/`2S` retain ordinary reverse strength.  A cheap `2D` rebid can be
   five cards when a minimum opener has no better call; responder's five-card club promise means
   three-card opener support is enough for the natural club raise.

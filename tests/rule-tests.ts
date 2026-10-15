@@ -3973,7 +3973,41 @@ function runContinuousAuctionFeedbackTests (): number {
   return failures;
 }
 
-const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+/// R1 regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
+/// A similar hand with a five-card suit must retain the existing natural suit rebid instead.
+function runStrongTwoCFourFourFourOneBoundaryTests (): number {
+  const south = { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' };
+  const auction: Call[] = ['2C', 'Pass', '2D', 'Pass'];
+  const cases = [
+    { name: 'strong 2C waiting: 4-4-4-1 guidance',
+      north: { S: 'AKQ4', H: 'AKJ7', D: 'AQ76', C: '5' },
+      expectedBoundary: true },
+    { name: 'strong 2C waiting: five-card spade rebid unaffected',
+      north: { S: 'AKQ4T', H: 'AKJ', D: 'AQ76', C: '5' },
+      expectedBoundary: false },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south, practiceAuction: auction });
+    const result = evaluateUserCall('2S', board, auction, defaultBiddingSystem);
+    const boundary = result.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-boundary-strong-2c-waiting-4441');
+    const naturalRebid = getApplicableCandidateCalls(result).some(({ call, rule }) =>
+      call === '2S' && rule.id === 'opener-rebid-longest-suit-after-2c-2d');
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (boundary !== test.expectedBoundary || naturalRebid === test.expectedBoundary ||
+        status.kind !== (test.expectedBoundary ? 'scopeBoundary' : 'supported')) {
+      failures++;
+      console.error(`FAIL R1 ${test.name}: boundary=${boundary}, 2S=${naturalRebid}, ` +
+                    `status=${status.kind}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Strong 2C 4-4-4-1 boundary: 2 focused cases.\n`);
+  return failures;
+}
+
+const failureCount = runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
