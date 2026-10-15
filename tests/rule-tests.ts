@@ -3467,6 +3467,126 @@ function runResponderAfterStrongJumpShiftTests (): number {
 
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
+/// B5: stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
+/// require a truthful boundary rather than an invented 3NT/minor game.  Confirm that the
+/// underlying response was itself a qualifying artificial support bid, and that a minimum
+/// opener still has the existing concrete 3m continuation.
+function runStrongMinorArtificialSupportTests (): number {
+  type HandShape = { S: string; H: string; D: string; C: string };
+  const minD: HandShape = { S: 'K72', H: 'A43', D: 'ATJ74', C: '83' }; // 13 support points
+  const middleD: HandShape = { S: 'K72', H: 'A43', D: 'AQT74', C: '83' }; // 14 support points
+  const extraD: HandShape = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' }; // 15 support points
+  const minC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'ATJ74' };
+  const middleC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQT74' };
+  const extraC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' };
+  const southD: HandShape = { S: 'T98', H: 'QJ5', D: 'K986', C: 'AKT' };
+  const southC: HandShape = { S: 'AJ8', H: 'KJ5', D: '96', C: 'K9865' };
+  const cases: { name: string; auction: Call[]; north: HandShape; south: HandShape;
+    firstResponse: Call; responseRuleId: string; minCall?: Call; expectedBoundary?: string }[] = [
+    { name: 'Jordan diamond minimum rebids 3D', auction: ['1D', 'Double', '2NT', 'Pass'],
+      north: minD, south: southD, firstResponse: '2NT',
+      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3D' },
+    { name: 'Jordan diamond extras stop with scope guidance',
+      auction: ['1D', 'Double', '2NT', 'Pass'], north: extraD, south: southD,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
+    { name: 'Jordan diamond 14-point hand still rebids 3D',
+      auction: ['1D', 'Double', '2NT', 'Pass'], north: middleD, south: southD,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      minCall: '3D' },
+    { name: 'Jordan club minimum rebids 3C', auction: ['1C', 'Double', '2NT', 'Pass'],
+      north: minC, south: southC, firstResponse: '2NT',
+      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3C' },
+    { name: 'Jordan club extras stop with scope guidance',
+      auction: ['1C', 'Double', '2NT', 'Pass'], north: extraC, south: southC,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
+    { name: 'Cuebid diamond minimum rebids 3D', auction: ['1D', '1H', '2H', 'Pass'],
+      north: minD, south: southD, firstResponse: '2H',
+      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3D' },
+    { name: 'Cuebid diamond extras retain existing scope guidance',
+      auction: ['1D', '1H', '2H', 'Pass'], north: extraD, south: southD,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid diamond 14-point hand reaches boundary',
+      auction: ['1D', '1H', '2H', 'Pass'], north: middleD, south: southD,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid club minimum rebids 3C', auction: ['1C', '1H', '2H', 'Pass'],
+      north: minC, south: southC, firstResponse: '2H',
+      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3C' },
+    { name: 'Cuebid club 14-point hand reaches boundary',
+      auction: ['1C', '1H', '2H', 'Pass'], north: middleC, south: southC,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid club extras retain existing scope guidance',
+      auction: ['1C', '1H', '2H', 'Pass'], north: extraC, south: southC,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, practiceAuction: test.auction,
+      north: test.north, south: test.south });
+    const response = getApplicableCandidateCalls(evaluateUserCall(test.firstResponse, board,
+      test.auction.slice(0, 2), defaultBiddingSystem));
+    if (!response.some(({ rule, call }) => call === test.firstResponse &&
+        rule.id === test.responseRuleId)) {
+      failures++;
+      console.error(`FAIL B5 ${test.name}: responder's artificial support bid did not qualify.`);
+    }
+    const result = evaluateUserCall(test.minCall ?? 'Pass', board, test.auction,
+      defaultBiddingSystem);
+    const options = getApplicableCandidateCalls(result);
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    if (test.minCall !== undefined) {
+      const ruleId = test.firstResponse === '2NT'
+        ? 'opener-rebid-three-of-suit-after-jordan-2nt-minimum'
+        : 'opener-rebid-three-of-suit-after-support-cuebid-minimum';
+      if (!options.some(({ call, rule }) => call === test.minCall && rule.id === ruleId) ||
+          status.kind !== 'supported') {
+        failures++;
+        console.error(`FAIL B5 ${test.name}: expected ${test.minCall} and supported status, ` +
+          `got ${formatCandidates(options)} / ${status.kind}.`);
+      }
+    } else if (status.kind !== 'scopeBoundary' ||
+               status.rule.id !== test.expectedBoundary || options.length > 0) {
+      failures++;
+      console.error(`FAIL B5 ${test.name}: expected boundary ${test.expectedBoundary}, got ` +
+        `${status.kind}, ${status.kind === 'scopeBoundary' ? status.rule.id : '-'}, ` +
+        `${formatCandidates(options)}.`);
+    }
+  }
+  // Similar-looking auctions must not pick up the artificial minor support boundary.
+  const { board: nonJordanBoard } = makeRuleTestBoard({
+    description: 'Natural 2NT is not Jordan without a takeout Double',
+    practiceAuction: ['1D', 'Pass', '2NT', 'Pass'], north: extraD, south: southD,
+  });
+  const notJordan = evaluateUserCall('Pass', nonJordanBoard,
+    ['1D', 'Pass', '2NT', 'Pass'], defaultBiddingSystem);
+  if (notJordan.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
+    failures++;
+    console.error('FAIL B5: uncontested 2NT acquired the artificial Jordan boundary.');
+  }
+  const { board: majorBoard } = makeRuleTestBoard({
+    description: 'Jordan major game still has concrete rebid',
+    practiceAuction: ['1H', 'Double', '2NT', 'Pass'],
+    north: { S: 'K72', H: 'AKQ96', D: 'Q53', C: '54' },
+    south: { S: 'T98', H: 'J75', D: 'K986', C: 'AKT' },
+  });
+  const majorResult = evaluateUserCall('4H', majorBoard,
+    ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem);
+  if (majorResult.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
+    failures++;
+    console.error('FAIL B5: major-suit Jordan acquired minor-suit scope boundary.');
+  }
+  console.log(`${failures} ***FAILURES***. B5 strong minor artificial-support continuations: ` +
+              `${cases.length + 2} targeted checks.\n`);
+  return failures;
+}
+
 function runBiddingTurnStatusTests (): number {
   const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
@@ -3535,7 +3655,8 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
   runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
-  runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runBiddingTurnStatusTests() + runStrongMinorArtificialSupportTests() +
+  runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

@@ -1392,8 +1392,9 @@ export const OpenerRebidRules: BidRule[] = [
   // A support cuebid and Jordan 2NT are both artificial limit-or-better raises.  The forcing
   // responder can continue over opener's minimum rebid, so opener need only distinguish a clear
   // minimum from values that guarantee game opposite the treatment's minimum support strength.
-  // For minor fits this selected family stops after the minimum 3m description; choosing 3NT or
-  // five of the minor with extra values remains more judgment-dependent.
+  // For minor fits, the minimum 3m description remains concrete.  Stronger minor fits
+  // reach separate Jordan/cuebid scope boundaries because 3NT or five of a minor requires
+  // stopper and playing-strength judgment rather than support points alone.
   {
     id: 'opener-rebid-three-of-suit-after-support-cuebid-minimum',
     kind: 'openerRebid',
@@ -1456,6 +1457,25 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 15, valuation: 'shortage' } },
     meaning: 'Jordan promises 10+ support points, so 15+ opener points reach game values.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras',
+    kind: 'scopeBoundary',
+    title: 'Game placement with extra values after Jordan 2NT minor support',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 2 },
+    },
+    meaning: 'Responder has shown limit-or-better support for opener\'s minor through artificial '
+      + 'Jordan 2NT, and opener has more than the selected minimum 3m rebid.',
+    guidance: [
+      'Jordan 2NT is an artificial minor raise here, not a natural notrump response.  Responder '
+        + 'is forcing opener to describe the hand rather than sign off in 2NT.',
+      'With extra values, choosing among 3NT, further minor bidding, or another descriptive call '
+        + 'requires stopper and playing-strength judgment beyond this selected treatment.  '
+        + 'The app cannot reliably choose a contract from support points alone.',
+    ],
     certainty: 'high',
   },
   //

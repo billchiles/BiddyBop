@@ -557,7 +557,9 @@ the point model alone.
 
 A support cuebid and Jordan 2NT are artificial limit-or-better raises rather than natural new-suit
 or notrump responses. With a clear minimum, opener rebids the agreed suit at the three level so
-responder can continue; with a major-suit fit and enough combined values, opener bids game. The two
+responder can continue; with a major-suit fit and enough combined values, opener bids game. With
+minor support and extra opener values, both treatments use an explicit stopper/playing-strength
+scope boundary rather than assuming 3NT or five of the minor from support points alone. The two
 treatments use their own responder point floors and must not leak into natural-response or Jacoby
 families.
 
