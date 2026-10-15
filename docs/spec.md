@@ -117,6 +117,11 @@ The app should help the user practice bidding decisions using structured convent
   applies to the same hand, the concrete bid suppresses the boundary.
 - Reaching a scope boundary means the trainer deliberately stops judging later calls in that branch;
   it does not imply that Pass is correct or that further bidding is impossible.
+- After a qualifying forcing responder rebid at the end of modeled depth, the terminal
+  explanation retains the one-round or game-forcing obligation even though general
+  opener-third-bid rules are omitted.  A qualifying balancing Double similarly
+  requires guidance about partner taking out or exceptionally passing for penalties.
+  Derive that guidance from a rule actually matching the last call, not its level alone.
 
 ## Constraint Semantics
 
@@ -252,6 +257,9 @@ The app should help the user practice bidding decisions using structured convent
 - With Jacoby enabled, a direct natural 1NT-3M shows a six-card-or-longer major with slam
   interest. Four of responder's major remains available; a middle-or-better opener may rank
   the cheapest side-suit A/K control below game ahead of 4M while retaining 4M as an option.
+  After that side-control reply, responder has an explicit slam-judgment scope boundary:
+  no further responder control sequence or slam signoff is executable in this trainer.
+  The control bid is not a Pass suggestion.
 - Direct 4NT over natural 1NT/2NT is quantitative, not ace-asking. With a minimum 1NT
   opener decline with Pass, with a maximum accept with 6NT, and keep both as judgment
   alternatives at middle HCP. Over a 20-21 2NT opening, 20 declines; even at 21 HCP,

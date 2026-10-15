@@ -256,6 +256,43 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
 }
 
 
+/// A forcing bid was just entered at the end of the trainer's modeled depth.
+/// Its obligation remains real even though this app has no general opener-third-bid
+/// or advancer-rebid stage.  Determined from a *qualifying* prior rule, not merely
+/// from the level, bid label, or assumption that every legal call is correct.
+export type UnmodeledContinuationForce = {
+  kind: 'gameForce' | 'oneRoundForce';
+  lastStage: 'responderRebid' | 'balancing';
+};
+
+/// Check the last actual call only when the next turn has no modeled rule stage.
+/// This intentionally does not infer forcing meanings from unrelated past calls.
+/// A bid after which game is already reached need not force any further action.
+export function getUnmodeledContinuationForce (board: Board, auction: Call[],
+                                              system: BiddingSystem): UnmodeledContinuationForce | null {
+  if (auction.length === 0 || auctionIsComplete(auction) ||
+      getNextBiddingRuleStage(board.dealer, auction) !== null) return null;
+  const beforeLastCall = auction.slice(0, -1);
+  const lastStage = getNextBiddingRuleStage(board.dealer, beforeLastCall);
+  if (lastStage !== 'responderRebid' && lastStage !== 'balancing') return null;
+  const lastCall = auction[auction.length - 1];
+  if (lastCall === undefined) return null;
+  const matchingRules = evaluateUserCall(lastCall, board, beforeLastCall, system)
+    .userCallMatchingRules;
+  // 'gameForcing' on the last call is meaningful only while game has not yet
+  // been reached.  Standard game levels are 3NT, 4M, and 5m.
+  const bid = parseSuitBid(lastCall);
+  const atGame = bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
+    bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
+  if (! atGame && matchingRules.some((rule) => rule.callCategory?.includes('gameForcing'))) {
+    return { kind: 'gameForce', lastStage };
+  }
+  if (matchingRules.some((rule) => rule.callCategory?.includes('forcing'))) {
+    return { kind: 'oneRoundForce', lastStage };
+  }
+  return null;
+}
+
 //// Evaluation context and stage rule selection
 /// makeRuleEvalContext derives rule inputs from the board and auction.  The caller supplies the
 /// board and authoritative full auction; model code derives the acting seat, hand, and stage.

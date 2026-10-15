@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, normalizeCallInput,
-         type BidEvalResult, type BiddingTurnStatus } from '../models/biddingEvaluation';
+import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
+         type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
@@ -35,7 +35,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     biddingTurnStatus.kind === 'noApplicableRule' || biddingTurnStatus.kind === 'noModeledStage';
   // Display why the input is disabled as soon as the last modeled call is committed.  This
   // guidance does not depend on an impossible submission through disabled HTML controls.
-  const terminalGuidance = getTerminalGuidance(biddingTurnStatus, practiceComplete);
+  // If the last modeled call was forcing, explain that real bridge still requires a
+  // continuation even though this trainer has no rules for the later bidding stage.
+  const outstandingForce = biddingTurnStatus.kind === 'noModeledStage'
+    ? getUnmodeledContinuationForce(board, auction, biddingSystem) : null;
+  const terminalGuidance = getTerminalGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
   const displayedExplanation = [...explanationLines, ...terminalGuidance];
   const terminalGuidanceText = terminalGuidance.join('\n');
 
@@ -307,7 +311,8 @@ function formatHand(hand: Hand): string {
 
 /// Explanation is displayed immediately on entering a disabled state.  Preserve the last
 /// evaluation above it so that a valid final bid's explanation is not lost.
-function getTerminalGuidance(biddingTurnStatus: BiddingTurnStatus, practiceComplete: boolean): string[] {
+function getTerminalGuidance(biddingTurnStatus: BiddingTurnStatus, practiceComplete: boolean,
+                             outstandingForce: UnmodeledContinuationForce | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
     lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
@@ -339,6 +344,20 @@ function getTerminalGuidance(biddingTurnStatus: BiddingTurnStatus, practiceCompl
         lines.push('', 'The app stops providing feedback and teaching at this stage of the ' +
           'bidding due to more judgment and advanced experience needed, but actual bridge ' +
           'bidding may continue past this point.');
+        if (outstandingForce !== null) {
+          if (outstandingForce.lastStage === 'balancing') {
+            lines.push('The balancing Double asks partner to act after the opponents have ' +
+              'had their opportunity.  Partner normally selects an unbid suit; ' +
+              'passing for penalties requires exceptional defensive values.  ' +
+              'The app does not teach the later continuation.');
+          } else if (outstandingForce.kind === 'gameForce') {
+            lines.push('Responder\'s last bid is game forcing.  Opener must continue ' +
+              'toward game in a real auction; the app does not teach opener\'s third bid.');
+          } else {
+            lines.push('Responder\'s last bid is forcing for one round.  Opener must ' +
+              'continue in an uncontested auction; the app does not teach opener\'s third bid.');
+          }
+        }
         lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
       }
       break;

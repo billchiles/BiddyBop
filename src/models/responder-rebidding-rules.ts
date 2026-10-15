@@ -19,7 +19,7 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          refineResponderMajorGameTry, responderMajorGameTryApplies,
          getResponderAfterOpenerSplinter, refineResponderOpenerSplinterMajorGame,
          responderOpenerSplinterMajorGameApplies, getResponderAfterStrongJumpShift,
-         responderAfterStrongJumpShiftGameApplies } from './responder-rebidding-functions';
+         responderAfterStrongJumpShiftGameApplies, responderAfterOneNtMajorSlamControl } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Selected strong 2C responder continuations (no slam bidding system)
@@ -395,6 +395,28 @@ export const ResponderRebidRules: BidRule[] = [
                'can have a different, slam-interest meaning; this is not automatically recommended.',
                'Further slam-oriented, two-suited, and judgment-dependent continuations are ' +
                'not modeled.'],
+    certainty: 'high',
+  },
+  //// Responder after opener cooperates with direct 1NT-3M slam interest
+  // The earlier 3M showed a long major and slam interest, not a Jacoby transfer.
+  // Opener's cheapest side-suit control is a forcing descriptive bid.  No further
+  // control-asking or slam-selection stage is implemented for responder here.
+  {
+    id: 'responder-rebid-boundary-after-1nt-direct-major-slam-control',
+    kind: 'scopeBoundary',
+    title: 'Further slam investigation after opener shows a side-suit control',
+    auctionContext: { stage: 'responderRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'jacobyTransfers', value: true },
+    scopeBoundaryWhen: (context) => ({
+      success: responderAfterOneNtMajorSlamControl(context),
+      telemetryLines: ['Check an uncontested direct 1NT-3M slam try and side-control reply.'],
+    }),
+    meaning: 'Responder initiated a major-suit slam try and opener cooperated by showing ' +
+             'an ace or king outside the agreed major.  The slam decision remains open.',
+    guidance: ['Further control-showing, stopping in four of the agreed major, or choosing ' +
+               'a slam requires judgment about controls, trump quality and overall playing strength.',
+               'The app does not evaluate those further calls; do not treat opener\'s ' +
+               'control bid as a signoff or an invitation to Pass.'],
     certainty: 'high',
   },
   //// Responder after a natural 2/1 game-forcing new-suit response

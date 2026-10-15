@@ -5,7 +5,7 @@ import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
          getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { ResponseBidRules } from '../src/models/responding-rules';
@@ -3587,6 +3587,116 @@ function runStrongMinorArtificialSupportTests (): number {
   return failures;
 }
 
+/// B6/B7: slam-control replies require explicit stopping guidance, while an accepted
+/// forcing responder rebid (or balancing Double) must not appear to end real bidding.
+/// Check the preceding actual call against the production evaluator before inferring a force.
+function runLaterStageTerminationGuidanceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const ntCases = [
+    { name: '1NT-3H slam try followed by 3S control',
+      auction: ['1NT', 'Pass', '3H', 'Pass', '3S', 'Pass'] as Call[],
+      north: { S: 'KQ4', H: 'A74', D: 'A96', C: 'KJ82' },
+      south: { S: 'AJ6', H: 'KQJT96', D: 'KQ5', C: '7' } },
+    { name: '1NT-3S slam try followed by 4C control',
+      auction: ['1NT', 'Pass', '3S', 'Pass', '4C', 'Pass'] as Call[],
+      north: { S: 'A64', H: 'KJ7', D: 'A96', C: 'KQ82' },
+      south: { S: 'KQJT95', H: 'AQ4', D: 'KJ5', C: '7' } },
+  ];
+  const boundaryId = 'responder-rebid-boundary-after-1nt-direct-major-slam-control';
+  for (const test of ntCases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    checks++;
+    const response = test.auction[2]!;
+    const openerControl = test.auction[4]!;
+    const responderMatches = evaluateUserCall(response, board,
+      test.auction.slice(0, 2), defaultBiddingSystem).userCallMatchingRules;
+    const openerMatches = evaluateUserCall(openerControl, board,
+      test.auction.slice(0, 4), defaultBiddingSystem).userCallMatchingRules;
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    if (! responderMatches.some(({ id }) => id === 'respond-to-1nt-w/-3h-3s-slam-interest') ||
+        ! openerMatches.some(({ id }) =>
+          id === 'opener-rebid-control-after-1nt-direct-3-major-slam-interest') ||
+        status.kind !== 'scopeBoundary' ||
+        (status.kind === 'scopeBoundary' && status.rule.id !== boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 ${test.name}: response ${responderMatches.map(r=>r.id)}, ` +
+        `control ${openerMatches.map(r=>r.id)}, status ${status.kind}.`);
+    }
+    checks++;
+    const noTransfer = { ...defaultBiddingSystem, jacobyTransfers: false };
+    if (getBiddingTurnStatus(board, test.auction, noTransfer).kind === 'scopeBoundary' &&
+        evaluateUserCall('Pass', board, test.auction, noTransfer).applicableRules
+          .some(({ id }) => id === boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 ${test.name}: direct slam-control boundary leaked with Jacoby off.`);
+    }
+  }
+  const { board: ntBoard } = makeRuleTestBoard({ description: 'B6 unrelated NT rebid',
+    north: ntCases[0]!.north, south: ntCases[0]!.south,
+    practiceAuction: ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'] });
+  for (const auction of [
+    ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'],
+    ['1NT', 'Pass', '3H', 'Double', '3S', 'Pass'],
+    ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'],
+  ] as Call[][]) {
+    checks++;
+    if (evaluateUserCall('Pass', ntBoard, auction, defaultBiddingSystem).applicableRules
+      .some(({ id }) => id === boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 scope boundary leaked after ${auction.join(' ')}.`);
+    }
+  }
+  const forceCases = [
+    { name: '2/1 slow major raise game force',
+      auction: ['1S','Pass','2D','Pass','2H','Pass','3S'] as Call[],
+      north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+      south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
+      system: { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const },
+      expected: 'gameForce' as const },
+    { name: 'five-card responder major after strong 2NT',
+      auction: ['1C','Pass','1H','Pass','2NT','Pass','3H'] as Call[],
+      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
+      south: { S: 'T65', H: 'KQJ98', D: 'QT4', C: '54' },
+      system: defaultBiddingSystem, expected: 'gameForce' as const },
+    { name: 'nonforcing game signoff must not carry game force',
+      auction: ['1C','Pass','1H','Pass','2NT','Pass','3NT'] as Call[],
+      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
+      south: { S: 'T65', H: 'KQ98', D: 'QT4', C: '654' },
+      system: defaultBiddingSystem, expected: null },
+  ];
+  for (const test of forceCases) {
+    checks++;
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    const last = test.auction[test.auction.length - 1]!;
+    const previous = test.auction.slice(0,-1);
+    const matches = evaluateUserCall(last, board, previous, test.system).userCallMatchingRules;
+    const status = getBiddingTurnStatus(board, test.auction, test.system);
+    const obligation = getUnmodeledContinuationForce(board, test.auction, test.system);
+    if (matches.length === 0 || status.kind !== 'noModeledStage' ||
+        (obligation?.kind ?? null) !== test.expected) {
+      failures++;
+      console.error(`FAIL B7 ${test.name}: matches ${matches.map(r=>r.id)}, ` +
+        `status ${status.kind}, obligation ${obligation?.kind ?? '-'} expected ${test.expected}.`);
+    }
+  }
+  const balancing = BALANCING_TEST_DEALS.find((deal) =>
+    deal.expectedBalancingCalls?.some((expected) => expected.ruleIds.includes('balance-takeout-double')))!;
+  const { board: balancingBoard } = makeRuleTestBoard(balancing);
+  checks++;
+  const balancingForce = getUnmodeledContinuationForce(balancingBoard,
+    balancing.practiceAuction, defaultBiddingSystem);
+  if (balancingForce?.kind !== 'oneRoundForce' || balancingForce.lastStage !== 'balancing') {
+    failures++;
+    console.error(`FAIL B7 balancing Double: ${JSON.stringify(balancingForce)}.`);
+  }
+  console.log(`${failures} ***FAILURES***. B6/B7 further-slam and forcing-endpoint checks: ` +
+    `${checks} targeted cases.\n`);
+  return failures;
+}
+
 function runBiddingTurnStatusTests (): number {
   const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
@@ -3655,7 +3765,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
   runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
-  runBiddingTurnStatusTests() + runStrongMinorArtificialSupportTests() +
+  runBiddingTurnStatusTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
   runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

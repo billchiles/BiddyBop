@@ -2,7 +2,7 @@
 import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
-import { cheapestBidInStrainAfter, getOpeningCallInfo, getOpeningPartnershipCalls,
+import { cheapestBidInStrainAfter, compareSuitBids, getOpeningCallInfo, getOpeningPartnershipCalls,
          getResponderCall, isCallAvailableInAuction, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 import type { Suit } from './cards';
@@ -640,6 +640,33 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
     `${success ? 'PASS' : 'FAIL'}: Standard two-level ${choice}; ` +
     `${info.opening}-${info.response}-${info.rebid}, ${f.hcp} HCP.`,
   ] };
+}
+
+//// Responder after a direct 1NT-3M slam try and opener's side-control reply
+
+/// Recognize the selected uncontested 1NT-3M-control auction, not a Jacoby transfer
+/// completion or an ordinary three-level major response.  The prior control bid must
+/// name a different suit economically below four of the agreed major; the opener's
+/// rule already determined which A/K control to show.  We do not introduce slam replies.
+export function responderAfterOneNtMajorSlamControl (context: RuleEvalContext): boolean {
+  if (context.stage !== 'responderRebid') return false;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 6) return false;
+  const responseCall = context.auction[opening.index + 2];
+  const controlCall = context.auction[opening.index + 4];
+  if (context.auction[opening.index + 1] !== 'Pass' ||
+      context.auction[opening.index + 3] !== 'Pass' ||
+      context.auction[opening.index + 5] !== 'Pass' ||
+      (responseCall !== '3H' && responseCall !== '3S') ||
+      controlCall === undefined) return false;
+  const response = parseSuitBid(responseCall);
+  const control = parseSuitBid(controlCall);
+  const game = parseSuitBid(`4${responseCall[1]}` as SuitBid);
+  return response !== null && control !== null && game !== null &&
+    control.strain !== 'NT' && control.strain !== response.strain &&
+    cheapestBidInStrainAfter(response, control.strain) === controlCall &&
+    compareSuitBids(control, game) < 0;
 }
 
 //// Responder's continuation after a notrump-opening convention
