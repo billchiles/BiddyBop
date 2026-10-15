@@ -4007,7 +4007,37 @@ function runStrongTwoCFourFourFourOneBoundaryTests (): number {
   return failures;
 }
 
-const failureCount = runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+/// R2 regression: a major opener stronger than the old 21-support-point ceiling must still
+/// be able to bid game, with a short-suit splinter available only under that agreement.
+function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
+  const auction: Call[] = ['1H', 'Pass', '2H', 'Pass'];
+  const { board } = makeRuleTestBoard({
+    description: '19 HCP, 23 support points after a simple heart raise',
+    practiceAuction: auction,
+    north: { S: '2', H: 'AKQ87', D: 'K3', C: 'AQJ64' },
+    south: { S: 'KJ94', H: 'T62', D: 'Q876', C: 'K8' },
+  });
+  let failures = 0;
+  for (const splinters of [false, true]) {
+    const system = { ...defaultBiddingSystem, splinters };
+    const candidates = getApplicableCandidateCalls(
+      evaluateUserCall('4H', board, auction, system));
+    const game = candidates.some(({ call, rule }) =>
+      call === '4H' && rule.id === 'opener-rebid-game-raise-after-major-simple-raise');
+    const splinter = candidates.some(({ call, rule }) =>
+      call === '3S' && rule.id === 'opener-rebid-splinter-after-major-simple-raise');
+    if (!game || splinter !== splinters) {
+      failures++;
+      console.error(`FAIL R2 high-strength major raise (splinters=${splinters}): ` +
+        `game=${game}, 3S splinter=${splinter}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Strong opener after simple major raise: ` +
+              '2 agreement contexts on one boundary hand.\n');
+  return failures;
+}
+
+const failureCount = runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

@@ -4125,7 +4125,7 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-game-raise-after-major-simple-raise',
     kind: 'openerRebid',
-    title: 'Raise the agreed major to game with maximum values',
+    title: 'Raise the agreed major to game with game-going values',
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
@@ -4136,8 +4136,12 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
-    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' } },
+    appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Game is likely after revaluing the known major-suit fit.',
+    guidance: ['With sufficient values opposite a simple raise, game in the agreed major is a ' +
+               'natural choice.  Unusually strong playing strength, controls, or a favorable ' +
+               'second-suit fit may justify exploring slam instead.',
+               'The app does not teach a complete slam-investigation sequence in this auction.'],
     certainty: 'high',
   },
   //
@@ -4184,10 +4188,13 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'splinters', value: true,
                  note: 'Opener-side splinter after a simple raise: shortness plus the agreed fit.' },
     priority: { rank: -100, note: 'Specialized partnership treatment; deliberately present last.' },
-    appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
+    appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' },
                    supportLength: { min: 5 }, suitLengths: [{ max: 1 }] },
     meaning: 'Artificial jump showing singleton/void in the bid suit with the major fit already agreed.',
-    guidance: ['This is an optional partnership treatment rather than the ordinary game raise.'],
+    guidance: ['This is an optional partnership treatment rather than the ordinary game raise.',
+               'Responder should judge whether honors are useful opposite opener\'s shortness ' +
+               'before considering slam.  Further slam continuations are outside the app\'s ' +
+               'selected treatment.'],
     certainty: 'high',
   },
 ];

@@ -274,6 +274,11 @@ The app should help the user practice bidding decisions using structured convent
   than a game try. Natural help-suit game tries use a 3+ card side suit.
 - After `1M-2M`, a natural balanced `2NT` game try uses 17-18 HCP, not shortage-point
   valuation. Natural help-suit game tries use shortage points.
+- After `1M-2M`, opener can bid `4M` with 19+ shortage-adjusted support points;
+  this does not force every unusually powerful hand to sign off in game.  When opener
+  has the required five-card trump support and singleton/void, the optional opener
+  splinter also has no upper support-point limit.  Further slam exploration depends on
+  playing strength, controls, and partnership agreements outside this selected treatment.
 - With the `jacoby2NT` major-support agreement, responder's `2NT` is artificial and game forcing
   with four-card-or-longer support and 13+ support points.  Opener describes distribution before
   generic strength: a three-level new suit shows singleton/void; a four-level new suit shows a good
