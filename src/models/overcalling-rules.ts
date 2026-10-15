@@ -7,6 +7,7 @@ import {
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
   naturalSuitOvercallerRebidApplies, naturalSuitOvercallerRebidBoundaryApplies,
+  jumpOvercallForcingAdvanceRebidApplies, jumpOvercallForcingAdvanceBoundaryApplies,
   contestedSuitOvercallerRebidApplies, contestedSuitOvercallerBoundaryApplies,
   contestedOneNtOvercallerRebidApplies, contestedOneNtOvercallerBoundaryApplies,
   ordinaryTakeoutDoubleApplies, takeoutDoublerRebidApplies, takeoutDoublerBoundaryApplies,
@@ -297,6 +298,56 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-game'),
     callCategory: ['natural'],
     meaning: 'Bid major game with substantial extras and a six-card trump suit.',
+    certainty: 'high',
+  },
+  //
+  //// Preemptive jump overcall -- After advancer's forcing new suit
+  // The preempter must answer once, but neither a second suit nor notrump
+  // carries a deterministic meaning here.  This is not an ordinary overcall rebid.
+  {
+    id: 'overcaller-rebid-jump-new-suit-support', kind: 'overcallerRebid',
+    title: 'Support advancer’s forcing new suit after a weak jump overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    appliesWhen: (call, context) =>
+      jumpOvercallForcingAdvanceRebidApplies(call, context, 'support'),
+    callCategory: ['natural'],
+    meaning: 'Raise advancer’s good five-card-or-longer suit with a known fit.',
+    guidance: ['Three-card support suffices for a three-level raise.  A four-level raise ' +
+               'needs stronger support: four trumps, A/K, or QJ in partner’s suit.',
+               'Advancer’s new suit was forcing for one round; this raise satisfies that force.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-jump-new-suit-repeat', kind: 'overcallerRebid',
+    title: 'Return to the preempt suit after advancer’s forcing new suit',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
+    appliesWhen: (call, context) =>
+      jumpOvercallForcingAdvanceRebidApplies(call, context, 'repeat'),
+    callCategory: ['natural'],
+    meaning: 'Repeat the original long preempt suit without sufficient support for a raise.',
+    guidance: ['This is a minimum description, not a promise of extra high-card strength. ' +
+               'It answers advancer’s one-round force.',
+               'Advancer’s next judgment, including notrump and slam exploration, ' +
+               'is beyond the modeled bidding depth.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcaller-rebid-jump-new-suit-boundary', kind: 'scopeBoundary',
+    title: 'Judgment after advancer’s forcing new suit opposite a jump overcall',
+    auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
+                      interference: 'jumpSuitOvercall' },
+    scopeBoundaryWhen: jumpOvercallForcingAdvanceBoundaryApplies,
+    meaning: 'Advancer’s new suit forces overcaller to make another call.',
+    guidance: ['When no selected simple raise or long-suit return fits the hand, ' +
+               'further strain and playing-strength judgment is needed.',
+               'Pass does not satisfy this one-round force.  The app cannot reliably ' +
+               'recommend a notrump, second-suit, or unusual high-level continuation.'],
     certainty: 'high',
   },
   //

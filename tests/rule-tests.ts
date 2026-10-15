@@ -1879,6 +1879,141 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// B4: an economical forcing new-suit advance after a preemptive jump overcall
+/// requires one overcaller reply.  Test both levels, suit-fit quality, and leakage
+/// into nearby non-jump or competitively interrupted auction contexts.
+function runJumpOvercallForcingAdvanceRebidTests (): number {
+  const repeatId = 'overcaller-rebid-jump-new-suit-repeat';
+  const supportId = 'overcaller-rebid-jump-new-suit-support';
+  const boundaryId = 'overcaller-rebid-jump-new-suit-boundary';
+  type HandShape = { S: string; H: string; D: string; C: string };
+  const cases: { name: string; auction: Call[]; north: HandShape; south: HandShape;
+    call?: Call; id?: string; boundary?: boolean }[] = [
+    {
+      name: '2H over 1D; three low clubs need 3H return, not 4C',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+      call: '3H', id: repeatId,
+    },
+    {
+      name: '2H over 1D; a three-card spade raise at three',
+      auction: ['1D', '2H', 'Pass', '2S', 'Pass'],
+      north: { S: 'K82', H: 'KQJ976', D: '65', C: '74' },
+      south: { S: 'AQJ76', H: 'T5', D: 'A84', C: 'K63' },
+      call: '3S', id: supportId,
+    },
+    {
+      name: '2H over 1D; Kxx permits four-level support',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'T8', H: 'KQJ976', D: '65', C: 'K95' },
+      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AQJ62' },
+      call: '4C', id: supportId,
+    },
+    {
+      name: '2H over 1D; four small clubs provide playing strength for four',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: '8', H: 'KQJ976', D: '65', C: 'T952' },
+      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AKQJ6' },
+      call: '4C', id: supportId,
+    },
+    {
+      name: '3C over 1D; return to seven-card clubs at four',
+      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
+      north: { S: 'T4', H: '86', D: '52', C: 'KQJT976' },
+      south: { S: 'A963', H: 'AKQJ9', D: 'K83', C: 'A' },
+      call: '4C', id: repeatId,
+    },
+    {
+      name: '3C over 1D; three-card Axx hearts permit 4H',
+      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
+      north: { S: '4', H: 'A86', D: '52', C: 'KQT9876' },
+      south: { S: 'K963', H: 'KQJT9', D: 'K83', C: 'A' },
+      call: '4H', id: supportId,
+    },
+    {
+      name: '2H over 1D; too few hearts for the described preempt',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'AQ8', H: 'KQJ97', D: '65', C: 'T95' },
+      south: { S: 'T64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+      boundary: true,
+    },
+    {
+      name: 'not a jump: 2H over 1S',
+      auction: ['1S', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'responder interfered instead of passing',
+      auction: ['1D', '2H', '2S', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'advancer jumped beyond the economical new suit',
+      auction: ['1D', '2H', 'Pass', '4C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'advancer cuebid opener suit rather than a natural new suit',
+      auction: ['1D', '2H', 'Pass', '3D', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'four-level jump overcall not included in this family',
+      auction: ['1C', '4S', 'Pass', '5D', 'Pass'],
+      north: { S: 'KQJT9876', H: '86', D: '52', C: '4' },
+      south: { S: 'A', H: 'AKQJ9', D: 'KQJ98', C: 'A7' },
+    },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, dealer: 'W',
+      practiceAuction: test.auction, north: test.north, south: test.south });
+    // The positive rebid examples must begin with an advance supported by the
+    // original forcing-new-suit rule, not merely a syntactically plausible auction.
+    if (test.call !== undefined) {
+      const firstAdvance = test.auction[3];
+      const advance = getApplicableCandidateCalls(evaluateUserCall(firstAdvance, board,
+        test.auction.slice(0, 3), defaultBiddingSystem));
+      if (!advance.some(({ call, rule }) => call === firstAdvance &&
+          rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: forcing new-suit advance did not qualify.`);
+      }
+    }
+    const result = evaluateUserCall(test.call ?? 'Pass', board, test.auction, defaultBiddingSystem);
+    const matches = getApplicableCandidateCalls(result).filter(({ rule }) =>
+      rule.id === repeatId || rule.id === supportId);
+    const boundary = result.applicableRules.some(({ id }) => id === boundaryId);
+    const correct = test.call === undefined ? matches.length === 0 :
+      matches.length === 1 && matches[0]?.call === test.call && matches[0]?.rule.id === test.id;
+    if (!correct || boundary !== (test.boundary === true)) {
+      failures += 1;
+      console.error(`FAIL B4 ${test.name}: expected ${test.call ?? '-'} (${test.id ?? '-'}), ` +
+        `got ${formatCandidates(matches)}, boundary ${boundary}.`);
+    }
+    if (test.call !== undefined || test.boundary) {
+      const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+      const kind = test.boundary ? 'scopeBoundary' : 'supported';
+      if (status.kind !== kind) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: expected status ${kind}, got ${status.kind}.`);
+      }
+      if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: Pass cannot satisfy advancer's force.`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. B4 jump overcaller forcing-advance replies: ` +
+              `${cases.length} constructed-hand and auction-context checks.\n`);
+  return failures;
+}
+
 /// DONT checks protect the family boundary rather than duplicating every practice deal.
 /// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
 /// responder or opener competes instead of passing through the basic relay.
@@ -3391,6 +3526,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
   runResponderArtificialActionAdvanceBoundaryTests() +
   runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
+  runJumpOvercallForcingAdvanceRebidTests() +
   runDontBoundaryTests() + runResponderRebidContextTests() +
   runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
   runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +

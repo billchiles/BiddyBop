@@ -98,6 +98,106 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
 }
 
 ///
+//// Preemptive Jump Overcall -- After Advancer's Forcing New Suit
+///
+
+/// The forcing-new-suit advance is economical (not a jump), no higher than three,
+/// and distinct from both opener's suit and the preempt suit.  Both intervening
+/// opponents passed.  This is separate from the non-jump overcaller-rebid family.
+type JumpOvercallForcingAdvance = {
+  suit: Suit;
+  advanceSuit: Suit;
+  overcallLevel: 2 | 3;
+  advanceBid: NonNullable<ReturnType<typeof parseSuitBid>>;
+};
+
+function getJumpOvercallForcingAdvance (context: RuleEvalContext):
+    JumpOvercallForcingAdvance | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') return null;
+  const openingBid = parseSuitBid(opening.call);
+  const overcallCall = context.auction[opening.index + 1];
+  const overcallBid = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  const advanceCall = context.auction[opening.index + 3];
+  const advanceBid = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
+      overcallBid === null || overcallBid.strain === 'NT' ||
+      overcallBid.strain === openingBid.strain ||
+      (overcallBid.level !== 2 && overcallBid.level !== 3) ||
+      advanceBid === null || advanceBid.strain === 'NT' || advanceBid.level > 3 ||
+      advanceBid.strain === overcallBid.strain ||
+      advanceBid.strain === openingBid.strain) return null;
+  const cheapestOvercall = cheapestBidInStrainAfter(openingBid, overcallBid.strain);
+  const cheapestOvercallBid = cheapestOvercall === null ? null : parseSuitBid(cheapestOvercall);
+  if (cheapestOvercallBid === null || overcallBid.level <= cheapestOvercallBid.level ||
+      cheapestBidInStrainAfter(overcallBid, advanceBid.strain) !== advanceCall) return null;
+  return { suit: overcallBid.strain as Suit, advanceSuit: advanceBid.strain as Suit,
+           overcallLevel: overcallBid.level as 2 | 3, advanceBid };
+}
+
+/// A three-level raise describes an eight-card fit.  At the four level, require
+/// better fit/playing strength: four trumps, A/K, or QJ in advancer's suit.
+/// Three small cards alone must not drive the weak preempter to four of a new suit.
+function usefulJumpOvercallAdvanceSupport (context: RuleEvalContext,
+                                          info: JumpOvercallForcingAdvance,
+                                          raise: Call | null): boolean {
+  if (raise === null) return false;
+  const bid = parseSuitBid(raise);
+  const length = context.handFacts.lengths[info.advanceSuit];
+  if (bid === null || bid.level > 4 || length < 3) return false;
+  if (bid.level <= 3) return true;
+  const honors = getCardsForSuit(context.hand, info.advanceSuit).map((card) => card.rank);
+  return length >= 4 || honors.includes('A') || honors.includes('K') ||
+    (honors.includes('Q') && honors.includes('J'));
+}
+
+/// After a weak jump overcall, the new suit forces one more call but does not
+/// promise game.  Raise a known fit when economical/safe; otherwise repeat the
+/// preempt suit at its cheapest level.  NT, second suits, and unusual high-level
+/// choices remain outside this limited treatment.
+export function jumpOvercallForcingAdvanceRebidApplies (
+    call: Call, context: RuleEvalContext, treatment: 'support' | 'repeat'): AppliesWhenResult {
+  const info = getJumpOvercallForcingAdvance(context);
+  if (info === null) return { success: false, telemetryLines: [
+    'FAIL: requires a genuine two-/three-level jump overcall, a non-jump forcing new ' +
+    'suit advance no higher than three, and both intervening opponents passing.',
+  ] };
+  const ownLength = context.handFacts.lengths[info.suit];
+  const hcp = context.handFacts.hcp;
+  const preemptive = ownLength === info.overcallLevel + 4 &&
+    (info.overcallLevel !== 2 || hcp >= 5) && hcp <= (info.overcallLevel === 2 ? 11 : 9) &&
+    hasPreemptSuitQuality(context.hand, info.suit);
+  const raise = cheapestBidInStrainAfter(info.advanceBid, info.advanceSuit);
+  const support = usefulJumpOvercallAdvanceSupport(context, info, raise);
+  const repeat = cheapestBidInStrainAfter(info.advanceBid, info.suit);
+  const success = preemptive && (treatment === 'support' ?
+    support && call === raise : !support && call === repeat &&
+    (parseSuitBid(repeat!)?.level ?? 8) <= 4);
+  return { success, telemetryLines: [
+    `${preemptive ? 'PASS' : 'FAIL'}: original preempt needs a good ` +
+      `${info.overcallLevel + 4}-card suit and limited HCP.`,
+    `${support ? 'PASS' : 'FAIL'}: support for advancer's forcing suit ` +
+      'meets the required strength for the cheapest raise.',
+    `${success ? 'PASS' : 'FAIL'}: ${treatment === 'support' ? 'raise' : 'return to'} ` +
+      'the suit at the cheapest legal level; do not Pass the one-round force.',
+  ] };
+}
+
+/// When no selected natural description applies, explain the outstanding one-round
+/// force instead of using a generic Pass or treating lack of a bid as agreement to stop.
+export function jumpOvercallForcingAdvanceBoundaryApplies (context: RuleEvalContext):
+    AppliesWhenResult {
+  const success = getJumpOvercallForcingAdvance(context) !== null;
+  return { success, telemetryLines: [success ?
+    'PASS: forcing advance after a preemptive jump overcall may need judgment beyond ' +
+      'the selected natural replies.' :
+    'FAIL: not a forcing new-suit advance after a preemptive jump overcall.'] };
+}
+
+///
 //// Natural Notrump Overcalls
 ///
 

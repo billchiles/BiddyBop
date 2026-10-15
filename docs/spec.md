@@ -423,8 +423,18 @@ and A, Kx, Qxx, or Jxxx in opener's suit as a simple stopper approximation. Pree
 jump overcalls use the shared good-suit test with six cards at the two level (5-11 HCP),
 seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
 These exact lengths and HCP interpretations are deterministic choices from the chosen
-weak-hand treatment. `responding` is the stage after the opponent's first call following an
-opening. The competitive rule model does not infer Pass merely because no candidate remains.
+weak-hand treatment. After a two- or three-level jump overcall followed by responder Pass,
+advancer's economical natural new suit at or below three is forcing for one round.  With
+both intervening opponents passing, the jump overcaller raises that new suit at its
+cheapest legal level when three-card support reaches only three; a four-level raise needs
+four trumps, an A/K, or QJ in the suit.  Otherwise, the overcaller returns to the
+original long preempt suit at the cheapest available level through four.  This rebid
+satisfies advancer's one-round force without suggesting extras.  Further advancer rebids,
+NT, second suits, and other high-level judgments remain outside the selected treatment;
+no automatic Pass is allowed over the forcing new suit.
+
+`responding` is the stage after the opponent's first call following an opening. The competitive
+rule model does not infer Pass merely because no candidate remains.
 Double is evaluated only for specifically declared informational treatments, never penalties.
 
 ### Fourth-seat balancing after a one-level suit opening

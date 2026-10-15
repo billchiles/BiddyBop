@@ -142,8 +142,9 @@ agreement-dependent, or judgment-heavy.
 
 This table shows the app's selected advances (after advancer's partner overcalled opener).  The app cannot
 teach every possible competitive auction.  Specialized
-Doubles and cuebids, later bids after preemptive jump overcalls, and high-level competition depend too heavily on partnership agreements, fit, vulnerability, and playing strength
-for reliable rule-based advice.  Where useful, the app provides auction-specific general
+Doubles and cuebids, broader continuations after preemptive jump overcalls, and high-level
+competition depend too heavily on partnership agreements, fit, vulnerability, and playing
+strength for reliable rule-based advice.  Where useful, the app provides auction-specific general
 guidance on how bidding might procede, rather than presenting an authoritative treatment.
 
 ## Stoppers and notrump judgment
@@ -180,7 +181,7 @@ accidental omission.
 | General penalty Double / Redouble system | Omitted | The app models specific functional Doubles and Redoubles such as takeout, negative, responsive, and strength-showing actions, but does not decide when to defend a contract for penalties. |
 | Defense to opposing three-level preempts | Omitted | The underlying defensive ideas can be practiced against weak-two openings without adding another high-level, judgment-heavy continuation tree. |
 | Defense to opposing strong 2C or 2NT | Omitted | These uncommon defensive auctions are outside the current training scope. |
-| Competitive continuations after our preemptive jump overcall | Omitted | Once responder also competes, vulnerability, fit, and playing-strength judgment become more important than the deterministic rules this trainer emphasizes. |
+| Competitive continuations after our preemptive jump overcall | Omitted | Selected uncontested replies to advancer’s forcing new suit are modeled; once the opening side also competes, vulnerability, fit, and playing-strength judgment remain outside the selected treatment. |
 | Natural four- and five-level preemptive openings | Partial (done) | The opening bids are modeled as examples; responder has an explicit Pass, but further high-level bidding and continuations are omitted. |
 | Direct 4NT opening as Blackwood | Omitted | The rare artificial forcing opening is not executable; other meanings of 4NT in ordinary auctions are unchanged. |
 | Detailed slam mechanisms | Partial (done) | Gerber replies, forcing 5NT, direct 7NT, many suit-auction Blackwood replies, and similar rare continuations are not full practice families. |
