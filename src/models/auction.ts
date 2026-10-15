@@ -97,28 +97,6 @@ export function getNextBiddingRuleStage (dealer: Seat, auction: Call[]): BidStag
   return null;
 }
 
-/// Recognize the two unjudged intervening turns in an otherwise uncontested partnership
-/// auction. This is a trainer interaction policy, not a bridge role, rule stage, or Pass
-/// recommendation. We accept a mechanically legal call here without evaluating its merits;
-/// the resulting *actual* auction is classified again on the next turn.
-///
-///   1H - Pass - 1S - ?                 fourth player after responder bids
-///   1H - Pass - 1S - Pass - 2C - ?     direct opponent after opener rebids
-///
-/// Only the two physical turns are permitted, and only with the indicated earlier Passes.
-/// A different opponent call may take the later auction outside modeled coverage.
-export function isUnjudgedInterveningTurn (dealer: Seat, auction: Call[]): boolean {
-  if (auctionIsComplete(auction)) return false;
-  const opening = getOpeningCallInfo(dealer, auction);
-  if (opening === null || getNextBiddingRuleStage(dealer, auction) !== null) return false;
-  const firstOpponentCall = auction[opening.index + 1];
-  const response = auction[opening.index + 2];
-  // The responding partner must actually have acted; otherwise this may be a balancing auction.
-  if (firstOpponentCall !== 'Pass' || response === undefined || response === 'Pass') return false;
-  if (auction.length === opening.index + 3) return true;
-  return auction.length === opening.index + 5 && auction[opening.index + 3] === 'Pass';
-}
-
 /// isSupportedCompetitiveOpenerRebid recognizes only physical auctions whose responder/advancer
 /// pattern has an explicitly modeled opener continuation.  Passing advancer cases remain the broad
 /// selected base; natural advancer competition is admitted only for reviewed families below.

@@ -3,9 +3,9 @@
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
-         getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, parseSuitBid, responseJump }
+         getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { ResponseBidRules } from '../src/models/responding-rules';
@@ -3809,7 +3809,7 @@ function runBiddingTurnStatusTests (): number {
   let failures = 0;
   const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
     { auction: [], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S'], kind: 'unjudgedTurn' },
+    { auction: ['1S', 'Pass', '2S'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
@@ -3826,11 +3826,11 @@ function runBiddingTurnStatusTests (): number {
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
     practiceAuction: ['1H', 'Double', 'Pass', 'Pass'] });
-  // These are physical *unjudged* turns, not predictions that an opponent will Pass.
-  // A different legal intervention can end the modeled continuation on the following turn.
+  // These have no modeled rule stage; auction entry no longer needs an intervening-turn exception.
+  // Any legal call may be recorded, and stage selection uses the resulting actual auction.
   const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
-    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'unjudgedTurn' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'unjudgedTurn' },
+    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },
   ];
@@ -3852,6 +3852,127 @@ function runBiddingTurnStatusTests (): number {
   return failures;
 }
 
+
+/// Regression for the former premature-termination bug: unsupported turns and explicit
+/// boundaries do not prevent a legal physical auction from reaching later modeled decisions.
+/// These check the evaluator/state path and mechanical auction legality; BidPanel is separately
+/// responsible for disabling entry only when the auction or recorded practice is complete.
+function runContinuousAuctionFeedbackTests (): number {
+  const { board } = makeRuleTestBoard({
+    description: 'Unjudged intermediate call progression',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'],
+  });
+  const sequences: { name: string; calls: Call[] }[] = [
+    { name: 'DONT Double asking sequence', calls: ['1NT', 'Double', 'Pass', '2C', 'Pass', '2H'] },
+    { name: 'DONT two-suited sequence', calls: ['1NT', '2C', 'Pass', '2D', 'Pass', '2H'] },
+    { name: 'strong 2NT Stayman', calls: ['2NT', 'Pass', '3C', 'Pass', '3S'] },
+    { name: 'strong 2C waiting', calls: ['2C', 'Pass', '2D', 'Pass', '2H'] },
+    { name: 'weak two natural defense', calls: ['2D', '2H', 'Pass', 'Pass'] },
+    { name: 'competitive opener rebid', calls: ['1NT', '2H', 'Double', 'Pass', '2S'] },
+    { name: 'unexpected fourth-seat competition', calls: ['1S', 'Pass', '2S', '3D', 'Pass'] },
+    { name: 'uncontested raiser game try', calls: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] },
+    { name: 'boundary does not end auction', calls: ['2NT', 'Pass', '3C', 'Pass', '3H', 'Pass', 'Pass', 'Pass'] },
+  ];
+  let failures = 0;
+  let checked = 0;
+  for (const test of sequences) {
+    const auction: Call[] = [];
+    for (const call of test.calls) {
+      const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+      checked++;
+      if (status.kind === 'auctionComplete' || !isCallAvailableInAuction(call, auction)) {
+        failures++;
+        console.error(`FAIL continuous ${test.name}: ${call} unavailable after ${auction.join(' ')}.`);
+        break;
+      }
+      auction.push(call);
+    }
+    if (test.name === 'boundary does not end auction' && !auctionIsComplete(auction)) {
+      failures++;
+      console.error('FAIL continuous: legal Passes did not complete the auction.');
+    }
+  }
+  // Use the actual DONT and 2NT-Stayman fixture hands to verify feedback resumes after
+  // intervening Passes, including a turn with no rule and one with an explicit scope boundary.
+  const dontDeal = DONT_1NT_DEFENSE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1NT Double Pass 2C Pass 2H');
+  const ntDeal = RESPONSE_AFTER_2NT_OPENING_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '2NT Pass 3C');
+  const expected: { deal: RuleTestDeal | undefined; stages: ReturnType<typeof getBiddingTurnStatus>['kind'][] }[] = [
+    { deal: dontDeal,
+      stages: ['supported', 'supported', 'noApplicableRule', 'supported',
+        'noModeledStage', 'supported'] },
+    { deal: ntDeal, stages: ['supported', 'scopeBoundary', 'supported'] },
+  ];
+  for (const test of expected) {
+    if (test.deal === undefined) { failures++; continue; }
+    const { board: fixtureBoard } = makeRuleTestBoard(test.deal);
+    const auction: Call[] = [];
+    for (const kind of test.stages) {
+      const status = getBiddingTurnStatus(fixtureBoard, auction, defaultBiddingSystem);
+      checked++;
+      if (status.kind !== kind) {
+        failures++;
+        console.error(`FAIL continuous fixture ${test.deal.description}: ` +
+          `${auction.join(' ')} expected ${kind}, got ${status.kind}.`);
+      }
+      const call = test.deal.practiceAuction[auction.length];
+      if (call === undefined || !isCallAvailableInAuction(call, auction)) {
+        failures++;
+        console.error(`FAIL continuous fixture: call ${call} illegal after ${auction.join(' ')}.`);
+        break;
+      }
+      auction.push(call);
+    }
+  }
+  // Non-dealer opening and a scope boundary retain their status but cannot block Pass.
+  for (const auction of [['Pass', '1S', 'Pass', '2S'], ['2NT'], ['1NT', 'Double']] as Call[][]) {
+    checked++;
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (status.kind === 'auctionComplete' || !isCallAvailableInAuction('Pass', auction)) {
+      failures++;
+      console.error(`FAIL continuous: Pass blocked after ${auction.join(' ')}.`);
+    }
+  }
+  // Continuing freely does not waive ordinary bridge legality or the 7NT maximum.
+  for (const { input, auction } of [
+    { input: '20H', auction: [] as Call[] },
+    { input: '120NT', auction: [] as Call[] },
+    { input: '1C', auction: ['1S'] as Call[] },
+    { input: 'Double', auction: [] as Call[] },
+  ]) {
+    checked++;
+    const call = normalizeCallInput(input);
+    if (call !== null && isCallAvailableInAuction(call, auction)) {
+      failures++;
+      console.error(`FAIL continuous: illegal input ${input} accepted after ${auction.join(' ')}.`);
+    }
+  }
+  // Forcing source should still be identified with one opponent Pass after it, but not after
+  // another call has been made by the forced bidder.
+  const forceAuction: Call[] = ['1S','Pass','2D','Pass','2H','Pass','3S'];
+  const { board: forcingBoard } = makeRuleTestBoard({
+    description: 'Forcing rebid across opponent Pass',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
+    practiceAuction: forceAuction,
+  });
+  const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+  const forceNow = getUnmodeledContinuationForce(forcingBoard, forceAuction, system);
+  const forceAfterPass = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass'], system);
+  const forceAfterReply = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass', '4S'], system);
+  checked += 3;
+  if (forceNow?.kind !== 'gameForce' || forceAfterPass?.kind !== 'gameForce' ||
+      forceAfterReply !== null) {
+    failures++;
+    console.error(`FAIL continuous forcing: ${forceNow?.kind}, ${forceAfterPass?.kind}, ${forceAfterReply?.kind}.`);
+  }
+  console.log(`${failures} ***FAILURES***. Continuous legal auctions: ${checked} checks.\n`);
+  return failures;
+}
+
 const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
@@ -3869,7 +3990,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
   runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
-  runBiddingTurnStatusTests() + runUnmodeledDirectDefenseBoundaryTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
+  runBiddingTurnStatusTests() + runContinuousAuctionFeedbackTests() + runUnmodeledDirectDefenseBoundaryTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
   runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

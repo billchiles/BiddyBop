@@ -26,22 +26,19 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     getInitialExplanationLines(board.dealer, testDeal, practiceStages));
   const explanationRef = useRef<HTMLPreElement | null>(null);
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
-  // Derive whether the trainer can judge the next physical turn or must explain why input stops.
-  // This is not the completion state of the recorded practice sequence.
+  // Rule feedback is independent of bridge legality and recorded practice completion.
+  // An unsupported turn still accepts legal calls; later turns may be supported again.
   const biddingTurnStatus = useMemo(() => getBiddingTurnStatus(board, auction, biddingSystem),
     [board, auction, biddingSystem]);
   const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
-  const biddingInputBlocked = biddingTurnStatus.kind === 'scopeBoundary' ||
-    biddingTurnStatus.kind === 'noApplicableRule' || biddingTurnStatus.kind === 'noModeledStage';
-  // Display why the input is disabled as soon as the last modeled call is committed.  This
-  // guidance does not depend on an impossible submission through disabled HTML controls.
-  // If the last modeled call was forcing, explain that real bridge still requires a
-  // continuation even though this trainer has no rules for the later bidding stage.
-  const outstandingForce = biddingTurnStatus.kind === 'noModeledStage'
-    ? getUnmodeledContinuationForce(board, auction, biddingSystem) : null;
-  const terminalGuidance = getTerminalGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
-  const displayedExplanation = [...explanationLines, ...terminalGuidance];
-  const terminalGuidanceText = terminalGuidance.join('\n');
+  const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'supported' ||
+    biddingTurnStatus.kind === 'auctionComplete' ? null :
+    getUnmodeledContinuationForce(board, auction, biddingSystem),
+    [board, auction, biddingSystem, biddingTurnStatus]);
+  // The next-turn note is informational. It never blocks a legal auction continuation.
+  const turnGuidance = getNextTurnGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
+  const displayedExplanation = [...explanationLines, ...turnGuidance];
+  const turnGuidanceText = turnGuidance.join('\n');
 
   useEffect(() => {
     setBidText('');
@@ -54,11 +51,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       return;
     }
     explanationRef.current.scrollTop = explanationRef.current.scrollHeight;
-  }, [explanationLines, terminalGuidanceText]);
+  }, [explanationLines, turnGuidanceText]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (auctionComplete || practiceComplete || biddingInputBlocked) {
+    if (auctionComplete || practiceComplete) {
       setExplanationLines((current) => [...current, '',
         'Bidding input is disabled. Select New Deal or Test Deal to continue.']);
       onTelemetry(['Bidding input is disabled. Select New Deal or Test Deal.']);
@@ -85,87 +82,68 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       onTelemetry(lines);
       return;
     }
-    // The unjudged intervening turn accepts any mechanically legal call; subsequent rule-stage
-    // selection always uses the actual entered call, not a hypothetical opponent Pass.
+    // All legal calls advance the physical auction, even when no rule evaluates this turn.
+    // Practice mode substitutes the recorded call after evaluating the student's legal choice.
     const recordedCall = getRecordedPracticeCorrection(
       auction, normalizedCall, testDeal?.practiceAuction);
-    const useRecordedCall = recordedCall !== null;
-    if (biddingTurnStatus.kind === 'unjudgedTurn') {
-      const enteredAuction: Call[] = [...auction, recordedCall ?? normalizedCall];
-      const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
-      setAuction(nextAuction);
-      setBidText('');
-      const lines = [
-        `${getSeatLabel(seat)} unjudged intervening call: ${normalizedCall}.`,
-        'This turn has no bidding rule bucket; the trainer does not judge this call.',
-      ];
-      if (recordedCall !== null) {
-        lines.push(`Practice continuation uses the recorded ${recordedCall} instead.`);
-      }
-      lines.push(...getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal));
-      setExplanationLines((current) => [...current, '', ...lines]);
-      onTelemetry(lines);
-      return;
-    }
-    if (biddingTurnStatus.kind !== 'supported') {
-      const lines = ["This bidding position is outside the trainer's active bidding rules. " +
-        'Select New Deal or Test Deal to continue.'];
-      setExplanationLines((current) => [...current, '', ...lines]);
-      onTelemetry(lines);
-      return;
-    }
-    // A selected exercise stays on its recorded path after evaluating the legal student's bid.
-    const result = evaluateUserCall(normalizedCall, board, auction, biddingSystem);
-    const enteredAuction: Call[] = [...auction, useRecordedCall ? recordedCall : normalizedCall];
+    const result = biddingTurnStatus.kind === 'noModeledStage' ? null :
+      evaluateUserCall(normalizedCall, board, auction, biddingSystem);
+    const enteredAuction: Call[] = [...auction, recordedCall ?? normalizedCall];
     const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
     setAuction(nextAuction);
-    const practiceNotes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
-    const recordedResult = useRecordedCall && recordedCall !== null
+    setBidText('');
+    const notes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
+    const recordedResult = result !== null && recordedCall !== null
       ? evaluateUserCall(recordedCall, board, auction, biddingSystem) : null;
-    finishBidEntry(seat, biddingTurnStatus.stage, result, practiceNotes,
-      recordedResult === null || recordedCall === null ? null : { call: recordedCall,
-        result: recordedResult });
+    finishBidEntry(seat, normalizedCall, biddingTurnStatus, result, notes,
+      recordedCall === null ? null : { call: recordedCall, result: recordedResult });
     if (nextAuction.length > enteredAuction.length) {
       const scripted = nextAuction.slice(enteredAuction.length);
       onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
     }
   }
 
-  function finishBidEntry(seat: Seat, stage: BidStage, result: BidEvalResult,
-                          practiceNotes: string[],
-                          correction: { call: Call; result: BidEvalResult } | null): void {
+  /// Explain a judged or unjudged legal call. Both paths use the same auction update above.
+  /// An unjudged Pass is neither a rule failure nor a recommendation to Pass.
+  function finishBidEntry(seat: Seat, call: Call, status: BiddingTurnStatus,
+                          result: BidEvalResult | null, practiceNotes: string[],
+                          correction: { call: Call; result: BidEvalResult | null } | null): void {
+    const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
+      status.kind === 'noApplicableRule' ? status.stage : null;
     const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
-    setBidText('');
-    const explanation = buildExplanationLines(title, result);
-    const intervention = getInterferenceAfterOpening(board.dealer, auction);
-    if (stage === 'responding' && intervention !== 'none' &&
-        getApplicableCandidateCalls(result).length === 0) {
-      explanation.push(intervention === 'suitOvercall'
-        ? 'No modeled response qualifies after this natural suit overcall. Pass is available, ' +
-          'but the app does not automatically infer Pass as the best action.'
-        : 'Responder treatments after this intervention may be incomplete. Pass is available, ' +
-          'but no recommendation is established from the empty candidate list.');
-    }
-    if (correction !== null) {
-      explanation.push('', `Practice continuation: You entered ${result.normalizedCall}, but ` +
-        `this exercise records ${correction.call}. The auction uses ${correction.call} so ` +
-        'you can continue the lesson. The recorded call is not necessarily the only sound bid.');
-      const matched = correction.result.userCallMatchingRules;
-      if (matched.length > 0) {
-        explanation.push('Reason for the recorded call:');
-        for (const rule of matched) {
-          appendRuleExplanation(explanation, rule);
-        }
-      } else {
-        explanation.push('This recorded continuation is not supported by an applicable rule ' +
-          'under the current bidding configuration.');
+    const explanation = status.kind === 'supported' && result !== null
+      ? buildExplanationLines(title, result)
+      : buildUnjudgedCallExplanation(title, call, status);
+    if (status.kind === 'supported' && result !== null) {
+      const intervention = getInterferenceAfterOpening(board.dealer, auction);
+      if (stage === 'responding' && intervention !== 'none' &&
+          getApplicableCandidateCalls(result).length === 0) {
+        explanation.push(intervention === 'suitOvercall'
+          ? 'No modeled response qualifies after this natural suit overcall.  Pass is available, ' +
+            'but the app does not automatically infer Pass as the best action.'
+          : 'Responder treatments after this intervention may be incomplete.  Pass is available, ' +
+            'but no recommendation is established from the empty candidate list.');
       }
     }
-    if (practiceNotes.length > 0) {
-      explanation.push('', ...practiceNotes);
+    if (correction !== null) {
+      explanation.push('', `Practice continuation: You entered ${call}, but ` +
+        `this exercise records ${correction.call}.  The auction uses ${correction.call} so ` +
+        'you can continue the lesson.  The recorded call is not necessarily the only sound bid.');
+      const matched = correction.result?.userCallMatchingRules ?? [];
+      if (matched.length > 0) {
+        explanation.push('Reason for the recorded call:');
+        for (const rule of matched) appendRuleExplanation(explanation, rule);
+      } else if (correction.result !== null && status.kind === 'supported') {
+        explanation.push('This recorded continuation is not supported by an applicable rule ' +
+          'under the current bidding configuration.');
+      } else {
+        explanation.push('The app does not evaluate the recorded call in this bidding context.');
+      }
     }
+    if (practiceNotes.length > 0) explanation.push('', ...practiceNotes);
     setExplanationLines((current) => [...current, '', ...explanation]);
-    onTelemetry([`Evaluating ${title}.`, ...result.telemetryLines]);
+    onTelemetry(result === null ? [`Recorded unjudged ${getSeatLabel(seat)} ${call}.`] :
+      [`Evaluating ${title}.`, ...result.telemetryLines]);
   }
 
   function reportInvalidInput(seat: Seat, stage: BidStage | null): void {
@@ -187,10 +165,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
       .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
   }
 
-  const inputDisabled = auctionComplete || practiceComplete || biddingInputBlocked;
+  const inputDisabled = auctionComplete || practiceComplete;
   const activeSeat = inputDisabled ? null : getNextSeat(board.dealer, auction);
   const nextBidLabel = practiceComplete ? 'Practice sequence complete' :
-    biddingInputBlocked ? 'Bidding input disabled' :
     getNextBidLabel(board.dealer, auction, auctionComplete);
   const auctionRows = buildAuctionRows(auction, board.dealer);
 
@@ -309,61 +286,77 @@ function formatHand(hand: Hand): string {
   }).join('; ');
 }
 
-/// Explanation is displayed immediately on entering a disabled state.  Preserve the last
-/// evaluation above it so that a valid final bid's explanation is not lost.
-function getTerminalGuidance(biddingTurnStatus: BiddingTurnStatus, practiceComplete: boolean,
+/// Show useful scope guidance before the next call, without treating it as auction completion.
+/// Only a completed real auction or recorded practice sequence disables the bidding controls.
+function getNextTurnGuidance(status: BiddingTurnStatus, practiceComplete: boolean,
                              outstandingForce: UnmodeledContinuationForce | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
     lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
       'real bridge auction.  Select New Deal or Test Deal to continue.');
+    return lines;
   }
-  switch (biddingTurnStatus.kind) {
+  switch (status.kind) {
     case 'auctionComplete':
       lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
-      break;
+      return lines;
     case 'scopeBoundary':
-      if (! practiceComplete) {
-        lines.push('', 'The app stops reviewing and teaching bids at this point due to many ' +
-          'nuances and judgment considerations experience players use.  ' +
-          'Real bridge bidding may continue, but further calls are not evaluated here.');
-        appendRuleExplanation(lines, biddingTurnStatus.rule);
-        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
-      }
+      lines.push('', 'The app cannot reliably recommend a bid at this point because of the ' +
+        'nuances and judgment experienced players use.  You may continue entering legal ' +
+        'calls, but the app may not be able to evaluate them.');
+      appendRuleExplanation(lines, status.rule);
       break;
     case 'noApplicableRule':
-      if (! practiceComplete) {
-        lines.push('', 'The app cannot give reliable feedback or teaching at this ' +
-          `${getStageLabel(biddingTurnStatus.stage)} stage with the current auction context.  ` +
-          'This is because of the app limitations, not a result of bid being wrong.');
-        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
-      }
+      lines.push('', 'The app cannot give reliable feedback at this ' +
+        `${getStageLabel(status.stage)} stage in the current auction.  ` +
+        'This limitation does not mean Pass or another legal call is incorrect.  ' +
+        'You may continue bidding.');
       break;
     case 'noModeledStage':
-      if (! practiceComplete) {
-        lines.push('', 'The app stops providing feedback and teaching at this stage of the ' +
-          'bidding due to more judgment and advanced experience needed, but actual bridge ' +
-          'bidding may continue past this point.');
-        if (outstandingForce !== null) {
-          if (outstandingForce.lastStage === 'balancing') {
-            lines.push('The balancing Double asks partner to act after the opponents have ' +
-              'had their opportunity.  Partner normally selects an unbid suit; ' +
-              'passing for penalties requires exceptional defensive values.  ' +
-              'The app does not teach the later continuation.');
-          } else if (outstandingForce.kind === 'gameForce') {
-            lines.push('Responder\'s last bid is game forcing.  Opener must continue ' +
-              'toward game in a real auction; the app does not teach opener\'s third bid.');
-          } else {
-            lines.push('Responder\'s last bid is forcing for one round.  Opener must ' +
-              'continue in an uncontested auction; the app does not teach opener\'s third bid.');
-          }
-        }
-        lines.push('Bidding input is disabled.  Select New Deal or Test Deal to continue.');
-      }
+      lines.push('', 'The app does not have bidding rules for this turn.  ' +
+        'You may continue entering legal calls.  Feedback will resume if a later ' +
+        'auction context matches supported bidding rules.');
       break;
-    case 'unjudgedTurn':
     case 'supported':
       break;
+  }
+  // A forcing call remains binding when one opposing Pass intervenes before partner acts.
+  if (outstandingForce !== null && status.kind !== 'supported') {
+    if (outstandingForce.lastStage === 'balancing') {
+      lines.push('The balancing Double asks partner to act after the opponents have ' +
+        'had their opportunity.  Partner normally selects an unbid suit; ' +
+        'passing for penalties requires exceptional defensive values.  ' +
+        'The app does not teach the later continuation.');
+    } else if (outstandingForce.kind === 'gameForce') {
+      lines.push("Responder's forcing bid still obliges opener to continue toward game.  " +
+        "The app does not teach opener's third bid.");
+    } else {
+      lines.push("Responder's bid is forcing for one round.  Opener must continue in an " +
+        "uncontested auction; the app does not teach opener's third bid.");
+    }
+  }
+  return lines;
+}
+
+/// A legal call outside modeled rule feedback is recorded, not graded as wrong.  Pass may
+/// be expected when the other partnership is describing its hands, but we do not infer that
+/// it is the best call merely because the trainer has no applicable rule.
+function buildUnjudgedCallExplanation(title: string, call: Call,
+                                      status: BiddingTurnStatus): string[] {
+  const lines = [title, `Recorded call: ${call}.  The app did not evaluate this call.`];
+  if (status.kind === 'scopeBoundary') {
+    appendRuleExplanation(lines, status.rule);
+    lines.push('The auction may continue; this scope boundary does not recommend Pass.');
+  } else if (status.kind === 'noApplicableRule') {
+    lines.push('No bidding rule or explanatory boundary qualifies for this hand and auction.  ' +
+      'This is a limitation of the app, not a judgment that the call is incorrect.');
+  } else {
+    lines.push('There is no modeled bidding-rule stage for this turn.  ' +
+      'The app may be able to evaluate later calls as the auction develops.');
+  }
+  if (call === 'Pass') {
+    lines.push('Pass may be entirely appropriate or expected here, especially while the ' +
+      'opponents continue bidding.  The app cannot determine whether Pass is best for this hand.');
   }
   return lines;
 }
@@ -422,7 +415,9 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
-    lines.push('No rule satisfied by this call.');
+    lines.push('No applicable rule supports this call for the current hand, auction, and ' +
+      'bidding agreements.  This does not necessarily mean the bid is an incorrect bid ' +
+      'for the situation.');
     const preferredRule = result.applicableRules[0];
     if (preferredRule !== undefined) {
       lines.push('');

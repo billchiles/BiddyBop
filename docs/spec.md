@@ -111,16 +111,18 @@ The app should help the user practice bidding decisions using structured convent
   candidate is rejected or removed. Explanations should be able to distinguish a specific recorded
   rejection reason from a user call that simply has no modeled candidate. Do not assume evaluator
   or refiner early returns provide a complete rejection history.
-- `kind: 'scopeBoundary'` is an explanatory stopping declaration, not a bid rule. It creates no
+- `kind: 'scopeBoundary'` is an explanatory limit on rule judgment, not a bid rule. It creates no
   candidate `Call`. A boundary may be hand-qualified through `scopeBoundaryWhen`, and its guidance
-  should explain why the trainer stops and what judgment remains. If a concrete modeled call
-  applies to the same hand, the concrete bid suppresses the boundary.
-- Reaching a scope boundary means the trainer deliberately stops judging later calls in that branch;
-  it does not imply that Pass is correct or that further bidding is impossible.
-- After a qualifying forcing responder rebid at the end of modeled depth, the terminal
-  explanation retains the one-round or game-forcing obligation even though general
-  opener-third-bid rules are omitted.  A qualifying balancing Double similarly
-  requires guidance about partner taking out or exceptionally passing for penalties.
+  should explain why the app cannot judge the next bid and what judgment remains. If a
+  concrete modeled call applies to the same hand, that call suppresses the boundary.
+- Reaching a scope boundary means the trainer cannot reliably judge this decision. It does not
+  imply that Pass is correct or that further bidding is impossible. In New Deal, all mechanically
+  legal calls remain enterable and feedback can resume if later auction context is modeled;
+  recorded Test Deal exercises still stop at their intended endpoint.
+- After a qualifying forcing responder rebid at the end of modeled depth, the explanatory
+  guidance retains the one-round or game-forcing obligation (including after an intervening
+  opposing Pass) even though general opener-third-bid rules are omitted.  A qualifying balancing
+  Double similarly requires guidance about partner taking out or exceptionally passing for penalties.
   Derive that guidance from a rule actually matching the last call, not its level alone.
 
 ## Constraint Semantics

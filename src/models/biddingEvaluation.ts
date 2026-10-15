@@ -9,10 +9,10 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
-         isUnjudgedInterveningTurn,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
-         getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference }
+         getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
+         getSeatForCallIndex, getPartnerSeat }
   from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules,
          ResponderRebidRules }
@@ -216,9 +216,10 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
 
 //// Next bidding-turn status
 
-/// Whether the trainer can judge the next turn, allow an unjudged intervening call, or stop.
-/// This is derived from the actual auction and rules; it is not a persisted React state, a
-/// bidding role, or an indication that the recorded practice exercise has ended.
+/// What feedback the trainer can give for the next physical bidding turn. This status never
+/// controls auction entry: every mechanically legal call is allowed in New Deal, even when
+/// the trainer cannot evaluate it. Only real auction completion or the recorded end of a
+/// Test Deal disables entry.
 export type BiddingTurnStatus =
   // Actual bridge auction ended (four opening Passes or three Passes after a contract).
   | { kind: 'auctionComplete' }
@@ -231,22 +232,16 @@ export type BiddingTurnStatus =
   | { kind: 'noApplicableRule'; stage: BidStage }
   // No modeled bidding-rule stage exists for this physical turn.
   | { kind: 'noModeledStage' }
-  // A specifically recognized intervening turn is entered legally but not judged. The current
-  // system permits this only for two opponent turns in an uncontested opening partnership auction.
-  | { kind: 'unjudgedTurn' };
+  ;
 
-/// Determine what interaction the trainer can offer for the next physical auction turn.
-/// The bidder's stage comes from getNextBiddingRuleStage; a stage alone does not guarantee that
-/// a rule qualifies for the hand. Distinguish a missing rule from an explicit scope boundary.
+/// Classify rule feedback for the next turn, without limiting the user's ability to bid.
+/// Stage selection and rule qualification are separate: a recognized stage can still have
+/// no qualifying bid. Scope boundaries explain judgment limits but do not end the auction.
 export function getBiddingTurnStatus (board: Board, auction: Call[],
                                       system: BiddingSystem): BiddingTurnStatus {
   if (auctionIsComplete(auction)) return { kind: 'auctionComplete' };
   const stage = getNextBiddingRuleStage(board.dealer, auction);
-  if (stage === null) {
-    return isUnjudgedInterveningTurn(board.dealer, auction)
-      ? { kind: 'unjudgedTurn' }
-      : { kind: 'noModeledStage' };
-  }
+  if (stage === null) return { kind: 'noModeledStage' };
 
   const currentRules = getRulesForCurrentContext(board, auction, system);
   if (getApplicableCandidateCalls(currentRules).length > 0) return { kind: 'supported', stage };
@@ -256,32 +251,38 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
 }
 
 
-/// A forcing bid was just entered at the end of the trainer's modeled depth.
-/// Its obligation remains real even though this app has no general opener-third-bid
-/// or advancer-rebid stage.  Determined from a *qualifying* prior rule, not merely
-/// from the level, bid label, or assumption that every legal call is correct.
+/// A supported forcing call may still oblige partner to act after an intervening opponent
+/// Pass, even though later stages are deliberately not modeled. This is explanatory only.
+/// Infer forcing from a qualifying rule for the earlier call, never from its level alone.
 export type UnmodeledContinuationForce = {
   kind: 'gameForce' | 'oneRoundForce';
   lastStage: 'responderRebid' | 'balancing';
 };
 
-/// Check the last actual call only when the next turn has no modeled rule stage.
-/// This intentionally does not infer forcing meanings from unrelated past calls.
-/// A bid after which game is already reached need not force any further action.
+/// Find a still-pending forcing call made by responder on rebid or by the balancing doubler.
+/// The call may be the last auction entry or may be followed by one opposing Pass. No force
+/// is inferred once partner has subsequently acted, and game-level contracts do not create
+/// a new obligation merely because their matching rule was labeled game forcing.
 export function getUnmodeledContinuationForce (board: Board, auction: Call[],
                                               system: BiddingSystem): UnmodeledContinuationForce | null {
-  if (auction.length === 0 || auctionIsComplete(auction) ||
-      getNextBiddingRuleStage(board.dealer, auction) !== null) return null;
-  const beforeLastCall = auction.slice(0, -1);
-  const lastStage = getNextBiddingRuleStage(board.dealer, beforeLastCall);
+  if (auction.length === 0 || auctionIsComplete(auction)) return null;
+  const lastIndex = auction.length - 1;
+  let forceIndex = lastIndex;
+  if (auction[lastIndex] === 'Pass' && lastIndex > 0) {
+    forceIndex = lastIndex - 1;
+    // Only an opponent's intervening Pass can leave the prior partnership force pending.
+    const forceSeat = getSeatForCallIndex(board.dealer, forceIndex);
+    const passSeat = getSeatForCallIndex(board.dealer, lastIndex);
+    if (passSeat === forceSeat || passSeat === getPartnerSeat(forceSeat)) return null;
+  }
+  const beforeForce = auction.slice(0, forceIndex);
+  const lastStage = getNextBiddingRuleStage(board.dealer, beforeForce);
   if (lastStage !== 'responderRebid' && lastStage !== 'balancing') return null;
-  const lastCall = auction[auction.length - 1];
-  if (lastCall === undefined) return null;
-  const matchingRules = evaluateUserCall(lastCall, board, beforeLastCall, system)
+  const forcingCall = auction[forceIndex];
+  if (forcingCall === undefined) return null;
+  const matchingRules = evaluateUserCall(forcingCall, board, beforeForce, system)
     .userCallMatchingRules;
-  // 'gameForcing' on the last call is meaningful only while game has not yet
-  // been reached.  Standard game levels are 3NT, 4M, and 5m.
-  const bid = parseSuitBid(lastCall);
+  const bid = parseSuitBid(forcingCall);
   const atGame = bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
     bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
   if (! atGame && matchingRules.some((rule) => rule.callCategory?.includes('gameForcing'))) {
