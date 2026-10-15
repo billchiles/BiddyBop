@@ -641,13 +641,16 @@ export function contestedOneNtOvercallerRebidApplies (
       (advance !== 'Pass' && advance !== '2NT')) {
     return { success: false, telemetryLines: [] };
   }
-  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  // The natural overcall still shows 15-18 HCP.  The selected 1NT response agreement
+  // changes what advancer promises with 2NT, so the borderline acceptance strength shifts.
+  // The selected limited Pass continuation retains the same strength cutoff.
+  const responseStrengthCutoffHcp = system.oneNtOpening === '15-17' ? 16 : 17;
   const hcp = context.handFacts.hcp;
   const success = treatment === 'pass' ? advance === 'Pass' && call === 'Pass' &&
-    hcp <= minimum + 1 :
+    hcp <= responseStrengthCutoffHcp :
     treatment === 'invite-decline' ? advance === '2NT' && call === 'Pass' &&
-      hcp <= minimum + 1 :
-    advance === '2NT' && call === '3NT' && hcp >= minimum + 1;
+      hcp <= responseStrengthCutoffHcp :
+    advance === '2NT' && call === '3NT' && hcp >= responseStrengthCutoffHcp;
   return { success, telemetryLines: [success ?
     'PASS: limited natural continuation after interference over our 1NT overcall.' :
     'FAIL: no modeled natural continuation or missing stopper/strength.'] };
@@ -719,15 +722,20 @@ export function refineNaturalOneNtOvercallTexas (calls: Call[], context: RuleEva
            telemetryLines: [] };
 }
 
-/// Natural 1NT advances share the configured 15-17/16-18 thresholds, even though a natural
-/// 1NT overcall itself permits 15-18 HCP. At the middle value, both invitation decisions survive.
+/// A natural 1NT overcall always shows 15-18 HCP, but advancer uses the selected 1NT
+/// opening-response agreement.  Its 2NT/4NT invitations therefore promise different strength
+/// under the 15-17 and 16-18 settings.  At the corresponding borderline overcaller strength,
+/// both accepting and declining the invitation qualify.
 export function naturalOneNtOvercallerInvitationApplies (
   _call: Call, context: RuleEvalContext, system: BiddingSystem,
   invitation: '2NT' | '4NT', accept: boolean): AppliesWhenResult {
   const advance = getNaturalOneNtOvercallAdvance(context);
-  const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
+  // This is the borderline for an invitation under advancer's configured response ranges,
+  // not the minimum HCP of the natural 1NT overcall (which remains 15-18 in either system).
+  const invitationBorderlineHcp = system.oneNtOpening === '15-17' ? 16 : 17;
   const hcp = context.handFacts.hcp;
-  const strengthApplies = accept ? hcp >= minimum + 1 : hcp <= minimum + 1;
+  const strengthApplies = accept ? hcp >= invitationBorderlineHcp :
+    hcp <= invitationBorderlineHcp;
   const success = advance === invitation && strengthApplies;
   return { success, telemetryLines: [success ?
     `PASS: ${hcp} HCP permits ${accept ? 'accepting' : 'declining'} the ${invitation} invitation.` :

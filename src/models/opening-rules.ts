@@ -225,7 +225,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['4C', '4D', '4H', '4S'],
     callRefinement: refinePreemptSuitQuality,
-    callCategory: ['invitational'],
+    callCategory: ['natural'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
     guidance: ['An eight-card suit with concentrated honors is a candidate for a four-level ' +
                  'preempt, not an automatic four-level opening. Consider offensive playing ' +
@@ -248,7 +248,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['5C', '5D'],
     callRefinement: refinePreemptSuitQuality,
-    callCategory: ['invitational'],
+    callCategory: ['natural'],
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 9 }] },
     guidance: ['Rare: good nine-card minor with about eight playing tricks.'],
     meaning: 'Very high-level descriptive and obstructive preempt.',
