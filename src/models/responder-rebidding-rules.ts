@@ -16,7 +16,9 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderStrongTwoCDecisionApplies, refineResponderStrongTwoCMajorGame,
          getResponderMajorSupportConvention, responderMajorSupportConventionApplies,
          refineResponderSupportMajorGame, getResponderAfterMajorGameTry,
-         refineResponderMajorGameTry, responderMajorGameTryApplies } from './responder-rebidding-functions';
+         refineResponderMajorGameTry, responderMajorGameTryApplies,
+         getResponderAfterOpenerSplinter, refineResponderOpenerSplinterMajorGame,
+         responderOpenerSplinterMajorGameApplies } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Selected strong 2C responder continuations (no slam bidding system)
@@ -172,6 +174,57 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['Partner’s below-game control bid shows slam interest; do not Pass it.',
                'High-card values opposite responder’s short suit may be wasted. Where slam remains ' +
                'plausible, further control decisions are outside the chosen teaching scope.'],
+    certainty: 'high',
+  },
+  //// After opener splinters in support of responder's suit
+  // These are opener's artificial short-suit rebids, NOT responder's initial splinter
+  // in support of opener's major (the preceding rules).  Either original opening suit
+  // can qualify; the agreed major is responder's natural one-level suit or opener's
+  // original major after a 2M simple raise.  Splinters are game-forcing.
+  {
+    id: 'responder-rebid-game-after-opener-splinter', kind: 'responderRebid',
+    title: "Return to responder's agreed major game after opener's splinter",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit' },
+    agreement: { setting: 'splinters', value: true },
+    calls: ['4H', '4S'], callRefinement: refineResponderOpenerSplinterMajorGame,
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: responderOpenerSplinterMajorGameApplies,
+    meaning: "Opener's splinter shows a strong game-forcing raise of responder's major " +
+             'and shortness in the side suit.  Ordinary responder values place game in the agreed major.',
+    guidance: ["High cards in opener's short suit can be wasted opposite a singleton or void.",
+               'Responder with unusually strong values may need slam investigation instead of an automatic game signoff.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-opener-major-splinter', kind: 'scopeBoundary',
+    title: "Additional slam judgment after opener's splinter agreeing responder's major",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit' },
+    agreement: { setting: 'splinters', value: true },
+    scopeBoundaryWhen: (context) => {
+      const info = getResponderAfterOpenerSplinter(context);
+      return { success: info !== null && (info.agreedSuit === 'H' || info.agreedSuit === 'S'),
+        telemetryLines: ["Check for opener's uncontested splinter agreeing responder's major."] };
+    },
+    meaning: "Opener's splinter has established a game force and shown a short suit. " +
+             'Responder with extra strength may need to explore slam rather than automatically stop in game.',
+    guidance: ['Do not Pass a forcing splinter below game.  Slam evaluation depends on controls, ' +
+               'working honors opposite the short suit, trump quality and distribution.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-opener-minor-splinter', kind: 'scopeBoundary',
+    title: "Unmodeled decisions after opener's splinter agreeing a minor",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor' },
+    agreement: { setting: 'splinters', value: true },
+    scopeBoundaryWhen: (context) => {
+      const info = getResponderAfterOpenerSplinter(context);
+      return { success: info !== null && (info.agreedSuit === 'C' || info.agreedSuit === 'D'),
+        telemetryLines: ["Check for opener's splinter agreeing responder's one-level minor."] };
+    },
+    meaning: "Opener's splinter establishes a game force and a fit in responder's minor. " +
+             'Choosing notrump, five of the minor or slam requires further judgment.',
+    guidance: ['Do not Pass below game.  Minor-suit fits leave more room for notrump ' +
+               'and slam decisions than a simple major-game return.'],
     certainty: 'high',
   },
   //// Responder after Stayman over a natural 1NT or 2NT opening

@@ -3159,6 +3159,80 @@ function runResponderAfterMajorGameTryTests (): number {
   return failures;
 }
 
+/// B2: opener's optional splinter shows a fit and forces to game.  Responder must
+/// distinguish it from an ordinary jump shift and from responder's *own* earlier
+/// splinter.  Check both 1m/1M–1new-suit and 1M–2M auctions, including the minor fit.
+function runResponderAfterOpenerSplinterTests (): number {
+  const majorAfterHeart = { S: 'AQ52', H: 'AKJ85', D: 'K74', C: '6' };
+  const minorOpener = { S: 'A74', H: 'KQ85', D: '6', C: 'AKJ52' };
+  const simpleSpadeOpener = { S: 'AQJ85', H: '6', D: 'AK74', C: 'K82' };
+  const simpleHeartOpener = { S: '6', H: 'AQJ85', D: 'AK74', C: 'K82' };
+  const minorSupportOpener = { S: 'A74', H: '6', D: 'KQ85', C: 'AKJ52' };
+  const cases: { name: string; north: { S: string; H: string; D: string; C: string };
+    south: { S: string; H: string; D: string; C: string }; auction: Call[];
+    expected: Call[]; boundary?: boolean; splinters?: boolean }[] = [
+    { name: 'Heart opener splinters clubs for spades, minimum responder bids 4S',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'Q85', C: 'T942' },
+      auction: ['1H', 'Pass', '1S', 'Pass', '4C', 'Pass'], expected: ['4S'] },
+    { name: 'Heart opener splinters clubs for spades, stronger responder needs slam judgment',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'AQ5', C: 'KQ42' },
+      auction: ['1H', 'Pass', '1S', 'Pass', '4C', 'Pass'], expected: [], boundary: true },
+    { name: 'Minor opener splinters diamonds for hearts, responder bids 4H',
+      north: minorOpener, south: { S: 'K63', H: 'AJ74', D: '985', C: 'T43' },
+      auction: ['1C', 'Pass', '1H', 'Pass', '4D', 'Pass'], expected: ['4H'] },
+    { name: 'Spade opener splinters hearts after 2S support raise',
+      north: simpleSpadeOpener, south: { S: 'K63', H: 'K85', D: 'Q65', C: 'T943' },
+      auction: ['1S', 'Pass', '2S', 'Pass', '4H', 'Pass'], expected: ['4S'] },
+    { name: 'Heart opener splinters spades after 2H support raise',
+      north: simpleHeartOpener, south: { S: 'K85', H: 'K63', D: 'Q65', C: 'T943' },
+      auction: ['1H', 'Pass', '2H', 'Pass', '3S', 'Pass'], expected: ['4H'] },
+    { name: 'Minor responder fit receives guidance rather than invented notrump game',
+      north: minorSupportOpener, south: { S: 'K63', H: '985', D: 'AJ74', C: 'T43' },
+      auction: ['1C', 'Pass', '1D', 'Pass', '3H', 'Pass'], expected: [], boundary: true },
+    { name: 'Splinters disabled: opener new-suit jump is not treated as a splinter',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'Q85', C: 'T942' },
+      auction: ['1H', 'Pass', '1S', 'Pass', '4C', 'Pass'], expected: [], splinters: false },
+    { name: 'Natural second suit is not a splinter',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'Q85', C: 'T942' },
+      auction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass'], expected: [] },
+    { name: 'Single jump shift is not a double-jump splinter',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'Q85', C: 'T942' },
+      auction: ['1H', 'Pass', '1S', 'Pass', '3C', 'Pass'], expected: [] },
+    { name: 'Uncontested game placement does not bleed into competition',
+      north: majorAfterHeart, south: { S: 'KJ83', H: '63', D: 'Q85', C: 'T942' },
+      auction: ['1H', 'Pass', '1S', '2D', '4C', 'Pass'], expected: [] },
+  ];
+  let failures = 0;
+  const gameId = 'responder-rebid-game-after-opener-splinter';
+  const boundaryIds = ['responder-rebid-boundary-after-opener-major-splinter',
+    'responder-rebid-boundary-after-opener-minor-splinter'];
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name,
+      north: test.north, south: test.south, practiceAuction: test.auction });
+    const system = { ...defaultBiddingSystem, splinters: test.splinters ?? true };
+    const evaluation = evaluateUserCall('Pass', board, test.auction, system);
+    const actual = getApplicableCandidateCalls(evaluation)
+      .filter(({ rule }) => rule.id === gameId).map(({ call }) => call);
+    const boundary = evaluation.applicableRules.some(({ id }) => boundaryIds.includes(id));
+    if (actual.length !== test.expected.length ||
+        test.expected.some((call) => ! actual.includes(call)) || boundary !== (test.boundary === true)) {
+      failures += 1;
+      console.error(`FAIL B2 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+        `got ${actual.join(', ') || '-'}, boundary=${boundary}.`);
+    }
+    // Any qualified response to the splinter must be 4M, never Pass or the short suit.
+    const status = getBiddingTurnStatus(board, test.auction, system);
+    if ((test.expected.length > 0 && status.kind !== 'supported') ||
+        (test.boundary && status.kind !== 'scopeBoundary')) {
+      failures += 1;
+      console.error(`FAIL B2 ${test.name}: expected supported/scopeBoundary, got ${status.kind}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Responder after opener splinter: ` +
+              `${cases.length} targeted auction/hand checks.\n`);
+  return failures;
+}
+
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
 function runBiddingTurnStatusTests (): number {
@@ -3226,7 +3300,8 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
   runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
+  runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
+  runResponderAfterOpenerSplinterTests() + runBiddingTurnStatusTests() + runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

@@ -831,6 +831,69 @@ export function responderMajorGameTryApplies (call: Call, context: RuleEvalConte
   ] };
 }
 
+//// Responder after opener makes a splinter agreeing responder's suit
+
+/// Recognize only the opener-side splinters the opener-rebid rules actually describe:
+///   - 1m/1M – 1new-suit – double-jump into a different short suit, or
+///   - 1M – 2M – single-jump into a different short suit.
+/// In both cases the opening bidder promises four-card support for responder's new suit
+/// (five-card trump support after the simple raise).  This helper recognizes the actual
+/// auction, not the student's strength or any unannounced shortness in their hand.
+export function getResponderAfterOpenerSplinter (context: RuleEvalContext):
+    { agreedSuit: Suit; shortSuit: Suit; responseKind: 'newSuit' | 'simpleMajorRaise' } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
+  const openingSuit = seq.opening[1] as Suit;
+  const response = parseSuitBid(seq.response);
+  const rebid = parseSuitBid(seq.rebid);
+  if (response === null || rebid === null || response.strain === 'NT' ||
+      rebid.strain === 'NT' || rebid.strain === openingSuit ||
+      rebid.strain === response.strain) return null;
+  const simpleMajorRaise = (openingSuit === 'H' || openingSuit === 'S') &&
+    seq.response === `2${openingSuit}`;
+  const newSuit = response.level === 1 && response.strain !== openingSuit &&
+    responseJump(seq.opening as SuitBid, seq.response as SuitBid) === 0;
+  if (!simpleMajorRaise && !newSuit) return null;
+  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
+  if (cheapest === null || rebid.level !== parseSuitBid(cheapest)!.level +
+      (simpleMajorRaise ? 1 : 2)) return null;
+  return { agreedSuit: (simpleMajorRaise ? openingSuit : response.strain) as Suit,
+    shortSuit: rebid.strain as Suit,
+    responseKind: simpleMajorRaise ? 'simpleMajorRaise' : 'newSuit' };
+}
+
+/// With a normal response, opener's splinter has already forced the partnership to
+/// game in the agreed major.  Return to 4M; stronger responder hands may merit slam
+/// investigation, which this trainer leaves to the following scope boundary.
+export function responderOpenerSplinterMajorGameApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const info = getResponderAfterOpenerSplinter(context);
+  const isMajor = info?.agreedSuit === 'H' || info?.agreedSuit === 'S';
+  const support = info === null ? 0 : context.handFacts.lengths[info.agreedSuit];
+  const supportMinimum = info?.responseKind === 'simpleMajorRaise' ? 3 : 4;
+  const points = context.handFacts.totalPointsWShortage;
+  const maximum = info?.responseKind === 'simpleMajorRaise' ? 10 : 12;
+  const success = isMajor && support >= supportMinimum && points >= 6 && points <= maximum &&
+    call === `4${info?.agreedSuit}`;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: opener splinter agreeing ${info?.agreedSuit ?? '-'}, ` +
+    `short suit ${info?.shortSuit ?? '-'}, response ${info?.responseKind ?? '-'}, ` +
+    `support ${support}, support points ${points} (normal 6-${maximum}).`,
+  ] };
+}
+
+/// A splinter in support of responder's *major* always returns to that major for
+/// ordinary game placement; do not bid opener's short side suit as a natural contract.
+export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const info = getResponderAfterOpenerSplinter(context);
+  const game = info !== null && (info.agreedSuit === 'H' || info.agreedSuit === 'S')
+    ? `4${info.agreedSuit}` : null;
+  return { calls: game === null ? [] : calls.filter((call) => call === game),
+    telemetryLines: [game === null ? 'No major agreed by an opener-side splinter.' :
+      `Return to ${game} after opener's splinter in ${info!.shortSuit}.`] };
+}
+
 //// Responder after strong 2C, Jacoby 2NT and splinter continuations
 export function getResponderStrongTwoC (context: RuleEvalContext):
     { response: Call; rebid: Call; positive: boolean } | null {
