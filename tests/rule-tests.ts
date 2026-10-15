@@ -3697,6 +3697,110 @@ function runLaterStageTerminationGuidanceTests (): number {
   return failures;
 }
 
+/// C3: a missing direct-seat defense is an explicit explanatory boundary, not an
+/// automatic Pass.  The ordinary fallback Pass and actual DONT/overcall actions retain priority.
+function runUnmodeledDirectDefenseBoundaryTests (): number {
+  const weak = { S: '987', H: 'J876', D: '963', C: '854' };
+  const strongBalanced = { S: 'AK7', H: 'KQ4', D: 'AJ6', C: 'Q742' }; // 19 HCP
+  const strongDont = { S: 'AK7', H: 'KQJ987', D: 'AJ', C: 'Q4' }; // 20 HCP, six good hearts
+  const naturalOvercall = { S: 'AKQJ6', H: '84', D: 'J963', C: '85' };
+  // Construct the other seats from the unused deck, so every diagnostic case has
+  // a legal 52-card deal without asserting unrealistic prior bidding for the opponents.
+  const makeBoard = (name: string, east: typeof weak, auction: Call[], dealer: 'N' | 'W' = 'N') => {
+    const suits = ['S', 'H', 'D', 'C'] as const;
+    const remaining = suits.flatMap((suit) => [...'AKQJT98765432'].map((rank) =>
+      [suit, rank] as const).filter(([, rank]) => !east[suit].includes(rank)));
+    const toHand = (cards: typeof remaining) => {
+      const hand = { S: '', H: '', D: '', C: '' };
+      for (const [suit, rank] of cards) hand[suit] += rank;
+      return hand;
+    };
+    return makeRuleTestBoard({ description: name, dealer, practiceAuction: auction,
+      east, north: toHand(remaining.slice(0, 13)), south: toHand(remaining.slice(13, 26)) });
+  };
+  const cases: {
+    name: string;
+    auction: Call[];
+    east: typeof weak;
+    expectedStatus: ReturnType<typeof getBiddingTurnStatus>['kind'];
+    expectedBoundary?: string;
+    expectedCall?: Call;
+    expectedRule?: string;
+    dealer?: 'N' | 'W';
+  }[] = [
+    { name: 'ordinary weak direct seat', auction: ['1D'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+    { name: 'ordinary constructive action suppresses Pass', auction: ['1D'],
+      east: naturalOvercall, expectedStatus: 'supported', expectedCall: '1S',
+      expectedRule: 'overcall-simple-suit-at-one-level' },
+    { name: 'ordinary 1NT defense Pass', auction: ['1NT'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+    { name: '19 HCP balanced after opposing 1NT', auction: ['1NT'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt' },
+    { name: '20 HCP strong DONT eligible', auction: ['1NT'], east: strongDont,
+      expectedStatus: 'supported', expectedCall: 'Double',
+      expectedRule: 'overcall-dont-single-suit-double' },
+    { name: '19 HCP after 1NT with nondealer opening', auction: ['Pass', '1NT'],
+      east: strongBalanced, expectedStatus: 'scopeBoundary',
+      expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt', dealer: 'W' },
+    { name: 'strong artificial 2C defense', auction: ['2C'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2c-opening' },
+    { name: 'strong 2NT defense', auction: ['2NT'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2nt-opening' },
+    { name: 'three-level preempt 3C', auction: ['3C'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
+    { name: 'three-level preempt 3S', auction: ['3S'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
+    { name: 'high-level opening 3NT', auction: ['3NT'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 4H', auction: ['4H'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 5D', auction: ['5D'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 7NT', auction: ['7NT'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'ordinary weak-two Pass remains', auction: ['2H'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeBoard(test.name, test.east, test.auction, test.dealer ?? 'N');
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+      test.auction, defaultBiddingSystem));
+    const boundary = status.kind === 'scopeBoundary' ? status.rule.id : null;
+    const expectedAction = candidates.some(({ call, rule }) =>
+      call === test.expectedCall && rule.id === test.expectedRule);
+    const hasFallbackPass = candidates.some(({ rule }) =>
+      rule.id === 'overcall-pass-no-qualifying-action');
+    const good = status.kind === test.expectedStatus &&
+      (test.expectedBoundary === undefined
+        ? expectedAction && (test.expectedCall === 'Pass' || !hasFallbackPass)
+        : boundary === test.expectedBoundary && candidates.length === 0);
+    if (!good) {
+      failures++;
+      console.error(`FAIL C3 ${test.name}: status ${status.kind}, boundary ${boundary ?? '-'}, ` +
+        `candidates ${candidates.map(({ call, rule }) => `${call}:${rule.id}`).join(', ')}.`);
+    }
+  }
+  // A natural fourth-seat balancing decision must not be mistaken for a direct defense boundary.
+  const { board: balancingBoard } = makeBoard('C3 balancing stays separate',
+    strongBalanced, ['1H', 'Pass', 'Pass']);
+  const balancing = getBiddingTurnStatus(balancingBoard,
+    ['1H', 'Pass', 'Pass'], defaultBiddingSystem);
+  if (balancing.kind === 'scopeBoundary' &&
+      balancing.rule.id.startsWith('overcall-boundary-')) {
+    failures++;
+    console.error('FAIL C3: direct-seat defense boundary leaked into fourth-seat balancing.');
+  }
+  console.log(`${failures} ***FAILURES***. C3 omitted direct defenses: ` +
+    `${cases.length + 1} targeted checks.\n`);
+  return failures;
+}
+
 function runBiddingTurnStatusTests (): number {
   const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
@@ -3765,7 +3869,7 @@ const failureCount = runResponderStrongAndSupportConventionTests() + runAuctionH
   runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
   runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
   runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
-  runBiddingTurnStatusTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
+  runBiddingTurnStatusTests() + runUnmodeledDirectDefenseBoundaryTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
   runBalancingAuctionAndDealTests() + runRuleTests();
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);

@@ -441,6 +441,16 @@ satisfies advancer's one-round force without suggesting extras.  Further advance
 NT, second suits, and other high-level judgments remain outside the selected treatment;
 no automatic Pass is allowed over the forcing new suit.
 
+The direct overcalling Pass rule remains a fallback through 17 HCP after selected
+one-level and weak-two openings.  An available concrete overcall or informational Double
+suppresses that fallback Pass.  For an opposing artificial strong `2C`, strong `2NT`,
+three-level suit preempt, `3NT`, or a four-level-or-higher opening, the app instead
+explains that no dependable defensive recommendation is modeled.  It does not automatically
+recommend Pass for these openings.  After an opposing `1NT`, 18+ HCP with no qualifying
+compact DONT action leads to a separate scope boundary: the DONT Double is artificial, not
+a penalty Double.  Concrete DONT actions still take priority over that boundary.  Fourth-seat
+balancing remains a separate bidding stage and is unaffected by these direct-seat rules.
+
 `responding` is the stage after the opponent's first call following an opening. The competitive
 rule model does not infer Pass merely because no candidate remains.
 Double is evaluated only for specifically declared informational treatments, never penalties.

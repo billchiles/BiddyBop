@@ -46,6 +46,76 @@ export const OvercallRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Direct defenses intentionally outside the selected bidding treatment
+  // These boundaries are explanations, not Pass recommendations.  The evaluator suppresses
+  // a boundary when a concrete competitive call qualifies for this hand and auction.
+  {
+    id: 'overcall-boundary-strong-2c-opening',
+    kind: 'scopeBoundary',
+    title: 'Defense to an opposing strong artificial 2C opening',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2C'] },
+    meaning: 'The opponents have opened a strong artificial 2C; the app does not teach ' +
+             'competitive defenses to this opening.',
+    guidance: ['Partnership agreements, suit quality, and vulnerability matter when deciding ' +
+               'whether to compete.  Pass is not automatically the only reasonable action.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-boundary-strong-2nt-opening',
+    kind: 'scopeBoundary',
+    title: 'Defense to an opposing strong 2NT opening',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2NT'] },
+    meaning: 'The app does not teach a defensive convention or reliable natural competition ' +
+             'against a strong 2NT opening.',
+    guidance: ['Suit quality, distribution, and partnership agreements affect the choice.  ' +
+               'Do not interpret the lack of a recommendation as advice to Pass.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-boundary-three-level-preempt',
+    kind: 'scopeBoundary',
+    title: 'Defense to an opposing three-level preempt',
+    auctionContext: { stage: 'overcalling', openerCalls: ['3C', '3D', '3H', '3S'] },
+    meaning: 'Competing against a three-level preempt requires playing-strength judgment ' +
+             'outside the app’s selected defense rules.',
+    guidance: ['Consider distribution, likely tricks, vulnerability, and possible sacrifices.  ' +
+               'No automatic Pass or Double is recommended.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-boundary-very-high-opening',
+    kind: 'scopeBoundary',
+    title: 'Defense to an opposing 3NT or four-level-and-higher opening',
+    auctionContext: { stage: 'overcalling', openerCalls: [
+      '3NT', '4C', '4D', '4H', '4S', '4NT', '5C', '5D', '5H', '5S', '5NT',
+      '6C', '6D', '6H', '6S', '6NT', '7C', '7D', '7H', '7S', '7NT',
+    ] },
+    meaning: 'The app does not model defensive bidding against this high-level opening.',
+    guidance: ['Penalty, sacrifice, and high-level competitive decisions depend on judgment ' +
+               'and partnership methods that the app cannot evaluate reliably.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-boundary-strong-hand-vs-1nt',
+    kind: 'scopeBoundary',
+    title: 'Strong defensive hand without a modeled action over 1NT',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    scopeBoundaryWhen: (context) => ({
+      success: context.handFacts.hcp >= 18,
+      telemetryLines: ['18+ HCP: a strong defensive decision may require penalty-oriented ' +
+                       'methods not included in the compact DONT treatment.'],
+    }),
+    meaning: 'A strong hand does not automatically justify a penalty Double under DONT.',
+    guidance: ['The app’s DONT Double is artificial and promises a long one-suited hand, ' +
+               'not a penalty hand.  When no DONT call qualifies, penalty-oriented choices ' +
+               'and other partnership methods require judgment outside the app’s treatment.'],
+    certainty: 'high',
+  },
+  //
   //// Natural 1NT overcall -- Stayman and compulsory transfers
   // Advancer uses the same responses as after a natural 1NT opening. Further competition
   // by the opening side is deliberately not part of these immediate replies.
