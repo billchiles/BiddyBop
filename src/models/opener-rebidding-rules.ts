@@ -21,7 +21,8 @@ import {
   openerSupportCuebidPassApplies, openerSupportCuebidGameApplies,
   openerSupportCuebidScopeBoundaryApplies,
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
-  openerPreemptNewSuitRepeatApplies, openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
+  openerPreemptNewSuitRepeatApplies, openerPreemptRaisePassApplies,
+  openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
@@ -727,6 +728,27 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerPreemptNewSuitRepeatApplies,
     meaning: "No three-card fit for responder's forcing suit; return to the preempt suit economically.",
     certainty: 'medium',
+  },
+  //
+  //// Weak preempts -- Nonforcing raises of the opening suit
+  // Responder has chosen the final level of the preempt.  Unlike the forcing 2NT inquiry
+  // and natural new-suit responses, these raises ordinarily ask opener to Pass.
+  {
+    id: 'opener-rebid-pass-after-preempt-raise',
+    kind: 'openerRebid',
+    title: "Pass responder's nonforcing raise of a weak preempt",
+    auctionContext: { stage: 'openerRebid', interference: 'none',
+                      openerCalls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
+                      responderCall: { kind: 'raise' } },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: openerPreemptRaisePassApplies,
+    meaning: 'Responder has chosen the level of the preempt or placed the contract; ' +
+             'the raise is nonforcing.',
+    guidance: ['Opener has already described a weak hand with a long suit and ordinarily ' +
+               "leaves partner's raise in place.  Further bidding requires unusual judgment " +
+               "outside the app's selected treatment."],
+    certainty: 'high',
   },
   //
   //// Suit openings -- Responder after an opposing jump overcall

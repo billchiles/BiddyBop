@@ -2035,6 +2035,30 @@ export function weakTwoSolidThreeNtApplies (_call: Call, context: RuleEvalContex
   ] };
 }
 
+/// openerPreemptRaisePassApplies accepts responder's nonforcing raise of the original preempt
+/// suit, after both opponents Pass.  Only the selected three-/four-level raises are passable:
+/// neither a 2NT inquiry nor a forcing new suit qualifies.
+export function openerPreemptRaisePassApplies (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const openingBid = opening === null ? null : parseSuitBid(opening.call);
+  const response = getResponderCall(context.dealer, context.auction);
+  const responseBid = response === null ? null : parseSuitBid(response);
+  const weakTwo = opening !== null && ['2D', '2H', '2S'].includes(opening.call);
+  const threeLevelPreempt = opening !== null && ['3C', '3D', '3H', '3S'].includes(opening.call);
+  const supportedRaise = responseBid !== null && openingBid !== null &&
+    responseBid.strain === openingBid.strain &&
+    ((weakTwo && (responseBid.level === 3 || responseBid.level === 4)) ||
+     (threeLevelPreempt && responseBid.level === 4));
+  const success = opening !== null && context.auction.length === opening.index + 4 &&
+    context.auction[opening.index + 1] === 'Pass' &&
+    context.auction[opening.index + 3] === 'Pass' && supportedRaise;
+  return { success, telemetryLines: [
+    `${success ? 'APPLIES' : 'FAIL'}: Pass after responder's nonforcing raise of the ` +
+      'original weak-two or three-level preempt suit, with both opponents passing.',
+  ] };
+}
+
 /// openerPreemptNewSuitRaiseApplies raises responder's forcing new suit with 3+ support.
 export function openerPreemptNewSuitRaiseApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {

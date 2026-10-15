@@ -357,6 +357,9 @@ The app should help the user practice bidding decisions using structured convent
   game investigation, not a playing-trick calculator.  After `2NT`, a 5-7 minimum repeats the
   preempt suit; an 8-10 maximum shows a side ace/king feature; AKQJ in the six-card opening suit
   is the app's conservative executable approximation for the special solid-suit `3NT` message.
+- After responder raises a weak-two preempt to three or four of the opening suit, or a
+  three-level preempt to four of the opening suit, opener ordinarily Passes.  Those
+  raises are nonforcing; this does not extend to the forcing 2NT inquiry or new suits.
 - After a three-level preempt, the app models Pass, trump-count raises, and forcing natural new
   suits below game when their structural requirements are known.  Direct game placement based
   only on expected playing tricks remains guidance rather than an invented HCP threshold.

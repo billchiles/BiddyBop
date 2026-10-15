@@ -4037,7 +4037,47 @@ function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
   return failures;
 }
 
-const failureCount = runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+/// R3 regression: opener normally Passes a nonforcing raise of the original weak preempt.
+/// Reuse the existing response fixtures, and guard against leaking into a forcing 2NT inquiry.
+function runOpenerPassAfterPreemptRaiseTests (): number {
+  const cases: { auction: Call[]; label: string }[] = [
+    { auction: ['2S', 'Pass', '3S'], label: 'weak-two three-level raise' },
+    { auction: ['3S', 'Pass', '4S'], label: 'three-level preempt raised to four' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const deal = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((candidate) =>
+      candidate.practiceAuction.join(' ') === test.auction.join(' '));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL R3: no recorded fixture for ${test.label}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction: Call[] = [...test.auction, 'Pass'];
+    const pass = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem)).some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-preempt-raise');
+    if (!pass) {
+      failures++;
+      console.error(`FAIL R3: opener Pass not supported after ${test.label}.`);
+    }
+    if (test.auction[0] === '2S') {
+      const inquiry: Call[] = ['2S', 'Pass', '2NT', 'Pass'];
+      const falsePass = getApplicableCandidateCalls(
+        evaluateUserCall('Pass', board, inquiry, defaultBiddingSystem)).some(({ rule }) =>
+        rule.id === 'opener-rebid-pass-after-preempt-raise');
+      if (falsePass) {
+        failures++;
+        console.error('FAIL R3: Pass rule leaked into forcing weak-two 2NT inquiry.');
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Opener after preempt raise: 2 focused fixtures.\n`);
+  return failures;
+}
+
+const failureCount = runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
