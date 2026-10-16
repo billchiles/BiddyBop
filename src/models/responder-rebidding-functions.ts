@@ -455,6 +455,50 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
   ] };
 }
 
+//// Responder after opener jump-repeats a six-card minor following a one-level major response
+
+/// Recognize exactly the uncontested 1m–1M–3m invitation.  Physical opponent Passes
+/// matter: a superficially similar competitive auction has different meanings.  Passes
+/// before the opening (including a non-dealer opener) are harmless.
+export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
+    { opening: 'C' | 'D'; response: 'H' | 'S' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || (opening.call !== '1C' && opening.call !== '1D') ||
+      context.auction.length !== opening.index + 6) return null;
+  const start = opening.index;
+  const response = context.auction[start + 2];
+  if ((response !== '1H' && response !== '1S') ||
+      context.auction[start + 1] !== 'Pass' ||
+      context.auction[start + 3] !== 'Pass' ||
+      context.auction[start + 4] !== `3${opening.call[1]}` ||
+      context.auction[start + 5] !== 'Pass') return null;
+  return { opening: opening.call[1] as 'C' | 'D', response: response[1] as 'H' | 'S' };
+}
+
+/// The 3m jump repeat is invitational, not forcing.  A minimum responder with an
+/// eight-card minor fit may Pass; 3NT needs additional HCP, balance, and stoppers in
+/// both suits neither partner bid.  Other choices need judgment and scope guidance.
+export function responderAfterMinorJumpRepeatApplies (_call: Call, context: RuleEvalContext,
+    choice: 'pass' | 'threeNt'): AppliesWhenResult {
+  const info = getResponderAfterMinorJumpRepeat(context);
+  if (info === null) return { success: false, telemetryLines: ['Not an uncontested 1m–1M–3m jump repeat.'] };
+  const f = context.handFacts;
+  const unbid = (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
+    suit !== info.opening && suit !== info.response);
+  const success = choice === 'pass'
+    ? f.hcp >= 6 && f.hcp <= 9 && f.lengths[info.opening] >= 2 &&
+      f.lengths[info.response] <= 5
+    : f.hcp >= 11 && f.hcp <= 12 && f.balanced &&
+      f.lengths[info.response] === 4 &&
+      unbid.every((suit) => hasBasicSuitStopper(context, suit));
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${choice} after 1${info.opening}–1${info.response}–3${info.opening}; ` +
+    `responder ${f.hcp} HCP, opening minor length ${f.lengths[info.opening]}, ` +
+    `response major length ${f.lengths[info.response]}.`,
+  ] };
+}
+
 //// Natural responder choices after a 2/1 game-forcing response
 
 /// Identify the original game force by the first three partnership bids, not by the

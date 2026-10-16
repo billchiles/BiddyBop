@@ -4077,7 +4077,70 @@ function runOpenerPassAfterPreemptRaiseTests (): number {
   return failures;
 }
 
-const failureCount = runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+/// R4 regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
+/// a carefully stopped 3NT option, and judgment guidance without leaking into other rebids.
+function runResponderAfterMinorJumpRepeatTests (): number {
+  const minAuction: Call[] = ['1C', 'Pass', '1H', 'Pass', '3C', 'Pass'];
+  const { board: minimumBoard } = makeRuleTestBoard({
+    description: 'R4: minimum responder after an invitational club jump repeat',
+    practiceAuction: minAuction,
+    north: { S: 'AQ2', H: 'Q4', D: 'K2', C: 'AJT852' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+  });
+  const minResult = evaluateUserCall('Pass', minimumBoard, minAuction, defaultBiddingSystem);
+  const pass = getApplicableCandidateCalls(minResult).some(({ call, rule }) =>
+    call === 'Pass' && rule.id === 'responder-rebid-pass-after-minor-jump-repeat');
+
+  const gameAuction: Call[] = ['1D', 'Pass', '1S', 'Pass', '3D', 'Pass'];
+  const opener = { S: 'AQ2', H: 'K4', D: 'AQJ965', C: '84' };
+  const gameResponder = { S: 'KJ87', H: 'Q83', D: 'K72', C: 'Q93' };
+  const { board: gameBoard } = makeRuleTestBoard({
+    description: 'R4: balanced 11 HCP responder with both unbid suits stopped',
+    practiceAuction: gameAuction, north: opener, south: gameResponder,
+  });
+  const gameResult = evaluateUserCall('3NT', gameBoard, gameAuction, defaultBiddingSystem);
+  const game = getApplicableCandidateCalls(gameResult).some(({ call, rule }) =>
+    call === '3NT' && rule.id === 'responder-rebid-3nt-after-minor-jump-repeat');
+  const originalResponse = getApplicableCandidateCalls(evaluateUserCall('1S', gameBoard,
+    gameAuction.slice(0, 2), defaultBiddingSystem)).some(({ call }) => call === '1S');
+  const openerJump = getApplicableCandidateCalls(evaluateUserCall('3D', gameBoard,
+    gameAuction.slice(0, 4), defaultBiddingSystem)).some(({ call, rule }) =>
+    call === '3D' && rule.id === 'opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit');
+
+  // Removing the heart stopper and reducing strength to 10 HCP means neither
+  // the minimum Pass nor the conservative 3NT rule can decide this auction.
+  const { board: borderlineBoard } = makeRuleTestBoard({
+    description: 'R4: borderline responder with an unprotected outside suit',
+    practiceAuction: gameAuction, north: opener,
+    south: { S: 'KJ87', H: 'J83', D: 'K72', C: 'Q93' },
+  });
+  const borderlineResult = evaluateUserCall('3NT', borderlineBoard, gameAuction, defaultBiddingSystem);
+  const boundary = borderlineResult.applicableRules.some(({ id }) =>
+    id === 'responder-rebid-boundary-after-minor-jump-repeat');
+  const noGame = !getApplicableCandidateCalls(borderlineResult).some(({ rule }) =>
+    rule.id === 'responder-rebid-3nt-after-minor-jump-repeat');
+
+  // A simple 2m repeat or a strong responder jump shift has a different meaning.
+  const unrelatedAuctions: Call[][] = [
+    ['1C', 'Pass', '1H', 'Pass', '2C', 'Pass'],
+    ['1C', 'Pass', '2H', 'Pass', '3C', 'Pass'],
+  ];
+  const excluded = unrelatedAuctions.every((auction) => {
+    const result = evaluateUserCall('Pass', minimumBoard, auction, defaultBiddingSystem);
+    return !result.applicableRules.some(({ id }) => id.includes('after-minor-jump-repeat'));
+  });
+  const failures = Number(!pass) + Number(!game || !originalResponse || !openerJump) +
+    Number(!boundary || !noGame) + Number(!excluded);
+  if (!pass) console.error('FAIL R4: minimum Pass missing after 1C-1H-3C.');
+  if (!game || !originalResponse || !openerJump)
+    console.error('FAIL R4: 3NT or its prerequisite 1S/3D bids do not qualify.');
+  if (!boundary || !noGame) console.error('FAIL R4: borderline auction lacks scope guidance or incorrectly recommends 3NT.');
+  if (!excluded) console.error('FAIL R4: jump-repeat rules leaked into a different responder auction.');
+  console.log(`${failures} ***FAILURES***. Responder after minor jump repeat: four distinct regression conditions.\n`);
+  return failures;
+}
+
+const failureCount = runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

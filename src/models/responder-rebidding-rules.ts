@@ -8,7 +8,8 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
          responderAfterMajorOneNtApplies, getResponderAfterMajorOneNtStrong,
          responderAfterMajorOneNtStrongApplies, refineResponderAfterMajorOneNtStrongGame,
-         responderAfterMinorOneNtApplies, getResponderStandardTwoLevel,
+         responderAfterMinorOneNtApplies, getResponderAfterMinorJumpRepeat,
+         responderAfterMinorJumpRepeatApplies, getResponderStandardTwoLevel,
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
          refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
          responderTwoOverOneReachedGame, getResponderNtConvention,
@@ -778,6 +779,49 @@ export const ResponderRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  //// Responder after opener's invitational jump repeat of a minor
+  // A one-level major response did not promise game values; 3m showed 17-18 length
+  // points and a six-card minor.  The jump is invitational, not game forcing.
+  {
+    id: 'responder-rebid-pass-after-minor-jump-repeat', kind: 'responderRebid',
+    title: "Accept opener's invitational jump-repeat of a six-card minor",
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' } },
+    calls: ['Pass'], callCategory: ['signoff'],
+    appliesWhen: (call, context) => responderAfterMinorJumpRepeatApplies(call, context, 'pass'),
+    meaning: "Opener's 3m is nonforcing and promises a good six-card minor.  With 6-9 HCP " +
+             'and at least two cards in that suit, responder may Pass.',
+    guidance: ['With a particularly useful nine-point hand, game may be worth considering.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-3nt-after-minor-jump-repeat', kind: 'responderRebid',
+    title: 'Place game in 3NT after a strong minor jump repeat',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' } },
+    calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => responderAfterMinorJumpRepeatApplies(call, context, 'threeNt'),
+    meaning: 'A balanced 11-12 HCP hand with basic stoppers in both unbid suits can ' +
+             "choose 3NT opposite opener's strong six-card minor.",
+    guidance: ['A long responder major or uncertain outside stoppers makes the game choice ' +
+               'more judgment-dependent than this rule can establish.'],
+    certainty: 'high',
+  },
+  {
+    id: 'responder-rebid-boundary-after-minor-jump-repeat', kind: 'scopeBoundary',
+    title: 'Further judgment after opener jump-repeats a minor',
+    auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
+                      responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' } },
+    scopeBoundaryWhen: (context) => ({
+      success: getResponderAfterMinorJumpRepeat(context) !== null,
+      telemetryLines: ["Check opener's uncontested invitational 3m jump repeat."],
+    }),
+    meaning: "Opener's jump repeat shows a strong six-card minor and is invitational, not forcing.",
+    guidance: ['With borderline values, a long major, weak minor support, or greater strength, ' +
+               'the right choice among Pass, a major-suit continuation, 3NT, and further ' +
+               'minor bidding depends on judgment the app does not reliably teach here.'],
+    certainty: 'high',
+  },
   //// Responder after an initial 1NT response to a major opening
   // The first 1NT may be forcing or nonforcing, and either agreement can carry a
   // three-card limit raise. An ordinary two-level rebid satisfies a one-round force.

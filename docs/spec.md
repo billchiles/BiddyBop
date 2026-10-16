@@ -385,6 +385,17 @@ The app should help the user practice bidding decisions using structured convent
   implications: rebid `2D` with five or more diamonds; otherwise show a four-card major up the
   line; otherwise usually rebid `2NT`, with `3C` available when notrump is unattractive.
 
+### Responder after an invitational opener jump-repeat of a minor
+
+After an uncontested `1m-Pass-1M-Pass-3m-Pass`, opener has shown 17-18 length
+points and a six-card minor. The jump repeat is invitational, not game forcing.
+A minimum 6-9 HCP responder with at least two cards in the minor may Pass;
+a responder with 11-12 balanced HCP, a four-card original major, and a basic
+stopper in both unbid suits may bid natural `3NT`. Borderline game decisions,
+a long major, weak minor support, and unusually strong hands instead receive
+scope guidance. These rules do not transfer to a 1NT response, another opener
+rebid, or a competitive auction.
+
 ## Intentionally Unmodeled or Guidance-Only Bidding Treatments
 
 These treatments are deliberate scope boundaries. They are omitted from executable rules, or kept
