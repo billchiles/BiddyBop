@@ -1610,8 +1610,9 @@ export function refineOpenerNewSuitByExtraLevels (
 }
 
 /// refineForcingOneNtMinorFallback supplies the awkward rebid required by a completely forcing
-/// 1NT response when opener has no normal descriptive rebid.  Prefer the longer three-card-or-
-/// longer minor, choosing clubs when the minors are equal.
+/// 1NT response when opener has no normal descriptive rebid. Prefer the longer three-card-or-
+/// longer minor, choosing clubs when equal. If neither minor has three cards, a two-card 2C
+/// is permitted rather than passing a forcing response or falsely repeating a five-card major.
 ///
 export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
@@ -1650,7 +1651,7 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
   if (hasStrengthForReverse && hasHigherSecondSuit) {
     return { calls: [], telemetryLines: ['A strength-qualified reverse is available.'] };
   }
-  // No good bids, so if we have 3+ of a minor, we can use it to honor the forcing 1NT
+  // No descriptive rebid: use a three-card minor where one exists.
   const minorCandidates = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     return candidate !== null && candidate.level === 2 &&
@@ -1658,7 +1659,10 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
            context.handFacts.lengths[candidate.strain] >= 3;
   });
   if (minorCandidates.length === 0) {
-    return { calls: [], telemetryLines: ['No three-card minor is available for the fallback rebid.'] };
+    const twoCardClubs = context.handFacts.lengths.C >= 2 && calls.includes('2C');
+    return { calls: twoCardClubs ? ['2C'] : [], telemetryLines: [twoCardClubs
+      ? 'Neither minor has three cards; the forcing-1NT fallback is 2C on two clubs.'
+      : 'No eligible minor is available for the forcing-1NT fallback.'] };
   }
   // With only one available minor, use it.  With both minors available, bid the longer one;
   let refined = minorCandidates;
@@ -1675,6 +1679,57 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
     calls: refined,
     telemetryLines: ['No normal rebid is available; manufacture the best three-card minor rebid.'],
   };
+}
+
+/// A one-level new-suit response is forcing for one round. With exactly five cards in
+/// the opening minor, a minimum opener may repeat it only when the ordinary descriptive
+/// rebids are unavailable. This does not change the normal six-card repeat promise.
+export function refineOpenerFiveCardMinorFallback (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 1 ||
+      (opening.strain !== 'C' && opening.strain !== 'D') || response.level !== 1 ||
+      response.strain === 'NT' || response.strain === opening.strain ||
+      context.handFacts.lengths[opening.strain] !== 5) {
+    return { calls: [], telemetryLines: ['Five-card minor fallback needs a minor opening and one-level new-suit response.'] };
+  }
+  const responderSuit = response.strain as Suit;
+  if (context.handFacts.lengths[responderSuit] >= 4 ||
+      (context.handFacts.balanced && context.handFacts.hcp >= 12 &&
+       context.handFacts.hcp <= 14)) {
+    return { calls: [], telemetryLines: ['Four-card responder support or a normal 1NT rebid is available.'] };
+  }
+  const anotherSuitAvailable = SUITS.some((suit) => {
+    if (suit === opening.strain || suit === responderSuit ||
+        context.handFacts.lengths[suit] < 4) return false;
+    const cheapest = cheapestBidInStrainAfter(response, suit);
+    const candidate = cheapest === null ? null : parseSuitBid(cheapest);
+    return candidate !== null && ! openerRebidIsReverse(opening, response, candidate);
+  });
+  if (anotherSuitAvailable) {
+    return { calls: [], telemetryLines: ['A natural economical four-card second suit is available.'] };
+  }
+  const wanted = `2${opening.strain}`;
+  return { calls: calls.filter((call) => call === wanted), telemetryLines: [
+    `One-round force with no normal minimum rebid: repeat five-card ${opening.strain}.`,
+  ] };
+}
+
+/// A very strong six-card-minor opener may have no accurate natural rebid after a
+/// forcing one-level major response. Explain the judgment rather than treating an
+/// invitational 3m as an unrestricted maximum-strength recommendation.
+export function openerExceptionalStrongMinorRebidBoundaryApplies (context: RuleEvalContext):
+    AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  const success = opening !== null && response !== null && opening.level === 1 &&
+    (opening.strain === 'C' || opening.strain === 'D') &&
+    (response.strain === 'H' || response.strain === 'S') && response.level === 1 &&
+    context.handFacts.hcp >= 19 && context.handFacts.lengths[opening.strain] >= 6;
+  return { success, telemetryLines: [success
+    ? 'Very strong opener with a long minor and a forcing one-level major response; natural strength descriptions may not fit.'
+    : 'Not the exceptional strong-minor judgment situation.'] };
 }
 
 /// openerMinorOneLevelOneNtApplies uses the 12-14 HCP balanced rebid after a one-level new-suit

@@ -3,7 +3,8 @@ import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, Bi
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, compareSuitBids, getOpeningCallInfo, getOpeningPartnershipCalls,
-         getResponderCall, isCallAvailableInAuction, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump } from './auction';
+         getResponderCall, isCallAvailableInAuction, isContractBid, getStrainFromSuitBid, openerRebidIsReverse, parseSuitBid, responseJump,
+         responderPreviouslyPassed } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 import type { Suit } from './cards';
 
@@ -32,9 +33,10 @@ export function responderSevenSpadeGameApplies (_call: Call, context: RuleEvalCo
   ] };
 }
 
-/// Minimum responder prefers opener's six-card suit when their own suit is not long enough
-/// to rebid.  A minor preference requires two cards; one heart can be acceptable opposite
-/// a known six-card major in this selected natural treatment.
+/// Minimum responder prefers opener's repeated suit when their own suit is not long enough
+/// to rebid. A minor repeat can now be five cards in a forced awkward rebid, so require
+/// three-card minor support for a guaranteed eight-card fit. A single card can still be
+/// acceptable opposite a known six-card major in this selected natural treatment.
 export function responderMinimumRepeatedSuitPassApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
@@ -44,7 +46,7 @@ export function responderMinimumRepeatedSuitPassApplies (_call: Call, context: R
   const responseSuit = response !== null && isContractBid(response)
     ? getStrainFromSuitBid(response) : 'NT';
   const lengths = context.handFacts.lengths;
-  const fitMinimum = openerSuit === 'H' || openerSuit === 'S' ? 1 : 2;
+  const fitMinimum = openerSuit === 'H' || openerSuit === 'S' ? 1 : 3;
   const success = openerSuit !== 'NT' && responseSuit !== 'NT' &&
     lengths[openerSuit] >= fitMinimum && lengths[responseSuit] >= 4 &&
     lengths[responseSuit] <= 5 && context.handFacts.totalPointsWLength >= 6 &&
@@ -351,7 +353,7 @@ export function refineResponderAfterMajorOneNt (calls: Call[], context: RuleEval
 
 /// After opener has fulfilled a forcing 1NT response, these natural second calls
 /// can be nonforcing. Requirements use the actual prior promises, including the
-/// possibility of a three-card minor fallback under a forcing-1NT agreement.
+/// possibility of a two-card club or three-card diamond fallback under a forcing-1NT agreement.
 export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalContext,
     system: BiddingSystem, decision: 'passMajor' | 'inviteMajor' | 'preferMajor' |
     'passSecond' | 'longMinor' | 'delayedLimitRaise' | 'inviteNt'): AppliesWhenResult {
@@ -375,7 +377,9 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
       break;
     case 'passSecond':
       success = info.kind === 'second' && minimum &&
-        suitLength >= (info.rebid === 'H' || system.majorOneNtResponse === 'nonForcing' ? 4 : 5);
+        suitLength >= (info.rebid === 'H' || system.majorOneNtResponse === 'nonForcing' ||
+                       responderPreviouslyPassed(context.dealer, context.auction) ? 4 :
+                       info.rebid === 'C' ? 6 : 5);
       break;
     case 'longMinor': {
       const suit = call[call.length - 1] as Suit;

@@ -2,7 +2,8 @@
 
 import { type BidRule } from './bidding-types';
 import {
-  guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, refineOneLevelSuitOpening,
+  guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, convenientMinorOpeningValuesApply,
+  refineOneLevelSuitOpening,
   refinePreemptSuitQuality
 } from './opening-functions';
 
@@ -114,8 +115,7 @@ export const OpeningBidRules: BidRule[] = [
     callRefinement: refineOneLevelSuitOpening,  // refines according to guidance below
     callCategory: ['invitational'],
     priority: { rank: 70 },
-    appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 }, shape: { noFiveCardMajor: true },
-                   suitLengths: [{ suit: 'major', max: 4 }]},
+    appliesWhen: convenientMinorOpeningValuesApply,
     meaning: 'Open 1C or 1D with nothing else to do. Open 1D with four cards in both minor suits; ' +
              'open 1C with three cards in both minor suits.',
     guidance: ['No natural NT opening.', 'No five-card major.',

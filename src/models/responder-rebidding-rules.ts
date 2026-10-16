@@ -825,7 +825,7 @@ export const ResponderRebidRules: BidRule[] = [
   //// Responder after an initial 1NT response to a major opening
   // The first 1NT may be forcing or nonforcing, and either agreement can carry a
   // three-card limit raise. An ordinary two-level rebid satisfies a one-round force.
-  // When forcing 1NT produces a manufactured minor, that minor may have only three cards.
+  // When forcing 1NT produces a manufactured minor, 2C can contain only two cards.
   {
     id: 'responder-rebid-pass-after-major-1nt-repeat',
     kind: 'responderRebid',
@@ -867,7 +867,8 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 10 },
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'preferMajor'),
     meaning: 'With minimum values, prefer opener\'s five-card major with even two cards in support.',
-    guidance: ['A two-card preference can be better than a three-card minor fallback after forcing 1NT.'],
+    guidance: ['A two-card preference may be safer than a manufactured minor after forcing 1NT; ' +
+               '2C can contain only two clubs when opener has no normal rebid.'],
     certainty: 'high',
   },
   //
@@ -881,8 +882,9 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'passSecond'),
     meaning: 'Stop in opener\'s second suit when the known partnership fit makes partscore sensible.',
-    guidance: ['With forcing 1NT, a minor rebid might have only three cards; five-card responder ' +
-               'support ensures an eight-card fit even then.'],
+    guidance: ['With forcing 1NT, 2C can contain only two clubs (so six-card club support ' +
+               'guarantees eight trumps), while 2D has at least three (five diamonds suffice). ' +
+               'Without a forcing 1NT obligation, opener’s economical new suit normally shows four.'],
     certainty: 'high',
   },
   //
@@ -939,7 +941,8 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'notrump', level: 1 } },
     scopeBoundaryWhen: (context) => ({ success: getResponderAfterMajorOneNt(context) !== null,
       telemetryLines: ['Ordinary major-1NT continuation, with no sufficiently reliable bid.'] }),
-    meaning: 'Opener has described either a six-card major or an economical second suit. ' +
+    meaning: 'Opener has described either a six-card major or an economical second suit; ' +
+             'a manufactured minor after forcing 1NT may be shorter. ' +
              'Responder can choose a suitable partscore or invite game where the hand is clear.',
     guidance: ['Other suit choices, unusual strength, and borderline fits need more information ' +
                'and judgment than this app can reliably evaluate.'],
@@ -1447,7 +1450,7 @@ export const ResponderRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
-  //// After a minimum repetition of opener's six-card opening suit
+  //// After a minimum repetition of opener's opening suit
   // Share natural partscore, invitation, and notrump decisions after a one-level new-suit
   // response.  The repeated suit must be the original opening suit, bid at the two level.
   // Do not reuse these decisions after 1NT responses or two-level game-forcing responses.
@@ -1456,14 +1459,17 @@ export const ResponderRebidRules: BidRule[] = [
   {
     id: 'responder-rebid-pass-after-minimum-suit-repeat',
     kind: 'responderRebid',
-    title: "Accept opener's repeated six-card suit with minimum values",
+    title: "Accept opener's repeated opening suit with minimum values",
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
                       openerRepeatedOpeningSuitAtTwo: true },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: responderMinimumRepeatedSuitPassApplies,
-    meaning: 'Prefer opener\'s known six-card opening suit to a new contract strain.',
+    meaning: 'Prefer opener\'s repeated suit with a safe fit. A repeated major promises six ' +
+             'cards; a repeated minor normally does too but may be five with no suitable rebid.',
+    guidance: ['Three cards in a repeated minor guarantee at least eight combined trumps ' +
+               'when opener may have made a five-card fallback.'],
     certainty: 'high',
   },
   //
@@ -1487,14 +1493,14 @@ export const ResponderRebidRules: BidRule[] = [
   {
     id: 'responder-rebid-2nt-after-minimum-suit-repeat',
     kind: 'responderRebid',
-    title: 'Invite notrump game after opener repeats a six-card suit',
+    title: 'Invite notrump game after opener repeats an opening suit',
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
                       openerRepeatedOpeningSuitAtTwo: true },
     calls: ['2NT'],
     callCategory: ['natural', 'invitational'],
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
-    meaning: 'Invite 3NT after opener has shown a minimum hand and six cards in the opening suit.',
+    meaning: 'Invite 3NT after opener has shown a minimum hand and normally six cards in the opening suit.',
     guidance: ['A suit invitation may be more attractive if an eight-card major fit is known.'],
     certainty: 'high',
   },
@@ -1583,7 +1589,8 @@ export const ResponderRebidRules: BidRule[] = [
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
                       openerRepeatedOpeningSuitAtTwo: true },
-    meaning: 'Opener has shown at least six cards in the opening suit and minimum strength. Responder ' +
+    meaning: 'Opener has shown a minimum-strength suit repeat, normally six cards but occasionally ' +
+             'five in a minor when a one-round force leaves no normal rebid. Responder ' +
              'may still need to investigate another suit, forcing action, or slam.',
     guidance: ['Those continuations depend on too many variables and judgment for this app ' +
                'to reliably provide practice; Pass is not automatically recommended.'],

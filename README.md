@@ -63,6 +63,12 @@ app intentionally implements only a useful subset and has no pending work for th
 and probably implement the area, although that analysis may lead us to narrow or omit it.  `Omitted`
 means we considered the area and deliberately chose not to model it as part of the app's intended scope.
 
+For awkward natural rebids, the trainer sometimes teaches a constrained fallback (a two-card
+`2C` after forcing `1NT` to a major, or a five-card minor repeat after a forcing one-level
+new-suit response). Very strong long-minor hands without a reliable normal rebid instead receive
+judgment guidance; point limits on invitational bids are not automatically relaxed. A balanced
+11-HCP hand does not qualify for an opening of a convenient minor on length points alone.
+
 ### When our partnership opens
 
 | Our opening | Ordinary response | Response after interference | Uncontested opener rebid | Opener rebid after interference |

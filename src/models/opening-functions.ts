@@ -38,6 +38,21 @@ export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalConte
                             `by five-card-major/convenient-minor priorities.`]};
 }
 
+/// The convenient-minor route should not open a balanced 11-HCP hand just because its
+/// five-card minor adds a length point: the ordinary balanced 1NT rebid promises 12 HCP.
+/// Keep the separately selected five-card-major opening treatment unchanged.
+export function convenientMinorOpeningValuesApply (_call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const facts = context.handFacts;
+  const success = ! facts.hasFiveCardMajor && facts.hcp <= 21 && facts.totalPointsWLength >= 12 &&
+    (! facts.balanced || facts.hcp >= 12);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: convenient-minor opening needs 12 length-adjusted points, ` +
+    'and at least 12 HCP when balanced; ' +
+    `HCP ${facts.hcp}, length-adjusted ${facts.totalPointsWLength}, balanced ${facts.balanced}.`,
+  ] };
+}
+
 /// guidelineOf20Applies tests the Rule of 20 in first or second seat for a hand below 12 HCP.
 /// This is a separate valuation explanation: under our ordinary HCP-plus-length opening method,
 /// every Rule-of-20 qualifier already satisfies the 12-total-point opening minimum.

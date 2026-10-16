@@ -225,13 +225,13 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
   },
 ];
 
-//// Natural responder continuations after opener repeats a six-card minor
+//// Natural responder continuations after opener repeats a minor (normally six, rarely five)
 export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: 'Minimum responder accepts a six-card diamond opening suit with two diamonds.',
+    description: 'Minimum responder has a guaranteed eight-card fit opposite a possible five-card diamond repeat.',
     practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2D', 'Pass', 'Pass'],
     north: { S: 'A2', H: 'AK5', D: 'AJT986', C: '82' },
-    south: { S: 'KJ76', H: 'Q72', D: 'Q4', C: 'T943' },
+    south: { S: 'KJ76', H: 'Q72', D: 'Q43', C: 'T94' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-minimum-suit-repeat',
     ] }],
@@ -515,11 +515,11 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['3S', '2NT'],
   },
   {
-    description: 'Five clubs permit a sound Pass even if forcing 1NT manufactured only three.',
+    description: 'Six clubs guarantee an eight-card fit even if forcing 1NT manufactured only two.',
     practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', 'Pass'],
     requiredSystem: { majorOneNtResponse: 'forcing' },
     north: { S: 'AKJ74', H: 'Q63', D: 'K4', C: 'J63' },
-    south: { S: 'Q2', H: 'T87', D: '985', C: 'AK974' },
+    south: { S: 'Q2', H: 'T87', D: '98', C: 'AK9748' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-second-suit-after-major-1nt',
     ] }],

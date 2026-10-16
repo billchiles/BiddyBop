@@ -23,7 +23,9 @@ import {
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
   openerPreemptNewSuitRepeatApplies, openerPreemptRaisePassApplies,
   openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
-  refineForcingOneNtMinorFallback, refineNtJacobyCompletion, refineNtStaymanReply,
+  refineForcingOneNtMinorFallback, refineOpenerFiveCardMinorFallback,
+  openerExceptionalStrongMinorRebidBoundaryApplies,
+  refineNtJacobyCompletion, refineNtStaymanReply,
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
   refineOpenerNewSuitAtCheapestLevel, refineOpenerNewSuitByExtraLevels,
@@ -2309,6 +2311,25 @@ export const OpenerRebidRules: BidRule[] = [
   },
   //
   {
+    id: 'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Repeat a five-card minor only when the one-round force leaves no normal rebid',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1,
+      openerStrain: 'minor', responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+    },
+    calls: ['2C', '2D'],
+    callRefinement: refineOpenerFiveCardMinorFallback,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 12, max: 16 } },
+    meaning: 'A minimum opener may exceptionally repeat a five-card opening minor to satisfy a one-round force.',
+    guidance: ['Normally a simple repeat promises six cards. Here opener has no suitable ' +
+               'four-card support, economical second suit, or natural balanced 1NT rebid; ' +
+               'do not assume six trumps from this last-resort description.'],
+    certainty: 'high',
+  },
+  //
+  {
     id: 'opener-rebid-reverse-after-minor-one-level-new-suit',
     kind: 'openerRebid',
     title: 'Reverse into a second suit with extra strength',
@@ -2441,6 +2462,25 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-boundary-exceptional-strong-minor-after-one-level-new-suit',
+    kind: 'scopeBoundary',
+    title: 'Exceptional strength without an accurate natural minor rebid',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1,
+      openerStrain: 'minor', responderCall: { kind: 'newSuit', level: 1, jump: 0 },
+    },
+    scopeBoundaryWhen: openerExceptionalStrongMinorRebidBoundaryApplies,
+    meaning: 'Responder’s new suit is forcing for one round; opener must bid again when the ' +
+             'opponents Pass. An exceptionally strong long-minor hand can exceed the usual ' +
+             'natural rebid ranges without having a sound fit or notrump description.',
+    guidance: ['A natural repeat of the opening minor at two or three may be the practical choice, ' +
+               'but the jump repeat is normally only invitational and can be Passed. ' +
+               'Choosing an imperfect continuation and exploring game or slam require judgment; ' +
+               'do not Pass simply because no modeled rebid fits.'],
     certainty: 'high',
   },
   //
@@ -2828,10 +2868,12 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineForcingOneNtMinorFallback,
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
                  note: 'A completely forcing 1NT may require opener to manufacture a minor rebid.' },
-    appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 3 }] },
-    meaning: 'This minor can be only three cards; opener is keeping the forcing auction alive.',
-    guidance: ['Prefer an ordinary natural rebid whenever one exists.  A three-card minor is the ' +
-               'fallback for an awkward minimum or medium hand.'],
+    appliesWhen: { totalPoints: { min: 12, max: 18 } },
+    meaning: 'A manufactured minor can show three cards, or only two clubs when neither minor has three; ' +
+             'opener is honoring the forcing 1NT response.',
+    guidance: ['Prefer an ordinary natural rebid whenever one exists. Ordinarily this fallback ' +
+               'shows at least three cards, but with no three-card minor a 2C rebid can be on two. ' +
+               'Responder must not assume an eight-card club fit with only five clubs.'],
     certainty: 'high',
   },
   //

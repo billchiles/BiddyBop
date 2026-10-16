@@ -4140,7 +4140,134 @@ function runResponderAfterMinorJumpRepeatTests (): number {
   return failures;
 }
 
-const failureCount = runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+
+/// Third-audit edge treatments: protect the new general meanings rather than
+/// constructing a large set of one-off practice deals.
+function runThirdAuditRebidTests (): number {
+  let failures = 0;
+  const supports = (board: ReturnType<typeof makeRuleTestBoard>['board'],
+                    auction: Call[], call: Call, ruleId: string,
+                    system: BiddingSystem = defaultBiddingSystem) =>
+    getApplicableCandidateCalls(evaluateUserCall(call, board, auction, system))
+      .some(({ call: candidate, rule }) => candidate === call && rule.id === ruleId);
+
+  // A forcing 1NT over a 5-4-2-2 heart opener needs the general two-card club
+  // fallback, not a reverse to spades or a false six-card heart repeat.
+  const { board: heartBoard } = makeRuleTestBoard({
+    description: 'Third audit: forcing 1NT manufactured two-card club rebid',
+    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
+    south: { S: '83', H: 'Q5', D: 'T92', C: 'AK9748' },
+    practiceAuction: ['1H', 'Pass', '1NT', 'Pass'],
+  });
+  const forcing = { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' as const };
+  const nonForcing = { ...defaultBiddingSystem, majorOneNtResponse: 'nonForcing' as const };
+  const majorNtAuction: Call[] = ['1H', 'Pass', '1NT', 'Pass'];
+  if (! supports(heartBoard, majorNtAuction, '2C',
+                 'opener-rebid-minor-fallback-after-major-1nt-forcing', forcing) ||
+      supports(heartBoard, majorNtAuction, '2C',
+               'opener-rebid-minor-fallback-after-major-1nt-forcing', nonForcing) ||
+      getApplicableCandidateCalls(evaluateUserCall('Pass', heartBoard, majorNtAuction, forcing))
+        .some(({ call }) => call === 'Pass')) {
+    failures++;
+    console.error('FAIL third audit: forcing 1NT two-club fallback and agreement isolation.');
+  }
+  const clubRebidAuction: Call[] = [...majorNtAuction, '2C', 'Pass'];
+  const { board: fiveClubBoard } = makeRuleTestBoard({
+    description: 'Third audit: five clubs do not guarantee a fit with two-card 2C',
+    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
+    south: { S: '843', H: 'Q5', D: 'T92', C: 'AK974' },
+    practiceAuction: clubRebidAuction,
+  });
+  if (! supports(heartBoard, clubRebidAuction, 'Pass',
+                 'responder-rebid-pass-second-suit-after-major-1nt', forcing) ||
+      supports(fiveClubBoard, clubRebidAuction, 'Pass',
+               'responder-rebid-pass-second-suit-after-major-1nt', forcing)) {
+    failures++;
+    console.error('FAIL third audit: six versus five clubs after forcing-1NT manufactured 2C.');
+  }
+
+  // Strong six-card minor: preserve the forcing obligation and explain judgment;
+  // do not expand a 17-18-point invitational jump repeat to cover 21 HCP.
+  const strongMinorAuction: Call[] = ['1C', 'Pass', '1H', 'Pass'];
+  const { board: strongMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: exceptional strong six-card minor without a descriptive rebid',
+    north: { S: '42', H: 'AK', D: 'A76', C: 'AKQJ98' },
+    south: { S: 'QJ87', H: 'Q987', D: 'K42', C: 'T5' },
+    practiceAuction: strongMinorAuction,
+  });
+  const strongStatus = getBiddingTurnStatus(strongMinorBoard, strongMinorAuction,
+    defaultBiddingSystem);
+  if (strongStatus.kind !== 'scopeBoundary' ||
+      strongStatus.rule.id !== 'opener-rebid-boundary-exceptional-strong-minor-after-one-level-new-suit' ||
+      supports(strongMinorBoard, strongMinorAuction, '3C',
+               'opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit')) {
+    failures++;
+    console.error('FAIL third audit: exceptional strong-minor guidance versus invitational 3C.');
+  }
+
+  // Eleven HCP plus one club-length point does not open a balanced convenient
+  // minor; a 12-HCP balanced hand and an 11-HCP distributional club hand still do.
+  const south = { S: 'K876', H: 'AQ82', D: 'AT6', C: 'Q6' };
+  const openingCases = [
+    { north: { S: '32', H: 'J95', D: 'Q84', C: 'AKJ87' }, expectsClub: false },
+    { north: { S: '32', H: 'J95', D: 'K84', C: 'AKJ87' }, expectsClub: true },
+    { north: { S: 'Q3', H: 'J976', D: '2', C: 'AKJ985' }, expectsClub: true },
+  ];
+  for (const testCase of openingCases) {
+    const { board } = makeRuleTestBoard({ description: 'Third audit: marginal club opening',
+      north: testCase.north, south, practiceAuction: [] });
+    if (supports(board, [], '1C', 'open-convenient-minor') !== testCase.expectsClub) {
+      failures++;
+      console.error(`FAIL third audit: marginal convenient minor (expected ${testCase.expectsClub}).`);
+    }
+  }
+
+  // The five-card minor repeat must be a last resort after a one-round force;
+  // preserve the ordinary six-card rule and do not promise six on a fallback.
+  const minorAuction: Call[] = ['1C', 'Pass', '1S', 'Pass'];
+  const { board: awkwardMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: awkward five-card club minimum',
+    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
+    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
+    practiceAuction: minorAuction,
+  });
+  const { board: sixMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: ordinary six-card club minimum',
+    north: { S: 'KJ2', H: 'KQ7', D: '4', C: 'KJ9628' },
+    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
+    practiceAuction: minorAuction,
+  });
+  if (! supports(awkwardMinorBoard, minorAuction, '2C',
+                 'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
+      supports(sixMinorBoard, minorAuction, '2C',
+               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
+      ! supports(sixMinorBoard, minorAuction, '2C',
+                  'opener-rebid-repeat-minor-after-minor-one-level-new-suit') ||
+      supports(awkwardMinorBoard, ['1C', 'Pass', '1H', 'Pass'], '2C',
+               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit')) {
+    failures++;
+    console.error('FAIL third audit: five-card minor fallback displaces a better rebid.');
+  }
+  const { board: twoClubBoard } = makeRuleTestBoard({
+    description: 'Third audit: two clubs do not establish fit with five-card minor repeat',
+    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
+    south: { S: 'A9876', H: '43', D: 'QJ72', C: 'T7' },
+    practiceAuction: [...minorAuction, '2C', 'Pass'],
+  });
+  const repeatedAuction: Call[] = [...minorAuction, '2C', 'Pass'];
+  if (! supports(awkwardMinorBoard, repeatedAuction, 'Pass',
+                 'responder-rebid-pass-after-minimum-suit-repeat') ||
+      supports(twoClubBoard, repeatedAuction, 'Pass',
+               'responder-rebid-pass-after-minimum-suit-repeat')) {
+    failures++;
+    console.error('FAIL third audit: support length after possible five-card minor repeat.');
+  }
+  console.log(`${failures} ***FAILURES***. Third audit: forcing 1NT, strong minor guidance, ` +
+              'marginal openings, and five-card minor repeats.\n');
+  return failures;
+}
+
+const failureCount = runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

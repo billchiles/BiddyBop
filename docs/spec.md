@@ -243,6 +243,19 @@ The app should help the user practice bidding decisions using structured convent
 - Standard non-forcing 1NT responses to a major are the default. `majorOneNtResponse: 'forcing'`
   means opener may not pass. With 2/1 and `majorOneNtResponse: 'nonForcing'`, the combination is the
   common semi-forcing treatment.
+- With a forcing 1NT response to a major, opener first makes any suitable natural rebid. If no
+  descriptive action exists, opener manufactures a minor: normally at least three cards, choosing
+  the longer minor, but exceptionally `2C` on two cards when neither minor has three. Responder
+  cannot infer an eight-card club fit from five clubs alone; six suffice opposite this fallback.
+- An 11-HCP balanced hand does not open a convenient minor merely by counting the length point
+  for a five-card minor. The usual balanced `1NT` rebid still promises 12–14 HCP. Marginal
+  unbalanced one-level openings and the separate five-card-major opening treatment remain available.
+- After a forcing one-level new-suit response to a minor, a minimum opener without a descriptive
+  rebid may repeat exactly five cards in the opening minor at the two level. Normally a repeat
+  promises six cards; responder needs three cards for a guaranteed eight-card minor fit here.
+  A very strong opener with six or more cards in a minor but no accurate rebid instead receives
+  auction-specific judgment guidance. The trainer does not widen the 17–18-point invitational
+  jump-repeat range to invent a recommended bid, and opener must still respond to the force.
 - Stayman and Jacoby transfers are enabled by default.
 - After natural 1NT or 2NT, ordinary Stayman replies are one level above the opening: deny
   both majors with D, show H with four or more hearts (including both four-card majors), or
