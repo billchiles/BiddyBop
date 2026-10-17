@@ -643,6 +643,8 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3D', '3NT', '5D'],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: 'J6', H: '63', D: 'KQ74', C: 'QT943' },
+    east: { S: 'AT95', H: 'JT94', D: 'T8', C: 'A76' },
+    west: { S: 'Q732', H: 'AK85', D: '653', C: 'J2' },
   },
   {
     description: '1C-2C-3C: 16 HCP plus one club length point gives the medium 17-total-point ' +
@@ -660,6 +662,8 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass', '3NT', '5C'],
     north: { S: 'AQ74', H: 'K72', D: '6', C: 'AQJ85' },
     south: { S: 'J82', H: '84', D: 'K72', C: 'KT974' },
+    east: { S: '953', H: 'QJ95', D: 'AQ83', C: '32' },
+    west: { S: 'KT6', H: 'AT63', D: 'JT954', C: '6' },
   },
   {
     description: '1D-2D-3NT: a 19-HCP balanced maximum usually chooses notrump game after ' +
@@ -677,6 +681,8 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass', '3D', '5D'],
     north: { S: 'AQ3', H: 'K7', D: 'AQ84', C: 'KJ72' },
     south: { S: '865', H: '942', D: 'KJ63', C: 'Q85' },
+    east: { S: 'KT74', H: 'A653', D: 'T97', C: 'T4' },
+    west: { S: 'J92', H: 'QJT8', D: '52', C: 'A963' },
   },
   {
     description: '1C-2C-3NT: a seven-card club suit and extreme 3-2-1-7 shape keep five clubs ' +
@@ -695,7 +701,9 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCallOrder: [['3NT', '5C']],
     rejectedOpenerRebidCalls: ['Pass', '3C'],
     north: { S: 'AQ4', H: 'K3', D: '6', C: 'AKJ9864' },
-    south: { S: 'J82', H: 'Q74', D: 'K2', C: 'Q7532' },
+    south: { S: 'J82', H: 'Q74', D: 'A2', C: 'Q7532' },
+    east: { S: 'T95', H: 'AJ98', D: 'Q9543', C: 'T' },
+    west: { S: 'K763', H: 'T652', D: 'KJT87', C: '' },
   },
   {
     description: '1C-3C-Pass: a 12-total-point opener declines the 11-HCP minor limit raise.',
@@ -713,6 +721,8 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT', '5C'],
     north: { S: 'K84', H: 'J72', D: 'A92', C: 'KJ85' },
     south: { S: '962', H: 'AQ8', D: 'K7', C: 'QT974' },
+    east: { S: 'AJ53', H: '93', D: 'JT643', C: '62' },
+    west: { S: 'QT7', H: 'KT654', D: 'Q85', C: 'A3' },
   },
   {
     description: '1D-3D-3NT: a useful 14-HCP opener accepts the diamond limit raise in the usual ' +
@@ -728,8 +738,10 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
       { call: '3NT', ruleIds: ['opener-rebid-3nt-after-minor-limit-raise'] },
     ],
     rejectedOpenerRebidCalls: ['Pass', '5D'],
-    north: { S: 'K84', H: 'A72', D: 'AQJ92', C: '85' },
+    north: { S: 'K84', H: 'A72', D: 'QJ92', C: 'A85' },
     south: { S: 'Q62', H: 'KJ4', D: 'K8743', C: 'Q9' },
+    east: { S: 'AJ97', H: '986', D: 'AT5', C: 'J73' },
+    west: { S: 'T53', H: 'QT53', D: '6', C: 'KT642' },
   },
   {
     description: '1D-3D-3NT: a seven-card diamond suit and extreme distribution keep five diamonds ' +
@@ -748,7 +760,9 @@ export const OPENER_REBID_AFTER_MINOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCallOrder: [['3NT', '5D']],
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'AQ4', H: 'K3', D: 'AKJ9864', C: '6' },
-    south: { S: 'K82', H: 'Q74', D: 'QT753', C: 'KJ' },
+    south: { S: 'T82', H: 'Q74', D: 'QT753', C: 'AK' },
+    east: { S: 'J73', H: 'A986', D: '', C: 'J97543' },
+    west: { S: 'K965', H: 'JT52', D: '2', C: 'QT82' },
   },
 ];
 

@@ -187,6 +187,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', 'Pass'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'KJ74', H: 'Q5', D: 'J92', C: 'T984' },
+    east: { S: 'A92', H: '942', D: 'T63', C: 'KQJ2' },
+    west: { S: 'T653', H: '76', D: 'AQ85', C: 'A73' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-minimum-suit-repeat',
     ] }],
@@ -197,6 +199,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '2S'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'KJT965', H: 'Q5', D: 'Q92', C: 'T4' },
+    east: { S: '72', H: '97', D: 'J865', C: 'AK973' },
+    west: { S: 'A43', H: '642', D: 'AT3', C: 'QJ82' },
     expectedResponderRebidCalls: [{ call: '2S', ruleIds: [
       'responder-rebid-two-original-suit-after-minimum-repeat',
     ] }],
@@ -207,6 +211,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '2NT'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'AK64', H: 'Q5', D: 'Q92', C: 'T983' },
+    east: { S: 'T32', H: '964', D: 'AJT6', C: 'A74' },
+    west: { S: 'J975', H: '72', D: '853', C: 'KQJ2' },
     expectedResponderRebidCalls: [
       { call: '2NT', ruleIds: ['responder-rebid-2nt-after-minimum-suit-repeat'] },
       { call: '3H', ruleIds: ['responder-rebid-three-hearts-after-repeated-hearts'] },
@@ -218,6 +224,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '3S'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'KJT964', H: 'Q5', D: 'J92', C: 'K4' },
+    east: { S: '73', H: '642', D: 'QT83', C: 'AQJ7' },
+    west: { S: 'A52', H: '97', D: 'A65', C: 'T9832' },
     expectedResponderRebidCalls: [
       { call: '3S', ruleIds: ['responder-rebid-three-original-suit-after-minimum-repeat'] },
       { call: '3H', ruleIds: ['responder-rebid-three-hearts-after-repeated-hearts'] },
@@ -226,9 +234,15 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
   },
   {
     description: 'Balanced game values allow 3NT, while the eight-card heart fit is preferred.',
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: '3NT is a reasonable ' +
+      'game choice with balanced values, but opener has shown six hearts and ' +
+      'responder holds two, giving an eight-card heart fit. 4H is generally ' +
+      'preferred; this deal follows the modeled 3NT alternative.' }],
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '3NT'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'AK64', H: 'Q5', D: 'AQ2', C: 'T983' },
+    east: { S: '9752', H: '6', D: 'T863', C: 'KQJ2' },
+    west: { S: 'JT3', H: '9742', D: 'J95', C: 'A74' },
     expectedResponderRebidCalls: [
       { call: '3NT', ruleIds: ['responder-rebid-3nt-after-minimum-suit-repeat'] },
       { call: '4H', ruleIds: ['responder-rebid-four-hearts-after-repeated-hearts'] },
@@ -240,6 +254,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '4H'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'KJ96', H: 'Q52', D: 'AQ2', C: 'K43' },
+    east: { S: 'A73', H: '76', D: 'T986', C: 'A972' },
+    west: { S: 'T542', H: '94', D: 'J53', C: 'QJT8' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-four-hearts-after-repeated-hearts',
     ] }],
@@ -250,6 +266,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '4S'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'AKJ9764', H: 'Q', D: 'QJ2', C: 'T4' },
+    east: { S: '532', H: '952', D: 'AT9', C: 'AQ32' },
+    west: { S: 'T', H: '764', D: '8653', C: 'KJ987' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-four-spades-after-repeated-hearts',
     ] }],
