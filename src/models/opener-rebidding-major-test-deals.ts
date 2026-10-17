@@ -604,6 +604,8 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'AQ84', H: 'KJ985', D: 'K72', C: '3' },
     south: { S: 'K63', H: 'Q7', D: 'J4', C: 'AQJ952' },
+    east: { S: 'J7', H: 'T64', D: 'A963', C: 'KT84' },
+    west: { S: 'T952', H: 'A32', D: 'QT85', C: '76' },
   },
   {
     description: '1S-2H-3C in 2/1: minimum 15 HCP, 5S-4C; a natural three-level second suit does not promise the extra strength required by the same high reverse in Standard.',
@@ -620,6 +622,8 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'AQJ85', H: '7', D: 'Q32', C: 'AQ94' },
     south: { S: 'K6', H: 'AKJ85', D: 'K74', C: '852' },
+    east: { S: 'T9742', H: 'T64', D: 'A6', C: 'T63' },
+    west: { S: '3', H: 'Q932', D: 'JT985', C: 'KJ7' },
   },
   {
     description: "1S-2H in 2/1: 12 HCP / 14 total with six spades and three hearts; 2S describes opener's long major while 3H confirms the known eight-card heart fit.",
@@ -637,6 +641,8 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'KQJ985', H: 'A74', D: 'Q82', C: '6' },
     south: { S: 'A4', H: 'KJ852', D: 'AK3', C: 'J52' },
+    east: { S: 'T3', H: '93', D: 'T965', C: 'Q9873' },
+    west: { S: '762', H: 'QT6', D: 'J74', C: 'AKT4' },
   },
   {
     description: '1H-2C-2NT in 2/1: 14 HCP, 5-3-3-2 balanced with no club fit; describe the flat shape economically because game is already forced.',
@@ -653,6 +659,8 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
     south: { S: 'KQ3', H: 'K6', D: '94', C: 'AQJ742' },
+    east: { S: 'T64', H: 'T732', D: 'AJT3', C: 'T6' },
+    west: { S: 'J975', H: '94', D: 'Q865', C: 'K93' },
   },
   {
     description: "1H-2C-3C in 2/1: minimum 13 HCP, 5H-4C; a minor response needs four-card opener support, unlike the three hearts sufficient after 1S-2H.",
@@ -669,6 +677,8 @@ export const OPENER_REBID_AFTER_MAJOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'K82', H: 'AQJ85', D: '3', C: 'QJ94' },
     south: { S: 'AQ3', H: 'K6', D: 'K74', C: 'A8765' },
+    east: { S: 'JT965', H: 'T43', D: 'QJ5', C: 'T3' },
+    west: { S: '74', H: '972', D: 'AT9862', C: 'K2' },
   },
 ];
 
@@ -693,6 +703,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: 'AQJ85', H: 'K74', D: '5', C: 'A982' },
     south: { S: 'K964', H: 'AQ3', D: 'K83', C: 'JT7' },
+    east: { S: 'T72', H: '62', D: 'A9742', C: 'Q54' },
+    west: { S: '3', H: 'JT985', D: 'QJT6', C: 'K63' },
   },
   {
     description: '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
@@ -710,6 +722,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT', '3H'],
     north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
     south: { S: 'A83', H: 'K976', D: 'K64', C: 'QJ2' },
+    east: { S: 'Q52', H: '4', D: 'A985', C: 'K9743' },
+    west: { S: 'JT96', H: 'T32', D: 'JT3', C: 'AT6' },
   },
   {
     description: '1S-2NT-3NT: 14 HCP with no singleton or void shows the medium Jacoby range.',
@@ -727,6 +741,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4S', '3S'],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: '85' },
     south: { S: 'K964', H: 'AQ3', D: 'K83', C: 'J72' },
+    east: { S: '32', H: 'T952', D: 'QT654', C: 'A4' },
+    west: { S: 'T7', H: 'J86', D: 'J9', C: 'KQT963' },
   },
   {
     description: '1H-2NT-3H: 17 HCP with no singleton or void shows the strong slam-interest range.',
@@ -744,6 +760,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4H', '3NT'],
     north: { S: 'AQ4', H: 'AKJ85', D: 'K72', C: '85' },
     south: { S: 'K83', H: 'Q976', D: 'A64', C: 'KJ2' },
+    east: { S: 'JT9762', H: '3', D: 'J9', C: 'T963' },
+    west: { S: '5', H: 'T42', D: 'QT853', C: 'AQ74' },
   },
   {
     description: '1S-2NT: 14 HCP with a club singleton and good five-card diamonds; 3C shortness ' +
@@ -764,6 +782,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: 'AKJ85', H: '82', D: 'KQJ74', C: '5' },
     south: { S: 'Q976', H: 'AK3', D: 'A62', C: 'T83' },
+    east: { S: '432', H: 'QT6', D: '95', C: 'KQ976' },
+    west: { S: 'T', H: 'J9754', D: 'T83', C: 'AJ42' },
   },
 ];
 
@@ -789,6 +809,8 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4D'],
     north: { S: 'KQJ', H: 'AKJ85', D: 'A72', C: '85' },
     south: { S: '4', H: 'Q976', D: 'K83', C: 'AQJ72' },
+    east: { S: '9853', H: '32', D: 'QT95', C: '943' },
+    west: { S: 'AT762', H: 'T4', D: 'J64', C: 'KT6' },
   },
   {
     description: '1S-4C-4D: 15 working HCP and controls in both diamonds and hearts make 4D the ' +
@@ -809,6 +831,8 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4H'],
     north: { S: 'AKJ85', H: 'K65', D: 'A72', C: '85' },
     south: { S: 'Q976', H: 'AQJ72', D: 'K83', C: '4' },
+    east: { S: '432', H: '98', D: 'J94', C: 'AJT93' },
+    west: { S: 'T', H: 'T43', D: 'QT65', C: 'KQ762' },
   },
   {
     description: '1S-4D-4H: a heart control can be the slam-interest bid after a splinter; ' +
@@ -828,6 +852,8 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCallOrder: [['4H', '4S']],
     north: { S: 'AKJ85', H: 'A74', D: '85', C: 'K96' },
     south: { S: 'Q976', H: 'K83', D: '4', C: 'AQJ72' },
+    east: { S: 'T4', H: '9652', D: 'KQJT3', C: 'T3' },
+    west: { S: '32', H: 'QJT', D: 'A9762', C: '854' },
   },
 ];
 
@@ -853,6 +879,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K874', H: 'Q72', D: 'A', C: 'KQJ85' },
     south: { S: 'Q63', H: 'KJT986', D: 'T4', C: '92' },
+    east: { S: 'JT5', H: '43', D: 'K8732', C: 'A73' },
+    west: { S: 'A92', H: 'A5', D: 'QJ965', C: 'T64' },
   },
   {
     description: '1C-2H-3H: after a classic strong jump shift, opener has three hearts and four ' +
@@ -875,6 +903,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCallOrder: [['3H', '2S'], ['3H', '2NT']],
     north: { S: 'QJT4', H: 'A73', D: '985', C: 'KQ4' },
     south: { S: 'A62', H: 'KQT85', D: 'KQ7', C: 'A9' },
+    east: { S: 'K9875', H: '964', D: 'J3', C: '873' },
+    west: { S: '3', H: 'J2', D: 'AT642', C: 'JT652' },
   },
   {
     description: '1H-2S-3H: responder has made a strong jump shift, and opener has six hearts ' +
@@ -894,6 +924,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: '5', H: 'AKQ865', D: '984', C: 'K72' },
     south: { S: 'AKQJ9', H: '72', D: 'KQ6', C: 'QJ8' },
+    east: { S: '864', H: 'JT', D: 'JT5', C: 'AT943' },
+    west: { S: 'T732', H: '943', D: 'A732', C: '65' },
   },
   {
     description: '1D-2H-2S: after a strong heart jump shift, opener has a natural four-card ' +
@@ -913,6 +945,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'KQJ4', H: '7', D: 'KJT85', C: 'Q72' },
     south: { S: 'A63', H: 'AKQJ8', D: '42', C: 'KJ9' },
+    east: { S: 'T972', H: '654', D: 'Q7', C: 'AT65' },
+    west: { S: '85', H: 'T932', D: 'A963', C: '843' },
   },
   {
     description: '1H-2S-2NT: opener is 5-3-3-2 with only two spades, no six-card heart suit, ' +
@@ -931,6 +965,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K7', H: 'AJ985', D: 'K84', C: 'J92' },
     south: { S: 'AQT98', H: 'K6', D: 'AQ7', C: 'K83' },
+    east: { S: '6432', H: 'QT43', D: 'T3', C: 'AQ6' },
+    west: { S: 'J5', H: '72', D: 'J9652', C: 'T754' },
   },
   {
     description: '1S with a strong 5-5 heart-diamond two-suiter: classic strong jump shifts are ' +
@@ -949,6 +985,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['2H', '2D']],
     north: { S: 'AJT72', H: '53', D: 'J92', C: 'AQ3' },
     south: { S: 'K6', H: 'KQJ98', D: 'AKQ76', C: '4' },
+    east: { S: '84', H: 'T762', D: '543', C: 'K987' },
+    west: { S: 'Q953', H: 'A4', D: 'T8', C: 'JT652' },
   },
   {
     description: '1C with 18 HCP but only the heart ace in a five-card heart suit: the classic ' +
@@ -965,6 +1003,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H'],
     north: { S: 'A842', H: 'KQ2', D: 'T', C: 'QJ853' },
     south: { S: 'KQJ', H: 'A9876', D: 'KQ7', C: 'K9' },
+    east: { S: '65', H: 'J43', D: 'J852', C: 'AT64' },
+    west: { S: 'T973', H: 'T5', D: 'A9643', C: '72' },
   },
   {
     description: '1H with 8 support points and six spades: three-card heart support takes ' +
@@ -980,6 +1020,8 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2S'],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'QJT976', H: 'K65', D: '43', C: '72' },
+    east: { S: 'A53', H: 'T4', D: 'QT5', C: 'K9653' },
+    west: { S: '42', H: '983', D: 'K876', C: 'AQJ4' },
   },
 ];
 
@@ -1006,6 +1048,8 @@ export const OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS: RuleTestDeal[] =
     rejectedOpenerRebidCalls: ['4NT'],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K65', H: 'AT3', D: 'K763', C: 'A74' },
+    east: { S: 'T94', H: '642', D: 'T4', C: 'Q9652' },
+    west: { S: '83', H: 'QJ975', D: 'QJ5', C: 'KJ3' },
   },
   {
     description: '1H-3NT: an 18-HCP 5-4-2-2 opener sees the known eight-card heart fit and also ' +
@@ -1025,6 +1069,8 @@ export const OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS: RuleTestDeal[] =
     expectedOpenerRebidCallOrder: [['4H', '4NT'], ['4NT', 'Pass']],
     north: { S: 'AQ', H: 'AKJ84', D: 'KJ72', C: '62' },
     south: { S: 'K73', H: 'Q65', D: 'A83', C: 'AQ94' },
+    east: { S: 'J954', H: '97', D: 'T95', C: 'KT75' },
+    west: { S: 'T862', H: 'T32', D: 'Q64', C: 'J83' },
   },
   {
     description: '1H-4H-Pass: 7 HCP plus a doubleton gives responder eight support points and ' +
@@ -1042,6 +1088,8 @@ export const OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS: RuleTestDeal[] =
     ],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'T5', H: 'K9543', D: '863', C: 'A93' },
+    east: { S: 'A973', H: 'T8', D: 'KQ5', C: 'J652' },
+    west: { S: 'QJ642', H: '6', D: 'T74', C: 'KQ74' },
   },
 ];
 
@@ -1066,6 +1114,8 @@ export const OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4S'],
     north: { S: 'AJ985', H: 'K74', D: 'Q72', C: 'J5' },
     south: { S: 'KQ76', H: 'AJ3', D: 'J64', C: 'T42' },
+    east: { S: '432', H: '62', D: 'KT985', C: 'AQ8' },
+    west: { S: 'T', H: 'QT985', D: 'A3', C: 'K9763' },
   },
   {
     description: '1H-3H: 12 HCP and one doubleton give 13 support points; both Pass and 4H remain ' +
@@ -1083,6 +1133,8 @@ export const OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
     south: { S: 'A83', H: 'K976', D: 'K64', C: 'J42' },
+    east: { S: 'J965', H: '2', D: 'JT53', C: 'KQ63' },
+    west: { S: 'QT2', H: 'T43', D: 'A98', C: 'AT97' },
   },
   {
     description: '1S-3S-4S: 14 HCP / 15 support points clearly accept responder\'s limit raise.',
@@ -1099,6 +1151,8 @@ export const OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: '85' },
     south: { S: 'K976', H: 'A83', D: 'K64', C: 'J42' },
+    east: { S: '43', H: 'T62', D: 'JT8', C: 'AQT96' },
+    west: { S: 'T2', H: 'QJ95', D: 'Q953', C: 'K73' },
   },
   {
     description: '1H-3H-4H: only 11 HCP, but a singleton club raises opener to 14 support points; ' +
@@ -1116,6 +1170,8 @@ export const OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'KQ74', H: 'AJ985', D: 'J72', C: '5' },
     south: { S: 'A83', H: 'KQ76', D: 'Q64', C: 'T42' },
+    east: { S: 'T62', H: '4', D: 'A853', C: 'QJ763' },
+    west: { S: 'J95', H: 'T32', D: 'KT9', C: 'AK98' },
   },
 ];
 
@@ -1138,6 +1194,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     north: { S: 'AQJ85', H: 'K74', D: 'Q72', C: '85' },
     south: { S: 'K63', H: 'T83', D: 'J64', C: 'Q942' },
+    east: { S: 'T74', H: 'A62', D: 'T93', C: 'AK63' },
+    west: { S: '92', H: 'QJ95', D: 'AK85', C: 'JT7' },
   },
   {
     description: '1S-2S: minimum 12 HCP / 15 shortage points with six spades; Pass remains sound, while 3S uses the extra trump length competitively and is not a game invitation.',
@@ -1154,6 +1212,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     north: { S: 'AQJ985', H: 'K74', D: 'Q72', C: '8' },
     south: { S: 'K63', H: 'T83', D: 'J64', C: 'Q942' },
+    east: { S: '2', H: 'A92', D: 'KT95', C: 'AT753' },
+    west: { S: 'T74', H: 'QJ65', D: 'A83', C: 'KJ6' },
   },
   {
     description: '1H-2H-2S: 16 HCP / 18 shortage points with 5H-4S; a natural spade help-suit game try asks whether responder has useful values or shortness there.',
@@ -1169,6 +1229,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     north: { S: 'KQ74', H: 'AQJ85', D: 'A7', C: '85' },
     south: { S: 'T83', H: 'K63', D: 'J64', C: 'Q942' },
+    east: { S: 'J2', H: 'T942', D: 'K53', C: 'AJ63' },
+    west: { S: 'A965', H: '7', D: 'QT982', C: 'KT7' },
   },
   {
     description: '1S-2S: 17 HCP balanced 5-3-3-2; 2NT is the natural balanced game try based on HCP, while 3D and 3H remain available as natural help-suit tries.  The hand could also have opened 1NT.',
@@ -1186,6 +1248,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
     south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    east: { S: 'T42', H: 'AT2', D: '985', C: 'QJ63' },
+    west: { S: '97', H: 'J963', D: 'KQT3', C: 'A75' },
   },
   {
     description: '1H-2H: 18 HCP / 21 shortage points with singleton spade; the natural 4H game raise and optional 3S splinter both describe a maximum hand with the known heart fit.',
@@ -1203,5 +1267,7 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     north: { S: '5', H: 'AKQ85', D: 'AQ84', C: 'K72' },
     south: { S: 'J763', H: 'T96', D: 'K52', C: 'Q94' },
+    east: { S: 'QT84', H: '742', D: 'J93', C: 'AT8' },
+    west: { S: 'AK92', H: 'J3', D: 'T76', C: 'J653' },
   },
 ];
