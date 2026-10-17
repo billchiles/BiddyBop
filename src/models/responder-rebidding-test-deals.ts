@@ -336,6 +336,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '2S'],
     north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
     south: { S: 'KT98', H: 'KJ76', D: 'Q85', C: '96' },
+    east: { S: '753', H: 'A5', D: 'JT94', C: 'AT73' },
+    west: { S: '64', H: 'T983', D: 'A63', C: 'KQ42' },
     expectedResponderRebidCalls: [{ call: '2S', ruleIds: [
       'responder-rebid-economical-delayed-major-partscore',
     ] }],
@@ -346,6 +348,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '3S'],
     north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
     south: { S: 'KT98', H: 'AJ76', D: 'Q84', C: '93' },
+    east: { S: '743', H: '985', D: 'T93', C: 'AKQ6' },
+    west: { S: '65', H: 'KT3', D: 'AJ65', C: 'T742' },
     expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
       'responder-rebid-economical-delayed-major-invite',
     ] }],
@@ -356,6 +360,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '1S', 'Pass', '4S'],
     north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
     south: { S: 'KT98', H: 'AK76', D: 'QJ4', C: '93' },
+    east: { S: '63', H: 'JT85', D: 'T53', C: 'A642' },
+    west: { S: '754', H: '93', D: 'A986', C: 'KQT7' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-economical-delayed-major-game',
     ] }],
@@ -366,6 +372,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '2H'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
     south: { S: 'KJ96', H: 'J74', D: 'Q85', C: '872' },
+    east: { S: 'A43', H: 'T92', D: 'JT764', C: 'AJ' },
+    west: { S: 'QT85', H: '63', D: 'A92', C: 'KT53' },
     expectedResponderRebidCalls: [{ call: '2H', ruleIds: [
       'responder-rebid-economical-prefer-opening',
     ] }],
@@ -376,6 +384,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', 'Pass'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
     south: { S: 'KJ95', H: '74', D: 'Q85', C: 'K873' },
+    east: { S: 'A43', H: '62', D: 'JT964', C: 'AT5' },
+    west: { S: 'QT86', H: 'JT93', D: 'A72', C: 'J2' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-economical-pass-second',
     ] }],
@@ -386,6 +396,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2C', 'Pass', '2NT'],
     north: { S: '72', H: 'K3', D: 'KQJT9', C: 'AQ76' },
     south: { S: 'AK86', H: 'Q84', D: '852', C: 'J32' },
+    east: { S: 'JT5', H: 'T652', D: 'A73', C: '854' },
+    west: { S: 'Q943', H: 'AJ97', D: '64', C: 'KT9' },
     expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
       'responder-rebid-economical-invite-notrump',
     ] }],
@@ -396,6 +408,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2C', 'Pass', '3NT'],
     north: { S: '72', H: 'K3', D: 'KQJT9', C: 'AQ76' },
     south: { S: 'KJ86', H: 'AQ4', D: '852', C: 'K32' },
+    east: { S: 'AQ', H: 'J852', D: '743', C: 'J854' },
+    west: { S: 'T9543', H: 'T976', D: 'A6', C: 'T9' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-economical-game-notrump',
     ] }],
@@ -406,6 +420,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '3C'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
     south: { S: 'KJ98', H: '74', D: 'Q85', C: 'KJ83' },
+    east: { S: 'AQ3', H: 'JT96', D: 'J62', C: 'T52' },
+    west: { S: 'T654', H: '32', D: 'AT974', C: 'A7' },
     expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
       'responder-rebid-economical-invite-second',
     ] }],
@@ -415,6 +431,8 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '3H'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
     south: { S: 'KJ98', H: 'J74', D: 'Q85', C: 'K83' },
+    east: { S: 'AQ6', H: '632', D: '976', C: 'AJT7' },
+    west: { S: 'T543', H: 'T9', D: 'AJT42', C: '52' },
     expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
       'responder-rebid-economical-invite-opening',
     ] }],

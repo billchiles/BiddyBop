@@ -214,6 +214,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     rejectedResponseCalls: ['1NT'],
     north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: 'QT6', H: 'K42', D: 'JT96', C: 'KQ3' },
+    west: { S: '953', H: 'T97', D: 'A43', C: 'AJ76' },
   },
   {
     description: '1H-1S-2S: 13 HCP / 15 shortage points, 5H-4S; ordinary simple raise requires four-card support.',
@@ -229,6 +231,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'A852', H: 'KQJ85', D: 'K7', C: '85' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: 'Q3', H: 'A974', D: '9632', C: 'AJ7' },
+    west: { S: 'T96', H: 'T2', D: 'AJT4', C: 'KQ63' },
   },
   {
     description: '1H-1S: minimum 13 HCP / 15 total, 6H-4D; 2H emphasizes the six-card major while 2D shows the lower second suit. Neither is a reverse.',
@@ -245,6 +249,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'A82', H: 'KQJ985', D: 'K764', C: '' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: 'QT95', H: 'A42', D: '32', C: 'AJ65' },
+    west: { S: '63', H: 'T7', D: 'AJT9', C: 'KQ873' },
   },
   {
     description: '1H-1S-3H: 15 HCP / 17 total with six hearts; medium values turn the economical 2H repeat into a jump repeat.',
@@ -260,6 +266,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'Q82', H: 'KQJ985', D: 'A7', C: 'K5' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: 'AT', H: 'T74', D: 'KT932', C: 'QJ3' },
+    west: { S: '9653', H: 'A2', D: 'J64', C: 'A876' },
   },
   {
     description: '1H-1S-3S: 15 HCP / 17 shortage points with 5H-4S; four-card support and distribution justify the medium jump raise.',
@@ -275,6 +283,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AQ52', H: 'KQJ85', D: 'K7', C: '85' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: '98', H: 'T42', D: 'JT964', C: 'AK3' },
+    west: { S: 'T63', H: 'A97', D: 'A32', C: 'QJ76' },
   },
   {
     description: '1H-1S-2NT: 19 HCP, 5-3-3-2 balanced with just three spades; the 18-19 NT rebid is based on HCP, not length points.',
@@ -290,6 +300,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'A82', H: 'AKQ85', D: 'KJ7', C: 'Q5' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: '53', H: 'JT97', D: '9643', C: 'K73' },
+    west: { S: 'QT96', H: '42', D: 'AT2', C: 'AJ86' },
   },
   {
     description: '1H-1S-3D: 19 HCP / 20 total, 5H-4D; maximum values justify a natural jump shift rather than the economical 2D second suit.',
@@ -305,6 +317,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'A82', H: 'AKQ85', D: 'KQJ7', C: '5' },
     south: { S: 'KJ74', H: '63', D: '985', C: 'A942' },
+    east: { S: 'Q653', H: 'T92', D: 'T42', C: 'K63' },
+    west: { S: 'T9', H: 'J74', D: 'A63', C: 'QJT87' },
   },
   {
     description: '1H-1S: 17 HCP / 20 shortage points with 5H-4S and singleton club; natural 4S and the optional 4C splinter both show the spade fit.',
@@ -322,6 +336,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AQ52', H: 'AKJ85', D: 'K74', C: '6' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: '986', H: 'Q92', D: 'A632', C: 'KQ8' },
+    west: { S: 'T3', H: 'T74', D: 'JT9', C: 'AJ753' },
   },
   {
     description: '1H-1S-4H: 17 HCP / 20 total with seven hearts; a strong long major supports the direct game rebid rather than a smaller repeat.',
@@ -337,6 +353,8 @@ export const OPENER_REBID_AFTER_MAJOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'A82', H: 'AKQJ987', D: 'K4', C: '5' },
     south: { S: 'KJ74', H: '63', D: 'Q85', C: 'T942' },
+    east: { S: '96', H: '42', D: 'JT962', C: 'KQJ6' },
+    west: { S: 'QT53', H: 'T5', D: 'A73', C: 'A873' },
   },
 ];
 
