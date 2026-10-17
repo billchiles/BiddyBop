@@ -378,6 +378,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
     south: { S: 'K95', H: '3', D: '953', C: 'AKQJ72' },
+    east: { S: '74', H: 'KT76', D: 'A84', C: 'T963' },
+    west: { S: 'QJT63', H: '942', D: 'QJT6', C: '4' },
   },
   {
     description: "1S-2H: 12 HCP / 14 total with six spades and three hearts; 2S describes length, while 3H supports responder's promised five hearts.",
@@ -395,6 +397,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'KQJ985', H: 'A74', D: '82', C: 'Q3' },
     south: { S: 'A4', H: 'J9852', D: 'QJ3', C: 'K65' },
+    east: { S: '63', H: 'QT3', D: 'AKT9', C: '9742' },
+    west: { S: 'T72', H: 'K6', D: '7654', C: 'AJT8' },
   },
   {
     description: "1S-2C-2D: minimum 5S-4D hand shows diamonds economically at the two level; responder can return to 2S, so this is not a reverse.",
@@ -411,6 +415,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AKJ85', H: '72', D: 'KQ94', C: '63' },
     south: { S: '63', H: 'AQT3', D: 'A75', C: 'QJ82' },
+    east: { S: 'Q7', H: 'J964', D: '832', C: 'T954' },
+    west: { S: 'T942', H: 'K85', D: 'JT6', C: 'AK7' },
   },
   {
     description: "1H-2C-2S: 16 HCP / 17 total, 5H-4S; the reverse forces responder above 2H to return to hearts and therefore needs extra strength.",
@@ -427,6 +433,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQ94', H: 'KJ985', D: 'AQ', C: '76' },
     south: { S: '752', H: 'QT', D: 'J', C: 'AKJT832' },
+    east: { S: '863', H: 'A43', D: 'KT765', C: '94' },
+    west: { S: 'KJT', H: '762', D: '98432', C: 'Q5' },
   },
   {
     description: "1S-2H: 15 HCP / 17 total and 18 shortage points, 6S-3H with a singleton; 3S shows the longer major while 4H supports responder's known five hearts.",
@@ -444,6 +452,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQJ985', H: 'KQ4', D: 'K82', C: '6' },
     south: { S: '42', H: 'AJT63', D: 'AQ9', C: 'J43' },
+    east: { S: 'K76', H: '972', D: '73', C: 'KQT98' },
+    west: { S: 'T3', H: '85', D: 'JT654', C: 'A752' },
   },
   {
     description: "1H-2D-3NT: 19 HCP balanced; this strong NT rebid uses HCP rather than opener's 20 total points.",
@@ -460,6 +470,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'A82', H: 'AKQ85', D: 'KJ7', C: 'Q5' },
     south: { S: '3', H: 'T6', D: 'AQT9832', C: 'AJT' },
+    east: { S: 'T7654', H: '943', D: '65', C: 'K83' },
+    west: { S: 'KQJ9', H: 'J72', D: '4', C: '97642' },
   },
   {
     description: "1S-2C-3D: 19 HCP / 20 total, 5S-4D; the extra strength justifies jumping beyond the economical 2D second-suit bid.",
@@ -476,6 +488,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AKQJ8', H: '73', D: 'AKQ9', C: '52' },
     south: { S: 'T5', H: 'KJ5', D: '76', C: 'AQJT86' },
+    east: { S: '74', H: 'AT984', D: 'T432', C: '94' },
+    west: { S: '9632', H: 'Q62', D: 'J85', C: 'K73' },
   },
   {
     description: "1S-2H: 16 HCP / 19 total and 20 shortage points, seven powerful spades and three hearts; either 4S or 4H is a modeled game choice.",
@@ -493,6 +507,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AKQJ987', H: 'AQ4', D: '2', C: '65' },
     south: { S: 'T3', H: 'KJ9875', D: 'AQ3', C: 'J4' },
+    east: { S: '42', H: '32', D: 'KJ865', C: 'KQ82' },
+    west: { S: '65', H: 'T6', D: 'T974', C: 'AT973' },
   },
   {
     description: "1H-2C-3C: minimum 5H-4C with four-card club support; a minor response does not promise five cards, unlike 2H after 1S.",
@@ -509,6 +525,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: '72', H: 'AQJ85', D: 'K3', C: 'K964' },
     south: { S: 'K93', H: 'K7', D: 'JT7', C: 'A8753' },
+    east: { S: 'AT64', H: '964', D: 'A642', C: 'JT' },
+    west: { S: 'QJ85', H: 'T32', D: 'Q985', C: 'Q2' },
   },
   {
     description: "1S-2H-3C: 17 HCP / 18 total, 5S-4C; this three-level lower-suit rebid is a high reverse because responder must bid 3S to return to spades.",
@@ -525,6 +543,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQJ85', H: '73', D: 'K7', C: 'AK94' },
     south: { S: 'T9', H: 'AKJT852', D: 'J52', C: 'Q' },
+    east: { S: '763', H: 'Q94', D: 'AQ643', C: 'J5' },
+    west: { S: 'K42', H: '6', D: 'T98', C: 'T87632' },
   },
   {
     description: "1S-2H-2S: 13 HCP / 14 total, five spades and four clubs but only two hearts; minimum values rule out the high reverse 3C, so 2S is an explicit five-card fallback.",
@@ -541,6 +561,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AKJ85', H: '72', D: '63', C: 'KQ94' },
     south: { S: '96', H: 'AKQJT5', D: 'KT8', C: 'T2' },
+    east: { S: 'Q74', H: '63', D: '9752', C: 'J753' },
+    west: { S: 'T32', H: '984', D: 'AQJ4', C: 'A86' },
   },
   {
     description: "1H-2C-2H: 12 HCP / 13 total, 5H-4S but no club fit; without reverse strength for 2S or another economical rebid, repeat five hearts as a fallback.",
@@ -557,6 +579,8 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AK84', H: 'KQ875', D: '962', C: '3' },
     south: { S: 'QT2', H: 'A4', D: 'KQ8', C: 'T9865' },
+    east: { S: 'J975', H: 'J32', D: 'J43', C: 'K74' },
+    west: { S: '63', H: 'T96', D: 'AT75', C: 'AQJ2' },
   },
 ];
 

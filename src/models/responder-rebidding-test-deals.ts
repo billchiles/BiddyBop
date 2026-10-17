@@ -456,6 +456,8 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     practiceAuction: ['1C', 'Pass', '1S', 'Pass', '2H', 'Pass', '4H'],
     north: { S: '8', H: 'AQJ4', D: 'K93', C: 'AKQ76' },
     south: { S: 'KJ974', H: 'K865', D: 'J72', C: '9' },
+    east: { S: 'AT63', H: 'T7', D: '84', C: '85432' },
+    west: { S: 'Q52', H: '932', D: 'AQT65', C: 'JT' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-strong-second-suit-major-game',
     ] }],
@@ -466,6 +468,8 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2H', 'Pass', '3NT'],
     north: { S: '8', H: 'AKJ4', D: 'AKQ76', C: 'T93' },
     south: { S: 'KJ74', H: 'Q62', D: '93', C: 'KJ85' },
+    east: { S: 'AQT9', H: '875', D: '82', C: 'Q764' },
+    west: { S: '6532', H: 'T93', D: 'JT54', C: 'A2' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-strong-second-suit-3nt',
     ] }],
@@ -476,6 +480,8 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2S', 'Pass', '4S'],
     north: { S: 'AKJ7', H: '85', D: 'K9', C: 'AQJ64' },
     south: { S: 'Q986', H: 'QJ74', D: 'Q62', C: 'T8' },
+    east: { S: 'T53', H: 'KT2', D: 'AT854', C: '53' },
+    west: { S: '42', H: 'A963', D: 'J73', C: 'K972' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-strong-second-suit-major-game',
     ] }],
@@ -486,6 +492,8 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3C', 'Pass', '4H'],
     north: { S: '2', H: 'AKQ87', D: 'K3', C: 'AQJ64' },
     south: { S: 'KJ74', H: 'J65', D: 'QJ62', C: '98' },
+    east: { S: 'AQ86', H: '943', D: '985', C: 'K52' },
+    west: { S: 'T953', H: 'T2', D: 'AT74', C: 'T73' },
     expectedResponderRebidCalls: [
       { call: '4H', ruleIds: ['responder-rebid-strong-second-suit-major-game'] },
       { call: '3NT', ruleIds: ['responder-rebid-strong-second-suit-3nt'] },
