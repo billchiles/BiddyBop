@@ -1275,6 +1275,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3H', '2NT'],
     north: { S: '852', H: 'KQJ987', D: '73', C: 'T5' },
     south: { S: 'A73', H: '42', D: 'J864', C: '9764' },
+    east: { S: 'QJT9', H: 'T65', D: 'A92', C: 'K32' },
+    west: { S: 'K64', H: 'A3', D: 'KQT5', C: 'AQJ8' },
   },
   {
     description: '2S-3S: exactly three spades give nine combined trumps; with Guideline of 17 ' +
@@ -1289,6 +1291,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass', '2NT', '4S'],
     north: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
     south: { S: 'A43', H: 'Q76', D: '852', C: '9642' },
+    east: { S: 'T65', H: 'KJ95', D: 'AJT', C: 'J87' },
+    west: { S: '2', H: 'AT3', D: 'KQ964', C: 'AKQ3' },
   },
   {
     description: '2D-4D: four-card diamond support gives at least ten combined trumps, so responder ' +
@@ -1303,6 +1307,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass', '3D'],
     north: { S: '842', H: '73', D: 'KQJ987', C: 'T5' },
     south: { S: '765', H: 'Q86', D: 'A432', C: '964' },
+    east: { S: 'KJ3', H: 'JT92', D: 'T5', C: 'KQ73' },
+    west: { S: 'AQT9', H: 'AK54', D: '6', C: 'AJ82' },
   },
   {
     description: '2H-2NT-3H: responder reaches Guideline of 17 exactly; forcing 2NT asks for more ' +
@@ -1320,6 +1326,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: '842', H: 'AQJ987', D: '73', C: '65' },
     south: { S: 'KQ5', H: 'K2', D: 'A64', C: 'QJ832' },
+    east: { S: 'A973', H: 'T64', D: 'J852', C: 'K4' },
+    west: { S: 'JT6', H: '53', D: 'KQT9', C: 'AT97' },
   },
   {
     description: '2S-2NT-3C: a 9-HCP maximum has the club king as a side feature; opener shows the ' +
@@ -1337,6 +1345,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3S', '3NT'],
     north: { S: 'KQJ987', H: '842', D: '73', C: 'K5' },
     south: { S: 'A3', H: 'AK5', D: 'QJ64', C: 'QJ82' },
+    east: { S: '64', H: 'J73', D: '982', C: 'AT976' },
+    west: { S: 'T52', H: 'QT96', D: 'AKT5', C: '43' },
   },
   {
     description: '2D-2NT-3NT: a 10-HCP maximum with AKQJ in the six-card diamond suit satisfies ' +
@@ -1354,6 +1364,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3D'],
     north: { S: '842', H: '73', D: 'AKQJ98', C: '65' },
     south: { S: 'KQ5', H: 'AQ4', D: 'T2', C: 'KJ832' },
+    east: { S: 'A73', H: 'T952', D: '64', C: 'QT97' },
+    west: { S: 'JT96', H: 'KJ86', D: '753', C: 'A4' },
   },
   {
     description: '2D-2S-3S: responder has a good five-card spade suit and enough strength for ' +
@@ -1370,6 +1382,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'T42', H: '83', D: 'KQJ987', C: '65' },
     south: { S: 'AKQJ9', H: 'A74', D: '2', C: 'QJ84' },
+    east: { S: '853', H: 'T952', D: 'A3', C: 'A932' },
+    west: { S: '76', H: 'KQJ6', D: 'T654', C: 'KT7' },
   },
   {
     description: '3H-Pass: a good seven-card heart suit with only 9 total points is a three-level ' +
@@ -1384,6 +1398,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: '842', H: 'KQJ9876', D: '73', C: '5' },
     south: { S: 'Q75', H: 'A2', D: 'A64', C: '98742' },
+    east: { S: '96', H: 'T54', D: 'KJT98', C: 'AJ3' },
+    west: { S: 'AKJT3', H: '3', D: 'Q52', C: 'KQT6' },
   },
   {
     description: '3S-4S: opener promises seven spades; responder has three-card support, producing ' +
@@ -1398,6 +1414,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass'],
     north: { S: 'KQJ9876', H: '842', D: '73', C: '5' },
     south: { S: 'A43', H: 'Q76', D: 'A52', C: '9642' },
+    east: { S: '52', H: 'JT95', D: 'KT86', C: 'K73' },
+    west: { S: 'T', H: 'AK3', D: 'QJ94', C: 'AQJT8' },
   },
   {
     description: '3H-3S-4H: a good five-card spade suit can be bid at the cheapest level below ' +
@@ -1414,6 +1432,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: '82', H: 'KQJ9876', D: '73', C: '65' },
     south: { S: 'AKQJ9', H: 'A2', D: 'A64', C: 'T84' },
+    east: { S: '7643', H: '3', D: 'QT52', C: 'KQ92' },
+    west: { S: 'T5', H: 'T54', D: 'KJ98', C: 'AJ73' },
   },
   {
     description: '4H-Pass: natural eight-card heart preempt. The trainer models the opening ' +
@@ -1427,6 +1447,8 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: '43', H: 'KQJT9876', D: '42', C: '2' },
     south: { S: 'A72', H: '53', D: 'KQ65', C: 'J874' },
+    east: { S: 'K965', H: 'A4', D: '973', C: 'KT96' },
+    west: { S: 'QJT8', H: '2', D: 'AJT8', C: 'AQ53' },
   },
   {
     description: '5D-Pass: a good nine-card diamond suit is a rare five-level natural preempt. ' +
@@ -1440,5 +1462,7 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: '2', H: '43', D: 'KQJT98765', C: '7' },
     south: { S: 'AK83', H: 'QJ76', D: '2', C: 'T964' },
+    east: { S: 'QT6', H: 'KT952', D: '3', C: 'A532' },
+    west: { S: 'J9754', H: 'A8', D: 'A4', C: 'KQJ8' },
   },
 ];
