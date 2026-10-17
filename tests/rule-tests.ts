@@ -1023,7 +1023,13 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   // A hand-specific scope boundary explains the judgment-heavy middle without inventing a fake
   // candidate bid.  If a concrete bid applies instead, the boundary must disappear.
   const boundaryDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[2]!;
-  const { board: boundaryBoard } = makeRuleTestBoard(boundaryDeal);
+  // The practice fixture is now 18 HCP, so reconstruct the original 17-HCP
+  // medium-opener scenario for this existing scope-boundary test.
+  const { board: boundaryBoard } = makeRuleTestBoard({
+    ...boundaryDeal,
+    west: { ...boundaryDeal.west!, C: 'T3' },
+    south: { ...boundaryDeal.south!, C: 'J8' },
+  });
   const boundaryResult = evaluateUserCall(
     'Pass', boundaryBoard, ['1D', '1S', '2D', '3S'], defaultBiddingSystem);
   checks += 1;
