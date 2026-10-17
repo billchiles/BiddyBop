@@ -30,6 +30,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'KQJ85', H: 'A74', D: '82', C: 'QJ3' },
     south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+    east: { S: 'AT63', H: '832', D: 'QJT', C: 'A75' },
+    west: { S: '94', H: 'KT95', D: 'A964', C: 'K96' },
   },
   {
     description: '1S-1NT-2C, forcing: the same flat 13-HCP hand cannot pass, so manufacture ' +
@@ -47,6 +49,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'KQJ85', H: 'A74', D: '82', C: 'QJ3' },
     south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+    east: { S: 'AT63', H: '832', D: 'QJT', C: 'A75' },
+    west: { S: '94', H: 'KT95', D: 'A964', C: 'K96' },
   },
   {
     description: '1S-1NT: 11 HCP / 13 total, 6S-4H and Guideline of 20; 2S emphasizes the ' +
@@ -65,6 +69,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQ8765', H: 'KQ65', D: '43', C: '2' },
     south: { S: 'K3', H: 'J82', D: '9752', C: 'QJ84' },
+    east: { S: 'T94', H: 'AT', D: 'KJT6', C: 'K763' },
+    west: { S: 'J2', H: '9743', D: 'AQ8', C: 'AT95' },
   },
   {
     description: '1H-1NT-2S: 16 HCP / 17 total, 5H-4S; showing the higher-ranking second suit ' +
@@ -82,10 +88,16 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQ94', H: 'KJ985', D: 'AQ', C: '76' },
     south: { S: 'K63', H: 'Q2', D: 'J753', C: 'T842' },
+    east: { S: 'JT872', H: 'A43', D: 'T9', C: 'A53' },
+    west: { S: '5', H: 'T76', D: 'K8642', C: 'KQJ9' },
   },
   {
     description: '1S-1NT-3S: 16 HCP / 18 total with six spades; medium values move the ' +
                  'major-repeat ladder from 2S to 3S.',
+    practiceGuidance: [{ auctionIndex: 1, seat: 'E', text: 'East has 10 HCP and six clubs ' +
+      'headed by A-K. Some players would overcall 2C, but 12 points including length fall ' +
+      'short of this trainer\'s usual 13-point requirement for a natural two-level ' +
+      'overcall. Pass is a reasonable conservative choice for this exercise.' }],
     practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '3S'],
     requiredSystem: { majorOneNtResponse: 'nonForcing' },
     expectedOpeningCalls: [
@@ -99,6 +111,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ986', H: 'KQ7', D: 'A2', C: '85' },
     south: { S: 'K3', H: 'J82', D: '9753', C: 'QJ64' },
+    east: { S: '5', H: 'T54', D: 'QJ4', C: 'AKT932' },
+    west: { S: 'T742', H: 'A963', D: 'KT86', C: '7' },
   },
   {
     description: '1S-1NT-2NT: 19 HCP, 5-3-3-2 balanced; show the natural 18-19 HCP notrump rebid range.',
@@ -115,6 +129,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AKQJ8', H: 'AQ4', D: 'K72', C: '85' },
     south: { S: '72', H: 'J86', D: 'Q954', C: 'KJ64' },
+    east: { S: 'T654', H: '972', D: 'A8', C: 'AT93' },
+    west: { S: '93', H: 'KT53', D: 'JT63', C: 'Q72' },
   },
   {
     description: '1S-1NT-3H: 20 HCP / 21 total, 5S-4H; maximum values turn the natural lower ' +
@@ -132,6 +148,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AKQJ8', H: 'AQJ4', D: 'K72', C: '5' },
     south: { S: '76', H: 'K65', D: 'Q954', C: 'J842' },
+    east: { S: 'T532', H: '8732', D: 'T', C: 'AK76' },
+    west: { S: '94', H: 'T9', D: 'AJ863', C: 'QT93' },
   },
   {
     description: '1S-1NT-4S: 16 HCP / 19 total with seven spades; maximum long-major values ' +
@@ -149,6 +167,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AKQJ987', H: 'AQ', D: '32', C: '54' },
     south: { S: '65', H: 'KJ4', D: 'Q876', C: 'J832' },
+    east: { S: 'T42', H: 'T932', D: 'AJ5', C: 'K96' },
+    west: { S: '3', H: '8765', D: 'KT94', C: 'AQT7' },
   },
   {
     description: '1S-1NT, forcing: 13 HCP with five spades, two hearts and exactly three cards ' +
@@ -168,6 +188,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2D'],
     north: { S: 'KQJ85', H: 'A7', D: '982', C: 'QJ3' },
     south: { S: '72', H: 'QJ6', D: 'K753', C: 'T842' },
+    east: { S: '9643', H: 'T93', D: 'AQJ', C: 'A97' },
+    west: { S: 'AT', H: 'K8542', D: 'T64', C: 'K65' },
   },
 ];
 
