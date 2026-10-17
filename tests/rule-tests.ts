@@ -1240,6 +1240,7 @@ function runAdvancingBoundaryTests (): number {
   } else {
     const { board: noTwoLevelStopperBoard } = makeRuleTestBoard({
       ...twoLevelNtDeal,
+      east: undefined, // Synthetic South variation must not retain the fixed practice East.
       south: { S: 'JT98', H: 'KQJ', D: 'T983', C: 'A4' }, // 11 HCP; no diamond stopper.
     });
     checks += 1;
@@ -1257,6 +1258,7 @@ function runAdvancingBoundaryTests (): number {
   } else {
     const { board: insufficientHcpBoard } = makeRuleTestBoard({
       ...threeLevelDeal,
+      east: undefined, // Synthetic South variation must not retain the fixed practice East.
       south: { S: 'T9', H: 'T7', D: 'AJT54', C: 'KQJ9' }, // 11 HCP, despite good diamonds.
     });
     checks += 1;
@@ -1339,6 +1341,7 @@ function runTakeoutAdvanceBoundaryTests (): number {
   // In contrast, a three-card unbid suit is not offered if a four-card option exists.
   const { board: fourCardBoard } = makeRuleTestBoard({
     ...jumpDeal,
+    east: undefined, // Synthetic South variation must not retain the fixed practice East.
     south: { S: 'QJ5', H: '762', D: 'T95', C: 'JT42' }, // 4 points and four clubs.
   });
   checks += 1;
@@ -1351,6 +1354,7 @@ function runTakeoutAdvanceBoundaryTests (): number {
   }
   const { board: notrumpBoard } = makeRuleTestBoard({
     ...notrumpDeal,
+    east: undefined, // Synthetic South variation must not retain the fixed practice East.
     south: { S: 'QJ5', H: 'T762', D: '83', C: 'AJ42' }, // 8 HCP, balanced, no D stopper.
   });
   checks += 1;
