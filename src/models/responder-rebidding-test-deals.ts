@@ -280,8 +280,10 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Minimum responder has a guaranteed eight-card fit opposite a possible five-card diamond repeat.',
     practiceAuction: ['1D', 'Pass', '1S', 'Pass', '2D', 'Pass', 'Pass'],
-    north: { S: 'A2', H: 'AK5', D: 'AJT986', C: '82' },
+    north: { S: 'A2', H: 'AJ5', D: 'AJT986', C: '82' },
     south: { S: 'KJ76', H: 'Q72', D: 'Q43', C: 'T94' },
+    east: { S: 'T943', H: 'K6', D: '752', C: 'AJ73' },
+    west: { S: 'Q85', H: 'T9843', D: 'K', C: 'KQ65' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-minimum-suit-repeat',
     ] }],
@@ -292,6 +294,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2C', 'Pass', '2H'],
     north: { S: 'Q2', H: 'J5', D: 'K83', C: 'AKT976' },
     south: { S: 'J8', H: 'KQT986', D: 'Q92', C: '43' },
+    east: { S: 'T9765', H: 'A43', D: 'A54', C: 'Q2' },
+    west: { S: 'AK43', H: '72', D: 'JT76', C: 'J85' },
     expectedResponderRebidCalls: [{ call: '2H', ruleIds: [
       'responder-rebid-two-original-suit-after-minimum-repeat',
     ] }],
@@ -302,6 +306,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1D', 'Pass', '2C', 'Pass', '2NT'],
     north: { S: 'AQ2', H: 'J5', D: 'K8', C: 'KJT986' },
     south: { S: 'K64', H: 'KQ3', D: 'QJT5', C: '732' },
+    east: { S: 'JT75', H: 'T8', D: 'A732', C: 'AQ5' },
+    west: { S: '983', H: 'A97642', D: '964', C: '4' },
     expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
       'responder-rebid-2nt-after-minimum-suit-repeat',
     ] }],
@@ -312,6 +318,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1D', 'Pass', '2C', 'Pass', '3D'],
     north: { S: 'A52', H: 'J5', D: 'Q2', C: 'KJT986' },
     south: { S: 'K4', H: 'Q3', D: 'KJT987', C: '753' },
+    east: { S: 'QT76', H: 'K7642', D: '53', C: 'A2' },
+    west: { S: 'J983', H: 'AT98', D: 'A64', C: 'Q4' },
     expectedResponderRebidCalls: [{ call: '3D', ruleIds: [
       'responder-rebid-three-original-suit-after-minimum-repeat',
     ] }],
@@ -322,6 +330,8 @@ export const RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1H', 'Pass', '2D', 'Pass', '3NT'],
     north: { S: 'K2', H: 'Q5', D: 'AKJT96', C: 'T82' },
     south: { S: 'AQ4', H: 'KJ74', D: 'Q3', C: 'KJ73' },
+    east: { S: 'T73', H: '9632', D: '4', C: 'A9654' },
+    west: { S: 'J9865', H: 'AT8', D: '8752', C: 'Q' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-3nt-after-minimum-suit-repeat',
     ] }],

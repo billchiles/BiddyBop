@@ -241,6 +241,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     rejectedOpeningCalls: ['1D'],
     north: { S: 'AQJ2', H: 'Q42', D: 'K72', C: 'J85' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: '976', H: 'A8', D: 'A63', C: 'QT742' },
+    west: { S: 'KT54', H: 'T953', D: 'JT9', C: 'AK' },
   },
   {
     description: '1C-1H-1NT: 13 HCP balanced, with neither four-card heart support nor another ' +
@@ -257,6 +259,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK2', H: 'Q42', D: 'K72', C: 'J852' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'T7654', H: 'T83', D: 'AT', C: 'AQ7' },
+    west: { S: 'QJ9', H: 'A95', D: 'J963', C: 'KT4' },
   },
   {
     description: '1C-1H-2H: minimum values with four-card heart support; make the ordinary ' +
@@ -273,6 +277,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK2', H: 'Q942', D: 'K72', C: '852' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'QT97', H: 'A3', D: '96', C: 'KQT74' },
+    west: { S: 'J654', H: 'T85', D: 'AJT3', C: 'AJ' },
   },
   {
     description: '1C-1H-2D: 17 HCP / 18 total, 5C-4D; this is a reverse because responder ' +
@@ -289,6 +295,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK', H: 'Q2', D: 'AKJ2', C: 'T8752' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'QJ76', H: 'AT3', D: '973', C: 'KJ4' },
+    west: { S: 'T9542', H: '9854', D: 'T6', C: 'AQ' },
   },
   {
     description: '1C-1H-3H: 15 HCP becomes 17 shortage points with two doubletons; jump raise ' +
@@ -305,6 +313,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AQ', H: 'AQ42', D: 'K2', C: 'T8752' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'KT975', H: 'T98', D: 'J3', C: 'KQ4' },
+    west: { S: 'J642', H: '53', D: 'AT976', C: 'AJ' },
   },
   {
     description: '1C-1H-2S: 19 HCP / 20 total, 5C-4S; 1S was economical, so 2S is the natural ' +
@@ -321,6 +331,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AKQ2', H: 'Q2', D: 'A2', C: 'KJ852' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'J54', H: 'AT95', D: 'KT3', C: 'QT4' },
+    west: { S: 'T976', H: '843', D: 'J976', C: 'A7' },
   },
   {
     description: '1C-1H-4H: 17 HCP becomes 19 shortage points with heart support; raise ' +
@@ -337,6 +349,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK', H: 'AQ42', D: 'K2', C: 'J8752' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'JT976', H: '83', D: 'JT3', C: 'KQT' },
+    west: { S: 'Q542', H: 'T95', D: 'A976', C: 'A4' },
   },
   {
     description: '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both ' +
@@ -355,6 +369,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AQ2', H: 'AQ42', D: 'K', C: 'J8752' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'K954', H: 'T5', D: 'T7632', C: 'A4' },
+    west: { S: 'JT76', H: '983', D: 'AJ9', C: 'KQT' },
   },
   {
     description: '1D-1H: 12 HCP / 14 total, 6D-4C; both 2D and economical 2C are reasonable ' +
@@ -371,7 +387,9 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
       { call: '2D', ruleIds: ['opener-rebid-repeat-minor-after-minor-one-level-new-suit'] },
     ],
     north: { S: 'Q2', H: '4', D: 'KJT972', C: 'AQ85' },
-    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    south: { S: '9843', H: 'KJ76', D: 'Q85', C: '96' },
+    east: { S: 'T765', H: 'AT52', D: 'A43', C: 'K2' },
+    west: { S: 'AKJ', H: 'Q983', D: '6', C: 'JT743' },
   },
   {
     description: '1C-1H-3C: 16 HCP / 18 total with six clubs; length points reach the medium ' +
@@ -388,6 +406,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AQ2', H: 'Q4', D: 'K2', C: 'AJT852' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'KJ76', H: 'A98', D: 'J9763', C: '4' },
+    west: { S: 'T954', H: 'T532', D: 'AT', C: 'KQ7' },
   },
   {
     description: '1C-1H-2NT: 18 HCP balanced with five clubs; the 18-19 NT rebid is based on ' +
@@ -405,6 +425,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK2', H: 'Q4', D: 'KJ2', C: 'KQ852' },
     south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'QT76', H: 'A9853', D: 'T6', C: 'T4' },
+    west: { S: 'J954', H: 'T2', D: 'A973', C: 'AJ7' },
   },
   {
     description: '1D-1H-5D: 16 HCP / 19 total with seven diamonds; maximum long-minor values ' +
@@ -421,6 +443,8 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     ],
     north: { S: 'AK', H: 'Q2', D: 'AQJ9876', C: '85' },
     south: { S: 'Q76', H: 'KJ85', D: '43', C: 'Q964' },
+    east: { S: 'JT94', H: 'A964', D: '52', C: 'A32' },
+    west: { S: '8532', H: 'T73', D: 'KT', C: 'KJT7' },
   },
 ];
 
