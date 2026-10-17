@@ -1233,7 +1233,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     west: { S: 'A965', H: '7', D: 'QT982', C: 'KT7' },
   },
   {
-    description: '1S-2S: 17 HCP balanced 5-3-3-2; 2NT is the natural balanced game try based on HCP, while 3D and 3H remain available as natural help-suit tries.  The hand could also have opened 1NT.',
+    description: '1S-2S: 18 HCP balanced 5-3-3-2, above the default 15-17 1NT opening range; 2NT is the preferred natural balanced game try.  A direct 4S is a more aggressive alternative.',
+    requiredSystem: { oneNtOpening: '15-17' },
     practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT'],
     expectedOpeningCalls: [
       { call: '1S', ruleIds: ['open-five-card-major'] },
@@ -1243,13 +1244,13 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     ],
     expectedOpenerRebidCalls: [
       { call: '2NT', ruleIds: ['opener-rebid-2nt-game-try-after-major-simple-raise'] },
-      { call: '3D', ruleIds: ['opener-rebid-help-suit-game-try-after-major-simple-raise'] },
-      { call: '3H', ruleIds: ['opener-rebid-help-suit-game-try-after-major-simple-raise'] },
+      { call: '4S', ruleIds: ['opener-rebid-game-raise-after-major-simple-raise'] },
     ],
-    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    expectedOpenerRebidCallOrder: [['2NT', '4S']],
+    north: { S: 'AQJ85', H: 'KJ4', D: 'A72', C: 'K8' },
     south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
     east: { S: 'T42', H: 'AT2', D: '985', C: 'QJ63' },
-    west: { S: '97', H: 'J963', D: 'KQT3', C: 'A75' },
+    west: { S: '97', H: '7963', D: 'KQT3', C: 'A75' },
   },
   {
     description: '1H-2H: 18 HCP / 21 shortage points with singleton spade; the natural 4H game raise and optional 3S splinter both describe a maximum hand with the known heart fit.',

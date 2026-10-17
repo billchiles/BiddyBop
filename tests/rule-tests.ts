@@ -1284,6 +1284,7 @@ function runAdvancingBoundaryTests (): number {
   }
   const { board: noStopperBoard } = makeRuleTestBoard({
     ...deal,
+    east: undefined, // This constructed variation must not retain a future fixed East hand.
     south: { ...deal.south, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
   });
   checks += 1;
@@ -2649,7 +2650,8 @@ function runResponderStandardTwoLevelContextTests (): number {
   const seedNt = bucket.deals[3];
   const { board: twelveHcpBoard } = makeRuleTestBoard({
     ...seedNt,
-    south: { ...seedNt.south!, C: 'QJ653' }, // Change the seed's club nine to the jack: 11 -> 12 HCP.
+    south: { ...seedNt.south!, C: 'QJ653' }, // South's club nine becomes the jack: 11 -> 12 HCP.
+    west: { ...seedNt.west!, C: '97' }, // Return the nine to West to preserve the complete fixed deal.
   });
   const ntPrefix: Call[] = ['1D', 'Pass', '2C', 'Pass', '2NT', 'Pass'];
   const twelveHcp = makeRuleEvalContext(twelveHcpBoard, ntPrefix).handFacts.hcp;

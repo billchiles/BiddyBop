@@ -505,10 +505,12 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
 //// Responder after opener's strong natural 2NT rebid
 export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: "Six balanced HCP accept opener's natural 18-19 HCP 2NT invitation.",
+    description: "Six balanced HCP decline opener's 18-19 HCP 2NT game invitation and Pass.",
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', 'Pass'],
     north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
     south: { S: 'J86', H: 'QJ74', D: 'T872', C: 'Q6' },
+    east: { S: 'T52', H: 'A963', D: 'J95', C: 'K43' },
+    west: { S: 'K974', H: 'T85', D: 'A63', C: '972' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-strong-2nt',
     ] }],
@@ -519,6 +521,8 @@ export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', '3NT'],
     north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
     south: { S: 'J86', H: 'QJ74', D: 'T872', C: 'K6' },
+    east: { S: 'T952', H: 'T8653', D: 'A65', C: '7' },
+    west: { S: 'K74', H: 'A9', D: 'J93', C: 'Q9432' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-3nt-after-strong-2nt',
     ] }],
@@ -529,6 +533,8 @@ export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1D', 'Pass', '2NT', 'Pass', '3NT'],
     north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
     south: { S: 'J86', H: 'Q74', D: 'JT876', C: 'K6' },
+    east: { S: 'KT9', H: 'AT98', D: 'A93', C: '943' },
+    west: { S: '7542', H: 'J653', D: '52', C: 'Q72' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-3nt-after-strong-2nt',
     ] }],
@@ -539,6 +545,8 @@ export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2NT', 'Pass', '3H'],
     north: { S: 'AQ3', H: 'K2', D: 'KQ4', C: 'AJT85' },
     south: { S: 'T86', H: 'AQJT9', D: '872', C: 'K6' },
+    east: { S: 'K752', H: '843', D: 'JT6', C: 'Q43' },
+    west: { S: 'J94', H: '765', D: 'A953', C: '972' },
     expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
       'responder-rebid-three-major-after-strong-2nt',
     ] }],
@@ -549,6 +557,8 @@ export const RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2NT', 'Pass', '4S'],
     north: { S: 'K3', H: 'AQJ85', D: 'KQ4', C: 'A72' },
     south: { S: 'AQJT97', H: 'T6', D: 'J72', C: 'T4' },
+    east: { S: '642', H: 'K43', D: 'T86', C: 'K863' },
+    west: { S: '85', H: '972', D: 'A953', C: 'QJ95' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-four-major-after-strong-2nt',
     ] }],
@@ -563,6 +573,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1H', 'Pass', '1NT', 'Pass', '2H', 'Pass', 'Pass'],
     north: { S: 'Q2', H: 'AKJ874', D: 'K73', C: '86' },
     south: { S: 'KJ3', H: 'Q2', D: 'T985', C: 'J943' },
+    east: { S: 'T94', H: '965', D: 'AJ4', C: 'AQT7' },
+    west: { S: 'A8765', H: 'T3', D: 'Q62', C: 'K52' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-major-1nt-repeat',
     ] }],
@@ -573,6 +585,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1H', 'Pass', '1NT', 'Pass', '2H', 'Pass', '3H'],
     north: { S: 'Q2', H: 'AKJ874', D: 'K73', C: '86' },
     south: { S: 'AJ3', H: 'Q2', D: 'Q985', C: 'J943' },
+    east: { S: 'KT98', H: 'T953', D: '42', C: 'A72' },
+    west: { S: '7654', H: '6', D: 'AJT6', C: 'KQT5' },
     expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
       'responder-rebid-invite-after-major-1nt-repeat',
     ] }],
@@ -584,6 +598,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { majorOneNtResponse: 'forcing' },
     north: { S: 'AKJ74', H: 'Q63', D: 'K4', C: 'J63' },
     south: { S: 'Q2', H: 'J872', D: 'Q985', C: 'K84' },
+    east: { S: 'T93', H: 'T4', D: 'AT2', C: 'AQT75' },
+    west: { S: '865', H: 'AK95', D: 'J763', C: '92' },
     expectedResponderRebidCalls: [{ call: '2S', ruleIds: [
       'responder-rebid-prefer-major-after-major-1nt',
     ] }],
@@ -595,6 +611,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { majorOneNtResponse: 'nonForcing' },
     north: { S: 'AKQ85', H: '83', D: 'KJ74', C: '96' },
     south: { S: 'J3', H: 'K94', D: 'A986', C: 'T853' },
+    east: { S: 'T42', H: 'AQT7', D: '32', C: 'Q742' },
+    west: { S: '976', H: 'J652', D: 'QT5', C: 'AKJ' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-second-suit-after-major-1nt',
     ] }],
@@ -606,6 +624,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { majorOneNtResponse: 'forcing' },
     north: { S: 'AKJ74', H: 'Q63', D: 'K4', C: 'J63' },
     south: { S: 'Q2', H: 'T87', D: '98', C: 'AK9748' },
+    east: { S: '853', H: 'A942', D: 'A752', C: 'T5' },
+    west: { S: 'T96', H: 'KJ5', D: 'QJT63', C: 'Q2' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-second-suit-after-major-1nt',
     ] }],
@@ -616,6 +636,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2D', 'Pass', '3C'],
     north: { S: 'AKQ85', H: '83', D: 'KJ74', C: '96' },
     south: { S: 'J2', H: 'QJ4', D: 'T8', C: 'KQ8753' },
+    east: { S: 'T976', H: 'A962', D: 'A963', C: 'T' },
+    west: { S: '43', H: 'KT75', D: 'Q52', C: 'AJ42' },
     expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
       'responder-rebid-long-minor-after-major-1nt',
     ] }],
@@ -627,6 +649,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { majorOneNtResponse: 'nonForcing' },
     north: { S: 'AKQ85', H: 'J3', D: 'K7', C: 'QJ84' },
     south: { S: 'J74', H: 'KQ8', D: 'AQ83', C: 'T92' },
+    east: { S: 'T963', H: 'AT654', D: 'J4', C: '76' },
+    west: { S: '2', H: '972', D: 'T9652', C: 'AK53' },
     expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
       'responder-rebid-delayed-limit-after-major-1nt',
     ] }],
@@ -637,6 +661,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '2C', 'Pass', '2NT'],
     north: { S: 'AKQ85', H: 'J3', D: 'K7', C: 'QJ84' },
     south: { S: 'J2', H: 'KQ8', D: 'A863', C: 'T963' },
+    east: { S: '743', H: 'AT97', D: 'JT42', C: 'A2' },
+    west: { S: 'T96', H: '6542', D: 'Q95', C: 'K75' },
     expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
       'responder-rebid-2nt-after-major-1nt-second-suit',
     ] }],
@@ -651,6 +677,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2D', 'Pass', 'Pass'],
     north: { S: 'A42', H: 'K4', D: 'AQJT92', C: '85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT853', H: 'A62', D: '65', C: 'K72' },
+    west: { S: 'K9', H: 'QT973', D: '84', C: 'AJT3' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-repeat'] }],
     rejectedResponderRebidCalls: ['2NT', '3NT'],
   },
@@ -659,6 +687,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass', 'Pass'],
     north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'K982', H: 'A963', D: 'T85', C: '87' },
+    west: { S: 'JT53', H: 'QT74', D: '64', C: 'AK3' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-second-minor-after-1nt'] }],
     rejectedResponderRebidCalls: ['3NT'],
   },
@@ -667,6 +697,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '2C', 'Pass', '2D'],
     north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
     south: { S: 'Q76', H: 'J85', D: 'K754', C: 'Q96' },
+    east: { S: 'K953', H: 'AT64', D: 'T6', C: '843' },
+    west: { S: 'JT82', H: 'Q973', D: '83', C: 'AK7' },
     expectedResponderRebidCalls: [{ call: '2D', ruleIds: ['responder-rebid-prefer-diamonds-after-minor-1nt'] }],
     rejectedResponderRebidCalls: ['Pass', '3NT'],
   },
@@ -676,6 +708,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { oneNtOpening: '15-17' },
     north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
     south: { S: 'Q76', H: 'T95', D: 'K73', C: 'J964' },
+    east: { S: 'T93', H: '7632', D: 'AT864', C: 'A' },
+    west: { S: 'J854', H: 'AJ8', D: '5', C: 'QT732' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-2nt'] }],
     rejectedResponderRebidCalls: ['3NT'],
   },
@@ -685,6 +719,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     requiredSystem: { oneNtOpening: '15-17' },
     north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT93', H: '32', D: 'AT854', C: 'A2' },
+    west: { S: '854', H: 'AT976', D: '6', C: 'JT73' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: ['responder-rebid-3nt-after-minor-1nt-2nt'] }],
     rejectedResponderRebidCalls: ['Pass'],
   },
@@ -693,6 +729,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3D', 'Pass', 'Pass'],
     north: { S: 'AK', H: 'Q4', D: 'AQJ982', C: '852' },
     south: { S: 'T76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: '98532', H: 'AK6', D: 'T65', C: 'K3' },
+    west: { S: 'QJ4', H: 'T9732', D: '4', C: 'AJT7' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-jump-repeat'] }],
     rejectedResponderRebidCalls: ['3NT'],
   },
@@ -701,6 +739,8 @@ export const RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1NT', 'Pass', '3NT', 'Pass', 'Pass'],
     north: { S: 'AK', H: 'KQ', D: 'AQJ982', C: 'J85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT532', H: 'AT63', D: 'T6', C: 'AT' },
+    west: { S: '984', H: '9742', D: '54', C: 'K732' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-pass-after-minor-1nt-game'] }],
   },
 ];
@@ -715,6 +755,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
     east: { S: 'T53', H: 'T975', D: 'T63', C: 'AK7' },
     south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+    west: { S: 'QJ986', H: 'A63', D: '874', C: 'T4' },
     expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
       'responder-rebid-standard-two-level-repeat-response',
     ] }],
@@ -725,8 +766,9 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '3C', 'Pass', 'Pass'],
     requiredSystem: { twoLevelNewSuitResponse: 'standard' },
     north: { S: 'A', H: 'KJ42', D: 'KJ972', C: 'T82' },
-    east: { S: 'Q94', H: 'T965', D: 'QT84', C: 'J7' },
+    east: { S: 'Q964', H: 'T96', D: 'QT84', C: 'A7' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    west: { S: 'JT853', H: 'A75', D: '63', C: 'KJ4' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-standard-two-level-pass-raise',
     ] }],
@@ -739,6 +781,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
     east: { S: 'JT63', H: 'AT65', D: 'T76', C: 'KT' },
     south: { S: 'K7', H: 'Q83', D: 'A53', C: 'Q9653' },
+    west: { S: 'Q9852', H: '97', D: '84', C: 'AJ74' },
     expectedResponderRebidCalls: [{ call: '3D', ruleIds: [
       'responder-rebid-standard-two-level-prefer-diamonds',
     ] }],
@@ -751,6 +794,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'AQJ4', H: 'KJ2', D: 'QJ92', C: '82' },
     east: { S: '985', H: 'T94', D: 'T73', C: 'AKT4' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    west: { S: 'T63', H: 'A765', D: 'K864', C: 'J7' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-standard-two-level-pass-2nt',
     ] }],
@@ -763,6 +807,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'A82', H: 'AQJ85', D: 'K72', C: '85' },
     east: { S: 'J943', H: 'T97', D: 'J4', C: 'AT94' },
     south: { S: 'KQ5', H: '63', D: 'A95', C: 'KQJ72' },
+    west: { S: 'T76', H: 'K42', D: 'QT863', C: '63' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-standard-two-level-game-3nt',
     ] }],
@@ -775,6 +820,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'KQJ985', H: 'A74', D: '82', C: 'Q3' },
     east: { S: '762', H: 'QT', D: 'K654', C: 'J974' },
     south: { S: 'A4', H: 'J9852', D: 'QJ3', C: 'A65' },
+    west: { S: 'T3', H: 'K63', D: 'AT97', C: 'KT82' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-standard-two-level-game-major-raise',
     ] }],
@@ -787,6 +833,7 @@ export const RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS: RuleTestDeal[]
     north: { S: 'AQJ4', H: 'AK2', D: 'KJ92', C: '82' },
     east: { S: 'T653', H: 'JT64', D: '76', C: 'AK4' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    west: { S: '98', H: '975', D: 'QT843', C: 'JT7' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-standard-two-level-pass-game',
     ] }],
@@ -803,6 +850,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'KQJ985', H: 'A72', D: 'K4', C: '82' },
     east: { S: 'T7', H: 'QJ94', D: 'T985', C: 'J64' },
     south: { S: 'A4', H: 'K63', D: 'QJ6', C: 'KQ973' },
+    west: { S: '632', H: 'T85', D: 'A732', C: 'AT5' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-two-over-one-opening-major-game',
     ] }],
@@ -815,6 +863,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'KQJ98', H: 'AQ72', D: '62', C: 'K9' },
     east: { S: 'T6', H: 'T965', D: 'T987', C: 'JT2' },
     south: { S: 'A75', H: '4', D: 'AKQJ5', C: 'Q853' },
+    west: { S: '432', H: 'KJ83', D: '43', C: 'A764' },
     expectedResponderRebidCalls: [{ call: '3S', ruleIds: [
       'responder-rebid-two-over-one-slow-major-raise',
     ] }],
@@ -827,6 +876,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'KQ7', H: 'AJT84', D: 'A94', C: '75' },
     east: { S: 'T63', H: '976', D: 'T652', C: 'A64' },
     south: { S: 'A84', H: 'K5', D: 'QJ8', C: 'KQJ93' },
+    west: { S: 'J952', H: 'Q32', D: 'K73', C: 'T82' },
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
       'responder-rebid-two-over-one-game-3nt',
     ] }],
@@ -839,6 +889,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AKQ986', H: 'K74', D: 'Q5', C: 'T2' },
     east: { S: 'T7', H: 'T983', D: 'T987', C: '543' },
     south: { S: '4', H: 'AQ5', D: 'K32', C: 'KQJ987' },
+    west: { S: 'J532', H: 'J62', D: 'AJ64', C: 'A6' },
     expectedResponderRebidCalls: [{ call: '3C', ruleIds: [
       'responder-rebid-two-over-one-repeat-long-suit',
     ] }],
@@ -851,6 +902,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'KQ7', H: 'KJ84', D: 'AQ86', C: '82' },
     east: { S: 'T985', H: 'T92', D: 'J973', C: 'T5' },
     south: { S: 'A3', H: 'Q765', D: 'K5', C: 'KQJ97' },
+    west: { S: 'J642', H: 'A3', D: 'T42', C: 'A643' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-two-over-one-discovered-major-game',
     ] }],
@@ -863,6 +915,7 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AK874', H: '54', D: 'KQ72', C: '92' },
     east: { S: 'T63', H: 'JT96', D: 'T94', C: 'T76' },
     south: { S: 'Q5', H: 'AQ7', D: 'A86', C: 'KJ843' },
+    west: { S: 'J92', H: 'K832', D: 'J53', C: 'AQ5' },
     expectedResponderRebidCalls: [{ call: '2NT', ruleIds: [
       'responder-rebid-two-over-one-forcing-2nt',
     ] }],
