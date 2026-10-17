@@ -1862,6 +1862,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
   const weakSuitBoard = makeRuleTestBoard({
     ...strongNewSuit,
     south: { S: 'T8', H: 'QJ8', D: 'JT976', C: 'AKQ' },
+    east: undefined, // Hypothetical South holding replaces cards in the fixed East hand.
   }).board;
   checks += 1;
   const qualityCandidates = getApplicableCandidateCalls(evaluateUserCall(
@@ -1875,6 +1876,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     ...ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
       deal.practiceAuction[3] === '3C')!,
     south: { S: 'QJ6', H: 'T8', D: '932', C: 'AKJ76' }, // Good clubs, but only 11 HCP.
+    east: undefined, // Hypothetical South holding replaces cards in the fixed East hand.
   }).board;
   checks += 1;
   const strengthCandidates = getApplicableCandidateCalls(evaluateUserCall(
