@@ -1134,9 +1134,10 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     dealer: 'W',
     practiceAuction: ['1H', 'Double', 'Pass', '1S', 'Pass', 'Pass'],
     west: { S: 'K72', H: 'AKJ76', D: 'KA5', C: '93' },
-    north: { S: 'AQJ4', H: 'Q93', D: 'Q86', C: 'K72' },
+    north: { S: 'AQJ4', H: 'Q9', D: 'Q86', C: 'K762' },
     south: { S: 'T986', H: 'T42', D: 'J93', C: 'A54' },
     expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: ['overcaller-rebid-takeout-minimum-pass'] }],
+    east: { S: '53', H: '853', D: 'T742', C: 'QJT8' },
   },
   {
     description: 'With 17 HCP and four-card spade support, raise a weak forced 1S to 2S.',
@@ -1308,8 +1309,8 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1H', 'Double', 'Pass', '1S', 'Pass', '2NT'],
     west: { S: 'K72', H: 'AQ976', D: 'K85', C: '93' },
     north: { S: 'AQ4', H: 'KJ3', D: 'AQ6', C: 'KJQ2' },
-    east: { S: 'T3', H: '85', D: 'T742', C: 'T8764' },
-    south: { S: 'J9865', H: 'T42', D: 'J93', C: 'A5' },
+    east: { S: 'T3', H: '85', D: 'T742', C: 'AT764' },
+    south: { S: 'J9865', H: 'T42', D: 'J93', C: '85' },
     expectedOvercallCalls: [{ call: 'Double', ruleIds: [
       'overcall-takeout-double-strong-hand',
     ] }],
@@ -1397,8 +1398,8 @@ export const BALANCING_TEST_DEALS: RuleTestDeal[] = [
     expectedBalancingCalls: [{ call: 'Pass', ruleIds: ['balance-pass-defend'] }],
     rejectedBalancingCalls: ['Double', '1S', '1NT', '2D'],
     west: { S: 'AQ87', H: 'AJ9753', D: 'A4', C: '4' },
-    north: { S: '4', H: 'T6', D: 'QJ982', C: 'KQJ95' },
-    east: { S: 'JT63', H: '2', D: 'T76', C: 'AT876' },
+    north: { S: 'J4', H: 'T6', D: 'QJ82', C: 'KQJ98' },
+    east: { S: 'T63', H: '2', D: 'T976', C: 'AT765' },
     south: { S: 'K952', H: 'KQ84', D: 'K53', C: '32' },
   },
 ];

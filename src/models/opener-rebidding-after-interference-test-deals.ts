@@ -24,7 +24,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     ] }],
     north: { S: 'K42', H: 'KQJ9876', D: '73', C: '5' },
     east: { S: 'AQ96', H: 'A53', D: 'K54', C: 'KJ9' },
-    south: { S: 'T83', H: '42', D: 'AJT962', C: 'T3' },
+    south: { S: 'T83', H: '2', D: 'AJT962', C: 'QT2' },
+    west: { S: 'J75', H: 'T4', D: 'Q8', C: 'A87643' },
   },
   //// Additional competition after responder acts
   // Opener must account for advancer acting after responder has already bid.
@@ -231,6 +232,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
     east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
     south: { S: 'KQ4', H: 'JT98', D: 'J52', C: 'J76' },
+    west: { S: 'J875', H: '', D: 'K763', C: 'QT942' },
   },
   {
     description: '1NT-(2H)-3NT-(Pass)-Pass: responder’s natural game signoff keeps its ordinary ' +
@@ -246,6 +248,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
     east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
     south: { S: 'KQ4', H: 'JT98', D: 'K52', C: 'J76' },
+    west: { S: 'J875', H: '', D: 'J763', C: 'QT942' },
   },
   //// One-level suit opening -- Opener after responder acts in competition
   {
@@ -266,6 +269,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
     east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
     south: { S: 'J976', H: 'KT9', D: '763', C: 'A82' },
+    west: { S: '542', H: '853', D: '2', C: 'KQJT64' },
   },
   {
     description: '1H-(1S)-2C-(Pass)-2NT: responder’s competitive 2C is forcing one round but ' +
@@ -285,6 +289,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K72', H: 'AKT94', D: 'QJ3', C: '83' },
     east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
     south: { S: 'T9', H: 'QJ', D: 'AT97', C: 'AQJT5' },
+    west: { S: '543', H: '853', D: 'K6542', C: '72' },
   },
   {
     description: '1H-(Double)-2H-(Pass)-Pass: a simple raise keeps its ordinary 6-10 meaning ' +
@@ -306,6 +311,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
     south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+    west: { S: '53', H: '8743', D: 'JT2', C: 'AKT2' },
   },
   {
     description: '1H-(Double)-1NT-(Pass)-Pass: responder’s 1NT is natural and nonforcing, so ' +
@@ -327,6 +333,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
     east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
     south: { S: 'T986', H: 'QJ5', D: 'A96', C: '973' },
+    west: { S: '53', H: '8743', D: 'JT2', C: 'AKT2' },
   },
   //// Opener after advancer raises or bids naturally
   {
@@ -511,8 +518,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
     ] }],
     west: { S: '9753', H: 'A7', D: 'AJ', C: 'AJ943' },
-    north: { S: 'KQ', H: '843', D: 'KT87542', C: '7' },
-    east: { S: 'T', H: 'KJT95', D: 'Q93', C: 'K862' },
+    north: { S: 'KQ', H: '843', D: 'KT8754', C: '72' },
+    east: { S: 'T', H: 'KJT95', D: 'Q932', C: 'K86' },
     south: { S: 'AJ8642', H: 'Q62', D: '6', C: 'QT5' },
   },
   {
@@ -529,8 +536,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-support-after-forcing-response-advancer-competition',
     ] }],
     west: { S: 'T', H: 'AJ854', D: 'QJ52', C: 'KT6' },
-    north: { S: 'KQJ98642', H: '93', D: 'K86', C: '' },
-    east: { S: '3', H: 'KQ762', D: 'A', C: 'J98742' },
+    north: { S: 'KQJ96', H: '9732', D: 'K86', C: '2' },
+    east: { S: '8432', H: 'KQ6', D: 'A', C: 'J9874' },
     south: { S: 'A75', H: 'T', D: 'T9743', C: 'AQ53' },
   },
   {
@@ -546,9 +553,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
       'opener-rebid-support-after-forcing-response-advancer-competition',
     ] }],
-    west: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    west: { S: 'K832', H: 'AQJ74', D: 'AT', C: '95' },
     north: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
-    east: { S: 'J97642', H: '85', D: '', C: 'AKQ64' },
+    east: { S: 'J9764', H: '85', D: '4', C: 'AKQ64' },
     south: { S: '5', H: 'KT93', D: '7632', C: 'JT82' },
   },
   {
@@ -587,8 +594,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-implied-suit-after-negative-double-minimum',
     ] }],
     west: { S: '2', H: 'AKJ84', D: 'K73', C: 'Q862' },
-    north: { S: 'AQT9865', H: '72', D: 'A8', C: 'J5' },
-    east: { S: '74', H: 'Q63', D: 'QJ95', C: 'AKT4' },
+    north: { S: 'AQT965', H: '732', D: 'A8', C: 'J5' },
+    east: { S: '874', H: 'Q6', D: 'QJ95', C: 'AKT4' },
     south: { S: 'KJ3', H: 'T95', D: 'T642', C: '973' },
   },
   {
@@ -681,10 +688,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
       'opener-rebid-3nt-after-overcall-three-level-forcing-response',
     ] }],
-    north: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    north: { S: 'K83', H: 'AJ874', D: 'AT4', C: '95' },
     east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
-    south: { S: 'J97', H: 'KT', D: '632', C: 'AKQJ8' },
-    west: { S: '6542', H: '9853', D: '7', C: 'T642' },
+    south: { S: 'J97', H: 'KT', D: '632', C: 'AKQ84' },
+    west: { S: '6542', H: 'Q953', D: '7', C: 'JT62' },
   },
   //// 1NT opening -- Negative-Double and natural response continuations
   // After natural interference over our 1NT, responder's Double is takeout-oriented.
@@ -703,6 +710,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'AK62', H: 'K53', D: 'AQ4', C: '853' },
     east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
     south: { S: 'QT85', H: '72', D: 'K83', C: 'K974' },
+    west: { S: '93', H: '64', D: '7652', C: 'AJT62' },
   },
   {
     description: '1NT-(2H)-Double-(Pass)-3NT: no four-card spade fit; maximum opener has ' +
@@ -718,6 +726,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
     east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
     south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
+    west: { S: 'T93', H: '64', D: '7652', C: 'KJ62' },
   },
   {
     description: '1NT-(2H)-2S-(Pass)-Pass: nonforcing natural spades are a playable ' +
@@ -733,6 +742,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'A24', C: 'A853' },
     east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
     south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+    west: { S: '53', H: '62', D: 'KQJ3', C: 'JT972' },
   },
   {
     description: '1NT-(2H)-2S-(Pass)-3S: 17 HCP with three spades invites ' +
@@ -748,6 +758,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
     east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
     south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+    west: { S: '53', H: '62', D: 'KJ32', C: 'JT972' },
   },
   {
     description: '1NT-(2H)-3C-(Pass)-3NT: responder is constructive with good clubs ' +
@@ -763,6 +774,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
     east: { S: 'J95', H: 'AQJT98', D: 'JT9', C: 'T' },
     south: { S: 'K84', H: '72', D: 'K86', C: 'KQJ76' },
+    west: { S: 'QT73', H: '64', D: '7532', C: '942' },
   },
 
   //// After a preemptive jump overcall -- Selected opener rebids
@@ -778,6 +790,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
     east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
     south: { S: 'T4', H: '752', D: 'KJ952', C: 'A62' },
+    west: { S: 'K3', H: 'QJ8', D: 'T76', C: 'KQJ83' },
   },
   {
     description: '1C-(2D)-2S-(Pass)-3S: responder\'s forcing five-card spade suit ' +
@@ -790,6 +803,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' },
     east: { S: '84', H: 'T65', D: 'KQJT97', C: '92' },
     south: { S: 'AJ963', H: 'K87', D: '42', C: 'K86' },
+    west: { S: 'QT5', H: 'QJ92', D: 'A65', C: 'T53' },
   },
   {
     description: '1S-(3H)-Double-(Pass)-3S: without a four-card minor fit, opener ' +
@@ -800,8 +814,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-after-jump-overcall-natural-suit',
     ] }],
     north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
-    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
+    east: { S: '83', H: 'QJT9765', D: '87', C: 'A2' },
     south: { S: '6', H: 'A43', D: 'KT942', C: 'KQ43' },
+    west: { S: 'QT92', H: 'K', D: 'J65', C: 'JT987' },
   },
   {
     description: '1H-(2S)-3S-(Pass)-4H: the support cuebid shows hearts, not ' +
@@ -818,7 +833,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
             'North places the partnership in the agreed heart game.' }],
     north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
     east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
-    south: { S: '', H: 'Q75', D: 'KJ2', C: 'AKQJ632' },
+    south: { S: '4', H: 'Q752', D: 'KJ92', C: 'AKQJ' },
+    west: { S: 'KT3', H: 'J8', D: 'T765', C: '8632' },
   },
   {
     description: '1H-(2S)-2NT-(Pass)-Pass: responder\'s stopped 12-HCP natural ' +
@@ -833,6 +849,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
     east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
     south: { S: 'KT', H: 'Q82', D: 'K976', C: 'KJ62' },
+    west: { S: '43', H: 'J75', D: 'JT52', C: 'AQ83' },
   },
   {
     description: '1H-(2S)-3C-(Pass)-3NT: game-forcing natural clubs opposite a ' +
@@ -844,10 +861,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
       'opener-rebid-after-jump-overcall-natural-nt',
     ] }],
-    north: { S: 'K3', H: 'AKT96', D: 'Q84', C: '754' },
-    east: { S: 'AQJ965', H: '43', D: 'K6', C: 'T86' },
-    south: { S: 'T7', H: 'Q7', D: 'AJ92', C: 'AKQJ9' },
-    west: { S: '842', H: 'J852', D: 'T753', C: '32' },
+    north: { S: 'A3', H: 'AKT96', D: 'Q84', C: '754' },
+    east: { S: 'KQJ965', H: '43', D: 'K6', C: 'T86' },
+    south: { S: 'T7', H: 'Q7', D: 'AJ92', C: 'KQJ93' },
+    west: { S: '842', H: 'J852', D: 'T753', C: 'A2' },
   },
   {
     description: '1S-(3H)-Double-(Pass)-4C: opener has four clubs, so the negative ' +
@@ -858,8 +875,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-after-jump-overcall-natural-suit',
     ] }],
     north: { S: 'AKJ75', H: '82', D: '63', C: 'KQ72' },
-    east: { S: '83', H: 'QJT9765', D: '87', C: 'T4' },
+    east: { S: '83', H: 'QJT9765', D: 'K7', C: 'T4' },
     south: { S: 'Q64', H: 'A3', D: 'AQT4', C: 'AJ93' },
-    west: { S: 'T92', H: 'K4', D: 'KJ952', C: '865' },
+    west: { S: 'T92', H: 'K4', D: 'J9852', C: '865' },
   },
 ];
