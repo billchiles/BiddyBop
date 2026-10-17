@@ -26,6 +26,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: 'Q62', H: 'J94', D: 'T743', C: 'Q64' },
+    east: { S: 'JT93', H: 'A86', D: '6', C: 'AJT72' },
+    west: { S: 'A75', H: 'KT53', D: 'KQ85', C: '93' },
   },
   {
     description: '1C-1D: 13 HCP with five-card club support and four diamonds; both the ordinary forcing 1D response and the strong-support new-suit-first rule apply.  Raise clubs later.',
@@ -39,6 +41,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'Q72', D: 'J93', C: 'AK86' },
     south: { S: 'J9', H: 'K6', D: 'AK72', C: 'QT975' },
+    east: { S: 'A7632', H: '9843', D: '4', C: 'J43' },
+    west: { S: 'QT5', H: 'AJT5', D: 'QT865', C: '2' },
   },
   {
     description: '1C: 6 HCP with six good hearts; under weak jump shifts, 2H outranks the ordinary 1H response without eliminating it.',
@@ -54,6 +58,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['2H', '1H']],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'Q63', H: 'KJT986', D: 'T4', C: 'T9' },
+    east: { S: 'T752', H: 'A5', D: 'KQ3', C: 'Q743' },
+    west: { S: 'AJ9', H: '43', D: 'J8765', C: 'A62' },
   },
   {
     description: '1C: 18 HCP with five strong hearts; under strong jump shifts, 2H outranks the ordinary forcing 1H response without eliminating it.',
@@ -69,6 +75,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['2H', '1H']],
     north: { S: 'K84', H: '742', D: 'AQ9', C: 'KQ85' },
     south: { S: 'AJ6', H: 'AKQ85', D: 'K7', C: 'J94' },
+    east: { S: 'QT975', H: '3', D: 'JT542', C: 'T6' },
+    west: { S: '32', H: 'JT96', D: '863', C: 'A732' },
   },
   {
     description: '1C: 8 HCP with four hearts and four spades; both one-level majors qualify. ' +
@@ -84,6 +92,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['1H', '1S']],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'JT75', H: 'KJT6', D: 'JT4', C: 'Q9' },
+    east: { S: '93', H: 'A43', D: '8763', C: 'A732' },
+    west: { S: 'AQ62', H: '985', D: 'KQ5', C: 'T64' },
   },
   {
     description: '1C: 8 HCP with five hearts and five spades; both one-level majors qualify. ' +
@@ -99,6 +109,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['1S', '1H']],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'QJT75', H: 'K9643', D: 'T3', C: 'Q' },
+    east: { S: '93', H: 'A5', D: 'KQ4', C: 'T97643' },
+    west: { S: 'A62', H: 'JT8', D: 'J8765', C: 'A2' },
   },
   {
     description: '1C: 8 HCP with five diamonds and four spades; prefer 1S to look for the ' +
@@ -114,6 +126,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['1S', '1D']],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'T965', H: 'J9', D: 'KQT63', C: 'QT' },
+    east: { S: 'J73', H: 'AT43', D: 'J4', C: 'A742' },
+    west: { S: 'AQ2', H: 'K865', D: '875', C: '963' },
   },
   {
     description: '1C: 12 HCP with five diamonds and four spades; show the major first. ' +
@@ -128,6 +142,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['1D'],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'A963', H: 'A3', D: 'KJ543', C: '74' },
+    east: { S: 'T72', H: 'T864', D: '876', C: 'A62' },
+    west: { S: 'QJ5', H: 'KJ95', D: 'QT', C: 'QT93' },
   },
   {
     description: '1D: 8 HCP with four diamonds and four spades; showing a four-card major ' +
@@ -142,6 +158,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: '9763', H: 'JT4', D: 'Q864', C: 'AJ' },
+    east: { S: 'AQT', H: 'A65', D: '3', C: 'T97632' },
+    west: { S: 'J52', H: 'K983', D: 'KT75', C: 'Q4' },
   },
   {
     description: '1C: 8 HCP with five hearts and four spades; the longer heart suit ' +
@@ -156,6 +174,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['1S'],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'A762', H: 'A9864', D: '43', C: '42' },
+    east: { S: 'Q9', H: 'KJT3', D: 'K5', C: 'QT963' },
+    west: { S: 'JT53', H: '5', D: 'QJT876', C: 'A7' },
   },
 ];
 
@@ -177,6 +197,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: '65', H: '9542', D: 'JT43', C: 'K43' },
+    east: { S: '983', H: 'AQJ7', D: 'Q7', C: 'J952' },
+    west: { S: 'KT4', H: 'T63', D: 'K65', C: 'AQ76' },
   },
   {
     description: '1H-Pass: 4 HCP, three hearts and flat shape; support adds no shortage points, so pass.',
@@ -190,6 +212,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'Q53', H: '983', D: 'Q873', C: '973' },
+    east: { S: 'J642', H: 'KT6', D: 'KT', C: 'KJ62' },
+    west: { S: 'AT97', H: '54', D: '654', C: 'AQ54' },
   },
   {
     description: '1S-3S: 11 HCP plus one shortage point for a doubleton gives 12 support points; with four ' +
@@ -203,6 +227,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'T954', H: 'Q43', D: 'KJ43', C: 'KQ' },
+    east: { S: '863', H: 'J72', D: '65', C: 'AJ764' },
+    west: { S: 'K', H: 'AT965', D: 'QT7', C: '9532' },
   },
   {
     description: '1H-1S: 11 HCP plus one shortage point gives 12 support points with three hearts; show four ' +
@@ -218,6 +244,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['1NT'],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQ74', H: 'K64', D: 'QT65', C: '95' },
+    east: { S: 'J932', H: '53', D: 'K843', C: 'A64' },
+    west: { S: 'T65', H: 'T98', D: '7', C: 'KQJ732' },
   },
   {
     description: '1S-1NT: 11 HCP plus one shortage point gives 12 support points with exactly three spades; ' +
@@ -232,6 +260,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K54', H: 'Q963', D: 'KJ65', C: 'Q7' },
+    east: { S: '93', H: 'J72', D: 'Q4', C: 'K96432' },
+    west: { S: 'T86', H: 'AT54', D: 'T73', C: 'AJ5' },
   },
   {
     description: '1H-1NT: 12 HCP and three hearts, but no four-card spade suit; non-forcing 1NT is the ' +
@@ -246,6 +276,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'J96', H: 'K93', D: 'KT63', C: 'KQ9' },
+    east: { S: 'T7432', H: 'T6', D: '75', C: 'A654' },
+    west: { S: 'AQ5', H: '854', D: 'Q84', C: 'J732' },
   },
   {
     description: '1S: 14 HCP, flat 4-3-3-3, three-card spade support and four diamonds; both game-forcing 2D ' +
@@ -260,6 +292,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K65', H: 'AT3', D: 'K763', C: 'A74' },
+    east: { S: 'T94', H: '642', D: 'T4', C: 'Q9652' },
+    west: { S: '83', H: 'QJ975', D: 'QJ5', C: 'KJ3' },
   },
   {
     description: '1H: 11 HCP plus three shortage points for a singleton club gives 14 support points with four ' +
@@ -277,6 +311,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['4C', '1S'], ['4C', '2D']],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'J962', H: 'K986', D: 'K763', C: 'A' },
+    east: { S: 'Q753', H: '53', D: '54', C: 'KQJ96' },
+    west: { S: 'AT4', H: 'T4', D: 'QT8', C: '75432' },
   },
   {
     description: '1S-2NT: 13 HCP plus one shortage point for a doubleton gives 14 support points with four ' +
@@ -291,6 +327,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K954', H: 'AT4', D: '6543', C: 'AQ' },
+    east: { S: 'T', H: '9653', D: 'KJ', C: 'J76543' },
+    west: { S: '863', H: 'QJ72', D: 'QT7', C: 'K92' },
   },
   {
     description: '1H: 6 HCP and six good spades; under weak jump shifts, 2S outranks the ordinary 1S response, ' +
@@ -307,6 +345,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     expectedResponseCallOrder: [['2S', '1S']],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQ7642', H: '8', D: 'T54', C: '532' },
+    east: { S: '95', H: 'KT94', D: '873', C: 'AK97' },
+    west: { S: 'JT3', H: '653', D: 'KQ6', C: 'QJ64' },
   },
   {
     description: '1H: 18 HCP and five strong spades; under strong jump shifts, 2S outranks the ordinary 1S ' +
@@ -322,6 +362,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
     south: { S: 'AQJT9', H: 'K8', D: 'KQ7', C: 'K93' },
+    east: { S: '654', H: 'T43', D: '85', C: 'QJ752' },
+    west: { S: '732', H: '965', D: 'T643', C: 'A64' },
   },
   {
     description: '1S: 13 HCP with three spades, four hearts and only three cards in each ' +
@@ -339,6 +381,8 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H'],
     north: { S: 'AQJ72', H: 'K8', D: 'A982', C: 'T8' },
     south: { S: 'K98', H: 'A974', D: 'KJ7', C: 'Q94' },
+    east: { S: '3', H: 'JT63', D: 'T654', C: 'AJ53' },
+    west: { S: 'T654', H: 'Q52', D: 'Q3', C: 'K762' },
   },
 ];
 

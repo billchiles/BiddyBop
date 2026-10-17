@@ -27,6 +27,8 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     expectedOpeningCallOrder: [['1NT', '1H']],
     north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
     south: { S: 'Q63', H: 'A42', D: 'T76', C: '8542' },
+    east: { S: 'T54', H: 'T976', D: 'AQ', C: 'KQ63' },
+    west: { S: 'KJ98', H: '3', D: 'J9532', C: 'AT7' },
   },
   {
     description: 'The same 14-HCP balanced hand with the five-card-major upgrade disabled: ' +
@@ -39,6 +41,8 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpeningCalls: ['1NT'],
     north: { S: 'A72', H: 'KQJ85', D: 'K84', C: 'J9' },
     south: { S: 'Q63', H: 'A42', D: 'T76', C: '8542' },
+    east: { S: 'T54', H: 'T976', D: 'AQ', C: 'KQ63' },
+    west: { S: 'KJ98', H: '3', D: 'J9532', C: 'AT7' },
   },
   {
     description: '15 HCP, balanced 5-3-3-2 with five spades: under the alternate 16-18 ' +
@@ -52,6 +56,8 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     expectedOpeningCallOrder: [['1NT', '1S']],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
     south: { S: 'T63', H: 'Q85', D: 'KJ64', C: '965' },
+    east: { S: '974', H: 'A93', D: 'T8', C: 'AQT32' },
+    west: { S: 'K2', H: 'JT62', D: 'Q953', C: 'K74' },
   },
   {
     description: 'The same 15-HCP hand under 16-18 with the optional upgrade disabled: ' +
@@ -64,6 +70,8 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpeningCalls: ['1NT'],
     north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'J8' },
     south: { S: 'T63', H: 'Q85', D: 'KJ64', C: '965' },
+    east: { S: '974', H: 'A93', D: 'T8', C: 'AQT32' },
+    west: { S: 'K2', H: 'JT62', D: 'Q953', C: 'K74' },
   },
   {
     description: 'Exactly 10 HCP with five spades and five hearts: 10 + 5 + 5 = 20, so ' +
@@ -76,6 +84,8 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpeningCalls: ['1H'],
     north: { S: 'AQ972', H: 'KJ864', D: '53', C: '2' },
     south: { S: 'K65', H: 'T53', D: 'QJ74', C: 'T86' },
+    east: { S: 'T8', H: 'Q72', D: 'A62', C: 'KJ753' },
+    west: { S: 'J43', H: 'A9', D: 'KT98', C: 'AQ94' },
   },
   {
     description: 'Seven hearts with 9 HCP and three length points reach ordinary one-level opening ' +
@@ -92,5 +102,7 @@ export const OPENING_BID_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpeningCalls: ['2H', '3H'],
     north: { S: 'K42', H: 'KQJ9876', D: '73', C: '5' },
     south: { S: 'T85', H: 'A54', D: 'QJ86', C: 'T87' },
+    east: { S: 'AJ96', H: '2', D: 'K92', C: 'QJ963' },
+    west: { S: 'Q73', H: 'T3', D: 'AT54', C: 'AK42' },
   },
 ];

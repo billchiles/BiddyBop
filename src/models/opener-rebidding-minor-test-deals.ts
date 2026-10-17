@@ -472,6 +472,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     rejectedOpenerRebidCalls: ['2H'],
     north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'Q53', H: '965', D: '874', C: 'AKJT' },
+    west: { S: 'JT986', H: 'AT7', D: 'T63', C: '74' },
   },
   {
     description: '1D-2C-2H Standard: 18 HCP / 19 total, 5D-4H; extra strength now supports the ' +
@@ -490,6 +492,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'A4', H: 'AKJ2', D: 'KQJ92', C: '82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'QJT', H: 'T976', D: '74', C: 'KJT4' },
+    west: { S: '98653', H: '54', D: 'T863', C: 'A7' },
   },
   {
     description: '1D-2C-2NT Standard: 14 HCP balanced, 4D-4S-3H-2C; show the minimum balanced ' +
@@ -508,6 +512,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQJ4', H: 'KJ2', D: 'QJ92', C: '82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: '853', H: 'A976', D: 'K643', C: 'K7' },
+    west: { S: 'T96', H: 'T54', D: 'T87', C: 'AJT4' },
   },
   {
     description: '1D-2C-3C Standard: 12 HCP / 15 shortage points with three clubs; responder ' +
@@ -527,6 +533,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'A', H: 'KJ42', D: 'KJ972', C: 'T82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'Q986', H: 'AT96', D: '643', C: 'AJ' },
+    west: { S: 'JT543', H: '75', D: 'QT8', C: 'K74' },
   },
   {
     description: '1D-2C Standard: 15 HCP gives 17 total points with six diamonds and 18 ' +
@@ -546,6 +554,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQ4', H: '4', D: 'KQJ972', C: 'K82' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'T653', H: 'KT972', D: '8', C: 'A74' },
+    west: { S: 'J98', H: 'AJ65', D: 'T643', C: 'JT' },
   },
   {
     description: '1D-2C-3NT Standard: 19 HCP balanced, 4D-4S-3H-2C; the strong balanced rebid ' +
@@ -564,6 +574,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'AQJ4', H: 'KJ2', D: 'KJ92', C: 'A8' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'T985', H: 'T74', D: '73', C: 'KJ72' },
+    west: { S: '63', H: 'A965', D: 'QT864', C: 'T4' },
   },
   {
     description: '1D-2C Standard: 16 HCP becomes 19 total points with seven diamonds and 20 ' +
@@ -583,6 +595,8 @@ export const OPENER_REBID_AFTER_MINOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     north: { S: 'A4', H: 'K', D: 'KQJ9876', C: 'K84' },
     south: { S: 'K72', H: 'Q83', D: 'A5', C: 'Q9653' },
+    east: { S: 'QJT9', H: 'JT72', D: '43', C: 'AT7' },
+    west: { S: '8653', H: 'A9654', D: 'T2', C: 'J2' },
   },
 ];
 
@@ -607,6 +621,8 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'A82', H: 'KJ84', D: 'KQT95', C: '6' },
     south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+    east: { S: 'Q975', H: 'T93', D: 'A4', C: 'KT74' },
+    west: { S: 'JT4', H: 'A65', D: '87632', C: '83' },
   },
   {
     description: '1D-2C 2/1: 13 HCP, 4D-4H-4S; with fewer than five diamonds, show a four-card ' +
@@ -625,6 +641,8 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     ],
     north: { S: 'AQ84', H: 'KJ85', D: 'K742', C: '6' },
     south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+    east: { S: 'T72', H: 'A4', D: '953', C: 'T8743' },
+    west: { S: 'J95', H: 'T963', D: 'AQT86', C: 'K' },
   },
   {
     description: '1D-2C 2/1: 13 HCP, 4D-4C-3H-2S; 2NT is the usual economical description, ' +
@@ -644,6 +662,8 @@ export const OPENER_REBID_AFTER_MINOR_TWO_OVER_ONE_NEW_SUIT_TEST_DEALS: RuleTest
     rejectedOpeningCalls: ['1C'],
     north: { S: '82', H: 'AKJ', D: 'KQ84', C: 'T843' },
     south: { S: 'K63', H: 'Q72', D: 'J', C: 'AQJ952' },
+    east: { S: 'Q75', H: '864', D: 'AT52', C: 'K76' },
+    west: { S: 'AJT94', H: 'T953', D: '9763', C: '' },
   },
 ];
 
@@ -810,6 +830,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: 'K83', H: 'Q72', D: 'A92', C: 'QJ85' },
     south: { S: 'AQ6', H: 'J84', D: 'KJ7', C: 'T964' },
+    east: { S: 'JT95', H: '953', D: 'QT3', C: 'K72' },
+    west: { S: '742', H: 'AKT6', D: '8654', C: 'A3' },
   },
   {
     description: '1D-2NT-3NT: at 13 HCP the invitation is a judgment case, so both Pass and 3NT ' +
@@ -827,6 +849,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'A72', D: 'KQ92', C: 'J85' },
     south: { S: 'AQ6', H: 'J84', D: 'J73', C: 'K964' },
+    east: { S: 'JT75', H: 'KQ93', D: '654', C: 'Q2' },
+    west: { S: '932', H: 'T65', D: 'AT8', C: 'AT73' },
   },
   {
     description: '1C-2NT-3NT: a 14-HCP opener accepts responder\'s natural invitation to game.',
@@ -843,6 +867,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'K84', H: 'A72', D: 'Q92', C: 'KQ85' },
     south: { S: 'AQ6', H: 'KJ4', D: 'JT73', C: 'T96' },
+    east: { S: 'J72', H: 'T65', D: 'A54', C: 'J732' },
+    west: { S: 'T953', H: 'Q983', D: 'K86', C: 'A4' },
   },
   {
     description: '1C-2NT-3NT: a 16-HCP 3-2-2-6 opener accepts even though opener is not balanced; ' +
@@ -860,6 +886,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'AK3', H: 'Q7', D: 'A9', C: 'QJ9864' },
     south: { S: 'QJ5', H: 'A84', D: 'KJ73', C: 'T52' },
+    east: { S: '9764', H: 'T63', D: '65', C: 'AK73' },
+    west: { S: 'T82', H: 'KJ952', D: 'QT842', C: '' },
   },
 ];
 
@@ -884,6 +912,8 @@ export const OPENER_REBID_AFTER_MINOR_3NT_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4NT'],
     north: { S: 'K84', H: 'Q72', D: 'A92', C: 'KJ85' },
     south: { S: 'AQ6', H: 'KJ4', D: 'KJ7', C: 'T964' },
+    east: { S: 'T97', H: 'T95', D: 'Q6543', C: 'A3' },
+    west: { S: 'J532', H: 'A863', D: 'T8', C: 'Q72' },
   },
   {
     description: '1D-3NT: an 18-HCP 5-4-2-2 opener can either take the sure game or invite slam ' +
@@ -902,5 +932,7 @@ export const OPENER_REBID_AFTER_MINOR_3NT_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCallOrder: [['4NT', 'Pass']],
     north: { S: 'AQ', H: 'KJ', D: 'AQJ84', C: 'J762' },
     south: { S: 'K73', H: 'AQ4', D: 'K62', C: 'Q853' },
+    east: { S: 'J9865', H: 'T752', D: '3', C: 'K94' },
+    west: { S: 'T42', H: '9863', D: 'T975', C: 'AT' },
   },
 ];
