@@ -404,6 +404,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AQ93', H: 'AK4', D: '842', C: 'A72' },
     south: { S: 'T62', H: 'Q87', D: '96', C: 'KJT83' },
+    east: { S: 'K75', H: 'JT932', D: 'KQT', C: 'Q9' },
+    west: { S: 'J84', H: '65', D: 'AJ753', C: '654' },
   },
   {
     description: '1NT: 6 HCP and five cards in each major; both 2D and 2H Jacoby transfers remain legitimate alternatives.',
@@ -418,6 +420,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AKT2', H: 'KQ9', D: 'QJ5', C: '953' },
     south: { S: '98764', H: 'AJT84', D: '32', C: 'J' },
+    east: { S: 'Q5', H: '65', D: 'T9874', C: 'AK74' },
+    west: { S: 'J3', H: '732', D: 'AK6', C: 'QT862' },
   },
   {
     description: '1NT: 9 HCP and five cards in each major; transfer to hearts with 2D to preserve the invitational route.',
@@ -432,6 +436,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H'],
     north: { S: 'JT8', H: 'A98', D: 'AKQJ3', C: 'Q2' },
     south: { S: 'A9632', H: 'QT732', D: '82', C: 'K' },
+    east: { S: 'KQ75', H: 'K6', D: '64', C: 'JT875' },
+    west: { S: '4', H: 'J54', D: 'T975', C: 'A9643' },
   },
   {
     description: '1NT: 11 HCP and five cards in each major; transfer to spades with 2H to preserve the game-forcing continuation.',
@@ -446,6 +452,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: 'AJ7', H: 'J9', D: 'K9654', C: 'AQT' },
     south: { S: 'KT653', H: 'AT842', D: 'J2', C: 'K' },
+    east: { S: 'Q92', H: 'Q7', D: 'T83', C: 'J7432' },
+    west: { S: '84', H: 'K653', D: 'AQ7', C: '9865' },
   },
   {
     description: '1NT: 8 HCP and six clubs headed by KQ; natural 3C invites, with good suit quality illustrated by the hand but not checked by the current rule.',
@@ -459,6 +467,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K653', H: 'J53', D: 'AK4', C: 'A87' },
     south: { S: '94', H: 'Q2', D: 'J62', C: 'KQ6432' },
+    east: { S: 'QJT72', H: 'AT76', D: 'T97', C: '9' },
+    west: { S: 'A8', H: 'K984', D: 'Q853', C: 'JT5' },
   },
   {
     description: '1NT: 9 HCP and six diamonds headed by AK; natural 3D invites, with suit quality illustrated rather than evaluated.',
@@ -472,6 +482,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K63', H: 'AJ7', D: 'QJ6', C: 'KJT3' },
     south: { S: '2', H: '98', D: 'AKT874', C: 'Q987' },
+    east: { S: 'Q9754', H: 'KQT2', D: '53', C: '65' },
+    west: { S: 'AJT8', H: '6543', D: '92', C: 'A42' },
   },
   {
     description: '1NT: without Stayman or transfers, 2 HCP and five spades give a natural ' +
@@ -488,6 +500,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass'],
     north: { S: 'AK8', H: 'AT2', D: 'K652', C: 'JT4' },
     south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
+    east: { S: 'Q96', H: '873', D: 'A94', C: 'AQ32' },
+    west: { S: 'T5', H: 'KQ65', D: 'QJ7', C: 'K986' },
   },
   {
     description: '1NT: without Stayman or transfers, 12 HCP and exactly five spades ' +
@@ -504,6 +518,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3NT'],
     north: { S: 'JT53', H: 'AKJ3', D: 'AT8', C: 'Q9' },
     south: { S: 'AK842', H: '76', D: 'Q54', C: 'K74' },
+    east: { S: 'Q76', H: 'QT2', D: '732', C: 'A532' },
+    west: { S: '9', H: '9854', D: 'KJ96', C: 'JT86' },
   },
   {
     description: '1NT: 12 HCP and six spades, with Texas off but Jacoby on: natural 4S ' +
@@ -520,6 +536,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H', '4H'],
     north: { S: 'K5', H: 'AKJ8', D: 'A87', C: '9876' },
     south: { S: 'AJT942', H: 'Q6', D: 'QJ54', C: 'Q' },
+    east: { S: '63', H: 'T9753', D: 'K6', C: 'AKT2' },
+    west: { S: 'Q87', H: '42', D: 'T932', C: 'J543' },
   },
   {
     description: '1NT: 16 HCP and six hearts without another four-card major: direct, ' +
@@ -535,6 +553,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: 'QJT8', H: 'J4', D: 'AK87', C: 'AJ8' },
     south: { S: 'A67', H: 'KQ9753', D: 'QT', C: 'KQ' },
+    east: { S: 'K2', H: 'T82', D: 'J642', C: 'T743' },
+    west: { S: '9543', H: 'A6', D: '953', C: '9652' },
   },
   {
     description: '1NT, 16-18: balanced 6 HCP without a four-card major passes; 7 HCP starts the invitation.',
@@ -549,6 +569,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AK5', H: 'KQ9', D: '932', C: 'A754' },
     south: { S: 'J92', H: '832', D: 'K876', C: 'Q83' },
+    east: { S: 'Q643', H: 'JT65', D: 'AQ', C: 'J62' },
+    west: { S: 'T87', H: 'A74', D: 'JT54', C: 'KT9' },
   },
   {
     description: 'The same balanced 7-HCP hand over 15-17 passes rather than inviting with 2NT.',
@@ -563,6 +585,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2NT'],
     north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AJ' },
     south: { S: 'QT9', H: 'AJT', D: 'T763', C: '852' },
+    east: { S: 'KJ764', H: 'Q9', D: 'J95', C: 'T73' },
+    west: { S: '83', H: '764', D: 'A42', C: 'KQ964' },
   },
   {
     description: '1NT, 16-18: balanced 9 HCP bids 3NT directly; the same hand invites over 15-17.',
@@ -577,6 +601,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AKT', H: 'KJ63', D: '93', C: 'AJ93' },
     south: { S: 'Q64', H: 'A84', D: 'T876', C: 'K72' },
+    east: { S: '73', H: '752', D: 'KJ54', C: '8654' },
+    west: { S: 'J9852', H: 'QT9', D: 'AQ2', C: 'QT' },
   },
   {
     description: '1NT, 16-18: 7 HCP and four hearts qualify for Stayman instead of a weak Pass.',
@@ -591,6 +617,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass'],
     north: { S: 'AQ532', H: '876', D: 'A6', C: 'AKT' },
     south: { S: 'J74', H: 'AJ43', D: 'T53', C: 'J43' },
+    east: { S: 'KT86', H: 'KQT', D: '842', C: 'Q87' },
+    west: { S: '9', H: '952', D: 'KQJ97', C: '9652' },
   },
   {
     description: 'The same balanced 7-HCP, four-heart hand over 15-17 is below the normal Stayman threshold.',
@@ -605,6 +633,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2C'],
     north: { S: 'AQ532', H: '876', D: 'A6', C: 'AKT' },
     south: { S: 'J74', H: 'AJ43', D: 'T53', C: 'J43' },
+    east: { S: 'KT86', H: 'KQT', D: '842', C: 'Q87' },
+    west: { S: '9', H: '952', D: 'KQJ97', C: '9652' },
   },
   {
     description: '1NT, 16-18: 8 HCP with both majors five cards; transfer to hearts first for the invitational route.',
@@ -619,6 +649,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H'],
     north: { S: 'Q84', H: 'A6', D: 'AQ9', C: 'A7643' },
     south: { S: 'AJT62', H: 'KT975', D: '74', C: '2' },
+    east: { S: 'K75', H: 'QJ83', D: 'T32', C: 'KT5' },
+    west: { S: '93', H: '42', D: 'KJ865', C: 'QJ98' },
   },
   {
     description: '1NT, 16-18: 9 HCP with two five-card majors; transfer to spades first for the game-force route.',
@@ -633,6 +665,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: 'Q92', H: '864', D: 'AK8', C: 'AKJ4' },
     south: { S: 'AT864', H: 'AJT73', D: '54', C: '5' },
+    east: { S: 'J53', H: '52', D: 'QT976', C: '973' },
+    west: { S: 'K7', H: 'KQ9', D: 'J32', C: 'QT862' },
   },
   {
     description: '1NT, 16-18: 9 HCP and six hearts give Texas 4D; the same hand uses Jacoby over 15-17.',
@@ -647,6 +681,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: '84', H: 'AQ5', D: 'AQ753', C: 'KQ2' },
     south: { S: 'T62', H: 'KT7643', D: 'J2', C: 'AJ' },
+    east: { S: 'K953', H: 'J98', D: 'K84', C: '964' },
+    west: { S: 'AQJ7', H: '2', D: 'T96', C: 'T8753' },
   },
   {
     description: 'The same 9-HCP six-heart hand over 16-18 bids natural 4H with Texas off; Jacoby stays suppressed.',
@@ -661,6 +697,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D', '4D'],
     north: { S: '84', H: 'AQ5', D: 'AQ753', C: 'KQ2' },
     south: { S: 'T62', H: 'KT7643', D: 'J2', C: 'AJ' },
+    east: { S: 'K953', H: 'J98', D: 'K84', C: '964' },
+    west: { S: 'AQJ7', H: '2', D: 'T96', C: 'T8753' },
   },
   {
     description: 'The same 9-HCP six-heart hand over 15-17 starts with Jacoby 2D, below the Texas game-only range.',
@@ -675,6 +713,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['4D'],
     north: { S: '84', H: 'AQ5', D: 'AQ753', C: 'KQ2' },
     south: { S: 'T62', H: 'KT7643', D: 'J2', C: 'AJ' },
+    east: { S: 'K953', H: 'J98', D: 'K84', C: '964' },
+    west: { S: 'AQJ7', H: '2', D: 'T96', C: 'T8753' },
   },
   {
     description: '1NT, 16-18: 7 HCP and six clubs headed by KQ invite naturally with 3C; quality is illustrative.',
@@ -688,6 +728,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'KQT3', H: 'AQ9', D: 'AJ74', C: 'J7' },
     south: { S: 'J9', H: 'JT3', D: '63', C: 'KQT652' },
+    east: { S: 'A875', H: 'K754', D: 'KT2', C: '83' },
+    west: { S: '642', H: '862', D: 'Q985', C: 'A94' },
   },
   {
     description: 'The same balanced 15-HCP hand over 15-17 places the contract in 3NT, not quantitative 4NT.',
@@ -702,6 +744,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['4NT'],
     north: { S: 'AK7', H: 'K9762', D: 'KT2', C: 'A3' },
     south: { S: 'QT2', H: 'AJ8', D: 'AJ85', C: 'QJT' },
+    east: { S: 'J9864', H: 'Q5', D: '96', C: 'K874' },
+    west: { S: '53', H: 'T43', D: 'Q743', C: '9652' },
   },
   {
     description: '1NT, 16-18: balanced 17 HCP bids 6NT directly under the adjusted small-slam range.',
@@ -716,6 +760,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['4NT'],
     north: { S: 'AK9', H: 'A986', D: 'KQ8', C: 'T43' },
     south: { S: 'Q63', H: 'KQ5', D: 'AJ65', C: 'AJ6' },
+    east: { S: 'J54', H: 'JT72', D: '94', C: 'KQ97' },
+    west: { S: 'T872', H: '43', D: 'T732', C: '852' },
   },
   {
     description: '1NT, 16-18: 15 HCP with six hearts bids direct 3H for slam interest; Jacoby and Texas yield.',
@@ -730,6 +776,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D', '4D'],
     north: { S: 'AK63', H: '63', D: 'AQ65', C: 'K52' },
     south: { S: 'QT8', H: 'AKQJT8', D: 'T8', C: 'QJ' },
+    east: { S: 'J92', H: '754', D: '742', C: 'AT64' },
+    west: { S: '754', H: '92', D: 'KJ93', C: '9873' },
   },
   {
     description: 'The same six-heart, 15-HCP hand over 15-17 takes the Texas game route instead of direct 3H.',
@@ -744,6 +792,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D', '3H'],
     north: { S: 'AK63', H: '63', D: 'AQ65', C: 'K52' },
     south: { S: 'QT8', H: 'AKQJT8', D: 'T8', C: 'QJ' },
+    east: { S: 'J92', H: '754', D: '742', C: 'AT64' },
+    west: { S: '754', H: '92', D: 'KJ93', C: '9873' },
   },
   {
     description: 'After 1NT-(2H), eight HCP with four spades makes a takeout-oriented Double.',
@@ -758,6 +808,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
     east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
     south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
+    west: { S: 'T93', H: '64', D: '7652', C: 'KJ62' },
   },
   {
     description: 'After 1NT-(2H), a good five-card spade suit is more descriptive than Double.',
@@ -773,6 +824,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
     east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
     south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
+    west: { S: '53', H: '62', D: 'KJ32', C: 'JT972' },
   },
 ];
 
@@ -795,6 +847,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3NT'],
     north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
     south: { S: 'QJ2', H: 'T93', D: '943', C: 'T642' },
+    east: { S: '9765', H: 'K86', D: 'A87', C: 'AK9' },
+    west: { S: 'T83', H: 'J754', D: 'QT652', C: '8' },
   },
   {
     description: '2NT: 0 HCP and six clubs with no useful major-suit convention still permit ' +
@@ -810,6 +864,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpeningCalls: ['1C', '1D'],
     north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
     south: { S: '75', H: '76', D: '986', C: 'T65432' },
+    east: { S: 'T962', H: '954', D: 'JT42', C: 'A8' },
+    west: { S: 'KJ8', H: 'AT83', D: 'Q75', C: 'KJ7' },
   },
   {
     description: '2NT: the same 0-HCP six-heart hand may Pass with Jacoby and Texas off; no ' +
@@ -825,6 +881,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3H'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: '85', H: 'T87543', D: '532', C: '92' },
+    east: { S: 'QJ92', H: '96', D: 'A7', C: 'AK543' },
+    west: { S: 'T764', H: 'KJ', D: 'QT986', C: 'T8' },
   },
   {
     description: '2NT: with six hearts and four spades, use Stayman first rather than a heart ' +
@@ -840,6 +898,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3D'],
     north: { S: 'AQ43', H: 'KQJ2', D: 'AK3', C: 'Q9' },
     south: { S: 'J765', H: '987643', D: 'QJ', C: 'K' },
+    east: { S: 'T98', H: 'A', D: '8742', C: 'A8532' },
+    west: { S: 'K2', H: 'T5', D: 'T965', C: 'JT764' },
   },
   {
     description: '2NT: with 3 HCP and two five-card majors, both Jacoby transfers remain ' +
@@ -856,6 +916,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['Pass'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'QJT86', H: 'T9763', D: 'T9', C: 'T' },
+    east: { S: '542', H: 'J4', D: 'Q863', C: 'K985' },
+    west: { S: '97', H: 'K85', D: 'A752', C: 'A432' },
   },
   {
     description: '2NT: with 4 HCP and two five-card majors, transfer to hearts with 3D first; ' +
@@ -871,6 +933,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3H'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'T9754', H: 'J8654', D: '83', C: 'K' },
+    east: { S: 'J62', H: 'K93', D: 'AT76', C: '982' },
+    west: { S: 'Q8', H: 'T7', D: 'Q952', C: 'AT543' },
   },
   {
     description: '2NT: the same six-heart hand bids natural 4H for game when Texas is off; the ' +
@@ -886,6 +950,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3D'],
     north: { S: 'AK4', H: 'AQ2', D: 'KJ', C: 'QJ753' },
     south: { S: 'Q9', H: 'J98643', D: 'Q63', C: '64' },
+    east: { S: 'T73', H: '7', D: 'A9542', C: 'AT98' },
+    west: { S: 'J8652', H: 'KT5', D: 'T87', C: 'K2' },
   },
   {
     description: '2NT: with 10 HCP and six hearts, Texas 4D still places the game without ' +
@@ -901,6 +967,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['3D'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'QT', H: 'KJT984', D: '532', C: 'A3' },
+    east: { S: 'J8742', H: '6', D: '76', C: 'KT984' },
+    west: { S: '965', H: '753', D: 'AQT98', C: '52' },
   },
   {
     description: '2NT: with 11 HCP and six hearts, start with Jacoby 3D to preserve ' +
@@ -916,6 +984,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['4D'],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'Q4', H: 'KT9875', D: 'Q62', C: 'A5' },
+    east: { S: 'J8762', H: 'J3', D: 'AT3', C: 'KT8' },
+    west: { S: 'T95', H: '64', D: '9875', C: '9432' },
   },
   {
     description: '2NT: without Jacoby, a five-heart, 4-HCP unbalanced hand can bid natural ' +
@@ -930,6 +1000,8 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK3', H: 'AQ2', D: 'KJ4', C: 'QJ76' },
     south: { S: 'J5', H: 'KT986', D: 'T732', C: '54' },
+    east: { S: 'Q972', H: '7', D: 'A85', C: 'AT982' },
+    west: { S: 'T864', H: 'J543', D: 'Q96', C: 'K3' },
   },
 ];
 
@@ -954,6 +1026,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: '876', H: 'Q876', D: '8765', C: '76' },
+    east: { S: 'KT532', H: '942', D: '2', C: 'QT95' },
+    west: { S: '9', H: 'JT5', D: 'AJT93', C: 'A842' },
   },
   {
     description: "2C-2D-3NT: a 26-HCP balanced opener shows the source's 25-27 range directly, " +
@@ -971,6 +1045,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2NT'],
     north: { S: 'AKQ4', H: 'AQ3', D: 'KQ4', C: 'AQ3' },
     south: { S: '876', H: 'K876', D: '8765', C: '76' },
+    east: { S: '9532', H: 'J42', D: 'T2', C: 'JT52' },
+    west: { S: 'JT', H: 'T95', D: 'AJ93', C: 'K984' },
   },
   {
     description: '2C-2D-4NT: a 29-HCP 4-3-3-3 opener uses the natural 28-30 balanced rebid; ' +
@@ -988,6 +1064,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2NT', '3NT'],
     north: { S: 'AKQJ', H: 'AKQ', D: 'AKQ', C: 'J32' },
     south: { S: '876', H: 'J876', D: 'J876', C: 'Q7' },
+    east: { S: '9542', H: '9542', D: 'T9', C: '986' },
+    west: { S: 'T3', H: 'T3', D: '5432', C: 'AKT54' },
   },
   {
     description: '2C-2D-2S: a 23-HCP unbalanced opener with six spades shows the longest natural ' +
@@ -1004,6 +1082,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AKQJ87', H: 'AK3', D: 'AQ3', C: '5' },
     south: { S: '954', H: 'Q876', D: '876', C: 'J76' },
+    east: { S: '62', H: 'J92', D: 'KT94', C: 'AQ94' },
+    west: { S: 'T3', H: 'T54', D: 'J52', C: 'KT832' },
   },
   {
     description: '2C-2D-3C: with six clubs and five spades, the unbalanced strong opener shows ' +
@@ -1021,6 +1101,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2S'],
     north: { S: 'AKQJ9', H: 'A', D: '5', C: 'AKQJ87' },
     south: { S: '876', H: 'Q876', D: 'K876', C: 'T5' },
+    east: { S: 'T3', H: 'KJT43', D: 'AJT3', C: '92' },
+    west: { S: '542', H: '952', D: 'Q942', C: '643' },
   },
   {
     description: '2C-2D-2S: with equal five-card spade and heart suits, the unbalanced strong ' +
@@ -1038,6 +1120,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2H'],
     north: { S: 'AKQJ8', H: 'AKQJ7', D: 'A2', C: '5' },
     south: { S: '976', H: '986', D: 'K876', C: 'Q76' },
+    east: { S: 'T2', H: '542', D: 'JT3', C: 'AT942' },
+    west: { S: '543', H: 'T3', D: 'Q954', C: 'KJ83' },
   },
   {
     description: '2C-2H: with 10 HCP and a good five-card heart suit, responder can make the ' +
@@ -1059,6 +1143,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2NT'],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: 'K765', H: 'QJT98', D: 'A75', C: '6' },
+    east: { S: '932', H: '52', D: '9632', C: 'AQT7' },
+    west: { S: 'T8', H: '764', D: 'JT8', C: '98542' },
   },
   {
     description: '2C-3C: 12 HCP and a good five-card club suit qualify for an immediate positive ' +
@@ -1076,6 +1162,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['4C'],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: '6', H: 'Q76', D: 'A765', C: 'AQT98' },
+    east: { S: 'T73', H: 'J9542', D: '32', C: '754' },
+    west: { S: 'K9852', H: 'T8', D: 'JT98', C: '62' },
   },
   {
     description: '2C-2NT: an 11-HCP 4-3-3-3 responder qualifies for the positive balanced ' +
@@ -1092,6 +1180,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: ['opener-rebid-natural-nt-after-2c-positive'] }],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: 'K765', H: 'Q76', D: 'A75', C: 'Q76' },
+    east: { S: '8', H: 'JT9852', D: 'JT963', C: '8' },
+    west: { S: 'T932', H: '4', D: '82', C: 'AT9542' },
   },
   {
     description: '2C-2H-2S: without heart support, the unbalanced opener describes a long spade ' +
@@ -1103,6 +1193,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['2NT', '3H'],
     north: { S: 'AKQJT8', H: '2', D: 'AK4', C: 'AQ7' },
     south: { S: '76', H: 'KQJ98', D: 'Q75', C: 'J42' },
+    east: { S: '32', H: '753', D: 'T983', C: 'KT65' },
+    west: { S: '954', H: 'AT64', D: 'J62', C: '983' },
   },
   {
     description: '2C-2H-2NT: 23 balanced HCP and only two hearts; describe the balanced hand ' +
@@ -1114,6 +1206,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3H'],
     north: { S: 'AKQ4', H: 'K3', D: 'AKJ2', C: 'QJT' },
     south: { S: '765', H: 'AQJT9', D: 'Q76', C: '92' },
+    east: { S: 'J93', H: '752', D: 'T943', C: '853' },
+    west: { S: 'T82', H: '864', D: '85', C: 'AK764' },
   },
   {
     description: '2C-3D-4D: an unbalanced opener with four diamonds and no long side suit ' +
@@ -1125,6 +1219,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: 'AKQ4', H: 'AKJ7', D: 'AQ76', C: '5' },
     south: { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' },
+    east: { S: 'JT5', H: '863', D: '3', C: 'AQT983' },
+    west: { S: '832', H: '542', D: '542', C: 'J742' },
   },
   {
     description: '2C-2NT-3S: a positive balanced response does not prevent an unbalanced ' +
@@ -1136,6 +1232,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedOpenerRebidCalls: ['3NT'],
     north: { S: 'AKQJT8', H: '2', D: 'AK4', C: 'AQ7' },
     south: { S: '765', H: 'K97', D: 'Q98', C: 'KJ92' },
+    east: { S: '432', H: 'AQJT', D: 'JT7', C: 'T86' },
+    west: { S: '9', H: '86543', D: '6532', C: '543' },
   },
   {
     description: '2C-2D: a 10-HCP 4-4-4-1 responder has enough strength for a positive response ' +
@@ -1151,6 +1249,8 @@ export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2H', '2S', '2NT', '3C', '3D'],
     north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
     south: { S: 'K765', H: 'QJ76', D: 'A765', C: '6' },
+    east: { S: 'T983', H: 'T82', D: '832', C: 'AQ9' },
+    west: { S: '2', H: '954', D: 'JT9', C: 'T87542' },
   },
 ];
 
