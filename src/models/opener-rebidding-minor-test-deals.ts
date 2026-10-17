@@ -30,6 +30,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK2', H: 'Q42', D: 'J96', C: 'KJ75' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'J985', H: 'K763', D: 'QT2', C: 'A2' },
+    west: { S: 'T43', H: 'AT9', D: 'A854', C: 'T83' },
   },
   {
     description: '1D-1NT-2D: 14 HCP / 16 total with six diamonds; repeat the long opening suit ' +
@@ -46,6 +48,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'A42', H: 'K4', D: 'AQJT92', C: '85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT83', H: 'A762', D: '65', C: 'A72' },
+    west: { S: 'K95', H: 'QT93', D: '84', C: 'KJT3' },
   },
   {
     description: '1D-1NT-2C: 15 HCP / 16 total, 5D-4C; show the lower-ranking second suit ' +
@@ -62,6 +66,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'A4', H: 'K2', D: 'AQJ92', C: 'JT52' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'K852', H: 'A743', D: 'T85', C: '87' },
+    west: { S: 'JT93', H: 'QT96', D: '64', C: 'AK3' },
   },
   {
     description: "1D-1NT-2H: 16 HCP / 17 total, 5D-4H; the length point reaches this " +
@@ -78,6 +84,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK', H: 'AQ42', D: 'QJ952', C: '85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'J852', H: '973', D: 'A4', C: 'KT73' },
+    west: { S: 'T943', H: 'KT6', D: 'T86', C: 'AJ2' },
   },
   {
     description: '1D-1NT-3D: 16 HCP / 18 total with six diamonds; length points reach the ' +
@@ -94,6 +102,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK', H: 'Q4', D: 'AQJ982', C: '852' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT84', H: 'AT76', D: '54', C: 'KJT' },
+    west: { S: '9532', H: 'K932', D: 'T6', C: 'A73' },
   },
   {
     description: '1D-1NT-2NT: 18 HCP balanced; this 18-19 notrump rebid range is based on HCP, ' +
@@ -111,6 +121,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK2', H: 'KQ4', D: 'QJ92', C: 'K85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT93', H: '32', D: 'AT854', C: 'A2' },
+    west: { S: '854', H: 'AT976', D: '6', C: 'JT73' },
   },
   {
     description: '1D-1NT-3C: 18 HCP / 19 total, 5D-4C; maximum values make the lower second ' +
@@ -127,6 +139,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK2', H: 'Q', D: 'AJ652', C: 'KJ85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'J54', H: 'K7432', D: '84', C: 'T32' },
+    west: { S: 'T983', H: 'AT96', D: 'QT9', C: 'A7' },
   },
   {
     description: '1D-1NT-3NT: 20 HCP, 6-3-2-2; semi-balanced rather than strict balanced, so ' +
@@ -143,6 +157,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK', H: 'KQ', D: 'AQJ982', C: 'J85' },
     south: { S: 'Q76', H: 'J85', D: 'K73', C: 'Q964' },
+    east: { S: 'JT53', H: 'AT63', D: 'T6', C: 'AT2' },
+    west: { S: '9842', H: '9742', D: '54', C: 'K73' },
   },
   {
     description: '1D-1NT: 12 HCP / 14 total, 6-3-2-2; both Pass and 2D remain reasonable ' +
@@ -160,6 +176,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'A42', H: 'J4', D: 'KQT982', C: 'Q5' },
     south: { S: 'Q76', H: 'K85', D: '743', C: 'J964' },
+    east: { S: 'K983', H: 'T9732', D: 'AJ', C: 'K7' },
+    west: { S: 'JT5', H: 'AQ6', D: '65', C: 'AT832' },
   },
   {
     description: '1D-1NT: 20 HCP, 5-4-2-2; both a 2H reverse and 3NT remain reasonable ' +
@@ -177,6 +195,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'A2', H: 'KQJ2', D: 'AKQJ9', C: '85' },
     south: { S: 'K76', H: '985', D: '743', C: 'QJ64' },
+    east: { S: 'T9543', H: 'A76', D: '6', C: 'K972' },
+    west: { S: 'QJ8', H: 'T43', D: 'T852', C: 'AT3' },
   },
   {
     description: '1D-1NT-5D: 16 HCP / 19 total with seven diamonds; maximum long-minor values ' +
@@ -193,6 +213,8 @@ export const OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AK2', H: 'Q2', D: 'AQJ9876', C: '5' },
     south: { S: 'Q76', H: 'J85', D: 'K43', C: 'K964' },
+    east: { S: 'JT53', H: 'T964', D: 'T5', C: 'AJ7' },
+    west: { S: '984', H: 'AK73', D: '2', C: 'QT832' },
   },
 ];
 

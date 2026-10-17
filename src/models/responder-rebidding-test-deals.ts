@@ -97,8 +97,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'A minimum heart responder stops after opener raises to 2H.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass', 'Pass'],
-    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'KJ73' },
+    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'K973' },
     south: { S: 'J84', H: 'KQ62', D: 'T93', C: 'T84' },
+    east: { S: 'A76', H: 'T53', D: 'K876', C: 'QJ2' },
+    west: { S: 'T952', H: 'J9', D: 'AJ42', C: 'A65' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-simple-major-raise',
     ] }],
@@ -107,8 +109,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Ten support points after a simple heart raise still favor partscore.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass', 'Pass'],
-    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'KJ73' },
+    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'KT73' },
     south: { S: 'J84', H: 'KQ62', D: 'T93', C: 'A84' },
+    east: { S: 'A976', H: '53', D: 'J7642', C: 'QJ' },
+    west: { S: 'T52', H: 'JT9', D: 'AK8', C: '9652' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-simple-major-raise',
     ] }],
@@ -117,8 +121,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Responder with an established heart fit and invitational values bids 3H.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass', '3H'],
-    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'KJ73' },
+    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'K873' },
     south: { S: 'A8', H: 'KQ62', D: 'JT93', C: '964' },
+    east: { S: '542', H: 'J53', D: 'K764', C: 'AJT' },
+    west: { S: 'JT976', H: 'T9', D: 'A82', C: 'Q52' },
     expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
       'responder-rebid-invite-after-simple-major-raise',
     ] }],
@@ -127,8 +133,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Game values and a confirmed heart fit justify 4H after a simple raise.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2H', 'Pass', '4H'],
-    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'KJ73' },
+    north: { S: 'KQ3', H: 'A874', D: 'Q5', C: 'K732' },
     south: { S: 'A8', H: 'KQ62', D: 'AJ93', C: '964' },
+    east: { S: 'JT742', H: '95', D: 'T7', C: 'AT85' },
+    west: { S: '965', H: 'JT3', D: 'K8642', C: 'QJ' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-game-after-simple-major-raise',
     ] }],
@@ -137,8 +145,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Minimum responder declines opener\'s 3S invitation.',
     practiceAuction: ['1C', 'Pass', '1S', 'Pass', '3S', 'Pass', 'Pass'],
-    north: { S: 'AJ84', H: 'Q5', D: 'KJ3', C: 'AQ73' },
+    north: { S: 'AJ84', H: 'Q5', D: 'K3', C: 'AQ753' },
     south: { S: 'KQ62', H: 'T83', D: 'T82', C: 'J94' },
+    east: { S: 'T95', H: 'A764', D: 'AQ97', C: '62' },
+    west: { S: '73', H: 'KJ92', D: 'J654', C: 'KT8' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-jump-major-raise',
     ] }],
@@ -149,6 +159,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3S', 'Pass', '4S'],
     north: { S: 'AJ84', H: 'QJ875', D: 'KJ', C: 'A3' },
     south: { S: 'KQ62', H: 'K63', D: 'T82', C: 'T94' },
+    east: { S: '7', H: 'AT2', D: 'Q753', C: 'QJ876' },
+    west: { S: 'T953', H: '94', D: 'A964', C: 'K52' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-game-after-jump-major-raise',
     ] }],
@@ -159,6 +171,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     practiceAuction: ['1D', 'Pass', '1H', 'Pass', '4H', 'Pass', 'Pass'],
     north: { S: 'AQ3', H: 'AK84', D: 'AJ73', C: 'Q5' },
     south: { S: 'JT9', H: 'Q762', D: '842', C: 'K83' },
+    east: { S: '654', H: '9', D: 'Q965', C: 'AJT64' },
+    west: { S: 'K872', H: 'JT53', D: 'KT', C: '972' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-game-major-raise',
     ] }],
