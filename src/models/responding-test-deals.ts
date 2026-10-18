@@ -26,8 +26,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: 'Q62', H: 'J94', D: 'T743', C: 'Q64' },
-    east: { S: 'JT93', H: 'A86', D: '6', C: 'AJT72' },
-    west: { S: 'A75', H: 'KT53', D: 'KQ85', C: '93' },
+    east: { S: 'JT93', H: 'A86', D: '865', C: 'AJT' },
+    west: { S: 'A75', H: 'KT53', D: 'KQ', C: '9732' },
   },
   {
     description: '1C-1D: 13 HCP with five-card club support and four diamonds; both the ordinary forcing 1D response and the strong-support new-suit-first rule apply.  Raise clubs later.',
@@ -158,8 +158,8 @@ export const RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponseCalls: ['2D'],
     north: { S: 'K84', H: 'Q72', D: 'AJ92', C: 'K85' },
     south: { S: '9763', H: 'JT4', D: 'Q864', C: 'AJ' },
-    east: { S: 'AQT', H: 'A65', D: '3', C: 'T97632' },
-    west: { S: 'J52', H: 'K983', D: 'KT75', C: 'Q4' },
+    east: { S: 'AQT', H: 'A65', D: '753', C: 'T976' },
+    west: { S: 'J52', H: 'K983', D: 'KT', C: 'Q432' },
   },
   {
     description: '1C: 8 HCP with five hearts and four spades; the longer heart suit ' +
@@ -467,8 +467,8 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'K653', H: 'J53', D: 'AK4', C: 'A87' },
     south: { S: '94', H: 'Q2', D: 'J62', C: 'KQ6432' },
-    east: { S: 'QJT72', H: 'AT76', D: 'T97', C: '9' },
-    west: { S: 'A8', H: 'K984', D: 'Q853', C: 'JT5' },
+    east: { S: 'QJT72', H: 'AT6', D: 'T97', C: '95' },
+    west: { S: 'A8', H: 'K9874', D: 'Q853', C: 'JT' },
   },
   {
     description: '1NT: 9 HCP and six diamonds headed by AK; natural 3D invites, with suit quality illustrated rather than evaluated.',

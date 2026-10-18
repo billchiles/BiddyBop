@@ -64,10 +64,10 @@ export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     dealer: 'W',
     practiceAuction: ['1H', '2D', 'Pass'],
     expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
-    north: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    north: { S: 'AQT', H: 'K2', D: 'KQJ985', C: '73' },
     south: { S: 'J976', H: 'T98', D: '763', C: 'AK2' },
-    east: { S: '542', H: 'K53', D: '2', C: 'QJT864' },
-    west: { S: 'K83', H: 'AQJ74', D: 'AT4', C: '95' },
+    east: { S: '5432', H: '53', D: '2', C: 'QJT864' },
+    west: { S: 'K8', H: 'AQJ764', D: 'AT4', C: '95' },
   },
   {
     description: '15 HCP, seven excellent diamonds (18 points with length): overcall 1D ' +
@@ -181,8 +181,8 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ965', H: '43', D: '84', C: 'T96' },
     south: { S: 'T843', H: 'J82', D: 'AK6', C: 'A72' },
-    east: { S: '', H: 'Q75', D: 'JT972', C: 'KQJ83' },
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: '2', H: '75', D: 'JT972', C: 'KQJ83' },
+    west: { S: 'K7', H: 'AKQT96', D: 'Q53', C: '54' },
   },
   {
     description: 'Seven good clubs, 6 HCP: jump 3C over 1D.',
@@ -843,9 +843,9 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     expectedAdvanceCalls: [
       { call: 'Pass', ruleIds: ['advance-dont-pass-or-correct'] },
     ],
-    north: { S: 'AQJT96', H: '63', D: 'K52', C: '73' },
+    north: { S: 'AQJT96', H: '63', D: 'K52', C: 'A7' },
     south: { S: '85', H: 'Q752', D: 'Q84', C: 'JT65' },
-    east: { S: '2', H: 'T984', D: '9763', C: 'AKQ2' },
+    east: { S: '2', H: 'T984', D: '9763', C: 'KQ32' },
     west: { S: 'K743', H: 'AKJ', D: 'AJT', C: '984' },
   },
 ];
@@ -860,8 +860,8 @@ export const NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
     dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', '2S', 'Pass', 'Pass'],
     west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
     north: { S: 'AQJ86', H: 'K62', D: '8', C: 'K964' },
-    south: { S: '943', H: 'T9', D: 'T92', C: 'AQJ75' },
-    east: { S: 'T5', H: 'QJ875', D: 'K653', C: 'T2' },
+    south: { S: '943', H: 'QT', D: 'T92', C: 'AQJ75' },
+    east: { S: 'T5', H: 'J9875', D: 'K653', C: 'T2' },
     expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: ['overcaller-rebid-suit-raise-pass'] }],
     rejectedOvercallerRebidCalls: ['3S', '4S'],
   },
@@ -878,10 +878,10 @@ export const NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Weak four-trump jump raise remains preemptive: overcaller Passes 3S.',
     dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', '3S', 'Pass', 'Pass'],
-    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    west: { S: 'K7', H: 'AQ4', D: 'AQJ764', C: '83' },
     north: { S: 'AQJ86', H: '76', D: '82', C: 'AK64' },
     south: { S: 'T543', H: '952', D: 'KT5', C: 'QJT' },
-    east: { S: '9', H: 'KQJT8', D: '963', C: '9752' },
+    east: { S: '92', H: 'KJT83', D: '93', C: '9752' },
     expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: ['overcaller-rebid-suit-raise-pass'] }],
   },
   {
@@ -938,10 +938,10 @@ export const NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Two-level heart overcall: a forcing 2S cuebid gets a minimum 3H return.',
     dealer: 'W', practiceAuction: ['1S', '2H', 'Pass', '2S', 'Pass', '3H'],
-    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    west: { S: 'AKJ874', H: 'K8', D: 'Q93', C: '65' },
     north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
     south: { S: 'T96', H: 'T74', D: 'AJ5', C: 'AQ98' },
-    east: { S: '852', H: '3', D: 'T742', C: 'KJT43' },
+    east: { S: '52', H: '32', D: 'T742', C: 'KJT43' },
     expectedOvercallerRebidCalls: [{ call: '3H', ruleIds: ['overcaller-rebid-cuebid-return'] }],
     rejectedOvercallerRebidCalls: ['Pass'],
   },

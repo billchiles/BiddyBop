@@ -111,8 +111,8 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     north: { S: 'AQJ986', H: 'KQ7', D: 'A2', C: '85' },
     south: { S: 'K3', H: 'J82', D: '9753', C: 'QJ64' },
-    east: { S: '5', H: 'T54', D: 'QJ4', C: 'AKT932' },
-    west: { S: 'T742', H: 'A963', D: 'KT86', C: '7' },
+    east: { S: '5', H: '54', D: 'QJ64', C: 'AKT932' },
+    west: { S: 'T742', H: 'AT963', D: 'KT8', C: '7' },
   },
   {
     description: '1S-1NT-2NT: 19 HCP, 5-3-3-2 balanced; show the natural 18-19 HCP notrump rebid range.',
