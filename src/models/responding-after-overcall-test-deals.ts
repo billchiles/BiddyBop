@@ -141,8 +141,13 @@ export const RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '3', H: 'J87543', D: '62', C: 'A973' },
   },
   {
-    description: '1H-(Double)-3H: weak preemptive raise with four trumps, not a limit raise.',
+    description: '1H-(Double)-3H: four trumps and very weak side cards justify a tactical ' +
+                 'preemptive jump raise, NOT a stronger limit raise.',
     practiceAuction: ['1H', 'Double', '3H'],
+    practiceGuidance: [{ auctionIndex: 2, seat: 'S', text: '3H after their takeout ' +
+      'Double is weak and obstructive, not invitational. Four hearts and scant ' +
+      'outside tricks justify the preemptive idea; the bid does not promise nine ' +
+      'tricks, and vulnerability matters.' }],
     expectedResponseCalls: [
       { call: '3H', ruleIds: ['respond-after-double-weak-jump-raise'] },
     ],
@@ -359,17 +364,17 @@ export const RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '3', H: 'J758', D: 'JT52', C: 'AQ83' },
   },
   {
-    description: '1S-(3H)-3NT: 15 balanced HCP and a heart stopper; 4S is a constructive alternative.',
+    description: '1S-(3H)-3NT: 15 balanced HCP, a secure heart stopper, and only two spades; ' +
+                 'no known major fit makes natural 3NT preferable to a spade game.',
     practiceAuction: ['1S', '3H', '3NT'],
     expectedResponseCalls: [
       { call: '3NT', ruleIds: ['respond-over-jump-natural-notrump'] },
-      { call: '4S', ruleIds: ['respond-over-jump-major-game-constructive'] },
     ],
     rejectedResponseCalls: ['2NT', 'Double', '3H'],
-    north: { S: 'AKJ754', H: '82', D: 'AQ3', C: '65' },
-    east: { S: '83', H: 'QJT9765', D: '87', C: 'T2' },
-    south: { S: 'T96', H: 'AK3', D: 'J5', C: 'AK843' },
-    west: { S: 'Q2', H: '4', D: 'KT9642', C: 'QJ97' },
+    north: { S: 'AKJ54', H: '82', D: 'AQ73', C: '65' },
+    east: { S: '873', H: 'QJT9765', D: '8', C: 'T2' },
+    south: { S: 'T6', H: 'AK3', D: 'J52', C: 'AK843' },
+    west: { S: 'Q92', H: '4', D: 'KT964', C: 'QJ97' },
   },
   {
     description: '1S-(3H)-Double: 12 HCP and four cards in both unbid minors after a three-level jump.',

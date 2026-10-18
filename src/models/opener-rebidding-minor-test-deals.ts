@@ -853,7 +853,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '932', H: 'T65', D: 'AT8', C: 'AT73' },
   },
   {
-    description: '1C-2NT-3NT: a 14-HCP opener accepts responder\'s natural invitation to game.',
+    description: '1C-2NT-3NT: 11 balanced HCP with no four-card major or diamond suit ' +
+                 'make responder\'s natural invitation apt; 14-HCP opener accepts.',
     practiceAuction: ['1C', 'Pass', '2NT', 'Pass', '3NT'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -866,13 +867,13 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'K84', H: 'A72', D: 'Q92', C: 'KQ85' },
-    south: { S: 'AQ6', H: 'KJ4', D: 'JT73', C: 'T96' },
-    east: { S: 'J72', H: 'T65', D: 'A54', C: 'J732' },
+    south: { S: 'AQ6', H: 'KJ4', D: 'J73', C: 'T962' },
+    east: { S: 'J72', H: 'T65', D: 'AT54', C: 'J73' },
     west: { S: 'T953', H: 'Q983', D: 'K86', C: 'A4' },
   },
   {
-    description: '1C-2NT-3NT: a 16-HCP 3-2-2-6 opener accepts even though opener is not balanced; ' +
-                 'this natural invitation decision is based on strength, not a hard shape test.',
+    description: '1C-2NT-3NT: responder is balanced with no four-card major or diamond suit. ' +
+                 'The 16-HCP 3-2-2-6 opener accepts despite being unbalanced.',
     practiceAuction: ['1C', 'Pass', '2NT', 'Pass', '3NT'],
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -885,8 +886,8 @@ export const OPENER_REBID_AFTER_MINOR_2NT_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOpenerRebidCalls: ['Pass'],
     north: { S: 'AK3', H: 'Q7', D: 'A9', C: 'QJ9864' },
-    south: { S: 'QJ5', H: 'A84', D: 'KJ73', C: 'T52' },
-    east: { S: '9764', H: 'T63', D: '65', C: 'AK73' },
+    south: { S: 'QJ5', H: 'A84', D: 'KJ3', C: 'T532' },
+    east: { S: '9764', H: 'T63', D: '765', C: 'AK7' },
     west: { S: 'T82', H: 'KJ952', D: 'QT842', C: '' },
   },
 ];

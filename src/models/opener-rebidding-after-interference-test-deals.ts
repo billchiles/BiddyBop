@@ -71,6 +71,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1H-(Double)-2H-(3H)-Pass: advancer cuebids opener\'s suit artificially ' +
                  'after a takeout Double, not to play hearts. Minimum opener can defend.',
     dealer: 'W', practiceAuction: ['1H', 'Double', '2H', '3H', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 2, seat: 'E', text: 'Five low hearts support ' +
+      'a simple, nonforcing 2H. A weak preemptive 3H is also a competitive option, ' +
+      'but is not a stronger limit raise; weigh vulnerability and outside tricks.' }],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: 'Double', ruleIds: [
       'overcall-takeout-double-with-unbid-suit-support',
@@ -482,10 +485,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'T9', H: 'KQJT', D: 'KT9', C: 'JT75' },
   },
   {
-    description: '1H-(Double)-2H-(Double)-Pass: advancer’s responsive Double asks the opponents ' +
-                 'to find a strain; a minimum opener can Pass.',
+    description: '1H-(Double)-2H-(Double)-Pass: 2H remains a defensible cautious raise ' +
+                 'with six weak trumps after the takeout Double; advancer’s responsive ' +
+                 'Double asks for a strain, and minimum opener Passes.',
     dealer: 'W',
     practiceAuction: ['1H', 'Double', '2H', 'Double', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 2, seat: 'E', text: '3H would be a WEAK ' +
+      'preemptive jump raise in this competitive auction, not a strong limit raise. ' +
+      'With six low hearts but limited tricks outside trumps, a cautious 2H is also ' +
+      'defensible; vulnerability and playing strength affect the judgment.' }],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: 'Double', ruleIds: [
       'overcall-takeout-double-with-unbid-suit-support',

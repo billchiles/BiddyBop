@@ -1311,13 +1311,13 @@ export const ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     rejectedAdvanceCalls: ['Redouble', '2NT'],
   },
   {
-    description: '1D-(1S)-Double: five clubs can be shown naturally because Double ' +
-                 'implies hearts.',
+    description: '1D-(1S)-Double: a constructive five-card spade overcall with 9 HCP; ' +
+                 'advancer then shows five clubs naturally because Double implies hearts.',
     dealer: 'W', practiceAuction: ['1D', '1S', 'Double', '2C'],
-    west: { S: 'T', H: 'KJ3', D: 'KQJT532', C: 'Q7' },
-    north: { S: 'AQJ8432', H: 'QT6', D: '4', C: '42' },
+    west: { S: 'T2', H: 'KJ3', D: 'KQJT532', C: 'Q' },
+    north: { S: 'AQJ84', H: 'QT6', D: '64', C: '742' },
     east: { S: 'K96', H: '8542', D: 'A7', C: 'JT95' },
-    south: { S: '75', H: 'A97', D: '986', C: 'AK863' },
+    south: { S: '753', H: 'A97', D: '98', C: 'AK863' },
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
     expectedAdvanceCalls: [{ call: '2C', ruleIds: [

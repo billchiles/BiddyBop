@@ -745,7 +745,8 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'T7', H: 'J86', D: 'J9', C: 'KQT963' },
   },
   {
-    description: '1H-2NT-3H: 17 HCP with no singleton or void shows the strong slam-interest range.',
+    description: '1H-2NT-3H: a 17-HCP 5-4-2-2 major opener (not balanced 1NT shape) ' +
+                 'has no singleton or void and shows the strong slam-interest range.',
     practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '3H'],
     requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
     expectedOpeningCalls: [
@@ -758,9 +759,9 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
       { call: '3H', ruleIds: ['opener-rebid-strong-3-major-after-major-jacoby-2nt'] },
     ],
     rejectedOpenerRebidCalls: ['4H', '3NT'],
-    north: { S: 'AQ4', H: 'AKJ85', D: 'K72', C: '85' },
+    north: { S: 'AQ42', H: 'AKJ85', D: 'K7', C: '85' },
     south: { S: 'K83', H: 'Q976', D: 'A64', C: 'KJ2' },
-    east: { S: 'JT9762', H: '3', D: 'J9', C: 'T963' },
+    east: { S: 'JT976', H: '3', D: 'J92', C: 'T963' },
     west: { S: '5', H: 'T42', D: 'QT853', C: 'AQ74' },
   },
   {
@@ -813,8 +814,9 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'AT762', H: 'T4', D: 'J64', C: 'KT6' },
   },
   {
-    description: '1S-4C-4D: 15 working HCP and controls in both diamonds and hearts make 4D the ' +
-                 'cheapest slam-interest control; 4S remains visible as the judgment alternative.',
+    description: '1S-4C-4D: unbalanced 5-4-2-2 opening shape, 15 working HCP, and ' +
+                 'diamond and heart controls make 4D the cheapest slam-interest control; ' +
+                 '4S remains a judgment alternative.',
     practiceAuction: ['1S', 'Pass', '4C', 'Pass', '4D'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
@@ -829,14 +831,14 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     ],
     expectedOpenerRebidCallOrder: [['4D', '4S']],
     rejectedOpenerRebidCalls: ['4H'],
-    north: { S: 'AKJ85', H: 'K65', D: 'A72', C: '85' },
+    north: { S: 'AKJ85', H: 'K865', D: 'A2', C: '85' },
     south: { S: 'Q976', H: 'AQJ72', D: 'K83', C: '4' },
-    east: { S: '432', H: '98', D: 'J94', C: 'AJT93' },
+    east: { S: '432', H: '9', D: 'J974', C: 'AJT93' },
     west: { S: 'T', H: 'T43', D: 'QT65', C: 'KQ762' },
   },
   {
-    description: '1S-4D-4H: a heart control can be the slam-interest bid after a splinter; ' +
-                 '4S still survives below it as the practical game choice.',
+    description: '1S-4D-4H: opener has unbalanced 5-4-2-2 shape and a heart control ' +
+                 'for a slam-interest bid after the splinter; 4S remains the practical game choice.',
     practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
@@ -850,9 +852,9 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
       { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
     ],
     expectedOpenerRebidCallOrder: [['4H', '4S']],
-    north: { S: 'AKJ85', H: 'A74', D: '85', C: 'K96' },
+    north: { S: 'AKJ85', H: 'A742', D: '85', C: 'K9' },
     south: { S: 'Q976', H: 'K83', D: '4', C: 'AQJ72' },
-    east: { S: 'T4', H: '9652', D: 'KQJT3', C: 'T3' },
+    east: { S: 'T4', H: '965', D: 'KQJT3', C: 'T63' },
     west: { S: '32', H: 'QJT', D: 'A9762', C: '854' },
   },
 ];

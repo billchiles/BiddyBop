@@ -956,12 +956,13 @@ export const NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
     rejectedOvercallerRebidCalls: ['3NT'],
   },
   {
-    description: 'Accept natural 2NT invitation with 15 HCP after a one-level spade overcall.',
+    description: 'Accept a natural 2NT invitation with 15 HCP, a secure diamond stopper in ' +
+                 'advancer, and no eight-card spade fit after a one-level overcall.',
     dealer: 'W', practiceAuction: ['1D', '1S', 'Pass', '2NT', 'Pass', '3NT'],
-    west: { S: 'T72', H: 'A3', D: 'AQJ743', C: '83' },
+    west: { S: 'T72', H: 'AQ', D: 'KQJ743', C: '83' },
     north: { S: 'AQJ86', H: 'K72', D: '8', C: 'KQ64' },
-    south: { S: 'K93', H: 'Q85', D: 'K962', C: 'A95' },
-    east: { S: '54', H: 'JT964', D: 'T5', C: 'JT72' },
+    south: { S: 'K9', H: 'J85', D: 'A962', C: 'A952' },
+    east: { S: '543', H: 'T9643', D: 'T5', C: 'JT7' },
     expectedOvercallerRebidCalls: [{ call: '3NT', ruleIds: ['overcaller-rebid-nt-game'] }],
     rejectedOvercallerRebidCalls: ['Pass'],
   },
@@ -1245,9 +1246,12 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     description: 'With 16 HCP and a known spade fit, the doubler bids game after responder competes.',
     dealer: 'W',
     practiceAuction: ['1H', 'Double', '2H', '2S', 'Pass', '4S'],
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    north: { S: 'A984', H: 'Q', D: 'KJ82', C: 'KQJ6' },
-    east: { S: '3', H: '87543', D: '764', C: 'A972' },
+    practiceGuidance: [{ auctionIndex: 2, seat: 'E', text: 'Three hearts and ' +
+      'modest support values make 2H a routine simple raise. The weak preemptive ' +
+      '3H jump after Double requires at least four-card support here.' }],
+    west: { S: 'K72', H: 'AKT964', D: 'Q5', C: '54' },
+    north: { S: 'A984', H: 'Q5', D: 'KJ2', C: 'KQJ6' },
+    east: { S: '3', H: '873', D: '87643', C: 'A972' },
     south: { S: 'QJT65', H: 'J2', D: 'AT9', C: 'T83' },
     expectedOvercallCalls: [{ call: 'Double', ruleIds: [
       'overcall-takeout-double-with-unbid-suit-support',
