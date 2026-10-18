@@ -1297,12 +1297,12 @@ export const ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     rejectedAdvanceCalls: ['Redouble', '2S'],
   },
   {
-    description: '1D-(1S)-Double: balanced 10 HCP with a diamond stopper prefer natural 1NT.',
+    description: '1D-(1S)-Double: balanced 10 HCP, two spades, and a diamond stopper favor natural 1NT over a spade raise.',
     dealer: 'W', practiceAuction: ['1D', '1S', 'Double', '1NT'],
-    west: { S: '86', H: 'A42', D: 'T976', C: 'AKJ3' },
-    north: { S: 'AKJ43', H: 'KT6', D: '', C: 'QT764' },
-    east: { S: '52', H: 'QJ53', D: 'QJ854', C: '92' },
-    south: { S: 'QT97', H: '987', D: 'AK32', C: '85' },
+    west: { S: 'T86', H: 'A42', D: 'T976', C: 'AKJ' },
+    north: { S: 'AK943', H: 'KT6', D: '4', C: 'QT74' },
+    east: { S: '527', H: 'QJ53', D: 'QJ85', C: '26' },
+    south: { S: 'QJ', H: '987', D: 'AK32', C: '8953' },
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
     expectedAdvanceCalls: [{ call: '1NT', ruleIds: [

@@ -235,9 +235,11 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'QJ965', H: '54', D: '742', C: 'A83' },
   },
   {
-    description: '1NT: with neither Stayman nor Jacoby, an unbalanced 8-HCP hand with ' +
-                 'five hearts and four spades uses the basic natural 2NT invitation. ' +
-                 'This rule deliberately permits an unbalanced invitation when both are off.',
+    description: '1NT: when Stayman and transfers are off, an unbalanced 8-HCP hand with ' +
+                 'five hearts and four spades can invite naturally with 2NT. Opener has ' +
+                 'no eight-card major fit and club protection, so accepts with 3NT. ' +
+                 'The example illustrates the conventions-off fallback, not a claim that ' +
+                 'an unbalanced 2NT invitation is always the best practical choice.',
     practiceAuction: ['1NT', 'Pass', '2NT', 'Pass', '3NT'],
     requiredSystem: { oneNtOpening: '15-17', stayman: false, jacobyTransfers: false,
                       texasTransfers: false },
@@ -251,10 +253,10 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
     ],
     rejectedOpenerRebidCalls: ['Pass'],
-    north: { S: 'AQJ3', H: 'JT65', D: 'AK', C: 'Q73' },
+    north: { S: 'QJ3', H: 'J5', D: 'AK82', C: 'AQ73' },
     south: { S: 'KT74', H: 'K9742', D: 'Q94', C: 'T' },
-    east: { S: '962', H: 'Q8', D: 'J876', C: 'AJ96' },
-    west: { S: '85', H: 'A3', D: 'T532', C: 'K8542' },
+    east: { S: 'A962', H: 'QT8', D: 'J76', C: 'J96' },
+    west: { S: '85', H: 'A36', D: 'T53', C: 'K8542' },
   },
   {
     description: '1NT 15-17, maximum 17 HCP: accept the balanced 9-HCP 2NT invitation with 3NT.',
@@ -510,8 +512,9 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'K52', H: '9853', D: 'T42', C: 'JT5' },
   },
   {
-    description: '1NT-3D: opener holds the missing top diamond honor, so accept the good ' +
-                 'six-card-minor invitation with 3NT.',
+    description: '1NT-3D: opener holds the missing top diamond honor and the club ace, ' +
+                 'so accept the good six-card-minor invitation with 3NT. Unlike a hand ' +
+                 'with no club control, this partnership can withstand a club lead.',
     practiceAuction: ['1NT', 'Pass', '3D', 'Pass', '3NT'],
     requiredSystem: { oneNtOpening: '15-17' },
     expectedOpeningCalls: [
@@ -524,10 +527,10 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-3-minor-invitation'] },
     ],
     rejectedOpenerRebidCalls: ['Pass'],
-    north: { S: 'AQJ3', H: 'KQ4', D: 'K52', C: '943' },
-    south: { S: 'T82', H: 'J76', D: 'AQ8764', C: 'J' },
+    north: { S: 'QJ3', H: 'KQ4', D: 'K52', C: 'A943' },
+    south: { S: 'T82', H: 'J76', D: 'AQ8764', C: 'Q' },
     east: { S: 'K9754', H: 'T8', D: 'JT', C: 'KT52' },
-    west: { S: '6', H: 'A9532', D: '93', C: 'AQ876' },
+    west: { S: 'A6', H: 'A9532', D: '93', C: 'J876' },
   },
   {
     description: '1NT: an 8-HCP six-club hand with only one of A/K/Q is not good enough for ' +
