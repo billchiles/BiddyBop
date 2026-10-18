@@ -796,35 +796,37 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '754', H: '92', D: 'KJ93', C: '9873' },
   },
   {
-    description: 'After 1NT-(2H), eight HCP with four spades makes a takeout-oriented Double.',
-    practiceAuction: ['1NT', '2H', 'Double'],
+    description: 'After 1NT-(DONT 2H showing both majors), a good long club suit ' +
+                 'with 10+ HCP permits a natural 3C response.',
+    practiceAuction: ['1NT', '2H', '3C'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
     ],
     expectedResponseCalls: [
-      { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
+      { call: '3C', ruleIds: ['respond-after-dont-majors-natural-minor'] },
     ],
     rejectedResponseCalls: ['2NT'],
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
-    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
-    south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
-    west: { S: 'T93', H: '64', D: '7652', C: 'KJ62' },
+    east: { S: 'J874', H: 'AQJT9', D: 'JT9', C: '2' },
+    south: { S: 'QT5', H: '72', D: 'K3', C: 'KQT974' },
+    west: { S: 'K93', H: '864', D: '87652', C: 'J6' },
   },
   {
-    description: 'After 1NT-(2H), a good five-card spade suit is more descriptive than Double.',
-    practiceAuction: ['1NT', '2H', '2S'],
+    description: 'After 1NT-(DONT 2H), 3D is a natural good five-card minor; ' +
+                 "2S is a bid of an opponent's suit, not a natural spade response.",
+    practiceAuction: ['1NT', '2H', '3D'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
     ],
     expectedResponseCalls: [
-      { call: '2S', ruleIds: ['partner-of-1nt-after-interference-natural-suit-two-level'] },
-      { call: 'Double', ruleIds: ['partner-of-1nt-after-interference-negative-double'] },
+      { call: '3D', ruleIds: ['respond-after-dont-majors-natural-minor'] },
     ],
-    expectedResponseCallOrder: [['2S', 'Double']],
-    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
-    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
-    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
-    west: { S: '53', H: '62', D: 'KJ32', C: 'JT972' },
+    north: { S: 'A853', H: 'K53', D: 'A62', C: 'AQ4' },
+    east: { S: 'QJT9', H: 'AQJT8', D: '4', C: '985' },
+    south: { S: 'K64', H: '94', D: 'KQJT8', C: 'J76' },
+    west: { S: '72', H: '762', D: '9753', C: 'KT32' },
   },
 ];
 

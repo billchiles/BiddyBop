@@ -384,9 +384,9 @@ export function getOpponentNaturallyBidSuitsForOpenerRebid (dealer: Seat, auctio
   return [...suits];
 }
 
-/// getPartnerOneNtSuitInterference recognizes the two supported natural-interference contexts:
-/// responder after partner opens 1NT, and advancer after partner directly overcalls 1NT.
-/// This treatment stops at natural two-level suit interference.
+/// getPartnerOneNtSuitInterference recognizes natural two-level interference:
+/// after our 1NT opening only a direct DONT 2S is natural; after our natural
+/// 1NT overcall a responder suit bid is natural. DONT 2C/2D/2H are artificial.
 ///
 export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
     PartnerOneNtSuitInterference | null {
@@ -398,7 +398,9 @@ export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
   if (stage === 'responding' && openingInfo.call === '1NT' &&
       auction.length === openingInfo.index + 2) {
     const interference = parseSuitBid(auction[openingInfo.index + 1] ?? 'Pass');
-    return interference !== null && interference.level === 2 && interference.strain !== 'NT'
+    // Our agreed DONT means direct 2C/2D/2H are artificial. Only 2S is
+    // one-suited and natural; do not recycle natural-overcall responses for DONT.
+    return interference?.level === 2 && interference.strain === 'S'
       ? { interference, opponentOpening: null }
       : null;
   }

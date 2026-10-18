@@ -1,5 +1,6 @@
 /// Shared natural calls after two-level natural suit interference over partner's natural 1NT.
-/// These rules apply both after a 1NT opening and after a direct natural 1NT overcall.
+/// After a 1NT opening, this means the natural one-suited DONT 2S; after a
+/// natural 1NT overcall, the opponent's suit response remains natural.
 /// Stayman, Jacoby, and Texas remain off once the opponent makes the natural suit bid.
 /// BidRule has no neutral partner-call kind, so these shared declarations use responseBid.
 
@@ -206,3 +207,116 @@ function negativeDoubleAfterOneNtInterferenceApplies (_call: Call, context: Rule
       `in the available suits (have ${context.handFacts.hcp} HCP).`,
   ] };
 }
+
+
+/// After our own 1NT opening, 2H is NOT a natural heart overcall: under the app's
+/// fixed DONT agreement it shows both majors. Use selected natural continuations
+/// that respect both opposing suits. More complex defenses (including Double and
+/// cuebids of a shown suit) remain unjudged rather than assigned false meanings.
+function isDontMajorsAfterOneNt (context: RuleEvalContext): boolean {
+  const opening = context.auction.findIndex((call) => call !== 'Pass');
+  return opening >= 0 && context.auction[opening] === '1NT' &&
+    context.auction.length === opening + 2 && context.auction[opening + 1] === '2H';
+}
+
+function dontMajorsNaturalNt (context: RuleEvalContext, system: BiddingSystem,
+                              low: number, high: number): AppliesWhenResult {
+  const hcp = context.handFacts.hcp;
+  const shift = oneNtResponseHcpShift(system);
+  const stopped = hasBasicSuitStopper(context, 'H') && hasBasicSuitStopper(context, 'S');
+  const success = isDontMajorsAfterOneNt(context) && hcp >= low - shift &&
+    hcp <= high - shift && context.handFacts.balanced && stopped;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: ${low - shift}-${high - shift} HCP, balanced, and ` +
+      'stoppers in BOTH majors shown by DONT 2H.',
+  ] };
+}
+
+function dontMajorsNaturalMinor (call: Call, context: RuleEvalContext,
+                                system: BiddingSystem): AppliesWhenResult {
+  const suit = call === '3C' ? 'C' : 'D';
+  const hcp = context.handFacts.hcp;
+  const min = 10 - oneNtResponseHcpShift(system);
+  const success = isDontMajorsAfterOneNt(context) && hcp >= min &&
+    context.handFacts.lengths[suit] >= 5 && hasTwoOfTopThreeHonors(context.hand, suit);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: natural 3${suit} needs ${min}+ HCP, ` +
+      'five or more cards and two top honors; both majors belong to opponents.',
+  ] };
+}
+
+export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
+  {
+    id: 'respond-after-dont-majors-pass',
+    kind: 'responseBid',
+    title: 'Pass weakly when DONT 2H shows both majors',
+    auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (_call, context, system) => ({
+      success: isDontMajorsAfterOneNt(context) &&
+        context.handFacts.hcp <= 7 - oneNtResponseHcpShift(system),
+      telemetryLines: ['Pass is an ordinary weak action over DONT interference.'],
+    }),
+    meaning: 'Insufficient values for a selected constructive action against both majors.',
+    certainty: 'high',
+  },
+  {
+    id: 'respond-after-dont-majors-2nt',
+    kind: 'responseBid',
+    title: 'Natural 2NT invitation with both majors stopped over DONT',
+    auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    calls: ['2NT'],
+    callCategory: ['natural', 'invitational'],
+    appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 8, 9),
+    meaning: 'Natural invitation with balanced values and stoppers in hearts and spades.',
+    certainty: 'high',
+  },
+  {
+    id: 'respond-after-dont-majors-3nt',
+    kind: 'responseBid',
+    title: 'Natural 3NT game with both majors stopped over DONT',
+    auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    calls: ['3NT'],
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 10, 15),
+    meaning: 'Natural game with balanced values and stoppers in both opposing majors.',
+    certainty: 'high',
+  },
+  {
+    id: 'respond-after-dont-majors-natural-minor',
+    kind: 'responseBid',
+    title: 'Bid a strong natural minor at the three level over DONT majors',
+    auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    calls: ['3C', '3D'],
+    callCategory: ['natural'],
+    appliesWhen: dontMajorsNaturalMinor,
+    meaning: 'Constructive, natural minor suit outside the two suits shown by DONT.',
+    guidance: ['A five-card minor with two of the top three honors and 10+ HCP is needed ' +
+               '(9+ over a configured 16–18 1NT opening).',
+               'This is nonforcing; opener may pass without a suitable notrump contract.'],
+    certainty: 'high',
+  },
+  {
+    id: 'respond-after-dont-scope-boundary',
+    kind: 'scopeBoundary',
+    title: 'Other continuations after an opposing artificial DONT overcall',
+    auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    scopeBoundaryWhen: (context) => ({
+      success: (() => {
+        const first = context.auction.findIndex((call) => call !== 'Pass');
+        return first >= 0 && context.auction[first] === '1NT' &&
+          context.auction.length === first + 2 &&
+          ['2C', '2D', '2H'].includes(context.auction[first + 1] ?? '');
+      })(),
+      telemetryLines: ['DONT is artificial: direct 2C, 2D, and 2H show two suits.'],
+    }),
+    meaning: 'DONT shows two suits; unagreed doubles and cuebids are not judged as natural bids.',
+    guidance: ['Over DONT 2H, both hearts and spades belong to the opponents, so 2S is ' +
+               'not a natural spade response and an ordinary heart-only negative Double ' +
+               'description is wrong.',
+               'Beyond the selected natural minor and stopped NT decisions, further ' +
+               'defensive meanings require specific partnership agreements.'],
+    certainty: 'high',
+  },
+];

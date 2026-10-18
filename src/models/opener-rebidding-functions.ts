@@ -17,9 +17,9 @@ import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
 
 
 
-/// The first four physical calls identify the selected A7 continuation after an opposing
-/// natural two-level suit overcall of opener's 1NT. The fourth call can also be a simple
-/// opposing raise following responder's takeout Double.
+/// The first four physical calls identify the selected continuation after an opposing
+/// natural DONT 2S or a DONT 2H showing both majors. With 2H, only natural minor
+/// responses are modeled; DONT 2C/2D and unagreed doubles/cuebids are excluded.
 interface OneNtInterferenceContinuation {
   opposingSuit: Suit;
   response: Call;
@@ -36,13 +36,17 @@ function getOneNtInterferenceContinuation (context: RuleEvalContext):
   const overcall = parseSuitBid(context.auction[opening.index + 1] ?? 'Pass');
   const response = context.auction[opening.index + 2];
   const advance = context.auction[opening.index + 3];
-  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT' ||
+  if (overcall === null || overcall.level !== 2 ||
+      (overcall.strain !== 'H' && overcall.strain !== 'S') ||
       response === undefined || advance === undefined) return null;
   const responseBid = parseSuitBid(response);
   const naturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
     responseBid.strain !== overcall.strain ? responseBid.strain as Suit : null;
-  const responseIsSupported = response === 'Double' ||
+  const isDontMajors = overcall.strain === 'H';
+  const responseIsSupported = (! isDontMajors && response === 'Double') ||
     (naturalSuit !== null && (responseBid?.level === 2 || responseBid?.level === 3) &&
+     (! isDontMajors || (responseBid?.level === 3 &&
+                         (naturalSuit === 'C' || naturalSuit === 'D'))) &&
      cheapestBidInStrainAfter(overcall, naturalSuit) === response);
   if (! responseIsSupported) return null;
   if (advance !== 'Pass' &&
@@ -51,8 +55,7 @@ function getOneNtInterferenceContinuation (context: RuleEvalContext):
     naturalLevel: naturalSuit === null ? null : responseBid!.level };
 }
 
-/// A takeout-oriented Double shows both majors after minor interference, the unbid
-/// major after major interference, or both minors after spade interference.
+/// A takeout-oriented Double after natural DONT 2S shows the unbid minors.
 /// Show an eight-card fit with a four-card suit, choosing the cheapest fit up the line.
 function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
   const candidates: Suit[] = opposingSuit === 'S' ? ['C', 'D'] :
@@ -102,8 +105,13 @@ export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleE
   const hcp = context.handFacts.hcp;
   const support = suit === null || suit === undefined ? 0 : context.handFacts.lengths[suit];
   const isTwo = info?.naturalLevel === 2;
-  const strengthFits = isTwo && (support <= 2 ||
-    (suit !== 'H' && suit !== 'S') || (hcp === min && support === 3));
+  const isDontMinorAtThree = info?.opposingSuit === 'H' && info.naturalLevel === 3 &&
+    (suit === 'C' || suit === 'D');
+  const bothMajorStopped = hasBasicSuitStopper(context, 'H') &&
+    hasBasicSuitStopper(context, 'S');
+  const strengthFits = (isTwo && (support <= 2 ||
+    (suit !== 'H' && suit !== 'S') || (hcp === min && support === 3))) ||
+    (isDontMinorAtThree && hcp === min && ! bothMajorStopped);
   const success = info !== null && info.advance === 'Pass' && suit !== null &&
     strengthFits;
   return { success, telemetryLines: [
@@ -137,8 +145,10 @@ export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
   const info = getOneNtInterferenceContinuation(context);
   const suit = info?.naturalSuit;
   const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
+  const bothStopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit) &&
+    (info.opposingSuit !== 'H' || hasBasicSuitStopper(context, 'S'));
   const success = info !== null && info.advance === 'Pass' && info.naturalLevel === 3 &&
-    ! majorFit && hasBasicSuitStopper(context, info.opposingSuit);
+    ! majorFit && bothStopped;
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: constructive three-level natural response; ` +
     'prefer 3NT when the opposing suit is stopped and no major fit is present.',

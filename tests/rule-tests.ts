@@ -1758,10 +1758,39 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], defaultBiddingSystem);
   const responseCandidates = getApplicableCandidateCalls(responseResult);
   checks += 1;
-  if (! responseCandidates.some((candidate) =>
+  if (responseCandidates.some((candidate) =>
       candidate.rule.id === 'partner-of-1nt-after-interference-natural-suit-two-level')) {
     failures += 1;
-    console.error('FAIL shared 1NT-interference rules did not match responder after 1NT-(2H).');
+    console.error('FAIL natural 2S response leaked into artificial DONT 2H showing both majors.');
+  }
+  // DONT 2H shows both majors, so neither 2S nor a natural-heart takeout
+  // Double may inherit the rules for a one-suited natural 2H overcall.
+  const doubleAfterDont = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (doubleAfterDont.some(({ rule }) =>
+      rule.id === 'partner-of-1nt-after-interference-negative-double')) {
+    failures += 1;
+    console.error('FAIL natural-heart takeout Double was admitted over artificial DONT 2H.');
+  }
+  const naturalMinorAfterDont = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (! naturalMinorAfterDont.some(({ rule }) =>
+      rule.id === 'respond-after-dont-majors-natural-minor')) {
+    failures += 1;
+    console.error('FAIL natural 3D was lost over DONT 2H showing both majors.');
+  }
+  const { board: noSpadeStopperBoard } = makeRuleTestBoard({
+    ...responseDeal, east: undefined, west: undefined,
+    south: { S: 'T94', H: 'JT98', D: 'K98', C: 'KJ7' },
+  });
+  const noSpadeStopperCalls = getApplicableCandidateCalls(evaluateUserCall(
+    '2NT', noSpadeStopperBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (noSpadeStopperCalls.some(({ rule }) => rule.id === 'respond-after-dont-majors-2nt')) {
+    failures += 1;
+    console.error('FAIL natural 2NT over DONT 2H without stoppers in both majors.');
   }
   checks += 1;
   if (responseResult.ruleDiagnostics.some((result) =>

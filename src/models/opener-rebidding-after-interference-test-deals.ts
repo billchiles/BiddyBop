@@ -219,36 +219,38 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   },
   //// 1NT opening -- Opener after responder bids over interference
   {
-    description: '1NT-(2H)-2NT-(Pass)-3NT: a maximum 1NT opener accepts responder’s natural ' +
-                 'stopped invitation after interference.',
+    description: '1NT-(DONT 2H)-2NT-(Pass)-3NT: a maximum 1NT opener accepts responder’s natural ' +
+                 'invitation with both DONT majors stopped.',
     practiceAuction: ['1NT', '2H', '2NT', 'Pass', '3NT'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['partner-of-1nt-after-interference-2nt'] },
+      { call: '2NT', ruleIds: ['respond-after-dont-majors-2nt'] },
     ],
     expectedOpenerRebidCalls: [
       { call: '3NT', ruleIds: ['opener-rebid-3nt-after-1nt-2nt-invitation'] },
     ],
     north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
-    east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
+    east: { S: 'T953', H: 'AQ765', D: 'T98', C: 'K' },
     south: { S: 'KQ4', H: 'JT98', D: 'J52', C: 'J76' },
-    west: { S: 'J875', H: '', D: 'K763', C: 'QT942' },
+    west: { S: 'J87', H: '2', D: 'K763', C: 'QT942' },
   },
   {
-    description: '1NT-(2H)-3NT-(Pass)-Pass: responder’s natural game signoff keeps its ordinary ' +
+    description: '1NT-(DONT 2H)-3NT-(Pass)-Pass: responder’s natural game signoff keeps its ordinary ' +
                  'meaning after the selected interference.',
     practiceAuction: ['1NT', '2H', '3NT', 'Pass', 'Pass'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [
-      { call: '3NT', ruleIds: ['partner-of-1nt-after-interference-3nt'] },
+      { call: '3NT', ruleIds: ['respond-after-dont-majors-3nt'] },
     ],
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-nt-natural-nt-signoff'] },
     ],
     north: { S: 'A62', H: 'K43', D: 'AQ4', C: 'A853' },
-    east: { S: 'T93', H: 'AQ7652', D: 'T98', C: 'K' },
+    east: { S: 'T953', H: 'AQ765', D: 'T98', C: 'K' },
     south: { S: 'KQ4', H: 'JT98', D: 'K52', C: 'J76' },
-    west: { S: 'J875', H: '', D: 'J763', C: 'QT942' },
+    west: { S: 'J87', H: '2', D: 'J763', C: 'QT942' },
   },
   //// One-level suit opening -- Opener after responder acts in competition
   {
@@ -693,88 +695,93 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'J97', H: 'KT', D: '632', C: 'AKQ84' },
     west: { S: '6542', H: 'Q953', D: '7', C: 'JT62' },
   },
-  //// 1NT opening -- Negative-Double and natural response continuations
-  // After natural interference over our 1NT, responder's Double is takeout-oriented.
+  //// 1NT opening -- Selected responses after DONT (2H shows both majors).
+  // Natural minor responses and stopped notrump are selected; an unagreed Double
+  // or spade cuebid does not masquerade as a natural takeout action.
   {
-    description: '1NT-(2H)-Double-(Pass)-2S: opener answers the takeout Double with four spades.',
-    practiceAuction: ['1NT', '2H', 'Double', 'Pass', '2S'],
-    practiceGuidance: [{ auctionIndex: 4, seat: 'N', text: 'Responder promised at least four ' +
-      'spades, and opener has four. Show the eight-card fit rather than pass the Double.' }],
+    description: '1NT-(DONT 2H)-3C-(Pass)-3NT: a constructive club suit, not a ' +
+                 'spade takeout Double, leads opener to game with both major stoppers.',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
-    expectedResponseCalls: [{ call: 'Double', ruleIds: [
-      'partner-of-1nt-after-interference-negative-double',
-    ] }],
-    expectedOpenerRebidCalls: [{ call: '2S', ruleIds: [
-      'opener-rebid-fit-after-1nt-interference-double',
-    ] }],
-    north: { S: 'AK62', H: 'K53', D: 'AQ4', C: '853' },
-    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
-    south: { S: 'QT85', H: '72', D: 'K83', C: 'K974' },
-    west: { S: '93', H: '64', D: '7652', C: 'AJT62' },
-  },
-  {
-    description: '1NT-(2H)-Double-(Pass)-3NT: no four-card spade fit; maximum opener has ' +
-                 'a heart stopper and game prospects opposite eight or more HCP.',
-    practiceAuction: ['1NT', '2H', 'Double', 'Pass', '3NT'],
-    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
-    expectedResponseCalls: [{ call: 'Double', ruleIds: [
-      'partner-of-1nt-after-interference-negative-double',
+    expectedResponseCalls: [{ call: '3C', ruleIds: [
+      'respond-after-dont-majors-natural-minor',
     ] }],
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
-      'opener-rebid-3nt-after-1nt-interference-double',
+      'opener-rebid-3nt-after-1nt-interference-natural-suit',
     ] }],
-    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
-    east: { S: 'J74', H: 'AQJT98', D: 'JT9', C: 'Q' },
-    south: { S: 'KQ85', H: '72', D: 'K83', C: 'T974' },
-    west: { S: 'T93', H: '64', D: '7652', C: 'KJ62' },
+    north: { S: 'AK62', H: 'K53', D: 'AQ4', C: '853' },
+    east: { S: 'JT74', H: 'AQJT9', D: 'JT9', C: '2' },
+    south: { S: 'Q85', H: '72', D: 'K83', C: 'KQ974' },
+    west: { S: '93', H: '864', D: '7652', C: 'AJT6' },
   },
   {
-    description: '1NT-(2H)-2S-(Pass)-Pass: nonforcing natural spades are a playable ' +
-                 'partscore on a minimum opener without a significant fit.',
-    practiceAuction: ['1NT', '2H', '2S', 'Pass', 'Pass'],
+    description: '1NT-(DONT 2H)-3D-(Pass)-3NT: a good long minor and 10+ HCP ' +
+                 'allow a constructive natural response; opener stops both majors.',
+    practiceAuction: ['1NT', '2H', '3D', 'Pass', '3NT'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
-    expectedResponseCalls: [{ call: '2S', ruleIds: [
-      'partner-of-1nt-after-interference-natural-suit-two-level',
+    expectedResponseCalls: [{ call: '3D', ruleIds: [
+      'respond-after-dont-majors-natural-minor',
+    ] }],
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-1nt-interference-natural-suit',
+    ] }],
+    north: { S: 'A62', H: 'K53', D: 'A853', C: 'AQ4' },
+    east: { S: 'J874', H: 'AQJT9', D: '2', C: 'JT9' },
+    south: { S: 'QT5', H: '72', D: 'KQT974', C: 'K3' },
+    west: { S: 'K93', H: '864', D: 'J6', C: '87652' },
+  },
+  {
+    description: '1NT-(DONT 2H)-3C-(Pass)-Pass: constructive natural clubs ' +
+                 'can be passed by a minimum opener missing the heart stopper.',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', 'Pass'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedResponseCalls: [{ call: '3C', ruleIds: [
+      'respond-after-dont-majors-natural-minor',
     ] }],
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-1nt-interference-natural-suit',
     ] }],
-    north: { S: 'A62', H: 'K53', D: 'A24', C: 'A853' },
-    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
-    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
-    west: { S: '53', H: '62', D: 'KQJ3', C: 'JT972' },
+    north: { S: 'AK853', H: '53', D: 'A42', C: 'A62' },
+    east: { S: 'QJT9', H: 'AQJT8', D: '985', C: '4' },
+    south: { S: '64', H: 'K94', D: 'Q76', C: 'KQJT8' },
+    west: { S: '72', H: '762', D: 'KJT3', C: '9753' },
   },
   {
-    description: '1NT-(2H)-2S-(Pass)-3S: 17 HCP with three spades invites ' +
-                 'after responder shows a good five-card spade suit.',
-    practiceAuction: ['1NT', '2H', '2S', 'Pass', '3S'],
+    description: '1NT-(DONT 2H)-3D-(Pass)-3NT: a maximum opener ' +
+                 'with both major stoppers chooses game after a good natural minor.',
+    practiceAuction: ['1NT', '2H', '3D', 'Pass', '3NT'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
-    expectedResponseCalls: [{ call: '2S', ruleIds: [
-      'partner-of-1nt-after-interference-natural-suit-two-level',
+    expectedResponseCalls: [{ call: '3D', ruleIds: [
+      'respond-after-dont-majors-natural-minor',
     ] }],
-    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
-      'opener-rebid-raise-major-after-1nt-interference-natural-suit',
+    expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
+      'opener-rebid-3nt-after-1nt-interference-natural-suit',
     ] }],
-    north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
-    east: { S: '974', H: 'AQJT87', D: '985', C: 'Q' },
-    south: { S: 'KQJT8', H: '94', D: 'T76', C: 'K64' },
-    west: { S: '53', H: '62', D: 'KJ32', C: 'JT972' },
+    north: { S: 'A853', H: 'K53', D: 'A62', C: 'AQ4' },
+    east: { S: 'QJT9', H: 'AQJT8', D: '4', C: '985' },
+    south: { S: 'K64', H: '94', D: 'KQJT8', C: 'J76' },
+    west: { S: '72', H: '762', D: '9753', C: 'KT32' },
   },
   {
-    description: '1NT-(2H)-3C-(Pass)-3NT: responder is constructive with good clubs ' +
-                 'and 10+ HCP, and opener has the opposing-heart stopper.',
+    description: '1NT-(DONT 2H)-3C-(Pass)-3NT: responder is constructive with good clubs ' +
+                 'and 10+ HCP, and opener has the stoppers in both DONT majors.',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3C', ruleIds: [
-      'partner-of-1nt-after-interference-natural-suit-three-level',
+      'respond-after-dont-majors-natural-minor',
     ] }],
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
       'opener-rebid-3nt-after-1nt-interference-natural-suit',
     ] }],
     north: { S: 'A62', H: 'K53', D: 'AQ4', C: 'A853' },
-    east: { S: 'J95', H: 'AQJT98', D: 'JT9', C: 'T' },
+    east: { S: 'J953', H: 'AQJT9', D: 'JT9', C: 'T' },
     south: { S: 'K84', H: '72', D: 'K86', C: 'KQJ76' },
-    west: { S: 'QT73', H: '64', D: '7532', C: '942' },
+    west: { S: 'QT7', H: '864', D: '7532', C: '942' },
   },
 
   //// After a preemptive jump overcall -- Selected opener rebids

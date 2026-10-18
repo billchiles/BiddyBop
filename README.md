@@ -129,7 +129,10 @@ This avoids creating a separate set of overcaller–advancer bidding rules for a
 difference that adds little practice value.
 
 Against a strong 1NT opening, the app teaches the basic compact DONT interference but stops before
-later competitive continuations.  Strong hands without a qualifying DONT action receive general
+later competitive continuations.  All four seats use the same fixed DONT agreement.  When the
+opponents use DONT over our 1NT opening, 2H shows both majors, not a natural heart suit;
+responder's selected natural minor-suit and stopped notrump responses recognize both suits.
+Unagreed doubles and cuebids are intentionally not judged.  Strong hands without a qualifying DONT action receive general
 continuation guidance rather than an automatic Pass or penalty Double.  Weak-two defenses include
 selected advances, natural Pass decisions, and immediate responses to forcing or conventional calls.
 They do not include full competition after responder bids, continuations after natural three-level
