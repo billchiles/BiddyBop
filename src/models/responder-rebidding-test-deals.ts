@@ -895,13 +895,13 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['Pass', '4S'],
   },
   {
-    description: 'Four hearts opposite a natural 2H rebid after 1D-2C establish major game.',
-    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2H', 'Pass', '4H'],
+    description: 'After 1S-2C in 2/1, opener shows four hearts and responder bids the eight-card heart game.',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2H', 'Pass', '4H'],
     requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
-    north: { S: 'KQ75', H: 'KJ84', D: 'AQ86', C: '2' },
+    north: { S: 'KQ752', H: 'KJ84', D: 'AQ8', C: '2' },
     east: { S: 'T98', H: 'T92', D: 'J973', C: 'T85' },
     south: { S: 'A3', H: 'Q765', D: 'K5', C: 'KQJ97' },
-    west: { S: 'J642', H: 'A3', D: 'T42', C: 'A643' },
+    west: { S: 'J64', H: 'A3', D: 'T426', C: 'A643' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
       'responder-rebid-two-over-one-discovered-major-game',
     ] }],

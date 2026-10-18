@@ -320,10 +320,10 @@ export const ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] =
   {
     description: 'Weak 2D-(2H)-Pass: 4 HCP, two hearts, no useful advance: Pass.',
     dealer: 'W', practiceAuction: ['2D', '2H', 'Pass', 'Pass'],
-    west: { S: '852', H: '73', D: 'KQJ987', C: 'A4' },
+    west: { S: '852', H: '73', D: 'KQJ987', C: 'K4' },
     north: { S: 'AK', H: 'AKT96', D: '42', C: 'QJ83' },
     south: { S: 'Q974', H: 'Q5', D: 'T65', C: '9762' },
-    east: { S: 'JT63', H: 'J842', D: 'A3', C: 'KT5' },
+    east: { S: 'JT63', H: 'J842', D: 'A3', C: 'AT5' },
     expectedOvercallCalls: [
       { call: '2H', ruleIds: ['overcall-weak-two-natural-suit-at-two-level'] },
     ],
@@ -988,9 +988,9 @@ export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS: RuleTe
   {
     description: '1D-(1S)-1NT: three spades and 10 support points make a simple 2S raise.',
     dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2S'],
-    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
-    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
-    east: { S: 'KT', H: 'QJ85', D: 'T932', C: 'T72' },
+    west: { S: '82', H: 'A435', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '82', C: 'K96' },
+    east: { S: 'KT7', H: 'QJ8', D: 'T93', C: 'T724' },
     south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
@@ -1002,9 +1002,9 @@ export const ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS: RuleTe
   {
     description: '1D-(1S)-1NT: 11 support points cuebid 2D to show the strong spade raise.',
     dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2D'],
-    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
-    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
-    east: { S: 'K5', H: 'QT985', D: '962', C: 'J82' },
+    west: { S: '82', H: 'A438', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '7625', D: '8', C: 'K96' },
+    east: { S: 'K57', H: 'QT9', D: '962', C: 'J824' },
     south: { S: 'T43', H: 'KJ', D: 'QT53', C: 'AT75' },
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],

@@ -1351,9 +1351,13 @@ export const RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'T52', H: 'QT96', D: 'AKT5', C: '43' },
   },
   {
-    description: '2D-2NT-3NT: a 10-HCP maximum with AKQJ in the six-card diamond suit satisfies ' +
-                 "the app's conservative executable approximation of a solid weak-two suit.",
+    description: '2D-2NT-3NT: the exceptional 10-HCP solid AKQJ98 diamond suit qualifies for ' +
+                 'the weak two and the specific maximum-hand 3NT rebid; 1D also qualifies ' +
+                 'under length-point valuation, so the opening is a judgment choice.',
     practiceAuction: ['2D', 'Pass', '2NT', 'Pass', '3NT'],
+    practiceGuidance: [{ auctionIndex: 0, seat: 'N', text: 'AKQJ98 with no outside honors ' +
+      'can be opened 2D to describe a solid, suit-oriented hand.  A one-level opening also ' +
+      'qualifies on length points; this exercise is a judgment example, not a unique opening.' }],
     expectedOpeningCalls: [
       { call: '2D', ruleIds: ['open-weak-two'] },
     ],

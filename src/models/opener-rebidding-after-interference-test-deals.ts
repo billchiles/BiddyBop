@@ -31,7 +31,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   // Opener must account for advancer acting after responder has already bid.
   {
     description: '1H-(2D)-3C-(3D)-3NT: responder\'s 3C remains game-forcing when the opponents ' +
-                 'raise diamonds; opener has balanced shape and a genuine diamond stopper.',
+                 'raise diamonds; opener has a genuine diamond stopper and no major fit.',
     practiceAuction: ['1H', '2D', '3C', '3D', '3NT'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
@@ -42,10 +42,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3NT', ruleIds: [
       'opener-rebid-3nt-after-overcall-three-level-forcing-response',
     ] }],
-    north: { S: 'K83', H: 'A8574', D: 'AT4', C: '95' },
-    east: { S: 'AQT64', H: '629', D: 'KQJ98', C: '' },
-    south: { S: 'J9752', H: 'KT', D: '2', C: 'AKQT8' },
-    west: { S: '', H: 'QJ3', D: '7635', C: 'J64273' },
+    north: { S: 'Q83', H: 'A8754', D: 'AQ', C: '952' },
+    east: { S: 'AK64', H: '2', D: 'KJT987', C: '64' },
+    south: { S: 'J52', H: 'KT', D: '2', C: 'AKQT873' },
+    west: { S: 'T97', H: 'QJ963', D: '6543', C: 'J' },
   },
   {
     description: '1D-(1S)-2D-(3D)-Pass: advancer cuebids diamonds artificially to show strong ' +
@@ -100,9 +100,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-overcall-natural-1nt-minimum',
     ] }],
-    west: { S: '872', H: 'A43', D: 'AKJ74', C: 'Q3' },
-    north: { S: 'AQJ96', H: '762', D: '8', C: 'K964' },
-    east: { S: 'KT', H: 'QJ85', D: 'T932', C: 'T72' },
+    west: { S: '82', H: 'A435', D: 'AKJ74', C: 'Q3' },
+    north: { S: 'AQJ96', H: '762', D: '82', C: 'K96' },
+    east: { S: 'KT7', H: 'QJ8', D: 'T93', C: 'T724' },
     south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
   },
   //// Natural forcing one-level response after interference
@@ -844,8 +844,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'KT3', H: 'J8', D: 'T765', C: '8632' },
   },
   {
-    description: '1H-(2S)-2NT-(Pass)-Pass: responder\'s stopped 12-HCP natural ' +
-                 '2NT invitation is declined with a minimum opening hand.',
+    description: '1H-(2S)-2NT-(Pass)-Pass: responder has 11 balanced HCP, no heart fit, ' +
+                 'a spade stopper, and no qualifying negative Double; minimum opener declines the invitation.',
     practiceAuction: ['1H', '2S', '2NT', 'Pass', 'Pass'],
     expectedResponseCalls: [{ call: '2NT', ruleIds: [
       'respond-over-jump-natural-notrump',
@@ -854,9 +854,9 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       'opener-rebid-after-jump-overcall-nonforcing-pass',
     ] }],
     north: { S: '872', H: 'AKT96', D: 'AQ3', C: '54' },
-    east: { S: 'AQJ965', H: '43', D: '84', C: 'T97' },
-    south: { S: 'KT', H: 'Q82', D: 'K976', C: 'KJ62' },
-    west: { S: '43', H: 'J75', D: 'JT52', C: 'AQ83' },
+    east: { S: 'AQJ965', H: '43', D: '4', C: 'JT97' },
+    south: { S: 'KT4', H: 'Q2', D: 'K9768', C: 'K62' },
+    west: { S: '3', H: 'J758', D: 'JT52', C: 'AQ83' },
   },
   {
     description: '1H-(2S)-3C-(Pass)-3NT: game-forcing natural clubs opposite a ' +
