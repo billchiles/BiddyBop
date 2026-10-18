@@ -158,8 +158,8 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     description: 'After 1H-1S-3S, responder accepts the game invitation with 8 points.',
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3S', 'Pass', '4S'],
     north: { S: 'AJ84', H: 'QJ875', D: 'KJ', C: 'A3' },
-    south: { S: 'KQ62', H: 'K63', D: 'T82', C: 'T94' },
-    east: { S: '7', H: 'AT2', D: 'Q753', C: 'QJ876' },
+    south: { S: 'KQ62', H: 'K3', D: 'T823', C: 'T94' },
+    east: { S: '7', H: 'AT62', D: 'Q75', C: 'QJ876' },
     west: { S: 'T953', H: '94', D: 'A964', C: 'K52' },
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: [
       'responder-rebid-game-after-jump-major-raise',
@@ -169,10 +169,10 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'Responder accepts opener\'s direct 4H signoff with ordinary values.',
     practiceAuction: ['1D', 'Pass', '1H', 'Pass', '4H', 'Pass', 'Pass'],
-    north: { S: 'AQ3', H: 'AK84', D: 'AJ73', C: 'Q5' },
+    north: { S: 'AQ3', H: 'AK84', D: 'AT973', C: 'J' },
     south: { S: 'JT9', H: 'Q762', D: '842', C: 'K83' },
-    east: { S: '654', H: '9', D: 'Q965', C: 'AJT64' },
-    west: { S: 'K872', H: 'JT53', D: 'KT', C: '972' },
+    east: { S: '654', H: '9', D: 'QJ65', C: 'AQT64' },
+    west: { S: 'K872', H: 'JT53', D: 'K', C: '9752' },
     expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: [
       'responder-rebid-pass-after-game-major-raise',
     ] }],
@@ -378,11 +378,11 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     rejectedResponderRebidCalls: ['2S', '3S'],
   },
   {
-    description: '1H-1S-2C: weak responder prefers opener’s five-card hearts with three hearts.',
+    description: '1H-1S-2C: with two hearts and three clubs, weak responder prefers opener’s five-card hearts.',
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '2H'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
-    south: { S: 'KJ96', H: 'J74', D: 'Q85', C: '872' },
-    east: { S: 'A43', H: 'T92', D: 'JT764', C: 'AJ' },
+    south: { S: 'KJ96', H: 'J7', D: 'Q854', C: '872' },
+    east: { S: 'A43', H: 'T942', D: 'JT76', C: 'AJ' },
     west: { S: 'QT85', H: '63', D: 'A92', C: 'KT53' },
     expectedResponderRebidCalls: [{ call: '2H', ruleIds: [
       'responder-rebid-economical-prefer-opening',
@@ -437,11 +437,11 @@ export const RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS: RuleTestDe
     ] }],
   },
   {
-    description: '1H-1S-2C: invitational responder with three hearts can invite opener in 3H.',
+    description: '1H-1S-2C: 11-point limit-raise responder shows spades first, then invites with three hearts.',
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2C', 'Pass', '3H'],
     north: { S: '72', H: 'AKQ85', D: 'K3', C: 'Q964' },
-    south: { S: 'KJ98', H: 'J74', D: 'Q85', C: 'K83' },
-    east: { S: 'AQ6', H: '632', D: '976', C: 'AJT7' },
+    south: { S: 'KJ98', H: 'J74', D: 'Q85', C: 'KJ3' },
+    east: { S: 'AQ6', H: '632', D: '976', C: 'AT87' },
     west: { S: 'T543', H: 'T9', D: 'AJT42', C: '52' },
     expectedResponderRebidCalls: [{ call: '3H', ruleIds: [
       'responder-rebid-economical-invite-opening',
@@ -488,17 +488,16 @@ export const RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS: RuleTestDeal[]
     rejectedResponderRebidCalls: ['Pass', '2NT'],
   },
   {
-    description: "A jump shift into clubs still permits game in opener's five-card hearts.",
-    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3C', 'Pass', '4H'],
+    description: "After opener’s game-forcing club jump shift, balanced responder signs off in 3NT with a diamond stopper.",
+    practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3C', 'Pass', '3NT'],
     north: { S: '2', H: 'AKQ87', D: 'K3', C: 'AQJ64' },
-    south: { S: 'KJ74', H: 'J65', D: 'QJ62', C: '98' },
-    east: { S: 'AQ86', H: '943', D: '985', C: 'K52' },
+    south: { S: 'KJ74', H: 'J6', D: 'QJ62', C: '985' },
+    east: { S: 'AQ86', H: '9543', D: '985', C: 'K2' },
     west: { S: 'T953', H: 'T2', D: 'AT74', C: 'T73' },
     expectedResponderRebidCalls: [
-      { call: '4H', ruleIds: ['responder-rebid-strong-second-suit-major-game'] },
       { call: '3NT', ruleIds: ['responder-rebid-strong-second-suit-3nt'] },
     ],
-    rejectedResponderRebidCalls: ['Pass', '2NT'],
+    rejectedResponderRebidCalls: ['Pass', '2NT', '4H'],
   },
 ];
 
@@ -899,8 +898,8 @@ export const RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Four hearts opposite a natural 2H rebid after 1D-2C establish major game.',
     practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2H', 'Pass', '4H'],
     requiredSystem: { twoLevelNewSuitResponse: 'twoOverOne' },
-    north: { S: 'KQ7', H: 'KJ84', D: 'AQ86', C: '82' },
-    east: { S: 'T985', H: 'T92', D: 'J973', C: 'T5' },
+    north: { S: 'KQ75', H: 'KJ84', D: 'AQ86', C: '2' },
+    east: { S: 'T98', H: 'T92', D: 'J973', C: 'T85' },
     south: { S: 'A3', H: 'Q765', D: 'K5', C: 'KQJ97' },
     west: { S: 'J642', H: 'A3', D: 'T42', C: 'A643' },
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
