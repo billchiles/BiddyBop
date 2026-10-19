@@ -68,6 +68,8 @@ import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
          RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS,
          RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS }
   from './responder-rebidding-test-deals';
+import { RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS,
+         RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS } from './responder-rebidding-convention-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
 
@@ -121,6 +123,8 @@ export interface RuleTestExpectedCall {
 
 /// Preserve existing array exports for the test runner and other consumers.
 export {
+  RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS,
+  RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS,
   RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
   RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
   RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS,
@@ -183,6 +187,12 @@ export {
 /// exercises first so the selector begins with useful connected bidding practice. The 'all'
 /// selection concatenates compatible deals in this same order.
 export const RULE_TEST_DEAL_BUCKETS = [
+  { id: 'responder-rebid-after-nt-conventions', group: 'Responder Rebids (7 bids)',
+    label: 'After Stayman and Jacoby transfers', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS },
+  { id: 'responder-rebid-after-major-game-try', group: 'Responder Rebids (7 bids)',
+    label: 'After opener makes a major game try', practiceStages: ['responderRebid'] as BidStage[],
+    deals: RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS },
   { id: 'responder-rebid-after-two-over-one', group: 'Responder Rebids (7 bids)',
     label: 'After a 2/1 game-forcing new suit', practiceStages: ['responderRebid'] as BidStage[],
     deals: RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS },
