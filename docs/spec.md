@@ -20,7 +20,8 @@ The app should help the user practice bidding decisions using structured convent
 ## Code Style
 
 Use `docs/code-style.md` for general coding, comments, refactoring, and code-generation
-conventions. This spec records the Bridge Bidding Trainer's domain-specific decisions.
+conventions. This project uses TypeScript and React; code must follow those conventions
+where applicable. The spec records the Bridge Bidding Trainer's domain-specific decisions.
 
 ## Bidding Terminology
 

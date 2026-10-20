@@ -2,7 +2,6 @@ import { useState } from 'react';
 import './App.css';
 import { BidPanel } from './components/BidPanel';
 import { BiddingSystemControls } from './components/BiddingSystemControls';
-import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
 import { defaultBiddingSystem, type BidStage, type BiddingSystem } from './models/bidding-types';
 import { getRulesBucketTestDeals, isPracticeDealCompatible, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
@@ -103,23 +102,25 @@ export default function App() {
       telemetryLines: [...current.telemetryLines, '', ...lines].slice(-MAX_TELEMETRY_LINES),
     }));
   }
-  // The controls follow their use order: bidding system, random deal, bucket, test deal, progress.
+  // One compact toolbar keeps the deal controls close to the bidding-system settings.
   return (
     <main className="appShell">
       <header className="appHeader">
-        <div>
-          <h1>Bridge Bidding Trainer</h1>
-          <p>Random and rule-practice deals, bid matching, candidate rules, and evaluator telemetry.</p>
-        </div>
-        <div className="dealControls">
+        <div className="toolbarTitleGroup"><h1>Biddy Bop</h1></div>
+        <div className="toolbarSettingsGroup">
           <BiddingSystemControls biddingSystem={biddingSystem} onChange={changeBiddingSystem} />
+        </div>
+        <div className="toolbarDealGroup">
+          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
           <label className="dealerOpeningSetting">
             <input type="checkbox" checked={requireDealerOpening}
               onChange={(event) => setRequireDealerOpening(event.target.checked)} />
-            Give North an opening hand
+            North Opens
           </label>
-          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
-          <select className="testBucketSelect" aria-label="Rule test deal bucket"
+        </div>
+        <div className="toolbarPracticeGroup">
+          <select className="testBucketSelect" aria-label="Practice deal bucket"
+            title="Practice deal bucket"
             value={testBucketId}
             onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
             <option value="all">All</option>
@@ -138,14 +139,9 @@ export default function App() {
           </span>
         </div>
       </header>
-
       <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry}
         telemetryLines={state.telemetryLines}
         testDeal={state.testDeal} practiceStages={state.practiceStages} />
-      <details className="telemetryDetails">
-        <summary>Show telemetry (latest {MAX_TELEMETRY_LINES} lines maximum)</summary>
-        <TelemetryPanel lines={state.telemetryLines} />
-      </details>
     </main>
   );
 }

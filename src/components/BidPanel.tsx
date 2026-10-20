@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
-import { SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
+import { getHandFacts, SEATS, SUITS, type Board, type Hand, type HandFacts, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
+
+const MAX_EXPLANATION_LINES = 1200;
 
 
 /// BidPanel lets the user bid every seat.  In targeted practice, recorded setup calls establish
@@ -22,7 +24,7 @@ export interface BidPanelProps {
 export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal, practiceStages }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [showAllHands, setShowAllHands] = useState(false);
-  const [reportStatus, setReportStatus] = useState('');
+  const bidInputRef = useRef<HTMLInputElement | null>(null);
   const [auction, setAuction] = useState<Call[]>(() =>
     setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
@@ -38,22 +40,27 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     getUnmodeledContinuationForce(board, auction, biddingSystem),
     [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
   // The next-turn note is informational. It never blocks a legal auction continuation.
-  const turnGuidance = getNextTurnGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
+  const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
+    biddingTurnStatus, practiceComplete, outstandingForce);
   const displayedExplanation = [...explanationLines, ...turnGuidance];
 
   useEffect(() => {
     setBidText('');
     setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
     setExplanationLines(getInitialExplanationLines(board.dealer, testDeal, practiceStages));
-    setReportStatus('');
   }, [board, biddingSystem, testDeal, practiceStages]);
+
+  // New deals and successful bids leave the next call ready for keyboard entry.
+  useEffect(() => {
+    if (!auctionComplete && !practiceComplete) bidInputRef.current?.focus();
+  }, [board, auction, auctionComplete, practiceComplete]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    setReportStatus('');
+    bidInputRef.current?.focus();
     if (auctionComplete || practiceComplete) {
-      setExplanationLines((current) => [...current, '',
-        'Bidding input is disabled. Select New Deal or Test Deal to continue.']);
+      setExplanationLines((current) => appendExplanation(current, ['',
+        'Bidding input is disabled. Select New Deal or Test Deal to continue.']));
       onTelemetry(['Bidding input is disabled. Select New Deal or Test Deal.']);
       return;
     }
@@ -74,7 +81,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     // A recorded practice substitution must never bypass legality of the student's actual call.
     if (! isCallAvailableInAuction(normalizedCall, auction)) {
       const lines = [`${normalizedCall} is not available in this auction.`];
-      setExplanationLines((current) => [...current, '', ...lines]);
+      setExplanationLines((current) => appendExplanation(current, ['', ...lines]));
       onTelemetry(lines);
       return;
     }
@@ -106,10 +113,16 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
                           correction: { call: Call; result: BidEvalResult | null } | null): void {
     const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
       status.kind === 'noApplicableRule' ? status.stage : null;
+    const handFacts = getHandFacts(board.deal[seat]);
     const title = `------------ ${getSeatLabel(seat)} ${call} — ${getStageLabel(stage)} ------------`;
+    // The next-seat preview already occupies this position in the visible transcript.
+    // Commit its exact lines before recording the call, so they never jump between seats.
     const explanation = status.kind === 'supported' && result !== null
-      ? buildExplanationLines(title, result)
-      : buildUnjudgedCallExplanation(title, call, status);
+      ? buildExplanationLines(title, result, handFacts, auction.length)
+      : turnGuidance.some((line) => line.startsWith('------------ '))
+        ? [...turnGuidance, `${getSeatLabel(seat)} entered ${call}. ` +
+          'The trainer did not judge whether this was the best call.']
+        : buildUnjudgedCallExplanation(title, call, status);
     if (status.kind === 'supported' && result !== null) {
       const intervention = getInterferenceAfterOpening(board.dealer, auction);
       if (stage === 'responding' && intervention !== 'none' &&
@@ -128,7 +141,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       const matched = correction.result?.userCallMatchingRules ?? [];
       if (matched.length > 0) {
         explanation.push('Reason for the recorded call:');
-        for (const rule of matched) appendRuleExplanation(explanation, rule);
+        for (const rule of matched) {
+          appendRuleExplanation(explanation, rule, handFacts, auction.length);
+        }
       } else if (correction.result !== null && status.kind === 'supported') {
         explanation.push('This recorded continuation is not supported by an applicable rule ' +
           'under the current bidding configuration.');
@@ -137,7 +152,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       }
     }
     if (practiceNotes.length > 0) explanation.push('', ...practiceNotes);
-    setExplanationLines((current) => [...current, '', ...explanation]);
+    // Pre-call guidance was already visible after the prior lines. Keep its
+    // exact prefix, including its leading blank, as the committed history.
+    setExplanationLines((current) => appendExplanation(current,
+      explanation[0] === '' ? explanation : ['', ...explanation]));
     onTelemetry(result === null ? [`Recorded unjudged ${getSeatLabel(seat)} ${call}.`] :
       [`Evaluating ${title}.`, ...result.telemetryLines]);
   }
@@ -146,7 +164,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const lines = [
       `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
-    setExplanationLines((current) => [...current, '', ...lines]);
+    setExplanationLines((current) => appendExplanation(current, ['', ...lines]));
     onTelemetry(lines);
   }
 
@@ -154,12 +172,14 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const report = buildReportText(board, auction, displayedExplanation,
       biddingSystem, testDeal, telemetryLines);
     if (navigator.clipboard === undefined) {
-      setReportStatus('Clipboard unavailable.');
+      setExplanationLines((current) => appendExplanation(current, ['', 'Clipboard unavailable.']));
       return;
     }
     navigator.clipboard.writeText(report)
-      .then(() => setReportStatus('Report copied to clipboard.'))
-      .catch(() => setReportStatus('Could not copy report. Check clipboard permissions.'));
+      .then(() => setExplanationLines((current) => appendExplanation(current,
+        ['', 'Report copied to clipboard.'])))
+      .catch(() => setExplanationLines((current) => appendExplanation(current,
+        ['', 'Could not copy report. Check clipboard permissions.'])));
   }
 
   const inputDisabled = auctionComplete || practiceComplete;
@@ -172,18 +192,21 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     <section className="bidPanel" aria-label="Bid evaluation">
       <section className="trainerWorkspace">
         <section className="trainerLeftColumn">
-          <label className="handDisplaySetting">
-            Show hands:
-            <select value={showAllHands ? 'all' : 'bidding'}
-              onChange={(event) => setShowAllHands(event.target.value === 'all')}>
-              <option value="bidding">Bidding hand only</option>
-              <option value="all">All hands always</option>
-            </select>
-          </label>
-          <DealCompass deal={board.deal} activeSeat={activeSeat} showAllHands={showAllHands} />
+          <DealCompass deal={board.deal} activeSeat={activeSeat} showAllHands={showAllHands}>
+            <label className="handDisplaySetting">
+              <span>Show hands</span>
+              <select value={showAllHands ? 'all' : 'bidding'}
+                onChange={(event) => setShowAllHands(event.target.value === 'all')}>
+                <option value="bidding">Bidding hand only</option>
+                <option value="all">All hands always</option>
+              </select>
+            </label>
+          </DealCompass>
           <form className="bidForm" onSubmit={handleSubmit}>
             <label className="bidLabel" htmlFor="bidInput">{nextBidLabel}</label>
             <input
+              ref={bidInputRef}
+              autoFocus
               id="bidInput"
               className="bidInput"
               value={bidText}
@@ -194,12 +217,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
             <button className="bidButton" type="button" onClick={reportState}>Report</button>
           </form>
-          {reportStatus !== '' && <p className="reportStatus" role="status">{reportStatus}</p>}
         </section>
 
         <section className="trainerRightColumn">
           <AuctionGrid rows={auctionRows} />
-          <ExplanationPanel lines={displayedExplanation} />
+          <ExplanationPanel lines={displayedExplanation} board={board} />
         </section>
       </section>
     </section>
@@ -269,6 +291,15 @@ function getPracticeGuidanceLines (dealer: Seat, previous: Call[], current: Call
   return notes;
 }
 
+/// Explanation is scoped to the current deal (reset on redeal). A simple line cap prevents
+/// long auctions or repeated invalid entries from growing an unbounded browser transcript.
+function appendExplanation(current: string[], added: string[]): string[] {
+  const updated = [...current, ...added];
+  if (updated.length <= MAX_EXPLANATION_LINES) return updated;
+  return ['Earlier explanation from this deal omitted (history limit).',
+    ...updated.slice(-(MAX_EXPLANATION_LINES - 1))];
+}
+
 /// Report reuses the explanation displayed to the learner, including rule IDs, rather than
 /// building and maintaining a second explanation/diagnostics stream.
 function buildReportText(board: Board, auction: Call[], explanationLines: string[],
@@ -309,7 +340,7 @@ function formatHand(hand: Hand): string {
 
 /// Show useful scope guidance before the next call, without treating it as auction completion.
 /// Only a completed real auction or recorded practice sequence disables the bidding controls.
-function getNextTurnGuidance(status: BiddingTurnStatus, practiceComplete: boolean,
+function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComplete: boolean,
                              outstandingForce: UnmodeledContinuationForce | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
@@ -322,21 +353,23 @@ function getNextTurnGuidance(status: BiddingTurnStatus, practiceComplete: boolea
         lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
         return lines;
       case 'scopeBoundary':
-        lines.push('', 'The app cannot reliably recommend a bid at this point because of the ' +
-          'nuances and judgment experienced players use.  You may continue entering legal ' +
-          'calls, but the app may not be able to evaluate them.');
+        lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
+          `${getStageLabel(status.stage)} ------------`,
+          `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
+          'this auction. The following treatment explains why:');
         appendRuleExplanation(lines, status.rule);
+        lines.push('This does not recommend Pass or any other particular call.');
         break;
       case 'noApplicableRule':
-        lines.push('', 'The app cannot give reliable feedback at this ' +
-          `${getStageLabel(status.stage)} stage in the current auction.  ` +
-          'This limitation does not mean Pass or another legal call is incorrect.  ' +
-          'You may continue bidding.');
+        lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
+          `${getStageLabel(status.stage)} ------------`,
+          'No reliable recommendation applies to this hand at this point in the auction. ' +
+          'You may choose any legal call; an unsupported call is not necessarily incorrect.');
         break;
       case 'noModeledStage':
-        lines.push('', 'The app does not have bidding rules for this turn.  ' +
-          'You may continue entering legal calls.  Feedback will resume if a later ' +
-          'auction context matches supported bidding rules.');
+        lines.push('', `------------ ${getSeatLabel(seat)} to call — unmodeled turn ------------`,
+          `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
+          'this auction. Later turns may have supported bidding treatments.');
         break;
       case 'supported':
         break;
@@ -382,10 +415,6 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
   } else {
     lines.push('This part of the auction is not covered by the trainer. ' +
       'You may continue bidding, and later calls may be evaluated.');
-  }
-  if (call === 'Pass') {
-    lines.push('Pass may be entirely appropriate or expected here, especially while the ' +
-      'opponents continue bidding.  The app cannot determine whether Pass is best for this hand.');
   }
   return lines;
 }
@@ -433,7 +462,8 @@ function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
 }
 
-function buildExplanationLines (title: string, result: BidEvalResult): string[] {
+function buildExplanationLines (title: string, result: BidEvalResult,
+                                handFacts: HandFacts, auctionLength: number): string[] {
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
@@ -449,12 +479,12 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
     if (preferredRule !== undefined) {
       lines.push('');
       lines.push('The trainer prefers:');
-      appendRuleExplanation(lines, preferredRule);
+      appendRuleExplanation(lines, preferredRule, handFacts, auctionLength);
     }
   } else {
     lines.push('Why this call fits:');
     for (const rule of result.userCallMatchingRules) {
-      appendRuleExplanation(lines, rule);
+      appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }
 
@@ -471,10 +501,31 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
   return lines;
 } // buildExplanationLines()
 
-function appendRuleExplanation (lines: string[], rule: BidRule): void {
+/// Add the actual hand valuation only where it explains a light one-level opening.  The
+/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
+function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
+                                auctionLength?: number): void {
   lines.push(`- ${rule.title} [${rule.id}]`);
   if (rule.meaning !== undefined && rule.meaning !== '') {
     lines.push(`  Meaning: ${rule.meaning}`);
+  }
+  if ((rule.id === 'open-five-card-major' || rule.id === 'open-convenient-minor') &&
+      handFacts !== undefined && handFacts.hcp < 12 && handFacts.totalPointsWLength >= 12) {
+    lines.push(`  Hand value: ${handFacts.hcp} HCP + ${handFacts.lengthPoints} length ` +
+      `point${handFacts.lengthPoints === 1 ? '' : 's'} = ` +
+      `${handFacts.totalPointsWLength} total points. This meets the trainer's ` +
+      '12-total-point minimum for an ordinary one-level suit opening.');
+    lines.push('  This is a light opening. Some players prefer at least 12 HCP and might ' +
+      'Pass; the trainer recommends opening under its length-point treatment.');
+    if (auctionLength !== undefined && auctionLength <= 1) {
+      const twoLongest = Object.values(handFacts.lengths).sort((a, b) => b - a);
+      const longest = twoLongest[0] ?? 0;
+      const secondLongest = twoLongest[1] ?? 0;
+      const ruleOf20 = handFacts.hcp + longest + secondLongest;
+      lines.push(`  Guideline of 20: ${handFacts.hcp} + ${longest} + ${secondLongest} ` +
+        `= ${ruleOf20} (${ruleOf20 >= 20 ? 'meets' : 'below'} 20). ` +
+        'This is a separate opening-hand guideline.');
+    }
   }
   if (rule.guidance !== undefined) {
     for (const guidanceLine of rule.guidance) {
@@ -541,24 +592,41 @@ function AuctionGrid({ rows }: { rows: AuctionRow[] }) {
   );
 }
 
-/// Keep the newest response in view while showing a persistent cue when earlier explanations
-/// have scrolled out of sight. The cue lives in the heading, never over the content.
-function ExplanationPanel ({ lines }: { lines: string[] }) {
+/// Align the beginning of each newly explained call with the top of the viewport.
+/// Later small status changes still scroll into view. No parallel transcript is maintained.
+function ExplanationPanel ({ lines, board }: { lines: string[]; board: Board }) {
   const explanationRef = useRef<HTMLPreElement | null>(null);
+  const lastHeadingRef = useRef(-1);
+  const lastBoardRef = useRef<Board | null>(null);
   const [scrollPosition, setScrollPosition] = useState({ above: false, below: false });
+  const headingIndex = lines.findLastIndex((line) => line.startsWith('------------ '));
+  const targetHeadingIndex = headingIndex >= 0 ? headingIndex :
+    lines.findLastIndex((line) => line.startsWith('============== '));
   const text = lines.join('\n');
+
+  useLayoutEffect(() => {
+    const element = explanationRef.current;
+    if (element === null) return;
+    // New turns begin at their seat heading. Changes within a turn do not
+    // arbitrarily send the reader to the bottom of the growing transcript.
+    if (board !== lastBoardRef.current || targetHeadingIndex !== lastHeadingRef.current) {
+      const heading = element.children.item(targetHeadingIndex);
+      element.scrollTop = heading instanceof HTMLElement ? heading.offsetTop : 0;
+    }
+    lastBoardRef.current = board;
+    lastHeadingRef.current = targetHeadingIndex;
+    setScrollPosition(measureExplanationScroll(element));
+  }, [board, text, targetHeadingIndex]);
 
   useEffect(() => {
     const element = explanationRef.current;
     if (element === null) return;
-    element.scrollTop = element.scrollHeight;
-    setScrollPosition(measureExplanationScroll(element));
     const observer = new ResizeObserver(() => {
       setScrollPosition(measureExplanationScroll(element));
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [text]);
+  }, []);
 
   return (
     <section className="resultSummary" aria-label="Explanation and app output">
@@ -571,7 +639,11 @@ function ExplanationPanel ({ lines }: { lines: string[] }) {
         </span>
       </div>
       <pre ref={explanationRef} className="explanationText"
-        onScroll={(event) => setScrollPosition(measureExplanationScroll(event.currentTarget))}>{text}</pre>
+        onScroll={(event) => setScrollPosition(measureExplanationScroll(event.currentTarget))}>
+        {lines.map((line, index) => (
+          <span className="explanationLine" key={index}>{line === '' ? '\u00a0' : line}</span>
+        ))}
+      </pre>
     </section>
   );
 }

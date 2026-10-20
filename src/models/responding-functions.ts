@@ -298,6 +298,26 @@ export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEval
               : 'No normally supported new suit or three-card minor fallback is available.',],};
 }
 
+/// refineLongMajorSupportLimitRaiseFallback allows a conservative three-level invitation with
+/// exactly 13 support points only when no game-forcing new-suit route is available.  This is a
+/// narrow fallback for long trump fits with no suitable side suit, not a general 13-point raise.
+/// Singleton/void hands are excluded because their playing strength calls for separate judgment
+/// (and may qualify for a splinter) rather than an automatic limit raise.
+///
+export function refineLongMajorSupportLimitRaiseFallback (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getPartnerOpeningBid(context)!;
+  const otherSuits = SUITS.filter((suit) => suit !== opening.strain);
+  if (otherSuits.some((suit) => context.handFacts.lengths[suit] < 2)) {
+    return { calls: [], telemetryLines: ['Shortness rules out the conservative long-fit limit-raise fallback.'] };
+  }
+  const newSuit = refineMajorSupportNewSuitFirst(['1S', '2C', '2D', '2H'], context);
+  if (newSuit.calls.length > 0) {
+    return { calls: [], telemetryLines: ['A game-forcing new-suit response is available instead of a limit raise.'] };
+  }
+  return refineRaisePartnerSuitBy2(calls, context);
+}
+
 //// Jump shifts and economical suit-bid selection
 /// refineJumpNewSuit chooses a jump to a new suit that is the cheapest legal bid in each suit.
 /// This is a one liner so that it can be used in rule declaration to satisfy refineCandidates.

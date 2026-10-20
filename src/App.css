@@ -16,39 +16,65 @@ textarea {
 }
 
 .appShell {
-  max-width: 1180px;
+  max-width: 1220px;
   margin: 0 auto;
   padding: 12px;
 }
 
 .appHeader {
-  position: relative;
-  min-height: 100px;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
+  align-items: center;
+  gap: 8px 10px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
   margin-bottom: 10px;
+  padding: 7px 10px;
+  border: 1px solid #c7d0dc;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(23, 32, 51, 0.08);
 }
 
 .appHeader h1 {
-  margin: 0 0 6px 0;
-  font-size: 22px;
-}
-
-.appHeader p {
   margin: 0;
-  color: #536072;
+  font-size: 19px;
+  white-space: nowrap;
 }
 
-.dealControls {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  gap: 6px;
-  width: 255px;
-  flex-shrink: 0;
+/* Thin dividers separate the app, settings, New Deal, and practice controls. */
+.toolbarTitleGroup,
+.toolbarDealGroup {
+  padding-right: 30px;
+  margin-right: 5px;
+  border-right: none; /* 1px solid #c7d0dc; */
+}
+
+.toolbarDealGroup,
+.toolbarPracticeGroup {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.toolbarSettingsGroup {
+  margin-right: 5px;
+}
+
+.appHeader .redealButton,
+.appHeader .biddingSystemSummary {
+  padding: 5px 9px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.appHeader .testBucketSelect {
+  flex: 0 1 145px;
+  width: 145px;
+  min-width: 110px;
+  max-width: 145px;
+  padding: 5px 7px;
+  font-size: 13px;
+  text-overflow: ellipsis;
 }
 
 .biddingSystemDetails {
@@ -67,7 +93,7 @@ textarea {
 .biddingSystemPanel {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  left: 0;
   z-index: 20;
   display: grid;
   gap: 8px;
@@ -97,14 +123,10 @@ textarea {
   background: white;
 }
 
-.dealControls > .testBucketSelect,
-.dealControls > .testBucketSelect ~ * {
-  transform: translateY(20px);
-}
-
 .testBucketSelect {
-  margin-top: 10px;
-  min-width: 0;
+  margin: 0;
+  min-width: 170px;
+  max-width: 300px;
   border: 1px solid #aab5c3;
   border-radius: 8px;
   padding: 8px 10px;
@@ -136,6 +158,7 @@ textarea {
 }
 
 .testDealProgress {
+  min-width: 68px;
   color: #536072;
   text-align: center;
   font-size: 13px;
@@ -144,7 +167,8 @@ textarea {
 .dealerOpeningSetting {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  white-space: nowrap;
   font-size: 13px;
   color: #344760;
 }
@@ -171,55 +195,47 @@ textarea {
 
 .handDisplaySetting {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
   font-size: 13px;
   color: #344760;
 }
 
 .handDisplaySetting select {
+  box-sizing: border-box;
+  width: 156px;
   border: 1px solid #aab5c3;
   border-radius: 6px;
-  padding: 3px 5px;
+  padding: 5px 4px;
   background: white;
+  font-size: 12px;
 }
 
 .dealCompass {
   display: grid;
-  grid-template-columns: 150px 170px 150px;
+  grid-template-columns: 170px 170px 170px;
   grid-template-areas:
     ". north ."
-    "west . east"
+    "west controls east"
     ". south .";
-  gap: 6px 10px;
+  gap: 6px 4px;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
 }
 
-.northSeat {
-  grid-area: north;
-  transform: translateX(15px);
-}
-
-.eastSeat {
-  grid-area: east;
-  transform: translateX(8px);
-}
-
-.southSeat {
-  grid-area: south;
-  transform: translateX(15px);
-}
-
-.westSeat {
-  grid-area: west;
-}
+.northSeat { grid-area: north; }
+.eastSeat { grid-area: east; }
+.southSeat { grid-area: south; }
+.westSeat { grid-area: west; }
+.compassControls { grid-area: controls; justify-self: center; }
 
 .handCard {
-  width: 150px;
-  min-width: 0;
+  position: relative;
+  box-sizing: border-box;
+  width: 170px;
+  height: 126px;
   border: 1px solid #c7d0dc;
   border-radius: 10px;
   padding: 5px 7px;
@@ -228,7 +244,8 @@ textarea {
 }
 
 .handConcealment {
-  min-height: 76px;
+  position: absolute;
+  inset: 27px 6px 6px;
   display: grid;
   place-items: center;
   color: #536072;
@@ -292,25 +309,30 @@ textarea {
 
 .trainerWorkspace {
   display: grid;
-  grid-template-columns: auto minmax(360px, 1fr);
-  gap: 36px;
+  grid-template-columns: 520px minmax(360px, 1fr);
+  gap: 20px;
   align-items: stretch;
+  /* The explanation gains vertical room without following the text length. */
+  height: clamp(560px, calc(100dvh - 105px), 500px);
 }
 
-.trainerLeftColumn,
-.trainerRightColumn {
-  display: grid;
+.trainerLeftColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
   gap: 12px;
 }
 
+/* Position both right-hand panels inside the workspace, so explanation text
+   never determines the page height. */
 .trainerRightColumn {
-  grid-template-rows: auto 1fr;
-  align-self: stretch;
+  position: relative;
+  min-height: 0;
 }
 
 .bidForm,
-.resultSummary,
-.telemetryPanel {
+.resultSummary {
   border: 1px solid #c7d0dc;
   border-radius: 14px;
   padding: 14px;
@@ -319,41 +341,46 @@ textarea {
 }
 
 .auctionPanel {
-  justify-self: start;
-  width: fit-content;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: 245px;
+  height: 150px;
+  overflow-y: auto;
   border: 1px solid #c7d0dc;
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 6px 12px;
   background: white;
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.08);
 }
 
 .auctionPanel h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.0;
+  text-align: center;
 }
 
 .bidForm {
   display: grid;
-  grid-template-columns: 120px 1fr auto auto;
-  gap: 10px;
+  grid-template-columns: 88px minmax(80px, 1fr) auto auto;
+  gap: 8px;
   align-items: center;
-}
-
-.auctionPanel h3 {
-    justify-self: center;
-  width: fit-content;
+  padding: 12px;
 }
 
 .auctionGrid {
   width: auto;
   margin: 0 auto;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.0;
 }
 
 .auctionGrid th,
 .auctionGrid td {
-  padding: 4px 8px;
+  padding: 1px 8px;
 }
 
 .auctionGrid th {
@@ -361,7 +388,7 @@ textarea {
 }
 
 .auctionGrid td {
-  height: 24px;
+  height: 22px;
   font-weight: 700;
 }
 
@@ -384,9 +411,23 @@ textarea {
   text-align: right;
 }
 
+/* Fill the available area beneath the auction, scrolling text internally. */
+.resultSummary {
+  position: absolute;
+  inset: 176px 0 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
 .explanationText {
-  min-height: 205px;
-  max-height: 205px;
+  position: relative;
+  flex: 1;
+  height: 0;
+  min-height: 0;
   box-sizing: border-box;
   margin: 0;
   overflow-y: scroll;
@@ -396,6 +437,11 @@ textarea {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   line-height: 1.35;
+}
+
+.explanationLine {
+  display: block;
+  min-height: 1.35em;
 }
 
 .bidLabel {
@@ -409,8 +455,7 @@ textarea {
 }
 
 .resultSummary h3,
-.resultSummary h4,
-.telemetryPanel h2 {
+.resultSummary h4 {
   margin: 0 0 8px 0;
 }
 
@@ -423,65 +468,69 @@ textarea {
   padding: 0;
 }
 
-.reportStatus {
-  margin: 0;
-  color: #344760;
-  font-size: 13px;
-}
-
-.telemetryDetails {
-  margin-bottom: 20px;
-}
-
-.telemetryDetails summary {
-  display: inline-block;
-  padding: 7px 10px;
-  border: 1px solid #aab5c3;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-}
-
-.telemetryPanel {
-  margin-top: 10px;
-}
-
-.telemetryText {
-  width: 100%;
-  min-height: 260px;
-  box-sizing: border-box;
-  border: 1px solid #aab5c3;
-  border-radius: 10px;
-  padding: 10px;
-  resize: vertical;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 13px;
-  line-height: 1.35;
-  color: #172033;
-  background: #fbfcfd;
-}
-
-@media (max-width: 860px) {
-  .appHeader,
+@media (max-width: 980px) {
   .trainerWorkspace {
     grid-template-columns: 1fr;
-    display: grid;
+    height: auto;
   }
 
-  .dealControls {
-    width: 100%;
-  }
-
-  .dealCompass {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "north"
-      "west"
-      "east"
-      "south";
+  .trainerLeftColumn {
+    align-items: center;
   }
 
   .bidForm {
-    grid-template-columns: 1fr;
+    align-self: stretch;
+  }
+
+  .trainerRightColumn {
+    /* When stacked, give the explanation room below the auction. */
+    min-height: 580px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dealCompass {
+    grid-template-columns: 170px 170px;
+    grid-template-areas:
+      "north north"
+      "west east"
+      "controls controls"
+      "south south";
+    justify-items: center;
+  }
+
+  .bidForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bidLabel,
+  .bidInput {
+    grid-column: span 2;
+  }
+}
+
+/* Keep the bidding controls visible on shorter laptop browser viewports. */
+@media (max-height: 700px) and (min-width: 981px) {
+  .appShell {
+    padding-top: 8px;
+    padding-bottom: 4px;
+  }
+
+  .bidPanel {
+    margin-bottom: 0;
+  }
+
+  .appHeader {
+    margin-bottom: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .trainerLeftColumn {
+    gap: 8px;
+  }
+
+  .bidForm {
+    padding: 8px 10px;
   }
 }

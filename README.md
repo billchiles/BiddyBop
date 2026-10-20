@@ -214,9 +214,10 @@ is enabled by default; turn it off for a completely random deal with North still
 The **Show hands** selector normally reveals only the hand currently bidding; choose
 **All hands always** to examine the complete deal.
 
-The explanation pane keeps the latest feedback in view and indicates when earlier text
-is above the visible area. **Show telemetry** reveals a limited recent diagnostic log
-only when requested. If a suggested bid seems wrong, incomplete, or poorly explained,
-click **Report** to copy the current deal, bidding agreements, auction, explanations
-(including rule IDs), and available telemetry to the clipboard for feedback.
+The explanation pane scrolls to the beginning of the latest explained call and indicates
+when earlier or later text is outside the viewport. It retains up to 1,200 lines for the
+current deal and resets for each new deal. If a suggested bid seems wrong, incomplete,
+or poorly explained, click **Report** to copy the current deal, bidding agreements,
+auction, explanations (including rule IDs), and up to 400 recent telemetry lines to the
+clipboard. Telemetry is included in Report rather than displayed in the interface.
 

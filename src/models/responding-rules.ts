@@ -5,7 +5,8 @@ import {
 } from './bidding-types';
 import {
   guidelineOf17Applies, majorDirectThreeNtApplies, majorTwoLevelNewSuitApplies, minorRaiseApplies,
-  minorSupportNewSuitApplies, refineMajorSupportNewSuitFirst, refineMajorTwoLevelNewSuitByLength,
+  minorSupportNewSuitApplies, refineLongMajorSupportLimitRaiseFallback,
+  refineMajorSupportNewSuitFirst, refineMajorTwoLevelNewSuitByLength,
   refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels, refineOneLevelNewSuitAfterMinor,
   refineRaisePartnerSuitBy1, refineRaisePartnerSuitBy2, refineRaiseToLevel,
   refineResponderCuebidAfterJumpOvercall, refineResponderCuebidAfterOvercall,
@@ -255,6 +256,7 @@ export const ResponseBidRules: BidRule[] = [
   //   0-5                         -> Pass
   //   6-10 + 3+ support          -> simple raise
   //   11-12 + 4+ support         -> direct limit raise
+  //   exactly 13 + 6+ support   -> conservative limit raise only with no forcing side-suit route
   //   11-12 + exactly 3          -> show 1S over 1H when available; otherwise 1NT, then raise
   //   13+ + exactly 3            -> new suit first, then raise to game
   //   13+ + 4+ support           -> Jacoby 2NT or new-suit-then-raise by agreement
@@ -335,6 +337,28 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Invitational jump raise with four-card or longer support; ' +
              'opener bids game with extra values.',
     certainty: 'high',
+  },
+  //
+  {
+    id: 'respond-to-major-w/-support-long-fit-13-limit-raise-fallback',
+    // With unusually long support and exactly 13 shortage-adjusted points, a nonforcing
+    // invitation is a judgment choice only when the agreed forcing new-suit route is unavailable.
+    kind: 'responseBid',
+    title: 'Invitational raise with 13 support points and a long major fit',
+    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
+    calls: ['3H', '3S'],
+    callRefinement: refineLongMajorSupportLimitRaiseFallback,
+    callCategory: ['invitational'],
+    agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise' },
+    appliesWhen: { totalPoints: { min: 13, max: 13, valuation: 'shortage' },
+                   supportLength: { min: 6 } },
+    meaning: 'A conservative, nonforcing invitation with long trump support when there is no ' +
+             'suitable new suit to start the agreed game-forcing support sequence.',
+    guidance: ['Normally 3H or 3S is a limit raise showing 11-12 support points. Here 13 ' +
+               'support points make the invitation slightly conservative.',
+               'Count high-card points plus shortage points. Opener may pass a minimum ' +
+               'or accept the invitation with extra values.'],
+    certainty: 'medium',
   },
   //
   {

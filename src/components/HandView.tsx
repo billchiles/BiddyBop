@@ -32,23 +32,15 @@ const seatNames: Record<Seat, string> = {
 };
 
 export function HandView ({ seat, hand, concealed = false }: HandViewProps) {
-  if (concealed) {
-    return (
-      <section className="handCard" aria-label={`${seatNames[seat]} hand concealed`}>
-        <h2 className="handTitle">{seatNames[seat]}</h2>
-        <div className="handConcealment">Hand hidden</div>
-      </section>
-    );
-  }
-  const facts = getHandFacts(hand);
+  const facts = concealed ? null : getHandFacts(hand);
   return (
-    <section className="handCard" aria-label={`${seatNames[seat]} hand`}>
+    <section className="handCard" aria-label={`${seatNames[seat]} hand${concealed ? ' concealed' : ''}`}>
       <h2 className="handTitle">
-        {seatNames[seat]} ({facts.hcp} HCP)
+        {seatNames[seat]}{facts === null ? '' : ` (${facts.hcp} HCP)`}
       </h2>
-      <div className="handRows">
+      <div className="handRows" aria-hidden={concealed}>
         {suitDisplays.map((suitDisplay) => {
-          const cards = getCardsForSuit(hand, suitDisplay.suit);
+          const cards = concealed ? [] : getCardsForSuit(hand, suitDisplay.suit);
           const ranksText = cards.map((card) => card.rank).join(' ');
           const shownRanksText = ranksText === '' ? '—' : ranksText;
           return (
@@ -60,6 +52,7 @@ export function HandView ({ seat, hand, concealed = false }: HandViewProps) {
           );
         })}
       </div>
+      {concealed && <div className="handConcealment">Hand hidden</div>}
     </section>
   );
 }

@@ -5,7 +5,7 @@ This file records the coding and code-review conventions to use across projects 
 ## Core Priorities
 
 - Optimize first for code that is easy for a human reader to follow.
-- Prefer direct, explicit domain code over clever abstractions, but might be worth discussing.
+- Prefer readable, explicit domain code over clever abstractions; discuss alternatives when useful.
 - Keep architecture proportional to the problem being solved now. Avoid speculative machinery for possible future requirements, but it ok to mention it in discussion since I might want it.
 - Preserve established project structure, naming, comments, and control flow unless there is a concrete reason to change them.
 - When modifying existing code, prefer the smallest change that fully fixes the problem, and don't randomly rewrite functions or change comments unless substantive need drives that.
@@ -93,6 +93,7 @@ when the wrapper is used once and contributes no additional logic.
 - Section titles should describe lasting code organization, not patch or chat work-item labels.
 - Preserve standalone `//` separators between related rule declarations when the file uses them.
 - Do not use block comments.
+- Most nontrivial functions should have a useful comment explaining their purpose, domain meaning, inputs and outputs when they are not obvious, and important invariants.
 - Comments should explain purpose, domain meaning, assumptions, inputs/outputs when useful, and important invariants.
 - Explain why something exists or why a non-obvious choice is correct.
 - Do not emit comments that merely restate the code.
@@ -117,7 +118,7 @@ if (!isBalanced) {
 
 - Do not write `=== true` or `=== false` for ordinary boolean checks.
 - Do not rely on implicit truthiness for values whose type is not exactly boolean.
-- Explicitly distinguish meaningful `undefined`, `null`, `0`, empty string, and empty-array cases when those states matter.
+- Use explicit tests for `undefined`, `null`, `0`, empty string, and empty arrays when those states matter; do not rely on implicit falsy conversions.
 - Prefer explicit `null`/`undefined` tests over assertion helpers when the explicit condition is clearer.
 - Do not add redundant defensive checks immediately after an invariant has already established that a value exists.
 - Avoid guards that contradict the manifest execution conditions of the surrounding code.

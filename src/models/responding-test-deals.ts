@@ -231,6 +231,24 @@ export const RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'K', H: 'AT965', D: 'QT7', C: '9532' },
   },
   {
+    description: '1H-3H: 11 HCP, six-card heart support and two doubletons give 13 support points. ' +
+                 'With no suitable new suit for the agreed game-forcing sequence, a conservative ' +
+                 'invitational raise is available rather than leaving the response unmodeled.',
+    practiceAuction: ['1H', 'Pass', '3H'],
+    requiredSystem: { majorGameForceWithSupport: 'newSuitThenRaise' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '3H', ruleIds: ['respond-to-major-w/-support-long-fit-13-limit-raise-fallback'] },
+    ],
+    rejectedResponseCalls: ['4H', '2C', '2D', '1S'],
+    north: { S: 'A6', H: 'AKQ932', D: '943', C: 'T6' },
+    south: { S: 'QJ9', H: 'JT8654', D: 'K2', C: 'KJ' },
+    east: { S: 'T753', H: '', D: 'AJT85', C: '8752' },
+    west: { S: 'K842', H: '7', D: 'Q76', C: 'AQ943' },
+  },
+  {
     description: '1H-1S: 11 HCP plus one shortage point gives 12 support points with three hearts; show four ' +
                  'spades first, then make the invitational heart raise.',
     practiceAuction: ['1H', 'Pass', '1S'],

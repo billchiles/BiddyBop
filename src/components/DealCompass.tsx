@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Deal, Seat } from '../models/cards';
 import { HandView } from './HandView';
 
@@ -6,9 +7,10 @@ export interface DealCompassProps {
   deal: Deal;
   activeSeat: Seat | null;
   showAllHands: boolean;
+  children?: ReactNode;
 }
 
-export function DealCompass({ deal, activeSeat, showAllHands }: DealCompassProps) {
+export function DealCompass({ deal, activeSeat, showAllHands, children }: DealCompassProps) {
   return (
     <section className="dealCompass" aria-label="Current deal">
       <div className={activeSeat === 'N' ? 'northSeat activeSeat' : 'northSeat'}>
@@ -20,6 +22,7 @@ export function DealCompass({ deal, activeSeat, showAllHands }: DealCompassProps
       <div className={activeSeat === 'E' ? 'eastSeat activeSeat' : 'eastSeat'}>
         <HandView seat="E" hand={deal.E} concealed={! showAllHands && activeSeat !== null && activeSeat !== 'E'} />
       </div>
+      <div className="compassControls">{children}</div>
       <div className={activeSeat === 'S' ? 'southSeat activeSeat' : 'southSeat'}>
         <HandView seat="S" hand={deal.S} concealed={! showAllHands && activeSeat !== null && activeSeat !== 'S'} />
       </div>

@@ -98,10 +98,9 @@ export const OpeningBidRules: BidRule[] = [
     priority: { rank: 90 },
     appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 },
                    suitLengths: [ { suit: 'major', min: 5 } ] },
-    meaning: 'Open 1H or 1S with a five-card or longer major suit and opening values.',
-    guidance: ['With two five-card or longer suits, open the higher-ranking suit.',
-               'An eight-card major with ordinary opening values can still be opened at the ' +
-                 'one level; do not jump automatically to a four-level preempt.'],
+    meaning: 'Open 1H or 1S with a five-card or longer major and at least 12 total points ' +
+             '(high-card points plus length points).',
+    guidance: ['With two five-card or longer suits, open the higher-ranking suit.'],
     certainty: 'high',
   },
   //
