@@ -24,15 +24,17 @@ textarea {
 .appHeader {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px 10px;
   flex-wrap: wrap;
   box-sizing: border-box;
   margin-bottom: 10px;
-  padding: 7px 10px;
+  padding: 5px 10px;
   border: 1px solid #c7d0dc;
   border-radius: 12px;
   background: white;
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.08);
+  transform: translateY(-8px);
 }
 
 .appHeader h1 {
@@ -546,4 +548,23 @@ textarea {
   .bidForm {
     padding: 8px 10px;
   }
+}
+
+/* Practice controls: adjust this negative margin to raise/lower the second row
+   without changing the position of the New Deal controls above it. */
+.dealControlRows .toolbarPracticeGroup {
+  margin-top: -5px;
+  transform: translateY(-8px);
+}
+
+/* Wider closed selection; keep long bucket names from resizing the controls.
+   The opened option list retains the existing picker styling above. */
+.dealControlRows .testBucketSelect {
+  flex: 0 0 235px;
+  width: 235px;
+  min-width: 235px;
+  max-width: 235px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
