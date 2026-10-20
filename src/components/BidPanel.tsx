@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
@@ -19,9 +19,10 @@ export interface BidPanelProps {
   telemetryLines: string[];
   testDeal?: RuleTestDeal;
   practiceStages?: BidStage[];
+  children?: ReactNode;
 }
 
-export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal, practiceStages }: BidPanelProps) {
+export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal, practiceStages, children }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [showAllHands, setShowAllHands] = useState(false);
   const bidInputRef = useRef<HTMLInputElement | null>(null);
@@ -192,6 +193,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     <section className="bidPanel" aria-label="Bid evaluation">
       <section className="trainerWorkspace">
         <section className="trainerLeftColumn">
+          {children}
           <DealCompass deal={board.deal} activeSeat={activeSeat} showAllHands={showAllHands}>
             <label className="handDisplaySetting">
               <span>Show hands</span>

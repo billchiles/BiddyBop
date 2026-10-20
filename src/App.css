@@ -41,19 +41,24 @@ textarea {
   white-space: nowrap;
 }
 
-/* Thin dividers separate the app, settings, New Deal, and practice controls. */
-.toolbarTitleGroup,
-.toolbarDealGroup {
-  padding-right: 30px;
-  margin-right: 5px;
-  border-right: none; /* 1px solid #c7d0dc; */
+/* Two rows of deal controls begin at the North hand's left edge.
+   Their right ends may extend into the gap toward the auction. */
+.dealControlRows {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: flex-start;
+  gap: 30px; /* moves controls upward toward title */
+  margin-left: calc((100% - 170px) / 2);
+  white-space: nowrap;
 }
 
+.dealControlNewRow,
 .toolbarDealGroup,
 .toolbarPracticeGroup {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 20px;
 }
 
 .toolbarSettingsGroup {
@@ -61,13 +66,16 @@ textarea {
 }
 
 .appHeader .redealButton,
-.appHeader .biddingSystemSummary {
+.appHeader .biddingSystemSummary,
+.dealControlRows .redealButton,
+.dealControlRows .biddingSystemSummary {
   padding: 5px 9px;
   white-space: nowrap;
   font-size: 13px;
 }
 
-.appHeader .testBucketSelect {
+.appHeader .testBucketSelect,
+.dealControlRows .testBucketSelect {
   flex: 0 1 145px;
   width: 145px;
   min-width: 110px;
@@ -313,7 +321,7 @@ textarea {
   gap: 20px;
   align-items: stretch;
   /* The explanation gains vertical room without following the text length. */
-  height: clamp(560px, calc(100dvh - 105px), 500px);
+  height: 560px; /* Increase or decrease this to resize the entire workspace. */
 }
 
 .trainerLeftColumn {
@@ -414,7 +422,7 @@ textarea {
 /* Fill the available area beneath the auction, scrolling text internally. */
 .resultSummary {
   position: absolute;
-  inset: 176px 0 0;
+  inset: 168px 0 0; /* Reduce 176px to move Explanation closer to Auction. */
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -476,6 +484,11 @@ textarea {
 
   .trainerLeftColumn {
     align-items: center;
+  }
+
+  .dealControlRows {
+    margin-left: 0;
+    align-self: center;
   }
 
   .bidForm {

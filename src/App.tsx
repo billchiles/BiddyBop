@@ -102,46 +102,51 @@ export default function App() {
       telemetryLines: [...current.telemetryLines, '', ...lines].slice(-MAX_TELEMETRY_LINES),
     }));
   }
-  // One compact toolbar keeps the deal controls close to the bidding-system settings.
+  // Keep the title compact; the deal controls sit above the compass.
   return (
     <main className="appShell">
       <header className="appHeader">
         <div className="toolbarTitleGroup"><h1>Biddy Bop</h1></div>
-        <div className="toolbarSettingsGroup">
-          <BiddingSystemControls biddingSystem={biddingSystem} onChange={changeBiddingSystem} />
-        </div>
-        <div className="toolbarDealGroup">
-          <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
-          <label className="dealerOpeningSetting">
-            <input type="checkbox" checked={requireDealerOpening}
-              onChange={(event) => setRequireDealerOpening(event.target.checked)} />
-            North Opens
-          </label>
-        </div>
-        <div className="toolbarPracticeGroup">
-          <select className="testBucketSelect" aria-label="Practice deal bucket"
-            title="Practice deal bucket"
-            value={testBucketId}
-            onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
-            <option value="all">All</option>
-            {testBucketGroups.map((group) => (
-              <optgroup key={group} label={group}>
-                {RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.group === group).map((bucket) => (
-                  <option key={bucket.id} value={bucket.id}>{bucket.label}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <button className="redealButton" type="button" onClick={nextTestDeal}
-            disabled={testDeals.length === 0}>Test Deal</button>
-          <span className="testDealProgress" aria-live="polite">
-            {testDealCount} of {testDeals.length}
-          </span>
-        </div>
       </header>
       <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry}
         telemetryLines={state.telemetryLines}
-        testDeal={state.testDeal} practiceStages={state.practiceStages} />
+        testDeal={state.testDeal} practiceStages={state.practiceStages}>
+        <div className="dealControlRows" aria-label="Deal controls">
+          <div className="dealControlNewRow">
+            <div className="toolbarSettingsGroup">
+              <BiddingSystemControls biddingSystem={biddingSystem} onChange={changeBiddingSystem} />
+            </div>
+            <div className="toolbarDealGroup">
+              <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
+              <label className="dealerOpeningSetting">
+                <input type="checkbox" checked={requireDealerOpening}
+                  onChange={(event) => setRequireDealerOpening(event.target.checked)} />
+                North Opens
+              </label>
+            </div>
+          </div>
+          <div className="toolbarPracticeGroup">
+            <select className="testBucketSelect" aria-label="Practice deal bucket"
+              title="Practice deal bucket"
+              value={testBucketId}
+              onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
+              <option value="all">All</option>
+              {testBucketGroups.map((group) => (
+                <optgroup key={group} label={group}>
+                  {RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.group === group).map((bucket) => (
+                    <option key={bucket.id} value={bucket.id}>{bucket.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <button className="redealButton" type="button" onClick={nextTestDeal}
+              disabled={testDeals.length === 0}>Test Deal</button>
+            <span className="testDealProgress" aria-live="polite">
+              {testDealCount} of {testDeals.length}
+            </span>
+          </div>
+        </div>
+      </BidPanel>
     </main>
   );
 }
