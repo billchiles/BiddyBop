@@ -394,10 +394,11 @@ export function getRulesBucketTestDeals (bucketId: RuleTestDealBucketId,
   const buckets = bucketId === 'all'
     ? RULE_TEST_DEAL_BUCKETS
     : RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.id === bucketId);
-  return buckets.flatMap((bucket) => bucket.deals.filter((deal) => dealIsCompatible(deal, system)));
+  return buckets.flatMap((bucket) => bucket.deals.filter((deal) => isPracticeDealCompatible(deal, system)));
 }
 
-function dealIsCompatible (deal: RuleTestDeal, system: BiddingSystem): boolean {
+/// Keep active practice exercises under the same required-agreement filter as the deal selector.
+export function isPracticeDealCompatible (deal: RuleTestDeal, system: BiddingSystem): boolean {
   const requiredSystem = deal.requiredSystem;
   if (requiredSystem === undefined) {
     return true;

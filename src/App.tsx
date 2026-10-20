@@ -5,7 +5,7 @@ import { BiddingSystemControls } from './components/BiddingSystemControls';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
 import { defaultBiddingSystem, type BidStage, type BiddingSystem } from './models/bidding-types';
-import { getRulesBucketTestDeals, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
+import { getRulesBucketTestDeals, isPracticeDealCompatible, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
   from './models/test-deals-registry';
 
 /// App owns browser-level practice controls and the board currently displayed.
@@ -33,6 +33,25 @@ export default function App() {
   const [testDealCount, setTestDealCount] = useState(0);
   const testDeals = getRulesBucketTestDeals(testBucketId, biddingSystem);
   const testBucketGroups = [...new Set(RULE_TEST_DEAL_BUCKETS.map((bucket) => bucket.group))];
+  // A settings change restarts bucket progress. A selected practice exercise must not keep
+  // running under agreements that violate its requiredSystem; ordinary deals are retained.
+  function changeBiddingSystem(next: BiddingSystem): void {
+    setBiddingSystem(next);
+    setTestDealCount(0);
+    setState((current) => {
+      if (current.testDeal === undefined || isPracticeDealCompatible(current.testDeal, next)) {
+        return current;
+      }
+      return {
+        ...current,
+        testDeal: undefined,
+        practiceStages: undefined,
+        telemetryLines: [...current.telemetryLines, '',
+          'Practice exercise cleared: its required bidding agreements are no longer selected. ' +
+          'Choose Test Deal for a compatible exercise.'],
+      };
+    });
+  }
   // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
     const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening: true });
@@ -91,7 +110,7 @@ export default function App() {
           <p>Random and rule-practice deals, bid matching, candidate rules, and evaluator telemetry.</p>
         </div>
         <div className="dealControls">
-          <BiddingSystemControls biddingSystem={biddingSystem} onChange={setBiddingSystem} />
+          <BiddingSystemControls biddingSystem={biddingSystem} onChange={changeBiddingSystem} />
           <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
           <select className="testBucketSelect" aria-label="Rule test deal bucket"
             value={testBucketId}

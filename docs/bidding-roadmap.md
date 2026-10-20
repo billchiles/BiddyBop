@@ -1,105 +1,44 @@
 # Bidding Coverage Roadmap
 
-This roadmap records the selected scope and remaining work for the Bridge Bidding Trainer.
-Use the current executable rules, practice deals, and README as the authority on what is
-already implemented. Do not infer completion merely from a planned item in this document.
+This is a short list of work remaining before the planned all-seat practice experience
+and final project cleanup. The executable bidding rules, practice corpus, and README
+describe the selected bidding system and its deliberate scope limits; this file is
+not a historical progress log or a commitment to model every possible auction.
 
-## Selection and priority
+## Agreed scope
 
-Include bidding material when it is common enough to be useful practice, rule-based enough
-to teach reliably, and worth the resulting rules and continuation complexity. Do not aim to
-fill a matrix of all possible auctions. An analysis item may be completed by deliberately
-omitting a treatment and documenting the reason.
+- Generally teach openings, responses, opener rebids, and selected responder rebids;
+  and overcalls/Doubles, advances, and selected overcaller/Doubler rebids. Later
+  judgment-heavy bidding may end with auction-specific guidance.
+- Do not create practice exercises merely to achieve numerical rule coverage.
+  Preserve credible alternatives and prioritize useful instructional decisions.
+- Use the same selected bidding agreements for all four seats, including the
+  compact fixed DONT treatment against a strong 1NT opening.
+- Practice deals have four fixed, complete hands and credible recorded calls for
+  every seat. Exercise completion need not mean the actual bridge auction is over.
 
-- **P1:** Must analyze and resolve before finishing; resolution need not mean implementing.
-- **P2:** Should do; evaluate the impact of shipping without it.
-- **P3:** Optional; acceptable to ship without it.
+## Remaining work
 
-All items below are P1 unless marked P3. Phase letters describe work sequence, not priority.
+- [ ] **All-seat practice interaction.** Require the student to enter every call for
+  every seat, including early Passes. Remove practice-stage preloading and automatic
+  insertion of earlier calls. Evaluate the entered call, then substitute the
+  recorded call when it differs so the intended auction can continue. Preserve
+  fixed hands and stop at the selected exercise's planned final call.
+- [ ] **Ending and scope guidance.** Distinguish exercise completion from a finished
+  auction; explain unresolved forcing or game-forcing obligations where relevant.
+  Finish the focused audit of auction-stage recognition, agreement-sensitive meanings,
+  and missing or misleading scope boundaries.
+- [ ] **Final quality checks.** Review remaining substantive full-auction concerns
+  using information available to the bidder at each turn, not the unseen hands.
+  Check dealer orientation when it materially affects the lesson, guidance accuracy,
+  and any interactions between revised deals and existing rule-test fixtures.
+- [ ] **Final source and test cleanup.** Review naming, comments, organization,
+  unnecessary wrappers, and readability without expanding test infrastructure.
 
-**Selected depth:** Generally model opening -> response -> opener rebid -> responder rebid,
-or overcall/Double -> advance -> overcaller/Doubler rebid. Do not add general opener-third-bid
-or advancer-rebid stages. At the final modeled bid, explain outstanding forcing obligations
-or invitation decisions in that bid's guidance. Within the selected depth, use a specific
-scope boundary when a required response cannot be chosen reliably.
+## Deferred enhancements
 
-**Explicit omissions and limits:**
-
-- Do not implement special lighter third-seat openings or fourth-seat Rule-of-15/pass-out
-  requirements. Ordinary openings remain eligible after preceding Passes. Explain the
-  position-specific treatments as outside the trainer's scope.
-- Retain natural four-/five-level preemptive openings as examples; generally respond
-  with an explicit Pass rather than building a high-level continuation system.
-- Remove the rare direct artificial 4NT Blackwood *opening* from executable rules unless
-  it can be represented as guidance only. Do not confuse it with quantitative or other
-  4NT calls in ordinary auctions.
-- Keep more speculative penalty-oriented, high-level, and judgment-heavy continuations
-  deliberately limited; the omitted topics should be explained in README.
-- Ordinary opening practice deals should normally put opener in North. Competitive
-  teaching situations may have a justified different dealer/seat arrangement.
-
-## C. Selected responder continuations
-
-The implemented second decisions cover selected natural, conventional and game-forcing
-auctions through responder's rebid. Routine signoffs, invitations, game placements and
-forcing descriptions are executable where reliable; other continuations use scoped
-guidance. This selected depth is deliberate, not a commitment to model later rounds.
-The remaining system-wide forcing and scope-boundary audits are tracked under E2/E4.
-
-## D. Reopening and balancing
-
-Fourth-seat balancing after `1x–Pass–Pass` has a separate executable family. Reopening
-by the original opener after `1x–(overcall)–Pass–Pass` remains guidance-only; those are
-different roles and do not require new later bidding stages.
-
-## E. Complete system-wide checks, practice, and documentation
-
-- [ ] **E1.** Audit ordinary Passes across every modeled role, including Pass as
-  the direct overcaller when the opponent opens. Do not insert Pass automatically
-  merely because other rules returned no candidates.
-- [ ] **E2.** Audit `scopeBoundary` coverage and the auction-specific guidance it gives.
-- [ ] **E3.** Check stage recognition, auction shapes, interference classification,
-  and preventing rules from surviving where their meanings no longer apply.
-- [ ] **E4.** Check asymmetric promises: every modeled forcing/artificial call either
-  receives its required partner answer or a deliberate boundary.
-- [ ] **E5.** Preserve rejection provenance in the existing evaluator/refiner path
-  to explain why an otherwise plausible candidate was excluded. Examples to revisit:
-  weak/poor-suit 3S jump overcall, underspecified four-card 3D jump shift,
-  Jacoby 2NT with insufficient major support, and a rejected 3H weak preempt
-  where seven-card length adds sufficient ordinary opening points.
-- [ ] **E6.** Add selective high-value practice deals for Pass, strong openings,
-  overcaller/Doubler descriptions, and responder rebids. Prefer useful instructional
-  contrasts and continuations over exhaustive regression matrices.
-- [ ] **E6a.** Continue editorial review of all practice fixtures for excessive
-  partnership HCP, unintentional slam implications, strange suit distributions,
-  scripted calls unsupported by the actual opposing hands, and coherent whole auctions.
-  The two `1D – 1NT – 2H` advancing fixtures now have explicit, qualifying East
-  hands; continue checking other recorded calls against their actual hands.
-  The hand-construction guidelines are in `docs/spec.md`, not fixture regression tests.
-- [ ] **E6c.** Review practice boundaries where an opening-only example is followed
-  by unrelated free bidding. Use optional per-call practice guidance sparingly
-  when rule descriptions alone do not make the intended lesson clear.
-- [ ] **E6d.** Audit entire practice auctions against all four hands, not only the
-  rule being taught: opponents must have credible reasons to Pass or compete
-  (including natural 1NT overcalls with appropriate strength), and recorded
-  auctions must represent sensible choices by each seat. Review whether the
-  current practice-stage behavior, which preloads earlier calls in some rebid
-  exercises, provides the intended training; compare it with having the student
-  enter every seat's bid. Review bucket depth, meaningful breadth, duplicated
-  lessons, and menu navigability as the collection grows. Do not alter practice
-  behavior or rewrite deals until this review is discussed.
-- [ ] **E7.** Audit dealer/seat orientation; keep ordinary opener-deal North
-  orientation and retain exceptions only when they teach a specific competitive role.
-- [ ] **E8.** Reconcile README's Done / Partial (done) / Incomplete / Planned /
-  Omitted statuses with executable code; describe scope, four-/five-level examples,
-  position-specific omissions, and other deliberate limits accurately.
-- [ ] **E9.** Final comprehensive code, naming, comments, source organization,
-  unnecessary-wrapper, human-readability, and practice/test-structure review.
-
-## F. Optional (P3)
-
-- [ ] **F1.** Evaluate an autobidder only after executable coverage and stopping
-  boundaries are stable. It is acceptable to ship without one.
-- [ ] **F2.** Explore user-facing explanations for completely unsupported manual
-  calls. Do not require an unreliable explanation engine to ship. This is distinct
-  from E5's explanation of why modeled candidate rules were rejected.
+- [ ] Improve selective explanations for *why* plausible bids were rejected by
+  relevant rules; do not show exhaustive diagnostics from irrelevant rules.
+- [ ] Make recorded auction calls clickable to explain their meaning under the
+  actual auction and agreements, including positive rule matches and meaningful
+  constraints. Address after the practice-interface redesign.

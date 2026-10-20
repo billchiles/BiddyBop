@@ -31,10 +31,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   const biddingTurnStatus = useMemo(() => getBiddingTurnStatus(board, auction, biddingSystem),
     [board, auction, biddingSystem]);
   const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
-  const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'supported' ||
-    biddingTurnStatus.kind === 'auctionComplete' ? null :
+  const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'auctionComplete' ||
+    (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
     getUnmodeledContinuationForce(board, auction, biddingSystem),
-    [board, auction, biddingSystem, biddingTurnStatus]);
+    [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
   const displayedExplanation = [...explanationLines, ...turnGuidance];
@@ -294,45 +294,53 @@ function getNextTurnGuidance(status: BiddingTurnStatus, practiceComplete: boolea
   if (practiceComplete) {
     lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
       'real bridge auction.  Select New Deal or Test Deal to continue.');
-    return lines;
   }
-  switch (status.kind) {
-    case 'auctionComplete':
-      lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
-      return lines;
-    case 'scopeBoundary':
-      lines.push('', 'The app cannot reliably recommend a bid at this point because of the ' +
-        'nuances and judgment experienced players use.  You may continue entering legal ' +
-        'calls, but the app may not be able to evaluate them.');
-      appendRuleExplanation(lines, status.rule);
-      break;
-    case 'noApplicableRule':
-      lines.push('', 'The app cannot give reliable feedback at this ' +
-        `${getStageLabel(status.stage)} stage in the current auction.  ` +
-        'This limitation does not mean Pass or another legal call is incorrect.  ' +
-        'You may continue bidding.');
-      break;
-    case 'noModeledStage':
-      lines.push('', 'The app does not have bidding rules for this turn.  ' +
-        'You may continue entering legal calls.  Feedback will resume if a later ' +
-        'auction context matches supported bidding rules.');
-      break;
-    case 'supported':
-      break;
+  if (!practiceComplete) {
+    switch (status.kind) {
+      case 'auctionComplete':
+        lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
+        return lines;
+      case 'scopeBoundary':
+        lines.push('', 'The app cannot reliably recommend a bid at this point because of the ' +
+          'nuances and judgment experienced players use.  You may continue entering legal ' +
+          'calls, but the app may not be able to evaluate them.');
+        appendRuleExplanation(lines, status.rule);
+        break;
+      case 'noApplicableRule':
+        lines.push('', 'The app cannot give reliable feedback at this ' +
+          `${getStageLabel(status.stage)} stage in the current auction.  ` +
+          'This limitation does not mean Pass or another legal call is incorrect.  ' +
+          'You may continue bidding.');
+        break;
+      case 'noModeledStage':
+        lines.push('', 'The app does not have bidding rules for this turn.  ' +
+          'You may continue entering legal calls.  Feedback will resume if a later ' +
+          'auction context matches supported bidding rules.');
+        break;
+      case 'supported':
+        break;
+    }
   }
-  // A forcing call remains binding when one opposing Pass intervenes before partner acts.
-  if (outstandingForce !== null && status.kind !== 'supported') {
+  // Completion ends the *lesson*, not the partnership commitment. Never invent
+  // an unmodeled third bid or imply that a forcing call authorizes partner to Pass.
+  if (outstandingForce !== null) {
     if (outstandingForce.lastStage === 'balancing') {
       lines.push('The balancing Double asks partner to act after the opponents have ' +
-        'had their opportunity.  Partner normally selects an unbid suit; ' +
-        'passing for penalties requires exceptional defensive values.  ' +
+        'had their opportunity. Partner normally selects an unbid suit; ' +
+        'passing for penalties requires exceptional defensive values. ' +
         'The app does not teach the later continuation.');
     } else if (outstandingForce.kind === 'gameForce') {
-      lines.push("Responder's forcing bid still obliges opener to continue toward game.  " +
-        "The app does not teach opener's third bid.");
+      lines.push('A game-forcing call commits the partnership to continue toward game, ' +
+        'absent substantive opposing interference. The app does not teach every later ' +
+        'continuation; a practice exercise ending does not cancel the game force.');
     } else {
-      lines.push("Responder's bid is forcing for one round.  Opener must continue in an " +
-        "uncontested auction; the app does not teach opener's third bid.");
+      const bidder = outstandingForce.lastStage === 'opening' ||
+        outstandingForce.lastStage === 'openerRebid' ? 'Opener' :
+        outstandingForce.lastStage === 'responding' ||
+        outstandingForce.lastStage === 'responderRebid' ? 'Responder' :
+        outstandingForce.lastStage === 'advancing' ? 'Advancer' : 'Overcaller';
+      lines.push(`${bidder}'s call is forcing for one round. Partner must act if the ` +
+        'opponents do not interfere. The app does not teach every subsequent call.');
     }
   }
   return lines;

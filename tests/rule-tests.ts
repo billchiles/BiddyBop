@@ -29,7 +29,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
-         RULE_TEST_DEAL_BUCKETS, OPENING_BID_TEST_DEALS, BALANCING_TEST_DEALS,
+         RULE_TEST_DEAL_BUCKETS, getRulesBucketTestDeals, isPracticeDealCompatible, OPENING_BID_TEST_DEALS, BALANCING_TEST_DEALS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/test-deals-registry';
 
@@ -2847,7 +2847,16 @@ function runPracticeContinuationTests (): number {
   if (getRecordedPracticeCorrection([], 'Double', recorded) !== null) failures += 1;
   if (isPracticeSequenceComplete(prefix, recorded) ||
       ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
-  console.log(`${failures} ***FAILURES***. Practice continuation: 5 checks.`);
+  // Active lessons obey the very same agreement requirements as the bucket selector.
+  // Changing the setting can clear an incompatible exercise instead of allowing it
+  // to continue with recorded bids that no longer match its convention.
+  const stayman = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals)
+    .find((deal) => deal.requiredSystem?.stayman === true);
+  const noStayman = { ...defaultBiddingSystem, stayman: false };
+  if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||
+      isPracticeDealCompatible(stayman, noStayman) ||
+      getRulesBucketTestDeals('all', noStayman).includes(stayman)) failures += 1;
+  console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 6 checks.`);
   console.log('  Preserves the recorded exercise after a different bid, but never corrects');
   console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
   return failures;
@@ -3723,6 +3732,60 @@ function runLaterStageTerminationGuidanceTests (): number {
       failures++;
       console.error(`FAIL B7 ${test.name}: matches ${matches.map(r=>r.id)}, ` +
         `status ${status.kind}, obligation ${obligation?.kind ?? '-'} expected ${test.expected}.`);
+    }
+  }
+  // Cover forcing endpoints from each partnership role, not only responder's rebid.
+  // Each auction is taken from an existing fully specified practice fixture.
+  const endpointExamples: { auction: Call[]; stage: string; kind: string }[] = [
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '2H'],
+      stage: 'openerRebid', kind: 'oneRoundForce' },
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '3C'],
+      stage: 'openerRebid', kind: 'gameForce' },
+    { auction: ['1D', '1S', '2D', '3D', 'Pass'],
+      stage: 'advancing', kind: 'oneRoundForce' },
+    { auction: ['1H', 'Double', 'Pass'],
+      stage: 'overcalling', kind: 'oneRoundForce' },
+    { auction: ['1S', 'Pass', '2H'],
+      stage: 'responding', kind: 'oneRoundForce' },
+  ];
+  const allDeals = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
+  for (const test of endpointExamples) {
+    checks++;
+    const example = allDeals.find((deal) =>
+      deal.practiceAuction.join(' ') === test.auction.join(' '));
+    if (example === undefined) {
+      failures++;
+      console.error(`FAIL forcing endpoint fixture absent: ${test.auction.join(' ')}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(example);
+    const force = getUnmodeledContinuationForce(board, test.auction,
+      { ...defaultBiddingSystem, ...example.requiredSystem });
+    if (force?.kind !== test.kind || force.lastStage !== test.stage) {
+      failures++;
+      console.error(`FAIL forcing ${test.auction.join(' ')}: ` +
+        `${force?.lastStage ?? '-'} ${force?.kind ?? '-'} versus ${test.stage} ${test.kind}.`);
+    }
+  }
+  // The 2/1 game force persists through opener's nonforcing descriptive rebid, but
+  // not after the partnership has reached game or the opponents have intervened.
+  const original = forceCases[0]!;
+  const { board: gameBoard } = makeRuleTestBoard({ description: 'Persistent 2/1 force',
+    north: original.north, south: original.south, practiceAuction: original.auction });
+  const gameSystem = original.system;
+  const prefixes: { auction: Call[]; expected: string | null }[] = [
+    { auction: ['1S','Pass','2D','Pass','2H'], expected: 'gameForce' },
+    { auction: ['1S','Pass','2D','Pass','2H','Pass'], expected: 'gameForce' },
+    { auction: ['1S','Pass','2D','Pass','2H','Double'], expected: null },
+    { auction: ['1S','Pass','2D','Pass','2H','Pass','4S'], expected: null },
+  ];
+  for (const test of prefixes) {
+    checks++;
+    const kind = getUnmodeledContinuationForce(gameBoard, test.auction, gameSystem)?.kind ?? null;
+    if (kind !== test.expected) {
+      failures++;
+      console.error(`FAIL continuing 2/1 game force after ${test.auction.join(' ')}: ` +
+        `${kind ?? '-'}, expected ${test.expected ?? '-'}.`);
     }
   }
   const balancing = BALANCING_TEST_DEALS.find((deal) =>

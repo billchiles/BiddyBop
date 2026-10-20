@@ -251,47 +251,64 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
 }
 
 
-/// A supported forcing call may still oblige partner to act after an intervening opponent
-/// Pass, even though later stages are deliberately not modeled. This is explanatory only.
-/// Infer forcing from a qualifying rule for the earlier call, never from its level alone.
+/// Explain an outstanding force at an unmodeled turn or the end of a practice exercise.
+/// This does not recommend a concrete continuation or change call eligibility. Only
+/// qualifying rules in the actual auction and system can establish an obligation.
 export type UnmodeledContinuationForce = {
   kind: 'gameForce' | 'oneRoundForce';
-  lastStage: 'responderRebid' | 'balancing';
+  lastStage: BidStage;
 };
 
-/// Find a still-pending forcing call made by responder on rebid or by the balancing doubler.
-/// The call may be the last auction entry or may be followed by one opposing Pass. No force
-/// is inferred once partner has subsequently acted, and game-level contracts do not create
-/// a new obligation merely because their matching rule was labeled game forcing.
+function isGameContract(call: Call): boolean {
+  const bid = parseSuitBid(call);
+  return bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
+    bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
+}
+
+/// One-round forces require partner's next response (possibly after an opponent Pass).
+/// Game forces can persist through further partnership bids, until game is reached.
+/// After substantive opposing action we do not presume the original obligation survives
+/// unchanged: the trainer must not turn uncertain competitive judgment into a rule.
 export function getUnmodeledContinuationForce (board: Board, auction: Call[],
                                               system: BiddingSystem): UnmodeledContinuationForce | null {
   if (auction.length === 0 || auctionIsComplete(auction)) return null;
   const lastIndex = auction.length - 1;
-  let forceIndex = lastIndex;
-  if (auction[lastIndex] === 'Pass' && lastIndex > 0) {
-    forceIndex = lastIndex - 1;
-    // Only an opponent's intervening Pass can leave the prior partnership force pending.
-    const forceSeat = getSeatForCallIndex(board.dealer, forceIndex);
-    const passSeat = getSeatForCallIndex(board.dealer, lastIndex);
-    if (passSeat === forceSeat || passSeat === getPartnerSeat(forceSeat)) return null;
+  let oneRound: UnmodeledContinuationForce | null = null;
+  for (let index = lastIndex; index >= 0; index -= 1) {
+    const call = auction[index];
+    if (call === undefined || call === 'Pass') continue;
+    const forceSeat = getSeatForCallIndex(board.dealer, index);
+    const partner = getPartnerSeat(forceSeat);
+    const subsequent = auction.slice(index + 1);
+    const opponentActed = subsequent.some((later, offset) => later !== 'Pass' &&
+      getSeatForCallIndex(board.dealer, index + offset + 1) !== forceSeat &&
+      getSeatForCallIndex(board.dealer, index + offset + 1) !== partner);
+    if (opponentActed) continue;
+    const stage = getNextBiddingRuleStage(board.dealer, auction.slice(0, index));
+    if (stage === null) continue;
+    const matches = evaluateUserCall(call, board, auction.slice(0, index), system)
+      .userCallMatchingRules;
+    if (matches.length === 0) continue;
+    if (isGameContract(call)) continue;
+    if (matches.some((rule) => rule.callCategory?.includes('gameForcing'))) {
+      // A later game bid by the forcing partnership satisfies the commitment.
+      const reachedGame = subsequent.some((later, offset) => {
+        const seat = getSeatForCallIndex(board.dealer, index + offset + 1);
+        if (seat !== forceSeat && seat !== partner) return false;
+        return isGameContract(later);
+      });
+      if (! reachedGame) return { kind: 'gameForce', lastStage: stage };
+    }
+    // Only the last call (or one following opponent Pass) can carry a one-round
+    // obligation. Once partner has acted, the individual force has been satisfied.
+    if (oneRound === null && (index === lastIndex ||
+        (index === lastIndex - 1 && auction[lastIndex] === 'Pass' &&
+          getSeatForCallIndex(board.dealer, lastIndex) !== partner)) &&
+        matches.some((rule) => rule.callCategory?.includes('forcing'))) {
+      oneRound = { kind: 'oneRoundForce', lastStage: stage };
+    }
   }
-  const beforeForce = auction.slice(0, forceIndex);
-  const lastStage = getNextBiddingRuleStage(board.dealer, beforeForce);
-  if (lastStage !== 'responderRebid' && lastStage !== 'balancing') return null;
-  const forcingCall = auction[forceIndex];
-  if (forcingCall === undefined) return null;
-  const matchingRules = evaluateUserCall(forcingCall, board, beforeForce, system)
-    .userCallMatchingRules;
-  const bid = parseSuitBid(forcingCall);
-  const atGame = bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
-    bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
-  if (! atGame && matchingRules.some((rule) => rule.callCategory?.includes('gameForcing'))) {
-    return { kind: 'gameForce', lastStage };
-  }
-  if (matchingRules.some((rule) => rule.callCategory?.includes('forcing'))) {
-    return { kind: 'oneRoundForce', lastStage };
-  }
-  return null;
+  return oneRound;
 }
 
 //// Evaluation context and stage rule selection

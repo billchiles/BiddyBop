@@ -1,4 +1,4 @@
-# Bridge Bidding Trainer App
+# Bridge Bidding Trainer
 
 This is a practice app for learning and reinforcing contract bridge bidding.
 It focuses on common bidding decisions that the app can reliably teach through bidding guidelines
@@ -20,9 +20,14 @@ Desktop builds for Windows and macOS may also be available from:
 
 ## Using the app
 
-Start a new deal and enter bids as the auction progresses.  You see all the hands and bid all the hands, so be careful to use only what you know from the bidding and don't enhance bids based on seeing other hands.  This gives you more practice with feedback than making one or two bids per deal.
+Start a new deal or select a prepared practice exercise.  Enter every call for every seat,
+including Passes.  Although the
+app displays the hands, make each decision using only the current player's cards, the
+auction, and the selected partnership agreements.  Be careful to use only what you know from the 
+bidding and don't enhance bids based on seeing other hands.  This gives you more practice with 
+feedback than making one or two bids per deal.
 
-The explanation area shows why bids qualify under the supported bidding rules and, where appropriate, which alternatives have higher priority.  Bridge does not always have one mechanically correct bid, so the app shows all that apply.
+The explanation area shows why bids qualify under the supported bidding rules and, where appropriate, which alternatives have higher priority.  Bridge does not always have one absolutely correct bid, so the app shows all that apply.
 
 Use the rule-practice deal selector to focus on a particular bidding situation instead of
 receiving a random deal.  These deals illustrate specific rules, nearby strength boundaries (or a ladder of bids based on partner's bid and points or structure of your hand), and differences between partnership agreements.
@@ -32,38 +37,36 @@ choice, but the recorded bid is used to keep the remaining lesson on track.  The
 is not necessarily the only reasonable choice. Each exercise stops at its intended final call,
 which need not be the end of the bridge auction.
 
-The app is most useful as a practice companion: make your own bidding decision first, then compare it with the candidates and explanations produced by the app.  For now, it cannot arbitrarily tell you the next best bid.
+The app is a practice companion: make a bidding decision first, then compare it with the
+supported candidates and explanations.  It does not claim to know the best bid in every auction.
 
 ## Bidding-system settings
 
-Partnership agreements can be changed in the app's settings.  Changing an agreement can change
-both the bids recommended for a hand and which rule-practice deals are available. For example,
+Partnership agreements can be changed in the app's settings.  You can turn on common conventions, for example, Stayman and Jacoby Transfers, as you learn about them.  Changing an agreement can change
+both the bids recommended for a hand and which rule-practice deals are available.  For example,
 turning off 2/1 agreements may leave some practice groups with zero pre-formed deals.
 
-The settings let you choose between common treatments without assuming that every partnership uses
-the same system.  You can turn on common conventions, for example, Stayman and Jacoby Transfers, as you learn about them. 
-
-## What the trainer is and isn't
+## What the app is and isn't
 
 Bridge bidding combines rules, partnership agreements, inference, and judgment.  Suit quality,
 borderline strength, distribution, vulnerability, and partnership style can all affect the best
 call.  The app concentrates on common situations that can be taught consistently as rules,
 but it does not attempt to be a complete expert bridge bidding app for teaching.
 
-Where judgment matters more than a mechanical rule, the app may provide guidance, show
-multiple reasonable calls, or completely punt on the next bid.  For example, it recognizes
-some slam-related bids without teaching a complete slam-investigation system, after some very strong openings and a single responding bid, the app cannot model all the subtle considerations to decide how to continue bidding toward game or slam and only provide a general guideline on how to continue.
+Where judgment matters more than an absolute rule, the app may provide guidance or show
+multiple reasonable calls, without declaring one uniquely correct.  For example, it includes
+some slam-related decisions without teaching a complete slam-investigation system.  After some 
+very strong openings, competitive auctions, or artificial bids, the app explains the limits
+of its bidding feedback and suggests aspects of judgment to consider rather than enable practice for
+which the app can't reliably give feedback.
 
-## Current bidding coverage
+## Bidding coverage
 
-The tables below are a development snapshot of the app's current scope.  `Done` means the intended
-treatment for that area is implemented, with no current plan to expand it.  `Partial (done)` means the
-app intentionally implements only a useful subset and has no pending work for the omitted portion.
-`Incomplete` means useful coverage exists but known work remains.  `Planned` means we intend to analyze
-and probably implement the area, although that analysis may lead us to narrow or omit it.  `Omitted`
-means we considered the area and deliberately chose not to model it as part of the app's intended scope.
+The tables describe the bidding treatments the app teaches. `Done` means the selected
+treatment is supported; `Partial (done)` means a deliberately limited but useful subset is
+supported; and `Omitted` means that auction family is outside the chosen support this app provides.
 
-For awkward natural rebids, the trainer sometimes teaches a constrained fallback (a two-card
+For awkward natural rebids, the app sometimes teaches a constrained fallback (a two-card
 `2C` after forcing `1NT` to a major, or a five-card minor repeat after a forcing one-level
 new-suit response). Very strong long-minor hands without a reliable normal rebid instead receive
 judgment guidance; point limits on invitational bids are not automatically relaxed. A balanced
@@ -118,7 +121,7 @@ Many responder rebids are covered, but the app stops trying to cover all bids du
 | Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
 | --- | --- | --- | --- | --- |
 | 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Partial (done): selected natural suit, 1NT, and takeout-Doubler rebids |
-| Strong 1NT | Done: DONT (Disturb Opponents' NoTrump) | Done: basic responses to DONT | Omitted | Done: partner's basic DONT follow-up bids |
+| Strong 1NT | Partial (done): core DONT defense | Done: basic responses to DONT | Omitted | Done: basic DONT pass-or-correct follow-ups |
 | Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Partial (done): selected natural suit, 2NT, and takeout-Double continuations |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
@@ -129,11 +132,29 @@ This avoids creating a separate set of overcaller–advancer bidding rules for a
 difference that adds little practice value.
 
 Against a strong 1NT opening, the app teaches the basic compact DONT interference but stops before
-later competitive continuations.  All four seats use the same fixed DONT agreement.  When the
-opponents use DONT over our 1NT opening, 2H shows both majors, not a natural heart suit;
-responder's selected natural minor-suit and stopped notrump responses recognize both suits.
-Unagreed doubles and cuebids are intentionally not judged.  Strong hands without a qualifying DONT action receive general
-continuation guidance rather than an automatic Pass or penalty Double.  Weak-two defenses include
+later competitive continuations.  Double shows a good six-card-or-longer club, diamond, or heart suit;
+2C shows clubs and a higher suit, 2D shows diamonds and a major, 2H shows both majors,
+and 2S naturally shows a long spade suit.  Advancer's basic relay and pass-or-correct
+responses are supported.
+
+**The app omits these three optional DONT extensions:**
+
+- **A 2NT game inquiry:** going beyond finding a playable suit to investigate game adds
+  extra partnership-specific responses and judgments.
+- **A stronger spade hand shown by Double followed by 2S:** some full DONT methods use
+  this delayed route to distinguish strong spades from a direct 2S.  Our compact version
+  uses direct 2S for the one-suited spade hand without that extra strength distinction.
+- **Continuations after the 1NT responder competes:** once responder bids or
+  Doubles, simple pass-or-correct sequences may no longer apply, and further calls
+  require additional competitive agreements.
+
+We deliberately omitted these more elaborate and judgment-heavy continuations
+so the chosen DONT treatment remains compact and teachable.  These omissions do
+not change the meanings of the supported DONT calls.  In an unmodeled continuation,
+the app gives guidance rather than inventing a conventional call or
+treating an unsupported Pass as necessarily wrong.
+
+Weak-two defenses include
 selected advances, natural Pass decisions, and immediate responses to forcing or conventional calls.
 They do not include full competition after responder bids, continuations after natural three-level
 overcalls, or a general system for repeated high-level bidding.  Defenses against opposing
@@ -158,6 +179,14 @@ partnership agreements, fit, vulnerability, and playing strength for reliable ru
 Where useful, the app provides auction-specific general guidance on how bidding might procede,
 rather than presenting an authoritative treatment.
 
+**Advancer's Responsive Double:** Consider `1D – (1S) – 2D – Double`.  Partner overcalled
+spades, and the opponents bid and raise diamonds.  Advancer's Double says: "I have useful points and
+both unbid suits; partner, please choose an unbid suit."  In the app's selected treatment, this Double requires at least four hearts
+and four clubs, at least 7 points with any length points, fewer than three spades of support, and no
+five-card suit that would be clearer to bid naturally.  This meaning applies to the
+specific responder-raise situations the app models; **not every competitive
+Double is responsive**. 
+
 ## Stoppers and notrump judgment
 
 Outside-suit weakness can be important when deciding whether notrump is attractive.
@@ -171,38 +200,6 @@ A useful conservative definition of a stopper is:
 Holdings such as `Qx` or `Jxx`, or holdings whose effectiveness depends on which hand becomes declarer and who leads the suit, may be adequate to count as a stopper, but it is an experienced judgment call.
 
 The app does not automatically require a stopper in every outside suit for every uncontested natural notrump bid.  Stopper requirements are used only where the particular bidding treatment calls for them.
-
-## Treatments intentionally omitted or deferred
-
-The app intentionally does not try to implement every named convention or every possible continuation.
-This list records some of the choices we have discussed so that an unfamiliar name does not look like an
-accidental omission.
-
-| Treatment or feature | Current decision | What it means |
-| --- | --- | --- |
-| Inverted minors | Omitted | A partnership agreement that reverses the usual strength meanings of minor-suit raises and creates additional follow-up auctions. |
-| Stopper-showing continuations after a minor raise | Omitted with inverted minors | Side-suit bids can be used to show stoppers while exploring 3NT; this creates more partnership-specific continuation rules. |
-| Michaels cuebid | Omitted | A conventional cuebid of opener's suit that shows a two-suited hand rather than a natural suit. |
-| Unusual 2NT | Omitted | A conventional jump to 2NT that normally shows the two lowest unbid suits. |
-| Lebensohl after a weak-two takeout Double | Omitted | Uses an artificial 2NT relay to separate weak escape hands from stronger constructive hands after partner Doubles a weak two. |
-| Cappelletti over 1NT | Omitted | A common defense to 1NT with a penalty-oriented Double and conventional two-suited calls; this app uses compact DONT instead. |
-| DONT defense to strong 1NT | Partial (done) | DONT (Disturb Opponents' NoTrump) uses Double for a one-suited hand and two-level suit bids to show one- or two-suited hands.  The app models the core meanings and basic pass/correct auction, but omits game-inquiry 2NT, the stronger Double-then-2S distinction, and continuations after responder competes. |
-| Snapdragon / fourth-suit competitive Double | Omitted | A specialized Double after opener, overcaller, and responder have shown three different suits, usually suggesting the fourth suit plus tolerance for partner. |
-| Responsive Doubles in every competitive auction | Partial (done) | Responsive Double is modeled in the common responder-raise situations we chose, but it is not given a universal meaning in every later competitive auction. |
-| General penalty Double / Redouble system | Omitted | The app models specific functional Doubles and Redoubles such as takeout, negative, responsive, and strength-showing actions, but does not decide when to defend a contract for penalties. |
-| Defense to opposing three-level preempts | Omitted | The underlying defensive ideas can be practiced against weak-two openings without adding another high-level, judgment-heavy continuation tree. |
-| Defense to opposing strong 2C or 2NT | Omitted | These uncommon defensive auctions are outside the current app scope. |
-| Competitive continuations after our preemptive jump overcall | Omitted | Selected uncontested replies to advancer’s forcing new suit are modeled; once the opening side also competes, vulnerability, fit, and playing-strength judgment remain outside the selected treatment. |
-| Natural four- and five-level preemptive openings | Partial (done) | The opening bids are modeled as examples; responder has an explicit Pass, but further high-level bidding and continuations are omitted. |
-| Direct 4NT opening as Blackwood | Omitted | The rare artificial forcing opening is not executable; other meanings of 4NT in ordinary auctions are unchanged. |
-| Detailed slam mechanisms | Partial (done) | Gerber replies, forcing 5NT, direct 7NT, many suit-auction Blackwood replies, and similar rare continuations are not full practice families. |
-| Responder's later rebid | Partial (done) | Selected routine continuations are practiced; judgment-heavy later auctions stop with guidance. |
-| Balancing-seat defensive bidding | Partial (done) | After a one-level suit opening followed by two Passes, practice a lighter natural suit balance, takeout Double, 12–15 HCP natural 1NT, or defensive Pass. Constructive jumps and further partnership continuations are explained but not practiced; balancing after notrump or weak-two openings is omitted. |
-| Full opponent autobidder | Planned | All four seats can be bid manually.  We plan to analyze whether a trustworthy autobidder is feasible; a simplistic one that becomes unreliable in judgment-heavy or intentionally unsupported auctions would be worse than having none. |
-| Scoring and card play | Omitted | The project is a bidding trainer rather than a duplicate-scoring or card-play engine. |
-
-These statuses describe the app's intended scope as it stands now.  Manual practice and user feedback
-may still justify revisiting an Omitted treatment if it proves common, deterministic, and valuable enough to add.
 
 ## Rule-practice deals
 
