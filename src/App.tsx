@@ -10,6 +10,7 @@ import { getRulesBucketTestDeals, isPracticeDealCompatible, RULE_TEST_DEAL_BUCKE
 
 /// App owns browser-level practice controls and the board currently displayed.
 const PRACTICE_DEALER: Seat = 'N';
+const MAX_TELEMETRY_LINES = 400;
 
 interface AppState {
   board: Board;
@@ -29,6 +30,7 @@ function createInitialState(): AppState {
 export default function App() {
   const [state, setState] = useState<AppState>(() => createInitialState());
   const [biddingSystem, setBiddingSystem] = useState<BiddingSystem>(() => ({ ...defaultBiddingSystem }));
+  const [requireDealerOpening, setRequireDealerOpening] = useState(true);
   const [testBucketId, setTestBucketId] = useState<RuleTestDealBucketId>(RULE_TEST_DEAL_BUCKETS[0].id);
   const [testDealCount, setTestDealCount] = useState(0);
   const testDeals = getRulesBucketTestDeals(testBucketId, biddingSystem);
@@ -54,7 +56,7 @@ export default function App() {
   }
   // Ordinary redeals do not change test-bucket progress.
   function redeal(): void {
-    const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening: true });
+    const result = generateBoard({ dealer: PRACTICE_DEALER, requireDealerOpening });
     setState({
       board: result.board,
       testDeal: undefined,
@@ -98,7 +100,7 @@ export default function App() {
     }
     setState((current) => ({
       ...current,
-      telemetryLines: [...current.telemetryLines, '', ...lines],
+      telemetryLines: [...current.telemetryLines, '', ...lines].slice(-MAX_TELEMETRY_LINES),
     }));
   }
   // The controls follow their use order: bidding system, random deal, bucket, test deal, progress.
@@ -111,6 +113,11 @@ export default function App() {
         </div>
         <div className="dealControls">
           <BiddingSystemControls biddingSystem={biddingSystem} onChange={changeBiddingSystem} />
+          <label className="dealerOpeningSetting">
+            <input type="checkbox" checked={requireDealerOpening}
+              onChange={(event) => setRequireDealerOpening(event.target.checked)} />
+            Give North an opening hand
+          </label>
           <button className="redealButton" type="button" onClick={redeal}>New Deal</button>
           <select className="testBucketSelect" aria-label="Rule test deal bucket"
             value={testBucketId}
@@ -133,8 +140,12 @@ export default function App() {
       </header>
 
       <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry}
+        telemetryLines={state.telemetryLines}
         testDeal={state.testDeal} practiceStages={state.practiceStages} />
-      <TelemetryPanel lines={state.telemetryLines} />
+      <details className="telemetryDetails">
+        <summary>Show telemetry (latest {MAX_TELEMETRY_LINES} lines maximum)</summary>
+        <TelemetryPanel lines={state.telemetryLines} />
+      </details>
     </main>
   );
 }

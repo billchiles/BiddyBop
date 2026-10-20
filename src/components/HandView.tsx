@@ -8,6 +8,7 @@ import { getCardsForSuit, getHandFacts, type Hand, type Seat,
 export interface HandViewProps {
   seat: Seat;
   hand: Hand;
+  concealed?: boolean;
 }
 
 interface SuitDisplay {
@@ -30,7 +31,15 @@ const seatNames: Record<Seat, string> = {
   W: 'West',
 };
 
-export function HandView ({ seat, hand }: HandViewProps) {
+export function HandView ({ seat, hand, concealed = false }: HandViewProps) {
+  if (concealed) {
+    return (
+      <section className="handCard" aria-label={`${seatNames[seat]} hand concealed`}>
+        <h2 className="handTitle">{seatNames[seat]}</h2>
+        <div className="handConcealment">Hand hidden</div>
+      </section>
+    );
+  }
   const facts = getHandFacts(hand);
   return (
     <section className="handCard" aria-label={`${seatNames[seat]} hand`}>

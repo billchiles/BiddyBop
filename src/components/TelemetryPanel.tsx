@@ -8,7 +8,7 @@ export function TelemetryPanel({ lines }: TelemetryPanelProps) {
 
   return (
     <section className="telemetryPanel" aria-label="Telemetry">
-      <h2>Telemetry</h2>
+      <h2>Evaluator telemetry</h2>
       <textarea className="telemetryText" value={text} readOnly />
     </section>
   );

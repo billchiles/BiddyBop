@@ -19,21 +19,8 @@ The app should help the user practice bidding decisions using structured convent
 
 ## Code Style
 
-- Use TypeScript.
-- Use line-oriented comments only.
-- Use `///` comments at top level.
-- Use `//` comments in indented code.
-- Do not use block comments.
-- Use explicit tests for `undefined`, `null`, `0`, empty string, and empty arrays.
-- Do not rely on implicit falsy conversions.
-- Do not rely on implicit truthiness for values whose type is not exactly boolean.
-- For boolean values, use direct boolean checks such as `if (isBalanced)` or `if (!isBalanced)`.
-- Do not write `prop?: T | undefined`; use `prop?: T`.
-- Use `prop: T | undefined` only when the property must always exist but may hold undefined.
-- Prefer higher-level callers before lower-level helper/callee functions so a file reads top-down from intent to implementation. TypeScript function declarations may appear after their callers.
-- Prefer readable, explicit domain code over clever abstractions.
-- Most functions should have comments that explain purpose, domain meaning, inputs, outputs, and important invariants.  Very small functions whose names say it all, usually don't need comments.
-- Do not emit comments that merely restate the code.
+Use `docs/code-style.md` for general coding, comments, refactoring, and code-generation
+conventions. This spec records the Bridge Bidding Trainer's domain-specific decisions.
 
 ## Bidding Terminology
 
@@ -158,7 +145,9 @@ The app should help the user practice bidding decisions using structured convent
 
 ## GUI Interaction Design
 
-- A `Board` contains the physical `deal` plus `dealer`; the UI shows all four hands.
+- A `Board` contains the physical `deal` plus `dealer`; the UI arranges all four seats
+  as a compass but normally reveals only the currently bidding hand and its HCP. The user
+  can choose to display all hands.
 - Random practice generation accepts the dealer as an input and can require the dealer to receive a
   practice-opening hand. Generation and bidding APIs do not assume a particular compass seat.
 - Keep one authoritative physical auction. Practice scenarios may insert recorded setup calls,
@@ -208,9 +197,8 @@ The app should help the user practice bidding decisions using structured convent
 - Treat the latest provided source as authoritative. Inspect existing rules, auction routing,
   practice deals, documentation, and explicit omissions before extending a bidding family.
   Favor instructional continuity and partner promises over maximizing executable rule counts.
-- Keep changes tightly scoped. Follow `docs/code-style.md`, including meaningful `////`
-  section titles and standalone `//` separators between bidding rules. Avoid historical
-  patch or phase labels in permanent code, and unnecessary one-line wrapper helpers.
+- Follow `docs/code-style.md` when changing code. Retain the standalone `//` separators
+  between bidding rule declarations.
 - Write `README.md` for people using the trainer, in ordinary bridge language. Preserve its
   organization and the user's wording; explain real Pass recommendations distinctly from
   situations needing additional judgment. Change coverage statuses only when code changes.

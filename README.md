@@ -209,5 +209,14 @@ The practice corpus is selective rather than exhaustive.  Its purpose is to exer
 
 ## Feedback
 
-If you encounter a hand where the suggested bids seem wrong, incomplete, or poorly explained, you can send feedback.  The Dump button puts the deal, the auction, and explanations on the clipboard for sending with your feedback.
+For New Deal, North always deals first.  The **Give North an opening hand** checkbox
+is enabled by default; turn it off for a completely random deal with North still the dealer.
+The **Show hands** selector normally reveals only the hand currently bidding; choose
+**All hands always** to examine the complete deal.
+
+The explanation pane keeps the latest feedback in view and indicates when earlier text
+is above the visible area. **Show telemetry** reveals a limited recent diagnostic log
+only when requested. If a suggested bid seems wrong, incomplete, or poorly explained,
+click **Report** to copy the current deal, bidding agreements, auction, explanations
+(including rule IDs), and available telemetry to the clipboard for feedback.
 

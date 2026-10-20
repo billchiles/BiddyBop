@@ -99,6 +99,7 @@ when the wrapper is used once and contributes no additional logic.
 - Very small functions whose names completely state their purpose usually do not need comments.
 - Preserve useful existing comments during ports and focused edits.
 - Avoid comments that falsely elevate one source, implementation accident, or temporary behavior into an architectural rule.
+- Avoid historical patch numbers, chat phases, and completed work-item labels in permanent comments.
 
 ## Booleans, Nullability, and Explicit Tests
 
@@ -180,6 +181,13 @@ only when the property itself must always exist but its value may be `undefined`
 - Prefer model-derived values over duplicated UI-maintained facts when the model has enough information to derive them safely, as long there isn't an engineering efficiency concern
 - Keep model/UI boundaries clean: UI code may orchestrate an intentionally temporary flow, but it should not redefine bidding, financial, parsing, or other domain semantics.
 - Do not create polished UI-state machinery for temporary development scaffolding unless it materially aids current testing or correctness.
+
+## User-Facing Text and Documentation
+
+- Write explanations and user documentation for the person using the program rather than the implementer.
+- Prefer meaningful domain terminology to internal rule identifiers, state names, or algorithm descriptions in the main interface. Keep diagnostics available separately when they help investigate errors.
+- Distinguish what an application cannot determine from what it has determined to be incorrect.
+- Keep user messages concise, but do not omit important qualifications or outcomes.
 
 ## Refactoring and Code Generation
 

@@ -14,17 +14,19 @@ export interface BidPanelProps {
   board: Board;
   biddingSystem: BiddingSystem;
   onTelemetry: (lines: string[]) => void;
+  telemetryLines: string[];
   testDeal?: RuleTestDeal;
   practiceStages?: BidStage[];
 }
 
-export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practiceStages }: BidPanelProps) {
+export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal, practiceStages }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
+  const [showAllHands, setShowAllHands] = useState(false);
+  const [reportStatus, setReportStatus] = useState('');
   const [auction, setAuction] = useState<Call[]>(() =>
     setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
     getInitialExplanationLines(board.dealer, testDeal, practiceStages));
-  const explanationRef = useRef<HTMLPreElement | null>(null);
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
   // Rule feedback is independent of bridge legality and recorded practice completion.
   // An unsupported turn still accepts legal calls; later turns may be supported again.
@@ -38,23 +40,17 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(biddingTurnStatus, practiceComplete, outstandingForce);
   const displayedExplanation = [...explanationLines, ...turnGuidance];
-  const turnGuidanceText = turnGuidance.join('\n');
 
   useEffect(() => {
     setBidText('');
     setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
     setExplanationLines(getInitialExplanationLines(board.dealer, testDeal, practiceStages));
+    setReportStatus('');
   }, [board, biddingSystem, testDeal, practiceStages]);
-
-  useEffect(() => {
-    if (explanationRef.current === null) {
-      return;
-    }
-    explanationRef.current.scrollTop = explanationRef.current.scrollHeight;
-  }, [explanationLines, turnGuidanceText]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    setReportStatus('');
     if (auctionComplete || practiceComplete) {
       setExplanationLines((current) => [...current, '',
         'Bidding input is disabled. Select New Deal or Test Deal to continue.']);
@@ -110,7 +106,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
                           correction: { call: Call; result: BidEvalResult | null } | null): void {
     const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
       status.kind === 'noApplicableRule' ? status.stage : null;
-    const title = `${getSeatLabel(seat)} ${getStageLabel(stage)}`;
+    const title = `------------ ${getSeatLabel(seat)} ${call} — ${getStageLabel(stage)} ------------`;
     const explanation = status.kind === 'supported' && result !== null
       ? buildExplanationLines(title, result)
       : buildUnjudgedCallExplanation(title, call, status);
@@ -150,19 +146,20 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     const lines = [
       `Invalid ${getSeatLabel(seat)} ${getStageLabel(stage)} input: "${bidText}".`,
     ];
-    setExplanationLines(lines);
+    setExplanationLines((current) => [...current, '', ...lines]);
     onTelemetry(lines);
   }
 
-  function dumpState(): void {
-    const dump = buildDumpText(board, auction, explanationLines);
+  function reportState(): void {
+    const report = buildReportText(board, auction, displayedExplanation,
+      biddingSystem, testDeal, telemetryLines);
     if (navigator.clipboard === undefined) {
-      onTelemetry(['Clipboard unavailable; dump follows:', dump]);
+      setReportStatus('Clipboard unavailable.');
       return;
     }
-    navigator.clipboard.writeText(dump)
-      .then(() => onTelemetry(['Dump copied to clipboard.']))
-      .catch(() => onTelemetry(['Clipboard unavailable; dump follows:', dump]));
+    navigator.clipboard.writeText(report)
+      .then(() => setReportStatus('Report copied to clipboard.'))
+      .catch(() => setReportStatus('Could not copy report. Check clipboard permissions.'));
   }
 
   const inputDisabled = auctionComplete || practiceComplete;
@@ -175,7 +172,15 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
     <section className="bidPanel" aria-label="Bid evaluation">
       <section className="trainerWorkspace">
         <section className="trainerLeftColumn">
-          <DealCompass deal={board.deal} activeSeat={activeSeat} />
+          <label className="handDisplaySetting">
+            Show hands:
+            <select value={showAllHands ? 'all' : 'bidding'}
+              onChange={(event) => setShowAllHands(event.target.value === 'all')}>
+              <option value="bidding">Bidding hand only</option>
+              <option value="all">All hands always</option>
+            </select>
+          </label>
+          <DealCompass deal={board.deal} activeSeat={activeSeat} showAllHands={showAllHands} />
           <form className="bidForm" onSubmit={handleSubmit}>
             <label className="bidLabel" htmlFor="bidInput">{nextBidLabel}</label>
             <input
@@ -187,13 +192,14 @@ export function BidPanel({ board, biddingSystem, onTelemetry, testDeal, practice
               disabled={inputDisabled}
             />
             <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
-            <button className="bidButton" type="button" onClick={dumpState}>Dump</button>
+            <button className="bidButton" type="button" onClick={reportState}>Report</button>
           </form>
+          {reportStatus !== '' && <p className="reportStatus" role="status">{reportStatus}</p>}
         </section>
 
         <section className="trainerRightColumn">
           <AuctionGrid rows={auctionRows} />
-          <ExplanationPanel lines={displayedExplanation} explanationRef={explanationRef} />
+          <ExplanationPanel lines={displayedExplanation} />
         </section>
       </section>
     </section>
@@ -231,7 +237,8 @@ function getInitialExplanationLines (dealer: Seat, testDeal?: RuleTestDeal,
                                      practiceStages?: BidStage[]): string[] {
   const recorded = setupPracticeAuction(dealer, [], testDeal, practiceStages);
   const notes = getPracticeGuidanceLines(dealer, [], recorded, testDeal);
-  return notes.length === 0 ? ['No evaluation yet.'] : ['Recorded practice setup:', ...notes];
+  const heading = `============== ${testDeal === undefined ? 'New Deal' : 'New Practice Deal'} ==============`;
+  return notes.length === 0 ? [heading] : [heading, 'Recorded practice setup:', ...notes];
 }
 
 /// Reveal only notes for calls just entered or inserted from the exact recorded practice auction.
@@ -262,9 +269,20 @@ function getPracticeGuidanceLines (dealer: Seat, previous: Call[], current: Call
   return notes;
 }
 
-function buildDumpText(board: Board, auction: Call[], explanationLines: string[]): string {
+/// Report reuses the explanation displayed to the learner, including rule IDs, rather than
+/// building and maintaining a second explanation/diagnostics stream.
+function buildReportText(board: Board, auction: Call[], explanationLines: string[],
+                         biddingSystem: BiddingSystem, testDeal: RuleTestDeal | undefined,
+                         telemetryLines: string[]): string {
   const stage = getNextBiddingRuleStage(board.dealer, auction);
   return [
+    'Bridge Bidding Trainer — Report',
+    `Mode: ${testDeal === undefined ? 'New Deal' : 'Practice Deal'}`,
+    ...(testDeal === undefined ? [] : [
+      `Practice deal: ${testDeal.description}`,
+      `Recorded practice auction: ${testDeal.practiceAuction.join(' ')}`,
+    ]),
+    `Bidding agreements: ${JSON.stringify(biddingSystem)}`,
     `Dealer: ${board.dealer}`,
     `North: ${formatHand(board.deal.N)}`,
     `East: ${formatHand(board.deal.E)}`,
@@ -276,6 +294,9 @@ function buildDumpText(board: Board, auction: Call[], explanationLines: string[]
     '',
     'Explanation:',
     ...explanationLines,
+    '',
+    'Telemetry (latest retained lines):',
+    ...telemetryLines,
   ].join('\n');
 }
 
@@ -351,16 +372,16 @@ function getNextTurnGuidance(status: BiddingTurnStatus, practiceComplete: boolea
 /// it is the best call merely because the trainer has no applicable rule.
 function buildUnjudgedCallExplanation(title: string, call: Call,
                                       status: BiddingTurnStatus): string[] {
-  const lines = [title, `Recorded call: ${call}.  The app did not evaluate this call.`];
+  const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
   if (status.kind === 'scopeBoundary') {
     appendRuleExplanation(lines, status.rule);
     lines.push('The auction may continue; this scope boundary does not recommend Pass.');
   } else if (status.kind === 'noApplicableRule') {
-    lines.push('No bidding rule or explanatory boundary qualifies for this hand and auction.  ' +
-      'This is a limitation of the app, not a judgment that the call is incorrect.');
+    lines.push('The trainer has no recommendation for this hand and auction. ' +
+      'That does not mean your call is wrong.');
   } else {
-    lines.push('There is no modeled bidding-rule stage for this turn.  ' +
-      'The app may be able to evaluate later calls as the auction develops.');
+    lines.push('This part of the auction is not covered by the trainer. ' +
+      'You may continue bidding, and later calls may be evaluated.');
   }
   if (call === 'Pass') {
     lines.push('Pass may be entirely appropriate or expected here, especially while the ' +
@@ -416,36 +437,34 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
   const lines: string[] = [];
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
-  lines.push(`Normalized call: ${result.normalizedCall === null ? 'invalid or blank' : result.normalizedCall}`);
   const scopeBoundary = result.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
   if (scopeBoundary !== undefined && candidates.length === 0) {
-    lines.push('Further bidding needs additional judgment.');
+    lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
-    lines.push('No applicable rule supports this call for the current hand, auction, and ' +
-      'bidding agreements.  This does not necessarily mean the bid is an incorrect bid ' +
-      'for the situation.');
+    lines.push('This call does not match a recommendation for this hand and auction. ' +
+      'It is not necessarily a wrong bridge call.');
     const preferredRule = result.applicableRules[0];
     if (preferredRule !== undefined) {
       lines.push('');
-      lines.push('Highest-priority applicable rule:');
+      lines.push('The trainer prefers:');
       appendRuleExplanation(lines, preferredRule);
     }
   } else {
-    lines.push('Rules satisfied by user call:');
+    lines.push('Why this call fits:');
     for (const rule of result.userCallMatchingRules) {
       appendRuleExplanation(lines, rule);
     }
   }
 
   lines.push('');
-  lines.push('All applicable candidate calls:');
+  lines.push('Calls supported for this hand:');
   if (candidates.length === 0) {
     lines.push('- none');
   } else {
     for (const candidate of candidates) {
-      lines.push(`- ${candidate.call}: ${candidate.rule.id}`);
+      lines.push(`- ${candidate.call}: ${candidate.rule.title} [${candidate.rule.id}]`);
     }
   }
 
@@ -453,7 +472,7 @@ function buildExplanationLines (title: string, result: BidEvalResult): string[] 
 } // buildExplanationLines()
 
 function appendRuleExplanation (lines: string[], rule: BidRule): void {
-  lines.push(`- ${rule.id}: ${rule.title}`);
+  lines.push(`- ${rule.title} [${rule.id}]`);
   if (rule.meaning !== undefined && rule.meaning !== '') {
     lines.push(`  Meaning: ${rule.meaning}`);
   }
@@ -522,12 +541,45 @@ function AuctionGrid({ rows }: { rows: AuctionRow[] }) {
   );
 }
 
-function ExplanationPanel ({ lines, explanationRef }:
-                          {lines: string[]; explanationRef: React.RefObject<HTMLPreElement | null>;}) {
-    return (
+/// Keep the newest response in view while showing a persistent cue when earlier explanations
+/// have scrolled out of sight. The cue lives in the heading, never over the content.
+function ExplanationPanel ({ lines }: { lines: string[] }) {
+  const explanationRef = useRef<HTMLPreElement | null>(null);
+  const [scrollPosition, setScrollPosition] = useState({ above: false, below: false });
+  const text = lines.join('\n');
+
+  useEffect(() => {
+    const element = explanationRef.current;
+    if (element === null) return;
+    element.scrollTop = element.scrollHeight;
+    setScrollPosition(measureExplanationScroll(element));
+    const observer = new ResizeObserver(() => {
+      setScrollPosition(measureExplanationScroll(element));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [text]);
+
+  return (
     <section className="resultSummary" aria-label="Explanation and app output">
-      <h3>Explanation</h3>
-      <pre ref={explanationRef} className="explanationText">{lines.join('\n')}</pre>
+      <div className="explanationHeader">
+        <h3>Explanation</h3>
+        <span className="explanationScrollCue" aria-live="polite">
+          {scrollPosition.above ? '↑ Earlier text above' : ''}
+          {scrollPosition.above && scrollPosition.below ? ' · ' : ''}
+          {scrollPosition.below ? '↓ More below' : ''}
+        </span>
+      </div>
+      <pre ref={explanationRef} className="explanationText"
+        onScroll={(event) => setScrollPosition(measureExplanationScroll(event.currentTarget))}>{text}</pre>
     </section>
   );
+}
+
+/// The scroll cue remains useful on macOS even when native overlay scrollbars are hidden.
+function measureExplanationScroll(element: HTMLPreElement): { above: boolean; below: boolean } {
+  return {
+    above: element.scrollTop > 1,
+    below: element.scrollTop + element.clientHeight < element.scrollHeight - 1,
+  };
 }
