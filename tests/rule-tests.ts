@@ -3,7 +3,7 @@
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
-         getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
+         getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
@@ -2847,6 +2847,28 @@ function runPracticeContinuationTests (): number {
   if (getRecordedPracticeCorrection([], 'Double', recorded) !== null) failures += 1;
   if (isPracticeSequenceComplete(prefix, recorded) ||
       ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
+  // A practice exercise progresses exactly one recorded call for each entered legal
+  // action, including opponent Passes, regardless of which seat is the dealer.
+  const allSeatRecorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT'];
+  const allSeatEntered: Call[] = ['1D', '2C', '2H', 'Pass', '2NT'];
+  const allSeatOrder = ['W', 'N', 'E', 'S', 'W'];
+  const progressed: Call[] = [];
+  for (let index = 0; index < allSeatRecorded.length; index += 1) {
+    const entered = allSeatEntered[index]!;
+    const expected = allSeatRecorded[index]!;
+    if (getNextSeat('W', progressed) !== allSeatOrder[index] ||
+        ! isCallAvailableInAuction(entered, progressed) ||
+        isPracticeSequenceComplete(progressed, allSeatRecorded)) {
+      failures += 1;
+      break;
+    }
+    progressed.push(getRecordedPracticeCorrection(progressed, entered, allSeatRecorded) ?? entered);
+    if (progressed[index] !== expected) {
+      failures += 1;
+      break;
+    }
+  }
+  if (! isPracticeSequenceComplete(progressed, allSeatRecorded)) failures += 1;
   // Active lessons obey the very same agreement requirements as the bucket selector.
   // Changing the setting can clear an incompatible exercise instead of allowing it
   // to continue with recorded bids that no longer match its convention.
@@ -2856,7 +2878,7 @@ function runPracticeContinuationTests (): number {
   if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||
       isPracticeDealCompatible(stayman, noStayman) ||
       getRulesBucketTestDeals('all', noStayman).includes(stayman)) failures += 1;
-  console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 6 checks.`);
+  console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 12 checks.`);
   console.log('  Preserves the recorded exercise after a different bid, but never corrects');
   console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
   return failures;

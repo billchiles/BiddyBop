@@ -9,27 +9,35 @@ import { DealCompass } from './DealCompass';
 
 const MAX_EXPLANATION_LINES = 1200;
 
+/// Human-readable locator captured when a practice exercise is selected, so changing
+/// the dropdown later cannot change the identity shown in its Report.
+export interface PracticeDealIdentification {
+  selection: string;
+  replay: string;
+}
 
-/// BidPanel lets the user bid every seat.  In targeted practice, recorded setup calls establish
-/// the designated bidding stage without pretending to be an opponent autobidder.
+
+/// BidPanel evaluates the student's call for each seat. In a selected practice lesson,
+/// the recorded call becomes the next physical auction call even when the student chose
+/// another legal call, keeping the remaining exercise on its intended auction.
 export interface BidPanelProps {
   board: Board;
   biddingSystem: BiddingSystem;
   onTelemetry: (lines: string[]) => void;
   telemetryLines: string[];
   testDeal?: RuleTestDeal;
-  practiceStages?: BidStage[];
+  practiceDealIdentification?: PracticeDealIdentification;
   children?: ReactNode;
 }
 
-export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal, practiceStages, children }: BidPanelProps) {
+export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, testDeal,
+                           practiceDealIdentification, children }: BidPanelProps) {
   const [bidText, setBidText] = useState('');
   const [showAllHands, setShowAllHands] = useState(false);
   const bidInputRef = useRef<HTMLInputElement | null>(null);
-  const [auction, setAuction] = useState<Call[]>(() =>
-    setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
+  const [auction, setAuction] = useState<Call[]>([]);
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
-    getInitialExplanationLines(board.dealer, testDeal, practiceStages));
+    getInitialExplanationLines(testDeal, practiceDealIdentification));
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
   // Rule feedback is independent of bridge legality and recorded practice completion.
   // An unsupported turn still accepts legal calls; later turns may be supported again.
@@ -40,16 +48,31 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
     getUnmodeledContinuationForce(board, auction, biddingSystem),
     [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
+  // On an unjudged practice turn, use the known recorded auction to explain how
+  // to continue the lesson without presenting the recorded call as a bidding recommendation.
+  const practiceRecordedCall = testDeal?.practiceAuction[auction.length];
+  const hasFollowingPracticeCall = testDeal !== undefined &&
+    auction.length + 1 < testDeal.practiceAuction.length;
+  const practiceStep = practiceRecordedCall === undefined ? null : {
+    recordedCall: practiceRecordedCall,
+    followingSeat: hasFollowingPracticeCall
+      ? getNextSeat(board.dealer, [...auction, practiceRecordedCall]) : null,
+    followingStage: hasFollowingPracticeCall
+      ? getNextBiddingRuleStage(board.dealer, [...auction, practiceRecordedCall]) : null,
+  };
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
-    biddingTurnStatus, practiceComplete, outstandingForce);
+    biddingTurnStatus, practiceComplete, outstandingForce, practiceStep);
   const displayedExplanation = [...explanationLines, ...turnGuidance];
+  // Scroll to the last *reviewed* call, not a preview of the next seat's turn.
+  // Before the first call, keep the New Deal heading at the top.
+  const reviewedHeadingIndex = explanationLines.findLastIndex((line) => line.startsWith('------------ '));
 
   useEffect(() => {
     setBidText('');
-    setAuction(setupPracticeAuction(board.dealer, [], testDeal, practiceStages));
-    setExplanationLines(getInitialExplanationLines(board.dealer, testDeal, practiceStages));
-  }, [board, biddingSystem, testDeal, practiceStages]);
+    setAuction([]);
+    setExplanationLines(getInitialExplanationLines(testDeal, practiceDealIdentification));
+  }, [board, biddingSystem, testDeal, practiceDealIdentification]);
 
   // New deals and successful bids leave the next call ready for keyboard entry.
   useEffect(() => {
@@ -69,8 +92,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     commitUserCall();
   }
 
-  /// commitUserCall evaluates the student's choice. In a selected lesson, a different bid is
-  /// explained but replaced by the recorded continuation before inserting later setup calls.
+  /// Evaluate each seat's entered call before using the recorded practice continuation, when
+  /// needed, to preserve the remaining lesson. Never skip an unentered recorded call.
   function commitUserCall(): void {
     const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
@@ -93,18 +116,13 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const result = biddingTurnStatus.kind === 'noModeledStage' ? null :
       evaluateUserCall(normalizedCall, board, auction, biddingSystem);
     const enteredAuction: Call[] = [...auction, recordedCall ?? normalizedCall];
-    const nextAuction = setupPracticeAuction(board.dealer, enteredAuction, testDeal, practiceStages);
-    setAuction(nextAuction);
+    setAuction(enteredAuction);
     setBidText('');
-    const notes = getPracticeGuidanceLines(board.dealer, auction, nextAuction, testDeal);
+    const notes = getPracticeGuidanceLines(board.dealer, auction, enteredAuction, testDeal);
     const recordedResult = result !== null && recordedCall !== null
       ? evaluateUserCall(recordedCall, board, auction, biddingSystem) : null;
     finishBidEntry(seat, normalizedCall, biddingTurnStatus, result, notes,
       recordedCall === null ? null : { call: recordedCall, result: recordedResult });
-    if (nextAuction.length > enteredAuction.length) {
-      const scripted = nextAuction.slice(enteredAuction.length);
-      onTelemetry([`Practice setup added: ${scripted.join(', ')}.`]);
-    }
   }
 
   /// Explain a judged or unjudged legal call. Both paths use the same auction update above.
@@ -121,8 +139,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const explanation = status.kind === 'supported' && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
-        ? [...turnGuidance, `${getSeatLabel(seat)} entered ${call}. ` +
-          'The trainer did not judge whether this was the best call.']
+        ? [...turnGuidance, correction === null && testDeal !== undefined
+          ? `${getSeatLabel(seat)} entered ${call}, the recorded practice call. ` +
+            'This turn was not independently evaluated.'
+          : `${getSeatLabel(seat)} entered ${call}. ` +
+            'The trainer did not judge whether this was the best call.']
         : buildUnjudgedCallExplanation(title, call, status);
     if (status.kind === 'supported' && result !== null) {
       const intervention = getInterferenceAfterOpening(board.dealer, auction);
@@ -171,7 +192,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
 
   function reportState(): void {
     const report = buildReportText(board, auction, displayedExplanation,
-      biddingSystem, testDeal, telemetryLines);
+      biddingSystem, testDeal, practiceDealIdentification, telemetryLines);
     if (navigator.clipboard === undefined) {
       setExplanationLines((current) => appendExplanation(current, ['', 'Clipboard unavailable.']));
       return;
@@ -223,49 +244,30 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
 
         <section className="trainerRightColumn">
           <AuctionGrid rows={auctionRows} />
-          <ExplanationPanel lines={displayedExplanation} board={board} />
+          <ExplanationPanel lines={displayedExplanation} board={board}
+            focusHeadingIndex={Math.max(0, reviewedHeadingIndex)} />
         </section>
       </section>
     </section>
   );
 }
 
-/// Insert recorded setup calls until the next practiced stage. A mismatched prefix still stops
-/// automatic setup, though selected practice normally restores the recorded call first.
-function setupPracticeAuction (dealer: Seat, auction: Call[], testDeal?: RuleTestDeal,
-                               practiceStages?: BidStage[]): Call[] {
-  if (testDeal === undefined || practiceStages === undefined || practiceStages.length === 0) {
-    return auction;
-  }
-  const next = [...auction];
-  while (next.length < testDeal.practiceAuction.length && ! auctionIsComplete(next)) {
-    if (next.some((call, index) => call !== testDeal.practiceAuction[index])) {
-      break;
-    }
-    const stage = getNextBiddingRuleStage(dealer, next);
-    if (stage !== null && practiceStages.includes(stage)) {
-      break;
-    }
-    const call = testDeal.practiceAuction[next.length];
-    if (call === undefined || ! isCallAvailableInAuction(call, next)) {
-      break;
-    }
-    next.push(call);
-  }
-  return next;
+/// Start each deal with an empty transcript; recorded practice calls and their
+/// coaching notes become visible only after the student enters that physical turn.
+function getInitialExplanationLines(testDeal?: RuleTestDeal,
+                                    identification?: PracticeDealIdentification): string[] {
+  if (testDeal === undefined) return ['============== New Deal =============='];
+  return [
+    '============== New Practice Deal ==============',
+    ...(identification === undefined ? [] : [
+      `Practice selection: ${identification.selection}`,
+      `To replay: ${identification.replay}`,
+    ]),
+    `Exercise: ${testDeal.description}`,
+  ];
 }
 
-/// For recorded setup calls already shown when a deal loads, reveal only the notes for those
-/// past calls. Future decisions must remain unrevealed until the user reaches them.
-function getInitialExplanationLines (dealer: Seat, testDeal?: RuleTestDeal,
-                                     practiceStages?: BidStage[]): string[] {
-  const recorded = setupPracticeAuction(dealer, [], testDeal, practiceStages);
-  const notes = getPracticeGuidanceLines(dealer, [], recorded, testDeal);
-  const heading = `============== ${testDeal === undefined ? 'New Deal' : 'New Practice Deal'} ==============`;
-  return notes.length === 0 ? [heading] : [heading, 'Recorded practice setup:', ...notes];
-}
-
-/// Reveal only notes for calls just entered or inserted from the exact recorded practice auction.
+/// Reveal only the notes for the recorded practice call just entered.
 /// Indexing by physical auction position, rather than seat or stage, supports repeated North turns.
 function getPracticeGuidanceLines (dealer: Seat, previous: Call[], current: Call[],
                                    testDeal?: RuleTestDeal): string[] {
@@ -306,6 +308,7 @@ function appendExplanation(current: string[], added: string[]): string[] {
 /// building and maintaining a second explanation/diagnostics stream.
 function buildReportText(board: Board, auction: Call[], explanationLines: string[],
                          biddingSystem: BiddingSystem, testDeal: RuleTestDeal | undefined,
+                         identification: PracticeDealIdentification | undefined,
                          telemetryLines: string[]): string {
   const stage = getNextBiddingRuleStage(board.dealer, auction);
   return [
@@ -313,6 +316,10 @@ function buildReportText(board: Board, auction: Call[], explanationLines: string
     `Mode: ${testDeal === undefined ? 'New Deal' : 'Practice Deal'}`,
     ...(testDeal === undefined ? [] : [
       `Practice deal: ${testDeal.description}`,
+      ...(identification === undefined ? [] : [
+        `Practice selection: ${identification.selection}`,
+        `To replay: ${identification.replay}`,
+      ]),
       `Recorded practice auction: ${testDeal.practiceAuction.join(' ')}`,
     ]),
     `Bidding agreements: ${JSON.stringify(biddingSystem)}`,
@@ -343,14 +350,34 @@ function formatHand(hand: Hand): string {
 /// Show useful scope guidance before the next call, without treating it as auction completion.
 /// Only a completed real auction or recorded practice sequence disables the bidding controls.
 function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComplete: boolean,
-                             outstandingForce: UnmodeledContinuationForce | null): string[] {
+                             outstandingForce: UnmodeledContinuationForce | null,
+                             practiceStep: { recordedCall: Call; followingSeat: Seat | null;
+                                             followingStage: BidStage | null } | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
     lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
       'real bridge auction.  Select New Deal or Test Deal to continue.');
   }
   if (!practiceComplete) {
-    switch (status.kind) {
+    if (practiceStep !== null && status.kind !== 'supported' &&
+        status.kind !== 'auctionComplete') {
+      const next = practiceStep.followingSeat === null
+        ? 'finish this practice exercise'
+        : `continue to ${getSeatLabel(practiceStep.followingSeat)}'s ` +
+          (practiceStep.followingStage === null ? 'next call' :
+            getStageLabel(practiceStep.followingStage));
+      lines.push('', `------------ ${getSeatLabel(seat)} to call — practice continuation ------------`,
+        `This exercise records ${practiceStep.recordedCall} for ${getSeatLabel(seat)}. ` +
+        `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s bidding decision here; ` +
+        'the recorded call is not a recommendation.',
+        `Enter ${practiceStep.recordedCall} to ${next}. If you enter a different legal ` +
+        `call, the lesson will still continue with ${practiceStep.recordedCall}.`);
+      if (status.kind === 'scopeBoundary') {
+        lines.push('Why this turn is not evaluated:');
+        appendRuleExplanation(lines, status.rule);
+      }
+    } else {
+      switch (status.kind) {
       case 'auctionComplete':
         lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
         return lines;
@@ -375,6 +402,7 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
         break;
       case 'supported':
         break;
+      }
     }
   }
   // Completion ends the *lesson*, not the partnership commitment. Never invent
@@ -594,31 +622,34 @@ function AuctionGrid({ rows }: { rows: AuctionRow[] }) {
   );
 }
 
-/// Align the beginning of each newly explained call with the top of the viewport.
-/// Later small status changes still scroll into view. No parallel transcript is maintained.
-function ExplanationPanel ({ lines, board }: { lines: string[]; board: Board }) {
+/// Align the last reviewed call at the top, even if the next seat's preview follows it.
+/// No parallel transcript or call-history indexes are maintained.
+function ExplanationPanel ({ lines, board, focusHeadingIndex }: {
+  lines: string[]; board: Board; focusHeadingIndex: number;
+}) {
   const explanationRef = useRef<HTMLPreElement | null>(null);
   const lastHeadingRef = useRef(-1);
   const lastBoardRef = useRef<Board | null>(null);
   const [scrollPosition, setScrollPosition] = useState({ above: false, below: false });
-  const headingIndex = lines.findLastIndex((line) => line.startsWith('------------ '));
-  const targetHeadingIndex = headingIndex >= 0 ? headingIndex :
-    lines.findLastIndex((line) => line.startsWith('============== '));
   const text = lines.join('\n');
 
   useLayoutEffect(() => {
     const element = explanationRef.current;
     if (element === null) return;
-    // New turns begin at their seat heading. Changes within a turn do not
-    // arbitrarily send the reader to the bottom of the growing transcript.
-    if (board !== lastBoardRef.current || targetHeadingIndex !== lastHeadingRef.current) {
-      const heading = element.children.item(targetHeadingIndex);
-      element.scrollTop = heading instanceof HTMLElement ? heading.offsetTop : 0;
-    }
+    const heading = element.children.item(focusHeadingIndex);
+    const headingTop = heading instanceof HTMLElement ? heading.offsetTop : 0;
+    const newReview = board !== lastBoardRef.current || focusHeadingIndex !== lastHeadingRef.current;
+    const oldScrollTop = element.scrollTop;
+    // A short explanation needs trailing scroll space to put its heading at
+    // the viewport top. Recompute it from actual content height each time.
+    element.style.paddingBottom = '0px';
+    element.style.paddingBottom = `${Math.max(0,
+      headingTop + element.clientHeight - element.scrollHeight)}px`;
+    element.scrollTop = newReview ? headingTop : oldScrollTop;
     lastBoardRef.current = board;
-    lastHeadingRef.current = targetHeadingIndex;
+    lastHeadingRef.current = focusHeadingIndex;
     setScrollPosition(measureExplanationScroll(element));
-  }, [board, text, targetHeadingIndex]);
+  }, [board, text, focusHeadingIndex]);
 
   useEffect(() => {
     const element = explanationRef.current;

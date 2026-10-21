@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import './App.css';
-import { BidPanel } from './components/BidPanel';
+import { BidPanel, type PracticeDealIdentification } from './components/BidPanel';
 import { BiddingSystemControls } from './components/BiddingSystemControls';
 import { generateBoard, makeRuleTestBoard, type Board, type Seat } from './models/cards';
-import { defaultBiddingSystem, type BidStage, type BiddingSystem } from './models/bidding-types';
+import { defaultBiddingSystem, type BiddingSystem } from './models/bidding-types';
 import { getRulesBucketTestDeals, isPracticeDealCompatible, RULE_TEST_DEAL_BUCKETS, type RuleTestDeal, type RuleTestDealBucketId }
   from './models/test-deals-registry';
 
@@ -14,7 +14,7 @@ const MAX_TELEMETRY_LINES = 400;
 interface AppState {
   board: Board;
   testDeal?: RuleTestDeal;
-  practiceStages?: BidStage[];
+  practiceDealIdentification?: PracticeDealIdentification;
   telemetryLines: string[];
 }
 
@@ -46,7 +46,7 @@ export default function App() {
       return {
         ...current,
         testDeal: undefined,
-        practiceStages: undefined,
+        practiceDealIdentification: undefined,
         telemetryLines: [...current.telemetryLines, '',
           'Practice exercise cleared: its required bidding agreements are no longer selected. ' +
           'Choose Test Deal for a compatible exercise.'],
@@ -59,7 +59,6 @@ export default function App() {
     setState({
       board: result.board,
       testDeal: undefined,
-      practiceStages: undefined,
       telemetryLines: ['Generated new board.', ...result.telemetryLines],
     });
   }
@@ -79,15 +78,38 @@ export default function App() {
       return;
     }
     const result = makeRuleTestBoard(testDeal);
-    // For All, find the owning bucket so overcall exercises still use their own practiced stages.
-    const selectedBucket = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.deals.includes(testDeal));
-    const practiceStages: BidStage[] = selectedBucket !== undefined &&
-      'practiceStages' in selectedBucket
-      ? [...selectedBucket.practiceStages] : ['opening', 'responding', 'openerRebid'];
+    // Preserve both the chosen selector position and a shorter replay route when
+    // the exercise was reached through All. Use bucket order, not deal identity:
+    // a fixture may legitimately appear in more than one grouped collection.
+    const buckets = testBucketId === 'all' ? RULE_TEST_DEAL_BUCKETS :
+      RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.id === testBucketId);
+    let remainingIndex = index;
+    let sourceBucket: typeof RULE_TEST_DEAL_BUCKETS[number] | undefined;
+    let sourceIndex = 0;
+    let sourceTotal = 0;
+    for (const bucket of buckets) {
+      const compatibleDeals = bucket.deals.filter((deal) => isPracticeDealCompatible(deal, biddingSystem));
+      if (remainingIndex < compatibleDeals.length) {
+        sourceBucket = bucket;
+        sourceIndex = remainingIndex;
+        sourceTotal = compatibleDeals.length;
+        break;
+      }
+      remainingIndex -= compatibleDeals.length;
+    }
+    const chosenBucket = testBucketId === 'all' ? 'All' :
+      (buckets[0]?.label ?? testBucketId);
+    const practiceDealIdentification: PracticeDealIdentification = {
+      selection: `${chosenBucket} [${testBucketId}], deal ${index + 1} of ${testDeals.length}`,
+      replay: sourceBucket === undefined ?
+        `Select ${chosenBucket} and click Test Deal ${index + 1} times.` :
+        `Select ${sourceBucket.label} [${sourceBucket.id}] and click Test Deal ${sourceIndex + 1} ` +
+        `times (${sourceIndex + 1} of ${sourceTotal}), using the same bidding agreements.`,
+    };
     setState({
       board: result.board,
       testDeal,
-      practiceStages,
+      practiceDealIdentification,
       telemetryLines: [`Test deal ${index + 1} of ${testDeals.length}.`, ...result.telemetryLines],
     });
     setTestDealCount(index + 1);
@@ -110,7 +132,7 @@ export default function App() {
       </header>
       <BidPanel board={state.board} biddingSystem={biddingSystem} onTelemetry={appendTelemetry}
         telemetryLines={state.telemetryLines}
-        testDeal={state.testDeal} practiceStages={state.practiceStages}>
+        testDeal={state.testDeal} practiceDealIdentification={state.practiceDealIdentification}>
         <div className="dealControlRows" aria-label="Deal controls">
           <div className="dealControlNewRow">
             <div className="toolbarSettingsGroup">

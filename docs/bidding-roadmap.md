@@ -1,7 +1,7 @@
 # Bidding Coverage Roadmap
 
-This is a short list of work remaining before the planned all-seat practice experience
-and final project cleanup. The executable bidding rules, practice corpus, and README
+This is a short list of work remaining after introducing all-seat practice
+and before final project cleanup. The executable bidding rules, practice corpus, and README
 describe the selected bidding system and its deliberate scope limits; this file is
 not a historical progress log or a commitment to model every possible auction.
 
@@ -17,13 +17,14 @@ not a historical progress log or a commitment to model every possible auction.
 - Practice deals have four fixed, complete hands and credible recorded calls for
   every seat. Exercise completion need not mean the actual bridge auction is over.
 
-## Remaining work
+## Completed interaction work
 
-- [ ] **All-seat practice interaction.** Require the student to enter every call for
-  every seat, including early Passes. Remove practice-stage preloading and automatic
-  insertion of earlier calls. Evaluate the entered call, then substitute the
-  recorded call when it differs so the intended auction can continue. Preserve
-  fixed hands and stop at the selected exercise's planned final call.
+- [x] **All-seat practice interaction.** Every seat's recorded call, including early
+  Passes, now requires a student entry. A different legal call receives feedback,
+  then the recorded call is used to preserve the lesson. Exercises stop at the
+  recorded final call, even if the real bridge auction would continue.
+
+## Remaining work
 - [ ] **Ending and scope guidance.** Distinguish exercise completion from a finished
   auction; explain unresolved forcing or game-forcing obligations where relevant.
   Finish the focused audit of auction-stage recognition, agreement-sensitive meanings,
