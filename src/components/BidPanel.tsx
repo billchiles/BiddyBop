@@ -48,8 +48,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
     getUnmodeledContinuationForce(board, auction, biddingSystem),
     [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
-  // On an unjudged practice turn, use the known recorded auction to explain how
-  // to continue the lesson without presenting the recorded call as a bidding recommendation.
+  // On an unjudged practice turn, use the known recorded auction to explain
+  // its appropriate continuation without claiming we evaluated the alternatives.
   const practiceRecordedCall = testDeal?.practiceAuction[auction.length];
   const hasFollowingPracticeCall = testDeal !== undefined &&
     auction.length + 1 < testDeal.practiceAuction.length;
@@ -140,8 +140,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
         ? [...turnGuidance, correction === null && testDeal !== undefined
-          ? `${getSeatLabel(seat)} entered ${call}, the recorded practice call. ` +
-            'This turn was not independently evaluated.'
+          ? `${getSeatLabel(seat)} entered ${call}, as recorded for this practice auction.`
           : `${getSeatLabel(seat)} entered ${call}. ` +
             'The trainer did not judge whether this was the best call.']
         : buildUnjudgedCallExplanation(title, call, status);
@@ -174,6 +173,12 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       }
     }
     if (practiceNotes.length > 0) explanation.push('', ...practiceNotes);
+    // A deal description may reveal its intended decision. Treat it as a lesson
+    // takeaway, shown only after the student enters the final recorded call.
+    if (testDeal !== undefined && isPracticeSequenceComplete(
+          [...auction, correction?.call ?? call], testDeal.practiceAuction)) {
+      explanation.push('', `Exercise takeaway: ${testDeal.description}`);
+    }
     // Pre-call guidance was already visible after the prior lines. Keep its
     // exact prefix, including its leading blank, as the committed history.
     setExplanationLines((current) => appendExplanation(current,
@@ -261,9 +266,7 @@ function getInitialExplanationLines(testDeal?: RuleTestDeal,
     '============== New Practice Deal ==============',
     ...(identification === undefined ? [] : [
       `Practice selection: ${identification.selection}`,
-      `To replay: ${identification.replay}`,
     ]),
-    `Exercise: ${testDeal.description}`,
   ];
 }
 
@@ -367,9 +370,9 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
           (practiceStep.followingStage === null ? 'next call' :
             getStageLabel(practiceStep.followingStage));
       lines.push('', `------------ ${getSeatLabel(seat)} to call — practice continuation ------------`,
-        `This exercise records ${practiceStep.recordedCall} for ${getSeatLabel(seat)}. ` +
-        `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s bidding decision here; ` +
-        'the recorded call is not a recommendation.',
+        `The recorded ${practiceStep.recordedCall} is appropriate for this reviewed practice ` +
+        'auction, but this turn is included for continuity rather than as a separate ' +
+        'evaluated bidding decision.',
         `Enter ${practiceStep.recordedCall} to ${next}. If you enter a different legal ` +
         `call, the lesson will still continue with ${practiceStep.recordedCall}.`);
       if (status.kind === 'scopeBoundary') {
