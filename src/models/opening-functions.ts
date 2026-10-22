@@ -84,6 +84,14 @@ export function oneNtFiveCardLengthUpgradeApplies (_call: Call, context: RuleEva
                   hasFiveCardMajor;
   return {
     success,
+    basicOpeningEvidence: [
+      { kind: 'hcp', actual: context.handFacts.hcp,
+        min: normalMinimum - 1, max: normalMinimum - 1,
+        passed: context.handFacts.hcp === normalMinimum - 1 },
+      { kind: 'balanced', actual: context.handFacts.balanced,
+        passed: context.handFacts.balanced },
+      { kind: 'fiveCardMajor', actual: hasFiveCardMajor, passed: hasFiveCardMajor },
+    ],
     telemetryLines: [
       `${success ? 'APPLIES' : 'FAIL'}: 1NT five-card-major upgrade needs balanced, ` +
       `${normalMinimum - 1} HCP, and a five-card major; HCP=${context.handFacts.hcp}, ` +

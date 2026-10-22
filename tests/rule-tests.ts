@@ -8,6 +8,7 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
+import { getBasicOpeningFailureLines, getBasicOpeningSupportLine } from '../src/models/opening-explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -163,6 +164,104 @@ function runOpeningPositionAndPassTests (): number {
   }
   console.log(`${failures} ***FAILURES***. Opening position, Pass, and preempt priority: ${checks} checks.`);
   console.log('  Tests first/second-seat Guideline of 20, opening Pass at all seats, and 1H vs 4H.\n');
+  return failures;
+}
+
+/// The first instructional-explanation batch covers only basic opening requirements.
+/// Inspect the evidence actually returned by the evaluator, not a second HCP/shape evaluator.
+function runBasicOpeningExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const make = (north: { S: string; H: string; D: string; C: string }) =>
+    makeRuleTestBoard({ description: 'Basic opening explanation test', north,
+      south: { S: 'T53', H: '954', D: 'T86', C: 'T853' },
+      practiceAuction: [] }).board;
+  const balanced16 = make({ S: 'AQ86', H: 'KJ7', D: 'A94', C: 'Q62' });
+  const balanced20 = make({ S: 'AKQ4', H: 'AQ8', D: 'KJ5', C: 'J72' });
+  const balanced22 = make({ S: 'AKQ4', H: 'AK8', D: 'KJ5', C: 'Q72' });
+  const unbalanced16 = make({ S: 'AQJ972', H: 'KJ6', D: 'A3', C: 'J4' });
+  const balanced14NoMajor = make({ S: 'AJ84', H: 'KJ7', D: 'Q94', C: 'K62' });
+  const openingCases: { board: ReturnType<typeof make>; call: Call;
+    system: BiddingSystem; expectedRule: string; expectedText: string }[] = [
+    { board: balanced16, call: '1NT', system: defaultBiddingSystem,
+      expectedRule: 'open-1nt-balanced-15-17', expectedText: '15–17 HCP' },
+    { board: balanced16, call: '1NT', system: { ...defaultBiddingSystem, oneNtOpening: '16-18' },
+      expectedRule: 'open-1nt-balanced-16-18', expectedText: '16–18 HCP' },
+    { board: balanced20, call: '2NT', system: defaultBiddingSystem,
+      expectedRule: 'open-2nt-balanced-20-21', expectedText: '20–21 HCP' },
+    { board: balanced22, call: '2C', system: defaultBiddingSystem,
+      expectedRule: 'open-2c-strong-artificial', expectedText: 'at least 22 HCP' },
+  ];
+  for (const test of openingCases) {
+    const result = evaluateUserCall(test.call, test.board, [], test.system);
+    const rule = result.userCallMatchingRules.find(({ id }) => id === test.expectedRule);
+    const text = rule === undefined ? null : getBasicOpeningSupportLine(result, rule);
+    checks += 1;
+    if (text === null || !text.includes(test.expectedText) ||
+        getBasicOpeningFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL basic opening explanation: supported ${test.call} ${test.expectedRule}; ${text}`);
+    }
+  }
+
+  const upgradeDeal = OPENING_BID_TEST_DEALS[0];
+  if (upgradeDeal !== undefined) {
+    const { board } = makeRuleTestBoard(upgradeDeal);
+    const enabled = { ...defaultBiddingSystem, oneNtFiveCardLengthUpgrade: true };
+    const disabled = { ...defaultBiddingSystem, oneNtFiveCardLengthUpgrade: false };
+    const upgrade = evaluateUserCall('1NT', board, [], enabled);
+    const upgradeRule = upgrade.userCallMatchingRules.find(({ id }) =>
+      id === 'open-1nt-five-card-length-upgrade');
+    const positive = upgradeRule === undefined ? null :
+      getBasicOpeningSupportLine(upgrade, upgradeRule);
+    const rejected = evaluateUserCall('1NT', board, [], disabled);
+    const negative = getBasicOpeningFailureLines(rejected).join(' ');
+    checks += 2;
+    if (positive === null || !positive.includes('14 HCP') ||
+        !positive.includes('five-card major')) {
+      failures += 1;
+      console.error('FAIL optional 1NT upgrade explanation did not include the actual hand facts.');
+    }
+    if (rejected.userCallMatchingRules.length !== 0 ||
+        !negative.includes('15–17 HCP') || !negative.includes('14 HCP') ||
+        negative.includes('upgrade')) {
+      failures += 1;
+      console.error(`FAIL disabled 1NT upgrade explanation: ${negative}`);
+    }
+  }
+
+  const noMajorUpgrade = evaluateUserCall('1NT', balanced14NoMajor, [],
+    { ...defaultBiddingSystem, oneNtFiveCardLengthUpgrade: true });
+  const noMajorText = getBasicOpeningFailureLines(noMajorUpgrade).join(' ');
+  checks += 1;
+  if (noMajorUpgrade.userCallMatchingRules.length !== 0 ||
+      !noMajorText.includes('without a five-card major') ||
+      !noMajorText.includes('open-1nt-five-card-length-upgrade')) {
+    failures += 1;
+    console.error(`FAIL 1NT upgrade excluded by missing five-card major: ${noMajorText}`);
+  }
+  const shapeResult = evaluateUserCall('1NT', unbalanced16, [], defaultBiddingSystem);
+  const shapeText = getBasicOpeningFailureLines(shapeResult).join(' ');
+  checks += 1;
+  if (shapeResult.userCallMatchingRules.length !== 0 ||
+      !shapeText.includes('not balanced') || !shapeText.includes('16 HCP')) {
+    failures += 1;
+    console.error(`FAIL unbalanced 1NT explanation: ${shapeText}`);
+  }
+  const strong2CResult = evaluateUserCall('2C', balanced20, [], defaultBiddingSystem);
+  const strong2CText = getBasicOpeningFailureLines(strong2CResult).join(' ');
+  checks += 1;
+  if (!strong2CText.includes('at least 22 HCP') || !strong2CText.includes('20 HCP')) {
+    failures += 1;
+    console.error(`FAIL strong 2C opening explanation: ${strong2CText}`);
+  }
+  const overcall = evaluateUserCall('1NT', balanced16, ['1D'], defaultBiddingSystem);
+  checks += 1;
+  if (getBasicOpeningFailureLines(overcall).length !== 0) {
+    failures += 1;
+    console.error('FAIL basic opening feedback leaked into overcalling.');
+  }
+  console.log(`${failures} ***FAILURES***. Basic opening evidence: ${checks} checks.\n`);
   return failures;
 }
 
@@ -4395,7 +4494,7 @@ function runThirdAuditRebidTests (): number {
   return failures;
 }
 
-const failureCount = runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+const failureCount = runBasicOpeningExplanationTests() + runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

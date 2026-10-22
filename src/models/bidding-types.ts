@@ -339,9 +339,17 @@ export type AppliesWhenFunction = (
   system: BiddingSystem,
 ) => AppliesWhenResult;
 
+/// Hand-specific evidence retained for the first opening-explanation family. Other rule
+/// families are unchanged until their explanation requirements have been reviewed.
+export type BasicOpeningEvidence =
+  | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
+  | { kind: 'balanced'; actual: boolean; passed: boolean }
+  | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean };
+
 export interface AppliesWhenResult {
   success: boolean;
   telemetryLines: string[];
+  basicOpeningEvidence?: BasicOpeningEvidence[];
 }
 
 /// callRefinement narrows or orders a rule's declared calls for the actual auction; it does not decide rule context.

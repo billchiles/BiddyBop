@@ -6,6 +6,7 @@ import { getHandFacts, SEATS, SUITS, type Board, type Hand, type HandFacts, type
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
+import { getBasicOpeningFailureLines, getBasicOpeningSupportLine } from '../models/opening-explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
 
@@ -163,6 +164,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       if (matched.length > 0) {
         explanation.push('Reason for the recorded call:');
         for (const rule of matched) {
+          const handEvidence = correction.result === null ? null :
+            getBasicOpeningSupportLine(correction.result, rule);
+          if (handEvidence !== null) explanation.push(handEvidence);
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
       } else if (correction.result !== null && status.kind === 'supported') {
@@ -506,8 +510,14 @@ function buildExplanationLines (title: string, result: BidEvalResult,
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
-    lines.push('This call does not match a recommendation for this hand and auction. ' +
-      'It is not necessarily a wrong bridge call.');
+    const openingReasons = getBasicOpeningFailureLines(result);
+    if (openingReasons.length > 0) {
+      lines.push('Why this opening does not meet the selected requirements:');
+      lines.push(...openingReasons);
+    } else {
+      lines.push('This call does not match a recommendation for this hand and auction. ' +
+        'It is not necessarily a wrong bridge call.');
+    }
     const preferredRule = result.applicableRules[0];
     if (preferredRule !== undefined) {
       lines.push('');
@@ -517,6 +527,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   } else {
     lines.push('Why this call fits:');
     for (const rule of result.userCallMatchingRules) {
+      const handEvidence = getBasicOpeningSupportLine(result, rule);
+      if (handEvidence !== null) lines.push(handEvidence);
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }

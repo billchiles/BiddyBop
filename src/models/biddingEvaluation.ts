@@ -4,7 +4,7 @@
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
-         type AppliesWhenResult, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type AppliesWhenResult, type BasicOpeningEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
@@ -86,6 +86,7 @@ export interface CandidateCallMatch {
   // Whether this call satisfies the rule for the current hand, after suppressions.
   ruleApplies: boolean;
   telemetryLines: string[];
+  basicOpeningEvidence?: BasicOpeningEvidence[];
 }
 
 
@@ -473,7 +474,8 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
-  return { rule, call, ruleApplies: result.success, telemetryLines };
+  return { rule, call, ruleApplies: result.success, telemetryLines,
+           basicOpeningEvidence: result.basicOpeningEvidence };
 }
 
 
@@ -897,6 +899,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                                  context: RuleEvalContext, system: BiddingSystem)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
+  // Instrument only basic opening calls for now. Other rule families retain their
+  // current evaluator results until we examine their instructional requirements.
+  const basicOpening = context.stage === 'opening' &&
+    (call === '1NT' || call === '2NT' || call === '2C');
+  const basicOpeningEvidence: BasicOpeningEvidence[] = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
     const shift = constraint.hcpRelativeToOneNtOpening
@@ -905,6 +912,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                     max: constraint.hcp.max === undefined ? undefined : constraint.hcp.max - shift };
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
+    if (basicOpening) {
+      basicOpeningEvidence.push({ kind: 'hcp', actual: context.handFacts.hcp,
+        min: range.min, max: range.max, passed: result.pass });
+    }
     pass = pass && result.pass;
   }
   if (constraint.totalPoints !== undefined) {
@@ -922,6 +933,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.shape !== undefined) {
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
+    if (basicOpening && constraint.shape.balanced === true) {
+      basicOpeningEvidence.push({ kind: 'balanced', actual: context.handFacts.balanced,
+        passed: context.handFacts.balanced });
+    }
     pass = pass && result.pass;
   }
   if (constraint.supportLength !== undefined) {
@@ -929,7 +944,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     pass = pass && result.pass;
   }
-  return { success: pass, telemetryLines };
+  return { success: pass, telemetryLines,
+    basicOpeningEvidence: basicOpening ? basicOpeningEvidence : undefined };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)
