@@ -339,17 +339,32 @@ export type AppliesWhenFunction = (
   system: BiddingSystem,
 ) => AppliesWhenResult;
 
-/// Hand-specific evidence retained for the first opening-explanation family. Other rule
-/// families are unchanged until their explanation requirements have been reviewed.
-export type BasicOpeningEvidence =
-  | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
-  | { kind: 'balanced'; actual: boolean; passed: boolean }
-  | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean };
+/// Optional evaluation evidence used to explain a particular call. Add fields as rule
+/// families need them; not every rule is required to produce evidence.
+export interface CallEvidence {
+  requirements?: (
+    | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'balanced'; actual: boolean; passed: boolean }
+    | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
+  )[];
+  openingSelection?: {
+    call: Call;
+    reason: 'only-major' | 'longer-major' | 'equal-majors' | 'longer-minor' |
+      'equal-four-minors' | 'equal-three-minors' | 'equal-long-minors';
+  };
+  convenientMinor?: {
+    hcp: number;
+    totalPoints: number;
+    balanced: boolean;
+    hasFiveCardMajor: boolean;
+  };
+  suppressedBy?: Call;
+}
 
 export interface AppliesWhenResult {
   success: boolean;
   telemetryLines: string[];
-  basicOpeningEvidence?: BasicOpeningEvidence[];
+  callEvidence?: CallEvidence;
 }
 
 /// callRefinement narrows or orders a rule's declared calls for the actual auction; it does not decide rule context.
@@ -365,6 +380,7 @@ export interface CallRefinementResult {
   // uniquely correct.
   calls: Call[];
   telemetryLines: string[];
+  callEvidence?: CallEvidence;
 }
 
 /// RuleEvalContext contains model-derived auction/hand state available to rule functions.

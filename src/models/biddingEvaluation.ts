@@ -4,7 +4,8 @@
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
-         type AppliesWhenResult, type BasicOpeningEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type CallRefinementResult,
+         type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
@@ -77,6 +78,7 @@ export interface RuleEvalResult {
   ruleApplies: boolean;
   // Detailed rule-specific trace, including unsuccessful candidate checks.
   telemetryLines: string[];
+  callEvidence?: CallEvidence;
 }
 
 /// One candidate call generated from a rule, after auction-dependent refinement.
@@ -86,7 +88,7 @@ export interface CandidateCallMatch {
   // Whether this call satisfies the rule for the current hand, after suppressions.
   ruleApplies: boolean;
   telemetryLines: string[];
-  basicOpeningEvidence?: BasicOpeningEvidence[];
+  callEvidence?: CallEvidence;
 }
 
 
@@ -385,7 +387,8 @@ function evaluateRule (rule: BidRule, context: RuleEvalContext,
   telemetryLines.push(...callResult.telemetryLines.map((line) => `  ${line}`));
   if (calls.length === 0) {
     telemetryLines.push('  FAIL: rule has no calls after call refinement.');
-    return { rule, candidates, ruleApplies: false, telemetryLines };
+    return { rule, candidates, ruleApplies: false, telemetryLines,
+      callEvidence: callResult.callEvidence };
   }
   telemetryLines.push(`  Rule has ${calls.length} candidate call(s): ${calls.join(', ')}.`);
   for (const call of calls) {
@@ -402,7 +405,8 @@ function evaluateRule (rule: BidRule, context: RuleEvalContext,
   } else {
     telemetryLines.push('  FAIL: no call candidate matched.');
   }
-  return { rule, candidates, ruleApplies: pass, telemetryLines };
+  return { rule, candidates, ruleApplies: pass, telemetryLines,
+    callEvidence: callResult.callEvidence };
 }
 
 
@@ -475,7 +479,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
   return { rule, call, ruleApplies: result.success, telemetryLines,
-           basicOpeningEvidence: result.basicOpeningEvidence };
+           callEvidence: result.callEvidence };
 }
 
 
@@ -558,8 +562,12 @@ function maybeSuppressConvenientMinor (ruleDiagnostics: RuleEvalResult[]): RuleE
     if (candidate.ruleApplies) {
       candidate.ruleApplies = false;
       candidate.telemetryLines.push(suppressionLine);
+      candidate.callEvidence = { ...candidate.callEvidence, suppressedBy: naturalNtCall };
     }
   }
+  convenientMinorResult.callEvidence = {
+    ...convenientMinorResult.callEvidence, suppressedBy: naturalNtCall,
+  };
   return ruleDiagnostics;
 } // maybeSuppressConvenientMinor()
 
@@ -899,11 +907,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                                  context: RuleEvalContext, system: BiddingSystem)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
-  // Instrument only basic opening calls for now. Other rule families retain their
-  // current evaluator results until we examine their instructional requirements.
-  const basicOpening = context.stage === 'opening' &&
+  // Collect declarative requirements for these opening calls only; other rule families
+  // remain unchanged until their explanation requirements are reviewed.
+  const explainOpeningRequirements = context.stage === 'opening' &&
     (call === '1NT' || call === '2NT' || call === '2C');
-  const basicOpeningEvidence: BasicOpeningEvidence[] = [];
+  const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
     const shift = constraint.hcpRelativeToOneNtOpening
@@ -912,8 +920,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                     max: constraint.hcp.max === undefined ? undefined : constraint.hcp.max - shift };
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
-    if (basicOpening) {
-      basicOpeningEvidence.push({ kind: 'hcp', actual: context.handFacts.hcp,
+    if (explainOpeningRequirements) {
+      requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
     pass = pass && result.pass;
@@ -933,8 +941,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.shape !== undefined) {
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
-    if (basicOpening && constraint.shape.balanced === true) {
-      basicOpeningEvidence.push({ kind: 'balanced', actual: context.handFacts.balanced,
+    if (explainOpeningRequirements && constraint.shape.balanced === true) {
+      requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
         passed: context.handFacts.balanced });
     }
     pass = pass && result.pass;
@@ -945,7 +953,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     pass = pass && result.pass;
   }
   return { success: pass, telemetryLines,
-    basicOpeningEvidence: basicOpening ? basicOpeningEvidence : undefined };
+    callEvidence: explainOpeningRequirements ? { requirements } : undefined };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)
@@ -1424,7 +1432,7 @@ function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
 /// semantically repurposed call before alternative calls are considered.
 ///
 function getRuleCalls (rule: BidRule, context: RuleEvalContext,
-                       system: BiddingSystem): { calls: Call[]; telemetryLines: string[] } {
+                       system: BiddingSystem): CallRefinementResult {
   if (rule.calls === undefined) {
     return { calls: [], telemetryLines: [] };
   }
@@ -1442,5 +1450,6 @@ function getRuleCalls (rule: BidRule, context: RuleEvalContext,
   return {
     calls: refined.calls.filter((call) => available.includes(call)),
     telemetryLines: [...telemetryLines, ...refined.telemetryLines],
+    callEvidence: refined.callEvidence,
   };
 }

@@ -11,31 +11,36 @@ import { parseSuitBid } from './auction';
 //// Suit and Notrump Openings
 ///
 
-/// refineOneLevelSuitOpening chooses the one-level suit opening implied by five-card-major and
-/// convenient-minor priorities.  Branch order is significant: with two 5+ majors choose the
-/// higher-ranking spade suit; otherwise use the longer minor, breaking a 4-4 minor tie with 1D and
-/// a 3-3 tie with 1C.
-///
-export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalContext) : 
+/// Choose the longest five-card major first, breaking equal-major ties with spades.
+/// Without a five-card major, choose the longer minor; four-four ties favor diamonds,
+/// three-three ties favor clubs, and equal longer minors favor diamonds.
+export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalContext) :
       CallRefinementResult {
   const lengths = context.handFacts.lengths;
   let wantedCall: Call;
-  if (lengths.S >= 5) {
-    wantedCall = '1S';
-  } else if (lengths.H >= 5) {
-    wantedCall = '1H';
+  let reason: NonNullable<CallRefinementResult['callEvidence']>['openingSelection'];
+  if (lengths.S >= 5 || lengths.H >= 5) {
+    wantedCall = lengths.H > lengths.S ? '1H' : '1S';
+    reason = { call: wantedCall, reason: lengths.H === lengths.S ? 'equal-majors' :
+      Math.min(lengths.H, lengths.S) >= 5 ? 'longer-major' : 'only-major' };
   } else if (lengths.D > lengths.C) {
     wantedCall = '1D';
+    reason = { call: wantedCall, reason: 'longer-minor' };
   } else if (lengths.C > lengths.D) {
     wantedCall = '1C';
+    reason = { call: wantedCall, reason: 'longer-minor' };
   } else if (lengths.D >= 4) {
     wantedCall = '1D';
+    reason = { call: wantedCall, reason: lengths.D === 4 ? 'equal-four-minors' : 'equal-long-minors' };
   } else {
     wantedCall = '1C';
+    reason = { call: wantedCall, reason: 'equal-three-minors' };
   }
-  return { calls: calls.filter((call) => call === wantedCall),
-           telemetryLines: [`One-level suit opening resolves to ${wantedCall} ` +
-                            `by five-card-major/convenient-minor priorities.`]};
+  return {
+    calls: calls.filter((call) => call === wantedCall),
+    callEvidence: { openingSelection: reason },
+    telemetryLines: [`One-level suit opening resolves to ${wantedCall} by ${reason.reason}.`],
+  };
 }
 
 /// The convenient-minor route should not open a balanced 11-HCP hand just because its
@@ -46,7 +51,11 @@ export function convenientMinorOpeningValuesApply (_call: Call, context: RuleEva
   const facts = context.handFacts;
   const success = ! facts.hasFiveCardMajor && facts.hcp <= 21 && facts.totalPointsWLength >= 12 &&
     (! facts.balanced || facts.hcp >= 12);
-  return { success, telemetryLines: [
+  return { success,
+    callEvidence: { convenientMinor: { hcp: facts.hcp,
+      totalPoints: facts.totalPointsWLength, balanced: facts.balanced,
+      hasFiveCardMajor: facts.hasFiveCardMajor } },
+    telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: convenient-minor opening needs 12 length-adjusted points, ` +
     'and at least 12 HCP when balanced; ' +
     `HCP ${facts.hcp}, length-adjusted ${facts.totalPointsWLength}, balanced ${facts.balanced}.`,
@@ -84,14 +93,14 @@ export function oneNtFiveCardLengthUpgradeApplies (_call: Call, context: RuleEva
                   hasFiveCardMajor;
   return {
     success,
-    basicOpeningEvidence: [
+    callEvidence: { requirements: [
       { kind: 'hcp', actual: context.handFacts.hcp,
         min: normalMinimum - 1, max: normalMinimum - 1,
         passed: context.handFacts.hcp === normalMinimum - 1 },
       { kind: 'balanced', actual: context.handFacts.balanced,
         passed: context.handFacts.balanced },
       { kind: 'fiveCardMajor', actual: hasFiveCardMajor, passed: hasFiveCardMajor },
-    ],
+    ] },
     telemetryLines: [
       `${success ? 'APPLIES' : 'FAIL'}: 1NT five-card-major upgrade needs balanced, ` +
       `${normalMinimum - 1} HCP, and a five-card major; HCP=${context.handFacts.hcp}, ` +

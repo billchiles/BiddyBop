@@ -6,7 +6,9 @@ import { getHandFacts, SEATS, SUITS, type Board, type Hand, type HandFacts, type
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
-import { getBasicOpeningFailureLines, getBasicOpeningSupportLine } from '../models/opening-explanations';
+import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
+         getOpeningSelectionFailureLines, getOpeningSelectionSupportLines }
+  from '../models/opening-explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
 
@@ -164,9 +166,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       if (matched.length > 0) {
         explanation.push('Reason for the recorded call:');
         for (const rule of matched) {
-          const handEvidence = correction.result === null ? null :
-            getBasicOpeningSupportLine(correction.result, rule);
-          if (handEvidence !== null) explanation.push(handEvidence);
+          if (correction.result !== null) {
+            const handEvidence = getOpeningRequirementSupportLine(correction.result, rule);
+            if (handEvidence !== null) explanation.push(handEvidence);
+            explanation.push(...getOpeningSelectionSupportLines(correction.result, rule));
+          }
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
       } else if (correction.result !== null && status.kind === 'supported') {
@@ -510,7 +514,10 @@ function buildExplanationLines (title: string, result: BidEvalResult,
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
-    const openingReasons = getBasicOpeningFailureLines(result);
+    const openingReasons = [
+      ...getOpeningRequirementFailureLines(result),
+      ...getOpeningSelectionFailureLines(result),
+    ];
     if (openingReasons.length > 0) {
       lines.push('Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons);
@@ -527,8 +534,9 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   } else {
     lines.push('Why this call fits:');
     for (const rule of result.userCallMatchingRules) {
-      const handEvidence = getBasicOpeningSupportLine(result, rule);
+      const handEvidence = getOpeningRequirementSupportLine(result, rule);
       if (handEvidence !== null) lines.push(handEvidence);
+      lines.push(...getOpeningSelectionSupportLines(result, rule));
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }
