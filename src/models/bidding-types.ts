@@ -1,7 +1,7 @@
 /// Core types and current bidding-system settings for the bridge trainer.
 ///
 
-import type { Hand, HandFacts, Seat } from './cards';
+import type { Hand, HandFacts, Seat, Suit } from './cards';
 
 ///
 //// Basic card, suit, bid types
@@ -346,6 +346,10 @@ export interface CallEvidence {
     | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'balanced'; actual: boolean; passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
+    | { kind: 'totalPoints'; actual: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
+    | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
   )[];
   openingSelection?: {
     call: Call;
@@ -359,6 +363,7 @@ export interface CallEvidence {
     hasFiveCardMajor: boolean;
   };
   suppressedBy?: Call;
+  preemptSuitQuality?: { call: Call; passed: boolean }[];
 }
 
 export interface AppliesWhenResult {

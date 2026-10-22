@@ -7,8 +7,11 @@ import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
-         getOpeningSelectionFailureLines, getOpeningSelectionSupportLines }
-  from '../models/opening-explanations';
+         getOpeningSelectionFailureLines, getOpeningSelectionSupportLines,
+         getPreemptOpeningSupportLine, getPreemptOpeningFailureLines,
+         getTakeoutDoubleSupportLine, getTakeoutDoubleFailureLines,
+         getBalancingDoubleSupportLine, getBalancingDoubleFailureLines }
+  from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
 
@@ -139,7 +142,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const title = `------------ ${getSeatLabel(seat)} ${call} — ${getStageLabel(stage)} ------------`;
     // The next-seat preview already occupies this position in the visible transcript.
     // Commit its exact lines before recording the call, so they never jump between seats.
-    const explanation = status.kind === 'supported' && result !== null
+    const assessedDouble = result !== null &&
+      (getTakeoutDoubleFailureLines(result).length > 0 ||
+       getBalancingDoubleFailureLines(result).length > 0);
+    const explanation = (status.kind === 'supported' || assessedDouble) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
         ? [...turnGuidance, correction === null && testDeal !== undefined
@@ -170,6 +176,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             const handEvidence = getOpeningRequirementSupportLine(correction.result, rule);
             if (handEvidence !== null) explanation.push(handEvidence);
             explanation.push(...getOpeningSelectionSupportLines(correction.result, rule));
+            const preempt = getPreemptOpeningSupportLine(correction.result, rule);
+            if (preempt !== null) explanation.push(preempt);
+            const doubleEvidence = getTakeoutDoubleSupportLine(correction.result, rule) ??
+              getBalancingDoubleSupportLine(correction.result, rule);
+            if (doubleEvidence !== null) explanation.push(doubleEvidence);
           }
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
@@ -509,7 +520,11 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const candidates = getApplicableCandidateCalls(result);
   lines.push(title);
   const scopeBoundary = result.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
-  if (scopeBoundary !== undefined && candidates.length === 0) {
+  const doubleReasons = [
+    ...getTakeoutDoubleFailureLines(result),
+    ...getBalancingDoubleFailureLines(result),
+  ];
+  if (scopeBoundary !== undefined && candidates.length === 0 && doubleReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -517,15 +532,18 @@ function buildExplanationLines (title: string, result: BidEvalResult,
     const openingReasons = [
       ...getOpeningRequirementFailureLines(result),
       ...getOpeningSelectionFailureLines(result),
+      ...getPreemptOpeningFailureLines(result),
     ];
-    if (openingReasons.length > 0) {
-      lines.push('Why this opening does not meet the selected requirements:');
-      lines.push(...openingReasons);
+    if (openingReasons.length > 0 || doubleReasons.length > 0) {
+      lines.push(doubleReasons.length > 0
+        ? 'Why this Double does not meet the selected requirements:'
+        : 'Why this opening does not meet the selected requirements:');
+      lines.push(...openingReasons, ...doubleReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
     }
-    const preferredRule = result.applicableRules[0];
+    const preferredRule = result.applicableRules.find((rule) => rule.kind !== 'scopeBoundary');
     if (preferredRule !== undefined) {
       lines.push('');
       lines.push('The trainer prefers:');
@@ -537,6 +555,11 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       const handEvidence = getOpeningRequirementSupportLine(result, rule);
       if (handEvidence !== null) lines.push(handEvidence);
       lines.push(...getOpeningSelectionSupportLines(result, rule));
+      const preempt = getPreemptOpeningSupportLine(result, rule);
+      if (preempt !== null) lines.push(preempt);
+      const doubleEvidence = getTakeoutDoubleSupportLine(result, rule) ??
+        getBalancingDoubleSupportLine(result, rule);
+      if (doubleEvidence !== null) lines.push(doubleEvidence);
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }

@@ -470,7 +470,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   if (typeof appliesWhen === 'function') {
     result = appliesWhen(call, context, system);
   } else {
-    result = evaluateHandConstraint(appliesWhen, call, context, system);
+    result = evaluateHandConstraint(appliesWhen, call, context, system, rule.id);
   }
   telemetryLines.push(...result.telemetryLines);
   if (result.success) {
@@ -904,13 +904,19 @@ function maybeSuppress1NTWhenMajorSupport (ruleDiagnostics: RuleEvalResult[]) :
 /// evaluateHandConstraint evaluates rule.appliesWhen's declarative hand constraints against a call.
 ///
 function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
-                                 context: RuleEvalContext, system: BiddingSystem)
+                                 context: RuleEvalContext, system: BiddingSystem, ruleId: string)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
   // Collect declarative requirements for these opening calls only; other rule families
   // remain unchanged until their explanation requirements are reviewed.
   const explainOpeningRequirements = context.stage === 'opening' &&
     (call === '1NT' || call === '2NT' || call === '2C');
+  const explainPreemptRequirements = context.stage === 'opening' &&
+    (ruleId === 'open-weak-two' || ruleId === 'open-weak-three' ||
+     ruleId === 'open-four-level-preempt' || ruleId === 'open-five-level-minor-preempt');
+  const explainStrongTakeoutDouble = context.stage === 'overcalling' && call === 'Double' &&
+    (ruleId === 'overcall-takeout-double-strong-hand' ||
+     ruleId === 'overcall-weak-two-takeout-double-strong-hand');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -920,7 +926,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                     max: constraint.hcp.max === undefined ? undefined : constraint.hcp.max - shift };
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
-    if (explainOpeningRequirements) {
+    if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -929,12 +935,24 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.totalPoints !== undefined) {
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
+    if (explainPreemptRequirements) {
+      requirements.push({ kind: 'totalPoints', actual: result.actual,
+        min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
+    }
     pass = pass && result.pass;
   }
   if (constraint.suitLengths !== undefined) {
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
+      if (explainPreemptRequirements) {
+        const bid = parseSuitBid(call);
+        if (bid !== null && bid.strain !== 'NT') {
+          requirements.push({ kind: 'suitLength', actual: context.handFacts.lengths[bid.strain],
+            exact: suitLength.exact, min: suitLength.min, max: suitLength.max,
+            passed: result.pass });
+        }
+      }
       pass = pass && result.pass;
     }
   }
@@ -953,7 +971,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     pass = pass && result.pass;
   }
   return { success: pass, telemetryLines,
-    callEvidence: explainOpeningRequirements ? { requirements } : undefined };
+    callEvidence: explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble
+      ? { requirements } : undefined };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)
@@ -968,13 +987,13 @@ function testPointRange (value: number, range: PointRange, label: string)
 }
 
 function testTotalPointsRange (context: RuleEvalContext, range: TotalPointsRange) :
-     { pass: boolean; telemetryLines: string[] } {
+     { pass: boolean; telemetryLines: string[]; actual: number } {
   const useShortage = range.valuation === 'shortage';
   const value = useShortage ? context.handFacts.totalPointsWShortage
                             : context.handFacts.totalPointsWLength;
   const label = useShortage ? 'total points with shortage' : 'total points with length';
   const result = testPointRange(value, range, label);
-  return { pass: result.pass, telemetryLines: [result.telemetryLine] };
+  return { pass: result.pass, telemetryLines: [result.telemetryLine], actual: value };
 }
 
 /// testSuitLengths compares one declared suit-length constraint with the bidder's hand.  When the

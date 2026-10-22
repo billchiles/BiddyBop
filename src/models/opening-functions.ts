@@ -117,13 +117,14 @@ export function oneNtFiveCardLengthUpgradeApplies (_call: Call, context: RuleEva
 ///
 export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContext) :
       CallRefinementResult {
-  const refinedCalls = calls.filter((call) => {
+  const quality = calls.map((call) => {
     const candidate = parseSuitBid(call)!;
     const suit = candidate.strain as Suit; // only rules with suit calls use this refiner, no NT
-    return hasPreemptSuitQuality(context.hand, suit);
+    return { call, passed: hasPreemptSuitQuality(context.hand, suit) };
   });
   return {
-    calls: refinedCalls,
+    calls: quality.filter(({ passed }) => passed).map(({ call }) => call),
+    callEvidence: { preemptSuitQuality: quality },
     telemetryLines: [
       'Keep preempt candidates with at least two of A/K/Q or at least three of A/K/Q/J/T.',
     ],

@@ -8,7 +8,7 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine } from '../src/models/opening-explanations';
+import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine } from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,

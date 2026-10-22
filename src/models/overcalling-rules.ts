@@ -1742,9 +1742,10 @@ export const OvercallRules: BidRule[] = [
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
     appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ shortage points, 3+ in all unbid suits
-    meaning: 'Takeout double with opening values and at least three cards in each unbid suit.',
-    guidance: ['Prefer four-card support in the unbid suits. Partner is being asked to select a ' +
-               'suit, not to treat this as a penalty double.',
+    meaning: 'Takeout double with opening values and at least three cards in each unbid suit; ' +
+             'asks partner to choose another suit rather than defending opener’s suit.',
+    guidance: ['Prefer four-card support in the unbid suits. The Double does not promise a ' +
+               'specific length or shortness in opener’s suit.',
                'An 18+ HCP hand may double without this distribution, then describe its strength ' +
                'or suit on the next turn.'],
     certainty: 'high',
@@ -1807,9 +1808,11 @@ export const OvercallRules: BidRule[] = [
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
     appliesWhen: ordinaryTakeoutDoubleApplies,
-    meaning: 'Takeout double with 13+ shortage points and at least three cards in each unbid suit.',
+    meaning: 'Takeout double with 13+ shortage points and at least three cards in each unbid suit; ' +
+             'asks partner to choose an unbid suit.',
     guidance: ['This uses the same basic takeout-double shape as over a one-level suit opening. ' +
-               'Prefer four-card support in the unbid suits when possible.'],
+               'Prefer four-card support in the unbid suits when possible; no particular ' +
+               'shortness in opener’s suit is promised.'],
     certainty: 'high',
   },
   //
@@ -1855,11 +1858,13 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: { hcp: { min: 6, max: 14 } },
     priority: { rank: 50 },
     callCategory: ['natural'],
-    meaning: 'A balancing suit bid can be about a king lighter than a direct-seat overcall.',
+    meaning: 'A balancing suit bid can be about a king lighter than an overcall ' +
+             'in the seat immediately after opener.',
     guidance: ['Show a good five-card suit or any six-card suit at the cheapest level. ' +
                'Partner may have values despite passing directly; do not infer full opening values.',
                'A jump to a new suit is constructive in the balancing seat, not a weak ' +
-               'direct-seat preempt; jump bidding is outside this executable treatment.',
+               'weak jump overcall immediately after opener; jump bidding is outside ' +
+               'this executable treatment.',
                'Vulnerability and the likely defensive result still matter.'],
     certainty: 'high',
   },
@@ -1891,7 +1896,7 @@ export const OvercallRules: BidRule[] = [
     priority: { rank: 70 },
     callCategory: ['natural'],
     meaning: 'Natural balancing 1NT: 12–15 HCP, balanced, with a stopper in opener’s suit.',
-    guidance: ['This is weaker than the 15–18 HCP direct 1NT overcall. ' +
+    guidance: ['This is weaker than a 15–18 HCP 1NT overcall immediately after opener. ' +
                'Partner should allow for the balancing range when evaluating game.',
                'With a stronger suitable hand, Double first and describe notrump later; ' +
                'the subsequent auction is not practiced here.'],
@@ -1908,7 +1913,7 @@ export const OvercallRules: BidRule[] = [
     priority: { rank: 40 },
     callCategory: ['conventional', 'forcing'],
     meaning: 'Balancing takeout Double: suitable shortage and support for the unbid suits, ' +
-             'with less strength than a direct-seat takeout Double.',
+             'with less strength than a takeout Double immediately after opener.',
     guidance: ['Partner generally chooses an unbid suit, but need not assume a full opening hand.',
                'A penalty conversion by passing requires unusual defensive strength in ' +
                'opener’s suit; partner’s continuation is outside the practiced auction.'],
@@ -1957,7 +1962,8 @@ export const OvercallRules: BidRule[] = [
     title: 'Balancing choices requiring further judgment',
     auctionContext: { stage: 'balancing', openerLevel: 1, openerStrain: 'suit' },
     meaning: 'Some fourth-seat hands need a partnership-specific or judgment-driven balancing call.',
-    guidance: ['Jump suit bids are constructive rather than the weak direct-seat preempts; ' +
+    guidance: ['Jump suit bids are constructive rather than weak jump overcalls ' +
+               'immediately after opener; ' +
                'strong 2NT, penalty choices, and specialized cuebids are not executable here.',
                'Consider opener-suit length, suit quality, strength, vulnerability and ' +
                'whether passing would defend a favorable contract.'],

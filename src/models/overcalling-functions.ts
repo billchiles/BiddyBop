@@ -1436,16 +1436,23 @@ export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalCont
     return { success: false, telemetryLines: ['FAIL: requires a natural suit opening.'] };
   }
   const unbid = SUITS.filter((suit) => suit !== parsed.strain);
-  const support = unbid.every((suit) => context.handFacts.lengths[suit] >= 3);
+  const shortSuits = unbid.filter((suit) => context.handFacts.lengths[suit] < 3);
+  const support = shortSuits.length === 0;
   const points = context.handFacts.totalPointsWShortage;
+  const hcp = context.handFacts.hcp;
   return {
-    success: support && points >= 13 && context.handFacts.hcp < 18,
+    success: support && points >= 13 && hcp < 18,
     telemetryLines: [
       `${points >= 13 ? 'PASS' : 'FAIL'}: ${points} points with shortage; need at least 13.`,
       `${support ? 'PASS' : 'FAIL'}: need three cards in each unbid suit (${unbid.map((suit) =>
         `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}).`,
-      `${context.handFacts.hcp < 18 ? 'PASS' : 'FAIL'}: 18+ HCP uses the strong-double rule.`,
+      `${hcp < 18 ? 'PASS' : 'FAIL'}: 18+ HCP uses the strong-double rule.`,
     ],
+    callEvidence: { requirements: [
+      { kind: 'totalPoints', actual: points, min: 13, passed: points >= 13 },
+      { kind: 'unbidSuitSupport', min: 3, shortSuits, passed: support },
+      { kind: 'hcp', actual: hcp, max: 17, passed: hcp < 18 },
+    ] },
   };
 }
 
@@ -1506,8 +1513,8 @@ export function balancingTakeoutDoubleApplies (call: Call, context: RuleEvalCont
   const suit = getBalancingOpeningSuit(context);
   if (call !== 'Double' || suit === null) return { success: false, telemetryLines: ['Not a balancing Double.'] };
   const { hcp, lengths, totalPointsWShortage } = context.handFacts;
-  const support = SUITS.filter((unbid) => unbid !== suit)
-    .every((unbid) => lengths[unbid] >= 3);
+  const shortSuits = SUITS.filter((unbid) => unbid !== suit && lengths[unbid] < 3);
+  const support = shortSuits.length === 0;
   const short = lengths[suit] <= 2;
   const eligible = hcp >= 8 && hcp < 16 && totalPointsWShortage >= 10;
   return { success: support && short && eligible, telemetryLines: [
@@ -1515,7 +1522,13 @@ export function balancingTakeoutDoubleApplies (call: Call, context: RuleEvalCont
       `${hcp} HCP, ${totalPointsWShortage} shortage points.`,
     `${short ? 'PASS' : 'FAIL'}: at most two cards in opener's suit.`,
     `${support ? 'PASS' : 'FAIL'}: at least three cards in each unbid suit.`,
-  ] };
+  ], callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: 8, max: 15, passed: hcp >= 8 && hcp < 16 },
+    { kind: 'totalPoints', actual: totalPointsWShortage, min: 10,
+      passed: totalPointsWShortage >= 10 },
+    { kind: 'openerSuitLength', actual: lengths[suit], max: 2, passed: short },
+    { kind: 'unbidSuitSupport', min: 3, shortSuits, passed: support },
+  ] } };
 }
 
 export function balancingStrongDoubleApplies (call: Call, context: RuleEvalContext):
@@ -1529,7 +1542,10 @@ export function balancingStrongDoubleApplies (call: Call, context: RuleEvalConte
   return { success: eligible, telemetryLines: [
     `${hcp >= 16 ? 'PASS' : 'FAIL'}: strong balancing Double requires 16+ HCP.`,
     `${lengths[suit] <= 3 ? 'PASS' : 'FAIL'}: opener-suit length must be at most three.`,
-  ] };
+  ], callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: 16, passed: hcp >= 16 },
+    { kind: 'openerSuitLength', actual: lengths[suit], max: 3, passed: lengths[suit] <= 3 },
+  ] } };
 }
 
 export function balancingPassApplies (call: Call, context: RuleEvalContext):
