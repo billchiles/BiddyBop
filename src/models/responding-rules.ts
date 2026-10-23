@@ -582,11 +582,20 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: (_call, context) => {
       const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
       const major = opening?.slice(-1) as 'H' | 'S' | undefined;
-      const success = !responderPreviouslyPassed(context.dealer, context.auction) &&
+      const unpassed = !responderPreviouslyPassed(context.dealer, context.auction);
+      const success = unpassed &&
         (major === 'H' || major === 'S') && context.handFacts.hcp >= 6 &&
         context.handFacts.hcp <= 12 && context.handFacts.lengths[major] <= 2;
       return { success, telemetryLines: [success ? 'Unpassed responder: forcing 1NT is available.' :
-        'Forcing 1NT requires an unpassed responder and the stated hand requirements.'] };
+        'Forcing 1NT requires an unpassed responder and the stated hand requirements.'],
+        callEvidence: { requirements: [
+          { kind: 'hcp', actual: context.handFacts.hcp, min: 6, max: 12,
+            passed: context.handFacts.hcp >= 6 && context.handFacts.hcp <= 12 },
+          { kind: 'partnerSupport', suit: major === 'H' || major === 'S' ? major : undefined,
+            actual: major === 'H' || major === 'S' ? context.handFacts.lengths[major] : 0,
+            max: 2, passed: (major === 'H' || major === 'S') && context.handFacts.lengths[major] <= 2 },
+          { kind: 'responderPreviouslyPassed', actual: !unpassed, required: false, passed: unpassed },
+        ] } };
     },
     guidance: ['No available preferred suit response.',
                'Forcing only when responder has not previously passed and opponents have not interfered.'],
@@ -609,7 +618,16 @@ export const ResponseBidRules: BidRule[] = [
         (major === 'H' || major === 'S') && context.handFacts.hcp >= 6 &&
         context.handFacts.hcp <= 10 && context.handFacts.lengths[major] <= 2;
       return { success, telemetryLines: [success ? 'Passed-hand 1NT is nonforcing.' :
-        'Only a previously passed responder with minimum values uses this 1NT.'] };
+        'Only a previously passed responder with minimum values uses this 1NT.'],
+        callEvidence: { requirements: [
+          { kind: 'hcp', actual: context.handFacts.hcp, min: 6, max: 10,
+            passed: context.handFacts.hcp >= 6 && context.handFacts.hcp <= 10 },
+          { kind: 'partnerSupport', suit: major === 'H' || major === 'S' ? major : undefined,
+            actual: major === 'H' || major === 'S' ? context.handFacts.lengths[major] : 0,
+            max: 2, passed: (major === 'H' || major === 'S') && context.handFacts.lengths[major] <= 2 },
+          { kind: 'responderPreviouslyPassed', actual: responderPreviouslyPassed(context.dealer, context.auction),
+            required: true, passed: responderPreviouslyPassed(context.dealer, context.auction) },
+        ] } };
     },
     meaning: 'A previously passed hand responds 1NT naturally; opener may Pass.',
     certainty: 'high',
@@ -617,16 +635,32 @@ export const ResponseBidRules: BidRule[] = [
   //
   {
     id: 'respond-to-major-w/o-support-1nt-standard',
-    // Standard non-forcing 1NT response to a major with 6-10 HCP and no support.
+    // Standard shows 6-10 HCP; with 2/1 selected the non-forcing setting is semi-forcing
+    // and shows 6-12. Opener may Pass in either case.
     kind: 'responseBid',
-    title: 'Standard style 1NT response to a major',
+    title: 'Nonforcing or semi-forcing 1NT without support',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
-    callCategory: ['invitational'],
+    callCategory: ['natural'],
     agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
-                 note: 'Standard non-forcing 1NT response to a major.' },
-    appliesWhen: { hcp: { min: 6, max: 10 }, supportLength: { max: 2 } },
-    meaning: 'Playing Standard, 1NT over a major shows 6-10 and is non-forcing.',
+                 note: 'Nonforcing under Standard; semi-forcing under 2/1.' },
+    appliesWhen: (_call, context, system) => {
+      const hcp = context.handFacts.hcp;
+      const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
+      const major = opening?.slice(-1) as 'H' | 'S' | undefined;
+      const max = system.twoLevelNewSuitResponse === 'twoOverOne' ? 12 : 10;
+      const support = major === 'H' || major === 'S' ? context.handFacts.lengths[major] : 0;
+      const success = (major === 'H' || major === 'S') && hcp >= 6 && hcp <= max && support <= 2;
+      return { success, telemetryLines: [
+        `${success ? 'APPLIES' : 'FAIL'}: ${system.twoLevelNewSuitResponse === 'twoOverOne' ?
+          'semi-forcing' : 'Standard nonforcing'} 1NT requires 6-${max} HCP and no major support.`,
+      ], callEvidence: { requirements: [
+        { kind: 'hcp', actual: hcp, min: 6, max, passed: hcp >= 6 && hcp <= max },
+        { kind: 'partnerSupport', suit: major === 'H' || major === 'S' ? major : undefined,
+          actual: support, max: 2, passed: support <= 2 },
+      ] } };
+    },
+    meaning: 'Nonforcing 1NT: 6-10 under Standard; semi-forcing 6-12 under 2/1. Opener may Pass.',
     certainty: 'high',
   },
   //

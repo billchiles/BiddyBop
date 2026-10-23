@@ -231,7 +231,9 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
 
 - Standard non-forcing 1NT responses to a major are the default. `majorOneNtResponse: 'forcing'`
   means opener may not pass. With 2/1 and `majorOneNtResponse: 'nonForcing'`, the combination is the
-  common semi-forcing treatment.
+  common semi-forcing treatment: 1NT shows 6-12 HCP rather than Standard's 6-10, and
+  opener may Pass. With `majorOneNtResponse: 'forcing'`, an unpassed responder's 1NT
+  remains forcing; a previously passed responder cannot establish a 2/1 game force.
 - With a forcing 1NT response to a major, opener first makes any suitable natural rebid. If no
   descriptive action exists, opener manufactures a minor: normally at least three cards, choosing
   the longer minor, but exceptionally `2C` on two cards when neither minor has three. Responder

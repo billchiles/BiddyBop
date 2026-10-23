@@ -1249,3 +1249,147 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
   }
   return lines;
 }
+
+///
+//// Responses to a major opening without support (B12)
+///
+
+const MAJOR_NO_SUPPORT_IDS = [
+  'respond-to-major-w/o-support-new-suit-one-level',
+  'respond-to-major-w/o-support-new-suit-two-level-standard',
+  'respond-to-major-w/o-support-new-suit-two-level-two-over-one',
+  'respond-to-major-w/o-support-1nt-twooverone',
+  'respond-to-major-w/o-support-1nt-passed-hand',
+  'respond-to-major-w/o-support-1nt-standard',
+];
+
+function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+/// A refiner orders legitimate two-level suit candidates without rejecting the others. Report
+/// that decision only after the evaluator confirms which candidate calls actually qualified.
+function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
+  const { diagnostic } = noSupportDiagnostic(result, ruleId);
+  const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
+  if (selection === undefined) return null;
+  const qualified = selection.orderedCalls.filter((call) =>
+    diagnostic?.candidates.some((item) => item.call === call && item.ruleApplies));
+  if (qualified.length < 2) return null;
+  const preferred = qualified[0];
+  const chosen = result.normalizedCall;
+  const preferredLength = selection.considered.find(({ call }) => call === preferred)?.length;
+  const other = chosen === preferred ? qualified[1] : chosen;
+  const otherLength = selection.considered.find(({ call }) => call === other)?.length;
+  if (preferredLength === undefined || otherLength === undefined) return null;
+  if (preferredLength > otherLength) {
+    return `Both ${preferred} and ${other} qualify. The longer new suit (${preferred}) ` +
+      `comes first; ${other} remains a supported alternative.`;
+  }
+  if (preferredLength >= 5) {
+    return `Both ${preferred} and ${other} qualify with equal length of at least five cards. ` +
+      `Bid the higher-ranking suit (${preferred}) first; ${other} remains supported.`;
+  }
+  return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
+    `Bid up the line (${preferred} first); ${other} remains supported.`;
+}
+
+/// Give positive explanations for actual qualifying B12 calls, including the selected forcing
+/// obligation. Do not infer a game force from a Standard new-suit response.
+export function getMajorNoSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!MAJOR_NO_SUPPORT_IDS.includes(rule.id)) return [];
+  const { candidate } = noSupportDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  if (hcp === undefined || support === undefined) return [];
+  const entered = result.normalizedCall;
+  if (rule.id === MAJOR_NO_SUPPORT_IDS[0]) {
+    const suit = minorRequirement(candidate, 'suitLength');
+    if (suit === undefined) return [];
+    const suppressedOneNt = result.ruleDiagnostics.find((item) =>
+      (item.rule.id === MAJOR_NO_SUPPORT_IDS[3] || item.rule.id === MAJOR_NO_SUPPORT_IDS[5]) &&
+      item.callEvidence?.suppressedBy === entered);
+    return [`With ${hcp.actual} HCP, ${suit.actual} spades, and no heart fit, ` +
+      `respond 1S. This natural new-suit response is forcing for one round, not to game. ` +
+      `Opener must bid again without interference.` +
+      (suppressedOneNt === undefined ? '' : ' Show the four-card-or-longer spade suit before using 1NT.') +
+      ` [${rule.id}].`];
+  }
+  if (rule.id === MAJOR_NO_SUPPORT_IDS[1] || rule.id === MAJOR_NO_SUPPORT_IDS[2]) {
+    const suit = minorRequirement(candidate, 'suitLength');
+    if (suit === undefined) return [];
+    const gameForce = rule.id === MAJOR_NO_SUPPORT_IDS[2];
+    const lines = [`With ${hcp.actual} HCP, ${suit.actual} cards in your new suit, ` +
+      `and no fit for opener's major, ${entered} meets the ` +
+      `${gameForce ? '2/1 game-forcing' : 'Standard'} natural two-level response requirements. ` +
+      (gameForce
+        ? 'The partnership is committed to bidding at least game.'
+        : 'Opener must bid again without interference, but the partnership is not committed to game.') +
+      ` [${rule.id}].`];
+    const preference = twoLevelNewSuitPreference(result, rule.id);
+    if (preference !== null) lines.push(`${preference} [${rule.id}].`);
+    return lines;
+  }
+  const passedHand = rule.id === MAJOR_NO_SUPPORT_IDS[4];
+  const forcing = rule.id === MAJOR_NO_SUPPORT_IDS[3];
+  const semiForcing = rule.id === MAJOR_NO_SUPPORT_IDS[5] && hcp.max === 12;
+  const treatment = passedHand ? 'previously passed hand' : forcing ? 'forcing 1NT' :
+    semiForcing ? '2/1 semi-forcing 1NT' : 'Standard nonforcing 1NT';
+  const obligation = forcing
+    ? 'Opener must bid again if the opponents do not interfere.'
+    : semiForcing
+      ? 'Opener may Pass with a suitable balanced minimum; otherwise opener can describe their hand.'
+      : 'Opener may Pass.';
+  return [`With ${hcp.actual} HCP and no major-suit fit, 1NT qualifies under the ` +
+    `${treatment} treatment (${hcp.min}–${hcp.max} HCP). ${obligation} ` +
+    `1NT does not necessarily promise a balanced hand. [${rule.id}].`];
+}
+
+/// Explain only the attempted no-support treatment, using evaluated requirements rather than
+/// repeating the rule logic. Support-based routes (B10/B11) retain their own explanations.
+export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  const lines: string[] = [];
+  for (const ruleId of MAJOR_NO_SUPPORT_IDS) {
+    const { diagnostic, candidate } = noSupportDiagnostic(result, ruleId);
+    if (diagnostic === undefined) continue;
+    if (entered === '1NT' && diagnostic.callEvidence?.suppressedBy !== undefined) {
+      lines.push(`After partner opens 1H, a qualifying ${diagnostic.callEvidence.suppressedBy} ` +
+        `response shows your spades before the fallback 1NT. [${ruleId}].`);
+      continue;
+    }
+    if (candidate?.ruleApplies !== false) continue;
+    const hcp = minorRequirement(candidate, 'hcp');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    const suit = minorRequirement(candidate, 'suitLength');
+    const unpassed = minorRequirement(candidate, 'responderPreviouslyPassed');
+    // Three or more trumps belongs to the separate major-support response families.
+    if (support !== undefined && support.actual > 2) continue;
+    if (ruleId === MAJOR_NO_SUPPORT_IDS[4] && unpassed?.passed === false) continue;
+    if (unpassed?.passed === false) {
+      lines.push(ruleId === MAJOR_NO_SUPPORT_IDS[2]
+        ? `A previously passed responder cannot establish a 2/1 game force with ${entered}. ` +
+          `That natural response needs a different passed-hand judgment [${ruleId}].`
+        : `Because you Passed before partner opened, 1NT is not forcing. ` +
+          `Use the modeled passed-hand treatment when it qualifies [${ruleId}].`);
+      continue;
+    }
+    if (suit?.passed === false) {
+      lines.push(`${entered} under this natural new-suit treatment requires at least ` +
+        `${suit.min} cards in the bid suit; you have ${suit.actual} [${ruleId}].`);
+    } else if (hcp?.passed === false) {
+      const range = hcp.max === undefined ? `${hcp.min}+` : `${hcp.min}–${hcp.max}`;
+      const alternative = ruleId === MAJOR_NO_SUPPORT_IDS[2] && hcp.actual >= 6 &&
+        hcp.actual <= 12
+        ? ' A qualifying 1NT response may describe this lower-strength hand under the selected agreement.'
+        : '';
+      lines.push(`${entered} under this treatment requires ${range} HCP; ` +
+        `you have ${hcp.actual}.${alternative} [${ruleId}].`);
+    }
+  }
+  return lines;
+}

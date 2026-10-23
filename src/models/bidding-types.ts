@@ -354,6 +354,7 @@ export interface CallEvidence {
     | { kind: 'stopper'; passed: boolean }
     | { kind: 'minorSupport'; suit: 'C' | 'D'; actual: number; min: number; passed: boolean }
     | { kind: 'noFourCardMajor'; actual: boolean; passed: boolean }
+    | { kind: 'responderPreviouslyPassed'; actual: boolean; required: boolean; passed: boolean }
   )[];
   openingSelection?: {
     call: Call;
@@ -383,6 +384,10 @@ export interface CallEvidence {
     reason: 'shortness' | 'new-suit-available' | 'qualified';
     alternativeCalls: Call[];
     alternativeIsRareThreeCardMinor?: boolean;
+  };
+  majorNoSupportNewSuit?: {
+    orderedCalls: Call[];
+    considered: { call: Call; length: number }[];
   };
   minorResponseSelection?: {
     preferredCall: Call | null;

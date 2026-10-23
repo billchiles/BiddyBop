@@ -15,7 +15,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNaturalOvercallSupportLine, getNaturalOvercallFailureLines,
          getJumpOvercallSupportLine, getJumpOvercallFailureLines,
          getMinorResponseSupportLines, getMinorResponseFailureLines,
-         getMajorSupportLines, getMajorSupportFailureLines }
+         getMajorSupportLines, getMajorSupportFailureLines,
+         getMajorNoSupportLines, getMajorNoSupportFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -154,7 +155,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
        getNaturalOvercallFailureLines(result).length > 0 ||
        getJumpOvercallFailureLines(result).length > 0 ||
        getMinorResponseFailureLines(result).length > 0 ||
-       getMajorSupportFailureLines(result).length > 0);
+       getMajorSupportFailureLines(result).length > 0 ||
+       getMajorNoSupportFailureLines(result).length > 0);
     const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
@@ -196,6 +198,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             if (callEvidenceLine !== null) explanation.push(callEvidenceLine);
             explanation.push(...getMinorResponseSupportLines(correction.result, rule));
             explanation.push(...getMajorSupportLines(correction.result, rule));
+            explanation.push(...getMajorNoSupportLines(correction.result, rule));
           }
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
@@ -544,10 +547,12 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const jumpOvercallReasons = getJumpOvercallFailureLines(result);
   const minorResponseReasons = getMinorResponseFailureLines(result);
   const majorSupportReasons = getMajorSupportFailureLines(result);
+  const majorNoSupportReasons = getMajorNoSupportFailureLines(result);
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
-      minorResponseReasons.length === 0 && majorSupportReasons.length === 0) {
+      minorResponseReasons.length === 0 && majorSupportReasons.length === 0 &&
+      majorNoSupportReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -560,19 +565,20 @@ function buildExplanationLines (title: string, result: BidEvalResult,
     if (openingReasons.length > 0 || doubleReasons.length > 0 ||
         balancingReasons.length > 0 || naturalOvercallReasons.length > 0 ||
         jumpOvercallReasons.length > 0 || minorResponseReasons.length > 0 ||
-        majorSupportReasons.length > 0) {
+        majorSupportReasons.length > 0 || majorNoSupportReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
         : balancingReasons.length > 0
           ? 'Why this balancing call does not meet the selected requirements:'
-          : minorResponseReasons.length > 0 || majorSupportReasons.length > 0
+          : minorResponseReasons.length > 0 || majorSupportReasons.length > 0 ||
+            majorNoSupportReasons.length > 0
             ? 'Why this response does not meet the selected requirements:'
           : naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0
             ? 'Why this overcall does not meet the selected requirements:'
             : 'Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
         ...naturalOvercallReasons, ...jumpOvercallReasons, ...minorResponseReasons,
-        ...majorSupportReasons);
+        ...majorSupportReasons, ...majorNoSupportReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -599,6 +605,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       if (callEvidenceLine !== null) lines.push(callEvidenceLine);
       lines.push(...getMinorResponseSupportLines(result, rule));
       lines.push(...getMajorSupportLines(result, rule));
+      lines.push(...getMajorNoSupportLines(result, rule));
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }
@@ -608,7 +615,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       (doubleReasons.length > 0 || balancingReasons.length > 0 ||
        naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0 ||
-       minorResponseReasons.length > 0 || majorSupportReasons.length > 0)) {
+       minorResponseReasons.length > 0 || majorSupportReasons.length > 0 ||
+       majorNoSupportReasons.length > 0)) {
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);

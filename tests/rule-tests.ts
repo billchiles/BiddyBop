@@ -4525,7 +4525,88 @@ function runThirdAuditRebidTests (): number {
   return failures;
 }
 
-const failureCount = runBasicOpeningExplanationTests() + runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
+
+/// Guard the two semantic B12 fixes without testing explanation wording: the nonforcing 1NT
+/// range follows Standard vs 2/1, and a passed responder cannot establish a 2/1 game force.
+function runMajorNoSupportAgreementTests (): number {
+  const opening = { S: 'AKQ96', H: 'A43', D: '972', C: '54' };
+  const base = { S: '43', H: 'KQ87', D: 'AQ65', C: '762' };
+  const hands = [
+    { hcp: 11, south: base },
+    { hcp: 12, south: { ...base, C: 'J62' } },
+    { hcp: 13, south: { ...base, D: 'AKJ5' } },
+  ];
+  const standard = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const,
+    majorOneNtResponse: 'nonForcing' as const };
+  const semiForcing = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const,
+    majorOneNtResponse: 'nonForcing' as const };
+  const forcing = { ...semiForcing, majorOneNtResponse: 'forcing' as const };
+  const supports = (call: Call, board: ReturnType<typeof makeRuleTestBoard>['board'],
+                    auction: Call[], system: BiddingSystem, ruleId: string): boolean =>
+    evaluateUserCall(call, board, auction, system).userCallMatchingRules.some((rule) =>
+      rule.id === ruleId);
+  let failures = 0;
+  let checks = 0;
+  for (const { hcp, south } of hands) {
+    const { board } = makeRuleTestBoard({ description: 'B12 strength and prior Pass.',
+      north: opening, south, practiceAuction: ['1S', 'Pass', '1NT'] });
+    const actual = makeRuleEvalContext(board, ['1S', 'Pass']).handFacts.hcp;
+    if (actual !== hcp) {
+      failures += 1;
+      console.error(`FAIL B12 fixture: wanted ${hcp} HCP, got ${actual}.`);
+    }
+    const unpassed: Call[] = ['1S', 'Pass'];
+    const passed: Call[] = ['Pass', 'Pass', '1S', 'Pass'];
+    // Use South as dealer for the passed auction: South Passed, North then opened,
+    // and South responds. This preserves the same tested responder's cards.
+    const cases = [
+      { call: '1NT' as Call, auction: unpassed, system: standard,
+        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: false },
+      { call: '1NT' as Call, auction: unpassed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: hcp <= 12 },
+      { call: '1NT' as Call, auction: unpassed, system: forcing,
+        rule: 'respond-to-major-w/o-support-1nt-twooverone', wanted: hcp <= 12 },
+      { call: '2D' as Call, auction: unpassed, system: standard,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-standard', wanted: true },
+      { call: '2D' as Call, auction: unpassed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: hcp >= 13 },
+      { call: '2D' as Call, auction: passed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: false },
+    ];
+    for (const item of cases) {
+      checks += 1;
+      const actualBoard = item.auction === passed ? { ...board, dealer: 'S' as const } : board;
+      if (supports(item.call, actualBoard, item.auction, item.system, item.rule) !== item.wanted) {
+        failures += 1;
+        console.error(`FAIL B12 ${hcp}-HCP ${item.call} after ${item.auction.join(' ')} ` +
+          `in ${item.rule}: expected ${item.wanted}.`);
+      }
+    }
+  }
+  const { board: spadesBoard } = makeRuleTestBoard({
+    description: 'B12 show four spades rather than fallback 1NT after a heart opening.',
+    north: { S: 'A43', H: 'AKJT5', D: '972', C: '54' },
+    south: { S: 'KQ87', H: '93', D: 'AQ65', C: '762' },
+    practiceAuction: ['1H', 'Pass', '1S'],
+  });
+  const spades = ['1H', 'Pass'] as Call[];
+  checks += 2;
+  if (!supports('1S', spadesBoard, spades, forcing,
+      'respond-to-major-w/o-support-new-suit-one-level')) {
+    failures += 1;
+    console.error('FAIL B12 four-card spade response after 1H not supported.');
+  }
+  if (supports('1NT', spadesBoard, spades, forcing,
+      'respond-to-major-w/o-support-1nt-twooverone')) {
+    failures += 1;
+    console.error('FAIL B12 1NT was not suppressed by available 1S.');
+  }
+  console.log(`${failures} ***FAILURES***. Major-no-support agreements: ${checks} behavioral checks.`);
+  console.log('  Protects 11-12 HCP semi-forcing 1NT, passed-hand 2/1, and preferred 1S.\n');
+  return failures;
+}
+
+const failureCount = runMajorNoSupportAgreementTests() + runBasicOpeningExplanationTests() + runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
   runAuctionContextTests() +
   runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
   runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +

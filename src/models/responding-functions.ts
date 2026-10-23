@@ -4,7 +4,7 @@ import {biddingBaseline, STRAIN_ORDER, type AppliesWhenResult,
         type BiddingSystem, type Call, type CallRefinementResult, type RuleEvalContext, 
         type SuitBid} from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
-import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, 
+import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, responderPreviouslyPassed,
         getInterferenceAfterOpening, parseSuitBid, type ParsedSuitBid} from './auction';
 import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningBid, 
         hasBasicSuitStopper, orderMajorSuitCandidates} from './common-rule-helpers';
@@ -232,6 +232,10 @@ export function refineMajorTwoLevelNewSuitByLength (
       ...legalResult.telemetryLines,
       'Order two-level new suits by length; with equal 5+ suits bid the higher-ranking suit first.',
     ],
+    callEvidence: { majorNoSupportNewSuit: {
+      orderedCalls: candidates.map(({ call }) => call),
+      considered: candidates.map(({ call, length }) => ({ call, length })),
+    } },
   };
 }
 
@@ -569,13 +573,6 @@ export function majorDirectThreeNtApplies (_call: Call, context: RuleEvalContext
 ///
 export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContext,
                                              minHcp: number, label: string): AppliesWhenResult {
-  // The responder must first have enough strength for this response.
-  if (context.handFacts.hcp < minHcp) {
-    return { success: false,
-             telemetryLines: [
-               `FAIL: ${label} two-level new-suit response requires ${minHcp}+ HCP; ` +
-               `responder has ${context.handFacts.hcp}.`, ], };
-  }
   const candidate = parseSuitBid(call);
   const opening = getPartnerOpeningBid(context);
   if (candidate === null || opening === null || candidate.strain === 'NT' || opening.strain === 'NT') {
@@ -584,13 +581,27 @@ export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContex
   const supportLength = context.handFacts.lengths[opening.strain as 'C' | 'D' | 'H' | 'S'];
   const candidateLength = context.handFacts.lengths[candidate.strain as 'C' | 'D' | 'H' | 'S'];
   const minSuitLength = candidate.strain === 'H' && opening.strain === 'S' ? 5 : 4;
-  const success = supportLength <= 2 && candidateLength >= minSuitLength;
+  const hcp = context.handFacts.hcp;
+  const unpassed = !responderPreviouslyPassed(context.dealer, context.auction);
+  const needsUnpassed = label === '2/1';
+  const success = hcp >= minHcp && supportLength <= 2 &&
+    candidateLength >= minSuitLength && (!needsUnpassed || unpassed);
   return {
-    success: success,
+    success,
     telemetryLines: [
       `${success ? 'APPLIES' : 'FAIL'}: ${label} two-level new-suit response requires ${minHcp}+ HCP, ` +
       `no major support, and ${minSuitLength}+ cards in ${candidate.strain}.`,
+      ...(needsUnpassed && !unpassed ? ['FAIL: a previously passed responder cannot establish a 2/1 game force.'] : []),
     ],
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: hcp, min: minHcp, passed: hcp >= minHcp },
+      { kind: 'partnerSupport', suit: opening.strain as Suit, actual: supportLength, max: 2,
+        passed: supportLength <= 2 },
+      { kind: 'suitLength', actual: candidateLength, min: minSuitLength,
+        passed: candidateLength >= minSuitLength },
+      ...(needsUnpassed ? [{ kind: 'responderPreviouslyPassed' as const, actual: !unpassed,
+        required: false, passed: unpassed }] : []),
+    ] },
   };
 }
 
