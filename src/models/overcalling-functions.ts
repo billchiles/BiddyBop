@@ -12,8 +12,9 @@ import { hasBasicSuitStopper } from './common-rule-helpers';
 //// Natural Suit Overcalls
 ///
 
-/// refineSimpleSuitOvercall selects the cheapest available non-jump suit bid for the
-/// overcaller. A five-card suit needs the shared good-suit test; six or more cards suffice.
+/// refineSimpleSuitOvercall keeps only the cheapest natural suit overcall.  A one-level
+/// bid needs a good five-card suit or any six-card suit; a two-level bid needs a good
+/// five-card-or-longer suit.  Jump overcalls have separate meanings.
 export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
   if (opening === undefined || opening.substring(1) === 'NT') {
@@ -23,22 +24,68 @@ export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContex
   if (parsedOpening === null) {
     return { calls: [], telemetryLines: ['No contract opening was found.'] };
   }
+  const suitChecks: NonNullable<CallEvidence['naturalOvercallSuit']> = [];
   const qualifying = calls.filter((call) => {
     const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain) {
-      return false;
-    }
-    const cheapest = cheapestBidInStrainAfter(parsedOpening, bid.strain);
-    if (cheapest !== call) {
-      return false;
-    }
+    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain ||
+        (bid.level !== 1 && bid.level !== 2) ||
+        cheapestBidInStrainAfter(parsedOpening, bid.strain) !== call) return false;
     const suit = bid.strain as Suit;
     const length = context.handFacts.lengths[suit];
-    return length >= 6 || (length === 5 && hasPreemptSuitQuality(context.hand, suit));
+    const good = hasPreemptSuitQuality(context.hand, suit);
+    const passed = bid.level === 1 ? length >= 6 || (length >= 5 && good) :
+      length >= 5 && good;
+    suitChecks.push({ call, level: bid.level, length, good, passed });
+    return passed;
   });
   return { calls: qualifying, telemetryLines: [
-    'Keep non-jump new suits with a good five-card suit or any six-card-or-longer suit.',
-  ] };
+    'Keep non-jump suits: good five cards or six-plus at level one; good five-plus at level two.',
+  ], callEvidence: { naturalOvercallSuit: suitChecks } };
+}
+
+/// A one-level overcall normally shows 8–17 HCP.  Cohen allows an exceptional
+/// 7-HCP overcall with an unusually good lead-directing suit, such as AK1098.
+/// Since vulnerability is not modeled, keep the 7-HCP exception deliberately narrow.
+export function naturalOneLevelSuitOvercallApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.level !== 1 || bid.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: requires a natural one-level suit call.'] };
+  }
+  const hcp = context.handFacts.hcp;
+  const cards = getCardsForSuit(context.hand, bid.strain as Suit);
+  const topHonors = cards.filter((card) => ['A', 'K', 'Q'].includes(card.rank)).length;
+  const exceptionalSeven = hcp === 7 && cards.length >= 5 && topHonors >= 2 &&
+    cards.some((card) => card.rank === 'T');
+  const passed = (hcp >= 8 && hcp <= 17) || exceptionalSeven;
+  return {
+    success: passed,
+    telemetryLines: [`${passed ? 'PASS' : 'FAIL'}: one-level overcall normally needs 8–17 HCP; ` +
+      `hand has ${hcp}. The 7-HCP excellent-suit exception ${exceptionalSeven ? 'applies' : 'does not apply'}.`],
+    callEvidence: { naturalOvercallStrength: { hcp, passed, exceptionalSeven, min: 8 } },
+  };
+}
+
+/// At the two level Cohen recommends near-opening strength and a sound suit.
+/// The trainer requires 12 HCP for five cards, but allows a lower HCP floor for a
+/// genuinely longer good suit: 11 with six, 10 with seven, 9 with eight or more.
+/// These are deterministic length-based exceptions, not vulnerability judgments.
+export function naturalTwoLevelSuitOvercallApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.level !== 2 || bid.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: requires a natural two-level suit call.'] };
+  }
+  const hcp = context.handFacts.hcp;
+  const length = context.handFacts.lengths[bid.strain];
+  const min = length >= 8 ? 9 : length === 7 ? 10 : length === 6 ? 11 : 12;
+  const passed = hcp >= min && hcp <= 17;
+  return {
+    success: passed,
+    telemetryLines: [`${passed ? 'PASS' : 'FAIL'}: natural two-level overcall requires ` +
+      `${min}–17 HCP with this ${length}-card suit; hand has ${hcp}.`],
+    callEvidence: { naturalOvercallStrength: { hcp, passed, exceptionalSeven: false, min } },
+  };
 }
 
 /// refineWeakTwoSuitOvercall selects the cheapest natural suit overcall after an opposing weak two.
@@ -226,6 +273,11 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
       `${stopper ? 'PASS' : 'FAIL'}: ${call} overcall needs A, Kx, Qxx, or Jxxx in ` +
         `opener's ${parsed.strain} suit.`,
     ],
+    callEvidence: call === '1NT' ? { requirements: [
+      { kind: 'hcp', actual: points, min: 15, max: 18, passed: strength },
+      { kind: 'balanced', actual: balanced, passed: balanced },
+      { kind: 'stopper', passed: stopper },
+    ] } : undefined,
   };
 }
 

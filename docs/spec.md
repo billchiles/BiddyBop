@@ -447,9 +447,13 @@ diverges from a recorded auction, subsequent physical calls remain explicit user
 
 The evaluator removes contract calls that fail to outrank the last bid *before* call refinement.
 `OvercallRules` cover direct, non-jump natural suit overcalls and informational takeout doubles
-after one-level suit openings. Simple overcall suit quality means a good five-card suit (two of
-A/K/Q or three of A/K/Q/J/T) or any six-card-or-longer suit. One-level calls require at least
-7 total points with length; two-level calls require at least 13, both capped at 17 HCP.
+after one-level suit openings. A natural one-level overcall normally requires 8–17 HCP,
+with a good five-card suit or any six-card-or-longer suit. A 7-HCP exception needs
+an unusually good five-card-or-longer suit with two of A/K/Q and the ten.
+Natural non-jump two-level overcalls require a good five-card-or-longer suit
+(two of A/K/Q or three of A/K/Q/J/T). They normally require 12–17 HCP,
+with length-based exceptions: 11 with six, 10 with seven, or 9 with eight or more.
+The trainer does not evaluate vulnerability, which may affect practical decisions.
 An ordinary takeout double requires at least 13 points with shortage and three or more cards
 in every unbid suit; an 18+ HCP strong-hand exception has no distribution requirement. Strong
 playing-strength exceptions below 18 HCP remain judgment-only. The double is informational, never

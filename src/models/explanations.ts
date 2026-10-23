@@ -575,3 +575,115 @@ export function getBalancingCallFailureLines(result: BidEvalResult): string[] {
   }
   return [];
 }
+
+///
+//// Natural suit and 1NT overcall explanations
+///
+
+const NATURAL_SUIT_OVERCALL_IDS = [
+  'overcall-simple-suit-at-one-level', 'overcall-simple-suit-at-two-level',
+];
+const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
+const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
+
+function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
+    (item) => item.call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { check, candidate, strength: candidate?.callEvidence?.naturalOvercallStrength };
+}
+
+function naturalOneNtOvercallEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === NATURAL_ONE_NT_OVERCALL_ID)
+    ?.candidates.find(({ call }) => call === '1NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return {
+    candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
+  };
+}
+
+/// Explain only the matching natural-overcall rule, never a different meaning of the same call.
+export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (NATURAL_SUIT_OVERCALL_IDS.includes(rule.id)) {
+    const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
+    if (check === undefined || candidate?.ruleApplies !== true) return null;
+    if (check.level === 1 && strength !== undefined) {
+      const strengthText = strength.exceptionalSeven
+        ? `Your ${strength.hcp} HCP qualify under the excellent-suit exception to the normal 8–17 ` +
+          'HCP range. '
+        : `Your ${strength.hcp} HCP meet the normal 8–17 HCP range. `;
+      return strengthText + `Your ${check.length}-card ${suitName(result.normalizedCall ?? check.call)} ` +
+        `suit qualifies${check.good ? ' by honor quality' : ' by having at least six cards'}. ` +
+        `A one-level overcall does not promise opening strength [${rule.id}].`;
+    }
+    if (check.level === 2 && strength?.passed === true) {
+      return `Your ${strength.hcp} HCP and good ${check.length}-card ` +
+        `${suitName(result.normalizedCall ?? check.call)} suit meet the ${strength.min}–17 HCP ` +
+        `requirement for this natural two-level overcall [${rule.id}].`;
+    }
+    return null;
+  }
+  if (rule.id === NATURAL_ONE_NT_OVERCALL_ID) {
+    const { candidate, hcp, balanced, stopper } = naturalOneNtOvercallEvidence(result);
+    if (candidate?.ruleApplies !== true || hcp === undefined ||
+        balanced?.passed !== true || stopper?.passed !== true) return null;
+    return `Your ${hcp.actual} HCP and balanced distribution meet the 15–18 HCP ` +
+      `requirement for a natural 1NT overcall. You have a stopper in opener's suit ` +
+      `[${rule.id}].`;
+  }
+  return null;
+}
+
+/// Only describe checks actually made for the entered natural non-jump overcall.
+/// Refined-out jump bids belong to other rules and must not inherit these requirements.
+export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  if (entered === '1NT') {
+    const { candidate, hcp, balanced, stopper } = naturalOneNtOvercallEvidence(result);
+    if (candidate === undefined || candidate.ruleApplies || hcp === undefined ||
+        balanced === undefined || stopper === undefined) return [];
+    const lines: string[] = [];
+    if (!hcp.passed) lines.push(`A natural 1NT overcall requires 15–18 HCP; your hand has ` +
+      `${hcp.actual} [${NATURAL_ONE_NT_OVERCALL_ID}].`);
+    if (!balanced.passed) lines.push(`A natural 1NT overcall requires balanced distribution ` +
+      `[${NATURAL_ONE_NT_OVERCALL_ID}].`);
+    if (!stopper.passed) lines.push(`A natural 1NT overcall requires a stopper in opener's suit ` +
+      `[${NATURAL_ONE_NT_OVERCALL_ID}].`);
+    return lines;
+  }
+  for (const ruleId of NATURAL_SUIT_OVERCALL_IDS) {
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+    if (diagnostic?.rule.calls?.includes(entered) !== true) continue;
+    const { check, candidate, strength } = naturalSuitOvercallEvidence(result, ruleId);
+    if (check === undefined) continue;
+    const lines: string[] = [];
+    if (!check.passed) {
+      lines.push(check.level === 1
+        ? `A natural one-level overcall requires a good five-card suit (${SIMPLE_OVERCALL_SUIT_QUALITY}) ` +
+          `or any suit of six or more cards [${ruleId}].`
+        : `A natural two-level overcall requires a good five-card-or-longer suit ` +
+          `(${SIMPLE_OVERCALL_SUIT_QUALITY}) [${ruleId}].`);
+    }
+    if (candidate?.ruleApplies === false && check.level === 1 &&
+        strength?.passed === false) {
+      lines.push(`A natural one-level overcall normally requires 8–17 HCP; you have ` +
+        `${strength.hcp}. At 7 HCP the trainer permits an unusually good suit with at least ` +
+        `two of A/K/Q and the 10 [${ruleId}].`);
+    }
+    if (candidate?.ruleApplies === false && check.level === 2 &&
+        strength?.passed === false) {
+      lines.push(`A natural two-level overcall with this ${check.length}-card suit requires ` +
+        `${strength.min}–17 HCP; you have ${strength.hcp} [${ruleId}].`);
+    }
+    return lines;
+  }
+  return [];
+}

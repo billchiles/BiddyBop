@@ -460,8 +460,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
     ],
-    west: { S: 'K72', H: 'AQJ94', D: 'K53', C: '83' },
-    north: { S: 'QJT86', H: '762', D: '8', C: 'A964' },
+    west: { S: 'K72', H: 'AQ964', D: 'K53', C: '83' },
+    north: { S: 'QJT86', H: 'J72', D: '8', C: 'A964' },
     east: { S: '543', H: '853', D: 'Q7642', C: 'K2' },
     south: { S: 'A9', H: 'KT', D: 'AJT9', C: 'QJT75' },
   },

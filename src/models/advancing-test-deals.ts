@@ -751,8 +751,8 @@ export const ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS: RuleTestDeal[] 
   {
     description: '1H-(1S)-2H: a good five-card club suit and 15 HCP bid forcing 3C.',
     dealer: 'W', practiceAuction: ['1H', '1S', '2H', '3C'],
-    west: { S: 'K72', H: 'AQJ94', D: 'K53', C: '83' },
-    north: { S: 'QJT86', H: '762', D: '8', C: 'A964' },
+    west: { S: 'K72', H: 'AQ964', D: 'K53', C: '83' },
+    north: { S: 'QJT86', H: 'J72', D: '8', C: 'A964' },
     east: { S: '543', H: '853', D: 'Q7642', C: 'K2' },
     south: { S: 'A9', H: 'KT', D: 'AJT9', C: 'QJT75' },
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],

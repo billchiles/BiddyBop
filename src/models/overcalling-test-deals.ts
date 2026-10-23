@@ -20,7 +20,7 @@ export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     rejectedOvercallCalls: ['1S', '1H', '1NT', 'Double'],
   },
   {
-    description: 'Good five-card spades, 7–17 total points: 1S over 1D.',
+    description: 'Good five-card spades and 10 HCP: 1S over 1D.',
     dealer: 'W',
     practiceAuction: ['1D', '1S', 'Pass'],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],

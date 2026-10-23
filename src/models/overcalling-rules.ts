@@ -3,7 +3,7 @@
 import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
-  naturalNotrumpOvercallApplies, naturalOneNtOvercallerInvitationApplies,
+  naturalNotrumpOvercallApplies, naturalOneLevelSuitOvercallApplies, naturalTwoLevelSuitOvercallApplies, naturalOneNtOvercallerInvitationApplies,
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
   naturalSuitOvercallerRebidApplies, naturalSuitOvercallerRebidBoundaryApplies,
@@ -1648,10 +1648,12 @@ export const OvercallRules: BidRule[] = [
     calls: ['1D', '1H', '1S'],
     callRefinement: refineSimpleSuitOvercall,
     callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 7, valuation: 'length' }, hcp: { max: 17 } },
-    meaning: 'A non-jump one-level overcall: at least 7 points with length, up to 17 HCP, ' +
-             'and a good five-card suit or any six-card-or-longer suit.',
-    guidance: ['With 18+ HCP, begin with a takeout double and describe the hand later.'],
+    appliesWhen: naturalOneLevelSuitOvercallApplies,
+    meaning: 'A non-jump one-level overcall: normally 8–17 HCP and a good five-card suit ' +
+             'or any six-card-or-longer suit. A particularly strong suit can justify 7 HCP.',
+    guidance: ['With 7 HCP, the trainer requires at least two of A/K/Q and the 10 in a ' +
+               'five-card-or-longer suit; vulnerability is not modeled.',
+               'With 18+ HCP, begin with a takeout Double and describe the hand later.'],
     certainty: 'high',
   },
   //
@@ -1663,10 +1665,12 @@ export const OvercallRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineSimpleSuitOvercall,
     callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 13, valuation: 'length' }, hcp: { max: 17 } },
-    meaning: 'A non-jump two-level overcall: at least 13 points with length, up to 17 HCP, ' +
-             'and a good five-card suit or any six-card-or-longer suit.',
-    guidance: ['A jump overcall is preemptive and is not part of these simple-overcall rules.'],
+    appliesWhen: naturalTwoLevelSuitOvercallApplies,
+    meaning: 'A non-jump two-level overcall: normally 12–17 HCP and a good five-card-or-longer ' +
+             'suit. Longer good suits permit a lower HCP minimum (11 with six, 10 with seven, ' +
+             '9 with eight or more).',
+    guidance: ['A jump overcall is preemptive and uses a separate weak-jump treatment.',
+               'This is a sounder action than a one-level overcall; vulnerability is not modeled.'],
     certainty: 'high',
   },
   // Natural 1NT overcalls are balanced 15-18 HCP with a stopper in opener's suit.

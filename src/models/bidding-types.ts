@@ -367,6 +367,8 @@ export interface CallEvidence {
   preemptSuitQuality?: { call: Call; passed: boolean }[];
   balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
+  naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
+  naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
 }
 
 export interface AppliesWhenResult {
