@@ -94,11 +94,13 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
   const opening = getPartnerOpeningBid(context)!;
   // get eligible 1 level calls with their suit and length support
   const eligible: { call: Call; suit: Suit; length: number }[] = [];
+  const considered: { call: Call; length: number }[] = [];
   for (const call of legalResult.calls) {
     const candidate = parseSuitBid(call)!;
     if (candidate.level !== 1) {continue;}
     const suit = candidate.strain as Suit;
     const length = context.handFacts.lengths[suit];
+    considered.push({ call, length });
     if (length < 4) {continue;}
     eligible.push({ call, suit, length });
   }
@@ -110,6 +112,8 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         ...legalResult.telemetryLines,
         'No four-card-or-longer new suit is available at the one level.',
       ],
+      callEvidence: { minorResponseSelection: { preferredCall: null, retainedCalls: [],
+        considered, reason: 'no-four-card-suit', longerDiamondAlternative: false } },
     };
   }
   // Sort qualifying majors regarless of convenient minors agreement:
@@ -136,11 +140,22 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         refined.push(diamond.call);
       }
     }
+    const topMajor = majors[0];
+    const otherMajor = majors.length > 1 ? majors[1] : undefined;
+    const reason = otherMajor !== undefined && topMajor.length === 4
+      ? 'equal-four-majors' : otherMajor !== undefined ? 'equal-long-majors'
+      : eligible.some((candidate) => candidate.suit !== topMajor.suit &&
+          (candidate.suit === 'H' || candidate.suit === 'S')) ? 'longer-major' : 'major-first';
     return {calls: refined,
             telemetryLines: [
               ...legalResult.telemetryLines,
               'With convenient minors, prefer a 4+ card major; after 1C with 6-10 HCP, ' +
-              'a longer 1D may remain as an alternative.',],};
+              'a longer 1D may remain as an alternative.',],
+            callEvidence: { minorResponseSelection: {
+              preferredCall: refined[0] ?? null, retainedCalls: refined, considered, reason,
+              longerDiamondAlternative: refined.some((call) => call === '1D') &&
+                refined.some((call) => call === '1H' || call === '1S'),
+            } },};
   } // convenient minors and 4+ card majors exist
   // No major is available under the convenient-minor agreement, or convenient minors is off.
   // In either case use ordinary longest-suit treatment among the remaining eligible calls.
@@ -149,13 +164,20 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
   // First keep only equally longest suits.
   const longest = Math.max(...eligible.map((candidate) => candidate.length));
   const refined = eligible.filter((candidate) => candidate.length === longest);
-  return {calls: refined.map((candidate) => candidate.call),
+  const retained = refined.map((candidate) => candidate.call);
+  return {calls: retained,
           telemetryLines: [
             ...legalResult.telemetryLines,
             `Keep longest one-level new suits (${longest} cards); ` +
             `${longest === 4 ? 'bid equal suits up the line'
                              : 'prefer the higher-ranking equal suit'}.`,
           ],
+          callEvidence: { minorResponseSelection: {
+            preferredCall: retained[0] ?? null, retainedCalls: retained, considered,
+            reason: majors.length > 1 && refined.length > 1
+              ? (longest === 4 ? 'equal-four-majors' : 'equal-long-majors') : 'longest-suit',
+            longerDiamondAlternative: false,
+          } },
         };
 } // refineOneLevelNewSuitAfterMinor()
 
@@ -458,6 +480,14 @@ export function minorRaiseApplies (_call: Call, context: RuleEvalContext, minHcp
       `${success ? 'APPLIES' : 'FAIL'}: ${label} requires ${minHcp}-${maxHcp} HCP, ` +
       `${minSupport}+ ${opening.strain} support, and no four-card major.`,
     ],
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: hcp, min: minHcp, max: maxHcp,
+        passed: hcp >= minHcp && hcp <= maxHcp },
+      { kind: 'minorSupport', suit: opening.strain, actual: supportLength, min: minSupport,
+        passed: supportLength >= minSupport },
+      { kind: 'noFourCardMajor', actual: !context.handFacts.hasFourCardMajor,
+        passed: !context.handFacts.hasFourCardMajor },
+    ] },
   };
 }
 
@@ -481,6 +511,13 @@ export function minorSupportNewSuitApplies (call: Call, context: RuleEvalContext
       `${success ? 'APPLIES' : 'FAIL'}: strong minor-support route requires 13+ HCP, ` +
       `${minSupport}+ ${opening.strain} support, and 4+ cards in ${candidate.strain}.`,
     ],
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: context.handFacts.hcp, min: 13,
+        passed: context.handFacts.hcp >= 13 },
+      { kind: 'minorSupport', suit: opening.strain, actual: supportLength, min: minSupport,
+        passed: supportLength >= minSupport },
+      { kind: 'suitLength', actual: candidateLength, min: 4, passed: candidateLength >= 4 },
+    ] },
   };
 }
 

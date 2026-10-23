@@ -750,3 +750,169 @@ export function getJumpOvercallFailureLines(result: BidEvalResult): string[] {
   }
   return [];
 }
+
+///
+//// Responses to one-level minor openings
+///
+
+const MINOR_NEW_SUIT_ID = 'respond-to-minor-w/-new-suit-one-level-priority';
+const MINOR_STRONG_SUPPORT_ID = 'respond-to-minor-w/-13plus-start-new-suit';
+const MINOR_RAISE_IDS = [
+  'respond-to-minor-w/-raise-to-two', 'respond-to-minor-w/-limit-raise',
+];
+const MINOR_NT_IDS = [
+  'respond-to-minor-w/-1nt', 'respond-to-minor-w/-2nt', 'respond-to-minor-w/-3nt',
+];
+const MINOR_TWO_CLUB_IDS = [
+  'respond-to-1d-w/-2c-standard', 'respond-to-1d-w/-2c-two-over-one',
+];
+
+/// Supply actual hand facts and the relevant selection principle, leaving the full partnership
+/// meaning and forcing obligation to the matching rule's existing meaning and guidance.
+export function getMinorResponseSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null) return [];
+  const diagnostic = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule.id);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (rule.id === MINOR_NEW_SUIT_ID) {
+    const lines: string[] = [];
+    if (hcp !== undefined) {
+      lines.push(`Your ${hcp.actual} HCP meet the 6-HCP minimum for a one-level new-suit response ` +
+        `[${rule.id}].`);
+    }
+    const selection = diagnostic?.callEvidence?.minorResponseSelection;
+    if (selection !== undefined) {
+      lines.push(minorSuitSelectionText(selection, result.normalizedCall) + ` [${rule.id}]`);
+    }
+    return lines;
+  }
+  if (MINOR_NT_IDS.includes(rule.id) && hcp !== undefined) {
+    return [`Your ${hcp.actual} HCP and balanced hand with no four-card major meet the ` +
+      `${strengthRange(hcp)} requirements for ${result.normalizedCall} after a minor opening ` +
+      `[${rule.id}].`];
+  }
+  if (MINOR_TWO_CLUB_IDS.includes(rule.id) && hcp !== undefined) {
+    return [`Your ${hcp.actual} HCP and five-card-or-longer clubs meet the ${strengthRange(hcp)} ` +
+      `requirement for 2C under the selected ${rule.id.endsWith('two-over-one') ?
+        'two-over-one game-forcing' : 'Standard forcing'} treatment [${rule.id}].`];
+  }
+  if (MINOR_RAISE_IDS.includes(rule.id) && hcp !== undefined) {
+    const support = minorRequirement(candidate, 'minorSupport');
+    if (support !== undefined) {
+      return [`Your ${hcp.actual} HCP and ${support.actual}-card ` +
+        `${support.suit === 'C' ? 'club' : 'diamond'} support qualify for this ` +
+        `${rule.id === MINOR_RAISE_IDS[0] ? 'minimum' : 'invitational'} minor raise. ` +
+        `The treatment requires no four-card major [${rule.id}].`];
+    }
+  }
+  if (rule.id === MINOR_STRONG_SUPPORT_ID && hcp !== undefined) {
+    const support = minorRequirement(candidate, 'minorSupport');
+    const newSuit = minorRequirement(candidate, 'suitLength');
+    if (support !== undefined && newSuit !== undefined) {
+      return [`With ${hcp.actual} HCP, ${support.actual}-card support for partner's ` +
+        `${support.suit === 'C' ? 'clubs' : 'diamonds'}, and a ${newSuit.actual}-card new suit, ` +
+        `start with a forcing ${result.normalizedCall} response and show the minor support later ` +
+        `[${rule.id}].`];
+    }
+  }
+  if (rule.id === 'respond-to-minor-w/-pass-0-5' && hcp !== undefined) {
+    return [`With ${hcp.actual} HCP, you are below the 6-HCP minimum for an ordinary ` +
+      `response to a minor opening [${rule.id}].`];
+  }
+  return [];
+}
+
+/// Describe only the attempted response and its actual evaluated requirements or refinement.
+/// An eliminated suit isn't assigned an HCP failure when it never reached that check.
+export function getMinorResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  const lines: string[] = [];
+  const newSuit = result.ruleDiagnostics.find(({ rule }) => rule.id === MINOR_NEW_SUIT_ID);
+  const selection = newSuit?.callEvidence?.minorResponseSelection;
+  if (selection !== undefined && newSuit?.rule.calls?.includes(entered)) {
+    const considered = selection.considered.find(({ call }) => call === entered);
+    if (considered !== undefined && considered.length < 4) {
+      lines.push(`A one-level new-suit response requires at least four cards in the bid suit; ` +
+        `you have ${considered.length} [${MINOR_NEW_SUIT_ID}].`);
+    } else if (considered !== undefined && !selection.retainedCalls.includes(entered) &&
+               selection.preferredCall !== null) {
+      const selected = newSuit.candidates.find(({ call }) => call === selection.preferredCall);
+      if (selected?.ruleApplies === true) {
+        lines.push(minorSuitSelectionText(selection, entered) + ` [${MINOR_NEW_SUIT_ID}]`);
+      }
+    } else {
+      const candidate = newSuit.candidates.find(({ call }) => call === entered);
+      const hcp = candidate === undefined ? undefined : minorRequirement(candidate, 'hcp');
+      if (hcp?.passed === false) {
+        lines.push(`A one-level new-suit response requires at least 6 HCP; ` +
+          `you have ${hcp.actual} [${MINOR_NEW_SUIT_ID}].`);
+      }
+    }
+  }
+  const relevantIds = [...MINOR_NT_IDS, ...MINOR_TWO_CLUB_IDS, ...MINOR_RAISE_IDS,
+    'respond-to-minor-w/-pass-0-5'];
+  for (const ruleId of relevantIds) {
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+    const candidate = diagnostic?.candidates.find(({ call }) => call === entered);
+    if (candidate?.ruleApplies !== false) continue;
+    const hcp = minorRequirement(candidate, 'hcp');
+    const support = minorRequirement(candidate, 'minorSupport');
+    const noMajor = minorRequirement(candidate, 'noFourCardMajor');
+    const balanced = minorRequirement(candidate, 'balanced');
+    const suitLength = minorRequirement(candidate, 'suitLength');
+    if (hcp?.passed === false) {
+      lines.push(`${entered} under this treatment requires ${strengthRange(hcp)}; ` +
+        `you have ${hcp.actual} HCP [${ruleId}].`);
+    }
+    if (support?.passed === false) {
+      lines.push(`Raising partner's ${support.suit === 'C' ? 'clubs' : 'diamonds'} here requires ` +
+        `at least ${support.min}-card support; you have ${support.actual} [${ruleId}].`);
+    }
+    if (noMajor?.passed === false) {
+      lines.push(`With a four-card major, respond in that major before choosing ` +
+        `${MINOR_RAISE_IDS.includes(ruleId) ? 'a minor raise' : 'notrump'} [${ruleId}].`);
+    }
+    if (balanced?.passed === false) {
+      lines.push(`${entered} as a natural notrump response requires a balanced hand ` +
+        `[${ruleId}].`);
+    }
+    if (suitLength?.passed === false && MINOR_TWO_CLUB_IDS.includes(ruleId)) {
+      lines.push(`A natural 2C response to 1D requires at least five clubs [${ruleId}].`);
+    }
+  }
+  return lines;
+}
+
+function minorRequirement<K extends Requirement['kind']>(candidate: CandidateCallMatch,
+                                                         kind: K): Extract<Requirement, { kind: K }> | undefined {
+  return candidate.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: K }> => item.kind === kind);
+}
+
+function minorSuitSelectionText(
+  selection: NonNullable<CallEvidence['minorResponseSelection']>, entered: Call): string {
+  const preferred = selection.preferredCall;
+  if (preferred === null) return 'No four-card new suit is available at the one level.';
+  if (selection.reason === 'equal-four-majors') {
+    return `With two four-card majors, respond up the line: 1H before 1S. ` +
+      `${entered === preferred ? 'Both are supported.' : 'Your 1S is supported, but 1H comes first.'}`;
+  }
+  if (selection.reason === 'equal-long-majors') {
+    return `With equally long majors of at least five cards, bid the higher-ranking suit ` +
+      `first: ${preferred}.`;
+  }
+  if (selection.reason === 'longer-major') {
+    return `With both majors at least four cards, bid the longer major first: ${preferred}.`;
+  }
+  if (selection.reason === 'major-first') {
+    if (selection.longerDiamondAlternative && entered === '1D') {
+      return `A longer diamond suit also permits 1D as an alternative with minimum responding ` +
+        `values, but ${preferred} is preferred to search for a major-suit fit.`;
+    }
+    return `Show a four-card-or-longer major first to look for a major-suit fit: ${preferred}.` +
+      (selection.longerDiamondAlternative ? ' A longer 1D is also supported as an alternative.' : '');
+  }
+  return `Respond in a longest available new suit of at least four cards: ${preferred}.`;
+}

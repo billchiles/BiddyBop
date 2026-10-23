@@ -351,6 +351,8 @@ export interface CallEvidence {
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
     | { kind: 'stopper'; passed: boolean }
+    | { kind: 'minorSupport'; suit: 'C' | 'D'; actual: number; min: number; passed: boolean }
+    | { kind: 'noFourCardMajor'; actual: boolean; passed: boolean }
   )[];
   openingSelection?: {
     call: Call;
@@ -370,6 +372,14 @@ export interface CallEvidence {
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
+  minorResponseSelection?: {
+    preferredCall: Call | null;
+    retainedCalls: Call[];
+    considered: { call: Call; length: number }[];
+    reason: 'no-four-card-suit' | 'major-first' | 'equal-four-majors' |
+      'equal-long-majors' | 'longer-major' | 'longest-suit';
+    longerDiamondAlternative: boolean;
+  };
 }
 
 export interface AppliesWhenResult {

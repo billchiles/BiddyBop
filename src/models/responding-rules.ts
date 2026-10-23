@@ -98,7 +98,6 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1C or 1D, respond 1NT with minimum balanced values and no four-card major',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'minor' },
     calls: ['1NT'],
-    callCategory: ['invitational'],
     priority: { rank: 60 },
     appliesWhen: { hcp: { min: 6, max: 10 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced non-forcing response with no four-card major; opener may pass or continue.',
@@ -143,7 +142,6 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
     calls: ['2C', '2D'],
     callRefinement: refineRaisePartnerSuitBy1, // need to choose based on actual auction
-    callCategory: ['invitational'],
     priority: { rank: 40 },
     appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult => {
       return minorRaiseApplies(call, context, 6, 10, 'minimum minor raise');
