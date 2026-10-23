@@ -124,6 +124,7 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
   if (parsedOpening === null || parsedOpening.level !== 1 || parsedOpening.strain === 'NT') {
     return { calls: [], telemetryLines: ['Requires a one-level suit opening.'] };
   }
+  const suitChecks: NonNullable<CallEvidence['jumpOvercallSuit']> = [];
   const qualifying = calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain ||
@@ -136,12 +137,16 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
       return false;
     }
     const suit = bid.strain as Suit;
-    return context.handFacts.lengths[suit] === bid.level + 4 &&
-      hasPreemptSuitQuality(context.hand, suit);
+    const length = context.handFacts.lengths[suit];
+    const requiredLength = bid.level + 4;
+    const good = hasPreemptSuitQuality(context.hand, suit);
+    const passed = length === requiredLength && good;
+    suitChecks.push({ call, length, requiredLength, good, passed });
+    return passed;
   });
   return { calls: qualifying, telemetryLines: [
     'Jump in a different suit: good six cards at two, seven at three, eight at four.',
-  ] };
+  ], callEvidence: { jumpOvercallSuit: suitChecks } };
 }
 
 ///

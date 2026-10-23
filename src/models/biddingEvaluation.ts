@@ -919,6 +919,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
      ruleId === 'overcall-weak-two-takeout-double-strong-hand');
   const explainBalancingSuit = context.stage === 'balancing' &&
     (ruleId === 'balance-natural-one-level-suit' || ruleId === 'balance-natural-two-level-suit');
+  const explainJumpOvercall = context.stage === 'overcalling' &&
+    (ruleId === 'overcall-preemptive-jump-at-two-level' ||
+     ruleId === 'overcall-preemptive-jump-at-three-level' ||
+     ruleId === 'overcall-preemptive-jump-at-four-level');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -929,7 +933,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
-        explainBalancingSuit) {
+        explainBalancingSuit || explainJumpOvercall) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -975,7 +979,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   }
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
-      explainStrongTakeoutDouble || explainBalancingSuit
+      explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall
       ? { requirements } : undefined };
 } //evaluateHandConstraint()
 

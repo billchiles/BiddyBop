@@ -687,3 +687,66 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
   }
   return [];
 }
+
+///
+//// Preemptive jump-overcall explanations
+///
+
+const JUMP_OVERCALL_IDS = [
+  'overcall-preemptive-jump-at-two-level',
+  'overcall-preemptive-jump-at-three-level',
+  'overcall-preemptive-jump-at-four-level',
+];
+const JUMP_OVERCALL_HONORS = 'at least two of the top three honors (A/K/Q) or ' +
+  'three of the top five (A/K/Q/J/10)';
+
+function jumpOvercallEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.jumpOvercallSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
+}
+
+/// Explain an actual qualifying jump, not an economical natural overcall at the same level.
+export function getJumpOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (!JUMP_OVERCALL_IDS.includes(rule.id) || result.normalizedCall === null) return null;
+  const { check, candidate, hcp } = jumpOvercallEvidence(result, rule.id);
+  if (check?.passed !== true || candidate?.ruleApplies !== true || hcp?.passed !== true) {
+    return null;
+  }
+  const range = strengthRange(hcp);
+  return `${result.normalizedCall} is a jump overcall: a cheaper bid in that suit was available. ` +
+    `Your ${check.requiredLength}-card ${suitName(result.normalizedCall)} suit has ` +
+    `${JUMP_OVERCALL_HONORS}, and your ${hcp.actual} HCP meet the ${range} ` +
+    `requirement. This jump is preemptive, showing limited strength and taking away ` +
+    `bidding room from the opponents [${rule.id}].`;
+}
+
+/// A refinement failure can establish suit length or quality; HCP is explained only if the
+/// call survived refinement and the ordinary requirement test actually ran.
+export function getJumpOvercallFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  for (const ruleId of JUMP_OVERCALL_IDS) {
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+    if (diagnostic?.rule.calls?.includes(entered) !== true) continue;
+    const { check, candidate, hcp } = jumpOvercallEvidence(result, ruleId);
+    // A non-jump never reaches the jump-specific suitability checks.
+    if (check === undefined) continue;
+    if (check.length !== check.requiredLength) {
+      return [`A weak ${entered} jump overcall requires exactly ${check.requiredLength} ` +
+        `${suitPlural(entered)}; your hand has ${check.length} [${ruleId}].`];
+    }
+    if (!check.good) {
+      return [`A weak ${entered} jump overcall requires ${JUMP_OVERCALL_HONORS} ` +
+        `in the suit. Your ${suitName(entered)} suit does not meet that requirement [${ruleId}].`];
+    }
+    if (candidate?.ruleApplies === false && hcp?.passed === false) {
+      return [`A weak ${entered} jump overcall requires ${strengthRange(hcp)}; ` +
+        `your hand has ${hcp.actual} HCP [${ruleId}].`];
+    }
+  }
+  return [];
+}
