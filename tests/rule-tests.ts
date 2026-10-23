@@ -3895,7 +3895,7 @@ function runLaterStageTerminationGuidanceTests (): number {
       stage: 'openerRebid', kind: 'gameForce' },
     { auction: ['1D', '1S', '2D', '3D', 'Pass'],
       stage: 'advancing', kind: 'oneRoundForce' },
-    { auction: ['1H', 'Double', 'Pass'],
+    { auction: ['1H', 'Double'],
       stage: 'overcalling', kind: 'oneRoundForce' },
     { auction: ['1S', 'Pass', '2H'],
       stage: 'responding', kind: 'oneRoundForce' },

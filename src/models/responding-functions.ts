@@ -291,40 +291,42 @@ export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEval
       CallRefinementResult {
   const legalResult = refineToCheapestNewSuitBids(calls, context);
   const opening = getPartnerOpeningBid(context)!;
-  const normalCalls = legalResult.calls.filter((call) => {
+  const considered = legalResult.calls.map((call) => {
     const candidate = parseSuitBid(call)!;
     const suit = candidate.strain as Suit;
-    const length = context.handFacts.lengths[suit];
-    if (candidate.strain === 'C' || candidate.strain === 'D') {
-      return length >= 4;
-    }
-    if (opening.strain === 'H' && candidate.strain === 'S') {
-      return length >= 4;
-    }
-    if (opening.strain === 'S' && candidate.strain === 'H') {
-      return length >= 5;
-    }
-    return false;
+    const requiredLength = suit === 'H' ? 5 : 4;
+    return { call, length: context.handFacts.lengths[suit], requiredLength };
   });
+  const normalCalls = considered.filter(({ length, requiredLength }) =>
+    length >= requiredLength).map(({ call }) => call);
   if (normalCalls.length > 0) {
-    return { calls: normalCalls,
-             telemetryLines: [
-               ...legalResult.telemetryLines,
-               'Keep normally supported new suits for the major-support response.',],
+    return {
+      calls: normalCalls,
+      telemetryLines: [...legalResult.telemetryLines,
+        'Keep normally supported new suits for the major-support response.'],
+      callEvidence: { majorGameForceNewSuit: {
+        reason: 'normal', considered, retainedCalls: normalCalls,
+      } },
     };
   }
-  // check for minor fallback
-  const fallbackMinorCalls = legalResult.calls.filter((call) => {
-    const candidate = parseSuitBid(call)!;
-    const suit = candidate.strain as Suit;
-    return (suit === 'C' || suit === 'D') && context.handFacts.lengths[suit] === 3;
-  });
-  return {calls: fallbackMinorCalls,
-          telemetryLines: [
-            ...legalResult.telemetryLines,
-            fallbackMinorCalls.length > 0
-              ? 'No normal new suit is available; allow a three-card minor as the fallback.'
-              : 'No normally supported new suit or three-card minor fallback is available.',],};
+  // Only if no normal new suit exists, admit the unusual three-card-minor choice.
+  const fallbackMinorCalls = considered.filter(({ call, length }) => {
+    const suit = parseSuitBid(call)!.strain;
+    return (suit === 'C' || suit === 'D') && length === 3;
+  }).map(({ call }) => call);
+  return {
+    calls: fallbackMinorCalls,
+    telemetryLines: [
+      ...legalResult.telemetryLines,
+      fallbackMinorCalls.length > 0
+        ? 'No normal new suit is available; allow a three-card minor as the fallback.'
+        : 'No normally supported new suit or three-card minor fallback is available.',
+    ],
+    callEvidence: { majorGameForceNewSuit: {
+      reason: fallbackMinorCalls.length > 0 ? 'three-card-minor-fallback' : 'unavailable',
+      considered, retainedCalls: fallbackMinorCalls,
+    } },
+  };
 }
 
 /// refineLongMajorSupportLimitRaiseFallback allows a conservative three-level invitation with
@@ -338,13 +340,22 @@ export function refineLongMajorSupportLimitRaiseFallback (
   const opening = getPartnerOpeningBid(context)!;
   const otherSuits = SUITS.filter((suit) => suit !== opening.strain);
   if (otherSuits.some((suit) => context.handFacts.lengths[suit] < 2)) {
-    return { calls: [], telemetryLines: ['Shortness rules out the conservative long-fit limit-raise fallback.'] };
+    return { calls: [], telemetryLines: ['Shortness rules out the conservative long-fit limit-raise fallback.'],
+      callEvidence: { longMajorLimitFallback: { reason: 'shortness', alternativeCalls: [] } } };
   }
   const newSuit = refineMajorSupportNewSuitFirst(['1S', '2C', '2D', '2H'], context);
   if (newSuit.calls.length > 0) {
-    return { calls: [], telemetryLines: ['A game-forcing new-suit response is available instead of a limit raise.'] };
+    return { calls: [], telemetryLines: ['A game-forcing new-suit response is available instead of a limit raise.'],
+      callEvidence: { longMajorLimitFallback: {
+        reason: 'new-suit-available', alternativeCalls: newSuit.calls,
+        alternativeIsRareThreeCardMinor: newSuit.callEvidence?.majorGameForceNewSuit
+          ?.reason === 'three-card-minor-fallback',
+      } } };
   }
-  return refineRaisePartnerSuitBy2(calls, context);
+  const raise = refineRaisePartnerSuitBy2(calls, context);
+  return { ...raise, callEvidence: { longMajorLimitFallback: {
+    reason: 'qualified', alternativeCalls: [],
+  } } };
 }
 
 //// Jump shifts and economical suit-bid selection

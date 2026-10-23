@@ -347,7 +347,7 @@ export interface CallEvidence {
     | { kind: 'balanced'; actual: boolean; passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number; passed: boolean }
-    | { kind: 'partnerSupport'; actual: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'partnerSupport'; suit?: Suit; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
@@ -374,6 +374,16 @@ export interface CallEvidence {
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
   majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
+  majorGameForceNewSuit?: {
+    reason: 'normal' | 'three-card-minor-fallback' | 'unavailable';
+    considered: { call: Call; length: number; requiredLength: number }[];
+    retainedCalls: Call[];
+  };
+  longMajorLimitFallback?: {
+    reason: 'shortness' | 'new-suit-available' | 'qualified';
+    alternativeCalls: Call[];
+    alternativeIsRareThreeCardMinor?: boolean;
+  };
   minorResponseSelection?: {
     preferredCall: Call | null;
     retainedCalls: Call[];

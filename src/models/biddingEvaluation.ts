@@ -936,7 +936,13 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'respond-to-major-w/-support-limit-raise-four-card' ||
     ruleId === 'respond-to-major-w/-support-limit-raise-three-card' ||
     ruleId === 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback' ||
-    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first');
+    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first' ||
+    ruleId === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' ||
+    ruleId === 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise' ||
+    ruleId === 'respond-to-major-w/-support-jacoby-2nt-agreement' ||
+    ruleId === 'respond-to-major-w/-support-splinter' ||
+    ruleId === 'respond-to-major-w/-support-preemptive-game-raise' ||
+    ruleId === 'respond-to-major-w/-support-long-fit-13-limit-raise-fallback');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -967,7 +973,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
-      if (explainPreemptRequirements || explainMinorResponse) {
+      if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport) {
         const bid = parseSuitBid(call);
         if (bid !== null && bid.strain !== 'NT') {
           requirements.push({ kind: 'suitLength', actual: context.handFacts.lengths[bid.strain],
@@ -998,7 +1004,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     if (explainMajorSupport) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
-        requirements.push({ kind: 'partnerSupport',
+        requirements.push({ kind: 'partnerSupport', suit: supportSuit,
           actual: context.handFacts.lengths[supportSuit],
           min: constraint.supportLength.min, max: constraint.supportLength.max,
           passed: result.pass });

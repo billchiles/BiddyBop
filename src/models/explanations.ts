@@ -318,9 +318,13 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
   if (STRONG_IDS.includes(rule.id)) {
     const hcp = requirements.find((item) => item.kind === 'hcp');
     if (hcp?.kind !== 'hcp' || !hcp.passed) return null;
+    const comparison = rule.id === 'overcall-takeout-double-strong-hand'
+      ? 'A direct suit overcall would understate your strength, while a jump overcall ' +
+        'would promise a weak preemptive hand. '
+      : 'A natural suit overcall would understate your strength. ';
     return `With ${hcp.actual} HCP, your hand meets the 18+ HCP strong-hand takeout ` +
-      `Double requirement. This treatment does not require support for every unbid suit ` +
-      `[${rule.id}].`;
+      `Double requirement. This treatment does not require support for every unbid suit. ` +
+      comparison + `Double first, then show your suit on a later turn [${rule.id}].`;
   }
   return null;
 }
@@ -918,6 +922,209 @@ function minorSuitSelectionText(
 }
 
 ///
+//// Strong support for partner's one-level major (B11)
+///
+
+const STRONG_MAJOR_NEW_SUIT_IDS = [
+  'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise',
+  'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise',
+];
+const STRONG_MAJOR_JACOBY_ID = 'respond-to-major-w/-support-jacoby-2nt-agreement';
+const STRONG_MAJOR_SPLINTER_ID = 'respond-to-major-w/-support-splinter';
+const STRONG_MAJOR_PREEMPT_ID = 'respond-to-major-w/-support-preemptive-game-raise';
+const STRONG_MAJOR_LIMIT_FALLBACK_ID = 'respond-to-major-w/-support-long-fit-13-limit-raise-fallback';
+const STRONG_MAJOR_IDS = [
+  ...STRONG_MAJOR_NEW_SUIT_IDS, STRONG_MAJOR_JACOBY_ID, STRONG_MAJOR_SPLINTER_ID,
+  STRONG_MAJOR_PREEMPT_ID, STRONG_MAJOR_LIMIT_FALLBACK_ID,
+];
+
+function majorSuitName(suit: 'H' | 'S'): string {
+  return suit === 'H' ? 'hearts' : 'spades';
+}
+
+function majorOpeningForResponse(result: BidEvalResult): '1H' | '1S' | null {
+  const check = result.ruleDiagnostics
+    .filter(({ rule }) => STRONG_MAJOR_IDS.includes(rule.id))
+    .flatMap(({ candidates }) => candidates)
+    .flatMap(({ callEvidence }) => callEvidence?.requirements ?? [])
+    .find((item) => item.kind === 'partnerSupport' &&
+      (item.suit === 'H' || item.suit === 'S'));
+  if (check?.kind !== 'partnerSupport' || check.suit === undefined) return null;
+  return check.suit === 'H' ? '1H' : '1S';
+}
+
+/// Return additional instruction only when the actual call qualified under its strong-support rule.
+function strongMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!STRONG_MAJOR_IDS.includes(rule.id)) return [];
+  const { diagnostic, candidate } = majorSupportCandidate(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const points = minorRequirement(candidate, 'totalPoints');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  if (points === undefined || support === undefined) return [];
+  const opener = majorOpeningForResponse(result);
+  if (opener === null) return [];
+  const major = majorSuitName(opener[1] as 'H' | 'S');
+  const call = result.normalizedCall;
+  if (call === null) return [];
+  const value = supportPointText(points);
+  if (STRONG_MAJOR_NEW_SUIT_IDS.includes(rule.id)) {
+    const route = diagnostic?.callEvidence?.majorGameForceNewSuit;
+    const selected = route?.considered.find((item) => item.call === call);
+    if (selected === undefined || !route?.retainedCalls.includes(call)) return [];
+    const first = `${call} begins the game-forcing support sequence; later raise partner's ` +
+      `${major} to at least game. Your initial new-suit bid does not yet show the major fit.`;
+    if (route.reason === 'three-card-minor-fallback') {
+      return [`With ${value} and ${support.actual} ${major}, no new suit meets the normal ` +
+        `response-length requirements. The ${call} response on just three ` +
+        `${call[1] === 'C' ? 'clubs' : 'diamonds'} is a rare fallback, not a routine ` +
+        `promise of four cards. ${first} The trainer includes this judgment-dependent ` +
+        `option for educational value; it cannot guarantee this is the right choice. ` +
+        `Use it only if you judge that this hand and auction merit it [${rule.id}].`];
+    }
+    return [`With ${value} and ${support.actual} ${major}, your ${selected.length}-card ` +
+      `new suit qualifies for ${call} (at least ${selected.requiredLength} cards). ${first} ` +
+      `[${rule.id}].`];
+  }
+  if (rule.id === STRONG_MAJOR_JACOBY_ID) {
+    const splinter = result.ruleDiagnostics.find(({ rule: otherRule }) =>
+      otherRule.id === STRONG_MAJOR_SPLINTER_ID);
+    const splinterCall = splinter?.candidates.find((item) => item.ruleApplies)?.call;
+    return [`With ${value} and ${support.actual} ${major}, ${call} is the agreed ` +
+      `Jacoby 2NT response: an artificial game-forcing raise, not an offer to play in ` +
+      `notrump. It promises at least four trumps and asks opener to describe their hand ` +
+      `before choosing the final contract.` +
+      (splinterCall === undefined ? '' : ` ${splinterCall} is also supported and ranked ahead ` +
+        `of Jacoby 2NT because the splinter immediately shows shortness.`) + ` [${rule.id}].`];
+  }
+  if (rule.id === STRONG_MAJOR_SPLINTER_ID) {
+    const short = minorRequirement(candidate, 'suitLength');
+    if (short === undefined) return [];
+    const shortSuit = ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' } as const)[
+      call[1] as 'C' | 'D' | 'H' | 'S'];
+    if (shortSuit === undefined) return [];
+    const alternative = result.ruleDiagnostics.some(({ rule: otherRule, candidates }) =>
+      (STRONG_MAJOR_NEW_SUIT_IDS.includes(otherRule.id) ||
+       otherRule.id === STRONG_MAJOR_JACOBY_ID) &&
+      candidates.some((item) => item.ruleApplies));
+    return [`With ${value}, ${support.actual} ${major}, and ` +
+      `${short.actual === 0 ? `a void in ${shortSuit}` : `a singleton in ${shortSuit}`}, ` +
+      `${call} is a splinter: an artificial double jump showing game-forcing ${major} ` +
+      `support and shortness in ${shortSuit}, not a ${shortSuit} suit. ` +
+      (alternative ? 'It takes preference over another qualifying game-force route ' +
+        'because it describes your shortness immediately. ' : '') + `[${rule.id}].`];
+  }
+  if (rule.id === STRONG_MAJOR_PREEMPT_ID) {
+    return [`With ${value} and ${support.actual} ${major}, a direct ${call} is a weak, ` +
+      `nonforcing preemptive raise to game. Your long trump fit makes it harder for ` +
+      `the opponents to compete; this bid does not promise game-forcing strength ` +
+      `[${rule.id}].`];
+  }
+  if (rule.id === STRONG_MAJOR_LIMIT_FALLBACK_ID) {
+    if (diagnostic?.callEvidence?.longMajorLimitFallback?.reason !== 'qualified') return [];
+    return [`With ${value} and ${support.actual} ${major}, you have game-going support ` +
+      `values, but no suitable new-suit response to start the agreed game-forcing ` +
+      `sequence. The usual limit raise (${opener}–${call}) shows 11–12 support points; ` +
+      `this exceptional ${call} is a conservative, nonforcing invitation with 13. ` +
+      `Opener may Pass or accept with extra values [${rule.id}].`];
+  }
+  return [];
+}
+
+/// Diagnose only the attempted B11 treatment. An agreement-disabled rule cannot establish a
+/// failure, and a refiner's excluded call is not misreported as having failed a hand constraint.
+function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  const lines: string[] = [];
+  const opener = majorOpeningForResponse(result);
+  if (entered === '2NT' && opener !== null &&
+      result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_NEW_SUIT_IDS[1]) &&
+      !result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_JACOBY_ID)) {
+    lines.push(`Jacoby 2NT is not the selected strong-major-support agreement. ` +
+      `With game-forcing support, the agreed route is to bid a qualifying new suit ` +
+      `and later raise opener's ${majorSuitName(opener[1] as 'H' | 'S')} to game ` +
+      `[${STRONG_MAJOR_NEW_SUIT_IDS[1]}].`);
+  }
+  for (const ruleId of STRONG_MAJOR_IDS) {
+    const { diagnostic, candidate } = majorSupportCandidate(result, ruleId);
+    if (diagnostic === undefined || !diagnostic.rule.calls?.includes(entered)) continue;
+    // The narrow 13-point fallback only describes direct 3M, never an unrelated 3M splinter.
+    if (ruleId === STRONG_MAJOR_LIMIT_FALLBACK_ID &&
+        (opener === null || entered !== `3${opener[1]}`)) continue;
+    const points = candidate === undefined ? undefined : minorRequirement(candidate, 'totalPoints');
+    const support = candidate === undefined ? undefined : minorRequirement(candidate, 'partnerSupport');
+    const short = candidate === undefined ? undefined : minorRequirement(candidate, 'suitLength');
+    if (ruleId === STRONG_MAJOR_LIMIT_FALLBACK_ID) {
+      const fallback = diagnostic.callEvidence?.longMajorLimitFallback;
+      // Only identify an available game force when the special fallback's 13-point, 6+ support
+      // requirements were actually established by a companion evaluated response.
+      const ordinary = majorSupportCandidate(result, 'respond-to-major-w/-support-limit-raise-four-card');
+      const ordinaryPoints = ordinary.candidate === undefined ? undefined :
+        minorRequirement(ordinary.candidate, 'totalPoints');
+      const ordinarySupport = ordinary.candidate === undefined ? undefined :
+        minorRequirement(ordinary.candidate, 'partnerSupport');
+      if (fallback?.reason === 'new-suit-available' && ordinaryPoints?.actual === 13 &&
+          ordinarySupport !== undefined && ordinarySupport.actual >= 6) {
+        const alternative = fallback.alternativeCalls.join(' or ');
+        lines.push(`The ordinary 11–12-support-point limit raise (${opener}–${entered}) ` +
+          `invites game and lets opener Pass. With 13 support points, the selected ` +
+          `treatment instead offers ${alternative} to start a game-forcing sequence.` +
+          (fallback.alternativeIsRareThreeCardMinor
+            ? ` This is a rare three-card-minor fallback, exposed for judgment and learning; ` +
+              `the trainer cannot guarantee it is the best practical choice.`
+            : ` That makes the direct invitation too conservative under this treatment.`) +
+          ` [${ruleId}].`);
+      } else if (fallback?.reason === 'shortness' && ordinaryPoints?.actual === 13 &&
+                 ordinarySupport !== undefined && ordinarySupport.actual >= 6) {
+        lines.push(`The exceptional 13-point ${entered} limit-raise fallback does not ` +
+          `apply with an outside singleton or void; that shortness calls for separate ` +
+          `game-going judgment [${ruleId}].`);
+      }
+      if (candidate?.ruleApplies === false && points?.passed === false &&
+          support?.passed !== false) {
+        lines.push(`This exceptional ${entered} limit raise requires exactly 13 support ` +
+          `points; you have ${points.actual} [${ruleId}].`);
+      }
+      continue;
+    }
+    if (STRONG_MAJOR_NEW_SUIT_IDS.includes(ruleId)) {
+      const route = diagnostic.callEvidence?.majorGameForceNewSuit;
+      const considered = route?.considered.find(({ call }) => call === entered);
+      if (considered !== undefined && !route?.retainedCalls.includes(entered)) {
+        if (considered.length < considered.requiredLength) {
+          const alternative = route?.retainedCalls.join(' or ');
+          const otherRoute = alternative === undefined || alternative === '' ? '' :
+            route?.reason === 'three-card-minor-fallback'
+              ? ` The exceptional three-card-minor response (${alternative}) is offered ` +
+                `for judgment, not guaranteed as the best choice.`
+              : ` A normally qualifying new-suit response (${alternative}) is available instead.`;
+          lines.push(`${entered} normally needs at least ${considered.requiredLength} cards in ` +
+            `the new suit; you have ${considered.length}.${otherRoute} [${ruleId}].`);
+        }
+        continue;
+      }
+    }
+    if (candidate?.ruleApplies !== false) continue;
+    if (support?.passed === false) {
+      const amount = STRONG_MAJOR_NEW_SUIT_IDS.includes(ruleId) &&
+        ruleId === STRONG_MAJOR_NEW_SUIT_IDS[0] ? 'exactly three trumps' :
+        ruleId === STRONG_MAJOR_PREEMPT_ID ? 'at least five trumps' : 'at least four trumps';
+      lines.push(`${entered} under this support treatment requires ${amount}; ` +
+        `you have ${support.actual} [${ruleId}].`);
+    } else if (points?.passed === false) {
+      const amount = ruleId === STRONG_MAJOR_PREEMPT_ID ? 'at most 9' :
+        ruleId === STRONG_MAJOR_SPLINTER_ID ? '13–15' : 'at least 13';
+      lines.push(`${entered} under this treatment requires ${amount} support points; ` +
+        `you have ${points.actual} [${ruleId}].`);
+    } else if (short?.passed === false && ruleId === STRONG_MAJOR_SPLINTER_ID) {
+      lines.push(`A ${entered} splinter requires a singleton or void in the bid suit; ` +
+        `you have ${short.actual} cards there [${ruleId}].`);
+    }
+  }
+  return lines;
+}
+
+///
 //// Responses supporting partner's one-level major
 ///
 
@@ -953,6 +1160,7 @@ function supportPointText(points: Extract<Requirement, { kind: 'totalPoints' }>)
 /// Explain the actual successful support route; keep its full meaning and forcing status in the
 /// rule declaration rather than inferring them from a generic call category.
 export function getMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (STRONG_MAJOR_IDS.includes(rule.id)) return strongMajorSupportLines(result, rule);
   if (!BASIC_MAJOR_SUPPORT_IDS.includes(rule.id)) return [];
   const { candidate, diagnostic } = majorSupportCandidate(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
@@ -1001,7 +1209,7 @@ export function getMajorSupportLines(result: BidEvalResult, rule: BidRule): stri
 export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
   if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
   const entered = result.normalizedCall;
-  const lines: string[] = [];
+  const lines: string[] = strongMajorSupportFailureLines(result);
   for (const ruleId of BASIC_MAJOR_SUPPORT_IDS) {
     const { candidate, diagnostic } = majorSupportCandidate(result, ruleId);
     if (candidate?.ruleApplies !== false) continue;
@@ -1009,8 +1217,15 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
     const support = minorRequirement(candidate, 'partnerSupport');
     const hcp = minorRequirement(candidate, 'hcp');
     if (points?.passed === false) {
-      lines.push(`${entered} under this treatment requires ${strengthRange(points).replace('total points',
-        'support points')}; your hand has ${points.actual} support points [${ruleId}].`);
+      const fallback = result.ruleDiagnostics.find(({ rule }) =>
+        rule.id === STRONG_MAJOR_LIMIT_FALLBACK_ID)?.callEvidence?.longMajorLimitFallback;
+      const specialized13PointExplanation = ruleId === 'respond-to-major-w/-support-limit-raise-four-card' &&
+        points.actual === 13 && support !== undefined && support.actual >= 6 &&
+        (fallback?.reason === 'new-suit-available' || fallback?.reason === 'shortness');
+      if (!specialized13PointExplanation) {
+        lines.push(`${entered} under this treatment requires ${strengthRange(points).replace('total points',
+          'support points')}; your hand has ${points.actual} support points [${ruleId}].`);
+      }
     }
     if (support?.passed === false) {
       const range = support.min === support.max ? `exactly ${support.min}` :

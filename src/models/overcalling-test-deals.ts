@@ -101,7 +101,7 @@ export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     description: '13 HCP, four cards in each unbid suit and a singleton heart: ' +
                  'ordinary takeout Double of 1H, using 16 points with shortage.',
     dealer: 'W',
-    practiceAuction: ['1H', 'Double', 'Pass'],
+    practiceAuction: ['1H', 'Double'],
     expectedOvercallCalls: [
       { call: 'Double', ruleIds: ['overcall-takeout-double-with-unbid-suit-support'] },
     ],
@@ -115,7 +115,7 @@ export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Exactly 18 HCP and only two clubs: strong takeout Double of 1H, despite ' +
                  'lacking the ordinary three-card support requirement in every unbid suit.',
     dealer: 'W',
-    practiceAuction: ['1H', 'Double', 'Pass'],
+    practiceAuction: ['1H', 'Double'],
     expectedOvercallCalls: [
       { call: 'Double', ruleIds: ['overcall-takeout-double-strong-hand'] },
     ],
