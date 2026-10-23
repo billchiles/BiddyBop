@@ -350,6 +350,7 @@ export interface CallEvidence {
     | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
+    | { kind: 'stopper'; passed: boolean }
   )[];
   openingSelection?: {
     call: Call;
@@ -364,6 +365,8 @@ export interface CallEvidence {
   };
   suppressedBy?: Call;
   preemptSuitQuality?: { call: Call; passed: boolean }[];
+  balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
+  balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
 }
 
 export interface AppliesWhenResult {

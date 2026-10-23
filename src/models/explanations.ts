@@ -458,3 +458,120 @@ export function getBalancingDoubleFailureLines(result: BidEvalResult): string[] 
   }
   return lines;
 }
+
+///
+//// Balancing natural suit, 1NT, and Pass explanations
+///
+
+const BALANCING_SUIT_IDS = ['balance-natural-one-level-suit', 'balance-natural-two-level-suit'];
+const BALANCING_NT_ID = 'balance-natural-1nt';
+const BALANCING_PASS_ID = 'balance-pass-defend';
+
+/// The refiner records each considered natural suit call, including those it removed.
+/// Qualification strength is checked separately on surviving calls.
+function balancingSuitEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.balancingSuit?.find(
+    (item) => item.call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
+}
+
+function balancingNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === BALANCING_NT_ID)
+    ?.candidates.find(({ call }) => call === '1NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return {
+    candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
+  };
+}
+
+/// Give the hand-specific justification for the matched balancing treatment.
+export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (BALANCING_SUIT_IDS.includes(rule.id)) {
+    const { check, candidate, hcp } = balancingSuitEvidence(result, rule.id);
+    if (check === undefined || candidate?.ruleApplies !== true || hcp === undefined) return null;
+    const suit = result.normalizedCall;
+    if (check.level === 1) {
+      return `Your ${hcp.actual} HCP and ${check.length}-card suit qualify for ${suit}. ` +
+        (check.good ? 'The suit meets the honor-quality requirement. ' :
+          'With six or more cards, this one-level balance does not require the usual honor quality. ') +
+        'Balancing may be lighter than overcalling in the seat immediately after opener. ' +
+        'The balancing bidder’s partner should expect that lighter strength ' +
+        `[${rule.id}].`;
+    }
+    return `Your ${hcp.actual} HCP and good ${check.length}-card suit qualify for ${suit}. ` +
+      'A two-level balancing suit bid requires at least 8 HCP and a good suit of five or ' +
+      `more cards [${rule.id}].`;
+  }
+  if (rule.id === BALANCING_NT_ID) {
+    const { candidate, hcp, balanced, stopper } = balancingNtEvidence(result);
+    if (candidate?.ruleApplies !== true || hcp === undefined ||
+        balanced?.passed !== true || stopper?.passed !== true) return null;
+    return `Your ${hcp.actual} HCP and balanced distribution qualify for natural balancing 1NT. ` +
+      `You have a stopper in opener's suit. Balancing 1NT shows 12–15 HCP, less than ` +
+      `a natural 1NT overcall in the seat immediately after opener [${rule.id}].`;
+  }
+  if (rule.id === BALANCING_PASS_ID) {
+    const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule.id)
+      ?.candidates.find(({ call }) => call === 'Pass');
+    const pass = candidate?.callEvidence?.balancingPass;
+    if (candidate?.ruleApplies !== true || pass === undefined || pass.reason === null) return null;
+    if (pass.reason === 'weak') {
+      return `With ${pass.hcp} HCP, Pass is supported rather than reopening the auction ` +
+        `[${rule.id}].`;
+    }
+    return `With ${pass.hcp} HCP and ${pass.openerSuitLength} cards in opener's suit, ` +
+      `Pass is a supported defensive choice. Reopening may help the opponents ` +
+      `find a better contract [${rule.id}].`;
+  }
+  return null;
+}
+
+/// Explain only the attempted balancing call. An untested call or absent refinement is not
+/// evidence that the student's bid is wrong.
+export function getBalancingCallFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  if (entered === '1NT') {
+    const { candidate, hcp, balanced, stopper } = balancingNtEvidence(result);
+    if (candidate === undefined || candidate.ruleApplies || hcp === undefined ||
+        balanced === undefined || stopper === undefined) return [];
+    const lines: string[] = [];
+    if (!hcp.passed) lines.push(`Balancing 1NT requires 12–15 HCP; you have ${hcp.actual} ` +
+      `[${BALANCING_NT_ID}].`);
+    if (!balanced.passed) lines.push(`Balancing 1NT requires a balanced hand ` +
+      `[${BALANCING_NT_ID}].`);
+    if (!stopper.passed) lines.push(`Balancing 1NT requires a stopper in opener's suit ` +
+      `[${BALANCING_NT_ID}].`);
+    return lines;
+  }
+  if (entered === 'Pass') return [];
+  for (const ruleId of BALANCING_SUIT_IDS) {
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+    if (diagnostic === undefined || !diagnostic.rule.calls?.includes(entered)) continue;
+    const { check, candidate, hcp } = balancingSuitEvidence(result, ruleId);
+    if (check === undefined) continue;
+    const lines: string[] = [];
+    if (!check.passed) {
+      lines.push(check.level === 1
+        ? `A one-level balancing suit bid needs a good five-card suit or any six-card suit ` +
+          `[${ruleId}].`
+        : `A two-level balancing suit bid needs a good suit of at least five cards ` +
+          `[${ruleId}].`);
+    }
+    if (candidate?.ruleApplies === false && hcp !== undefined && !hcp.passed) {
+      lines.push(`A ${check.level}-level balancing suit bid requires ${check.level === 1 ?
+        '6–14' : '8–14'} HCP; you have ${hcp.actual} [${ruleId}].`);
+    }
+    return lines;
+  }
+  return [];
+}

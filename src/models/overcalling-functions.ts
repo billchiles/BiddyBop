@@ -1,7 +1,7 @@
 /// Overcall Bid Functions: refiners, applicability checks, and related helpers.
 
 import {
-  type AppliesWhenResult, type BiddingSystem, type Call, type CallRefinementResult,
+  type AppliesWhenResult, type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult,
   type RuleEvalContext
 } from './bidding-types';
 import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
@@ -1479,6 +1479,7 @@ export function refineBalancingSuitBid (calls: Call[], context: RuleEvalContext)
   const openingSuit = getBalancingOpeningSuit(context);
   if (openingSuit === null) return { calls: [], telemetryLines: ['Not a suit balancing auction.'] };
   const opening = { level: 1, strain: openingSuit };
+  const suitChecks: NonNullable<CallEvidence['balancingSuit']> = [];
   const qualifying = calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null || bid.strain === 'NT' || bid.strain === openingSuit ||
@@ -1486,12 +1487,17 @@ export function refineBalancingSuitBid (calls: Call[], context: RuleEvalContext)
     const suit = bid.strain as Suit;
     const length = context.handFacts.lengths[suit];
     const good = hasPreemptSuitQuality(context.hand, suit);
-    return bid.level === 1 ? length >= 6 || (length >= 5 && good) : length >= 5 && good;
+    const passed = bid.level === 1 ? length >= 6 || (length >= 5 && good) :
+      length >= 5 && good;
+    if (bid.level === 1 || bid.level === 2) {
+      suitChecks.push({ call, level: bid.level, length, good, passed });
+    }
+    return passed;
   });
   return { calls: qualifying, telemetryLines: [
     'Only the cheapest new-suit call; good five cards or six at level one, ' +
     'and good five-plus cards at level two.',
-  ] };
+  ], callEvidence: { balancingSuit: suitChecks } };
 }
 
 export function balancingOneNtApplies (call: Call, context: RuleEvalContext):
@@ -1499,13 +1505,17 @@ export function balancingOneNtApplies (call: Call, context: RuleEvalContext):
   const suit = getBalancingOpeningSuit(context);
   const { hcp, balanced } = context.handFacts;
   const stopper = suit !== null && hasBasicSuitStopper(context, suit);
-  const success = call === '1NT' && suit !== null && hcp >= 12 && hcp <= 15 &&
-    balanced && stopper;
+  const strength = hcp >= 12 && hcp <= 15;
+  const success = call === '1NT' && suit !== null && strength && balanced && stopper;
   return { success, telemetryLines: [
-    `${hcp >= 12 && hcp <= 15 ? 'PASS' : 'FAIL'}: balancing 1NT needs 12–15 HCP; has ${hcp}.`,
+    `${strength ? 'PASS' : 'FAIL'}: balancing 1NT needs 12–15 HCP; has ${hcp}.`,
     `${balanced ? 'PASS' : 'FAIL'}: natural balancing 1NT requires a balanced hand.`,
     `${stopper ? 'PASS' : 'FAIL'}: must hold a stopper in opener's suit.`,
-  ] };
+  ], callEvidence: suit === null || call !== '1NT' ? undefined : { requirements: [
+    { kind: 'hcp', actual: hcp, min: 12, max: 15, passed: strength },
+    { kind: 'balanced', actual: balanced, passed: balanced },
+    { kind: 'stopper', passed: stopper },
+  ] } };
 }
 
 export function balancingTakeoutDoubleApplies (call: Call, context: RuleEvalContext):
@@ -1558,8 +1568,9 @@ export function balancingPassApplies (call: Call, context: RuleEvalContext):
   // Better defensive holdings in opener's suit widen the eligible Pass range.
   const eligible = hcp <= 9 || (hcp <= 12 && count >= 3) ||
     (hcp <= 14 && count >= 4);
+  const reason = hcp <= 9 ? 'weak' : eligible ? 'defend' : null;
   return { success: eligible, telemetryLines: [
     `${eligible ? 'PASS' : 'FAIL'}: ${hcp} HCP, ${count} card(s) in opener's suit; ` +
       'Pass remains a reasonable defensive or weak-hand choice.',
-  ] };
+  ], callEvidence: { balancingPass: { hcp, openerSuitLength: count, reason } } };
 }

@@ -10,7 +10,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getOpeningSelectionFailureLines, getOpeningSelectionSupportLines,
          getPreemptOpeningSupportLine, getPreemptOpeningFailureLines,
          getTakeoutDoubleSupportLine, getTakeoutDoubleFailureLines,
-         getBalancingDoubleSupportLine, getBalancingDoubleFailureLines }
+         getBalancingDoubleSupportLine, getBalancingDoubleFailureLines,
+         getBalancingCallSupportLine, getBalancingCallFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -142,10 +143,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const title = `------------ ${getSeatLabel(seat)} ${call} — ${getStageLabel(stage)} ------------`;
     // The next-seat preview already occupies this position in the visible transcript.
     // Commit its exact lines before recording the call, so they never jump between seats.
-    const assessedDouble = result !== null &&
+    const hasCallSpecificFailure = result !== null &&
       (getTakeoutDoubleFailureLines(result).length > 0 ||
-       getBalancingDoubleFailureLines(result).length > 0);
-    const explanation = (status.kind === 'supported' || assessedDouble) && result !== null
+       getBalancingDoubleFailureLines(result).length > 0 ||
+       getBalancingCallFailureLines(result).length > 0);
+    const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
         ? [...turnGuidance, correction === null && testDeal !== undefined
@@ -178,9 +180,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             explanation.push(...getOpeningSelectionSupportLines(correction.result, rule));
             const preempt = getPreemptOpeningSupportLine(correction.result, rule);
             if (preempt !== null) explanation.push(preempt);
-            const doubleEvidence = getTakeoutDoubleSupportLine(correction.result, rule) ??
-              getBalancingDoubleSupportLine(correction.result, rule);
-            if (doubleEvidence !== null) explanation.push(doubleEvidence);
+            const callEvidenceLine = getTakeoutDoubleSupportLine(correction.result, rule) ??
+              getBalancingDoubleSupportLine(correction.result, rule) ??
+              getBalancingCallSupportLine(correction.result, rule);
+            if (callEvidenceLine !== null) explanation.push(callEvidenceLine);
           }
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
@@ -524,7 +527,9 @@ function buildExplanationLines (title: string, result: BidEvalResult,
     ...getTakeoutDoubleFailureLines(result),
     ...getBalancingDoubleFailureLines(result),
   ];
-  if (scopeBoundary !== undefined && candidates.length === 0 && doubleReasons.length === 0) {
+  const balancingReasons = getBalancingCallFailureLines(result);
+  if (scopeBoundary !== undefined && candidates.length === 0 &&
+      doubleReasons.length === 0 && balancingReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -534,11 +539,14 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       ...getOpeningSelectionFailureLines(result),
       ...getPreemptOpeningFailureLines(result),
     ];
-    if (openingReasons.length > 0 || doubleReasons.length > 0) {
+    if (openingReasons.length > 0 || doubleReasons.length > 0 ||
+        balancingReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
-        : 'Why this opening does not meet the selected requirements:');
-      lines.push(...openingReasons, ...doubleReasons);
+        : balancingReasons.length > 0
+          ? 'Why this balancing call does not meet the selected requirements:'
+          : 'Why this opening does not meet the selected requirements:');
+      lines.push(...openingReasons, ...doubleReasons, ...balancingReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -557,11 +565,22 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       lines.push(...getOpeningSelectionSupportLines(result, rule));
       const preempt = getPreemptOpeningSupportLine(result, rule);
       if (preempt !== null) lines.push(preempt);
-      const doubleEvidence = getTakeoutDoubleSupportLine(result, rule) ??
-        getBalancingDoubleSupportLine(result, rule);
-      if (doubleEvidence !== null) lines.push(doubleEvidence);
+      const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
+        getBalancingDoubleSupportLine(result, rule) ??
+        getBalancingCallSupportLine(result, rule);
+      if (callEvidenceLine !== null) lines.push(callEvidenceLine);
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
+  }
+
+  // Keep the scope boundary after call-specific failures when it adds distinct guidance.
+  // Its broader judgment limits are not themselves evidence that this call is wrong.
+  if (scopeBoundary !== undefined && candidates.length === 0 &&
+      (doubleReasons.length > 0 || balancingReasons.length > 0)) {
+    lines.push('');
+    lines.push('Additional auction guidance:');
+    appendRuleExplanation(lines, scopeBoundary);
+    lines.push('  The scope boundary does not recommend Pass.');
   }
 
   lines.push('');
