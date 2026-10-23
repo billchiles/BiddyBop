@@ -929,6 +929,14 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'respond-to-minor-w/-3nt' || ruleId === 'respond-to-minor-w/-pass-0-5' ||
     ruleId === 'respond-to-1d-w/-2c-standard' ||
     ruleId === 'respond-to-1d-w/-2c-two-over-one');
+  const explainMajorSupport = context.stage === 'responding' && (
+    ruleId === 'respond-to-major-w/-support-pass-0-5' ||
+    ruleId === 'respond-to-major-w/-pass-0-5' ||
+    ruleId === 'respond-to-major-w/-support-simple-raise' ||
+    ruleId === 'respond-to-major-w/-support-limit-raise-four-card' ||
+    ruleId === 'respond-to-major-w/-support-limit-raise-three-card' ||
+    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback' ||
+    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -939,7 +947,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
-        explainBalancingSuit || explainJumpOvercall || explainMinorResponse) {
+        explainBalancingSuit || explainJumpOvercall || explainMinorResponse || explainMajorSupport) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -948,8 +956,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.totalPoints !== undefined) {
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
-    if (explainPreemptRequirements) {
+    if (explainPreemptRequirements || explainMajorSupport) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
+        hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
     }
     pass = pass && result.pass;
@@ -986,12 +995,21 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.supportLength !== undefined) {
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
+    if (explainMajorSupport) {
+      const supportSuit = getSupportSuitForStage(context);
+      if (supportSuit !== null) {
+        requirements.push({ kind: 'partnerSupport',
+          actual: context.handFacts.lengths[supportSuit],
+          min: constraint.supportLength.min, max: constraint.supportLength.max,
+          passed: result.pass });
+      }
+    }
     pass = pass && result.pass;
   }
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainMinorResponse
+      explainMinorResponse || explainMajorSupport
       ? { requirements } : undefined };
 } //evaluateHandConstraint()
 

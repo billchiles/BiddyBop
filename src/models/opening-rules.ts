@@ -36,7 +36,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['1NT'],
     // natural is sentinal: maybeSuppressConvenientMinor() looks for this
-    callCategory: ['invitational', 'natural'],
+    callCategory: ['natural'],
     agreement: { setting: 'oneNtOpening', value: '15-17',
                  note: 'Standard 15-17 balanced 1NT range.' },
     priority: { rank: 100 },
@@ -57,7 +57,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['1NT'],
     // natural is sentinal: maybeSuppressConvenientMinor() looks for this
-    callCategory: ['invitational', 'natural'],
+    callCategory: ['natural'],
     agreement: { setting: 'oneNtOpening', value: '16-18',
                  note: 'Alternate 16-18 balanced 1NT range.' },
     priority: { rank: 100 },
@@ -77,7 +77,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['1NT'],
     // natural is sentinal: maybeSuppressConvenientMinor() looks for this
-    callCategory: ['invitational', 'natural'],
+    callCategory: ['natural'],
     agreement: { setting: 'oneNtFiveCardLengthUpgrade', value: true,
                  note: 'Optional one-point upgrade with a five-card major; off by default.' },
     priority: { rank: 100 },
@@ -112,7 +112,6 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['1C', '1D'],
     callRefinement: refineOneLevelSuitOpening,  // refines according to guidance below
-    callCategory: ['invitational'],
     priority: { rank: 70 },
     appliesWhen: convenientMinorOpeningValuesApply,
     meaning: 'Open 1C or 1D with nothing else to do. Open 1D with four cards in both minor suits; ' +
@@ -134,7 +133,6 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['1C', '1D', '1H', '1S'],
     callRefinement: refineOneLevelSuitOpening, // can't declaratively say which to choose
-    callCategory: ['invitational'], // can't be natural because of convenient minors
     appliesWhen: guidelineOf20Applies,
     meaning: 'HCP plus the lengths of the two longest suits is at least 20.',
     guidance: ['Use as an alternate opening-hand valuation in first or second seat.'],
@@ -151,7 +149,7 @@ export const OpeningBidRules: BidRule[] = [
     auctionContext: { stage: 'opening', auction: [] },
     calls: ['2NT'],
     // natural is sentinal: maybeSuppressConvenientMinor() looks for this
-    callCategory: ['invitational', 'natural'],
+    callCategory: ['natural'],
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 20, max: 21 }, shape: { balanced: true } },
     guidance: ['Do not consider a convenient minor when the hand fits the natural 2NT opening; ' +

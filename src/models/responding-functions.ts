@@ -249,11 +249,15 @@ export function refineThreeCardLimitRaiseOneNtFallback (
     return {
       calls: [],
       telemetryLines: ['With 4+ spades over 1H, show 1S before later making the limit raise.'],
+      callEvidence: { majorSupportRoute: { reason: 'spades-first',
+        spadeLength: context.handFacts.lengths.S } },
     };
   }
   return {
     calls,
     telemetryLines: ['No one-level new suit takes priority; keep 1NT as the three-card limit-raise route.'],
+    callEvidence: { majorSupportRoute: { reason: 'one-nt-fallback',
+      spadeLength: context.handFacts.lengths.S } },
   };
 }
 
@@ -270,6 +274,9 @@ export function refineThreeCardMajorSupportNewSuitFirst (
       ...refined.telemetryLines,
       'Keep a one-level new suit before the later three-card limit raise; otherwise use 1NT.',
     ],
+    callEvidence: refined.calls.some((call) => call === '1S')
+      ? { majorSupportRoute: { reason: 'spades-first',
+          spadeLength: context.handFacts.lengths.S } } : undefined,
   };
 }
 

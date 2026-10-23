@@ -314,7 +314,6 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
     calls: ['2H', '2S'],
     callRefinement: refineRaisePartnerSuitBy1, // choose opener's suit
-    callCategory: ['invitational'],
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Non-forcing simple raise of partner major; opener may pass or continue.',
@@ -389,7 +388,6 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callRefinement: refineThreeCardLimitRaiseOneNtFallback,
-    callCategory: ['invitational'],
     agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
                  note: 'Semi-forcing fallback: opener may pass a flat minimum.' },
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },

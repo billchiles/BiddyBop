@@ -916,3 +916,121 @@ function minorSuitSelectionText(
   }
   return `Respond in a longest available new suit of at least four cards: ${preferred}.`;
 }
+
+///
+//// Responses supporting partner's one-level major
+///
+
+const BASIC_MAJOR_SUPPORT_IDS = [
+  'respond-to-major-w/-support-pass-0-5',
+  'respond-to-major-w/-pass-0-5',
+  'respond-to-major-w/-support-simple-raise',
+  'respond-to-major-w/-support-limit-raise-four-card',
+  'respond-to-major-w/-support-limit-raise-three-card',
+  'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback',
+  'respond-to-major-w/-support-limit-raise-three-card-new-suit-first',
+];
+const THREE_CARD_MAJOR_ROUTE_IDS = [
+  'respond-to-major-w/-support-limit-raise-three-card',
+  'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback',
+  'respond-to-major-w/-support-limit-raise-three-card-new-suit-first',
+];
+
+function majorSupportCandidate(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+function supportPointText(points: Extract<Requirement, { kind: 'totalPoints' }>): string {
+  if (points.hcp === undefined) return `${points.actual} support points`;
+  const shortage = points.actual - points.hcp;
+  if (shortage === 0) return `${points.hcp} HCP, giving ${points.actual} support points`;
+  return `${points.hcp} HCP plus ${shortage} shortage ${shortage === 1 ? 'point' : 'points'}, ` +
+    `giving ${points.actual} support points`;
+}
+
+/// Explain the actual successful support route; keep its full meaning and forcing status in the
+/// rule declaration rather than inferring them from a generic call category.
+export function getMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!BASIC_MAJOR_SUPPORT_IDS.includes(rule.id)) return [];
+  const { candidate, diagnostic } = majorSupportCandidate(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const points = minorRequirement(candidate, 'totalPoints');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (rule.id === 'respond-to-major-w/-pass-0-5' && hcp !== undefined) {
+    return [`With ${hcp.actual} HCP and fewer than three trumps, you lack the 6 HCP ` +
+      `for an ordinary response [${rule.id}].`];
+  }
+  if (points === undefined || support === undefined) return [];
+  if (rule.id === 'respond-to-major-w/-support-pass-0-5') {
+    return [`With ${supportPointText(points)} and ${support.actual} trumps, ` +
+      `Pass is supported because you have no more than 5 support points [${rule.id}].`];
+  }
+  if (rule.id === 'respond-to-major-w/-support-simple-raise') {
+    return [`Your hand has ${supportPointText(points)} and ${support.actual} trumps, qualifying ` +
+      `for the 6–10-point simple raise. Opener may Pass this nonforcing response [${rule.id}].`];
+  }
+  if (rule.id === 'respond-to-major-w/-support-limit-raise-four-card') {
+    return [`Your hand has ${supportPointText(points)} and ${support.actual} trumps, qualifying ` +
+      `for the 11–12-point invitational limit raise. Opener may Pass with minimum values ` +
+      `or bid game with extras [${rule.id}].`];
+  }
+  if (!THREE_CARD_MAJOR_ROUTE_IDS.includes(rule.id)) return [];
+  const route = diagnostic?.callEvidence?.majorSupportRoute;
+  if (route?.reason === 'spades-first' && result.normalizedCall === '1S') {
+    return [`With ${supportPointText(points)} and exactly three hearts, you have ` +
+      `invitational heart support. Show your ${route.spadeLength}-card spade suit with ` +
+      `forcing 1S first, then invite in hearts after opener rebids [${rule.id}].`];
+  }
+  if (route?.reason === 'one-nt-fallback' && result.normalizedCall === '1NT') {
+    const forcing = rule.id === 'respond-to-major-w/-support-limit-raise-three-card';
+    return [`With ${supportPointText(points)} and exactly three trumps, use 1NT before ` +
+      `showing invitational support. ${forcing
+        ? 'Under the forcing 1NT agreement, opener must bid again if there is no interference.'
+        : 'Under the nonforcing 1NT agreement, opener may Pass; if opener continues, you can invite later.'} ` +
+      `[${rule.id}].`];
+  }
+  return [];
+}
+
+/// Diagnose only the entered simple/limit major raise or a modeled three-card support route.
+/// An excluded 1NT route is not called a failed hand requirement; the spade-first selection is
+/// recorded by its refiner and the alternative supported 1S is shown separately.
+export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  const lines: string[] = [];
+  for (const ruleId of BASIC_MAJOR_SUPPORT_IDS) {
+    const { candidate, diagnostic } = majorSupportCandidate(result, ruleId);
+    if (candidate?.ruleApplies !== false) continue;
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    const hcp = minorRequirement(candidate, 'hcp');
+    if (points?.passed === false) {
+      lines.push(`${entered} under this treatment requires ${strengthRange(points).replace('total points',
+        'support points')}; your hand has ${points.actual} support points [${ruleId}].`);
+    }
+    if (support?.passed === false) {
+      const range = support.min === support.max ? `exactly ${support.min}` :
+        support.max !== undefined ? `${support.min ?? 0}–${support.max}` :
+        `at least ${support.min}`;
+      lines.push(`${entered} under this treatment requires ${range} cards in partner's major; ` +
+        `you have ${support.actual} [${ruleId}].`);
+    }
+    if (hcp?.passed === false) {
+      lines.push(`Pass under this weak-response treatment requires at most 5 HCP; ` +
+        `your hand has ${hcp.actual} [${ruleId}].`);
+    }
+    // A 1NT fallback filtered out because 1S is available has no hand check to report.
+    if (candidate === undefined && entered === '1NT' &&
+        diagnostic?.callEvidence?.majorSupportRoute?.reason === 'spades-first') {
+      // A separate supported response rule may still cover 1NT; in that case this
+      // function was already short-circuited by userCallMatchingRules above.
+      lines.push(`With four or more spades after partner opens 1H, respond 1S first ` +
+        `and plan an invitational heart raise later [${ruleId}].`);
+    }
+  }
+  return lines;
+}

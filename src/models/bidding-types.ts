@@ -346,7 +346,8 @@ export interface CallEvidence {
     | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'balanced'; actual: boolean; passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
-    | { kind: 'totalPoints'; actual: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'partnerSupport'; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
@@ -372,6 +373,7 @@ export interface CallEvidence {
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
+  majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
   minorResponseSelection?: {
     preferredCall: Call | null;
     retainedCalls: Call[];
