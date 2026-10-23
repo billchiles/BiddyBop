@@ -376,18 +376,20 @@ export function refineJumpNewSuit (calls: Call[], context: RuleEvalContext): Cal
 ///
 export function refineWeakJumpShift (calls: Call[], context: RuleEvalContext): CallRefinementResult {
   const jumpResult = refineNewSuitByExtraLevels(calls, context, 1, 'weak jump-shift');
-  const candidates = jumpResult.calls
-    .map((call) => {
-      const candidate = parseSuitBid(call)!;
-      const suit = candidate.strain as Suit;
-      return { call, suit, length: context.handFacts.lengths[suit] };
-    })
-    .filter((candidate) => candidate.length >= 6);
+  const considered = jumpResult.calls.map((call) => {
+    const suit = parseSuitBid(call)!.strain as Suit;
+    return { call, suit, length: context.handFacts.lengths[suit],
+      suitHcp: context.handFacts.hcpBySuit[suit] };
+  });
+  const candidates = considered.filter((candidate) => candidate.length >= 6);
   if (candidates.length === 0) {
     return { calls: [], telemetryLines: [
       ...jumpResult.telemetryLines,
       'No six-card-or-longer suit is available for a weak jump shift.',
-    ] };
+    ], callEvidence: { jumpShift: {
+      treatment: 'weak', hcp: context.handFacts.hcp, considered,
+      selectedCall: null, reason: 'no-long-suit', longNewSuits: [],
+    } } };
   }
 
   const longestLength = Math.max(...candidates.map((candidate) => candidate.length));
@@ -401,6 +403,12 @@ export function refineWeakJumpShift (calls: Call[], context: RuleEvalContext): C
       `Choose the longest weak jump-shift suit; with equal length prefer the higher-ranking suit: ` +
         `${selected.call}.`,
     ],
+    callEvidence: { jumpShift: {
+      treatment: 'weak', hcp: context.handFacts.hcp, considered,
+      selectedCall: selected.call,
+      ordinaryCall: cheapestNewSuitBid(getPartnerOpeningBid(context)!, selected.suit) ?? undefined,
+      reason: 'qualified', longNewSuits: candidates.map(({ suit }) => suit),
+    } },
   };
 }
 
@@ -414,6 +422,12 @@ export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext):
     return { calls: [], telemetryLines: ['A strong jump shift needs a one-level suit opening.'] };
   }
 
+  const jumpResult = refineNewSuitByExtraLevels(calls, context, 1, 'strong jump-shift');
+  const considered = jumpResult.calls.map((call) => {
+    const suit = parseSuitBid(call)!.strain as Suit;
+    return { call, length: context.handFacts.lengths[suit],
+      suitHcp: context.handFacts.hcpBySuit[suit] };
+  });
   const fiveCardNewSuits = SUITS.filter((suit) =>
     suit !== opening.strain && context.handFacts.lengths[suit] >= 5);
   if (fiveCardNewSuits.length !== 1) {
@@ -421,7 +435,11 @@ export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext):
       fiveCardNewSuits.length > 1
         ? 'With two 5+ new suits, respond naturally in the higher-ranking suit rather than jump shift.'
         : 'No five-card-or-longer new suit is available for a strong jump shift.',
-    ] };
+    ], callEvidence: { jumpShift: {
+      treatment: 'strong', hcp: context.handFacts.hcp, considered, selectedCall: null,
+      reason: fiveCardNewSuits.length > 1 ? 'two-long-suits' : 'no-long-suit',
+      longNewSuits: fiveCardNewSuits,
+    } } };
   }
 
   const wantedSuit = fiveCardNewSuits[0]!;
@@ -429,10 +447,12 @@ export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext):
     return { calls: [], telemetryLines: [
       `Strong jump-shift suit ${wantedSuit} needs at least 5 HCP in the suit; responder has ` +
         `${context.handFacts.hcpBySuit[wantedSuit]}.`,
-    ] };
+    ], callEvidence: { jumpShift: {
+      treatment: 'strong', hcp: context.handFacts.hcp, considered, selectedCall: null,
+      reason: 'insufficient-suit-hcp', longNewSuits: fiveCardNewSuits,
+    } } };
   }
 
-  const jumpResult = refineNewSuitByExtraLevels(calls, context, 1, 'strong jump-shift');
   const refined = jumpResult.calls.filter((call) => parseSuitBid(call)!.strain === wantedSuit);
   return {
     calls: refined,
@@ -441,6 +461,12 @@ export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext):
       `Keep the one-suited strong jump shift in ${wantedSuit}; the suit has ` +
         `${context.handFacts.hcpBySuit[wantedSuit]} HCP.`,
     ],
+    callEvidence: { jumpShift: {
+      treatment: 'strong', hcp: context.handFacts.hcp, considered,
+      selectedCall: refined[0] ?? null,
+      ordinaryCall: cheapestNewSuitBid(opening, wantedSuit) ?? undefined,
+      reason: 'qualified', longNewSuits: fiveCardNewSuits,
+    } },
   };
 }
 

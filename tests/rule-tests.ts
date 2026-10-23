@@ -865,7 +865,7 @@ function runRuleTests (): number {
   console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.\n');
   // Independently verify that practice calls also work in representative dropdown configurations.
   const compatibilityFailures = runConventionCompatibilityChecks();
-  return failureCount + compatibilityFailures === 0 ? 0 : 1;
+  return failureCount + compatibilityFailures;
 }
 
 /// Meta-test for requiredSystem: a deal offered by the dropdown must have a valid recorded call.
@@ -4606,25 +4606,68 @@ function runMajorNoSupportAgreementTests (): number {
   return failures;
 }
 
-const failureCount = runMajorNoSupportAgreementTests() + runBasicOpeningExplanationTests() + runThirdAuditRebidTests() + runResponderAfterMinorJumpRepeatTests() + runOpenerPassAfterPreemptRaiseTests() + runStrongOpenerAfterMajorSimpleRaiseTests() + runStrongTwoCFourFourFourOneBoundaryTests() + runResponderStrongAndSupportConventionTests() + runAuctionHelperTests() + runResponderNtConventionTests() + runOpeningPositionAndPassTests() +
-  runAuctionContextTests() +
-  runCompetitionBoundaryTests() + runResponderInterferenceScopeBoundaryTests() +
-  runCompetitiveOpenerRebidBoundaryTests() + runAdvancingBoundaryTests() +
-  runTakeoutAdvanceBoundaryTests() + runSharedOneNtAdvanceBoundaryTests() +
-  runResponderRaiseAdvanceBoundaryTests() + runResponderNaturalActionAdvanceBoundaryTests() +
-  runResponderArtificialActionAdvanceBoundaryTests() +
-  runOneNtInterferencePartnerBoundaryTests() + runJumpOvercallAdvanceBoundaryTests() +
-  runJumpOvercallForcingAdvanceRebidTests() +
-  runDontBoundaryTests() + runResponderRebidContextTests() +
-  runResponderMajorRaiseContextTests() + runResponderRepeatedSuitContextTests() +
-  runResponderSecondSuitContextTests() + runResponderStrongSecondSuitContextTests() +
-  runResponderStrongTwoNtContextTests() + runResponderMajorOneNtContextTests() +
-  runResponderMajorOneNtStrongTests() + runResponderMinorOneNtAndPassedHandTests() +
-  runResponderStandardTwoLevelContextTests() + runResponderTwoOverOneContextTests() +
-  runPracticeContinuationTests() + runResponderAfterMajorGameTryTests() +
-  runResponderAfterOpenerSplinterTests() + runResponderAfterStrongJumpShiftTests() +
-  runBiddingTurnStatusTests() + runContinuousAuctionFeedbackTests() + runUnmodeledDirectDefenseBoundaryTests() + runLaterStageTerminationGuidanceTests() + runStrongMinorArtificialSupportTests() +
-  runBalancingAuctionAndDealTests() + runRuleTests();
+/// Continue running independent test groups after an unexpected exception. Individual
+/// assertion failures are already counted within their groups; preserve those counts.
+const testGroups: (() => number)[] = [
+  runMajorNoSupportAgreementTests,
+  runBasicOpeningExplanationTests,
+  runThirdAuditRebidTests,
+  runResponderAfterMinorJumpRepeatTests,
+  runOpenerPassAfterPreemptRaiseTests,
+  runStrongOpenerAfterMajorSimpleRaiseTests,
+  runStrongTwoCFourFourFourOneBoundaryTests,
+  runResponderStrongAndSupportConventionTests,
+  runAuctionHelperTests,
+  runResponderNtConventionTests,
+  runOpeningPositionAndPassTests,
+  runAuctionContextTests,
+  runCompetitionBoundaryTests,
+  runResponderInterferenceScopeBoundaryTests,
+  runCompetitiveOpenerRebidBoundaryTests,
+  runAdvancingBoundaryTests,
+  runTakeoutAdvanceBoundaryTests,
+  runSharedOneNtAdvanceBoundaryTests,
+  runResponderRaiseAdvanceBoundaryTests,
+  runResponderNaturalActionAdvanceBoundaryTests,
+  runResponderArtificialActionAdvanceBoundaryTests,
+  runOneNtInterferencePartnerBoundaryTests,
+  runJumpOvercallAdvanceBoundaryTests,
+  runJumpOvercallForcingAdvanceRebidTests,
+  runDontBoundaryTests,
+  runResponderRebidContextTests,
+  runResponderMajorRaiseContextTests,
+  runResponderRepeatedSuitContextTests,
+  runResponderSecondSuitContextTests,
+  runResponderStrongSecondSuitContextTests,
+  runResponderStrongTwoNtContextTests,
+  runResponderMajorOneNtContextTests,
+  runResponderMajorOneNtStrongTests,
+  runResponderMinorOneNtAndPassedHandTests,
+  runResponderStandardTwoLevelContextTests,
+  runResponderTwoOverOneContextTests,
+  runPracticeContinuationTests,
+  runResponderAfterMajorGameTryTests,
+  runResponderAfterOpenerSplinterTests,
+  runResponderAfterStrongJumpShiftTests,
+  runBiddingTurnStatusTests,
+  runContinuousAuctionFeedbackTests,
+  runUnmodeledDirectDefenseBoundaryTests,
+  runLaterStageTerminationGuidanceTests,
+  runStrongMinorArtificialSupportTests,
+  runBalancingAuctionAndDealTests,
+  runRuleTests,
+];
+let failureCount = 0;
+for (const run of testGroups) {
+  try {
+    failureCount += run();
+  } catch (error) {
+    failureCount += 1;
+    console.error(`FAIL test group ${run.name}: ${String(error)}`);
+  }
+}
+console.log(failureCount === 0 ? 'ZERO errors in all tests.' :
+  `${failureCount} error${failureCount === 1 ? '' : 's'} in tests.`);
 if (failureCount !== 0) {
   throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
 }

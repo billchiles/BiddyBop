@@ -947,6 +947,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'respond-to-major-w/-support-splinter' ||
     ruleId === 'respond-to-major-w/-support-preemptive-game-raise' ||
     ruleId === 'respond-to-major-w/-support-long-fit-13-limit-raise-fallback');
+  const explainJumpShift = context.stage === 'responding' && (
+    ruleId === 'respond-to-minor-w/-weak-jump-shift-modern' ||
+    ruleId === 'respond-to-minor-w/-strong-jump-shift-classic' ||
+    ruleId === 'respond-to-major-w-weak-jump-shift-modern' ||
+    ruleId === 'respond-to-major-w/-strong-jump-shift-classic');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -957,7 +962,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
-        explainBalancingSuit || explainJumpOvercall || explainMinorResponse || explainMajorSupport || explainMajorNoSupport) {
+        explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
+        explainMajorSupport || explainMajorNoSupport || explainJumpShift) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -1006,7 +1012,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.supportLength !== undefined) {
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
-    if (explainMajorSupport || explainMajorNoSupport) {
+    if (explainMajorSupport || explainMajorNoSupport || explainJumpShift) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
         requirements.push({ kind: 'partnerSupport', suit: supportSuit,
@@ -1020,7 +1026,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainMinorResponse || explainMajorSupport || explainMajorNoSupport
+      explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift
       ? { requirements } : undefined };
 } //evaluateHandConstraint()
 

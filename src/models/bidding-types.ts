@@ -339,6 +339,45 @@ export type AppliesWhenFunction = (
   system: BiddingSystem,
 ) => AppliesWhenResult;
 
+export interface AppliesWhenResult {
+  success: boolean;
+  telemetryLines: string[];
+  callEvidence?: CallEvidence;
+}
+
+/// callRefinement narrows or orders a rule's declared calls for the actual auction; it does not decide rule context.
+export type CallRefinementFunction = (
+  calls: Call[],
+  context: RuleEvalContext,
+  system: BiddingSystem,
+) => CallRefinementResult;
+
+export interface CallRefinementResult {
+  // Candidate calls after auction and hand facts constraints applied.  Preserve meaningful
+  // preference order when a rule defines one; the evaluator does not assume the first call is
+  // uniquely correct.
+  calls: Call[];
+  telemetryLines: string[];
+  callEvidence?: CallEvidence;
+}
+
+/// RuleEvalContext contains model-derived auction/hand state available to rule functions.
+/// React supplies the board and full auction; the bidding model derives seat, stage, and hand.
+export interface RuleEvalContext {
+  dealer: Seat;
+  seat: Seat;
+  // Null when this physical turn has no modeled bidding-rule stage.  This alone does not
+  // indicate that the bridge auction or recorded practice sequence has ended.
+  stage: BidStage | null;
+  auction: Call[];
+  hand: Hand;
+  handFacts: HandFacts;
+}
+
+///
+//// Call Explanation Types
+///
+
 /// Optional evaluation evidence used to explain a particular call. Add fields as rule
 /// families need them; not every rule is required to produce evidence.
 export interface CallEvidence {
@@ -389,6 +428,15 @@ export interface CallEvidence {
     orderedCalls: Call[];
     considered: { call: Call; length: number }[];
   };
+  jumpShift?: {
+    treatment: JumpShiftAgreement;
+    hcp: number;
+    considered: { call: Call; length: number; suitHcp: number }[];
+    selectedCall: Call | null;
+    ordinaryCall?: Call;
+    reason: 'qualified' | 'no-long-suit' | 'two-long-suits' | 'insufficient-suit-hcp';
+    longNewSuits: Suit[];
+  };
   minorResponseSelection?: {
     preferredCall: Call | null;
     retainedCalls: Call[];
@@ -397,40 +445,5 @@ export interface CallEvidence {
       'equal-long-majors' | 'longer-major' | 'longest-suit';
     longerDiamondAlternative: boolean;
   };
-}
-
-export interface AppliesWhenResult {
-  success: boolean;
-  telemetryLines: string[];
-  callEvidence?: CallEvidence;
-}
-
-/// callRefinement narrows or orders a rule's declared calls for the actual auction; it does not decide rule context.
-export type CallRefinementFunction = (
-  calls: Call[],
-  context: RuleEvalContext,
-  system: BiddingSystem,
-) => CallRefinementResult;
-
-export interface CallRefinementResult {
-  // Candidate calls after auction and hand facts constraints applied.  Preserve meaningful
-  // preference order when a rule defines one; the evaluator does not assume the first call is
-  // uniquely correct.
-  calls: Call[];
-  telemetryLines: string[];
-  callEvidence?: CallEvidence;
-}
-
-/// RuleEvalContext contains model-derived auction/hand state available to rule functions.
-/// React supplies the board and full auction; the bidding model derives seat, stage, and hand.
-export interface RuleEvalContext {
-  dealer: Seat;
-  seat: Seat;
-  // Null when this physical turn has no modeled bidding-rule stage.  This alone does not
-  // indicate that the bridge auction or recorded practice sequence has ended.
-  stage: BidStage | null;
-  auction: Call[];
-  hand: Hand;
-  handFacts: HandFacts;
 }
 

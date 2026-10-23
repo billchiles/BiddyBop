@@ -6,6 +6,9 @@ shared deal types and assembles those files into UI/test buckets. Run `npm run t
 evaluate every bucket, including deals
 requiring non-default partnership agreements. No application build or browser is needed. To
 capture failures and the summary, use `npm run test:rules > rule-test-results.txt 2>&1`.
+The runner continues through all independent test groups, even if one throws an unexpected
+exception. The final line says `ZERO errors in all tests.` or reports the total error count;
+a nonzero total still makes the command fail.
 
 The runner verifies recorded call/rule pairs, selected eliminated calls, selected relative call
 orders, and the actual call recorded for each tested stage. It does not choose a bid for the

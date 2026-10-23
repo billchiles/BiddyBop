@@ -1393,3 +1393,120 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
   }
   return lines;
 }
+
+
+///
+//// Weak and strong responder jump shifts (B13)
+///
+
+const RESPONDER_JUMP_SHIFT_IDS = [
+  'respond-to-minor-w/-weak-jump-shift-modern',
+  'respond-to-major-w-weak-jump-shift-modern',
+  'respond-to-minor-w/-strong-jump-shift-classic',
+  'respond-to-major-w/-strong-jump-shift-classic',
+];
+
+/// Explain a qualifying jump shift using the evaluator's refinement and strength decisions.
+/// The chosen agreement defines whether the jump is preemptive or a game force.
+export function getResponderJumpShiftLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!RESPONDER_JUMP_SHIFT_IDS.includes(rule.id) || result.normalizedCall === null) return [];
+  const { selection, candidate, hcp, suit } = jumpShiftDiagnostic(result, rule.id);
+  if (selection?.selectedCall !== result.normalizedCall || candidate?.ruleApplies !== true ||
+      hcp?.passed !== true || suit === undefined) return [];
+  const call = result.normalizedCall;
+  const ordinary = selection.ordinaryCall;
+  const ordinaryQualifies = ordinary !== undefined && result.ruleDiagnostics.some((diagnostic) =>
+    diagnostic.candidates.some((item) => item.call === ordinary && item.ruleApplies));
+  if (selection.treatment === 'weak') {
+    const lines = [`With ${hcp.actual} HCP and ${suit.length} ${suitPlural(call)}, ` +
+      `${call} qualifies as a weak jump shift under the selected agreement. The jump ` +
+      `immediately shows limited strength and a long suit; it is preemptive and ` +
+      `nonforcing, so opener may Pass [${rule.id}].`];
+    if (ordinaryQualifies) {
+      lines.push(`A natural ${ordinary} response also qualifies, but the jump shows your ` +
+        `weak long-suit hand immediately [${rule.id}].`);
+    }
+    const alternatives = selection.considered.filter((item) =>
+      item.call !== call && item.length >= 6);
+    if (alternatives.length > 0) {
+      const shorter = alternatives.some((item) => item.length < suit.length);
+      lines.push(shorter
+        ? `More than one six-card-or-longer new suit is available. ${call} shows the longest first ` +
+          `[${rule.id}].`
+        : `With equally long qualifying new suits, ${call} is the higher-ranking choice ` +
+          `[${rule.id}].`);
+    }
+    return lines;
+  }
+  const lines = [`With ${hcp.actual} HCP, ${suit.length} ${suitPlural(call)}, and ` +
+    `${suit.suitHcp} HCP in the bid suit, ${call} qualifies as a classic strong jump shift. ` +
+    `It promises a strong suit (at least 5 HCP in that suit), establishes a game force, ` +
+    `and expresses slam interest. Neither partner should Pass below game [${rule.id}].`];
+  if (ordinaryQualifies) {
+    lines.push(`A natural ${ordinary} response also qualifies, but the jump immediately ` +
+      `communicates the exceptional strength and game commitment [${rule.id}].`);
+  }
+  return lines;
+}
+
+/// Diagnose only an actually attempted single jump covered by the selected agreement.
+/// When refinement discarded the call, rely on its recorded reason rather than retesting hands.
+export function getResponderJumpShiftFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  for (const ruleId of RESPONDER_JUMP_SHIFT_IDS) {
+    const { selection, candidate, hcp, support, suit } = jumpShiftDiagnostic(result, ruleId);
+    if (selection === undefined || suit === undefined) continue;
+    const weak = selection.treatment === 'weak';
+    const kind = weak ? 'weak' : 'classic strong';
+    const minLength = weak ? 6 : 5;
+    // A candidate's HCP requirement was actually evaluated only after refinement retained it.
+    if (hcp?.passed === false) {
+      const range = weak ? '4–7' : 'at least 17';
+      return [`A ${kind} jump shift to ${entered} requires ${range} HCP; ` +
+        `you have ${hcp.actual} [${ruleId}].`];
+    }
+    if (support?.passed === false) {
+      return [`A weak ${entered} jump shift after a major opening is reserved for hands ` +
+        `with at most two cards in opener's major; you have ${support.actual}. ` +
+        `With three-card or longer support, consider a qualifying raise instead [${ruleId}].`];
+    }
+    if (suit.length < minLength) {
+      return [`A ${kind} jump shift to ${entered} requires at least ${minLength} ` +
+        `${suitPlural(entered)}; you have ${suit.length} [${ruleId}].`];
+    }
+    if (!weak && selection.reason === 'two-long-suits') {
+      return [`With two five-card-or-longer new suits, the selected classic strong ` +
+        `jump-shift treatment calls for a natural response first, normally in the ` +
+        `higher-ranking suit, so both suits can be described later [${ruleId}].`];
+    }
+    if (!weak && selection.reason === 'insufficient-suit-hcp' && suit.suitHcp < 5) {
+      return [`Classic strong jump shifts require at least 17 HCP overall and at least ` +
+        `5 HCP in the bid suit. Your hand has ${selection.hcp} HCP overall and ` +
+        `${suit.suitHcp} in ${suitName(entered)} [${ruleId}].`];
+    }
+    if (selection.selectedCall !== null && selection.selectedCall !== entered) {
+      const preferred = selection.considered.find(({ call }) => call === selection.selectedCall);
+      if (preferred !== undefined) {
+        const reason = preferred.length > suit.length
+          ? `the longer qualifying suit (${preferred.length} cards versus ${suit.length})`
+          : 'the higher-ranking of equally long qualifying suits';
+        return [`Both ${entered} and ${selection.selectedCall} have sufficient suit length ` +
+          `for the weak jump-shift treatment, but the evaluator selects ` +
+          `${selection.selectedCall}: ${reason} [${ruleId}].`];
+      }
+    }
+    if (candidate?.ruleApplies === false) continue;
+  }
+  return [];
+}
+
+function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const selection = diagnostic?.callEvidence?.jumpShift;
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const hcp = candidate === undefined ? undefined : minorRequirement(candidate, 'hcp');
+  const support = candidate === undefined ? undefined : minorRequirement(candidate, 'partnerSupport');
+  const suit = selection?.considered.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, selection, candidate, hcp, support, suit };
+}
