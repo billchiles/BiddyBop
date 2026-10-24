@@ -1309,7 +1309,8 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Weak economical escape to the best available unbid suit after responder Redoubles.',
     guidance: ['Prefer a four-card-or-longer unbid suit; use a three-card suit only when no ' +
                'four-card unbid suit exists.',
-               'Invitational jumps and penalty-oriented Pass decisions are not modeled here.'],
+               'Pass may be a good judgment in this situation, but the trainer cannot ' +
+               'confirm it from the limited factors evaluated here.'],
     certainty: 'high',
   },
   //// Preemptive jump overcall -- Advances after responder Pass

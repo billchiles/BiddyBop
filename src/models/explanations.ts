@@ -2596,3 +2596,219 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
   }
   return [];
 }
+
+///
+//// Competitive advances after negative Doubles and Redoubles (B20)
+///
+
+const REDOUBLED_TAKEOUT_ESCAPE_ID =
+  'advance-takeout-double-after-responder-redouble-weak-suit-escape';
+
+function negativeDoubleAdvanceRule(ruleId: string): boolean {
+  return ruleId.includes('-after-negative-double-') && (
+    ruleId.startsWith('advance-suit-overcall-') ||
+    ruleId.startsWith('advance-one-level-suit-overcall-') ||
+    ruleId.startsWith('advance-two-level-suit-overcall-'));
+}
+
+function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+/// Explain the actual qualifying B20 treatment, not every alternative that was considered.
+export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if ((!negativeDoubleAdvanceRule(rule.id) &&
+       rule.id !== REDOUBLED_TAKEOUT_ESCAPE_ID) || result.normalizedCall === null) return [];
+  const { diagnostic, candidate } = negativeDoubleAdvanceDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const call = result.normalizedCall;
+  const id = `[${rule.id}]`;
+  const hcp = minorRequirement(candidate, 'hcp');
+  const points = minorRequirement(candidate, 'totalPoints');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  const length = minorRequirement(candidate, 'suitLength');
+
+  if (rule.id === REDOUBLED_TAKEOUT_ESCAPE_ID) {
+    const escape = diagnostic?.callEvidence?.redoubledTakeoutEscape;
+    const considered = escape?.considered.find((item) => item.call === call);
+    if (escape === undefined || considered === undefined || points === undefined) return [];
+    const fallback = considered.length === 3 ?
+      `With no four-card unbid suit, this three-card ${suitPlural(call)} response is ` +
+        `the fallback; it does not promise four cards.` :
+      `Your ${considered.length} ${suitPlural(call)} provide a possible contract strain.`;
+    return [`Responder's Redouble shows strength for the opponents. With ` +
+      `${points.actual} length-adjusted points, ${call} is a weak, natural escape ` +
+      `at the cheapest level. ${fallback} It is not an invitation to game ${id}.`];
+  }
+  if (rule.id.endsWith('-pass')) {
+    const pass = candidate.callEvidence?.negativeDoublePass;
+    if (pass === undefined) return [];
+    return [`Responder's negative Double is artificial and does not oblige you to bid ` +
+      `after partner's natural overcall. With ${pass.hcp} HCP and no qualifying ` +
+      `constructive raise, natural new suit, or notrump advance, Pass is reasonable ${id}.`];
+  }
+  if (rule.id.endsWith('-simple-raise') || rule.id.endsWith('-preemptive-raise')) {
+    if (points === undefined || support === undefined) return [];
+    if (rule.id.endsWith('-preemptive-raise')) {
+      return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+        `is a weak preemptive jump raise. It takes bidding space away from the opponents ` +
+        `rather than inviting game; partner may Pass ${id}.`];
+    }
+    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      `is a constructive, nonforcing raise of partner's overcall. Partner may Pass ${id}.`];
+  }
+  if (rule.id.endsWith('-support-cuebid')) {
+    if (points === undefined || support === undefined) return [];
+    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      `is an artificial strong raise of partner's suit. It bids the opponents' opening ` +
+      `suit, not a natural suit of your own, and forces partner to bid again. ` +
+      `It describes your fit more precisely than a general strength-showing Redouble ${id}.`];
+  }
+  if (rule.id.endsWith('-natural-notrump')) {
+    const stopper = candidate.callEvidence?.requirements?.find((check) =>
+      check.kind === 'stopper');
+    if (hcp === undefined || stopper?.kind !== 'stopper' || !stopper.passed) return [];
+    const meaning = call === '2NT' ? 'a natural game invitation' :
+      'a natural, nonforcing notrump advance';
+    return [`With ${hcp.actual} HCP, balanced distribution, and a stopper in opener's ` +
+      `${stopper.suit === undefined ? 'suit' : suitPlural(`1${stopper.suit}`)}, ` +
+      `${call} qualifies as ${meaning}. This gives partner more information ` +
+      `than a general strength-showing Redouble ${id}.`];
+  }
+  if (rule.id.endsWith('-new-suit-two-level')) {
+    if (hcp === undefined || length === undefined) return [];
+    return [`With ${hcp.actual} HCP and ${length.actual} ${suitPlural(call)}, ` +
+      `${call} is a natural economical new-suit advance, forcing partner to bid again. ` +
+      `It avoids the suit suggested by responder's negative Double ${id}.`];
+  }
+  if (rule.id.endsWith('-redouble-values')) {
+    const decision = candidate.callEvidence?.negativeDoubleRedouble;
+    if (decision === undefined) return [];
+    return [`With ${decision.hcp} HCP and no more descriptive qualifying support ` +
+      `cuebid, natural notrump, or side-suit advance, Redouble shows general values. ` +
+      `It does not promise a specific suit or a fit and is not a penalty Double ${id}.`];
+  }
+  return [];
+}
+
+/// Use evaluated failures and the refining decisions that actually removed a call.
+/// A legal Pass after the opponents Redouble is not automatically a bad bridge judgment.
+export function getNegativeDoubleAdvanceFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  const escape = result.ruleDiagnostics.find((item) => item.rule.id === REDOUBLED_TAKEOUT_ESCAPE_ID);
+  const escapeDecision = escape?.callEvidence?.redoubledTakeoutEscape;
+  if (entered === 'Pass' && escapeDecision !== undefined) {
+    return [`Pass may be a good bid after the opponents Redouble partner's takeout ` +
+      `Double, but that decision depends on defensive and other judgment factors the ` +
+      `trainer cannot confirm here. A weak economical suit escape may also be available ` +
+      `[${REDOUBLED_TAKEOUT_ESCAPE_ID}].`];
+  }
+  if (escapeDecision !== undefined && entered !== 'Pass') {
+    const considered = escapeDecision.considered.find((item) => item.call === entered);
+    if (considered !== undefined && !considered.eligible) {
+      if (considered.length < 4 &&
+          (escapeDecision.hasFourCardUnbidSuit || considered.length < 3)) {
+        return [`The weak escape to ${entered} requires at least four cards in that suit, ` +
+          `or three when no four-card unbid suit exists. You have ${considered.length} ` +
+          `${suitPlural(entered)} [${REDOUBLED_TAKEOUT_ESCAPE_ID}].`];
+      }
+      if (considered.cheapest !== entered) {
+        return [`A weak suit escape must be made at the cheapest legal level in that suit; ` +
+          `${entered} is not the economical call [${REDOUBLED_TAKEOUT_ESCAPE_ID}].`];
+      }
+    }
+    const candidate = escape?.candidates.find((item) => item.call === entered);
+    const points = candidate === undefined ? undefined : minorRequirement(candidate, 'totalPoints');
+    if (points !== undefined && !points.passed) {
+      return [`The weak suit escape allows at most eight length-adjusted points; ` +
+        `your hand has ${points.actual}. Stronger decisions require additional judgment ` +
+        `[${REDOUBLED_TAKEOUT_ESCAPE_ID}].`];
+    }
+  }
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!negativeDoubleAdvanceRule(diagnostic.rule.id)) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    const candidate = diagnostic.candidates.find((item) => item.call === entered);
+    if (candidate?.ruleApplies === true) continue;
+    if (entered === 'Pass' && diagnostic.rule.id.endsWith('-pass') && candidate !== undefined) {
+      const pass = candidate.callEvidence?.negativeDoublePass;
+      if (pass === undefined) continue;
+      const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
+        .find((item) => item.ruleApplies && item.call !== 'Pass');
+      if (alternative !== undefined) {
+        return [`Partner's natural overcall is nonforcing, but ${alternative.call} ` +
+          `qualifies as a more constructive advance for this hand ${id}.`];
+      }
+      if (pass.hcp >= 10) {
+        return [`The limited Pass treatment after responder's negative Double calls ` +
+          `for fewer than 10 HCP; you have ${pass.hcp}. This does not necessarily ` +
+          `establish a better modeled call ${id}.`];
+      }
+      continue;
+    }
+    if (entered === 'Redouble' && diagnostic.rule.id.endsWith('-redouble-values') &&
+        candidate !== undefined) {
+      const decision = candidate.callEvidence?.negativeDoubleRedouble;
+      if (decision === undefined) continue;
+      if (decision.hcp < 10) {
+        return [`A strength-showing Redouble requires at least 10 HCP; you have ` +
+          `${decision.hcp} ${id}.`];
+      }
+      const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
+        .find((item) => item.ruleApplies && item.call !== 'Redouble');
+      if (alternative !== undefined) {
+        return [`You have the strength to Redouble, but ${alternative.call} qualifies ` +
+          `as a more descriptive advance under the selected treatment ${id}.`];
+      }
+      return [`Redouble with ${decision.hcp} HCP is reserved for hands without a ` +
+        `more descriptive support, notrump, or new-suit action ${id}.`];
+    }
+    if (diagnostic.rule.id.endsWith('-new-suit-two-level') && candidate === undefined) {
+      const decision = diagnostic.callEvidence?.negativeDoubleNewSuit;
+      const considered = decision?.considered.find((item) => item.call === entered);
+      if (considered !== undefined && considered.impliedByDouble) {
+        return [`Responder's negative Double suggests ${suitPlural(entered)} in ` +
+          `this auction. The selected natural new-suit advance does not use that suit ` +
+          `${id}.`];
+      }
+      continue;
+    }
+    if (candidate === undefined) continue;
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (support !== undefined && !support.passed) {
+      return [`${entered} requires at least ${support.min} cards in partner's ` +
+        `overcalled suit; you have ${support.actual} ${id}.`];
+    }
+    const hcp = minorRequirement(candidate, 'hcp');
+    if (hcp !== undefined && !hcp.passed) {
+      return [`${entered} requires ${hcpRangeText(hcp)}; you have ${hcp.actual} HCP ${id}.`];
+    }
+    const points = minorRequirement(candidate, 'totalPoints');
+    if (points !== undefined && !points.passed) {
+      return [`${entered} requires ${strengthRange(points).replace('total points',
+        'support points')}; you have ${points.actual} support points ${id}.`];
+    }
+    const length = minorRequirement(candidate, 'suitLength');
+    if (length !== undefined && !length.passed) {
+      return [`${entered} requires at least ${length.min} ${suitPlural(entered)}; ` +
+        `you have ${length.actual} ${id}.`];
+    }
+    if (diagnostic.rule.id.endsWith('-natural-notrump')) {
+      const checks = candidate.callEvidence?.requirements ?? [];
+      const shape = checks.find((check) => check.kind === 'balanced');
+      const stopper = checks.find((check) => check.kind === 'stopper');
+      if (shape?.kind === 'balanced' && !shape.passed) {
+        return [`A natural notrump advance requires balanced distribution; ` +
+          `your hand is not balanced ${id}.`];
+      }
+      if (stopper?.kind === 'stopper' && !stopper.passed) {
+        return [`A natural notrump advance requires a stopper in opener's suit, ` +
+          `which your hand lacks ${id}.`];
+      }
+    }
+  }
+  return [];
+}

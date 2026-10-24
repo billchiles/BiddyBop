@@ -24,7 +24,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getDontAdvanceLines, getDontAdvanceFailureLines,
          getJumpAdvanceLines, getJumpAdvanceFailureLines,
          getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
-         getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines }
+         getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines,
+         getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -580,6 +581,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const preemptAdvanceReasons = getJumpAdvanceFailureLines(result);
   const competitiveRaiseReasons = getCompetitiveRaiseAdvanceFailureLines(result);
   const competitiveNaturalReasons = getCompetitiveNaturalAdvanceFailureLines(result);
+  const negativeDoubleAdvanceReasons = getNegativeDoubleAdvanceFailureLines(result);
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
@@ -588,7 +590,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       naturalAdvanceReasons.length === 0 && takeoutAdvanceReasons.length === 0 &&
       notrumpReasons.length === 0 && dontReasons.length === 0 &&
       preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
-      competitiveNaturalReasons.length === 0) {
+      competitiveNaturalReasons.length === 0 &&
+      negativeDoubleAdvanceReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -605,7 +608,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         jumpShiftReasons.length > 0 || naturalAdvanceReasons.length > 0 ||
         takeoutAdvanceReasons.length > 0 || notrumpReasons.length > 0 ||
         dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
-        competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0) {
+        competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
+        negativeDoubleAdvanceReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
         : balancingReasons.length > 0
@@ -617,7 +621,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
             ? 'Why this notrump-partnership call does not meet the selected requirements:'
           : naturalAdvanceReasons.length > 0 || takeoutAdvanceReasons.length > 0 ||
             dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
-            competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0
+            competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
+            negativeDoubleAdvanceReasons.length > 0
             ? 'Why this advance does not meet the selected requirements:'
           : naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0
             ? 'Why this overcall does not meet the selected requirements:'
@@ -627,7 +632,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         ...majorSupportReasons, ...majorNoSupportReasons, ...jumpShiftReasons,
         ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons,
         ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
-        ...competitiveNaturalReasons);
+        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -663,6 +668,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       lines.push(...getJumpAdvanceLines(result, rule));
       lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
       lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
+      lines.push(...getNegativeDoubleAdvanceLines(result, rule));
       appendRuleExplanation(lines, rule, handFacts, auctionLength);
     }
   }
@@ -677,7 +683,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
        naturalAdvanceReasons.length > 0 || takeoutAdvanceReasons.length > 0 ||
        notrumpReasons.length > 0 || dontReasons.length > 0 ||
        preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
-       competitiveNaturalReasons.length > 0)) {
+       competitiveNaturalReasons.length > 0 ||
+        negativeDoubleAdvanceReasons.length > 0)) {
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);

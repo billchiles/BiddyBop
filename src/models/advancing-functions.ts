@@ -1077,12 +1077,15 @@ export function overcallNegativeDoublePassApplies (_call: Call, context: RuleEva
   const hasSupportAction = info.overcall.level === 1 ?
     support >= 4 || (support >= 3 && supportPoints >= 6) :
     support >= 3 && supportPoints >= 7;
+  const hasNaturalNotrump = hasNaturalNotrumpAfterNegativeDouble(context, info);
+  const hasNewSuit = hasSelectedNewSuitAfterNegativeDouble(context, info);
   const success = context.handFacts.hcp < 10 && ! hasSupportAction &&
-    ! hasNaturalNotrumpAfterNegativeDouble(context, info) &&
-    ! hasSelectedNewSuitAfterNegativeDouble(context, info);
+    ! hasNaturalNotrump && ! hasNewSuit;
   return { success, telemetryLines: [success ?
     'PASS: responder’s negative Double leaves no preferred constructive advance.' :
-    'FAIL: strength, fit, notrump shape, or a clear side suit supports another action.'] };
+    'FAIL: strength, fit, notrump shape, or a clear side suit supports another action.'],
+    callEvidence: { negativeDoublePass: { hcp: context.handFacts.hcp,
+      hasSupportAction, hasNaturalNotrump, hasNewSuit } } };
 }
 
 export function refineAdvancerRaiseAfterNegativeDouble (
@@ -1110,21 +1113,27 @@ export function refineAdvancerCuebidAfterNegativeDouble (
 export function naturalNotrumpAfterNegativeDoubleApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
-  if (info === null || ! context.handFacts.balanced ||
-      ! hasBasicSuitStopper(context, info.opening.strain as Suit)) {
+  if (info === null) {
     return { success: false, telemetryLines: [
-      'FAIL: natural NT needs the supported negative-Double auction, balance, and ' +
-      'opener-suit stopper.',
+      'FAIL: natural NT needs the supported negative-Double auction.',
     ] };
   }
+  const balanced = context.handFacts.balanced;
+  const stopped = hasBasicSuitStopper(context, info.opening.strain as Suit);
   const hcp = context.handFacts.hcp;
-  const success = info.overcall.level === 1 ?
-    (call === '1NT' && hcp >= 8 && hcp <= 11) ||
-      (call === '2NT' && hcp >= 12 && hcp <= 14) :
-    call === '2NT' && hcp >= 11 && hcp <= 13;
+  const min = info.overcall.level === 1 ? (call === '1NT' ? 8 : 12) : 11;
+  const max = info.overcall.level === 1 ? (call === '1NT' ? 11 : 14) : 13;
+  const availableLevel = info.overcall.level === 1 ?
+    call === '1NT' || call === '2NT' : call === '2NT';
+  const success = availableLevel && hcp >= min && hcp <= max && balanced && stopped;
   return { success, telemetryLines: [success ?
     'PASS: natural NT advance has the modeled range, balance, and opener-suit stopper.' :
-    'FAIL: natural NT strength does not match the overcall level.'] };
+    'FAIL: natural NT needs the proper level, strength, balance, and opener-suit stopper.'],
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: hcp, min, max, passed: hcp >= min && hcp <= max },
+      { kind: 'balanced', actual: balanced, passed: balanced },
+      { kind: 'stopper', suit: info.opening.strain as Suit, passed: stopped },
+    ], competitiveNotrump: { levelAllowed: availableLevel } } };
 }
 
 export function refineSelectedNewSuitAfterNegativeDouble (
@@ -1132,25 +1141,37 @@ export function refineSelectedNewSuitAfterNegativeDouble (
   const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
   if (info === null) return { calls: [], telemetryLines: [] };
   const impliedSuits = getNegativeDoubleImpliedSuits(info.opening, info.overcall);
-  return { calls: calls.filter((call) => {
+  const considered = calls.flatMap((call) => {
     const bid = parseSuitBid(call);
-    return bid !== null && bid.level === 2 && bid.strain !== 'NT' &&
-      bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
-      ! impliedSuits.includes(bid.strain as Suit) &&
-      cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
-  }), telemetryLines: [] };
+    if (bid === null || bid.strain === 'NT') return [];
+    const suit = bid.strain as Suit;
+    return [{ call, suit, length: context.handFacts.lengths[suit],
+      economical: bid.level === 2 &&
+        cheapestBidInStrainAfter(info.overcall, suit) === call,
+      impliedByDouble: impliedSuits.includes(suit) }];
+  });
+  return { calls: considered.filter((item) => item.economical &&
+    item.suit !== info.opening.strain && item.suit !== info.overcall.strain &&
+    !item.impliedByDouble).map((item) => item.call), telemetryLines: [],
+    callEvidence: { negativeDoubleNewSuit: { impliedSuits, considered } } };
 }
 
 export function strengthRedoubleAfterNegativeDoubleApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
-  const success = info !== null && context.handFacts.hcp >= 10 &&
-    ! hasStrongSupportCuebidAfterNegativeDouble(context, info) &&
-    ! hasNaturalNotrumpAfterNegativeDouble(context, info) &&
-    ! hasSelectedNewSuitAfterNegativeDouble(context, info);
+  if (info === null) return { success: false, telemetryLines: [
+    'FAIL: Redouble requires the supported negative-Double auction.',
+  ] };
+  const hcp = context.handFacts.hcp;
+  const hasSupportCuebid = hasStrongSupportCuebidAfterNegativeDouble(context, info);
+  const hasNaturalNotrump = hasNaturalNotrumpAfterNegativeDouble(context, info);
+  const hasNewSuit = hasSelectedNewSuitAfterNegativeDouble(context, info);
+  const success = hcp >= 10 && ! hasSupportCuebid && ! hasNaturalNotrump && ! hasNewSuit;
   return { success, telemetryLines: [success ?
     'PASS: Redouble shows 10+ HCP when no clearer strong support, NT, or side-suit call applies.' :
-    'FAIL: Redouble needs 10+ HCP and no preferred descriptive action.'] };
+    'FAIL: Redouble needs 10+ HCP and no preferred descriptive action.'],
+    callEvidence: { negativeDoubleRedouble: { hcp, hasSupportCuebid,
+      hasNaturalNotrump, hasNewSuit } } };
 }
 
 
@@ -1178,14 +1199,17 @@ export function refineTakeoutEscapeAfterResponderRedouble (
   if (opening === null) return { calls: [], telemetryLines: [] };
   const unbidSuits = SUITS.filter((suit) => suit !== opening.strain);
   const hasFourCardUnbidSuit = unbidSuits.some((suit) => context.handFacts.lengths[suit] >= 4);
-  const qualifying = calls.filter((call) => {
+  const considered = calls.flatMap((call) => {
     const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' || bid.strain === opening.strain) return false;
+    if (bid === null || bid.strain === 'NT') return [];
     const suit = bid.strain as Suit;
     const length = context.handFacts.lengths[suit];
-    if (length < 4 && (hasFourCardUnbidSuit || length !== 3)) return false;
-    return cheapestBidInStrainAfter(opening, suit) === call;
+    const cheapest = cheapestBidInStrainAfter(opening, suit);
+    return [{ call, length, cheapest,
+      eligible: suit !== opening.strain && cheapest === call &&
+        (length >= 4 || (!hasFourCardUnbidSuit && length === 3)) }];
   });
+  const qualifying = considered.filter((item) => item.eligible).map((item) => item.call);
   qualifying.sort((left, right) => {
     const leftSuit = parseSuitBid(left)!.strain as Suit;
     const rightSuit = parseSuitBid(right)!.strain as Suit;
@@ -1196,7 +1220,11 @@ export function refineTakeoutEscapeAfterResponderRedouble (
     if (leftSuit === 'S' && rightSuit === 'H') return context.handFacts.lengths.S >= 5 ? -1 : 1;
     return 0;
   });
-  return { calls: qualifying, telemetryLines: [] };
+  return { calls: qualifying, telemetryLines: [],
+    callEvidence: { redoubledTakeoutEscape: {
+      openingSuit: opening.strain as Suit, hasFourCardUnbidSuit, considered,
+      retainedCalls: qualifying,
+    } } };
 }
 
 

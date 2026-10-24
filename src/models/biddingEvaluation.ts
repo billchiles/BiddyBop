@@ -968,6 +968,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
      ruleId.startsWith('advance-takeout-double-'));
   const explainCompetitiveNaturalAdvance = context.stage === 'advancing' &&
     ruleId.includes('-after-responder-natural-action-');
+  const explainNegativeDoubleAdvance = context.stage === 'advancing' &&
+    ruleId.includes('-after-negative-double-');
   const explainJumpAdvance = context.stage === 'advancing' && (
     ruleId === 'advance-two-level-jump-overcall-raise' ||
     ruleId === 'advance-three-level-jump-overcall-minor-raise' ||
@@ -986,7 +988,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance) {
+        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -997,7 +999,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(...result.telemetryLines);
     if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance ||
         explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance) {
+        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -1011,7 +1013,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
           explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-          explainCompetitiveNaturalAdvance) {
+          explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
             suitLength.exact === 4) {
           requirements.push({ kind: 'fourCardMajor', passed: result.pass });
@@ -1043,7 +1045,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
         explainNaturalAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance) {
+        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
         requirements.push({ kind: 'partnerSupport', suit: supportSuit,
@@ -1059,7 +1061,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
-      explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ?
+      explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
+      explainNegativeDoubleAdvance ?
         { requirements } : undefined };
 } //evaluateHandConstraint()
 

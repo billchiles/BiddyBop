@@ -510,6 +510,29 @@ export interface CallEvidence {
   competitiveNotrump?: {
     levelAllowed: boolean;
   };
+  negativeDoublePass?: {
+    hcp: number;
+    hasSupportAction: boolean;
+    hasNaturalNotrump: boolean;
+    hasNewSuit: boolean;
+  };
+  negativeDoubleNewSuit?: {
+    impliedSuits: Suit[];
+    considered: { call: Call; suit: Suit; length: number; economical: boolean;
+                  impliedByDouble: boolean }[];
+  };
+  negativeDoubleRedouble?: {
+    hcp: number;
+    hasSupportCuebid: boolean;
+    hasNaturalNotrump: boolean;
+    hasNewSuit: boolean;
+  };
+  redoubledTakeoutEscape?: {
+    openingSuit: Suit;
+    hasFourCardUnbidSuit: boolean;
+    considered: { call: Call; length: number; cheapest: Call | null; eligible: boolean }[];
+    retainedCalls: Call[];
+  };
   jumpShift?: {
     treatment: JumpShiftAgreement;
     hcp: number;
