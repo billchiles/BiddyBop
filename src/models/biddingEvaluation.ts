@@ -952,6 +952,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'respond-to-minor-w/-strong-jump-shift-classic' ||
     ruleId === 'respond-to-major-w-weak-jump-shift-modern' ||
     ruleId === 'respond-to-major-w/-strong-jump-shift-classic');
+  const explainNaturalAdvance = context.stage === 'advancing' && (
+    ruleId.startsWith('advance-one-level-suit-overcall-') ||
+    ruleId.startsWith('advance-two-level-suit-overcall-')) &&
+    !ruleId.includes('-after-');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -963,7 +967,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
         explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
-        explainMajorSupport || explainMajorNoSupport || explainJumpShift) {
+        explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -972,7 +976,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.totalPoints !== undefined) {
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
-    if (explainPreemptRequirements || explainMajorSupport) {
+    if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -984,7 +988,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
-          explainMajorNoSupport) {
+          explainMajorNoSupport || explainNaturalAdvance) {
         const bid = parseSuitBid(call);
         if (bid !== null && bid.strain !== 'NT') {
           requirements.push({ kind: 'suitLength', actual: context.handFacts.lengths[bid.strain],
@@ -1012,7 +1016,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.supportLength !== undefined) {
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
-    if (explainMajorSupport || explainMajorNoSupport || explainJumpShift) {
+    if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
+        explainNaturalAdvance) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
         requirements.push({ kind: 'partnerSupport', suit: supportSuit,
@@ -1026,7 +1031,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift
+      explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
+      explainNaturalAdvance
       ? { requirements } : undefined };
 } //evaluateHandConstraint()
 

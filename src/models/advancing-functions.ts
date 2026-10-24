@@ -1,6 +1,6 @@
 /// Functions for advancer after partner's overcall or takeout double.
 
-import { type AppliesWhenResult, type Call, type CallRefinementResult,
+import { type AppliesWhenResult, type Call, type CallEvidence, type CallRefinementResult,
          type RuleEvalContext } from './bidding-types';
 import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
          parseSuitBid, type ParsedSuitBid } from './auction';
@@ -95,7 +95,8 @@ export function naturalSuitOvercallPassApplies (
   const success = hcp <= 10 && ! hasRaise && ! hasNotrump && ! hasNewSuit;
   return { success, telemetryLines: [success ?
     'PASS: limited strength with no qualifying raise, new suit, or notrump advance.' :
-    'FAIL: stronger values or a constructive advance make this weak Pass inappropriate.'] };
+    'FAIL: stronger values or a constructive advance make this weak Pass inappropriate.'],
+    callEvidence: { advancePass: { level, hcp, hasRaise, hasNotrump, hasNewSuit } } };
 }
 
 export function refineAdvancerRaise (calls: Call[], context: RuleEvalContext):
@@ -138,19 +139,42 @@ export function refineAdvancerNewSuit (calls: Call[], context: RuleEvalContext):
 /// appropriate range; these are distinct from notrump responses to an opening bid.
 export function naturalNotrumpAdvanceApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
-  const info = getNaturalSuitOvercallForAdvancer(context, 1);
+  return evaluateNaturalNotrumpAdvance(call, context, 1);
+}
+
+/// Keep NT strength, shape, and stopper evidence with the predicate that decides
+/// qualification.  The explanation builder reads these checks without recomputing them.
+function evaluateNaturalNotrumpAdvance (call: Call, context: RuleEvalContext,
+                                       level: 1 | 2): AppliesWhenResult {
+  const info = getNaturalSuitOvercallForAdvancer(context, level);
+  if (info === null) {
+    return { success: false, telemetryLines: [
+      'FAIL: natural NT advance requires an eligible natural suit overcall and responder Pass.',
+    ] };
+  }
+  const range = level === 1 ?
+    (call === '1NT' ? { min: 8, max: 11 } :
+      call === '2NT' ? { min: 12, max: 14 } :
+      call === '3NT' ? { min: 15, max: 18 } : null) :
+    (call === '2NT' ? { min: 11, max: 13 } :
+      call === '3NT' ? { min: 14, max: 17 } : null);
   const hcp = context.handFacts.hcp;
-  const rangeMatches = call === '1NT' ? hcp >= 8 && hcp <= 11 :
-    call === '2NT' ? hcp >= 12 && hcp <= 14 :
-    call === '3NT' && hcp >= 15 && hcp <= 18;
-  const success = info !== null && rangeMatches && context.handFacts.balanced &&
-    hasBasicSuitStopper(context, info.opening.strain as Suit);
-  return {
-    success,
+  const balanced = context.handFacts.balanced;
+  const openingSuit = info.opening.strain as Suit;
+  const stopper = hasBasicSuitStopper(context, openingSuit);
+  const strength = range !== null && hcp >= range.min && hcp <= range.max;
+  const requirements: NonNullable<CallEvidence['requirements']> = [
+    { kind: 'balanced', actual: balanced, passed: balanced },
+    { kind: 'stopper', suit: openingSuit, passed: stopper },
+  ];
+  if (range !== null) {
+    requirements.unshift({ kind: 'hcp', actual: hcp, min: range.min,
+      max: range.max, passed: strength });
+  }
+  const success = strength && balanced && stopper;
+  return { success, callEvidence: { requirements },
     telemetryLines: [success ? 'PASS: natural NT advance with range, shape, and stopper.' :
-      'FAIL: natural NT advance needs a passed responder, 1-level suit overcall, ' +
-      'balanced shape, proper HCP, and opening-suit stopper.'],
-  };
+      'FAIL: natural NT advance needs the proper HCP, balanced shape, and opening-suit stopper.'] };
 }
 
 
@@ -181,15 +205,22 @@ export function refineAdvancerTwoLevelCuebid (calls: Call[], context: RuleEvalCo
 export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const considered = calls.flatMap((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT' ||
+        bid.strain === info.opening.strain || bid.strain === info.overcall.strain) return [];
+    const economical = cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
+    const qualityPassed = bid.level !== 3 ||
+      hasPreemptSuitQuality(context.hand, bid.strain as Suit);
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
+      economical, qualityPassed }];
+  });
   return {
-    calls: info === null ? [] : calls.filter((call) => {
-      const bid = parseSuitBid(call);
-      return bid !== null && bid.strain !== 'NT' &&
-        bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
-        cheapestBidInStrainAfter(info.overcall, bid.strain) === call &&
-        (bid.level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
-    }),
+    calls: considered.filter((item) => item.economical && item.qualityPassed)
+      .map((item) => item.call),
     telemetryLines: [],
+    callEvidence: { advanceNewSuitQuality: { considered } },
   };
 }
 
@@ -197,18 +228,7 @@ export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalC
 /// strength, balanced shape, and a stopper in the opponents' opening suit.
 export function naturalTwoLevelNotrumpAdvanceApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
-  const info = getNaturalSuitOvercallForAdvancer(context, 2);
-  const hcp = context.handFacts.hcp;
-  const rangeMatches = call === '2NT' ? hcp >= 11 && hcp <= 13 :
-    call === '3NT' && hcp >= 14 && hcp <= 17;
-  const success = info !== null && rangeMatches && context.handFacts.balanced &&
-    hasBasicSuitStopper(context, info.opening.strain as Suit);
-  return {
-    success,
-    telemetryLines: [success ? 'PASS: natural NT advance with range, shape, and stopper.' :
-      'FAIL: natural NT advance needs a passed responder, natural 2-level non-jump ' +
-      'overcall, appropriate HCP range, balanced shape, and opening-suit stopper.'],
-  };
+  return evaluateNaturalNotrumpAdvance(call, context, 2);
 }
 
 

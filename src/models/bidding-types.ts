@@ -390,7 +390,7 @@ export interface CallEvidence {
     | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
-    | { kind: 'stopper'; passed: boolean }
+    | { kind: 'stopper'; suit?: Suit; passed: boolean }
     | { kind: 'minorSupport'; suit: 'C' | 'D'; actual: number; min: number; passed: boolean }
     | { kind: 'noFourCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'responderPreviouslyPassed'; actual: boolean; required: boolean; passed: boolean }
@@ -427,6 +427,16 @@ export interface CallEvidence {
   majorNoSupportNewSuit?: {
     orderedCalls: Call[];
     considered: { call: Call; length: number }[];
+  };
+  advancePass?: {
+    level: 1 | 2;
+    hcp: number;
+    hasRaise: boolean;
+    hasNotrump: boolean;
+    hasNewSuit: boolean;
+  };
+  advanceNewSuitQuality?: {
+    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
   };
   jumpShift?: {
     treatment: JumpShiftAgreement;
