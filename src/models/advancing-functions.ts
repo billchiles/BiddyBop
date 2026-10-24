@@ -3,7 +3,7 @@
 import { type AppliesWhenResult, type Call, type CallEvidence, type CallRefinementResult,
          type RuleEvalContext } from './bidding-types';
 import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
-         parseSuitBid, type ParsedSuitBid } from './auction';
+         parseSuitBid, isCallAvailableInAuction, type ParsedSuitBid } from './auction';
 import { getNegativeDoubleImpliedSuits, hasBasicSuitStopper } from './common-rule-helpers';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 
@@ -695,7 +695,8 @@ export function naturalNotrumpAfterResponderActionApplies (call: Call, context: 
     call === '3NT' && (afterDouble ? hcp >= 14 && hcp <= 16 : hcp >= 15 && hcp <= 18);
   const lastCall = context.auction[context.auction.length - 1];
   const lastBid = lastCall === undefined ? null : parseSuitBid(lastCall);
-  const levelAllowed = lastBid !== null && (call !== '1NT' || lastBid.level === 1) &&
+  const levelAllowed = lastBid !== null && isCallAvailableInAuction(call, context.auction) &&
+    (call !== '1NT' || lastBid.level === 1) &&
     (call !== '2NT' || lastBid.level <= 2) && lastBid.level <= 3;
   const opponentSuits = info === null ? [] : [info.opening.strain as Suit];
   if (suitNatural !== null && suitNatural.responderAction.strain !== 'NT') {
@@ -847,10 +848,15 @@ export function overcallResponderNaturalActionPassApplies (_call: Call, context:
   const hasSupportAction = info.overcall.level === 1 ?
     support >= 4 || (support >= 3 && supportPoints >= 6) :
     support >= 3 && supportPoints >= 7;
+  const hasNewSuit = hasQualifyingNewSuitAfterResponderNaturalAction(context, info);
+  const hasNotrump = naturalNotrumpAfterResponderActionApplies('1NT', context).success;
   const success = context.handFacts.hcp <= 10 && ! hasSupportAction &&
-    ! hasQualifyingNewSuitAfterResponderNaturalAction(context, info) &&
-    ! naturalNotrumpAfterResponderActionApplies('1NT', context).success;
-  return { success, telemetryLines: [success ?
+    ! hasNewSuit && ! hasNotrump;
+  return { success, callEvidence: { competitiveNaturalPass: {
+    partnerAction: 'overcall', hcp: context.handFacts.hcp,
+    lengthPoints: context.handFacts.totalPointsWLength,
+    hasRaise: hasSupportAction, hasNewSuit, hasNotrump,
+  } }, telemetryLines: [success ?
     'PASS: responder has acted and no modeled natural competitive action is preferred.' :
     'FAIL: strength, fit, or a natural new suit supports a competitive action.'] };
 }
@@ -880,14 +886,19 @@ export function refineAdvancerCuebidAfterResponderNaturalAction (
 export function refineAdvancerNewSuitAfterResponderNaturalAction (
     calls: Call[], context: RuleEvalContext, level: 1 | 2 | 3): CallRefinementResult {
   const info = getNaturalSuitOvercallWithResponderNaturalActionAtEitherLevel(context);
-  return { calls: info === null ? [] : calls.filter((call) => {
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const considered = calls.flatMap((call) => {
     const bid = parseSuitBid(call);
-    return bid !== null && bid.level === level && bid.strain !== 'NT' &&
-      bid.strain !== info.opening.strain && bid.strain !== info.overcall.strain &&
-      bid.strain !== info.responderAction.strain &&
-      cheapestBidInStrainAfter(info.responderAction, bid.strain) === call &&
-      (level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
-  }), telemetryLines: [] };
+    if (bid === null || bid.level !== level || bid.strain === 'NT' ||
+        bid.strain === info.opening.strain || bid.strain === info.overcall.strain ||
+        bid.strain === info.responderAction.strain) return [];
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
+      economical: cheapestBidInStrainAfter(info.responderAction, bid.strain) === call,
+      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+  });
+  return { calls: considered.filter((item) => item.economical && item.qualityPassed)
+    .map((item) => item.call), telemetryLines: [],
+    callEvidence: { competitiveNaturalNewSuit: { considered } } };
 }
 
 
@@ -948,10 +959,13 @@ export function takeoutResponderNaturalActionPassApplies (_call: Call, context: 
     ] };
   }
   const points = context.handFacts.totalPointsWLength;
-  const success = points <= 11 &&
-    ! hasQualifyingNewSuitAfterTakeoutResponderNaturalAction(context, info) &&
-    ! naturalNotrumpAfterResponderActionApplies('1NT', context).success;
-  return { success, telemetryLines: [success ?
+  const hasNewSuit = hasQualifyingNewSuitAfterTakeoutResponderNaturalAction(context, info);
+  const hasNotrump = naturalNotrumpAfterResponderActionApplies('1NT', context).success;
+  const success = points <= 11 && ! hasNewSuit && ! hasNotrump;
+  return { success, callEvidence: { competitiveNaturalPass: {
+    partnerAction: 'takeoutDouble', hcp: context.handFacts.hcp,
+    lengthPoints: points, hasRaise: false, hasNewSuit, hasNotrump,
+  } }, telemetryLines: [success ?
     'PASS: responder has acted, so a weak hand need not advance the takeout double.' :
     'FAIL: values and a natural suit or strong cuebid support further action.'] };
 }
@@ -959,13 +973,19 @@ export function takeoutResponderNaturalActionPassApplies (_call: Call, context: 
 export function refineTakeoutNewSuitAfterResponderNaturalAction (
     calls: Call[], context: RuleEvalContext, level: 1 | 2 | 3): CallRefinementResult {
   const info = getTakeoutDoubleWithResponderNaturalAction(context);
-  return { calls: info === null ? [] : calls.filter((call) => {
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const considered = calls.flatMap((call) => {
     const bid = parseSuitBid(call);
-    return bid !== null && bid.level === level && bid.strain !== 'NT' &&
-      bid.strain !== info.opening.strain && bid.strain !== info.responderAction.strain &&
-      cheapestBidInStrainAfter(info.responderAction, bid.strain) === call &&
-      (level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit));
-  }), telemetryLines: [] };
+    if (bid === null || bid.level !== level || bid.strain === 'NT' ||
+        bid.strain === info.opening.strain || bid.strain === info.responderAction.strain)
+      return [];
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
+      economical: cheapestBidInStrainAfter(info.responderAction, bid.strain) === call,
+      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+  });
+  return { calls: considered.filter((item) => item.economical && item.qualityPassed)
+    .map((item) => item.call), telemetryLines: [],
+    callEvidence: { competitiveNaturalNewSuit: { considered } } };
 }
 
 export function refineTakeoutCuebidAfterResponderNaturalAction (

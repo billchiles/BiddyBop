@@ -1764,6 +1764,48 @@ function runResponderNaturalActionAdvanceBoundaryTests (): number {
   return failures;
 }
 
+/// A natural 1NT advance cannot suppress Pass after responder has already bid 1NT.
+/// The rule predicate must use real auction legality, not just HCP, shape and stoppers.
+function runNaturalActionPassLegalityTests (): number {
+  const responder = { S: '76', H: 'K984', D: 'Q75', C: 'A643' };
+  const cases: { name: string; auction: Call[]; north: typeof responder; passRule: string }[] = [
+    {
+      name: 'natural overcall followed by responder 1NT',
+      auction: ['1D', '1S', '1NT'],
+      north: { S: 'AKQJ9', H: '72', D: '83', C: 'KJT2' },
+      passRule: 'advance-suit-overcall-after-responder-natural-action-pass',
+    },
+    {
+      name: 'takeout Double followed by responder 1NT',
+      auction: ['1H', 'Double', '1NT'],
+      north: { S: 'AKQJ', H: '7', D: '8326', C: 'KJT9' },
+      passRule: 'advance-takeout-double-after-responder-natural-action-pass',
+    },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const { board } = makeRuleTestBoard({
+      description: `Natural responder action / legal Pass: ${testCase.name}.`,
+      dealer: 'W', practiceAuction: [...testCase.auction, 'Pass'],
+      north: testCase.north, south: responder,
+    });
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const supported = getApplicableCandidateCalls(result);
+    if (!supported.some((item) => item.call === 'Pass' && item.rule.id === testCase.passRule)) {
+      failures += 1;
+      console.error(`FAIL ${testCase.name}: legal Pass was rejected because of a phantom 1NT.`);
+    }
+    if (supported.some((item) => item.call === '1NT')) {
+      failures += 1;
+      console.error(`FAIL ${testCase.name}: 1NT was offered after responder already bid 1NT.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. B19 responder-1NT Pass legality: ` +
+    `${cases.length * 2} checks.`);
+  console.log('  An illegal natural 1NT advance cannot remove a valid Pass.\n');
+  return failures;
+}
+
 /// Artificial responder actions have deliberately narrow advancing meanings.  Negative-Double
 /// rules must not leak into other responder actions, and a Redoubled takeout Double supports only
 /// the weak economical escape modeled here.
@@ -4629,6 +4671,7 @@ const testGroups: (() => number)[] = [
   runSharedOneNtAdvanceBoundaryTests,
   runResponderRaiseAdvanceBoundaryTests,
   runResponderNaturalActionAdvanceBoundaryTests,
+  runNaturalActionPassLegalityTests,
   runResponderArtificialActionAdvanceBoundaryTests,
   runOneNtInterferencePartnerBoundaryTests,
   runJumpOvercallAdvanceBoundaryTests,

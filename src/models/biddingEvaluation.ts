@@ -966,6 +966,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     (ruleId.startsWith('advance-one-level-suit-overcall-') ||
      ruleId.startsWith('advance-two-level-suit-overcall-') ||
      ruleId.startsWith('advance-takeout-double-'));
+  const explainCompetitiveNaturalAdvance = context.stage === 'advancing' &&
+    ruleId.includes('-after-responder-natural-action-');
   const explainJumpAdvance = context.stage === 'advancing' && (
     ruleId === 'advance-two-level-jump-overcall-raise' ||
     ruleId === 'advance-three-level-jump-overcall-minor-raise' ||
@@ -983,7 +985,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
         explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
-        explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance) {
+        explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainCompetitiveNaturalAdvance) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -993,7 +996,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
     if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance ||
-        explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance) {
+        explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainCompetitiveNaturalAdvance) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -1006,7 +1010,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       telemetryLines.push(result.telemetryLine);
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
-          explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance) {
+          explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+          explainCompetitiveNaturalAdvance) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
             suitLength.exact === 4) {
           requirements.push({ kind: 'fourCardMajor', passed: result.pass });
@@ -1037,7 +1042,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
     if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
-        explainNaturalAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance) {
+        explainNaturalAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainCompetitiveNaturalAdvance) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
         requirements.push({ kind: 'partnerSupport', suit: supportSuit,
@@ -1053,7 +1059,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
-      explainJumpAdvance || explainCompetitiveRaiseAdvance ? { requirements } : undefined };
+      explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ?
+        { requirements } : undefined };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)

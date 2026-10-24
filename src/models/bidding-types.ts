@@ -496,6 +496,17 @@ export interface CallEvidence {
     unbidSuits: { suit: Suit; length: number }[];
     passed: boolean;
   };
+  competitiveNaturalPass?: {
+    partnerAction: 'overcall' | 'takeoutDouble';
+    hcp: number;
+    lengthPoints: number;
+    hasRaise: boolean;
+    hasNewSuit: boolean;
+    hasNotrump: boolean;
+  };
+  competitiveNaturalNewSuit?: {
+    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
+  };
   competitiveNotrump?: {
     levelAllowed: boolean;
   };
