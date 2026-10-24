@@ -473,7 +473,7 @@ export const ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     rejectedAdvanceCalls: ['4H', '3S'],
   },
   {
-    description: 'Weak 2S-Double-Pass: 10 HCP and five clubs; direct 3C without Lebensohl.',
+    description: 'Weak 2S-Double-Pass: 10 HCP and five clubs; economical 3C.',
     dealer: 'W', practiceAuction: ['2S', 'Double', 'Pass', '3C'],
     west: { S: 'KQJ987', H: '842', D: '73', C: 'T5' },
     north: { S: 'A4', H: 'AKQJ7', D: 'A96', C: 'J62' },

@@ -368,6 +368,12 @@ export function oneNtNaturalMinorInvitationApplies (call: Call, context: RuleEva
   const success = hcpApplies && lengthApplies && qualityApplies;
   return {
     success,
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: context.handFacts.hcp, min: minHcp, max: maxHcp, passed: hcpApplies },
+      { kind: 'suitLength', suit, actual: context.handFacts.lengths[suit],
+        min: 6, passed: lengthApplies },
+      { kind: 'topThreeHonors', suit, passed: qualityApplies },
+    ] },
     telemetryLines: [
       `${hcpApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs ${minHcp}-${maxHcp} HCP.`,
       `${lengthApplies ? 'PASS' : 'FAIL'}: natural 3${suit} invitation needs 6+ ${suit}.`,
@@ -390,6 +396,11 @@ export function oneNtTwoNtInvitationApplies (_call: Call, context: RuleEvalConte
 
   return {
     success: hcpApplies && shapeApplies,
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: context.handFacts.hcp, min: 8 - shift,
+        max: 9 - shift, passed: hcpApplies },
+      { kind: 'balanced', actual: context.handFacts.balanced, passed: shapeApplies },
+    ] },
     telemetryLines: [
       `${hcpApplies ? 'PASS' : 'FAIL'}: 2NT invitation needs ${8 - shift}-${9 - shift} HCP.`,
       `${shapeApplies ? 'PASS' : 'FAIL'}: 2NT needs balanced shape unless Stayman and ` +

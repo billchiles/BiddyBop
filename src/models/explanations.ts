@@ -1680,3 +1680,372 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
   }
   return [];
 }
+
+
+///
+//// Advancing takeout Doubles after responder Pass (B15)
+///
+
+const TAKEOUT_ADVANCE_RULES = [
+  'advance-takeout-double-minimum-suit',
+  'advance-takeout-double-invitational-jump',
+  'advance-takeout-double-strong-cuebid',
+  'advance-takeout-double-one-notrump',
+  'advance-takeout-double-two-notrump',
+  'advance-takeout-double-three-notrump',
+  'advance-takeout-double-major-game',
+  'advance-weak-two-double-direct-major-game',
+];
+
+function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+/// Convey the meaning of the selected treatment and its actual evaluated qualification.
+/// The refiner and hand predicate, not this function, determine which calls survive.
+export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!TAKEOUT_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
+  const { diagnostic, candidate } = takeoutAdvanceDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const call = result.normalizedCall;
+  const id = `[${rule.id}]`;
+  const points = minorRequirement(candidate, 'totalPoints');
+  const length = minorRequirement(candidate, 'suitLength');
+  const hcp = minorRequirement(candidate, 'hcp');
+  const balanced = minorRequirement(candidate, 'balanced');
+  const stopper = minorRequirement(candidate, 'stopper');
+  const choice = diagnostic?.callEvidence?.takeoutSuitSelection;
+  if (rule.id.endsWith('-minimum-suit')) {
+    if (points === undefined || choice === undefined) return [];
+    const selected = choice.considered.find((item) => item.call === call);
+    if (selected === undefined) return [];
+    const fallback = selected.length === 3 && !choice.hasFourCardUnbidSuit;
+    const forcedThree = choice.openingLevel === 2 && call[0] === '3';
+    const base = `Partner's takeout Double normally asks you to choose a suit, even with ` +
+      `no HCP. With ${points.actual} length-adjusted points and ${selected.length} ` +
+      `${suitPlural(call)}, ${call} is a natural, nonforcing response at the cheapest level; ` +
+      `partner may Pass ${id}.`;
+    const special = fallback
+      ? ' No four-card unbid suit is available, so this three-card suit is a necessary fallback, ' +
+        'not a promise of four cards.'
+      : forcedThree
+        ? ' After the weak-two opening, bidding space forces this cheapest suit response to ' +
+          `the three level; it can show as many as ${points.max} length-adjusted points ` +
+          'without becoming an invitation.'
+        : '';
+    const first = choice.retainedCalls[0];
+    const preference = first !== undefined && first !== call &&
+      choice.retainedCalls.includes(call) ?
+      ` ${first} is also supported and is preferred by the selected suit-length/tie-breaking order.` : '';
+    return [base + special + preference];
+  }
+  if (rule.id.endsWith('-invitational-jump')) {
+    const selected = choice?.considered.find((item) => item.call === call);
+    if (points === undefined || selected === undefined) return [];
+    return [`With ${points.actual} length-adjusted points and ${selected.length} ` +
+      `${suitPlural(call)}, ${call} is an invitational jump above the cheapest ` +
+      `${selected.cheapest ?? 'available'} response in that suit. It shows more strength ` +
+      `than the minimum response but is not forcing: partner may Pass ${id}.`];
+  }
+  if (rule.id.endsWith('-strong-cuebid')) {
+    if (points === undefined) return [];
+    return [`With ${points.actual} length-adjusted points, ${call} qualifies as a strong ` +
+      `artificial cuebid of opener's suit. It does not promise that suit or support for any ` +
+      `one unbid suit. Partner must bid again, but the cuebid alone does not force to game ${id}.`];
+  }
+  if (call.endsWith('NT') && hcp !== undefined && balanced?.passed === true &&
+      stopper?.passed === true) {
+    const openingSuit = stopper.suit === undefined ? 'opener’s suit' :
+      ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' }[stopper.suit]);
+    const meaning = call === '1NT' ? 'natural and nonforcing' :
+      call === '2NT' ? 'natural and invitational; partner may Pass or bid game' :
+      'a natural game bid, not a request for partner to bid again';
+    return [`With ${hcp.actual} HCP, a balanced hand, and a stopper in ${openingSuit}, ` +
+      `${call} is ${meaning}. The stopper protects against a lead in opener's suit ${id}.`];
+  }
+  if ((rule.id.endsWith('-major-game') || rule.id.endsWith('-direct-major-game')) &&
+      points !== undefined) {
+    const selected = diagnostic?.callEvidence?.takeoutMajorGame?.considered.find(
+      (item) => item.call === call);
+    const actualLength = length?.actual ?? selected?.length;
+    if (actualLength === undefined) return [];
+    return [`With ${points.actual} length-adjusted points and ${actualLength} ` +
+      `${suitPlural(call)}, ${call} is a natural game signoff, not a forcing request ` +
+      `to describe your hand further. It assumes partner has the normal takeout-Double ` +
+      `support for unbid suits; a strong off-shape Double may require judgment ${id}.`];
+  }
+  return [];
+}
+
+/// When an unsupported call was actually evaluated, explain the decisive failed check.
+/// Filtered-out suit bids use selection evidence instead of invented hand requirements.
+export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  const takeoutRules = result.ruleDiagnostics.filter(({ rule }) =>
+    TAKEOUT_ADVANCE_RULES.includes(rule.id));
+  if (takeoutRules.length === 0) return [];
+  if (entered === 'Pass') {
+    const minimum = takeoutRules.find(({ rule }) =>
+      rule.id === 'advance-takeout-double-minimum-suit');
+    if (minimum === undefined) return [];
+    return [`After partner's takeout Double and the opponent's Pass, you normally must ` +
+      `choose an unbid suit, even with zero HCP. Passing instead leaves the opponent ` +
+      `playing a doubled contract, a penalty-conversion judgment that this treatment ` +
+      `does not model [advance-takeout-double-minimum-suit].`];
+  }
+  // Prefer evaluated strength, shape, and stopper failures over another rule's
+  // refiner excluding the same call for being a different kind of bid.
+  for (const { rule } of takeoutRules) {
+    if (rule.calls?.includes(entered) !== true) continue;
+    const { candidate } = takeoutAdvanceDiagnostic(result, rule.id);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const requirements = candidate.callEvidence?.requirements ?? [];
+    const points = requirements.find((item) => item.kind === 'totalPoints');
+    const hcp = requirements.find((item) => item.kind === 'hcp');
+    const balanced = requirements.find((item) => item.kind === 'balanced');
+    const stopper = requirements.find((item) => item.kind === 'stopper');
+    if (points?.kind === 'totalPoints' && !points.passed) {
+      return [`${entered} under this treatment requires ` +
+        `${strengthRange(points).replace('total points', 'length-adjusted points')}; ` +
+        `you have ${points.actual} [${rule.id}].`];
+    }
+    if (hcp?.kind === 'hcp' && !hcp.passed) {
+      return [`Natural ${entered} after partner's Double requires ${hcpRangeText(hcp)}; ` +
+        `your hand has ${hcp.actual} HCP [${rule.id}].`];
+    }
+    if (balanced?.kind === 'balanced' && !balanced.passed) {
+      return [`Natural ${entered} requires a balanced hand, but this hand is not ` +
+        `balanced [${rule.id}].`];
+    }
+    if (stopper?.kind === 'stopper' && !stopper.passed) {
+      const suit = stopper.suit === undefined ? 'opener’s suit' :
+        ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' }[stopper.suit]);
+      return [`Natural ${entered} requires a stopper in ${suit}; this hand lacks one ` +
+        `[${rule.id}].`];
+    }
+  }
+  // A candidate may have been removed as a non-economical or non-single-jump
+  // call. Explain a jump in its own terms before considering minimum-bid rules.
+  const jumpRule = takeoutRules.find(({ rule }) =>
+    rule.id === 'advance-takeout-double-invitational-jump');
+  const jumpChoice = jumpRule?.callEvidence?.takeoutSuitSelection;
+  const jumpConsidered = jumpChoice?.considered.find((item) => item.call === entered);
+  if (jumpConsidered !== undefined && !jumpConsidered.eligible &&
+      jumpConsidered.cheapest !== null && jumpConsidered.cheapest !== entered) {
+    if (jumpConsidered.length < 4) {
+      return [`An invitational jump in ${suitPlural(entered)} requires at least four cards; ` +
+        `you have ${jumpConsidered.length} [advance-takeout-double-invitational-jump].`];
+    }
+    return [`${entered} is not the modeled single-jump invitation in ` +
+      `${suitPlural(entered)}. That bid is one level above the cheapest ` +
+      `${jumpConsidered.cheapest} response [advance-takeout-double-invitational-jump].`];
+  }
+  for (const { rule } of takeoutRules) {
+    if (rule.calls?.includes(entered) !== true) continue;
+    const { diagnostic } = takeoutAdvanceDiagnostic(result, rule.id);
+    const selection = diagnostic?.callEvidence?.takeoutSuitSelection;
+    const considered: NonNullable<CallEvidence['takeoutSuitSelection']>['considered'][number] |
+      undefined = selection?.considered.find((item) => item.call === entered);
+    if (considered !== undefined && !considered.eligible) {
+      if (considered.cheapest === null) continue;
+      if (considered.length < 4 && selection?.jump === 1) {
+        return [`The invitational ${entered} jump requires at least four ` +
+          `${suitPlural(entered)}; you have ${considered.length} [${rule.id}].`];
+      }
+      if (considered.length < 4 && selection?.jump === 0) {
+        return [`A cheapest-level response to partner's takeout Double normally uses ` +
+          `four or more cards in the suit. A three-card fallback is permitted only when ` +
+          `there is no four-card unbid suit [${rule.id}].`];
+      }
+      if (selection !== undefined && selection.jump === 0 &&
+          considered.cheapest !== entered) {
+        return [`The natural minimum response in ${suitPlural(entered)} is ` +
+          `${considered.cheapest}, not ${entered} [${rule.id}].`];
+      }
+      if (selection !== undefined && selection.jump === 1 &&
+          considered.cheapest !== null) {
+        return [`An invitational jump is one level above the cheapest ` +
+          `${considered.cheapest} bid in that suit; ${entered} is not that jump [${rule.id}].`];
+      }
+    }
+    if (rule.id.endsWith('-major-game') || rule.id.endsWith('-direct-major-game')) {
+      const major = diagnostic?.callEvidence?.takeoutMajorGame?.considered.find(
+        (item) => item.call === entered);
+      if (major !== undefined && !major.eligible && major.length < 5) {
+        return [`A direct ${entered} game after partner's Double requires at least ` +
+          `five ${suitPlural(entered)}; you have ${major.length} [${rule.id}].`];
+      }
+    }
+  }
+  return [];
+}
+
+///
+//// Natural notrump partner responses and advances (B16)
+///
+
+function notrumpPartnerDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+function notrumpHcpText(check: Extract<NonNullable<CallEvidence['requirements']>[number],
+                                  { kind: 'hcp' }>): string {
+  return hcpRangeText(check);
+}
+
+function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | null {
+  if (ruleId.includes('to-hearts')) return 'hearts';
+  if (ruleId.includes('to-spades')) return 'spades';
+  if (ruleId.includes('transfer')) return null;
+  return call.endsWith('H') ? 'hearts' : call.endsWith('S') ? 'spades' : null;
+}
+
+/// The same 1NT treatments explain opening responses and advances after a natural 1NT
+/// overcall. Describe the actual selected meaning without assuming how partner reached 1NT.
+export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  const isOneNt = rule.id.startsWith('respond-to-1nt-w/-');
+  const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-');
+  if ((!isOneNt && !isTwoNt) || result.normalizedCall === null) return [];
+  const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const call = result.normalizedCall;
+  const id = `[${rule.id}]`;
+  const hcp = minorRequirement(candidate, 'hcp');
+  const balanced = minorRequirement(candidate, 'balanced');
+  const fourCardMajor = minorRequirement(candidate, 'fourCardMajor');
+  const lengths = candidate.callEvidence?.requirements?.filter((item) => item.kind === 'suitLength') ?? [];
+  const heldSuitLength = lengths.find((item) => item.min !== undefined)?.actual;
+  const points = hcp === undefined ? '' : `With ${hcp.actual} HCP, `;
+  const ntLevel = isOneNt ? '1NT' : '2NT';
+  if (rule.id.includes('-stayman')) {
+    if (fourCardMajor?.passed !== true) return [];
+    return [`${points}your four-card major qualifies for ${call} Stayman. This artificial ` +
+      `inquiry asks partner to show a four-card major; partner must answer ${id}.`];
+  }
+  if (rule.id.includes('transfer-to-') || rule.id.includes('texas-to-')) {
+    const suit = notrumpTargetSuit(rule.id, call);
+    if (suit === null || heldSuitLength === undefined) return [];
+    const destination = rule.id.includes('texas') ? `4${suit === 'hearts' ? 'H' : 'S'}` :
+      `${isOneNt ? '2' : '3'}${suit === 'hearts' ? 'H' : 'S'}`;
+    const convention = rule.id.includes('texas') ? 'Texas' : 'Jacoby';
+    return [`${points}your ${heldSuitLength}-card ${suit} suit qualifies for the ${convention} ` +
+      `transfer ${call}. This call is artificial: it asks partner to bid ${destination}, ` +
+      `rather than describing the suit bid. Partner must complete the transfer ${id}.`];
+  }
+  if (rule.id.includes('3c-3d-natural-invitational')) {
+    if (hcp === undefined || heldSuitLength === undefined) return [];
+    return [`With ${hcp.actual} HCP and ${heldSuitLength} ${suitPlural(call)}, ${call} is a ` +
+      `natural invitation. The suit has at least two of A/K/Q, providing enough quality ` +
+      `to describe the long minor instead of simply inviting with 2NT ${id}.`];
+  }
+  if (rule.id.includes('-pass-')) {
+    return [`${points}${balanced?.actual === true ? 'your balanced hand' : 'your hand'} ` +
+      `qualifies for Pass of partner's natural ${ntLevel}. This is a weak signoff; ` +
+      `a qualifying major-suit convention may describe some weak hands better ${id}.`];
+  }
+  if (call === '2NT' && isOneNt) {
+    const shape = balanced?.actual === false
+      ? ' Under the selected agreements, the natural invitation remains available even without balanced shape.'
+      : '';
+    return [`With ${hcp?.actual} HCP (in the selected ${hcp === undefined ? '' : hcpRangeText(hcp)} ` +
+      `range), ${call} is a natural invitation to 3NT, not a game force. ` +
+      `Partner can Pass with a minimum or bid game with extra values.${shape} ${id}`];
+  }
+  if (call === '3NT') {
+    const context = isTwoNt
+      ? 'After partner’s 2NT overcall, there is no lower natural notrump invitation; this treatment bids game directly.'
+      : 'This places the partnership in game, rather than inviting partner to decide.';
+    return [`With ${hcp?.actual} HCP, within ${hcp === undefined ? 'the required range' : hcpRangeText(hcp)}, ` +
+      `and balanced distribution, 3NT is a natural game ` +
+      `response to partner's ${ntLevel}. ${context} ${id}`];
+  }
+  if (call === '4NT') {
+    return [`With ${hcp?.actual} HCP and balanced distribution, 4NT is a quantitative ` +
+      `small-slam invitation, not Blackwood. Partner may Pass or continue with extra values ${id}.`];
+  }
+  if (call === '5NT') {
+    return [`With ${hcp?.actual} HCP and balanced distribution, 5NT invites grand slam ` +
+      `while forcing at least a small slam. Partner must continue ${id}.`];
+  }
+  if (call === '6NT' || call === '7NT') {
+    return [`With ${hcp?.actual} HCP and balanced distribution, ${call} is a direct ` +
+      `${call === '6NT' ? 'small' : 'grand'}-slam signoff ${id}.`];
+  }
+  if (rule.id.endsWith('-4c-gerber')) {
+    return [`With ${hcp?.actual} HCP, 4♣ is the specialized Gerber ace inquiry, not ` +
+      `a natural club bid. Use it when ace information is the remaining slam decision ${id}.`];
+  }
+  if (call.endsWith('H') || call.endsWith('S')) {
+    const suit = notrumpTargetSuit(rule.id, call);
+    if (suit === null) return [];
+    const length = heldSuitLength === undefined ? '' : `${heldSuitLength}-card `;
+    if (rule.id.includes('slam-interest')) {
+      return [`${points}your ${length}${suit} suit qualifies for a direct ${call} with slam ` +
+        `interest. With transfers available, this is a stronger action than the routine transfer ${id}.`];
+    }
+    if (rule.id.includes('natural-forcing')) {
+      return [`${points}your ${length}${suit} suit qualifies for natural ${call}. With ` +
+        `Jacoby transfers off, this is a game-forcing new-suit response ${id}.`];
+    }
+    if (rule.id.includes('natural-major-game') || rule.id.includes('natural-game') ||
+        rule.id.includes('-4h-4s-natural-game')) {
+      return [`${points}your ${length}${suit} suit qualifies for natural ${call}, a game ` +
+        `signoff under the selected treatment without Texas transfers ${id}.`];
+    }
+    return [`${points}your ${length}${suit} suit qualifies for natural ${call}, a weak ` +
+      `nonforcing signoff with Jacoby transfers disabled ${id}.`];
+  }
+  return [];
+}
+
+/// Report the tested requirement most useful to the entered call. A call suppressed by a
+/// better descriptive route is not treated as having failed a hand requirement.
+export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  for (const { rule, candidates } of result.ruleDiagnostics) {
+    if (!rule.id.startsWith('respond-to-1nt-w/-') &&
+        !rule.id.startsWith('advance-weak-two-2nt-')) continue;
+    const candidate = candidates.find(({ call }) => call === entered);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const checks = candidate.callEvidence?.requirements;
+    if (checks === undefined) continue;
+    const id = `[${rule.id}]`;
+    const hcp = checks.find((item) => item.kind === 'hcp');
+    if (hcp?.kind === 'hcp' && !hcp.passed) {
+      return [`Under this notrump-response treatment, ${entered} requires ` +
+        `${notrumpHcpText(hcp)}; you have ${hcp.actual} HCP ${id}.`];
+    }
+    const fourCard = checks.find((item) => item.kind === 'fourCardMajor');
+    if (fourCard?.kind === 'fourCardMajor' && !fourCard.passed) {
+      return [`Stayman ${entered} asks for a four-card major; your hand has no ` +
+        `four-card major ${id}.`];
+    }
+    const length = checks.find((item) => item.kind === 'suitLength' && !item.passed);
+    if (length?.kind === 'suitLength') {
+      const suit = length.suit === undefined ? 'the required suit' :
+        ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' }[length.suit]);
+      const amount = length.exact !== undefined ? `exactly ${length.exact}` :
+        length.min !== undefined ? `at least ${length.min}` :
+        length.max !== undefined ? `at most ${length.max}` : 'the required number of';
+      return [`${entered} requires ${amount} ${suit} under this selected treatment; ` +
+        `you have ${length.actual} ${id}.`];
+    }
+    const quality = checks.find((item) => item.kind === 'topThreeHonors');
+    if (quality?.kind === 'topThreeHonors' && !quality.passed) {
+      return [`The natural ${entered} minor-suit invitation requires at least two ` +
+        `of A/K/Q in the bid minor ${id}.`];
+    }
+    const balance = checks.find((item) => item.kind === 'balanced');
+    if (balance?.kind === 'balanced' && !balance.passed) {
+      return [`The natural ${entered} response requires balanced distribution ` +
+        `under the selected treatment; your hand is not balanced ${id}.`];
+    }
+  }
+  return [];
+}

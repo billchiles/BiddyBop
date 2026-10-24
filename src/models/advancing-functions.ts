@@ -262,20 +262,21 @@ export function refineTakeoutDoubleSuitAdvance (calls: Call[], context: RuleEval
   }
   const unbidSuits = SUITS.filter((suit) => suit !== opening.strain);
   const hasFourCardUnbidSuit = unbidSuits.some((suit) => context.handFacts.lengths[suit] >= 4);
-  const qualifying = calls.filter((call) => {
+  const considered = calls.map((call) => {
     const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' || bid.strain === opening.strain) {
-      return false;
-    }
-    const suit = bid.strain as Suit;
-    const length = context.handFacts.lengths[suit];
-    if (length < 4 && (jump !== 0 || hasFourCardUnbidSuit || length !== 3)) {
-      return false;
-    }
-    const cheapest = cheapestBidInStrainAfter(opening, bid.strain);
+    const suit = bid?.strain;
+    const length = suit !== undefined && suit !== 'NT'
+      ? context.handFacts.lengths[suit] : 0;
+    const cheapest = suit !== undefined && suit !== 'NT'
+      ? cheapestBidInStrainAfter(opening, suit) : null;
     const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
-    return parsedCheapest !== null && bid.level === parsedCheapest.level + jump;
+    const eligible = bid !== null && bid.strain !== 'NT' &&
+      bid.strain !== opening.strain &&
+      (length >= 4 || (jump === 0 && !hasFourCardUnbidSuit && length === 3)) &&
+      parsedCheapest !== null && bid.level === parsedCheapest.level + jump;
+    return { call, length, cheapest, eligible };
   });
+  const qualifying = considered.filter((item) => item.eligible).map((item) => item.call);
   // Length first; with equal four-card majors prefer H, with equal 5+ majors prefer S.
   qualifying.sort((left, right) => {
     const leftSuit = parseSuitBid(left)!.strain as Suit;
@@ -286,7 +287,10 @@ export function refineTakeoutDoubleSuitAdvance (calls: Call[], context: RuleEval
     if (leftSuit === 'S' && rightSuit === 'H') return context.handFacts.lengths.S >= 5 ? -1 : 1;
     return 0;
   });
-  return { calls: qualifying, telemetryLines: [] };
+  return { calls: qualifying, telemetryLines: [], callEvidence: {
+    takeoutSuitSelection: { jump, openingLevel: opening.level, hasFourCardUnbidSuit,
+      considered, retainedCalls: qualifying },
+  } };
 }
 
 /// Without Lebensohl, a direct three-level suit after a weak-two Double can be forced by
@@ -298,7 +302,10 @@ export function takeoutDoubleMinimumSuitAdvanceApplies (call: Call, context: Rul
   const points = context.handFacts.totalPointsWLength;
   const directThreeLevel = opening?.level === 2 && bid?.level === 3;
   const success = opening !== null && points <= (directThreeLevel ? 11 : 8);
-  return { success, telemetryLines: [success ?
+  const max = directThreeLevel ? 11 : 8;
+  return { success, callEvidence: { requirements: [
+    { kind: 'totalPoints', actual: points, min: 0, max, passed: success },
+  ] }, telemetryLines: [success ?
     'PASS: cheapest suit advance has the modeled strength for this takeout-double auction.' :
     'FAIL: cheapest suit advance is too strong for the modeled non-jump range.'] };
 }
@@ -314,11 +321,18 @@ export function refineTakeoutDoubleCuebid (calls: Call[], context: RuleEvalConte
 export function refineTakeoutDoubleMajorGame (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getTakeoutDoubleForAdvancer(context);
-  return { calls: opening === null ? [] : calls.filter((call) => {
+  if (opening === null) return { calls: [], telemetryLines: [] };
+  const considered = calls.map((call) => {
     const bid = parseSuitBid(call);
-    return bid !== null && bid.level === 4 && (bid.strain === 'H' || bid.strain === 'S') &&
-      bid.strain !== opening.strain && context.handFacts.lengths[bid.strain] >= 5;
-  }), telemetryLines: [] };
+    const length = bid?.strain === 'H' || bid?.strain === 'S'
+      ? context.handFacts.lengths[bid.strain] : 0;
+    const eligible = bid !== null && bid.level === 4 &&
+      (bid.strain === 'H' || bid.strain === 'S') &&
+      bid.strain !== opening.strain && length >= 5;
+    return { call, length, eligible };
+  });
+  return { calls: considered.filter((item) => item.eligible).map((item) => item.call),
+    telemetryLines: [], callEvidence: { takeoutMajorGame: { considered } } };
 }
 
 /// Natural notrump responses to a takeout double have a distinct strength ladder
@@ -328,13 +342,22 @@ export function naturalTakeoutDoubleNotrumpAdvanceApplies (call: Call, context: 
   const opening = getTakeoutDoubleForAdvancer(context);
   const hcp = context.handFacts.hcp;
   const weakTwoOpening = opening?.level === 2;
-  const strength = call === '1NT' ? ! weakTwoOpening && hcp >= 8 && hcp <= 11 :
-    call === '2NT' ? (weakTwoOpening ? hcp >= 11 && hcp <= 12 : hcp >= 12 && hcp <= 13) :
-    call === '3NT' && (weakTwoOpening ? hcp >= 13 && hcp <= 15 : hcp >= 14 && hcp <= 16);
-  const success = opening !== null && strength && context.handFacts.balanced &&
-    hasBasicSuitStopper(context, opening.strain as Suit);
-  return { success, telemetryLines: [success ?
-    'PASS: natural NT advance after takeout double with proper range, shape, and stopper.' :
+  const range = call === '1NT' && !weakTwoOpening ? { min: 8, max: 11 } :
+    call === '2NT' ? (weakTwoOpening ? { min: 11, max: 12 } : { min: 12, max: 13 }) :
+    call === '3NT' ? (weakTwoOpening ? { min: 13, max: 15 } : { min: 14, max: 16 }) : null;
+  const strength = range !== null && hcp >= range.min && hcp <= range.max;
+  const balanced = context.handFacts.balanced;
+  const openingSuit = opening?.strain as Suit | undefined;
+  const stopper = openingSuit !== undefined && hasBasicSuitStopper(context, openingSuit);
+  const success = opening !== null && strength && balanced && stopper;
+  const requirements: NonNullable<CallEvidence['requirements']> = [
+    { kind: 'balanced', actual: balanced, passed: balanced },
+    { kind: 'stopper', suit: openingSuit, passed: stopper },
+  ];
+  if (range !== null) requirements.unshift({ kind: 'hcp', actual: hcp,
+    min: range.min, max: range.max, passed: strength });
+  return { success, callEvidence: { requirements }, telemetryLines: [success ?
+    'PASS: natural NT response to takeout double with range, shape, and stopper.' :
     'FAIL: takeout-double NT advance needs balanced shape, the context-specific HCP range, ' +
     'and a stopper.'] };
 }

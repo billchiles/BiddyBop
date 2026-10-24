@@ -387,7 +387,9 @@ export interface CallEvidence {
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'partnerSupport'; suit?: Suit; actual: number; min?: number; max?: number; passed: boolean }
-    | { kind: 'suitLength'; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'suitLength'; suit?: Suit; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'fourCardMajor'; passed: boolean }
+    | { kind: 'topThreeHonors'; suit: Suit; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
     | { kind: 'stopper'; suit?: Suit; passed: boolean }
@@ -427,6 +429,16 @@ export interface CallEvidence {
   majorNoSupportNewSuit?: {
     orderedCalls: Call[];
     considered: { call: Call; length: number }[];
+  };
+  takeoutSuitSelection?: {
+    jump: 0 | 1;
+    openingLevel: number;
+    hasFourCardUnbidSuit: boolean;
+    considered: { call: Call; length: number; cheapest: Call | null; eligible: boolean }[];
+    retainedCalls: Call[];
+  };
+  takeoutMajorGame?: {
+    considered: { call: Call; length: number; eligible: boolean }[];
   };
   advancePass?: {
     level: 1 | 2;

@@ -952,6 +952,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'respond-to-minor-w/-strong-jump-shift-classic' ||
     ruleId === 'respond-to-major-w-weak-jump-shift-modern' ||
     ruleId === 'respond-to-major-w/-strong-jump-shift-classic');
+  const explainTakeoutAdvance = context.stage === 'advancing' && (
+    ruleId.startsWith('advance-takeout-double-') ||
+    ruleId === 'advance-weak-two-double-direct-major-game');
+  const explainNaturalNtResponse = ruleId.startsWith('respond-to-1nt-w/-') ||
+    ruleId.startsWith('advance-weak-two-2nt-');
   const explainNaturalAdvance = context.stage === 'advancing' && (
     ruleId.startsWith('advance-one-level-suit-overcall-') ||
     ruleId.startsWith('advance-two-level-suit-overcall-')) &&
@@ -967,7 +972,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
         explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
-        explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance) {
+        explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
+        explainNaturalNtResponse) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -976,7 +982,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.totalPoints !== undefined) {
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
-    if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance) {
+    if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance || explainTakeoutAdvance) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -988,12 +994,15 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
-          explainMajorNoSupport || explainNaturalAdvance) {
-        const bid = parseSuitBid(call);
-        if (bid !== null && bid.strain !== 'NT') {
-          requirements.push({ kind: 'suitLength', actual: context.handFacts.lengths[bid.strain],
-            exact: suitLength.exact, min: suitLength.min, max: suitLength.max,
-            passed: result.pass });
+          explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
+          explainNaturalNtResponse) {
+        if (explainNaturalNtResponse && suitLength.suit === 'major' &&
+            suitLength.exact === 4) {
+          requirements.push({ kind: 'fourCardMajor', passed: result.pass });
+        } else if (result.actualLength !== undefined && result.suit !== undefined) {
+          requirements.push({ kind: 'suitLength', suit: result.suit,
+            actual: result.actualLength, exact: suitLength.exact,
+            min: suitLength.min, max: suitLength.max, passed: result.pass });
         }
       }
       pass = pass && result.pass;
@@ -1002,7 +1011,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.shape !== undefined) {
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
-    if ((explainOpeningRequirements || explainMinorResponse) &&
+    if ((explainOpeningRequirements || explainMinorResponse || explainNaturalNtResponse) &&
         constraint.shape.balanced === true) {
       requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
         passed: context.handFacts.balanced });
@@ -1032,7 +1041,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
-      explainNaturalAdvance
+      explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse
       ? { requirements } : undefined };
 } //evaluateHandConstraint()
 
@@ -1061,7 +1070,7 @@ function testTotalPointsRange (context: RuleEvalContext, range: TotalPointsRange
 /// constraint omits a suit, getSuitsForLengthTesting binds it to the candidate call's suit.
 ///
 function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFacts: HandFacts)
-                         : { pass: boolean; telemetryLine: string } {
+                         : { pass: boolean; telemetryLine: string; suit?: Suit; actualLength?: number } {
   const targetSuits = getSuitsForLengthTesting(constraint, call);
   if (targetSuits.length === 0) {
     return { pass: false, 
@@ -1079,10 +1088,12 @@ function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFact
     if (constraint.max !== undefined && length > constraint.max) {
       continue;
     }
-    return { pass: true, 
+    return { pass: true, suit, actualLength: length,
              telemetryLine: `PASS: ${suit} length ${length} satisfies suit length constraint.` };
   }
-  return { pass: false, 
+  const first = targetSuits[0];
+  return { pass: false, suit: first,
+           actualLength: first === undefined ? undefined : handFacts.lengths[first],
            telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
 }
 

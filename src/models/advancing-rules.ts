@@ -457,7 +457,7 @@ export const AdvanceRules: BidRule[] = [
   //// Takeout Double -- Initial advances after responder Pass
   // Third family: Advancer responds to partner's takeout double of an opposing suit opening.
   // When opener's partner passes, advancer ordinarily must select a suit even with no points.
-  // Weak-two doubles reuse the same basic structure without adding Lebensohl.
+  // Weak-two doubles reuse the same basic structure with natural notrump advances.
   {
     id: 'advance-takeout-double-minimum-suit',
     kind: 'advance',
@@ -470,7 +470,7 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A nonforcing, cheapest-level suit advance, normally with 4+ cards.',
     guidance: ['Partner’s takeout double normally requests a bid even with no HCP.',
                'With no four-card unbid suit, a three-card unbid suit is a necessary fallback.',
-               'Without Lebensohl, a forced direct three-level suit can also contain 9-11 points.',
+               'A cheapest-level three-level response after a weak two can contain 9-11 points.',
                'An 18+ HCP doubler may have doubled without the usual unbid-suit support.'],
     certainty: 'high',
   },
