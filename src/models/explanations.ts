@@ -2217,3 +2217,230 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
   }
   return [];
 }
+
+///
+//// Competitive advances after responder raises opener (B18)
+///
+
+const COMPETITIVE_RAISE_PREFIXES = [
+  'advance-one-level-suit-overcall-after-responder-raise-',
+  'advance-two-level-suit-overcall-after-responder-raise-',
+  'advance-takeout-double-after-responder-raise-',
+];
+const COMPETITIVE_NT_ID = 'advance-after-responder-action-natural-notrump';
+
+function competitiveRaiseRule(ruleId: string): boolean {
+  return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
+}
+
+function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+/// Explain only the selected rule and facts evaluated for this particular call.
+export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if ((!competitiveRaiseRule(rule.id) && rule.id !== COMPETITIVE_NT_ID) ||
+      result.normalizedCall === null) return [];
+  const { candidate } = competitiveRaiseDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const id = `[${rule.id}]`;
+  const call = result.normalizedCall;
+  const checks = candidate.callEvidence?.requirements ?? [];
+  const points = checks.find((item) => item.kind === 'totalPoints');
+  const support = checks.find((item) => item.kind === 'partnerSupport');
+  const hcp = checks.find((item) => item.kind === 'hcp');
+  const length = checks.find((item) => item.kind === 'suitLength');
+  if (rule.id.endsWith('-pass')) {
+    const decision = candidate.callEvidence?.competitiveRaisePass;
+    if (decision === undefined) return [];
+    const opening = decision.partnerAction === 'takeoutDouble' ?
+      `Responder's raise removes the ordinary obligation to bid after partner's takeout Double.` :
+      `Partner's natural overcall is nonforcing, and responder has raised opener.`;
+    return [`${opening} With ${decision.hcp} HCP and no qualifying competitive ` +
+      `raise, natural new suit, or responsive Double under this treatment, Pass is reasonable ${id}.`];
+  }
+  if (rule.id.endsWith('-responsive-double')) {
+    const choice = candidate.callEvidence?.responsiveDouble;
+    if (choice === undefined) return [];
+    const suits = choice.unbidSuits.filter((item) => item.length >= 4)
+      .map((item) => ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[item.suit]);
+    const suitText = suits.length === 2 ? suits.join(' and ') :
+      suits.slice(0, -1).join(', ') + ', and ' + suits[suits.length - 1];
+    const supportText = choice.partnerSupport === undefined ? '' :
+      ` and only ${choice.partnerSupport} cards in partner's overcalled suit`;
+    return [`With ${choice.points} length-adjusted points, four or more cards in ` +
+      `${suitText}${supportText}, your Double is responsive, not a penalty Double. ` +
+      `It asks partner to help choose a suitable unbid suit rather than guessing one ${id}.`];
+  }
+  if (rule.id === COMPETITIVE_NT_ID) {
+    if (hcp === undefined || candidate.callEvidence?.competitiveNotrump?.levelAllowed !== true) return [];
+    const stopped = checks.flatMap((item) => item.kind === 'stopper' && item.passed ?
+      [item.suit === undefined ? 'opener’s suit' :
+        ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[item.suit]] : []);
+    const message = call === '3NT' ? 'a natural game bid' :
+      call === '2NT' ? 'a natural game invitation' : 'a natural, nonforcing advance';
+    return [`With ${hcp.actual} HCP, balanced shape, and ${stopped.length === 1 ? 'a stopper' : 'stoppers'} ` +
+      `in ${stopped.join(' and ')}, ${call} qualifies as ${message}. The stoppers protect ` +
+      `against leads in the opponents' naturally bid suits ${id}.`];
+  }
+  if (rule.id.endsWith('-support-cuebid') || rule.id.endsWith('-strong-cuebid')) {
+    if (points === undefined) return [];
+    if (support !== undefined) {
+      return [`With ${points.actual} support points and ${support.actual} cards in partner's ` +
+        `overcalled suit, ${call} is an artificial strong raise, not a natural bid in opener's suit. ` +
+        `It forces partner to bid again ${id}.`];
+    }
+    return [`With ${points.actual} length-adjusted points, ${call} is a strong artificial ` +
+      `cuebid of opener's suit after partner's takeout Double. It does not promise a ` +
+      `particular trump fit; partner must bid again ${id}.`];
+  }
+  if (rule.id.endsWith('-simple-raise') || rule.id.endsWith('-preemptive-raise')) {
+    if (points === undefined || support === undefined) return [];
+    if (rule.id.endsWith('-preemptive-raise')) {
+      return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+        `is a weak preemptive jump raise. It takes away bidding room rather than ` +
+        `inviting game; the jump does not promise extra strength ${id}.`];
+    }
+    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      `is a constructive, nonforcing raise of partner's overcall. Partner may Pass; ` +
+      `this is not the stronger artificial cuebid ${id}.`];
+  }
+  if (rule.id.includes('-new-suit-')) {
+    if (length === undefined) return [];
+    const strength = hcp !== undefined ? `${hcp.actual} HCP` : points !== undefined ?
+      `${points.actual} length-adjusted points` : null;
+    if (strength === null) return [];
+    const forcing = rule.callCategory?.includes('forcing') === true;
+    const quality = rule.id.endsWith('-three-level') ?
+      ` The suit meets the honor requirement (${PREEMPT_SUIT_QUALITY}).` : '';
+    return [`With ${strength} and ${length.actual} ${suitPlural(call)}, ${call} ` +
+      `qualifies as an economical natural new-suit advance.${quality} ` +
+      (forcing ? `It forces partner to bid again` : `It is nonforcing: partner may Pass`) +
+      ` ${id}.`];
+  }
+  return [];
+}
+
+/// Failure messages come from the exact evaluated candidate or a decision retained by
+/// its refiner. Do not treat a filtered-out rule as a tested strength failure.
+export function getCompetitiveRaiseAdvanceFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  for (const diagnostic of result.ruleDiagnostics) {
+    const ruleId = diagnostic.rule.id;
+    if (!competitiveRaiseRule(ruleId) && ruleId !== COMPETITIVE_NT_ID) continue;
+    const candidate = diagnostic.candidates.find((item) => item.call === entered);
+    if (candidate?.ruleApplies === true) continue;
+    if (entered === 'Pass' && ruleId.endsWith('-pass') && candidate !== undefined) {
+      const decision = candidate.callEvidence?.competitiveRaisePass;
+      if (decision === undefined) continue;
+      const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
+        .find((item) => item.ruleApplies && item.call !== 'Pass');
+      if (alternative !== undefined) {
+        return [`Responder's raise permits Pass, but ${alternative.call} is a supported ` +
+          `competitive action for this hand. Passing would leave that descriptive ` +
+          `opportunity unused [${ruleId}].`];
+      }
+      if (decision.partnerAction === 'overcall' && decision.hcp > 10) {
+        return [`The weak Pass treatment after a natural overcall is limited to 10 HCP; ` +
+          `you have ${decision.hcp}. That alone does not establish another supported ` +
+          `bid [${ruleId}].`];
+      }
+      continue;
+    }
+    if (entered === 'Double' && ruleId.endsWith('-responsive-double') && candidate !== undefined) {
+      const check = candidate.callEvidence?.responsiveDouble;
+      if (check === undefined) continue;
+      if (check.points < check.min || (check.max !== undefined && check.points > check.max)) {
+        return [`A responsive Double under this treatment requires ` +
+          `${check.max === undefined ? `at least ${check.min}` : `${check.min}–${check.max}`} ` +
+          `length-adjusted points; you have ${check.points} [${ruleId}].`];
+      }
+      if (check.partnerSupport !== undefined && check.partnerSupport >= 3) {
+        return [`This responsive Double requires fewer than three cards in partner's ` +
+          `overcalled suit; you have ${check.partnerSupport}. A Double would incorrectly ` +
+          `ask partner to select an unbid suit [${ruleId}].`];
+      }
+      const five = check.unbidSuits.find((item) => item.length >= 5);
+      if (five !== undefined) {
+        const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
+          .find((item) => item.ruleApplies && item.call[1] === five.suit &&
+            item.rule.id.includes('-new-suit-'));
+        if (alternative !== undefined) {
+          return [`Your five-card ${suitName(alternative.call)} suit supports the natural ` +
+            `${alternative.call} advance instead of a responsive Double under the selected ` +
+            `treatment [${ruleId}].`];
+        }
+        return [`The selected responsive-Double treatment excludes hands with a five-card ` +
+          `unbid suit. You have ${five.length} cards in that suit [${ruleId}].`];
+      }
+      const short = check.unbidSuits.filter((item) => item.length < 4);
+      if (short.length > 0) {
+        return [`A responsive Double requires at least two unbid suits with four or more ` +
+          `cards under this treatment; your hand does not have that shape [${ruleId}].`];
+      }
+    }
+    if (ruleId.endsWith('-new-suit-three-level') && candidate === undefined) {
+      const checked = diagnostic.callEvidence?.competitiveRaiseNewSuit?.considered
+        .find((item) => item.call === entered);
+      if (checked?.economical === true && checked.length < 5) {
+        return [`An economical three-level ${entered} advance requires five or more ` +
+          `${suitPlural(entered)}; you have ${checked.length} [${ruleId}].`];
+      }
+      if (checked?.economical === true && !checked.qualityPassed) {
+        return [`A three-level new-suit advance to ${entered} requires ` +
+          `${PREEMPT_SUIT_QUALITY}; your ${suitPlural(entered)} do not satisfy that ` +
+          `honor test [${ruleId}].`];
+      }
+    }
+    if (candidate === undefined) continue;
+    if (ruleId === COMPETITIVE_NT_ID) {
+      const evidence = candidate.callEvidence;
+      if (evidence?.competitiveNotrump?.levelAllowed === false) {
+        return [`The modeled natural ${entered} advance is not available at this level ` +
+          `of the opponents' auction [${ruleId}].`];
+      }
+      const failed = evidence?.requirements?.find((item) => !item.passed);
+      if (failed?.kind === 'hcp') {
+        return [`Natural ${entered} requires ${hcpRangeText(failed)}; ` +
+          `you have ${failed.actual} HCP [${ruleId}].`];
+      }
+      if (failed?.kind === 'balanced') {
+        return [`Natural ${entered} requires a balanced hand, which you do not have ` +
+          `[${ruleId}].`];
+      }
+      if (failed?.kind === 'stopper') {
+        const suit = failed.suit === undefined ? 'the opponents’ suit' :
+          ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[failed.suit];
+        return [`Natural ${entered} requires a stopper in ${suit}, which your hand ` +
+          `lacks [${ruleId}].`];
+      }
+      continue;
+    }
+    const checks = candidate.callEvidence?.requirements ?? [];
+    const support = checks.find((item) => item.kind === 'partnerSupport' && !item.passed);
+    const strength = checks.find((item) =>
+      (item.kind === 'hcp' || item.kind === 'totalPoints') && !item.passed);
+    const length = checks.find((item) => item.kind === 'suitLength' && !item.passed);
+    if (support?.kind === 'partnerSupport') {
+      return [`${entered} needs at least ${support.min} cards in partner's overcalled ` +
+        `suit; you have ${support.actual} [${ruleId}].`];
+    }
+    if (strength?.kind === 'hcp') {
+      return [`${entered} requires ${hcpRangeText(strength)}; ` +
+        `your hand has ${strength.actual} HCP [${ruleId}].`];
+    }
+    if (strength?.kind === 'totalPoints') {
+      const kind = ruleId.includes('takeout-double') ? 'length-adjusted' : 'support';
+      return [`${entered} requires ${strengthRange(strength).replace('total points', kind + ' points')}; ` +
+        `you have ${strength.actual} ${kind} points [${ruleId}].`];
+    }
+    if (length?.kind === 'suitLength') {
+      return [`${entered} requires at least ${length.min} ${suitPlural(entered)}; ` +
+        `you have ${length.actual} [${ruleId}].`];
+    }
+  }
+  return [];
+}

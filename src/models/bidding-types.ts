@@ -477,6 +477,28 @@ export interface CallEvidence {
       eligible: boolean;
     }[];
   };
+  competitiveRaisePass?: {
+    partnerAction: 'overcall' | 'takeoutDouble';
+    hcp: number;
+    hasRaise: boolean;
+    hasResponsiveDouble: boolean;
+    hasNewSuit: boolean;
+  };
+  competitiveRaiseNewSuit?: {
+    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
+  };
+  responsiveDouble?: {
+    partnerAction: 'overcall' | 'takeoutDouble';
+    points: number;
+    min: number;
+    max?: number;
+    partnerSupport?: number;
+    unbidSuits: { suit: Suit; length: number }[];
+    passed: boolean;
+  };
+  competitiveNotrump?: {
+    levelAllowed: boolean;
+  };
   jumpShift?: {
     treatment: JumpShiftAgreement;
     hcp: number;
