@@ -2049,3 +2049,171 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
   }
   return [];
 }
+
+///
+//// DONT and preemptive jump-overcall advances (B17)
+///
+
+const DONT_ADVANCE_ID = 'advance-dont-pass-or-correct';
+const JUMP_ADVANCE_RULES = [
+  'advance-jump-overcall-pass',
+  'advance-two-level-jump-overcall-raise',
+  'advance-three-level-jump-overcall-minor-raise',
+  'advance-jump-overcall-major-game',
+  'advance-jump-overcall-forcing-new-suit',
+];
+
+function dontAdvanceExplanation(choice: NonNullable<CallEvidence['dontAdvance']>): string {
+  switch (choice.reason) {
+    case 'single-suit-relay':
+      return 'Partner’s DONT Double shows one long, undisclosed suit. 2♣ is an artificial ' +
+        'relay asking partner to name that suit; it does not promise clubs.';
+    case 'club-fit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With ` +
+        `${choice.clubLength} clubs, Pass accepts the known club suit.`;
+    case 'ask-higher-suit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With only ` +
+        `${choice.clubLength} clubs, 2♦ is the artificial pass-or-correct request for ` +
+        `partner's other suit; it does not promise diamonds.`;
+    case 'diamond-fit':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds, Pass accepts diamonds under this treatment.`;
+    case 'ask-major':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds and your major-suit holdings (${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades), 2♥ asks partner to Pass with hearts or correct ` +
+        `to 2♠ with spades; 2♥ does not necessarily promise hearts.`;
+    case 'heart-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades, Pass prefers hearts under this treatment.`;
+    case 'spade-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.spadeLength} spades and ` +
+        `${choice.heartLength} hearts, 2♠ prefers spades; partner has already shown spades.`;
+    case 'natural-spades':
+      return `Partner's direct DONT 2♠ is natural, showing a one-suited spade hand. ` +
+        `Pass leaves that nonforcing contract in place.`;
+  }
+}
+
+/// The refiner's result, not a second DONT decision tree, establishes the action.
+export function getDontAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id !== DONT_ADVANCE_ID || result.normalizedCall === null) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const choice = diagnostic?.callEvidence?.dontAdvance;
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (choice === undefined || candidate?.ruleApplies !== true ||
+      choice.selectedCall !== result.normalizedCall) return [];
+  return [dontAdvanceExplanation(choice) + ` [${rule.id}]`];
+}
+
+export function getDontAdvanceFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === DONT_ADVANCE_ID);
+  const choice = diagnostic?.callEvidence?.dontAdvance;
+  if (choice === undefined || result.normalizedCall === choice.selectedCall ||
+      !['Pass', '2C', '2D', '2H', '2S'].includes(result.normalizedCall)) return [];
+  return [`After partner's ${choice.partnerCall} DONT call, the selected basic ` +
+    `pass-or-correct treatment chooses ${choice.selectedCall} instead of ` +
+    `${result.normalizedCall}. ${dontAdvanceExplanation(choice)} [${DONT_ADVANCE_ID}]`];
+}
+
+function jumpAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  const evidence = candidate?.callEvidence?.jumpAdvance ?? diagnostic?.callEvidence?.jumpAdvance;
+  const considered = evidence?.considered?.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate, evidence, considered };
+}
+
+/// Positive instructions use the checks and retained choices on the actual selected rule.
+export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!JUMP_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
+  const { candidate, evidence, considered } = jumpAdvanceDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true || evidence === undefined) return [];
+  const call = result.normalizedCall;
+  const id = `[${rule.id}]`;
+  const points = minorRequirement(candidate, 'totalPoints');
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (rule.id.endsWith('-pass')) {
+    if (evidence.passReason === 'four-level') {
+      return [`Partner's four-level jump overcall is already a high preempt. ` +
+        `Pass is the normal signoff under this treatment, even with ${evidence.hcp} HCP ${id}.`];
+    }
+    if (evidence.passReason === 'limited-no-fit') {
+      return [`Partner's preemptive ${evidence.overcallLevel}${evidence.trumpSuit} ` +
+        `is nonforcing. With ${evidence.hcp} HCP and ${evidence.support} trumps, ` +
+        `Pass leaves partner's long-suit preempt in place ${id}.`];
+    }
+    return [];
+  }
+  if (rule.id.endsWith('-forcing-new-suit')) {
+    if (hcp === undefined || considered === undefined || !considered.qualityPassed) return [];
+    return [`With ${hcp.actual} HCP and ${considered.length} ${suitPlural(call)}, ` +
+      `${call} qualifies as an economical new-suit advance. The suit satisfies the honor ` +
+      `requirement (${PREEMPT_SUIT_QUALITY}). It forces partner to bid again; this is not ` +
+      `a weak preference after a preempt ${id}.`];
+  }
+  if (points === undefined || considered === undefined) return [];
+  if (rule.id.endsWith('-major-game')) {
+    const partnerLength = evidence.overcallLevel === 2 ? 6 : 7;
+    return [`With ${points.actual} support points and ${evidence.support} ${suitPlural(call)}, ` +
+      `${call} bids natural game. Partner's preempt typically shows ${partnerLength} trumps, ` +
+      `so the combined fit is substantial. This is a game signoff, not a slam invitation ${id}.`];
+  }
+  const combined = evidence.overcallLevel === 2 ? 6 + evidence.support : 7 + evidence.support;
+  return [`With ${points.actual} support points and ${evidence.support} ${suitPlural(call)}, ` +
+    `${call} raises partner's weak preempt competitively. Your partnership expects about ` +
+    `${combined} trumps; the raise takes away opponents' bidding room rather than inviting ` +
+    `game. Partner may Pass ${id}.`];
+}
+
+/// Explain a tested strength/length failure, or a filtered-out suit/quality decision.
+/// Never infer that a mechanically unavailable call failed a hand requirement.
+export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const entered = result.normalizedCall;
+  for (const ruleId of JUMP_ADVANCE_RULES) {
+    const { diagnostic, candidate, evidence, considered } = jumpAdvanceDiagnostic(result, ruleId);
+    if (diagnostic === undefined || evidence === undefined) continue;
+    const id = `[${ruleId}]`;
+    if (ruleId.endsWith('-pass') && entered === 'Pass' &&
+        evidence.passReason === null) {
+      return [`Partner's preempt is nonforcing, but this limited-hand Pass treatment ` +
+        `does not qualify with ${evidence.hcp} HCP and ${evidence.support} trumps ${id}.`];
+    }
+    if (considered === undefined) continue;
+    if (considered.requiredLength !== undefined &&
+        considered.length < considered.requiredLength) {
+      return [`${entered} requires at least ${considered.requiredLength} trumps in ` +
+        `partner's preemptive suit; you have ${considered.length} ${id}.`];
+    }
+    if (candidate?.ruleApplies === false) {
+      const points = minorRequirement(candidate, 'totalPoints');
+      if (points !== undefined && !points.passed) {
+        return [`${entered} under this treatment requires ` +
+          `${strengthRange(points).replace('total points', 'support points')}; ` +
+          `you have ${points.actual} support points ${id}.`];
+      }
+      const hcp = minorRequirement(candidate, 'hcp');
+      if (hcp !== undefined && !hcp.passed) {
+        return [`A forcing new-suit advance of ${entered} requires ${hcpRangeText(hcp)}; ` +
+          `you have ${hcp.actual} HCP ${id}.`];
+      }
+      const length = minorRequirement(candidate, 'suitLength');
+      if (length !== undefined && !length.passed) {
+        return [`The new-suit ${entered} advance requires at least ${length.min} ` +
+          `${suitPlural(entered)}; you have ${length.actual} ${id}.`];
+      }
+    }
+    if (considered.economical === false) {
+      return [`${entered} is not an economical non-jump new-suit advance at or below ` +
+        `the three level after partner's preempt ${id}.`];
+    }
+    if (considered.qualityPassed === false) {
+      return [`A forcing new-suit advance of ${entered} requires ` +
+        `${PREEMPT_SUIT_QUALITY}; your ${suitPlural(entered)} do not meet this ` +
+        `honor-quality requirement ${id}.`];
+    }
+  }
+  return [];
+}

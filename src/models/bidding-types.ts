@@ -450,6 +450,33 @@ export interface CallEvidence {
   advanceNewSuitQuality?: {
     considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
   };
+  dontAdvance?: {
+    partnerCall: Call;
+    selectedCall: Call;
+    reason: 'single-suit-relay' | 'club-fit' | 'ask-higher-suit' |
+      'diamond-fit' | 'ask-major' | 'heart-preference' | 'spade-preference' |
+      'natural-spades';
+    clubLength: number;
+    diamondLength: number;
+    heartLength: number;
+    spadeLength: number;
+  };
+  jumpAdvance?: {
+    overcallLevel: 2 | 3 | 4;
+    trumpSuit: Suit;
+    support: number;
+    hcp: number;
+    supportPoints: number;
+    passReason?: 'four-level' | 'limited-no-fit' | null;
+    considered?: {
+      call: Call;
+      length: number;
+      requiredLength?: number;
+      economical?: boolean;
+      qualityPassed?: boolean;
+      eligible: boolean;
+    }[];
+  };
   jumpShift?: {
     treatment: JumpShiftAgreement;
     hcp: number;

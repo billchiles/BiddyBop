@@ -19,20 +19,31 @@ export function refineDontAdvance (calls: Call[], context: RuleEvalContext): Cal
   }
   const overcall = context.auction[opening.index + 1];
   let target: Call | null = null;
+  let reason: NonNullable<CallEvidence['dontAdvance']>['reason'] = 'single-suit-relay';
+  const lengths = context.handFacts.lengths;
   if (overcall === 'Double') {
     target = '2C';
   } else if (overcall === '2C') {
-    target = context.handFacts.lengths.C >= 3 ? 'Pass' : '2D';
+    target = lengths.C >= 3 ? 'Pass' : '2D';
+    reason = lengths.C >= 3 ? 'club-fit' : 'ask-higher-suit';
   } else if (overcall === '2D') {
-    const preferMajors = context.handFacts.lengths.H >= 4 && context.handFacts.lengths.S >= 4;
-    target = context.handFacts.lengths.D >= 3 && ! preferMajors ? 'Pass' : '2H';
+    const preferMajors = lengths.H >= 4 && lengths.S >= 4;
+    target = lengths.D >= 3 && ! preferMajors ? 'Pass' : '2H';
+    reason = target === 'Pass' ? 'diamond-fit' : 'ask-major';
   } else if (overcall === '2H') {
-    target = context.handFacts.lengths.S > context.handFacts.lengths.H ? '2S' : 'Pass';
+    target = lengths.S > lengths.H ? '2S' : 'Pass';
+    reason = target === '2S' ? 'spade-preference' : 'heart-preference';
   } else if (overcall === '2S') {
     target = 'Pass';
+    reason = 'natural-spades';
   }
   return { calls: target === null ? [] : calls.filter((call) => call === target),
-           telemetryLines: [] };
+    telemetryLines: [],
+    callEvidence: target === null || overcall === undefined ? undefined : {
+      dontAdvance: { partnerCall: overcall, selectedCall: target, reason,
+        clubLength: lengths.C, diamondLength: lengths.D,
+        heartLength: lengths.H, spadeLength: lengths.S },
+    } };
 }
 
 /// Advancer after a natural, non-jump suit overcall of the given level, with the
@@ -1168,7 +1179,14 @@ export function jumpOvercallPassApplies (_call: Call, context: RuleEvalContext):
     (hcp <= 11 && support < (info.overcall.level === 3 ? 4 : 3)));
   return { success, telemetryLines: [success ?
     'PASS: leave partner’s preempt in place.' :
-    'FAIL: Pass requires a preemptive jump overcall with no preferred further action.'] };
+    'FAIL: Pass requires a preemptive jump overcall with no preferred further action.'],
+    callEvidence: info === null ? undefined : {
+      jumpAdvance: { overcallLevel: info.overcall.level as 2 | 3 | 4,
+        trumpSuit: info.overcall.strain as Suit, support, hcp,
+        supportPoints: context.handFacts.totalPointsWShortage,
+        passReason: info.overcall.level === 4 ? 'four-level' :
+          success ? 'limited-no-fit' : null },
+    } };
 }
 
 /// A two-level jump promises six trumps, so a modest raise with three-card support
@@ -1185,8 +1203,17 @@ export function refineJumpOvercallRaise (calls: Call[], context: RuleEvalContext
   const suitable = (info.overcall.level === 2 && context.handFacts.lengths[suit] >= 3) ||
     (info.overcall.level === 3 && (suit === 'C' || suit === 'D') &&
      context.handFacts.lengths[suit] >= 4);
-  return { calls: suitable ? calls.filter((call) =>
-    call === `${targetLevel}${suit}`) : [], telemetryLines: [] };
+  const requiredLength = info.overcall.level === 2 ? 3 : 4;
+  const considered = calls.filter((call) => call === `${targetLevel}${suit}`)
+    .map((call) => ({ call, length: context.handFacts.lengths[suit], requiredLength,
+      eligible: suitable }));
+  return { calls: considered.filter((item) => item.eligible).map((item) => item.call),
+    telemetryLines: [], callEvidence: {
+      jumpAdvance: { overcallLevel: info.overcall.level as 2 | 3 | 4,
+        trumpSuit: suit, support: context.handFacts.lengths[suit],
+        hcp: context.handFacts.hcp, supportPoints: context.handFacts.totalPointsWShortage,
+        considered },
+    } };
 }
 
 /// A major game needs a good trump fit and some useful values.  Partner's
@@ -1199,9 +1226,16 @@ export function refineJumpOvercallMajorGame (calls: Call[], context: RuleEvalCon
   }
   const suit = info.overcall.strain;
   const support = context.handFacts.lengths[suit];
-  return { calls: (info.overcall.level === 2 && support >= 4) ||
-                  (info.overcall.level === 3 && support >= 3) ?
-    calls.filter((call) => call === `4${suit}`) : [], telemetryLines: [] };
+  const requiredLength = info.overcall.level === 2 ? 4 : 3;
+  const considered = calls.map((call) => ({ call, length: support, requiredLength,
+    eligible: info.overcall.level !== 4 && support >= requiredLength &&
+      call === `4${suit}` }));
+  return { calls: considered.filter((item) => item.eligible).map((item) => item.call),
+    telemetryLines: [], callEvidence: {
+      jumpAdvance: { overcallLevel: info.overcall.level as 2 | 3 | 4,
+        trumpSuit: suit, support, hcp: context.handFacts.hcp,
+        supportPoints: context.handFacts.totalPointsWShortage, considered },
+    } };
 }
 
 /// A new suit after a preempt is forcing, unlike a casual preference.
@@ -1210,11 +1244,23 @@ export function refineJumpOvercallMajorGame (calls: Call[], context: RuleEvalCon
 export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const info = getJumpOvercallForAdvancer(context);
-  return { calls: info === null ? [] : calls.filter((call) => {
+  if (info === null) return { calls: [], telemetryLines: [] };
+  const considered = calls.flatMap((call) => {
     const bid = parseSuitBid(call);
-    return bid !== null && bid.strain !== 'NT' && bid.level <= 3 &&
-      bid.strain !== info.overcall.strain && bid.strain !== info.opening.strain &&
-      cheapestBidInStrainAfter(info.overcall, bid.strain) === call &&
-      hasPreemptSuitQuality(context.hand, bid.strain as Suit);
-  }), telemetryLines: [] };
+    if (bid === null || bid.strain === 'NT' ||
+        bid.strain === info.overcall.strain || bid.strain === info.opening.strain) return [];
+    const economical = bid.level <= 3 &&
+      cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
+    const qualityPassed = hasPreemptSuitQuality(context.hand, bid.strain as Suit);
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
+      economical, qualityPassed, eligible: economical && qualityPassed }];
+  });
+  return { calls: considered.filter((item) => item.eligible).map((item) => item.call),
+    telemetryLines: [], callEvidence: {
+      jumpAdvance: { overcallLevel: info.overcall.level as 2 | 3 | 4,
+        trumpSuit: info.overcall.strain as Suit,
+        support: context.handFacts.lengths[info.overcall.strain as Suit],
+        hcp: context.handFacts.hcp,
+        supportPoints: context.handFacts.totalPointsWShortage, considered },
+    } };
 }
