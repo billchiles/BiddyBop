@@ -956,7 +956,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId.startsWith('advance-takeout-double-') ||
     ruleId === 'advance-weak-two-double-direct-major-game');
   const explainNaturalNtResponse = ruleId.startsWith('respond-to-1nt-w/-') ||
-    ruleId.startsWith('advance-weak-two-2nt-');
+    ruleId.startsWith('advance-weak-two-2nt-') ||
+    ruleId.startsWith('partner-of-1nt-after-interference-');
   const explainNaturalAdvance = context.stage === 'advancing' && (
     ruleId.startsWith('advance-one-level-suit-overcall-') ||
     ruleId.startsWith('advance-two-level-suit-overcall-')) &&

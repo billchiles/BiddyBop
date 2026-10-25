@@ -1908,6 +1908,9 @@ function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | nu
 /// The same 1NT treatments explain opening responses and advances after a natural 1NT
 /// overcall. Describe the actual selected meaning without assuming how partner reached 1NT.
 export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id.startsWith('partner-of-1nt-after-interference-')) {
+    return oneNtInterferencePartnerLines(result, rule);
+  }
   const isOneNt = rule.id.startsWith('respond-to-1nt-w/-');
   const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-');
   if ((!isOneNt && !isTwoNt) || result.normalizedCall === null) return [];
@@ -2009,8 +2012,9 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   const entered = result.normalizedCall;
   for (const { rule, candidates } of result.ruleDiagnostics) {
+    const afterInterference = rule.id.startsWith('partner-of-1nt-after-interference-');
     if (!rule.id.startsWith('respond-to-1nt-w/-') &&
-        !rule.id.startsWith('advance-weak-two-2nt-')) continue;
+        !rule.id.startsWith('advance-weak-two-2nt-') && !afterInterference) continue;
     const candidate = candidates.find(({ call }) => call === entered);
     if (candidate === undefined || candidate.ruleApplies) continue;
     const checks = candidate.callEvidence?.requirements;
@@ -2018,6 +2022,14 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
     const id = `[${rule.id}]`;
     const hcp = checks.find((item) => item.kind === 'hcp');
     if (hcp?.kind === 'hcp' && !hcp.passed) {
+      if (afterInterference) {
+        const judgment = entered === 'Pass'
+          ? ' Pass may still be reasonable, but the app cannot reliably recommend it from strength alone.'
+          : '';
+        return [`After natural suit interference over partner's 1NT, ${entered} requires ` +
+          `${notrumpHcpText(hcp)} in this case; you have ${hcp.actual} HCP.` +
+          `${judgment} ${id}`];
+      }
       return [`Under this notrump-response treatment, ${entered} requires ` +
         `${notrumpHcpText(hcp)}; you have ${hcp.actual} HCP ${id}.`];
     }
@@ -2033,11 +2045,19 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
       const amount = length.exact !== undefined ? `exactly ${length.exact}` :
         length.min !== undefined ? `at least ${length.min}` :
         length.max !== undefined ? `at most ${length.max}` : 'the required number of';
+      if (afterInterference && entered === 'Double') {
+        return [`This takeout Double asks partner to help choose an unbid suit and requires ` +
+          `${amount} ${suit}; you have ${length.actual} ${id}.`];
+      }
       return [`${entered} requires ${amount} ${suit} under this selected treatment; ` +
         `you have ${length.actual} ${id}.`];
     }
     const quality = checks.find((item) => item.kind === 'topThreeHonors');
     if (quality?.kind === 'topThreeHonors' && !quality.passed) {
+      if (afterInterference) {
+        return [`Natural ${entered} requires at least two of A/K/Q in ${suitPlural(entered)}; ` +
+          `your suit does not meet that honor requirement ${id}.`];
+      }
       return [`The natural ${entered} minor-suit invitation requires at least two ` +
         `of A/K/Q in the bid minor ${id}.`];
     }
@@ -2046,8 +2066,69 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
       return [`The natural ${entered} response requires balanced distribution ` +
         `under the selected treatment; your hand is not balanced ${id}.`];
     }
+    const stopper = checks.find((item) => item.kind === 'stopper' && !item.passed);
+    if (afterInterference && stopper?.kind === 'stopper' && stopper.suit !== undefined) {
+      const suit = { C: 'club', D: 'diamond', H: 'heart', S: 'spade' }[stopper.suit];
+      return [`Natural ${entered} requires a ${suit} stopper after the opponent's suit bid; ` +
+        `your hand lacks one ${id}.`];
+    }
   }
   return [];
+}
+
+/// The same natural-interference rules serve responses and advances. Use only their
+/// recorded checks; do not infer the unbid suits or repeat qualification decisions here.
+function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null) return [];
+  const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const call = result.normalizedCall;
+  const id = `[${rule.id}]`;
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (hcp === undefined) return [];
+  const conventions = 'Natural suit interference turns off ordinary Stayman and transfers.';
+  if (call === 'Pass') {
+    return [`With ${hcp.actual} HCP, Pass qualifies in the selected ${hcpRangeText(hcp)} ` +
+      `range after the opponent competes over partner's 1NT. Partner's natural 1NT ` +
+      `does not oblige you to bid. ${conventions} ${id}`];
+  }
+  if (call === 'Double') {
+    const lengths = candidate.callEvidence?.requirements?.filter(
+      (item) => item.kind === 'suitLength') ?? [];
+    const holdings = lengths.flatMap((item) => item.suit === undefined ? [] :
+      [`${item.actual} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[item.suit]}`]);
+    if (holdings.length === 0) return [];
+    const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .find((item) => item.ruleApplies && item.call !== 'Double' &&
+        item.rule.id.startsWith('partner-of-1nt-after-interference-') &&
+        item.rule.id !== 'partner-of-1nt-after-interference-pass');
+    const preference = alternative === undefined ? '' :
+      ` Natural ${alternative.call} also qualifies and is preferred as a more descriptive action.`;
+    return [`With ${hcp.actual} HCP and ${holdings.join(' and ')}, Double shows ` +
+      `takeout support of at least four cards in the requested unbid ` +
+      `${holdings.length === 1 ? 'suit' : 'suits'}. This takeout Double asks partner to ` +
+      `bid again and help choose a strain; it is not a penalty Double.${preference} ${id}`];
+  }
+  if (call === '2NT' || call === '3NT') {
+    const balanced = minorRequirement(candidate, 'balanced');
+    const stopper = minorRequirement(candidate, 'stopper');
+    if (balanced?.passed !== true || stopper?.passed !== true || stopper.suit === undefined) return [];
+    const suit = { C: 'club', D: 'diamond', H: 'heart', S: 'spade' }[stopper.suit];
+    const purpose = call === '2NT'
+      ? 'a natural invitation: partner may Pass or bid 3NT with extra values'
+      : 'a natural game signoff';
+    return [`With ${hcp.actual} HCP, balanced shape, and a ${suit} stopper, ${call} is ` +
+      `${purpose}. ${conventions} ${id}`];
+  }
+  const length = minorRequirement(candidate, 'suitLength');
+  const quality = minorRequirement(candidate, 'topThreeHonors');
+  if (length === undefined || quality?.passed !== true) return [];
+  const purpose = rule.id.endsWith('-two-level')
+    ? 'It is nonforcing; partner may Pass.'
+    : 'It describes a good suit when the economical bid is at the three level.';
+  return [`With ${hcp.actual} HCP and ${length.actual} ${suitPlural(call)}, ${call} ` +
+    `qualifies as an economical natural suit bid. Your suit contains at least two of ` +
+    `A/K/Q. ${purpose} ${conventions} ${id}`];
 }
 
 ///

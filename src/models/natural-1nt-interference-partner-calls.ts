@@ -107,7 +107,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     appliesWhen: negativeDoubleAfterOneNtInterferenceApplies,
     priority: { rank: 40 },
     guidance: ['15-17: normally 8+ HCP; 16-18: normally 7+ HCP.',
-               'Double is takeout-oriented, not a penalty Double.',
+               'This is a takeout Double, not a penalty Double.',
                'With minor-suit interference, show both available majors when both are unbid.',
                'With major-suit interference, show the available unbid major or, when no major ' +
                'is available, both minors.',
@@ -154,7 +154,11 @@ function naturalSuitAfterOneNtInterferenceApplies (call: Call, context: RuleEval
   const hcp = context.handFacts.hcp;
   const goodSuit = hasTwoOfTopThreeHonors(context.hand, suit);
   const success = hcp >= minimum && length >= 5 && goodSuit;
-  return { success, telemetryLines: [
+  return { success, callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: minimum, passed: hcp >= minimum },
+    { kind: 'suitLength', suit, actual: length, min: 5, passed: length >= 5 },
+    { kind: 'topThreeHonors', suit, passed: goodSuit },
+  ] }, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: natural ${call} needs ${minimum}+ HCP, 5+ cards, and ` +
       `two of A/K/Q (have ${hcp} HCP and ${length} cards).`,
   ] };
@@ -173,7 +177,11 @@ function naturalNotrumpAfterOneNtInterferenceApplies (context: RuleEvalContext,
   const hcp = context.handFacts.hcp;
   const stopper = hasBasicSuitStopper(context, info.interference.strain as Suit);
   const success = hcp >= min && hcp <= max && context.handFacts.balanced && stopper;
-  return { success, telemetryLines: [
+  return { success, callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min, max, passed: hcp >= min && hcp <= max },
+    { kind: 'balanced', actual: context.handFacts.balanced, passed: context.handFacts.balanced },
+    { kind: 'stopper', suit: info.interference.strain, passed: stopper },
+  ] }, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: natural NT needs ${min}-${max} HCP, balanced shape, and ` +
       `a stopper in ${info.interference.strain}.`,
   ] };
@@ -192,17 +200,19 @@ function negativeDoubleAfterOneNtInterferenceApplies (_call: Call, context: Rule
   }
   const available = SUITS.filter((suit) => ! excluded.has(suit));
   const availableMajors = available.filter((suit) => suit === 'H' || suit === 'S');
-  let shapeFits = false;
-  if (availableMajors.length >= 2) {
-    shapeFits = availableMajors.every((suit) => context.handFacts.lengths[suit] >= 4);
-  } else if (availableMajors.length === 1) {
-    shapeFits = context.handFacts.lengths[availableMajors[0]!] >= 4;
-  } else {
-    shapeFits = available.length >= 2 &&
-      available.slice(0, 2).every((suit) => context.handFacts.lengths[suit] >= 4);
-  }
-  const success = context.handFacts.hcp >= minimum && shapeFits;
-  return { success, telemetryLines: [
+  const requestedSuits = availableMajors.length > 0 ? availableMajors : available.slice(0, 2);
+  const suitChecks = requestedSuits.map((suit) => ({
+    kind: 'suitLength' as const, suit, actual: context.handFacts.lengths[suit], min: 4,
+    passed: context.handFacts.lengths[suit] >= 4,
+  }));
+  const shapeFits = (availableMajors.length > 0 || available.length >= 2) &&
+    suitChecks.every((check) => check.passed);
+  const hcp = context.handFacts.hcp;
+  const success = hcp >= minimum && shapeFits;
+  return { success, callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: minimum, passed: hcp >= minimum },
+    ...suitChecks,
+  ] }, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: negative Double needs ${minimum}+ HCP and takeout shape ` +
       `in the available suits (have ${context.handFacts.hcp} HCP).`,
   ] };

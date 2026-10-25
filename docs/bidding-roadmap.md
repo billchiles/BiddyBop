@@ -26,6 +26,13 @@ not a historical progress log or a commitment to model every possible auction.
   recorded final call, even if the real bridge auction would continue.
 
 ## Remaining work
+- [ ] **Explanation integration review after the remaining explanation work.** Review
+  rule buckets in manageable groups for existing explanation functions or evidence
+  that do not reach normal feedback, unsupported-call feedback, recorded-call
+  substitutions, or Report output.
+- [ ] **User-facing explanation wording after the remaining explanation work.**
+  Replace "the trainer" with "the app" and explain judgment limits in ordinary
+  bridge language rather than internal scope terminology.
 - [ ] **Ending and scope guidance.** Distinguish exercise completion from a finished
   auction; explain unresolved forcing or game-forcing obligations where relevant.
   Finish the focused audit of auction-stage recognition, agreement-sensitive meanings,

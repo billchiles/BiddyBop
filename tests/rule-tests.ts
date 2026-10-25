@@ -8,7 +8,9 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
-import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine } from '../src/models/explanations';
+import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
+         getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines }
+  from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -2047,6 +2049,104 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   console.log(`${failures} ***FAILURES***. 1NT-interference partner boundaries: ${checks} checks.`);
   console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
   console.log('  enforcement, negative Double, and the current two-level interference boundary.\n');
+  return failures;
+}
+
+/// Natural 1NT interference explanations must use the evaluated strength, shape,
+/// suit quality, stopper, and requested suits without changing the shared bidding rules.
+function runOneNtInterferenceExplanationTests (): number {
+  let failures = 0;
+  const prefix = 'partner-of-1nt-after-interference-';
+  // These focused hands test the current decision, not the preceding players' calls.
+  // The other fixed hand keeps all boards legal without defining another practice deal.
+  const make = (north: { S: string; H: string; D: string; C: string }) =>
+    makeRuleTestBoard({ description: 'Natural 1NT interference explanation', dealer: 'E', north,
+      south: { S: '654', H: '654', D: '654', C: '6543' },
+      practiceAuction: ['1D', '1NT', '2H'] }).board;
+  const invitation = { S: 'QJ87', H: 'K98', D: 'J92', C: 'Q92' };
+  const seven = { S: 'QJ87', H: 'K98', D: 'J92', C: 'T92' };
+  const cases: {
+    name: string; hand: typeof invitation; call: Call; suffix: string;
+    auction?: Call[]; range?: '15-17' | '16-18';
+    failed?: 'hcp' | 'balanced' | 'suitLength' | 'topThreeHonors' | 'stopper';
+    requestedSuits?: string[];
+  }[] = [
+    { name: 'weak Pass', hand: seven, call: 'Pass', suffix: 'pass' },
+    { name: 'natural invitation', hand: invitation, call: '2NT', suffix: '2nt' },
+    { name: 'natural game', hand: { S: 'KQ98', H: 'K98', D: 'A92', C: 'QJ2' },
+      call: '3NT', suffix: '3nt' },
+    { name: 'nonforcing natural suit', hand: { S: 'KQJ87', H: 'T98', D: 'A92', C: 'J2' },
+      call: '2S', suffix: 'natural-suit-two-level' },
+    { name: 'natural suit at three', hand: { S: 'J8', H: 'T98', D: 'A92', C: 'AKQJ2' },
+      call: '3C', suffix: 'natural-suit-three-level' },
+    { name: 'takeout Double requests spades', hand: { S: 'QJ87', H: 'T98', D: 'A92', C: 'KJ2' },
+      call: 'Double', suffix: 'negative-double', requestedSuits: ['S'] },
+    { name: 'takeout Double requests both majors',
+      hand: { S: 'QJ87', H: 'KJ98', D: 'T92', C: 'Q2' },
+      call: 'Double', suffix: 'negative-double', auction: ['1D', '1NT', '2C'],
+      requestedSuits: ['S', 'H'] },
+    { name: 'takeout Double requests both minors',
+      hand: { S: 'T9', H: 'J98', D: 'AQ92', C: 'KJ82' },
+      call: 'Double', suffix: 'negative-double', auction: ['1H', '1NT', '2S'],
+      requestedSuits: ['D', 'C'] },
+    { name: 'invitation needs a stopper', hand: { S: 'QJ87', H: 'T98', D: 'K92', C: 'QJ2' },
+      call: '2NT', suffix: '2nt', failed: 'stopper' },
+    { name: 'invitation needs balanced shape', hand: { S: 'QJ872', H: 'K9', D: 'J9', C: 'QT82' },
+      call: '2NT', suffix: '2nt', failed: 'balanced' },
+    { name: 'natural suit needs five cards', hand: { S: 'KQJ8', H: 'T98', D: 'A92', C: 'J92' },
+      call: '2S', suffix: 'natural-suit-two-level', failed: 'suitLength' },
+    { name: 'natural suit needs two of A/K/Q', hand: { S: 'KJ987', H: 'T98', D: 'A92', C: 'Q2' },
+      call: '2S', suffix: 'natural-suit-two-level', failed: 'topThreeHonors' },
+    { name: 'takeout Double needs four spades', hand: { S: 'QJ8', H: 'T987', D: 'A92', C: 'KJ2' },
+      call: 'Double', suffix: 'negative-double', failed: 'suitLength' },
+    { name: 'seven HCP does not invite under 15-17', hand: seven,
+      call: '2NT', suffix: '2nt', failed: 'hcp' },
+    { name: 'seven HCP invites under 16-18', hand: seven,
+      call: '2NT', suffix: '2nt', range: '16-18' },
+    { name: 'seven HCP exceeds weak Pass under 16-18', hand: seven,
+      call: 'Pass', suffix: 'pass', range: '16-18', failed: 'hcp' },
+  ];
+  for (const test of cases) {
+    const board = make(test.hand);
+    const system = { ...defaultBiddingSystem, oneNtOpening: test.range ?? '15-17' };
+    const result = evaluateUserCall(test.call, board, test.auction ?? ['1D', '1NT', '2H'], system);
+    const id = prefix + test.suffix;
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
+      ?.candidates.find((item) => item.call === test.call);
+    const requirements = candidate?.callEvidence?.requirements ?? [];
+    const rule = result.userCallMatchingRules.find((item) => item.id === id);
+    const positive = rule === undefined ? [] : getNotrumpPartnerResponseLines(result, rule);
+    const negative = getNotrumpPartnerResponseFailureLines(result);
+    const requested = requirements.flatMap((item) => item.kind === 'suitLength' ? [item.suit] : []);
+    if (candidate?.ruleApplies !== (test.failed === undefined) ||
+        (test.failed === undefined
+          ? positive.length === 0 || !positive.some((line) => line.includes(`[${id}]`)) ||
+            negative.length !== 0
+          : !requirements.some((item) => item.kind === test.failed && !item.passed) ||
+            negative.length === 0 || !negative.some((line) => line.includes(`[${id}]`))) ||
+        (test.requestedSuits !== undefined && requested.join(',') !== test.requestedSuits.join(','))) {
+      failures += 1;
+      console.error(`FAIL natural 1NT interference explanation: ${test.name}.`);
+    }
+  }
+  // The shared response path receives the same instruction after a natural DONT 2S,
+  // while artificial DONT 2H and higher interference must not inherit these explanations.
+  const responseBoard = { ...make(invitation), dealer: 'S' as const };
+  const response = evaluateUserCall('2NT', responseBoard, ['1NT', '2S'], defaultBiddingSystem);
+  const responseRule = response.userCallMatchingRules.find((rule) => rule.id === prefix + '2nt');
+  if (responseRule === undefined || getNotrumpPartnerResponseLines(response, responseRule).length === 0) {
+    failures += 1;
+    console.error('FAIL shared natural 1NT interference response explanation.');
+  }
+  for (const auction of [['1NT', '2H'], ['1NT', '3S']] as Call[][]) {
+    const result = evaluateUserCall('2NT', responseBoard, auction, defaultBiddingSystem);
+    if (getNotrumpPartnerResponseFailureLines(result).length !== 0 ||
+        result.applicableRules.some((rule) => getNotrumpPartnerResponseLines(result, rule).length > 0)) {
+      failures += 1;
+      console.error(`FAIL natural interference explanation leaked into ${auction.join(' ')}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Natural 1NT interference explanations: ${cases.length + 3} checks.\n`);
   return failures;
 }
 
@@ -4710,6 +4810,7 @@ const testGroups: (() => number)[] = [
   runNaturalActionPassLegalityTests,
   runResponderArtificialActionAdvanceBoundaryTests,
   runOneNtInterferencePartnerBoundaryTests,
+  runOneNtInterferenceExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
   runDontBoundaryTests,

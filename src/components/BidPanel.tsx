@@ -174,7 +174,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
        getDontAdvanceFailureLines(result).length > 0 ||
        getJumpAdvanceFailureLines(result).length > 0 ||
        getCompetitiveRaiseAdvanceFailureLines(result).length > 0 ||
-       getCompetitiveNaturalAdvanceFailureLines(result).length > 0);
+       getCompetitiveNaturalAdvanceFailureLines(result).length > 0 ||
+       getNegativeDoubleAdvanceFailureLines(result).length > 0);
     const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
@@ -225,6 +226,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             explanation.push(...getJumpAdvanceLines(correction.result, rule));
             explanation.push(...getCompetitiveRaiseAdvanceLines(correction.result, rule));
             explanation.push(...getCompetitiveNaturalAdvanceLines(correction.result, rule));
+            explanation.push(...getNegativeDoubleAdvanceLines(correction.result, rule));
           }
           appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
