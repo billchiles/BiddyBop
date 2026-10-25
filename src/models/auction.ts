@@ -455,6 +455,7 @@ export function getInterferenceAfterOpening (dealer: Seat, auction: Call[]): Dir
 /// undoubled contract; Redouble is available only to that contract's partnership while Double
 /// is in force. Bidding rules still decide whether a legal Double or Redouble has a modeled
 /// meaning.
+///
 export function isCallAvailableInAuction (call: Call, auction: Call[]): boolean {
   if (call === 'Double') {
     const lastActionIndex = auction.findLastIndex((action) => action !== 'Pass');

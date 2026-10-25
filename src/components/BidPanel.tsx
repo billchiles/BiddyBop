@@ -125,7 +125,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
 
     // A recorded practice substitution must never bypass legality of the student's actual call.
     if (! isCallAvailableInAuction(normalizedCall, auction)) {
-      const lines = [`${normalizedCall} is not available in this auction.`];
+      const lines = [`${normalizedCall} is not available in this auction, check that level ` +
+                     `and suit are higher than previous suit call.`];
       setExplanationLines((current) => appendExplanation(current, ['', ...lines]));
       onTelemetry(lines);
       return;

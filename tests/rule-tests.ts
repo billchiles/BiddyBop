@@ -3,7 +3,7 @@
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
-         getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
+         getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
@@ -768,6 +768,20 @@ function runRuleTests (): number {
       const system: BiddingSystem = { ...defaultBiddingSystem, ...deal.requiredSystem };
       try {
         const { board } = makeRuleTestBoard(deal);
+        // Student exercises start with North dealing and retain four explicitly authored hands.
+        // Board construction also validates thirteen cards per hand and rejects duplicates.
+        if (board.dealer !== 'N' || deal.east === undefined || deal.west === undefined) {
+          failureCount += 1;
+          console.error(`FAIL practice deal requires North dealer and four fixed hands\n${label}`);
+        }
+        for (const note of deal.practiceGuidance ?? []) {
+          if (! Number.isInteger(note.auctionIndex) || note.auctionIndex < 0 ||
+              note.auctionIndex >= deal.practiceAuction.length ||
+              note.seat !== getSeatForCallIndex(board.dealer, note.auctionIndex)) {
+            failureCount += 1;
+            console.error(`FAIL practice guidance does not identify a recorded turn\n${label}`);
+          }
+        }
         const stages = getTestedStages(deal);
         for (const stage of stages) {
           // An undeclared stage is normal: a response-only deal has no opener-rebid expectations.
@@ -1157,8 +1171,8 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   // medium-opener scenario for this existing scope-boundary test.
   const { board: boundaryBoard } = makeRuleTestBoard({
     ...boundaryDeal,
-    west: { ...boundaryDeal.west!, C: 'T3' },
-    south: { ...boundaryDeal.south!, C: 'J8' },
+    north: { ...boundaryDeal.north, C: 'T3' },
+    west: { ...boundaryDeal.west!, C: 'J8' },
   });
   const boundaryResult = evaluateUserCall(
     'Pass', boundaryBoard, ['1D', '1S', '2D', '3S'], defaultBiddingSystem);
@@ -1369,14 +1383,18 @@ function runAdvancingBoundaryTests (): number {
                     formatCandidates(candidates));
     }
   }
+  // Reuse the opener and overcaller holdings in separately constructed West-dealt tests.
   const twoLevelNtDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[2];
   if (twoLevelNtDeal === undefined) {
     failures += 1;
     console.error('FAIL advancing boundaries require the two-level 2NT fixture.');
   } else {
     const { board: noTwoLevelStopperBoard } = makeRuleTestBoard({
-      ...twoLevelNtDeal,
-      east: undefined, // Synthetic South variation must not retain the fixed practice East.
+      description: twoLevelNtDeal.description, dealer: 'W',
+      practiceAuction: twoLevelNtDeal.practiceAuction,
+      north: twoLevelNtDeal.east!,
+      west: twoLevelNtDeal.north,
+      // East receives the remaining cards after this constructed South holding.
       south: { S: 'JT98', H: 'KQJ', D: 'T983', C: 'A4' }, // 11 HCP; no diamond stopper.
     });
     checks += 1;
@@ -1393,8 +1411,11 @@ function runAdvancingBoundaryTests (): number {
     console.error('FAIL advancing boundaries require the 3D fixture.');
   } else {
     const { board: insufficientHcpBoard } = makeRuleTestBoard({
-      ...threeLevelDeal,
-      east: undefined, // Synthetic South variation must not retain the fixed practice East.
+      description: threeLevelDeal.description, dealer: 'W',
+      practiceAuction: threeLevelDeal.practiceAuction,
+      north: threeLevelDeal.east!,
+      west: threeLevelDeal.north,
+      // East receives the remaining cards after this constructed South holding.
       south: { S: 'T9', H: 'T7', D: 'AJT54', C: 'KQJ9' }, // 11 HCP, despite good diamonds.
     });
     checks += 1;
@@ -1421,9 +1442,12 @@ function runAdvancingBoundaryTests (): number {
     console.error('FAIL three-level new-suit advance requires concentrated suit honors.');
   }
   const { board: noStopperBoard } = makeRuleTestBoard({
-    ...deal,
-    east: undefined, // This constructed variation must not retain a future fixed East hand.
-    south: { ...deal.south, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
+    description: deal.description, dealer: 'W',
+    practiceAuction: deal.practiceAuction,
+    north: deal.east!,
+    west: deal.north,
+    // East receives the remaining cards after this constructed South holding.
+    south: { ...deal.west!, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
   });
   checks += 1;
   const candidates = getApplicableCandidateCalls(evaluateUserCall(
@@ -1476,8 +1500,11 @@ function runTakeoutAdvanceBoundaryTests (): number {
   }
   // In contrast, a three-card unbid suit is not offered if a four-card option exists.
   const { board: fourCardBoard } = makeRuleTestBoard({
-    ...jumpDeal,
-    east: undefined, // Synthetic South variation must not retain the fixed practice East.
+    description: jumpDeal.description, dealer: 'W',
+    practiceAuction: jumpDeal.practiceAuction,
+    north: jumpDeal.east!,
+    west: jumpDeal.north,
+    // East receives the remaining cards after this constructed South holding.
     south: { S: 'QJ5', H: '762', D: 'T95', C: 'JT42' }, // 4 points and four clubs.
   });
   checks += 1;
@@ -1489,8 +1516,11 @@ function runTakeoutAdvanceBoundaryTests (): number {
     console.error('FAIL three-card fallback activated when another unbid suit has four cards.');
   }
   const { board: notrumpBoard } = makeRuleTestBoard({
-    ...notrumpDeal,
-    east: undefined, // Synthetic South variation must not retain the fixed practice East.
+    description: notrumpDeal.description, dealer: 'W',
+    practiceAuction: notrumpDeal.practiceAuction,
+    north: notrumpDeal.east!,
+    west: notrumpDeal.north,
+    // East receives the remaining cards after this constructed South holding.
     south: { S: 'QJ5', H: 'T762', D: '83', C: 'AJ42' }, // 8 HCP, balanced, no D stopper.
   });
   checks += 1;
@@ -1629,7 +1659,7 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
   const fitBoard = makeRuleTestBoard({
     description: 'Responsive Double is suppressed by three-card support.',
     dealer: 'W', practiceAuction: ['1D', '1S', '2D', 'Double'],
-    north: overcallDoubleDeal.north,
+    north: overcallDoubleDeal.east!,
     south: { S: 'T95', H: 'KQJT', D: 'KT9', C: 'JT7' },
   }).board;
   checks += 1;
@@ -1644,7 +1674,7 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
   const longSuitBoard = makeRuleTestBoard({
     description: 'Responsive Double is suppressed by a five-card natural suit.',
     dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
-    north: takeoutDoubleDeal.north,
+    north: takeoutDoubleDeal.east!,
     south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
   }).board;
   checks += 1;
@@ -1659,8 +1689,8 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
   const { board: lowTwoLevelDoubleBoard } = makeRuleTestBoard({
     description: 'Higher-level responsive Double needs nine length points.',
     dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Double'],
-    west: twoLevelDoubleDeal.west,
-    north: twoLevelDoubleDeal.north,
+    west: twoLevelDoubleDeal.north,
+    north: twoLevelDoubleDeal.east!,
     east: { S: '852', H: '43', D: 'JT2', C: 'AKJT4' },
     south: { S: 'T96', H: 'T7', D: 'A754', C: 'Q983' },
   });
@@ -1676,7 +1706,7 @@ function runResponderRaiseAdvanceBoundaryTests (): number {
   const strongBoard = makeRuleTestBoard({
     description: 'Responsive Double gives way to the strong-hand cuebid.',
     dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
-    north: takeoutDoubleDeal.north,
+    north: takeoutDoubleDeal.east!,
     south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
   }).board;
   checks += 1;
@@ -1975,6 +2005,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   // Preserve their original North/West setting when testing alternate South holdings.
   const boundaryDeal = {
     ...advanceDeal,
+    dealer: 'W' as const,
     west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
     north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
     east: undefined,
@@ -2061,9 +2092,11 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     }
   }
   const weakSuitBoard = makeRuleTestBoard({
-    ...strongNewSuit,
+    description: strongNewSuit.description, dealer: 'W',
+    practiceAuction: strongNewSuit.practiceAuction,
+    north: strongNewSuit.east!,
+    west: strongNewSuit.north,
     south: { S: 'T8', H: 'QJ8', D: 'JT976', C: 'AKQ' },
-    east: undefined, // Hypothetical South holding replaces cards in the fixed East hand.
   }).board;
   checks += 1;
   const qualityCandidates = getApplicableCandidateCalls(evaluateUserCall(
@@ -2073,11 +2106,14 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
     failures += 1;
     console.error('FAIL jump-overcall new suit needs concentrated honor quality.');
   }
+  const clubNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[3] === '3C')!;
   const weakHandBoard = makeRuleTestBoard({
-    ...ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
-      deal.practiceAuction[3] === '3C')!,
+    description: clubNewSuit.description, dealer: 'W',
+    practiceAuction: clubNewSuit.practiceAuction,
+    north: clubNewSuit.east!,
+    west: clubNewSuit.north,
     south: { S: 'QJ6', H: 'T8', D: '932', C: 'AKJ76' }, // Good clubs, but only 11 HCP.
-    east: undefined, // Hypothetical South holding replaces cards in the fixed East hand.
   }).board;
   checks += 1;
   const strengthCandidates = getApplicableCandidateCalls(evaluateUserCall(

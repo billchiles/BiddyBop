@@ -15,7 +15,8 @@ not a historical progress log or a commitment to model every possible auction.
 - Use the same selected bidding agreements for all four seats, including the
   compact fixed DONT treatment against a strong 1NT opening.
 - Practice deals have four fixed, complete hands and credible recorded calls for
-  every seat. Exercise completion need not mean the actual bridge auction is over.
+  every seat. North is always dealer, but need not be opener. Exercise completion
+  need not mean the actual bridge auction is over.
 
 ## Completed interaction work
 
@@ -32,7 +33,7 @@ not a historical progress log or a commitment to model every possible auction.
 - [ ] **Final quality checks.** Review remaining substantive full-auction concerns
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
-  and any interactions between revised deals and existing rule-test fixtures.
+  and any interactions between revised deals and existing rule tests.
 - [ ] **Final source and test cleanup.** Review naming, comments, organization,
   unnecessary wrappers, and readability without expanding test infrastructure.
 

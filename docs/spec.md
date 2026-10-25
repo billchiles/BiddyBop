@@ -158,6 +158,8 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
 - The interaction model permits user-entered calls for all four physical seats and does not require
   an automated bidder to establish auction state.
 - Free bidding remains open for user-entered calls and ends after three final passes.
+- Selected practice deals start with North as dealer. North need not be the opener;
+  preserve initial Passes when a lesson calls for a later-seat opening.
 - A selected practice lesson ends at its last recorded call, even when the full bridge auction
   would continue. When the student chooses a different call, evaluate that choice but use the
   recorded continuation to keep teaching the remaining lesson. State that the recorded call
@@ -184,7 +186,7 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
   how a student would understand the auction.
 - Keep recorded auction calls consistent with the stated lesson and required system.
   Avoid unnecessary setup calls that create stronger alternative actions elsewhere.
-- Prefer a few useful contrasting examples over exhaustive fixture-specific regression
+- Prefer a few useful contrasting examples over exhaustive deal-specific regression
   assertions. Do not add regression tests simply to police the editorial choice of hands.
 - Optional `practiceGuidance` supplements the normal rule explanation only when the
   specific deal needs it. Each note references the zero-based physical `practiceAuction`

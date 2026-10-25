@@ -50,8 +50,8 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1D-(1S)-2D-(3D)-Pass: advancer cuebids diamonds artificially to show strong ' +
                  'spade support. A minimum diamond opener can defend rather than bid again.',
-    dealer: 'W', practiceAuction: ['1D', '1S', '2D', '3D', 'Pass'],
-    practiceGuidance: [{ auctionIndex: 4, seat: 'W', text: 'South\'s 3D is an artificial spade ' +
+    dealer: 'N', practiceAuction: ['1D', '1S', '2D', '3D', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 4, seat: 'N', text: 'West\'s 3D is an artificial spade ' +
       'support cuebid, not a natural contract. Minimum opener need not bid again.' }],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -62,16 +62,16 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-advancer-support-cuebid',
     ] }],
-    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
-    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
-    east: { S: '43', H: '985', D: '96532', C: 'AQ2' },
-    south: { S: 'T95', H: 'KQJT', D: 'KT', C: 'JT75' },
+    north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: '43', H: '985', D: '96532', C: 'AQ2' },
+    west: { S: 'T95', H: 'KQJT', D: 'KT', C: 'JT75' },
   },
   {
     description: '1H-(Double)-2H-(3H)-Pass: advancer cuebids opener\'s suit artificially ' +
                  'after a takeout Double, not to play hearts. Minimum opener can defend.',
-    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', '3H', 'Pass'],
-    practiceGuidance: [{ auctionIndex: 2, seat: 'E', text: 'Five low hearts support ' +
+    dealer: 'N', practiceAuction: ['1H', 'Double', '2H', '3H', 'Pass'],
+    practiceGuidance: [{ auctionIndex: 2, seat: 'S', text: 'Five low hearts support ' +
       'a simple, nonforcing 2H. A weak preemptive 3H is also a competitive option, ' +
       'but is not a stronger limit raise; weigh vulnerability and outside tricks.' }],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
@@ -85,15 +85,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-advancer-support-cuebid',
     ] }],
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
-    east: { S: '53', H: '87543', D: '764', C: 'AJ2' },
-    south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    south: { S: '53', H: '87543', D: '764', C: 'AJ2' },
+    west: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
   },
   {
     description: '1D-(1S)-1NT-(2S)-Pass: after a natural 1NT response and an opposing spade ' +
                  'raise, a minimum semi-balanced opener can defend rather than overbid.',
-    dealer: 'W', practiceAuction: ['1D', '1S', '1NT', '2S', 'Pass'],
+    dealer: 'N', practiceAuction: ['1D', '1S', '1NT', '2S', 'Pass'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: '1NT', ruleIds: ['respond-over-suit-natural-notrump'] }],
@@ -103,10 +103,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-overcall-natural-1nt-minimum',
     ] }],
-    west: { S: '82', H: 'A435', D: 'AKJ74', C: 'Q3' },
-    north: { S: 'AQJ96', H: '762', D: '82', C: 'K96' },
-    east: { S: 'KT7', H: 'QJ8', D: 'T93', C: 'T724' },
-    south: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
+    north: { S: '82', H: 'A435', D: 'AKJ74', C: 'Q3' },
+    east: { S: 'AQJ96', H: '762', D: '82', C: 'K96' },
+    south: { S: 'KT7', H: 'QJ8', D: 'T93', C: 'T724' },
+    west: { S: '543', H: 'KT9', D: 'Q65', C: 'AJ85' },
   },
   //// Natural forcing one-level response after interference
   {
@@ -144,7 +144,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1H-(Double)-1S-(Pass)-1NT: the forcing natural one-level response keeps its ' +
                  'ordinary meaning, so a minimum balanced opener can still rebid 1NT.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1H', 'Double', '1S', 'Pass', '1NT'],
     expectedOpeningCalls: [
       { call: '1H', ruleIds: ['open-five-card-major'] },
@@ -161,10 +161,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: '1NT', ruleIds: ['opener-rebid-1nt-after-major-one-level-new-suit'] },
     ],
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    north: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
-    east: { S: 'T986', H: 'QJ5', D: 'AJ6', C: 'A73' },
-    south: { S: '53', H: '8743', D: 'T92', C: 'KT92' },
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'AQJ4', H: '2', D: 'K874', C: 'QJ86' },
+    south: { S: 'T986', H: 'QJ5', D: 'AJ6', C: 'A73' },
+    west: { S: '53', H: '8743', D: 'T92', C: 'KT92' },
   },
   //// Negative Double -- Opener shows responder's implied suit
   {
@@ -344,7 +344,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1S-(2H)-2S-(3H)-Pass: after both sides find fits, a minimum opener can defend ' +
                  'rather than manufacture another spade bid.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1S', '2H', '2S', '3H', 'Pass'],
     expectedOpeningCalls: [{ call: '1S', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-simple-suit-at-two-level'] }],
@@ -357,15 +357,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
     ],
-    west: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
-    north: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
-    east: { S: '852', H: '3', D: 'T742', C: 'AKT84' },
-    south: { S: 'T96', H: 'T74', D: 'AJ5', C: 'QJ93' },
+    north: { S: 'AKJ74', H: 'K82', D: 'Q93', C: '65' },
+    east: { S: 'Q3', H: 'AQJ965', D: 'K86', C: '72' },
+    south: { S: '852', H: '3', D: 'T742', C: 'AKT84' },
+    west: { S: 'T96', H: 'T74', D: 'AJ5', C: 'QJ93' },
   },
   {
     description: '1H-(Double)-2H-(2S)-Pass: advancer’s natural spade competition does not make ' +
                  'responder’s simple heart raise forcing.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1H', 'Double', '2H', '2S', 'Pass'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [
@@ -380,15 +380,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
     ],
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
-    east: { S: '3', H: '87543', D: '764', C: 'AQJ2' },
-    south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    south: { S: '3', H: '87543', D: '764', C: 'AQJ2' },
+    west: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
   },
   {
     description: '1D-(1S)-Double-(2S)-3D: after advancer raises, a minimum opener without the ' +
                  'implied heart fit can still describe a six-card diamond suit.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1D', '1S', 'Double', '2S', '3D'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -399,15 +399,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: '3D', ruleIds: ['opener-rebid-repeat-opening-suit-after-negative-double'] },
     ],
-    west: { S: 'A97', H: '87', D: 'QJ9865', C: 'K3' },
-    north: { S: 'KQJ52', H: 'AJT96', D: 'A2', C: '7' },
-    east: { S: '86', H: 'KQ42', D: '4', C: 'QJ9852' },
-    south: { S: 'T43', H: '53', D: 'KT73', C: 'AT64' },
+    north: { S: 'A97', H: '87', D: 'QJ9865', C: 'K3' },
+    east: { S: 'KQJ52', H: 'AJT96', D: 'A2', C: '7' },
+    south: { S: '86', H: 'KQ42', D: '4', C: 'QJ9852' },
+    west: { S: 'T43', H: '53', D: 'KT73', C: 'AT64' },
   },
   {
     description: '1D-(1S)-Double-(2S)-3H: medium opener keeps competing in responder’s implied ' +
                  'major, but the opponent raise has consumed the old jump step.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1D', '1S', 'Double', '2S', '3H'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -419,15 +419,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       { call: '3H', ruleIds: ['opener-rebid-implied-suit-after-negative-double-competition-medium'] },
     ],
     rejectedOpenerRebidCalls: ['4H'],
-    west: { S: 'Q4', H: 'AK25', D: 'AQJT8', C: '52' },
-    north: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
-    east: { S: 'A87', H: 'T763', D: 'K6', C: 'T964' },
-    south: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
+    north: { S: 'Q4', H: 'AK25', D: 'AQJT8', C: '52' },
+    east: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
+    south: { S: 'A87', H: 'T763', D: 'K6', C: 'T964' },
+    west: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
   },
   {
     description: '1D-(1S)-Double-(2S)-4H: maximum opener still drives to game after advancer ' +
                  'raises the overcall.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1D', '1S', 'Double', '2S', '4H'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -439,15 +439,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
       { call: '4H', ruleIds: ['opener-rebid-game-major-after-negative-double-maximum'] },
     ],
     rejectedOpenerRebidCalls: ['3H'],
-    west: { S: 'Q4', H: 'AK25', D: 'AQJT86', C: '2' },
-    north: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
-    east: { S: 'A87', H: 'T763', D: 'K', C: 'T9654' },
-    south: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
+    north: { S: 'Q4', H: 'AK25', D: 'AQJT86', C: '2' },
+    east: { S: 'KJT63', H: '84', D: '542', C: 'AK8' },
+    south: { S: 'A87', H: 'T763', D: 'K', C: 'T9654' },
+    west: { S: '925', H: 'QJ9', D: '973', C: 'QJ73' },
   },
   {
     description: '1H-(1S)-2H-(3C)-Pass: advancer introduces a natural suit, but a minimum opener ' +
                  'can still defend rather than manufacture another heart bid.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1H', '1S', '2H', '3C', 'Pass'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -460,15 +460,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
     ],
-    west: { S: 'K72', H: 'AQ964', D: 'K53', C: '83' },
-    north: { S: 'QJT86', H: 'J72', D: '8', C: 'A964' },
-    east: { S: '543', H: '853', D: 'Q7642', C: 'K2' },
-    south: { S: 'A9', H: 'KT', D: 'AJT9', C: 'QJT75' },
+    north: { S: 'K72', H: 'AQ964', D: 'K53', C: '83' },
+    east: { S: 'QJT86', H: 'J72', D: '8', C: 'A964' },
+    south: { S: '543', H: '853', D: 'Q7642', C: 'K2' },
+    west: { S: 'A9', H: 'KT', D: 'AJT9', C: 'QJT75' },
   },
   {
     description: '1D-(1S)-2D-(Double)-Pass: a responsive Double does not force a minimum opener ' +
                  'to compete again.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1D', '1S', '2D', 'Double', 'Pass'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
@@ -479,18 +479,18 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-minor-simple-raise'] },
     ],
-    west: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
-    north: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
-    east: { S: '543', H: '985', D: '6532', C: 'AQ2' },
-    south: { S: 'T9', H: 'KQJT', D: 'KT9', C: 'JT75' },
+    north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    south: { S: '543', H: '985', D: '6532', C: 'AQ2' },
+    west: { S: 'T9', H: 'KQJT', D: 'KT9', C: 'JT75' },
   },
   {
     description: '1H-(Double)-2H-(Double)-Pass: 2H remains a defensible cautious raise ' +
                  'with six weak trumps after the takeout Double; advancer’s responsive ' +
                  'Double asks for a strain, and minimum opener Passes.',
-    dealer: 'W',
+    dealer: 'N',
     practiceAuction: ['1H', 'Double', '2H', 'Double', 'Pass'],
-    practiceGuidance: [{ auctionIndex: 2, seat: 'E', text: '3H would be a WEAK ' +
+    practiceGuidance: [{ auctionIndex: 2, seat: 'S', text: '3H would be a WEAK ' +
       'preemptive jump raise in this competitive auction, not a strong limit raise. ' +
       'With six low hearts but limited tricks outside trumps, a cautious 2H is also ' +
       'defensible; vulnerability and playing strength affect the judgment.' }],
@@ -507,17 +507,17 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
     ],
-    west: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    north: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
-    east: { S: '53', H: 'J87543', D: '64', C: 'AJ2' },
-    south: { S: 'QJT6', H: 'Q', D: 'AT97', C: 'QT83' },
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    east: { S: 'A984', H: '2', D: 'KJ82', C: 'K976' },
+    south: { S: '53', H: 'J87543', D: '64', C: 'AJ2' },
+    west: { S: 'QJT6', H: 'Q', D: 'AT97', C: 'QT83' },
   },
   //// Forcing natural response with further advancer competition
   {
     description: '1C-(1D)-1H-(1S)-Pass: responder’s one-level heart bid was forcing, but ' +
                  'advancer’s natural spade bid removes the obligation to manufacture a rebid ' +
                  'when a minimum opener has no selected descriptive continuation.',
-    dealer: 'W', practiceAuction: ['1C', '1D', '1H', '1S', 'Pass'],
+    dealer: 'N', practiceAuction: ['1C', '1D', '1H', '1S', 'Pass'],
     expectedOpeningCalls: [{ call: '1C', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1D', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: '1H', ruleIds: ['respond-over-suit-new-suit-one-level'] }],
@@ -527,15 +527,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
     ] }],
-    west: { S: '9753', H: 'A7', D: 'AJ', C: 'AJ943' },
-    north: { S: 'KQ', H: '843', D: 'KT8754', C: '72' },
-    east: { S: 'T', H: 'KJT95', D: 'Q932', C: 'K86' },
-    south: { S: 'AJ8642', H: 'Q62', D: '6', C: 'QT5' },
+    north: { S: '9753', H: 'A7', D: 'AJ', C: 'AJ943' },
+    east: { S: 'KQ', H: '843', D: 'KT8754', C: '72' },
+    south: { S: 'T', H: 'KJT95', D: 'Q932', C: 'K86' },
+    west: { S: 'AJ8642', H: 'Q62', D: '6', C: 'QT5' },
   },
   {
     description: '1H-(1S)-2C-(2D)-3C: responder’s competitive 2C promises five or more clubs, ' +
                  'so three-card opener support is enough to raise naturally after advancer bids.',
-    dealer: 'W', practiceAuction: ['1H', '1S', '2C', '2D', '3C'],
+    dealer: 'N', practiceAuction: ['1H', '1S', '2C', '2D', '3C'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: '2C', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
@@ -545,15 +545,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3C', ruleIds: [
       'opener-rebid-support-after-forcing-response-advancer-competition',
     ] }],
-    west: { S: 'T', H: 'AJ854', D: 'QJ52', C: 'KT6' },
-    north: { S: 'KQJ96', H: '9732', D: 'K86', C: '2' },
-    east: { S: '8432', H: 'KQ6', D: 'A', C: 'J9874' },
-    south: { S: 'A75', H: 'T', D: 'T9743', C: 'AQ53' },
+    north: { S: 'T', H: 'AJ854', D: 'QJ52', C: 'KT6' },
+    east: { S: 'KQJ96', H: '9732', D: 'K86', C: '2' },
+    south: { S: '8432', H: 'KQ6', D: 'A', C: 'J9874' },
+    west: { S: 'A75', H: 'T', D: 'T9743', C: 'AQ53' },
   },
   {
     description: '1H-(2D)-2S-(3D)-3S: responder’s forcing 2S promises five or more spades, so ' +
                  'opener can support with three cards at the cheapest level advancer leaves.',
-    dealer: 'W', practiceAuction: ['1H', '2D', '2S', '3D', '3S'],
+    dealer: 'N', practiceAuction: ['1H', '2D', '2S', '3D', '3S'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-simple-suit-at-two-level'] }],
     expectedResponseCalls: [{ call: '2S', ruleIds: ['respond-over-suit-new-suit-two-level'] }],
@@ -563,16 +563,16 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
       'opener-rebid-support-after-forcing-response-advancer-competition',
     ] }],
-    west: { S: 'K832', H: 'AQJ74', D: 'AT', C: '95' },
-    north: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
-    east: { S: 'J9764', H: '85', D: '4', C: 'AKQ64' },
-    south: { S: '5', H: 'KT93', D: '7632', C: 'JT82' },
+    north: { S: 'K832', H: 'AQJ74', D: 'AT', C: '95' },
+    east: { S: 'AQT', H: '62', D: 'KQJ985', C: '73' },
+    south: { S: 'J9764', H: '85', D: '4', C: 'AKQ64' },
+    west: { S: '5', H: 'KT93', D: '7632', C: 'JT82' },
   },
   {
     description: '1C-(Double)-1H-(1S)-1NT: the one-level heart response remains forcing, and a ' +
                  'minimum balanced opener can still make the original natural 1NT rebid when ' +
                  'the opponents’ natural spade suit is stopped.',
-    dealer: 'W', practiceAuction: ['1C', 'Double', '1H', '1S', '1NT'],
+    dealer: 'N', practiceAuction: ['1C', 'Double', '1H', '1S', '1NT'],
     expectedOpeningCalls: [{ call: '1C', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: 'Double', ruleIds: [
       'overcall-takeout-double-with-unbid-suit-support',
@@ -584,16 +584,16 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '1NT', ruleIds: [
       'opener-rebid-nt-after-forcing-response-advancer-competition',
     ] }],
-    west: { S: 'AK', H: 'T96', D: 'KT4', C: 'A9874' },
-    north: { S: 'QT8', H: 'A54', D: 'A9876', C: 'Q2' },
-    east: { S: 'J3', H: 'Q8732', D: 'QJ', C: 'KJ65' },
-    south: { S: '976542', H: 'KJ', D: '532', C: 'T3' },
+    north: { S: 'AK', H: 'T96', D: 'KT4', C: 'A9874' },
+    east: { S: 'QT8', H: 'A54', D: 'A9876', C: 'Q2' },
+    south: { S: 'J3', H: 'Q8732', D: 'QJ', C: 'KJ65' },
+    west: { S: '976542', H: 'KJ', D: '532', C: 'T3' },
   },
   //// Negative Double with additional competitive contexts
   {
     description: '1H-(1S)-Double-(Pass)-2C: with both majors already named, responder’s negative ' +
                  'Double implies the minors and opener shows a four-card club fit economically.',
-    dealer: 'W', practiceAuction: ['1H', '1S', 'Double', 'Pass', '2C'],
+    dealer: 'N', practiceAuction: ['1H', '1S', 'Double', 'Pass', '2C'],
     expectedOpeningCalls: [{ call: '1H', ruleIds: ['open-five-card-major'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
@@ -603,15 +603,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '2C', ruleIds: [
       'opener-rebid-implied-suit-after-negative-double-minimum',
     ] }],
-    west: { S: '2', H: 'AKJ84', D: 'K73', C: 'Q862' },
-    north: { S: 'AQT965', H: '732', D: 'A8', C: 'J5' },
-    east: { S: '874', H: 'Q6', D: 'QJ95', C: 'AKT4' },
-    south: { S: 'KJ3', H: 'T95', D: 'T642', C: '973' },
+    north: { S: '2', H: 'AKJ84', D: 'K73', C: 'Q862' },
+    east: { S: 'AQT965', H: '732', D: 'A8', C: 'J5' },
+    south: { S: '874', H: 'Q6', D: 'QJ95', C: 'AKT4' },
+    west: { S: 'KJ3', H: 'T95', D: 'T642', C: '973' },
   },
   {
     description: '1D-(1S)-Double-(2D)-2H: advancer’s strong support cuebid does not erase the ' +
                  'cheap heart fit responder’s negative Double already showed.',
-    dealer: 'W', practiceAuction: ['1D', '1S', 'Double', '2D', '2H'],
+    dealer: 'N', practiceAuction: ['1D', '1S', 'Double', '2D', '2H'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
@@ -621,15 +621,15 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '2H', ruleIds: [
       'opener-rebid-implied-suit-after-negative-double-competition-minimum',
     ] }],
-    west: { S: '43', H: 'AQ84', D: 'AJ742', C: 'Q8' },
-    north: { S: 'AKJT86', H: '32', D: 'T5', C: 'J76' },
-    east: { S: '75', H: 'JT96', D: 'Q93', C: 'KT95' },
-    south: { S: 'Q92', H: 'K75', D: 'K86', C: 'A432' },
+    north: { S: '43', H: 'AQ84', D: 'AJ742', C: 'Q8' },
+    east: { S: 'AKJT86', H: '32', D: 'T5', C: 'J76' },
+    south: { S: '75', H: 'JT96', D: 'Q93', C: 'KT95' },
+    west: { S: 'Q92', H: 'K75', D: 'K86', C: 'A432' },
   },
   {
     description: '1C-(1S)-Double-(2D)-2H: advancer can introduce a natural side suit, while ' +
                  'opener still shows responder’s implied four-card heart fit economically.',
-    dealer: 'W', practiceAuction: ['1C', '1S', 'Double', '2D', '2H'],
+    dealer: 'N', practiceAuction: ['1C', '1S', 'Double', '2D', '2H'],
     expectedOpeningCalls: [{ call: '1C', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
@@ -639,16 +639,16 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: '2H', ruleIds: [
       'opener-rebid-implied-suit-after-negative-double-competition-minimum',
     ] }],
-    west: { S: '43', H: 'KQ84', D: 'Q3', C: 'AJ742' },
-    north: { S: 'AKJT86', H: '932', D: '752', C: '6' },
-    east: { S: '75', H: 'AJT6', D: 'J94', C: 'KT95' },
-    south: { S: 'Q92', H: '75', D: 'AKT86', C: 'Q83' },
+    north: { S: '43', H: 'KQ84', D: 'Q3', C: 'AJ742' },
+    east: { S: 'AKJT86', H: '932', D: '752', C: '6' },
+    south: { S: '75', H: 'AJT6', D: 'J94', C: 'KT95' },
+    west: { S: 'Q92', H: '75', D: 'AKT86', C: 'Q83' },
   },
   {
     description: '1D-(1S)-Double-(3S)-Pass: advancer’s preemptive raise consumes the cheap ' +
                  'continuations, so a minimum opener without an implied fit or other selected ' +
                  'description can Pass and leave responder another turn.',
-    dealer: 'W', practiceAuction: ['1D', '1S', 'Double', '3S', 'Pass'],
+    dealer: 'N', practiceAuction: ['1D', '1S', 'Double', '3S', 'Pass'],
     expectedOpeningCalls: [{ call: '1D', ruleIds: ['open-convenient-minor'] }],
     expectedOvercallCalls: [{ call: '1S', ruleIds: ['overcall-simple-suit-at-one-level'] }],
     expectedResponseCalls: [{ call: 'Double', ruleIds: ['respond-over-suit-negative-double'] }],
@@ -658,10 +658,10 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [{ call: 'Pass', ruleIds: [
       'opener-rebid-pass-after-negative-double-competition-minimum',
     ] }],
-    west: { S: '74', H: 'KQ3', D: 'AJT86', C: 'Q82' },
-    north: { S: 'AKJT9', H: '76', D: 'K4', C: 'J965' },
-    east: { S: 'Q3', H: 'AJT8', D: 'Q93', C: 'KT74' },
-    south: { S: '8652', H: '9542', D: '752', C: 'A3' },
+    north: { S: '74', H: 'KQ3', D: 'AJT86', C: 'Q82' },
+    east: { S: 'AKJT9', H: '76', D: 'K4', C: 'J965' },
+    south: { S: 'Q3', H: 'AJT8', D: 'Q93', C: 'KT74' },
+    west: { S: '8652', H: '9542', D: '752', C: 'A3' },
   },
   //// Natural notrump response -- Selected opener continuation
   {

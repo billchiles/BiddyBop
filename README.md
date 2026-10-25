@@ -27,6 +27,11 @@ auction, and the selected partnership agreements.  Be careful to use only what y
 bidding and don't enhance bids based on seeing other hands.  This gives you more practice with 
 feedback than making one or two bids per deal.
 
+For New Deal, North always deals first.  The **Give North an opening hand** checkbox
+is enabled by default; turn it off for a completely random deal with North still the dealer.
+The **Show hands** selector normally reveals only the hand currently bidding; choose
+**All hands always** to examine the complete deal.
+
 The explanation area shows why bids qualify under the supported bidding rules and, where appropriate, which alternatives have higher priority.  Bridge does not always have one absolutely correct bid, so the app shows all that apply.
 
 Use the rule-practice deal selector to focus on a particular bidding situation instead of
@@ -126,11 +131,6 @@ Many responder rebids are covered, but the app stops trying to cover all bids du
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
-Natural 1NT overcalls show 15–18 HCP, while advancer uses the same conventions and strength
-requirements as responses to a 1NT opening, according to the configured 15–17 or 16–18 setting.
-This avoids creating a separate set of overcaller–advancer bidding rules for a small strength
-difference that adds little practice value.
-
 Against a strong 1NT opening, the app teaches the basic compact DONT interference but stops before
 later competitive continuations.  Double shows a good six-card-or-longer club, diamond, or heart suit;
 2C shows clubs and a higher suit, 2D shows diamonds and a major, 2H shows both majors,
@@ -179,40 +179,14 @@ partnership agreements, fit, vulnerability, and playing strength for reliable ru
 Where useful, the app provides auction-specific general guidance on how bidding might procede,
 rather than presenting an authoritative treatment.
 
-**Advancer's Responsive Double:** Consider `1D – (1S) – 2D – Double`.  Partner overcalled
-spades, and the opponents bid and raise diamonds.  Advancer's Double says: "I have useful points and
-both unbid suits; partner, please choose an unbid suit."  In the app's selected treatment, this Double requires at least four hearts
-and four clubs, at least 7 points with any length points, fewer than three spades of support, and no
-five-card suit that would be clearer to bid naturally.  This meaning applies to the
-specific responder-raise situations the app models; **not every competitive
-Double is responsive**. 
-
-## Stoppers and notrump judgment
-
-Outside-suit weakness can be important when deciding whether notrump is attractive.
-
-A useful conservative definition of a stopper is:
-
-- An ace
-- A king with at least one additional card
-- A queen with at least two additional cards
-
-Holdings such as `Qx` or `Jxx`, or holdings whose effectiveness depends on which hand becomes declarer and who leads the suit, may be adequate to count as a stopper, but it is an experienced judgment call.
-
-The app does not automatically require a stopper in every outside suit for every uncontested natural notrump bid.  Stopper requirements are used only where the particular bidding treatment calls for them.
-
 ## Rule-practice deals
 
-The app includes specifically constructed deals for practicing bidding rules and important boundary cases.
+The app includes specifically constructed deals for practicing bidding rules and important 
+boundary cases.  Every prepared practice exercise starts with North as dealer. 
 
 The practice corpus is selective rather than exhaustive.  Its purpose is to exercise meaningful bidding decisions and partnership-agreement differences, not to generate every possible permutation of every rule.
 
 ## Feedback
-
-For New Deal, North always deals first.  The **Give North an opening hand** checkbox
-is enabled by default; turn it off for a completely random deal with North still the dealer.
-The **Show hands** selector normally reveals only the hand currently bidding; choose
-**All hands always** to examine the complete deal.
 
 The explanation pane scrolls to the beginning of the latest explained call and indicates
 when earlier or later text is outside the viewport. It retains up to 1,200 lines for the

@@ -1,14 +1,20 @@
 # Rule Tests
 
-The deterministic practice deals in the stage/family `src/models/*-test-deals.ts` files are the
-executable record of selected bidding situations. `src/models/test-deals-registry.ts` defines the
-shared deal types and assembles those files into UI/test buckets. Run `npm run test:rules` to
+The prepared practice deals in the stage/family `src/models/*-test-deals.ts` files teach
+selected bidding situations to students. The rule-test runner also reuses these deals to
+check the bidding evaluator. `src/models/test-deals-registry.ts` defines the
+shared deal types and assembles those files into practice buckets. Run `npm run test:rules` to
 evaluate every bucket, including deals
 requiring non-default partnership agreements. No application build or browser is needed. To
 capture failures and the summary, use `npm run test:rules > rule-test-results.txt 2>&1`.
 The runner continues through all independent test groups, even if one throws an unexpected
 exception. The final line says `ZERO errors in all tests.` or reports the total error count;
 a nonzero total still makes the command fail.
+
+Every practice deal starts with North as dealer and specifies all four hands. The runner
+checks that orientation and each guidance note's recorded turn; board construction validates
+hand sizes and rejects duplicate cards. These checks apply to the practice deals, while
+separately constructed tests still exercise other dealers and openings after initial Passes.
 
 The runner verifies recorded call/rule pairs, selected eliminated calls, selected relative call
 orders, and the actual call recorded for each tested stage. It does not choose a bid for the
@@ -21,7 +27,7 @@ practice call at each declared stage under four representative settings: Stayman
 on; Stayman/Jacoby on with Texas off; Stayman only; and all three off. A deal is checked under
 one of these settings only if its `requiredSystem` allows it. Other agreement settings come from
 the deal's requirements or the defaults. This catches omitted convention requirements that could
-otherwise put an unsupported auction into the test-deal dropdown. It does not rerun the positive,
+otherwise put an unsupported auction into the practice-deal dropdown. It does not rerun the positive,
 elimination, or ordering assertions under every setting: those can legitimately vary by agreement,
 and four representative settings do not cover all eight possible combinations. The report keeps
 compatibility counts separate from primary assertion counts.
@@ -41,8 +47,8 @@ failures. Counts reflect this recorded run, not an exhaustive measure of all imp
 In particular, guidance-only scope boundaries and deliberately unpracticed alternatives need
 not have corresponding positive practice assertions.
 
-Seven `overcall-simple` practice deals fix West's opening hand and North's overcall hand,
-with West dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
+Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
+with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
 for simple suit overcalls even when length-adjusted points exceed 17, while 18+ HCP hands are
 reserved for the strong-double treatment. Two `overcall-takeout-double` deals distinguish the
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
@@ -85,8 +91,8 @@ Stayman/Jacoby/Texas after natural interference, require the NT stopper, and kee
 treatment limited to two-level suit interference. The executable three-level natural suit and
 3NT rules remain selectively unpracticed.
 
-Eleven `advance-one-level-suit-overcall` deals fix West's opening, North's natural
-one-level suit overcall, and South's advance after East passes. They cover constructive
+Eleven `advance-one-level-suit-overcall` deals fix North's opening, East's natural
+one-level suit overcall, and West's advance after South passes. They cover constructive
 3-card raises, preemptive 4-card jump raises, the 6-support-point overlap, a forcing
 support cuebid, natural 1NT/2NT with a stopper, nonforcing one-level new suits, and
 forcing economical two-level new suits. Eight boundary checks keep this responder-Pass family
@@ -143,7 +149,7 @@ new suit, and game-forcing three-level nonjump new suit. Competition
 boundary checks distinguish true jumps from nonjumps, forbid old jump-shift meanings
 on an opponent-suit cuebid, block 1NT without a stopper, and prevent the ordinary
 limit-raise meaning from leaking after a preemptive jump.
-The nine fixtures fix three physical hands (North, East, South) without duplicate cards;
+The nine practice deals fix all four hands without duplicate cards;
 the opening and overcall in each setup are independently required to qualify.
 
 Four `response-after-1nt-overcall` deals check good six-card nonforcing two-level suits

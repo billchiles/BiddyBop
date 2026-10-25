@@ -294,7 +294,6 @@ export function refineThreeCardMajorSupportNewSuitFirst (
 export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEvalContext) :
       CallRefinementResult {
   const legalResult = refineToCheapestNewSuitBids(calls, context);
-  const opening = getPartnerOpeningBid(context)!;
   const considered = legalResult.calls.map((call) => {
     const candidate = parseSuitBid(call)!;
     const suit = candidate.strain as Suit;
