@@ -453,7 +453,7 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       case 'noModeledStage':
         lines.push('', `------------ ${getSeatLabel(seat)} to call — unmodeled turn ------------`,
           `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
-          'this auction. Later turns may have supported bidding treatments.');
+          'this auction. Later bids through overcaller rebids might have reliable feedback.');
         break;
       case 'supported':
         break;
