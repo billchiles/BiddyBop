@@ -4,7 +4,7 @@ This is a practice app for learning and reinforcing contract bridge bidding.
 It focuses on common bidding decisions that the app can reliably teach through bidding guidelines
 and partnership agreements.  For example, the app supports several agreements and conventions options, such as Stayman, Jacoby, splinters, 2/1, jump shifts meaning, etc., but it doesn't use inverted minors or stopper-showing side-suit continuations since those treatments require various partnership agreements and more judgment-dependent follow-up bidding.  The app is broad enough for solid bidding practice while remaining clear about where the rules stop and bridge judgment begins. 
 
-![Bridge Bidding Trainer screenshot](docs/bridge-bidding-trainer.png)
+![BiddyBop application screenshot](src/assets/biddybop-screenshot-beta.png)
 
 ## Try it
 
