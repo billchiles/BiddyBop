@@ -13,12 +13,12 @@ import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCall
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
-         getSeatForCallIndex, getPartnerSeat }
+         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed }
   from './auction';
 import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules,
          ResponderRebidRules }
   from './bidding-rules';
-import { hasBasicSuitStopper } from './common-rule-helpers';
+import { getOpenerOpeningBid, hasBasicSuitStopper } from './common-rule-helpers';
 
 
 //// Bidding Input
@@ -478,8 +478,32 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   } else {
     telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
   }
+  // Preserve the facts actually used in an opener's response-to-1NT rebid, without
+  // rechecking eligibility in the explanation layer. The candidate's requirements
+  // come from the declarative test or its custom second-suit applicability check.
+  const oneNtRebidFamily = context.stage === 'openerRebid' &&
+    (rule.id.includes('-after-minor-1nt') || rule.id.includes('-after-major-1nt'));
+  const opening = oneNtRebidFamily ? getOpenerOpeningBid(context) : null;
+  const rebid = parseSuitBid(call);
+  let evidence = result.callEvidence;
+  if (opening !== null && opening.strain !== 'NT' && getResponderCall(context.dealer, context.auction) === '1NT') {
+    const openingSuit = opening.strain as Suit;
+    const rebidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+    evidence = { ...evidence, openerOneNtRebid: {
+      openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+      rebidSuit, rebidLength: rebidSuit === null ? 0 : context.handFacts.lengths[rebidSuit],
+      hcp: context.handFacts.hcp, totalPoints: context.handFacts.totalPointsWLength,
+      lengthPoints: context.handFacts.lengthPoints,
+      balanced: context.handFacts.balanced,
+      balancedOrSemiBalanced: context.handFacts.balancedOrSemiBalanced,
+      previouslyPassed: responderPreviouslyPassed(context.dealer, context.auction),
+      forcingOneNt: openingSuit !== 'C' && openingSuit !== 'D' &&
+        system.majorOneNtResponse === 'forcing' &&
+        !responderPreviouslyPassed(context.dealer, context.auction),
+    } };
+  }
   return { rule, call, ruleApplies: result.success, telemetryLines,
-           callEvidence: result.callEvidence };
+           callEvidence: evidence };
 }
 
 
@@ -976,6 +1000,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId === 'advance-three-level-jump-overcall-minor-raise' ||
     ruleId === 'advance-jump-overcall-major-game' ||
     ruleId === 'advance-jump-overcall-forcing-new-suit');
+  const explainOpenerOneNtRebid = context.stage === 'openerRebid' &&
+    (ruleId.includes('-after-minor-1nt') || ruleId.includes('-after-major-1nt'));
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -989,7 +1015,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
+        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
+        explainOpenerOneNtRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -1000,7 +1027,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(...result.telemetryLines);
     if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance ||
         explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
+        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
+        explainOpenerOneNtRebid) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -1014,7 +1042,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
           explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
-          explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance) {
+          explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
+          explainOpenerOneNtRebid) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
             suitLength.exact === 4) {
           requirements.push({ kind: 'fourCardMajor', passed: result.pass });
@@ -1034,6 +1063,13 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         constraint.shape.balanced === true) {
       requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
         passed: context.handFacts.balanced });
+    }
+    if (explainOpenerOneNtRebid) {
+      const shape = constraint.shape.balanced === false &&
+        constraint.shape.balancedOrSemiBalanced === true ? 'semiBalancedOnly' :
+        constraint.shape.balanced === true ? 'balanced' :
+        constraint.shape.balancedOrSemiBalanced === true ? 'balancedOrSemiBalanced' : null;
+      if (shape !== null) requirements.push({ kind: 'rebidShape', shape, passed: result.pass });
     }
     if (explainMinorResponse && constraint.shape.noFourCardMajor === true) {
       const noMajor = !context.handFacts.hasFourCardMajor;
@@ -1063,7 +1099,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
-      explainNegativeDoubleAdvance ?
+      explainNegativeDoubleAdvance || explainOpenerOneNtRebid ?
         { requirements } : undefined };
 } //evaluateHandConstraint()
 

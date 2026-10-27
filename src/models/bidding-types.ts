@@ -389,6 +389,8 @@ export interface CallEvidence {
   requirements?: (
     | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'balanced'; actual: boolean; passed: boolean }
+    | { kind: 'rebidShape'; shape: 'balanced' | 'balancedOrSemiBalanced' | 'semiBalancedOnly';
+        passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'partnerSupport'; suit?: Suit; actual: number; min?: number; max?: number; passed: boolean }
@@ -445,6 +447,22 @@ export interface CallEvidence {
   takeoutMajorGame?: {
     considered: { call: Call; length: number; eligible: boolean }[];
   };
+  // First rebid after a one-level suit opening and a 1NT response. The evaluator
+  // records auction and hand facts; rule-specific tested thresholds remain in requirements.
+  openerOneNtRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    rebidSuit: Suit | null;
+    rebidLength: number;
+    hcp: number;
+    totalPoints: number;
+    lengthPoints: number;
+    balanced: boolean;
+    balancedOrSemiBalanced: boolean;
+    previouslyPassed: boolean;
+    forcingOneNt: boolean;
+  };
+  openerOneNtFallback?: 'three-card-minor' | 'two-card-club';
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |

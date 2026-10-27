@@ -2774,11 +2774,21 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['Pass'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
     callCategory: ['signoff'],
-    appliesWhen: (_call, context) => ({
-      success: responderPreviouslyPassed(context.dealer, context.auction) &&
-        context.handFacts.hcp >= 12 && context.handFacts.hcp <= 13 && context.handFacts.balanced,
-      telemetryLines: ['A prior Pass makes the 1NT response nonforcing; a flat minimum may Pass.'],
-    }),
+    appliesWhen: (_call, context) => {
+      const previouslyPassed = responderPreviouslyPassed(context.dealer, context.auction);
+      const hcp = context.handFacts.hcp;
+      const hcpApplies = hcp >= 12 && hcp <= 13;
+      return {
+        success: previouslyPassed && hcpApplies && context.handFacts.balanced,
+        telemetryLines: ['A prior Pass makes the 1NT response nonforcing; a flat minimum may Pass.'],
+        callEvidence: { requirements: [
+          { kind: 'responderPreviouslyPassed', actual: previouslyPassed,
+            required: true, passed: previouslyPassed },
+          { kind: 'hcp', actual: hcp, min: 12, max: 13, passed: hcpApplies },
+          { kind: 'rebidShape', shape: 'balanced', passed: context.handFacts.balanced },
+        ] },
+      };
+    },
     meaning: 'Responder previously Passed, so this 1NT is nonforcing despite the configured agreement.',
     certainty: 'high',
   },

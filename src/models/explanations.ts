@@ -3147,3 +3147,193 @@ export function getNaturalSuitOvercallerRebidFailureLines(result: BidEvalResult)
   return [];
 }
 
+
+///
+//// Opener's first rebid after responder's 1NT over a one-level suit opening
+///
+
+/// Explain the selected hand description, and important nearby choices, from evaluated facts.
+/// A second qualifying rebid is still a legitimate description, not a mistake in the exercise.
+export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const facts = candidate.callEvidence?.openerOneNtRebid;
+  if (facts === undefined) return [];
+  const { hcp, totalPoints, lengthPoints, openingLength, rebidLength,
+          openingSuit, rebidSuit, balanced,
+          previouslyPassed, forcingOneNt } = facts;
+  const own = suitPlural(`1${openingSuit}` as Call);
+  const second = rebidSuit === null ? '' : suitPlural(`1${rebidSuit}` as Call);
+  const selected = candidate.call;
+  const id = `[${rule.id}]`;
+  const requirements = candidate.callEvidence?.requirements ?? [];
+  const hcpCheck = requirements.find((item) => item.kind === 'hcp');
+  const totalCheck = requirements.find((item) => item.kind === 'totalPoints');
+  const pointsExplanation = `${totalPoints} total points (${hcp} HCP + ${lengthPoints} length ` +
+    `point${lengthPoints === 1 ? '' : 's'})`;
+  const levelComparison = `An ordinary two-level repeat needs 12–16 total points and six ${own}; ` +
+    'the jump to three needs 17–18 total points and six.';
+  const supportedOthers = result.ruleDiagnostics.flatMap((item) => item.candidates)
+    .filter((other) => other.ruleApplies && other.call !== selected &&
+      (other.rule.id.includes('-after-minor-1nt') ||
+       other.rule.id.includes('-after-major-1nt')));
+  const otherDescription = supportedOthers.length === 0 ? '' :
+    ` Other qualifying descriptions include ${[...new Set(supportedOthers.map((item) => item.call))]
+      .slice(0, 3).join(', ')}; the app does not treat this as the only sound rebid.`;
+
+  if (rule.id === 'opener-rebid-pass-after-minor-1nt') {
+    return [`Responder's 1NT over a minor is nonforcing. With ${pointsExplanation} and ` +
+      `${balanced ? 'balanced' : 'semi-balanced'} shape, you meet the 12–14 total-point ` +
+      `minimum for leaving partner in 1NT. A stronger 18–19 HCP balanced hand can invite ` +
+      `with 2NT; a six-card minor may be rebid rather than passed.${otherDescription} ${id}`];
+  }
+  if (rule.id === 'opener-rebid-pass-after-major-1nt-passed-hand' ||
+      rule.id === 'opener-rebid-pass-after-major-1nt-nonforcing') {
+    return [`${previouslyPassed ? 'Responder previously Passed, so 1NT is nonforcing even ' +
+      'under the forcing-1NT agreement.' : 'The selected 1NT response is nonforcing.'} ` +
+      `Your ${hcp} HCP and balanced minimum shape satisfy the conservative 12–13 HCP ` +
+      `Pass treatment. With a six-card major you could describe your long suit; ` +
+      `under an unpassed forcing-1NT agreement Pass would not be permitted.${otherDescription} ${id}`];
+  }
+  if ((rule.id.includes('-repeat-minor-after-minor-1nt') ||
+       rule.id.includes('-repeat-major-after-major-1nt')) &&
+      !rule.id.includes('-jump-repeat-')) {
+    return [`Your ${openingLength} ${own} and ${pointsExplanation} meet the six-card ` +
+      `length and 12–16 total-point requirements for an economical ${selected} rebid. ` +
+      `You are describing extra suit length without the strength promised by a jump rebid. ` +
+      `${forcingOneNt ? 'This also satisfies responder’s one-round forcing 1NT.' :
+        'Responder may Pass this nonforcing rebid.'}${otherDescription} ${id}`];
+  }
+  if (rule.id.includes('-lower-second-suit-after-')) {
+    return [`With ${openingLength} ${own}, ${rebidLength} ${second}, and ${pointsExplanation}, ` +
+      `you meet the 12–18 total-point requirements to show an economical second suit. ` +
+      `Because ${selected} is lower-ranking than your opening suit, partner can return ` +
+      `to ${own} at the two level; this is not a reverse.${otherDescription} ${id}`];
+  }
+  if (rule.id.includes('-reverse-after-')) {
+    return [`Your ${openingLength} ${own} and ${rebidLength} ${second} satisfy the ` +
+      `five-card opening-suit and four-card new-suit requirements. With ${pointsExplanation}, ` +
+      `you meet the 17–21 total-point strength range for a reverse. ` +
+      `After ${selected}, responder must bid at the three level to give a simple ` +
+      `preference back to ${own}; the rebid therefore promises extra strength and ` +
+      `forces another call.${otherDescription} ${id}`];
+  }
+  if (rule.id === 'opener-rebid-minor-fallback-after-major-1nt-forcing') {
+    const fallback = diagnostic?.callEvidence?.openerOneNtFallback;
+    if (fallback === undefined) return [];
+    return [`Responder's unpassed 1NT over a major is forcing under the selected agreement, ` +
+      `so you cannot Pass. With ${hcp} HCP and ${openingLength} ${own}, no ordinary ` +
+      `six-card repeat, economical four-card second suit, strength-qualified reverse, ` +
+      `or 18–19 HCP natural 2NT was available under the refiner's checks. ` +
+      `${selected} is ${fallback === 'two-card-club' ?
+        'the rare educational fallback on only two clubs because neither minor has three' :
+        `a manufactured ${rebidLength}-card minor fallback`}. ` +
+      `It fulfills the force but does not promise a normal four-card minor or a known fit; ` +
+      `responder must account for this possibility.${otherDescription} ${id}`];
+  }
+  if (rule.id.includes('-jump-repeat-minor-after-') ||
+      rule.id.includes('-jump-repeat-major-after-')) {
+    return [`With ${openingLength} ${own} and ${pointsExplanation}, ${selected} is the ` +
+      `17–18 total-point invitational jump repeat. ${levelComparison} ` +
+      `It describes a stronger long-suit hand, not a natural notrump rebid, which uses ` +
+      `HCP and balanced shape.${otherDescription} ${id}`];
+  }
+  if (rule.id.includes('-2nt-after-minor-1nt') || rule.id.includes('-2nt-after-major-1nt')) {
+    return [`Your ${hcp} HCP meet the ${hcpCheck?.kind === 'hcp' ?
+      `${hcpCheck.min}–${hcpCheck.max}` : '18–19'} HCP natural 2NT invitation. ` +
+      `Your hand is ${balanced ? 'balanced' : 'semi-balanced'}; unlike a jump repeat ` +
+      `of ${own}, this rebid uses HCP, not length points. Partner may Pass or bid game ` +
+      `according to their strength.${otherDescription} ${id}`];
+  }
+  if (rule.id === 'opener-rebid-jump-shift-lower-suit-after-minor-1nt' ||
+      rule.id === 'opener-rebid-jump-shift-lower-suit-after-major-1nt') {
+    return [`You have ${openingLength} ${own}, ${rebidLength} ${second}, and ` +
+      `${pointsExplanation}. The jump shift ${selected} requires maximum opening strength ` +
+      `(${totalCheck?.kind === 'totalPoints' ? `${totalCheck.min}–${totalCheck.max}` : '19–21'} ` +
+      `total points) and at least four cards in the second suit. It goes beyond an ` +
+      `economical description and establishes a forcing continuation.${otherDescription} ${id}`];
+  }
+  if (rule.id === 'opener-rebid-3nt-after-minor-1nt') {
+    return [`Your ${hcp} HCP fall in the 20–21 HCP natural game-rebid range. ` +
+      `The hand is semi-balanced but not strictly balanced, which is why the ` +
+      `ordinary 2NT opening was not used. Rebidding 3NT shows these values directly, ` +
+      `rather than making an 18–19 HCP invitation with 2NT.${otherDescription} ${id}`];
+  }
+  if (rule.id.includes('-game-minor-after-minor-1nt') ||
+      rule.id.includes('-game-same-major-after-major-1nt')) {
+    return [`Your ${openingLength} ${own} and ${pointsExplanation} meet the ` +
+      `seven-card, 19–21 total-point requirements for ${selected}. This bids game ` +
+      `directly on the long opening suit instead of merely inviting with a ` +
+      `three-level jump repeat.${otherDescription} ${id}`];
+  }
+  return [];
+}
+
+/// Give only failed checks of the particular attempted rebid. Missing a refiner-generated
+/// candidate is not proof that a student's judgment call is wrong.
+export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  // A genuine one-round force rules out Pass even though the agreement suppresses
+  // the ordinary nonforcing Pass candidate before its hand tests.
+  if (result.normalizedCall === 'Pass') {
+    const forcing = result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .find((item) => item.callEvidence?.openerOneNtRebid?.forcingOneNt === true);
+    if (forcing !== undefined) {
+      return ['Responder’s unpassed 1NT response is forcing under the selected agreement. ' +
+        'Pass cannot satisfy that obligation; if no natural rebid fits, opener may need ' +
+        'the selected manufactured minor fallback.'];
+    }
+  }
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (! (diagnostic.rule.id.includes('-after-minor-1nt') ||
+           diagnostic.rule.id.includes('-after-major-1nt'))) continue;
+    const candidate = diagnostic.candidates.find((item) => item.call === result.normalizedCall);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const facts = candidate.callEvidence?.openerOneNtRebid;
+    if (facts === undefined) continue;
+    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    if (failed === undefined) continue;
+    let text: string;
+    switch (failed.kind) {
+      case 'hcp':
+      case 'totalPoints': {
+        const measure = failed.kind === 'hcp' ? 'HCP' : 'total points';
+        const direction = failed.min !== undefined && failed.actual < failed.min ?
+          'too few' : 'too many';
+        const required = failed.min !== undefined && failed.max !== undefined ?
+          `${failed.min}–${failed.max}` : failed.min !== undefined ?
+          `at least ${failed.min}` : `at most ${failed.max}`;
+        text = `${result.normalizedCall} requires ${required} ${measure}; you have ` +
+          `${failed.actual}, ${direction} for this particular treatment.`;
+        if (failed.kind === 'totalPoints') {
+          text += ` That valuation includes ${facts.lengthPoints} length ` +
+            `point${facts.lengthPoints === 1 ? '' : 's'} in addition to HCP.`;
+        }
+        break;
+      }
+      case 'suitLength': {
+        const suit = failed.suit === undefined ? '' : suitPlural(`1${failed.suit}` as Call);
+        const threshold = failed.min ?? failed.exact;
+        text = `${result.normalizedCall} requires at least ${threshold} ${suit}; ` +
+          `this hand has ${failed.actual}.`;
+        break;
+      }
+      case 'rebidShape':
+        text = failed.shape === 'balanced' ?
+          'This rebid requires a strictly balanced hand.' :
+          failed.shape === 'semiBalancedOnly' ?
+          'This 3NT treatment requires semi-balanced shape, but not strictly balanced shape.' :
+          'This natural notrump rebid requires balanced or semi-balanced shape.';
+        break;
+      case 'responderPreviouslyPassed':
+        text = 'This special Pass treatment requires that responder previously Passed; ' +
+          'otherwise 1NT remains forcing under this agreement.';
+        break;
+      default:
+        continue;
+    }
+    return [`${text} [${diagnostic.rule.id}]`];
+  }
+  return [];
+}

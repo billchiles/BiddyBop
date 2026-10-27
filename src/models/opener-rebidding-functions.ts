@@ -1672,7 +1672,8 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
     const twoCardClubs = context.handFacts.lengths.C >= 2 && calls.includes('2C');
     return { calls: twoCardClubs ? ['2C'] : [], telemetryLines: [twoCardClubs
       ? 'Neither minor has three cards; the forcing-1NT fallback is 2C on two clubs.'
-      : 'No eligible minor is available for the forcing-1NT fallback.'] };
+      : 'No eligible minor is available for the forcing-1NT fallback.'],
+      callEvidence: twoCardClubs ? { openerOneNtFallback: 'two-card-club' } : undefined };
   }
   // With only one available minor, use it.  With both minors available, bid the longer one;
   let refined = minorCandidates;
@@ -1688,6 +1689,7 @@ export function refineForcingOneNtMinorFallback (calls: Call[], context: RuleEva
   return {
     calls: refined,
     telemetryLines: ['No normal rebid is available; manufacture the best three-card minor rebid.'],
+    callEvidence: { openerOneNtFallback: 'three-card-minor' },
   };
 }
 
@@ -1819,6 +1821,16 @@ export function openerSecondSuitApplies (call: Call, context: RuleEvalContext, m
       `${secondSuitLengthApplies ? 'PASS' : 'FAIL'}: rebid ${candidateSuit} needs 4+ cards; ` +
         `opener has ${context.handFacts.lengths[candidateSuit]}.`,
     ],
+    callEvidence: { requirements: [
+      { kind: 'totalPoints', actual: points, min: minPoints, max: maxPoints,
+        passed: pointsApply },
+      { kind: 'suitLength', suit: openingSuit,
+        actual: context.handFacts.lengths[openingSuit], min: 5,
+        passed: openingLengthApplies },
+      { kind: 'suitLength', suit: candidateSuit,
+        actual: context.handFacts.lengths[candidateSuit], min: 4,
+        passed: secondSuitLengthApplies },
+    ] },
   };
 }
 

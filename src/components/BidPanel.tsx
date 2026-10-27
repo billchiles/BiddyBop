@@ -27,7 +27,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
          getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines,
          getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines,
-         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines }
+         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getOpenerOneNtRebidLines, getOpenerOneNtRebidFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -178,7 +179,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
        getCompetitiveRaiseAdvanceFailureLines(result).length > 0 ||
        getCompetitiveNaturalAdvanceFailureLines(result).length > 0 ||
        getNegativeDoubleAdvanceFailureLines(result).length > 0 ||
-       getNaturalSuitOvercallerRebidFailureLines(result).length > 0);
+       getNaturalSuitOvercallerRebidFailureLines(result).length > 0 ||
+       getOpenerOneNtRebidFailureLines(result).length > 0);
     const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
@@ -240,9 +242,10 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     onTelemetry(lines);
   }
 
-  function reportState(): void {
+  function reportState(includeTelemetry: boolean): void {
     const report = buildReportText(board, auction, displayedExplanation,
-      biddingSystem, testDeal, practiceDealIdentification, telemetryLines);
+      biddingSystem, testDeal, practiceDealIdentification,
+      includeTelemetry ? telemetryLines : null);
     if (navigator.clipboard === undefined) {
       setExplanationLines((current) => appendExplanation(current, ['', 'Clipboard unavailable.']));
       return;
@@ -288,7 +291,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
               disabled={inputDisabled}
             />
             <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
-            <button className="bidButton" type="button" onClick={reportState}>Report</button>
+            <button className="bidButton" type="button"
+              title="Copy deal and explanations; Command-click to include telemetry"
+              onClick={(event) => reportState(event.metaKey)}>Report</button>
           </form>
         </section>
 
@@ -357,7 +362,7 @@ function appendExplanation(current: string[], added: string[]): string[] {
 function buildReportText(board: Board, auction: Call[], explanationLines: string[],
                          biddingSystem: BiddingSystem, testDeal: RuleTestDeal | undefined,
                          identification: PracticeDealIdentification | undefined,
-                         telemetryLines: string[]): string {
+                         telemetryLines: string[] | null): string {
   const stage = getNextBiddingRuleStage(board.dealer, auction);
   return [
     'Bridge Bidding Trainer — Report',
@@ -383,8 +388,10 @@ function buildReportText(board: Board, auction: Call[], explanationLines: string
     'Explanation:',
     ...explanationLines,
     '',
-    'Telemetry (latest retained lines):',
-    ...telemetryLines,
+    ...(telemetryLines === null ? [] : [
+      'Telemetry (latest retained lines):',
+      ...telemetryLines,
+    ]),
   ].join('\n');
 }
 
@@ -566,6 +573,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const competitiveNaturalReasons = getCompetitiveNaturalAdvanceFailureLines(result);
   const negativeDoubleAdvanceReasons = getNegativeDoubleAdvanceFailureLines(result);
   const overcallerRebidReasons = getNaturalSuitOvercallerRebidFailureLines(result);
+  const openerOneNtRebidReasons = getOpenerOneNtRebidFailureLines(result);
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
@@ -575,7 +583,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       notrumpReasons.length === 0 && dontReasons.length === 0 &&
       preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
       competitiveNaturalReasons.length === 0 &&
-      negativeDoubleAdvanceReasons.length === 0 && overcallerRebidReasons.length === 0) {
+      negativeDoubleAdvanceReasons.length === 0 && overcallerRebidReasons.length === 0 &&
+      openerOneNtRebidReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -593,7 +602,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         takeoutAdvanceReasons.length > 0 || notrumpReasons.length > 0 ||
         dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
         competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0) {
+        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
+        openerOneNtRebidReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
         : balancingReasons.length > 0
@@ -612,13 +622,16 @@ function buildExplanationLines (title: string, result: BidEvalResult,
             ? 'Why this overcall does not meet the selected requirements:'
             : overcallerRebidReasons.length > 0
             ? 'Why this overcaller rebid does not meet the selected requirements:'
+          : openerOneNtRebidReasons.length > 0
+            ? 'Why this opener rebid does not meet the selected requirements:'
             : 'Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
         ...naturalOvercallReasons, ...jumpOvercallReasons, ...minorResponseReasons,
         ...majorSupportReasons, ...majorNoSupportReasons, ...jumpShiftReasons,
         ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons,
         ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
-        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons);
+        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons,
+        ...openerOneNtRebidReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -647,7 +660,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
        notrumpReasons.length > 0 || dontReasons.length > 0 ||
        preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
        competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0)) {
+        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
+        openerOneNtRebidReasons.length > 0)) {
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);
@@ -696,6 +710,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
   lines.push(...getNegativeDoubleAdvanceLines(result, rule));
   lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
+  lines.push(...getOpenerOneNtRebidLines(result, rule));
   appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 
