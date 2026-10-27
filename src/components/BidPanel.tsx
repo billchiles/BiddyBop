@@ -21,11 +21,13 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNaturalAdvanceLines, getNaturalAdvanceFailureLines,
          getTakeoutAdvanceLines, getTakeoutAdvanceFailureLines,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
+         getResponderPreemptiveAdvanceLines,
          getDontAdvanceLines, getDontAdvanceFailureLines,
          getJumpAdvanceLines, getJumpAdvanceFailureLines,
          getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
          getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines,
-         getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines }
+         getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines,
+         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -175,7 +177,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
        getJumpAdvanceFailureLines(result).length > 0 ||
        getCompetitiveRaiseAdvanceFailureLines(result).length > 0 ||
        getCompetitiveNaturalAdvanceFailureLines(result).length > 0 ||
-       getNegativeDoubleAdvanceFailureLines(result).length > 0);
+       getNegativeDoubleAdvanceFailureLines(result).length > 0 ||
+       getNaturalSuitOvercallerRebidFailureLines(result).length > 0);
     const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
@@ -204,31 +207,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
         explanation.push('Reason for the recorded call:');
         for (const rule of matched) {
           if (correction.result !== null) {
-            const handEvidence = getOpeningRequirementSupportLine(correction.result, rule);
-            if (handEvidence !== null) explanation.push(handEvidence);
-            explanation.push(...getOpeningSelectionSupportLines(correction.result, rule));
-            const preempt = getPreemptOpeningSupportLine(correction.result, rule);
-            if (preempt !== null) explanation.push(preempt);
-            const callEvidenceLine = getTakeoutDoubleSupportLine(correction.result, rule) ??
-              getBalancingDoubleSupportLine(correction.result, rule) ??
-              getBalancingCallSupportLine(correction.result, rule) ??
-              getNaturalOvercallSupportLine(correction.result, rule) ??
-              getJumpOvercallSupportLine(correction.result, rule);
-            if (callEvidenceLine !== null) explanation.push(callEvidenceLine);
-            explanation.push(...getMinorResponseSupportLines(correction.result, rule));
-            explanation.push(...getMajorSupportLines(correction.result, rule));
-            explanation.push(...getMajorNoSupportLines(correction.result, rule));
-            explanation.push(...getResponderJumpShiftLines(correction.result, rule));
-            explanation.push(...getNaturalAdvanceLines(correction.result, rule));
-            explanation.push(...getTakeoutAdvanceLines(correction.result, rule));
-            explanation.push(...getNotrumpPartnerResponseLines(correction.result, rule));
-            explanation.push(...getDontAdvanceLines(correction.result, rule));
-            explanation.push(...getJumpAdvanceLines(correction.result, rule));
-            explanation.push(...getCompetitiveRaiseAdvanceLines(correction.result, rule));
-            explanation.push(...getCompetitiveNaturalAdvanceLines(correction.result, rule));
-            explanation.push(...getNegativeDoubleAdvanceLines(correction.result, rule));
+            appendMatchedCallExplanation(explanation, correction.result, rule, handFacts, auction.length);
           }
-          appendRuleExplanation(explanation, rule, handFacts, auction.length);
         }
       } else if (correction.result !== null && status.kind === 'supported') {
         explanation.push('This recorded continuation is not supported by an applicable rule ' +
@@ -585,6 +565,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const competitiveRaiseReasons = getCompetitiveRaiseAdvanceFailureLines(result);
   const competitiveNaturalReasons = getCompetitiveNaturalAdvanceFailureLines(result);
   const negativeDoubleAdvanceReasons = getNegativeDoubleAdvanceFailureLines(result);
+  const overcallerRebidReasons = getNaturalSuitOvercallerRebidFailureLines(result);
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
@@ -594,7 +575,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       notrumpReasons.length === 0 && dontReasons.length === 0 &&
       preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
       competitiveNaturalReasons.length === 0 &&
-      negativeDoubleAdvanceReasons.length === 0) {
+      negativeDoubleAdvanceReasons.length === 0 && overcallerRebidReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -612,7 +593,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         takeoutAdvanceReasons.length > 0 || notrumpReasons.length > 0 ||
         dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
         competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0) {
+        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
         : balancingReasons.length > 0
@@ -629,13 +610,15 @@ function buildExplanationLines (title: string, result: BidEvalResult,
             ? 'Why this advance does not meet the selected requirements:'
           : naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0
             ? 'Why this overcall does not meet the selected requirements:'
+            : overcallerRebidReasons.length > 0
+            ? 'Why this overcaller rebid does not meet the selected requirements:'
             : 'Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
         ...naturalOvercallReasons, ...jumpOvercallReasons, ...minorResponseReasons,
         ...majorSupportReasons, ...majorNoSupportReasons, ...jumpShiftReasons,
         ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons,
         ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
-        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons);
+        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -649,30 +632,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   } else {
     lines.push('Why this call fits:');
     for (const rule of result.userCallMatchingRules) {
-      const handEvidence = getOpeningRequirementSupportLine(result, rule);
-      if (handEvidence !== null) lines.push(handEvidence);
-      lines.push(...getOpeningSelectionSupportLines(result, rule));
-      const preempt = getPreemptOpeningSupportLine(result, rule);
-      if (preempt !== null) lines.push(preempt);
-      const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
-        getBalancingDoubleSupportLine(result, rule) ??
-        getBalancingCallSupportLine(result, rule) ??
-        getNaturalOvercallSupportLine(result, rule) ??
-        getJumpOvercallSupportLine(result, rule);
-      if (callEvidenceLine !== null) lines.push(callEvidenceLine);
-      lines.push(...getMinorResponseSupportLines(result, rule));
-      lines.push(...getMajorSupportLines(result, rule));
-      lines.push(...getMajorNoSupportLines(result, rule));
-      lines.push(...getResponderJumpShiftLines(result, rule));
-      lines.push(...getNaturalAdvanceLines(result, rule));
-      lines.push(...getTakeoutAdvanceLines(result, rule));
-      lines.push(...getNotrumpPartnerResponseLines(result, rule));
-      lines.push(...getDontAdvanceLines(result, rule));
-      lines.push(...getJumpAdvanceLines(result, rule));
-      lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
-      lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
-      lines.push(...getNegativeDoubleAdvanceLines(result, rule));
-      appendRuleExplanation(lines, rule, handFacts, auctionLength);
+      appendMatchedCallExplanation(lines, result, rule, handFacts, auctionLength);
     }
   }
 
@@ -687,7 +647,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
        notrumpReasons.length > 0 || dontReasons.length > 0 ||
        preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
        competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0)) {
+        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0)) {
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);
@@ -706,6 +666,38 @@ function buildExplanationLines (title: string, result: BidEvalResult,
 
   return lines;
 } // buildExplanationLines()
+
+/// Use one explanation path for the student's supported call and any substituted recorded call.
+/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
+function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
+                                      handFacts: HandFacts, auctionLength: number): void {
+  const handEvidence = getOpeningRequirementSupportLine(result, rule);
+  if (handEvidence !== null) lines.push(handEvidence);
+  lines.push(...getOpeningSelectionSupportLines(result, rule));
+  const preempt = getPreemptOpeningSupportLine(result, rule);
+  if (preempt !== null) lines.push(preempt);
+  const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
+    getBalancingDoubleSupportLine(result, rule) ??
+    getBalancingCallSupportLine(result, rule) ??
+    getNaturalOvercallSupportLine(result, rule) ??
+    getJumpOvercallSupportLine(result, rule);
+  if (callEvidenceLine !== null) lines.push(callEvidenceLine);
+  lines.push(...getMinorResponseSupportLines(result, rule));
+  lines.push(...getMajorSupportLines(result, rule));
+  lines.push(...getMajorNoSupportLines(result, rule));
+  lines.push(...getResponderJumpShiftLines(result, rule));
+  lines.push(...getNaturalAdvanceLines(result, rule));
+  lines.push(...getTakeoutAdvanceLines(result, rule));
+  lines.push(...getNotrumpPartnerResponseLines(result, rule));
+  lines.push(...getResponderPreemptiveAdvanceLines(result, rule));
+  lines.push(...getDontAdvanceLines(result, rule));
+  lines.push(...getJumpAdvanceLines(result, rule));
+  lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
+  lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
+  lines.push(...getNegativeDoubleAdvanceLines(result, rule));
+  lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
+  appendRuleExplanation(lines, rule, handFacts, auctionLength);
+}
 
 /// Add the actual hand valuation only where it explains a light one-level opening.  The
 /// rule still qualifies on total points; this advice does not make Pass a modeled candidate.

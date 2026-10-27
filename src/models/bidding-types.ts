@@ -378,6 +378,11 @@ export interface RuleEvalContext {
 //// Call Explanation Types
 ///
 
+/// Chosen natural suit-overcaller replies after advancer's first uncontested action.
+export type NaturalSuitRebidTreatment = 'raise-pass' | 'raise-invite' | 'raise-game' |
+  'cue-return' | 'cue-invite' | 'cue-game' | 'new-pass' | 'new-support' | 'new-repeat' |
+  'new-nt' | 'new-second-suit' | 'nt-pass' | 'nt-invite' | 'nt-game';
+
 /// Optional evaluation evidence used to explain a particular call. Add fields as rule
 /// families need them; not every rule is required to produce evidence.
 export interface CallEvidence {
@@ -439,6 +444,29 @@ export interface CallEvidence {
   };
   takeoutMajorGame?: {
     considered: { call: Call; length: number; eligible: boolean }[];
+  };
+  naturalSuitOvercallerRebid?: {
+    treatment: NaturalSuitRebidTreatment;
+    advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
+      'nonforcingNewSuit' | 'forcingNewSuit' | 'oneNt' | 'twoNt' | 'threeNt';
+    overcallSuit: Suit;
+    overcallLevel: 1 | 2;
+    openingSuit: Suit;
+    advanceSuit: Suit | null;
+    hcp: number;
+    overcallLength: number;
+    support: number;
+    balanced: boolean;
+    openerStopper: boolean;
+    secondSuit: Suit | null;
+    secondSuitLength: number;
+    minHcp?: number;
+    maxHcp?: number;
+    minOvercallLength?: number;
+    minSupport?: number;
+    minSecondSuitLength?: number;
+    rejection?: 'strength' | 'overcallLength' | 'support' | 'preferSupport' |
+      'preferRepeat' | 'balanced' | 'stopper' | 'secondSuitLength' | 'forcingPass';
   };
   advancePass?: {
     level: 1 | 2;

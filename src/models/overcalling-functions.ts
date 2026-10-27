@@ -2,7 +2,7 @@
 
 import {
   type AppliesWhenResult, type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult,
-  type RuleEvalContext
+  type RuleEvalContext, type NaturalSuitRebidTreatment
 } from './bidding-types';
 import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, parseSuitBid } from './auction';
@@ -348,10 +348,6 @@ function getSuitOvercallerAdvance (context: RuleEvalContext): SuitOvercallerAdva
 /// The shared bid selector below keeps one physical-auction definition for each continuation.
 /// Each treatment retains a separate BidRule and user-facing meaning; boundaries apply only
 /// when none of the selected descriptive actions can be recommended.
-type NaturalSuitRebidTreatment = 'raise-pass' | 'raise-invite' | 'raise-game' |
-  'cue-return' | 'cue-invite' | 'cue-game' | 'new-pass' | 'new-support' | 'new-repeat' |
-  'new-nt' | 'new-second-suit' | 'nt-pass' | 'nt-invite' | 'nt-game';
-
 export function naturalSuitOvercallerRebidApplies (
     call: Call, context: RuleEvalContext, treatment: NaturalSuitRebidTreatment): AppliesWhenResult {
   const info = getSuitOvercallerAdvance(context);
@@ -367,83 +363,199 @@ export function naturalSuitOvercallerRebidApplies (
   const major = info.suit === 'H' || info.suit === 'S';
   const stopped = hasBasicSuitStopper(context, info.opening);
   const balanced = context.handFacts.balancedOrSemiBalanced;
+  const bid = parseSuitBid(call);
+  const secondSuit = treatment === 'new-second-suit' && bid !== null && bid.strain !== 'NT' ?
+    bid.strain as Suit : null;
+  const secondSuitLength = secondSuit === null ? 0 : context.handFacts.lengths[secondSuit];
+  // These requirements are recorded from the same tests that qualify the call. They
+  // let explanations discuss the actual threshold without maintaining another rule table.
+  let minHcp: number | undefined;
+  let maxHcp: number | undefined;
+  let minOvercallLength: number | undefined;
+  let minSupport: number | undefined;
+  let minSecondSuitLength: number | undefined;
   let success = false;
   switch (treatment) {
     case 'raise-pass':
+      if (info.advanceKind === 'simpleRaise' && major) {
+        maxHcp = info.level === 1 ? 13 : 15;
+      } else if (info.advanceKind === 'weakJumpRaise') {
+        maxHcp = 15;
+      }
       success = (info.advanceKind === 'simpleRaise' &&
                    (hcp <= (info.level === 1 ? 13 : 15) || ! major)) ||
         (info.advanceKind === 'weakJumpRaise' && hcp <= 15);
       success = success && call === 'Pass';
       break;
     case 'raise-invite':
+      minHcp = 14;
+      maxHcp = 15;
+      minOvercallLength = 5;
       success = info.advanceKind === 'simpleRaise' && info.level === 1 && major &&
-        hcp >= 14 && hcp <= 15 && ownLength >= 5 && call === cheapest(info.suit);
+        hcp >= minHcp && hcp <= maxHcp && ownLength >= minOvercallLength &&
+        call === cheapest(info.suit);
       break;
     case 'raise-game':
-      success = info.advanceKind === 'simpleRaise' && major && ownLength >= 6 &&
-        hcp >= 16 && call === `4${info.suit}`;
+      minHcp = 16;
+      minOvercallLength = 6;
+      success = info.advanceKind === 'simpleRaise' && major &&
+        ownLength >= minOvercallLength && hcp >= minHcp && call === `4${info.suit}`;
       break;
     case 'cue-return':
+      if (major) maxHcp = info.level === 1 ? 13 : 15;
       success = info.advanceKind === 'supportCuebid' &&
         (hcp <= (info.level === 1 ? 13 : 15) || ! major) &&
         call === cheapest(info.suit);
       break;
     case 'cue-invite':
+      minHcp = 14;
+      maxHcp = 15;
       success = info.advanceKind === 'supportCuebid' && info.level === 1 && major &&
-        hcp >= 14 && hcp <= 15 && call === `3${info.suit}` &&
+        hcp >= minHcp && hcp <= maxHcp && call === `3${info.suit}` &&
         cheapest(info.suit) === `2${info.suit}`;
       break;
     case 'cue-game':
-      success = info.advanceKind === 'supportCuebid' && major && ownLength >= 6 &&
-        hcp >= 16 && call === `4${info.suit}`;
+      minHcp = 16;
+      minOvercallLength = 6;
+      success = info.advanceKind === 'supportCuebid' && major &&
+        ownLength >= minOvercallLength && hcp >= minHcp && call === `4${info.suit}`;
       break;
     case 'new-pass':
-      success = info.advanceKind === 'nonforcingNewSuit' && hcp <= 12 && call === 'Pass';
+      maxHcp = 12;
+      success = info.advanceKind === 'nonforcingNewSuit' && hcp <= maxHcp && call === 'Pass';
       break;
     case 'new-support':
+      minSupport = 3;
+      if (info.advanceKind === 'nonforcingNewSuit') minHcp = 13;
       success = (info.advanceKind === 'nonforcingNewSuit' && hcp >= 13 ||
-                 info.advanceKind === 'forcingNewSuit') && support >= 3 &&
+                 info.advanceKind === 'forcingNewSuit') && support >= minSupport &&
         other !== null && call === cheapest(other) &&
         (other === 'H' || other === 'S' ||
          parseSuitBid(call)?.level !== undefined && parseSuitBid(call)!.level <= 3);
       break;
     case 'new-repeat':
+      minOvercallLength = 6;
+      if (info.advanceKind === 'nonforcingNewSuit') minHcp = 14;
       success = (info.advanceKind === 'forcingNewSuit' ||
                  info.advanceKind === 'nonforcingNewSuit' && hcp >= 14) &&
-        support < 3 && ownLength >= 6 && call === cheapest(info.suit);
+        support < 3 && ownLength >= minOvercallLength && call === cheapest(info.suit);
       break;
     case 'new-nt':
+      if (call === '2NT') { minHcp = 13; maxHcp = 15; }
+      if (call === '3NT') minHcp = 16;
       success = info.advanceKind === 'forcingNewSuit' && support < 3 &&
         ownLength < 6 && balanced && stopped &&
-        ((call === '2NT' && hcp >= 13 && hcp <= 15 &&
+        ((call === '2NT' && minHcp !== undefined && maxHcp !== undefined &&
+          hcp >= minHcp && hcp <= maxHcp &&
           cheapestBidInStrainAfter(info.advanceBid, 'NT') === '2NT') ||
-         (call === '3NT' && hcp >= 16 &&
+         (call === '3NT' && minHcp !== undefined && hcp >= minHcp &&
           (cheapestBidInStrainAfter(info.advanceBid, 'NT') === '2NT' ||
            cheapestBidInStrainAfter(info.advanceBid, 'NT') === '3NT')));
       break;
-    case 'new-second-suit':
+    case 'new-second-suit': {
+      minHcp = 15;
+      const requiredSecondSuitLength = 5;
+      minSecondSuitLength = requiredSecondSuitLength;
       success = info.advanceKind === 'forcingNewSuit' && support < 3 && ownLength < 6 &&
-        hcp >= 15 && SUITS.some((suit) => suit !== info.suit && suit !== info.opening &&
-          suit !== other && context.handFacts.lengths[suit] >= 5 &&
+        hcp >= minHcp && SUITS.some((suit) => suit !== info.suit && suit !== info.opening &&
+          suit !== other && context.handFacts.lengths[suit] >= requiredSecondSuitLength &&
           call === cheapest(suit) && (parseSuitBid(call)?.level ?? 8) <= 3);
       break;
+    }
     case 'nt-pass':
+      if (info.advanceKind === 'oneNt') maxHcp = 14;
+      if (info.advanceKind === 'twoNt') maxHcp = info.level === 1 ? 13 : 14;
       success = call === 'Pass' && (info.advanceKind === 'threeNt' ||
         info.advanceKind === 'oneNt' && hcp <= 14 ||
         info.advanceKind === 'twoNt' && hcp <= (info.level === 1 ? 13 : 14));
       break;
     case 'nt-invite':
-      success = info.advanceKind === 'oneNt' && hcp >= 15 && hcp <= 16 && call === '2NT';
+      minHcp = 15;
+      maxHcp = 16;
+      success = info.advanceKind === 'oneNt' && hcp >= minHcp && hcp <= maxHcp &&
+        call === '2NT';
       break;
     case 'nt-game':
+      if (info.advanceKind === 'oneNt') minHcp = 17;
+      if (info.advanceKind === 'twoNt') minHcp = info.level === 1 ? 14 : 15;
       success = ((info.advanceKind === 'oneNt' && hcp >= 17) ||
         (info.advanceKind === 'twoNt' && hcp >= (info.level === 1 ? 14 : 15))) &&
         call === '3NT';
       break;
   }
-  return { success, telemetryLines: [success ?
-    `PASS: selected ${treatment} continuation after advancer's ${info.advanceKind}.` :
-    `FAIL: ${treatment} does not qualify with ${hcp} HCP and ${ownLength} ${info.suit}.`] };
+  // Give only the failed requirement for the student's actual attempted call.
+  // A mismatched auction context or unrelated rule is not a rejection explanation.
+  let rejection: 'strength' | 'overcallLength' | 'support' | 'preferSupport' |
+    'preferRepeat' | 'balanced' | 'stopper' | 'secondSuitLength' | 'forcingPass' |
+    undefined;
+  if (! success) {
+    const forced = info.advanceKind === 'supportCuebid' ||
+      info.advanceKind === 'forcingNewSuit';
+    const attempted = treatment === 'raise-pass' && call === 'Pass' &&
+      (info.advanceKind === 'simpleRaise' || info.advanceKind === 'weakJumpRaise') ||
+      treatment === 'raise-invite' && info.advanceKind === 'simpleRaise' &&
+        info.level === 1 && major && call === cheapest(info.suit) ||
+      treatment === 'raise-game' && info.advanceKind === 'simpleRaise' &&
+        major && call === `4${info.suit}` ||
+      treatment === 'cue-return' && info.advanceKind === 'supportCuebid' &&
+        call === cheapest(info.suit) ||
+      treatment === 'cue-invite' && info.advanceKind === 'supportCuebid' &&
+        major && call === `3${info.suit}` && cheapest(info.suit) === `2${info.suit}` ||
+      treatment === 'cue-game' && info.advanceKind === 'supportCuebid' &&
+        major && call === `4${info.suit}` ||
+      treatment === 'new-pass' && info.advanceKind === 'nonforcingNewSuit' && call === 'Pass' ||
+      treatment === 'new-support' && other !== null &&
+        (info.advanceKind === 'nonforcingNewSuit' || info.advanceKind === 'forcingNewSuit') &&
+        call === cheapest(other) ||
+      treatment === 'new-repeat' &&
+        (info.advanceKind === 'nonforcingNewSuit' || info.advanceKind === 'forcingNewSuit') &&
+        call === cheapest(info.suit) ||
+      treatment === 'new-nt' && info.advanceKind === 'forcingNewSuit' &&
+        (call === '2NT' || call === '3NT') ||
+      treatment === 'new-second-suit' && info.advanceKind === 'forcingNewSuit' &&
+        secondSuit !== null && secondSuit !== info.suit && secondSuit !== info.opening &&
+        secondSuit !== other && call === cheapest(secondSuit) && (bid?.level ?? 8) <= 3 ||
+      treatment === 'nt-pass' && call === 'Pass' &&
+        (info.advanceKind === 'oneNt' || info.advanceKind === 'twoNt') ||
+      treatment === 'nt-invite' && info.advanceKind === 'oneNt' && call === '2NT' ||
+      treatment === 'nt-game' &&
+        (info.advanceKind === 'oneNt' || info.advanceKind === 'twoNt') && call === '3NT';
+    if (call === 'Pass' && forced && treatment === 'new-pass') {
+      rejection = 'forcingPass';
+    } else if (attempted) {
+      if (minHcp !== undefined && hcp < minHcp ||
+          maxHcp !== undefined && hcp > maxHcp) {
+        rejection = 'strength';
+      } else if (minSupport !== undefined && support < minSupport) {
+        rejection = 'support';
+      } else if (minOvercallLength !== undefined && ownLength < minOvercallLength) {
+        rejection = 'overcallLength';
+      } else if ((treatment === 'new-repeat' || treatment === 'new-nt' ||
+                  treatment === 'new-second-suit') && support >= 3) {
+        rejection = 'preferSupport';
+      } else if ((treatment === 'new-nt' || treatment === 'new-second-suit') && ownLength >= 6) {
+        rejection = 'preferRepeat';
+      } else if (treatment === 'new-nt' && ! balanced) {
+        rejection = 'balanced';
+      } else if (treatment === 'new-nt' && ! stopped) {
+        rejection = 'stopper';
+      } else if (minSecondSuitLength !== undefined && secondSuitLength < minSecondSuitLength) {
+        rejection = 'secondSuitLength';
+      }
+    }
+  }
+  return {
+    success,
+    telemetryLines: [success ?
+      `PASS: selected ${treatment} continuation after advancer's ${info.advanceKind}.` :
+      `FAIL: ${treatment} does not qualify with ${hcp} HCP and ${ownLength} ${info.suit}.`],
+    callEvidence: { naturalSuitOvercallerRebid: {
+      treatment, advanceKind: info.advanceKind, overcallSuit: info.suit, overcallLevel: info.level,
+      advanceSuit: other, openingSuit: info.opening, hcp, overcallLength: ownLength, support,
+      balanced, openerStopper: stopped, secondSuit, secondSuitLength,
+      minHcp, maxHcp, minOvercallLength, minSupport, minSecondSuitLength, rejection,
+    } },
+  };
 }
 
 export function naturalSuitOvercallerRebidBoundaryApplies (

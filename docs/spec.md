@@ -113,6 +113,55 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
   Double similarly requires guidance about partner taking out or exceptionally passing for penalties.
   Derive that guidance from a rule actually matching the last call, not its level alone.
 
+## Instructional Explanation Quality
+
+Explanations are a primary learning feature, not simply confirmation that a call
+matches a rule. Before implementing a new explanation family, review its executable
+rules, evaluation/refinement/suppression decisions, available `CallEvidence`, relevant
+auction meanings, and representative practice hands. Analyze the whole decision family:
+qualified calls, plausible near misses, competing descriptions, forcing obligations,
+and deliberate judgment boundaries. Report which distinctions already have evidence,
+which need a small addition at the actual decision point, and which are not reliably
+modeled. Do this analysis even when the family appears small; counting covered rule IDs
+or implementing one line per treatment is not a measure of instructional completeness.
+
+For a qualifying bid, teach the *decisive reasoning*: partner's promise and forcing
+status; the tested strength, suit length, support, shape, stopper, or suit quality; and
+why the chosen level/strain conveys this hand better than a nearby plausible option.
+Give actual thresholds where they explain the decision. Distinguish declining,
+inviting, accepting game, and satisfying a one-round force. Use a compact progression
+of facts and choices, not an exhaustive inventory of every card or every possible bid.
+A generic paraphrase of the rule's title, the hand's HCP alone, or a bare "qualifies"
+is insufficient when the evaluator made richer distinctions.
+
+For a plausible unsupported call, explain the *specific requirement that failed* (or
+why a higher-priority treatment excluded it), using the candidate's actual evaluation
+history. Distinguish too weak from too strong, inadequate length from inadequate suit
+quality, and lacking a fit from deliberately selecting another description. Explain
+what the nearby option would require without asserting it is available unless the
+engine evaluated it. Do not present unrelated failed rules, invent reasons from an
+absent candidate, equate "not modeled" with "wrong," or turn a judgment boundary into
+a Pass recommendation. If an auction established a one-round or game force, say why
+Pass cannot discharge that obligation even when a specific rebid is outside scope.
+
+Keep eligibility, thresholds, suppression, and selection in the evaluator and rule
+functions; collect the small amount of structured evidence needed when those decisions
+are made. Compose instructional sentences in `explanations.ts`, not inside a refiner or
+rule evaluator. Reuse existing evidence and types instead of creating a general-purpose
+explanation engine, repeating bridge qualification logic in the UI, or inferring
+unrecorded failures. Ensure both student-entered and recorded-substitution paths show
+the same useful explanation, without duplicating feedback for a correctly entered
+recorded call. Preserve rule IDs in square brackets for diagnostics alongside readable
+bridge terminology.
+
+Review the *actual wording* across representative qualifying, rejected, ambiguous,
+and forcing examples before calling a batch finished. State meaningful limitations and
+remaining improvement opportunities in the batch review, even when tests pass. The
+rule suite protects bidding behavior; no generic test can certify instructional
+quality, and exact-prose regression tests should not be added merely to enforce
+editorial choices. Prefer human review of the teaching trace, with focused behavioral
+tests only when executable qualification or integration could regress.
+
 ## Constraint Semantics
 
 - Declarative `appliesWhen` fields are conjunctive by default.

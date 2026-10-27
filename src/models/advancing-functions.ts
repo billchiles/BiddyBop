@@ -761,7 +761,10 @@ export function responderPreemptiveActionPassApplies (_call: Call, context: Rule
     AppliesWhenResult {
   const kind = getResponderPreemptiveAction(context);
   const success = kind !== null && context.handFacts.hcp <= 10;
-  return { success, telemetryLines: [success ?
+  return { success, callEvidence: kind === null ? undefined : { requirements: [
+    { kind: 'hcp', actual: context.handFacts.hcp, max: 10,
+      passed: context.handFacts.hcp <= 10 },
+  ] }, telemetryLines: [success ?
     'PASS: responder’s jump removes any obligation to advance with limited strength.' :
     'FAIL: no modeled responder jump or strength warrants a separate competitive judgment.'] };
 }
@@ -773,6 +776,50 @@ export function responderPreemptiveActionBoundaryApplies (context: RuleEvalConte
   return { success, telemetryLines: [success ?
     'PASS: stronger advance over responder’s jump requires unmodeled competitive judgment.' :
     'FAIL: not an unresolved stronger response to a modeled preemptive jump.'] };
+}
+
+
+/// Identify responder actions for which this trainer has deliberately omitted the
+/// subsequent competitive advance. Only the physical auction decides the boundary;
+/// it never determines that Pass or any other legal call is preferred.
+export function unsupportedResponderActionAdvanceBoundary (context: RuleEvalContext):
+    AppliesWhenResult {
+  if (context.stage !== 'advancing') return { success: false, telemetryLines: [] };
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (info === null || context.auction.length !== info.index + 3) {
+    return { success: false, telemetryLines: [] };
+  }
+  const opening = parseSuitBid(info.call);
+  const action = context.auction[info.index + 1];
+  const responseCall = context.auction[info.index + 2];
+  const response = responseCall === undefined ? null : parseSuitBid(responseCall);
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      response === null || responseCall === undefined) {
+    return { success: false, telemetryLines: [] };
+  }
+  const overcall = action === undefined ? null : parseSuitBid(action);
+  const naturalOvercall = interference === 'suitOvercall' && overcall !== null &&
+    overcall.strain !== 'NT' && (overcall.level === 1 || overcall.level === 2) &&
+    cheapestBidInStrainAfter(opening, overcall.strain) === action;
+  const takeoutDouble = interference === 'takeoutDouble' && action === 'Double';
+  if (! naturalOvercall && ! takeoutDouble) {
+    return { success: false, telemetryLines: [] };
+  }
+  let reason: string | null = null;
+  if (naturalOvercall && overcall !== null && response.strain === overcall.strain &&
+      cheapestBidInStrainAfter(overcall, response.strain) === responseCall) {
+    reason = 'artificial support cuebid';
+  } else if (takeoutDouble && responseCall === '2NT') {
+    reason = 'Jordan 2NT support raise';
+  } else if (naturalOvercall && response.strain === 'NT' && response.level >= 2) {
+    reason = 'higher natural notrump response';
+  } else if (response.strain === opening.strain && response.level >= 4) {
+    reason = 'high-level raise';
+  }
+  return { success: reason !== null, telemetryLines: [reason === null ?
+    'FAIL: no identified omitted responder-action advance.' :
+    `PASS: ${reason} requires an unmodeled competitive continuation.`] };
 }
 
 

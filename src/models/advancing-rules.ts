@@ -5,6 +5,7 @@ import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
 import { NaturalOneNtInterferencePartnerCallRules } from './natural-1nt-interference-partner-calls';
 import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies,
          responderPreemptiveActionPassApplies, responderPreemptiveActionBoundaryApplies,
+         unsupportedResponderActionAdvanceBoundary,
          naturalTakeoutDoubleNotrumpAdvanceApplies,
          naturalTwoLevelNotrumpAdvanceApplies, refineTakeoutDoubleSuitAdvance,
          takeoutDoubleMinimumSuitAdvanceApplies,
@@ -619,6 +620,24 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['With stronger values, Pass, Double, competing in partner’s suit, or naming ' +
                'a new suit may all warrant consideration. Their meanings and safety depend on ' +
                'shape, vulnerability, and partnership agreements not modeled here.'],
+    certainty: 'high',
+  },
+  // Other artificial responder actions and high-level raises are not handled by the
+  // ordinary natural-raise or new-suit advancing rules.
+  {
+    id: 'advance-after-responder-special-action-scope-boundary',
+    kind: 'scopeBoundary',
+    title: 'Competitive choice after an artificial or high-level responder action',
+    auctionContext: { stage: 'advancing', openerLevel: 1, openerStrain: 'suit' },
+    scopeBoundaryWhen: unsupportedResponderActionAdvanceBoundary,
+    meaning: 'Responder has made an artificial support action, higher natural notrump ' +
+             'response, or high-level raise not covered by the advancing treatment.',
+    guidance: ['The app does not judge the next competitive Pass, Double, or bid in this auction. ' +
+               'Fit, playing strength, vulnerability, and partnership agreements may influence ' +
+               'the decision. An unsupported legal call is not necessarily bad bridge.',
+               'Artificial support bids and high-level raises can change the meaning and ' +
+               'safety of further competition; higher natural notrump responses also require ' +
+               'auction-specific judgment beyond the selected treatment.'],
     certainty: 'high',
   },
   //// After responder acts -- Selected natural notrump advances

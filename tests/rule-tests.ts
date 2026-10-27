@@ -9,9 +9,11 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { makeRuleTestBoard } from '../src/models/cards';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
-         getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines }
+         getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
+         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
+import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS } from '../src/models/overcalling-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
@@ -4784,6 +4786,112 @@ function runMajorNoSupportAgreementTests (): number {
   return failures;
 }
 
+/// Protect hand-specific natural overcaller-rebid explanations without freezing their prose.
+/// Check that the existing recorded cases produce evidence for the matching decision, and
+/// that rejected bids and other overcaller families do not borrow the wrong explanation.
+function runNaturalSuitOvercallerRebidExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const deal of NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS) {
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, -1);
+    const expected = deal.expectedOvercallerRebidCalls?.[0];
+    if (expected === undefined) continue;
+    const result = evaluateUserCall(expected.call, board, auction, defaultBiddingSystem);
+    const matching = result.userCallMatchingRules.find((rule) =>
+      expected.ruleIds.includes(rule.id));
+    const lines = matching === undefined ? [] : getNaturalSuitOvercallerRebidLines(result, matching);
+    const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === matching?.id)
+      ?.candidates.find(({ call }) => call === expected.call);
+    checks += 1;
+    if (lines.length !== 1 || candidate?.callEvidence?.naturalSuitOvercallerRebid === undefined ||
+        getNaturalSuitOvercallerRebidFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL natural overcaller-rebid explanation: ${deal.description}`);
+    }
+  }
+  const minimum = NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS[0];
+  if (minimum !== undefined) {
+    const board = makeRuleTestBoard(minimum).board;
+    const auction = minimum.practiceAuction.slice(0, -1);
+    const weakGame = evaluateUserCall('4S', board, auction, defaultBiddingSystem);
+    const failureLines = getNaturalSuitOvercallerRebidFailureLines(weakGame);
+    checks += 1;
+    if (failureLines.length !== 1 ||
+        getNaturalSuitOvercallerRebidFailureLines(
+          evaluateUserCall('Pass', board, auction, defaultBiddingSystem)).length !== 0) {
+      failures += 1;
+      console.error('FAIL natural overcaller-rebid game-strength rejection evidence.');
+    }
+  }
+  const forcing = NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS.find((deal) =>
+    deal.expectedOvercallerRebidCalls?.[0]?.ruleIds.includes('overcaller-rebid-new-suit-support'));
+  if (forcing !== undefined) {
+    const board = makeRuleTestBoard(forcing).board;
+    const auction = forcing.practiceAuction.slice(0, -1);
+    const repeat = evaluateUserCall('2S', board, auction, defaultBiddingSystem);
+    const negative = getNaturalSuitOvercallerRebidFailureLines(repeat);
+    checks += 1;
+    if (negative.length !== 1) {
+      failures += 1;
+      console.error('FAIL natural overcaller-rebid six-card repeat rejection evidence.');
+    }
+  }
+  // What-if auctions on existing complete boards cover additional qualifying branches,
+  // without modifying any saved practice hand or its recorded auction.
+  const fifteen = makeRuleTestBoard(NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS[10]).board;
+  const sixteenSixSpades = makeRuleTestBoard(NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS[1]).board;
+  const otherPaths: { board: typeof fifteen; auction: Call[]; call: Call; ruleId: string }[] = [
+    { board: fifteen, auction: ['1D', '1S', 'Pass', '2S', 'Pass'], call: '3S',
+      ruleId: 'overcaller-rebid-suit-raise-invite' },
+    { board: fifteen, auction: ['1D', '1S', 'Pass', '2D', 'Pass'], call: '3S',
+      ruleId: 'overcaller-rebid-cuebid-invite' },
+    { board: sixteenSixSpades, auction: ['1D', '1S', 'Pass', '2D', 'Pass'], call: '4S',
+      ruleId: 'overcaller-rebid-cuebid-game' },
+    { board: fifteen, auction: ['1D', '1S', 'Pass', '1NT', 'Pass'], call: '2NT',
+      ruleId: 'overcaller-rebid-nt-invite' },
+  ];
+  const syntheticNorth = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' };
+  const syntheticSouth = { S: 'T95', H: 'JT986', D: '632', C: 'T2' };
+  const rebidAuction: Call[] = ['1D', '1S', 'Pass', '2H', 'Pass'];
+  const notrumpHand = makeRuleTestBoard({
+    description: 'What-if natural overcaller notrump rebid', dealer: 'N',
+    practiceAuction: [...rebidAuction, '2NT'], north: syntheticNorth, south: syntheticSouth,
+    east: { S: 'AQJ86', H: 'K7', D: 'K85', C: 'Q74' },
+  }).board;
+  const secondSuitHand = makeRuleTestBoard({
+    description: 'What-if natural overcaller second suit', dealer: 'N',
+    practiceAuction: [...rebidAuction, '3C'], north: syntheticNorth, south: syntheticSouth,
+    east: { S: 'AQJ86', H: 'K7', D: '8', C: 'KQJ96' },
+  }).board;
+  otherPaths.push(
+    { board: notrumpHand, auction: rebidAuction, call: '2NT',
+      ruleId: 'overcaller-rebid-new-suit-nt' },
+    { board: secondSuitHand, auction: rebidAuction, call: '3C',
+      ruleId: 'overcaller-rebid-new-suit-second' },
+  );
+  for (const item of otherPaths) {
+    const result = evaluateUserCall(item.call, item.board, item.auction, defaultBiddingSystem);
+    const matching = result.userCallMatchingRules.find((rule) => rule.id === item.ruleId);
+    checks += 1;
+    if (matching === undefined || getNaturalSuitOvercallerRebidLines(result, matching).length !== 1) {
+      failures += 1;
+      console.error(`FAIL natural overcaller-rebid what-if explanation: ${item.ruleId}.`);
+    }
+  }
+  const unrelated = makeRuleTestBoard(NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS[0]);
+  const firstOvercall = evaluateUserCall('1S', unrelated.board, ['1D'], defaultBiddingSystem);
+  checks += 1;
+  if (getNaturalSuitOvercallerRebidFailureLines(firstOvercall).length !== 0 ||
+      firstOvercall.userCallMatchingRules.some((rule) =>
+        getNaturalSuitOvercallerRebidLines(firstOvercall, rule).length !== 0)) {
+    failures += 1;
+    console.error('FAIL natural overcaller-rebid explanations leaked to initial overcall.');
+  }
+  console.log(`${failures} ***FAILURES***. Natural suit overcaller-rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -4811,6 +4919,7 @@ const testGroups: (() => number)[] = [
   runResponderArtificialActionAdvanceBoundaryTests,
   runOneNtInterferencePartnerBoundaryTests,
   runOneNtInterferenceExplanationTests,
+  runNaturalSuitOvercallerRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
   runDontBoundaryTests,
