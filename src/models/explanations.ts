@@ -4137,3 +4137,101 @@ export function getOpenerConventionalRebidFailureLines(result: BidEvalResult): s
   }
   return [];
 }
+
+///
+//// Opener's rebid after responder has bid a natural game
+///
+
+const OPENER_GAME_RESPONSE_IDS = [
+  'opener-rebid-pass-after-minor-3nt',
+  'opener-rebid-pass-after-major-3nt',
+  'opener-rebid-game-in-opening-major-after-major-3nt',
+  'opener-rebid-4nt-quantitative-after-suit-3nt',
+  'opener-rebid-pass-after-major-preemptive-game-raise',
+];
+
+export function getOpenerGameResponseRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_GAME_RESPONSE_IDS.includes(rule.id)) return [];
+  const matched = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  if (matched === undefined) return [];
+  const call = matched.call;
+  let reason: string;
+  switch (rule.id) {
+    case 'opener-rebid-pass-after-minor-3nt':
+      reason = `Your ${facts.hcp} HCP and responder's natural 3NT game response ` +
+        'allow Pass. Responder has shown about 13–15 balanced HCP; the partnership ' +
+        'has reached game. A strong opener may also invite 6NT with quantitative ' +
+        '4NT, but does not have to investigate slam.';
+      break;
+    case 'opener-rebid-pass-after-major-3nt': {
+      const majorCall = result.ruleDiagnostics.find((entry) =>
+        entry.rule.id === 'opener-rebid-game-in-opening-major-after-major-3nt')
+        ?.candidates.find((item) => item.ruleApplies)?.call;
+      const fit = majorCall === undefined ? 'an eight-card or longer fit' :
+        `${facts.lengths[majorCall.slice(-1) as 'H' | 'S']} ${suitPlural(majorCall)} ` +
+        'opposite three-card support';
+      reason = `Your ${facts.hcp} HCP allow Pass at responder's natural 3NT. ` +
+        'Under the selected agreement, responder has 13–15 HCP, 4-3-3-3 shape ' +
+        `and exactly three cards in the opening major, giving ${fit}. ` +
+        'Four of the major is also supported; 3NT can be the better game on some hands.';
+      break;
+    }
+    case 'opener-rebid-game-in-opening-major-after-major-3nt': {
+      const major = call.slice(-1) as 'H' | 'S';
+      reason = `Your ${facts.lengths[major]} ${suitPlural(call)} opposite ` +
+        'responder’s promised three-card support create at least an eight-card fit. ' +
+        `With ${facts.hcp} HCP, ${call} chooses major-suit game instead of ` +
+        '3NT. Pass at 3NT remains a legitimate alternative.';
+      break;
+    }
+    case 'opener-rebid-4nt-quantitative-after-suit-3nt': {
+      const checked = matched.callEvidence?.requirements?.find((item) =>
+        item.kind === 'hcp');
+      if (checked?.kind !== 'hcp') return [];
+      reason = `Your ${checked.actual} HCP meet the ${checked.min}–${checked.max} ` +
+        'HCP requirement for a quantitative slam invitation. Responder's ' +
+        `13–15 HCP suggest ${checked.actual + 13}–${checked.actual + 15} combined HCP. ` +
+        'About 33 combined HCP is a useful 6NT guideline, not a guarantee of ' +
+        'twelve tricks. 4NT invites 6NT; responder may Pass. This is NOT ' +
+        'Blackwood and does not ask for aces. Pass at 3NT remains supported.';
+      break;
+    }
+    case 'opener-rebid-pass-after-major-preemptive-game-raise':
+      reason = `Your ${facts.hcp} HCP do not turn responder's preemptive 4-major ` +
+        'raise into a slam invitation. It promises at least five-card major ' +
+        'support and fewer than ten shortage-adjusted support points. ' +
+        'Pass accepts the placed game; exceptional slam exploration is not modeled.';
+      break;
+    default:
+      return [];
+  }
+  const others = [...new Set(result.ruleDiagnostics.flatMap((entry) =>
+    entry.candidates.filter((item) => item.ruleApplies && item.call !== call &&
+      OPENER_GAME_RESPONSE_IDS.includes(item.rule.id)).map((item) => item.call)))];
+  return [`${reason}${others.length === 0 ? '' :
+    ` Other qualifying calls: ${others.join(', ')}.`} [${rule.id}]`];
+}
+
+export function getOpenerGameResponseRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  if (result.normalizedCall === '4NT') {
+    const attempted = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'opener-rebid-4nt-quantitative-after-suit-3nt')
+      ?.candidates.find((item) => item.call === '4NT' && !item.ruleApplies);
+    const check = attempted?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    if (check?.kind === 'hcp' && !check.passed) {
+      return [`You have ${check.actual} HCP; a quantitative 4NT invitation to 6NT ` +
+        `requires ${check.min}–${check.max} HCP. This bid is not Blackwood. ` +
+        '[opener-rebid-4nt-quantitative-after-suit-3nt]'];
+    }
+  }
+  if ((result.normalizedCall === '4H' || result.normalizedCall === '4S') &&
+      result.ruleDiagnostics.some((entry) => entry.rule.id === 'opener-rebid-pass-after-minor-3nt')) {
+    return [`After a minor opening and natural 3NT response, no major-suit fit ` +
+      'has been established. The app models Pass or, with extra strength, a ' +
+      'quantitative 4NT instead.'];
+  }
+  return [];
+}

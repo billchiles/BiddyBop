@@ -26,8 +26,8 @@ not a historical progress log or a commitment to model every possible auction.
   recorded final call, even if the real bridge auction would continue.
 
 ## Remaining work
-- [ ] **Finish the remaining selected explanation families.** Game-level signoffs,
-  then outstanding selected competitive/opener, overcaller/Doubler, and responder rebids.
+- [ ] **Finish the remaining selected explanation families.** Outstanding selected
+  competitive/opener, overcaller/Doubler, and responder rebids.
   Explain the existing scope rather than add families merely for coverage.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether

@@ -1869,11 +1869,14 @@ export function openerSuitThreeNtQuantitativeApplies (_call: Call, context: Rule
   const isSuitThreeNt = opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
     response === '3NT';
   const hcp = context.handFacts.hcp;
-  const success = isSuitThreeNt && hcp >= 18 && hcp <= 21;
+  const hcpQualifies = hcp >= 18 && hcp <= 21;
+  const success = isSuitThreeNt && hcpQualifies;
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: quantitative 4NT after a one-level suit opening and ` +
     `natural 3NT response requires an 18-21 HCP opener.`,
-  ] };
+  ], callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: 18, max: 21, passed: hcpQualifies },
+  ] } };
 }
 
 /// A Jacoby 2NT four-level side-suit rebid shows a good five-card-or-longer suit.  This chosen
