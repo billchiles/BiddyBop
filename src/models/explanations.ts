@@ -4362,3 +4362,174 @@ export function getOpenerNegativeDoubleRebidFailureLines(
   }
   return [];
 }
+
+///
+//// Opener after a forcing new-suit response in competition
+///
+
+const OPENER_FORCING_COMPETITION_IDS = [
+  'opener-rebid-raise-after-overcall-two-level-new-suit-minimum',
+  'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum',
+  'opener-rebid-second-suit-after-overcall-two-level-new-suit',
+  'opener-rebid-reverse-after-overcall-two-level-new-suit',
+  'opener-rebid-2nt-after-overcall-two-level-new-suit',
+  'opener-rebid-jump-raise-after-overcall-two-level-new-suit',
+  'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium',
+  'opener-rebid-3nt-after-overcall-two-level-new-suit',
+  'opener-rebid-game-raise-after-overcall-two-level-new-suit',
+  'opener-rebid-support-after-forcing-response-advancer-competition',
+  'opener-rebid-repeat-after-forcing-response-advancer-competition',
+  'opener-rebid-second-suit-after-forcing-response-advancer-competition',
+  'opener-rebid-reverse-after-forcing-response-advancer-competition',
+  'opener-rebid-nt-after-forcing-response-advancer-competition',
+  'opener-rebid-game-raise-after-forcing-response-advancer-competition',
+  'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
+];
+
+export function getOpenerForcingCompetitionRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_FORCING_COMPETITION_IDS.includes(rule.id)) return [];
+  const matched = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.ruleApplies && item.call === result.normalizedCall);
+  const info = matched?.callEvidence?.openerCompetitiveForcingRebid;
+  if (matched === undefined || info === undefined) return [];
+  const call = matched.call;
+  const supportPoints = facts.totalPointsWShortage;
+  const lengthPoints = facts.totalPointsWLength;
+  const shape = info.rebidSuit === null ? '' :
+    `${info.rebidLength} ${suitPlural(call)}`;
+  const responseMeaning = info.responseLevel === 2
+    ? 'Responder showed 5+ cards and 10+ HCP in a natural two-level suit, forcing one round but not necessarily to game.'
+    : 'Responder made a natural one-level new-suit response, forcing one round.';
+  let reason: string;
+  switch (rule.id) {
+    case 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
+        `in responder’s suit permit ${call}. This minimum raise confirms a fit ` +
+        'without pretending the response has forced game.';
+      break;
+    case 'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum':
+      reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
+        `opening suit justify the economical repeat ${call}. Responder can still bid again.`;
+      break;
+    case 'opener-rebid-second-suit-after-overcall-two-level-new-suit':
+      reason = `Your ${lengthPoints} length-adjusted points and ${shape} qualify for ` +
+        `a natural, non-reverse second-suit rebid. ${call} does not by itself ` +
+        'promise the stronger reverse range.';
+      break;
+    case 'opener-rebid-reverse-after-overcall-two-level-new-suit':
+      reason = `Your ${lengthPoints} length-adjusted points, ${info.openingLength}-card ` +
+        `opening suit, and ${shape} meet the extra-strength reverse requirements. ` +
+        'This is a forcing natural description, not an economical minimum rebid.';
+      break;
+    case 'opener-rebid-2nt-after-overcall-two-level-new-suit':
+      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 2NT. ` +
+        'The app also requires a basic stopper in the overcalled suit; this is ' +
+        'not an artificial forcing notrump response.';
+      break;
+    case 'opener-rebid-jump-raise-after-overcall-two-level-new-suit':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
+        `in responder’s minor support ${call}. Four of a minor is below game: ` +
+        'this is a constructive invitation, and responder may Pass or continue ' +
+        'toward five of the minor.';
+      break;
+    case 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport} ` +
+        `cards in responder’s major qualify for ${call}. Four of a major has ` +
+        'already reached game, so this medium-strength raise is a game bid, ' +
+        'not an invitation to bid game.';
+      break;
+    case 'opener-rebid-3nt-after-overcall-two-level-new-suit':
+      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 3NT. ` +
+        'The overcalled suit must have a basic stopper. This places the contract ' +
+        'in game even though responder’s competitive two-level suit did not force game.';
+      break;
+    case 'opener-rebid-game-raise-after-overcall-two-level-new-suit':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
+        `in responder’s suit qualify for ${call} with maximum values. ` +
+        'Major game needs ten tricks; five of a minor needs eleven.';
+      break;
+    case 'opener-rebid-support-after-forcing-response-advancer-competition':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport}-card ` +
+        `support meet the ${info.requiredSupport}-card requirement for ${call}. ` +
+        'Advancer has competed, so the app raises at the cheapest still-available ' +
+        'level below game rather than artificially preserving an old jump.';
+      break;
+    case 'opener-rebid-repeat-after-forcing-response-advancer-competition':
+      reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
+        `opening suit support ${call}. Advancer has competed; only the cheapest ` +
+        'still-available repeat through level three remains a selected description.';
+      break;
+    case 'opener-rebid-second-suit-after-forcing-response-advancer-competition':
+      reason = `Your ${lengthPoints} length-adjusted points and ${shape} permit ` +
+        `the economical second-suit call ${call}. Further competition has not ` +
+        'changed the bid into a higher-level reverse or forced game action.';
+      break;
+    case 'opener-rebid-reverse-after-forcing-response-advancer-competition':
+      reason = `Your ${lengthPoints} length-adjusted points, ${info.openingLength}-card ` +
+        `opening suit, and ${shape} qualify for the strength-showing reverse. ` +
+        'Competition has not consumed this actual bid; the app does not ' +
+        'promote a blocked reverse one level higher.';
+      break;
+    case 'opener-rebid-nt-after-forcing-response-advancer-competition':
+      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural ${call} ` +
+        'at the original strength-defined level. The app requires a basic ' +
+        'stopper in each opponent suit and does not promote an unavailable ' +
+        'notrump rebid just because advancer has acted.';
+      break;
+    case 'opener-rebid-game-raise-after-forcing-response-advancer-competition':
+      reason = `Your ${supportPoints} support points and ${info.responseSupport}-card ` +
+        `fit qualify for ${call}. With maximum values and responder’s forcing ` +
+        'suit established, opener can still bid the appropriate suit game ' +
+        'despite further competition.';
+      break;
+    case 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum':
+      reason = `With ${facts.hcp} HCP, opener has no selected natural rebid ` +
+        'remaining after advancer’s action. Pass is permitted for a minimum ' +
+        'hand: responder still has another turn, and the original response ' +
+        'has not changed into a weak, nonforcing call.';
+      break;
+    default:
+      return [];
+  }
+  return [`${responseMeaning} ${reason} [${rule.id}]`];
+}
+
+/// Report only a failed requirement actually recorded for this candidate.
+export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  if (call === 'Pass' && result.ruleDiagnostics.some((entry) =>
+      entry.rule.id === 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum')) {
+    return ['Responder’s natural two-level new suit after the overcall is forcing ' +
+      'for one round. With advancer Passing, opener must rebid; the selected ' +
+      'agreement does not necessarily force game.'];
+  }
+  for (const entry of result.ruleDiagnostics) {
+    if (!OPENER_FORCING_COMPETITION_IDS.includes(entry.rule.id)) continue;
+    const rejected = entry.candidates.find((candidate) =>
+      candidate.call === call && !candidate.ruleApplies);
+    const failure = rejected?.callEvidence?.requirements?.find((item) => !item.passed);
+    if (failure === undefined) continue;
+    const id = entry.rule.id;
+    switch (failure.kind) {
+      case 'hcp':
+        return [`${call} requires ${failure.min ?? 0}–${failure.max ?? 'more'} HCP; ` +
+          `you have ${failure.actual}. [${id}]`];
+      case 'totalPoints':
+        return [`${call} does not meet the ${failure.min ?? 0}–${failure.max ?? 'higher'} ` +
+          `point requirement; your hand has ${failure.actual}. [${id}]`];
+      case 'partnerSupport':
+        return [`${call} needs at least ${failure.min ?? 0} cards supporting responder’s ` +
+          `suit; your hand has ${failure.actual}. [${id}]`];
+      case 'suitLength':
+        return [`${call} requires at least ${failure.min ?? 0} cards in the ` +
+          `relevant suit; your hand has ${failure.actual}. [${id}]`];
+      case 'balanced':
+        return [`${call} needs a balanced hand, which this is not. [${id}]`];
+      default:
+        break;
+    }
+  }
+  return [];
+}

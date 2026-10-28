@@ -26,14 +26,10 @@ not a historical progress log or a commitment to model every possible auction.
   recorded final call, even if the real bridge auction would continue.
 
 ## Remaining work
-- [ ] **Finish the remaining selected explanation families.** Competitive opener rebids
-  after forcing new-suit responses and other selected interference, then outstanding
-  overcaller/Doubler and responder rebids.
+- [ ] **Finish the remaining selected explanation families.** Other selected competitive
+  opener continuations (support cuebids, Jordan 2NT, natural notrump responses, and
+  preemptive raises), then outstanding overcaller/Doubler and responder rebids.
   Explain the existing scope rather than add families merely for coverage.
-- [ ] **Clarify four-level suit-raise meaning after a competitive forcing new suit.**
-  The rule `opener-rebid-jump-raise-after-overcall-two-level-new-suit` currently
-  labels both 4m and 4M as invitational; separate the major game calls from
-  the minor-suit continuations when reviewing that next competitive opener family.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds

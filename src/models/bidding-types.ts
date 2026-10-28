@@ -475,6 +475,19 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // Observations for opener's rebid after a competitive forcing new-suit response.
+  // Rule declarations and refiners remain the authority for qualification.
+  openerCompetitiveForcingRebid?: {
+    openingSuit: Suit;
+    responseSuit: Suit;
+    responseLevel: number;
+    openingLength: number;
+    responseSupport: number;
+    requiredSupport: number;
+    rebidSuit: Suit | null;
+    rebidLength: number;
+    afterAdvancerAction: boolean;
+  };
   openerTwoLevelNewSuitRebid?: {
     agreement: 'standard' | 'twoOverOne';
     openingSuit: Suit;

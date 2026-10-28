@@ -1198,19 +1198,37 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-jump-raise-after-overcall-two-level-new-suit',
     kind: 'openerRebid',
-    title: "Jump raise responder's forcing suit with medium values",
+    title: "Raise responder's forcing minor to four with medium values",
     auctionContext: {
       stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
-    calls: ['4C', '4D', '4H', '4S'],
+    calls: ['4C', '4D'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerRaiseResponderSuitToLevel(calls, context, 4, 3),
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 3 } },
-    meaning: "Show medium values and support for responder's five-card-or-longer suit.",
+    meaning: 'A constructive four-of-a-minor raise shows medium values and support, inviting partner to judge whether to continue toward minor game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium',
+    kind: 'openerRebid',
+    title: "Raise responder's forcing major to game with medium values",
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      openerStrain: 'suit', interference: 'suitOvercall',
+      responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerRaiseResponderSuitToLevel(calls, context, 4, 3),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
+                   supportLength: { min: 3 } },
+    meaning: 'Four of the agreed major has reached game with medium values and support; it is not a below-game invitation.',
     certainty: 'high',
   },
   {

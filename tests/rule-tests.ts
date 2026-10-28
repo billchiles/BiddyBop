@@ -13,6 +13,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
+import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
 import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS } from '../src/models/overcalling-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -961,6 +962,30 @@ function runConventionCompatibilityChecks (): number {
 function runCompetitiveOpenerRebidBoundaryTests (): number {
   let checks = 0;
   let failures = 0;
+
+  // A 4m raise is below game, but 4M already reaches game. The split must not
+  // change the medium-hand strength range or the required three-card support.
+  const mediumMinor = OpenerRebidRules.find((rule) =>
+    rule.id === 'opener-rebid-jump-raise-after-overcall-two-level-new-suit');
+  const mediumMajor = OpenerRebidRules.find((rule) =>
+    rule.id === 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium');
+  const mediumRaiseCases: { rule: BidRule | undefined; calls: Call[];
+      category: 'invitational' | 'signoff'; label: string }[] = [
+    { rule: mediumMinor, calls: ['4C', '4D'], category: 'invitational', label: 'four-minor' },
+    { rule: mediumMajor, calls: ['4H', '4S'], category: 'signoff', label: 'four-major' },
+  ];
+  for (const { rule, calls, category, label } of mediumRaiseCases) {
+    checks += 1;
+    const points = rule?.appliesWhen;
+    const rangeCorrect = points !== undefined && typeof points !== 'function' &&
+      points.totalPoints?.min === 17 && points.totalPoints?.max === 18 &&
+      points.totalPoints?.valuation === 'shortage' && points.supportLength?.min === 3;
+    if (rule === undefined || rule.calls?.join(',') !== calls.join(',') ||
+        !rule.callCategory?.includes(category) || !rangeCorrect) {
+      failures += 1;
+      console.error(`FAIL competitive ${label} medium raise category or hand requirements.`);
+    }
+  }
 
   const { board: redoubleBoard } = makeRuleTestBoard(RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[0]!);
   const redoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(

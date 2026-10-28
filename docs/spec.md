@@ -626,6 +626,13 @@ introduced naturally is removed from opener's natural candidates, and a natural 
 requires the shared basic stopper in each such suit. Artificial cuebids and responsive Doubles do
 not create a natural opponent suit merely because they name or affect a strain.
 
+After a natural forcing two-level new-suit response to a suit overcall, a medium opener
+with 17-18 shortage-adjusted points and three-card responder-suit support may raise
+to four of the minor as a constructive, below-game invitation, or to four of the
+major as a game bid. These are separate rule meanings, not one generic
+"invitational" classification. Maximum supported game raises require 19-21
+shortage-adjusted points.
+
 A natural forcing responder suit can retain selected descriptive opener rebids after a suit
 overcall or takeout Double even when advancer competes naturally. The reviewed advancer actions are
 a raise or weak preemptive raise of a suit overcall, or a natural unbid suit; advancer bidding a suit
