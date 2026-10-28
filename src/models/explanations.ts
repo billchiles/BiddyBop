@@ -4400,7 +4400,8 @@ export function getOpenerForcingCompetitionRebidLines(
     `${info.rebidLength} ${suitPlural(call)}`;
   const responseMeaning = info.responseLevel === 2
     ? 'Responder showed 5+ cards and 10+ HCP in a natural two-level suit, forcing one round but not necessarily to game.'
-    : 'Responder made a natural one-level new-suit response, forcing one round.';
+    : `Responder showed ${info.responseMinLength}+ cards and 6+ HCP in a natural ` +
+      'one-level new suit, forcing one round.';
   let reason: string;
   switch (rule.id) {
     case 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum':
@@ -4514,11 +4515,11 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
     const id = entry.rule.id;
     switch (failure.kind) {
       case 'hcp':
-        return [`${call} requires ${failure.min ?? 0}–${failure.max ?? 'more'} HCP; ` +
-          `you have ${failure.actual}. [${id}]`];
+        return [`${call} requires ${strengthRange(failure)}; ` +
+          `you have ${failure.actual} HCP. [${id}]`];
       case 'totalPoints':
-        return [`${call} does not meet the ${failure.min ?? 0}–${failure.max ?? 'higher'} ` +
-          `point requirement; your hand has ${failure.actual}. [${id}]`];
+        return [`${call} does not meet the ${strengthRange(failure)} requirement; ` +
+          `your hand has ${failure.actual} total points. [${id}]`];
       case 'partnerSupport':
         return [`${call} needs at least ${failure.min ?? 0} cards supporting responder’s ` +
           `suit; your hand has ${failure.actual}. [${id}]`];

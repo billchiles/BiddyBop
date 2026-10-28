@@ -567,11 +567,23 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
         response !== null && response.strain !== 'NT') {
       const openingSuit = first.strain as Suit;
       const responseSuit = response.strain as Suit;
+      const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+      const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+      const firstOpponentCall = openingInfo === null ? undefined :
+        context.auction[openingInfo.index + 1];
+      const overcall = firstOpponentCall === undefined ? null : parseSuitBid(firstOpponentCall);
+      // One-level natural responses after a Double need four cards. After an overcall,
+      // five are normally needed, except a major over a 1D overcall of a minor opening.
+      const fourCardOneLevel = interference === 'takeoutDouble' ||
+        (interference === 'suitOvercall' &&
+         (openingSuit === 'C' || openingSuit === 'D') && overcall?.strain === 'D' &&
+         (responseSuit === 'H' || responseSuit === 'S'));
+      const responseMinLength = response.level === 2 ? 5 : fourCardOneLevel ? 4 : 5;
       const bidSuit = rebid !== null && rebid.strain !== 'NT' ?
         rebid.strain as Suit : null;
       const afterAdvancerAction = rule.id.includes('-after-forcing-response-advancer-competition');
       evidence = { ...evidence, openerCompetitiveForcingRebid: {
-        openingSuit, responseSuit, responseLevel: response.level,
+        openingSuit, responseSuit, responseLevel: response.level, responseMinLength,
         openingLength: context.handFacts.lengths[openingSuit],
         responseSupport: context.handFacts.lengths[responseSuit],
         requiredSupport: response.level === 2 ? 3 : 4,

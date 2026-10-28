@@ -481,6 +481,7 @@ export interface CallEvidence {
     openingSuit: Suit;
     responseSuit: Suit;
     responseLevel: number;
+    responseMinLength: number;
     openingLength: number;
     responseSupport: number;
     requiredSupport: number;
