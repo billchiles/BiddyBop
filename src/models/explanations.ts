@@ -3,6 +3,7 @@
 
 import type { CallEvidence, BidRule, Call } from './bidding-types';
 import type { BidEvalResult, CandidateCallMatch } from './biddingEvaluation';
+import type { HandFacts } from './cards';
 
 ///
 //// Opening bid explanations
@@ -3734,3 +3735,75 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
   return [];
 }
 
+
+///
+//// Responder's rebid after opener simply raises the one-level major response
+///
+
+const SIMPLE_RAISE_REBID_IDS = [
+  'responder-rebid-pass-after-simple-major-raise',
+  'responder-rebid-invite-after-simple-major-raise',
+  'responder-rebid-game-after-simple-major-raise',
+];
+
+function simpleRaiseValuation(facts: HandFacts): string {
+  const shortness = (['C', 'D', 'H', 'S'] as const)
+    .filter((suit) => facts.lengths[suit] <= 2)
+    .map((suit) => {
+      const length = facts.lengths[suit];
+      const bonus = length === 0 ? 5 : length === 1 ? 3 : 1;
+      const shape = length === 0 ? 'void' : length === 1 ? 'singleton' : 'doubleton';
+      return `${bonus} for a ${shape} in ${suitPlural(`1${suit}` as Call)}`;
+    }).join(', ');
+  return `${facts.hcp} HCP + ${facts.shortPoints} shortage points` +
+    (shortness === '' ? '' : ` (${shortness})`) +
+    ` = ${facts.totalPointsWShortage} support points.`;
+}
+
+function simpleRaisePerspective(facts: HandFacts): string {
+  const minimum = facts.totalPointsWShortage + 12;
+  const maximum = facts.totalPointsWShortage + 16;
+  return `Opener's simple raise describes 12–16 support points, suggesting ` +
+    `about ${minimum}–${maximum} combined support points. Those are not combined HCP, ` +
+    'and the usual roughly 26-point guideline for major game is not a guarantee. ' +
+    'Shortness may be less valuable when it is in opener’s original suit.';
+}
+
+/// These comments explain evaluated calls; they do not change the point-range decisions.
+export function getResponderSimpleRaiseSupportLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!SIMPLE_RAISE_REBID_IDS.includes(rule.id)) return [];
+  const supported = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  if (supported === undefined) return [];
+  const decision = rule.id === SIMPLE_RAISE_REBID_IDS[0]
+    ? 'The 6–10 support-point treatment permits Pass; the one-round force is now satisfied.'
+    : rule.id === SIMPLE_RAISE_REBID_IDS[1]
+      ? 'The 11–12 support-point treatment invites game; opener can accept or decline.'
+      : 'The 13–16 support-point treatment recommends bidding game after the simple raise.';
+  return [`Your ${simpleRaiseValuation(facts)} ${decision} ` +
+    `${simpleRaisePerspective(facts)} [${rule.id}]`];
+}
+
+/// Missing a fixed-range recommendation does not prove that a borderline Pass is wrong.
+export function getResponderSimpleRaiseFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const ranges = ['6–10', '11–12', '13–16'];
+  for (let i = 0; i < SIMPLE_RAISE_REBID_IDS.length; i++) {
+    const id = SIMPLE_RAISE_REBID_IDS[i];
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
+      ?.candidates.find((item) =>
+        item.call === result.normalizedCall && !item.ruleApplies);
+    if (candidate === undefined) continue;
+    const pass = result.normalizedCall === 'Pass'
+      ? 'The first new-suit response has been answered, so Pass is legal. The app ' +
+        'does not recommend it at this point range, but partscore can still ' +
+        'be a reasonable judgment choice.'
+      : 'This call is outside the selected support-point range.';
+    return [`Your ${simpleRaiseValuation(facts)} The ${result.normalizedCall} ` +
+      `treatment requires ${ranges[i]} support points. ${pass} ` +
+      `${simpleRaisePerspective(facts)} [${id}]`];
+  }
+  return [];
+}
