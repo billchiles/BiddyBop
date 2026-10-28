@@ -3353,7 +3353,7 @@ export function getOpenerOneLevelNewSuitRebidLines(result: BidEvalResult, rule: 
   const facts = candidate.callEvidence?.openerOneLevelNewSuitRebid;
   if (facts === undefined) return [];
   const { openingSuit, responseSuit, openingLength, responseSupport, rebidSuit, rebidLength,
-          hcp, lengthPoints, shortagePoints, totalLengthPoints, totalShortagePoints, balanced } = facts;
+          hcp, lengthPoints, shortagePoints, totalLengthPoints, totalShortagePoints } = facts;
   const own = suitPlural(`1${openingSuit}` as Call);
   const partner = suitPlural(`1${responseSuit}` as Call);
   const other = rebidSuit === null ? '' : suitPlural(`1${rebidSuit}` as Call);
