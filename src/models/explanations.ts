@@ -4364,6 +4364,125 @@ export function getOpenerNegativeDoubleRebidFailureLines(
 }
 
 ///
+//// Opener after artificial support bids in competition
+///
+
+const OPENER_ARTIFICIAL_SUPPORT_IDS = [
+  'opener-rebid-three-of-suit-after-support-cuebid-minimum',
+  'opener-rebid-game-major-after-support-cuebid',
+  'opener-rebid-three-of-suit-after-jordan-2nt-minimum',
+  'opener-rebid-game-major-after-jordan-2nt',
+  'opener-rebid-pass-after-advancer-support-cuebid',
+  'opener-rebid-game-after-advancer-support-cuebid',
+];
+
+/// Explain a qualifying opener call after partner's artificial support bid or the opponents'
+/// artificial cuebid of our agreed suit.  Qualification remains with the evaluated rule.
+export function getOpenerArtificialSupportRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_ARTIFICIAL_SUPPORT_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  const info = candidate?.callEvidence?.openerArtificialSupportRebid;
+  if (candidate === undefined || info === undefined) return [];
+
+  const points = facts.totalPointsWShortage;
+  const suit = suitPlural(`1${info.openingSuit}` as Call);
+  const length = info.openingLength;
+  const isMinor = info.openingSuit === 'C' || info.openingSuit === 'D';
+  const jordan = rule.id.includes('-jordan-2nt');
+  const opponentCuebid = rule.id.includes('-advancer-support-cuebid');
+  const requiredPartnerSupport = jordan
+    ? info.openingSuit === 'C' ? 5 : info.openingSuit === 'D' ? 4 : 3
+    : isMinor ? 4 : 3;
+  const context = opponentCuebid
+    ? `Advancer's ${info.advancerCall ?? 'cuebid'} names our agreed ${suit} artificially; ` +
+      'the opponents are not proposing to play in our suit.'
+    : jordan
+      ? `Partner's ${info.responderCall} is artificial Jordan 2NT after the takeout Double: ` +
+        `10+ shortage-adjusted support points and at least ${requiredPartnerSupport} ${suit}. ` +
+        'It is not a natural or Jacoby notrump response.'
+      : `Partner's ${info.responderCall} cuebids the opponent's suit artificially: ` +
+        `11+ shortage-adjusted support points and at least ${requiredPartnerSupport} ${suit}. ` +
+        'This is a limit-or-better raise, not a natural new suit.';
+  const strength = `Your ${facts.hcp} HCP plus ${facts.shortPoints} shortage points give ` +
+    `${points} support points, with ${length} ${suit}.`;
+  let decision: string;
+  switch (rule.id) {
+    case 'opener-rebid-three-of-suit-after-support-cuebid-minimum':
+      decision = `${candidate.call} shows the selected 12–13-point minimum. ` +
+        'Responder can continue with stronger values.';
+      break;
+    case 'opener-rebid-game-major-after-support-cuebid':
+      decision = `${candidate.call} reaches major-suit game with at least 14 opener ` +
+        'support points opposite the stronger 11+ support-point cuebid.';
+      break;
+    case 'opener-rebid-three-of-suit-after-jordan-2nt-minimum':
+      decision = `${candidate.call} shows the selected 12–14-point minimum. ` +
+        'Responder can decide whether to bid game.';
+      break;
+    case 'opener-rebid-game-major-after-jordan-2nt':
+      decision = `${candidate.call} reaches major-suit game with at least 15 opener ` +
+        'support points opposite Jordan’s 10+ support-point raise.';
+      break;
+    case 'opener-rebid-pass-after-advancer-support-cuebid':
+      decision = 'A 12–16-point opener may Pass the opponents’ artificial cuebid ' +
+        'and defend rather than manufacture another bid.';
+      break;
+    case 'opener-rebid-game-after-advancer-support-cuebid':
+      decision = candidate.call === '3NT'
+        ? 'The selected 19+-point 3NT action also requires balanced or semi-balanced ' +
+          'distribution and a basic stopper in every naturally bid opponent suit; ' +
+          'the artificial cuebid itself does not introduce a natural opponent suit.'
+        : `${candidate.call} bids the agreed major game with at least 19 support points ` +
+          'after the opponents’ artificial cuebid.';
+      break;
+    default:
+      return [];
+  }
+  return [`${context} ${strength} ${decision} [${rule.id}]`];
+}
+
+/// Give a hand-specific point-range failure only for an actual rejected candidate.
+/// Passing our partner's artificial forcing raise is a separate, clear obligation.
+export function getOpenerArtificialSupportRebidFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  if (call === 'Pass' && result.ruleDiagnostics.some((entry) =>
+      OPENER_ARTIFICIAL_SUPPORT_IDS.slice(0, 4).includes(entry.rule.id) &&
+      entry.candidates.length > 0)) {
+    return ['Partner’s support cuebid or Jordan 2NT is an artificial forcing raise. ' +
+      'Opener must describe the hand; Pass does not satisfy that obligation.'];
+  }
+  for (const entry of result.ruleDiagnostics) {
+    if (!OPENER_ARTIFICIAL_SUPPORT_IDS.includes(entry.rule.id)) continue;
+    const candidate = entry.candidates.find((item) =>
+      item.call === call && !item.ruleApplies &&
+      item.callEvidence?.openerArtificialSupportRebid !== undefined);
+    if (candidate === undefined) continue;
+    const range = entry.rule.appliesWhen;
+    if (range !== undefined && typeof range !== 'function' &&
+        range.totalPoints !== undefined && range.totalPoints.valuation === 'shortage') {
+      const { min, max } = range.totalPoints;
+      const actual = facts.totalPointsWShortage;
+      if ((min !== undefined && actual < min) || (max !== undefined && actual > max)) {
+        const required = min === undefined ? `at most ${max}` :
+          max === undefined ? `at least ${min}` : `${min}–${max}`;
+        return [`${call} under [${entry.rule.id}] requires ${required} support points; ` +
+          `you have ${actual}. This does not rule out other bridge choices.`];
+      }
+    }
+    if (entry.rule.id === 'opener-rebid-game-after-advancer-support-cuebid' &&
+        facts.totalPointsWShortage < 19) {
+      return [`${call} under [${entry.rule.id}] requires at least 19 support points; ` +
+        `you have ${facts.totalPointsWShortage}. Further competition may need judgment.`];
+    }
+  }
+  return [];
+}
+
+///
 //// Opener after a forcing new-suit response in competition
 ///
 

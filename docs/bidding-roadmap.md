@@ -27,8 +27,8 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Remaining work
 - [ ] **Finish the remaining selected explanation families.** Other selected competitive
-  opener continuations (support cuebids, Jordan 2NT, natural notrump responses, and
-  preemptive raises), then outstanding overcaller/Doubler and responder rebids.
+  opener continuations (natural notrump responses, weak/preemptive responses, and
+  game-forcing three-level new suits), then outstanding overcaller/Doubler and responder rebids.
   Explain the existing scope rather than add families merely for coverage.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether

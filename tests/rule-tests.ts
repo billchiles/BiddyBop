@@ -7,10 +7,11 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
   from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
-import { makeRuleTestBoard } from '../src/models/cards';
+import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
-         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines }
+         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -1091,8 +1092,9 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
 
   const supportCuebidDeal = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS[1]!;
   const { board: supportCuebidBoard } = makeRuleTestBoard(supportCuebidDeal);
-  const supportCuebidCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '4H', supportCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem));
+  const supportCuebidResult = evaluateUserCall(
+    '4H', supportCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem);
+  const supportCuebidCandidates = getApplicableCandidateCalls(supportCuebidResult);
   checks += 1;
   if (! supportCuebidCandidates.some(({ call, rule }) =>
       call === '4H' && rule.id === 'opener-rebid-game-major-after-support-cuebid') ||
@@ -1101,6 +1103,16 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     failures += 1;
     console.error('FAIL support cuebid did not stay separate from natural two-level responses.');
     console.error(`  Surviving: ${formatCandidates(supportCuebidCandidates)}`);
+  }
+  const supportCuebidRule = supportCuebidResult.userCallMatchingRules.find((rule) =>
+    rule.id === 'opener-rebid-game-major-after-support-cuebid');
+  checks += 1;
+  if (supportCuebidRule === undefined ||
+      !getOpenerArtificialSupportRebidLines(supportCuebidResult,
+        supportCuebidRule, getHandFacts(supportCuebidBoard.deal.N))
+        .some((line) => line.includes('11+') && line.includes('cuebid'))) {
+    failures += 1;
+    console.error('FAIL support cuebid game lacked the 11+ artificial-support explanation.');
   }
 
   const { board: minimumCuebidBoard } = makeRuleTestBoard({
@@ -1120,11 +1132,30 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     console.error('FAIL minimum opener did not sign off below game after support cuebid.');
     console.error(`  Surviving: ${formatCandidates(minimumCuebidCandidates)}`);
   }
+  const minimumCuebidGameResult = evaluateUserCall(
+    '4H', minimumCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (!getOpenerArtificialSupportRebidFailureLines(
+      minimumCuebidGameResult, getHandFacts(minimumCuebidBoard.deal.N))
+      .some((line) => line.includes('at least 14 support points'))) {
+    failures += 1;
+    console.error('FAIL unsupported cuebid game lacked its opener-strength reason.');
+  }
+  const cuebidPassResult = evaluateUserCall(
+    'Pass', minimumCuebidBoard, ['1H', '1S', '2S', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (!getOpenerArtificialSupportRebidFailureLines(
+      cuebidPassResult, getHandFacts(minimumCuebidBoard.deal.N))
+      .some((line) => line.includes('artificial forcing raise'))) {
+    failures += 1;
+    console.error('FAIL Pass after a forcing support cuebid lacked its forcing explanation.');
+  }
 
   const jordanDeal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[0]!;
   const { board: jordanBoard } = makeRuleTestBoard(jordanDeal);
-  const jordanCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '3H', jordanBoard, ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem));
+  const jordanResult = evaluateUserCall(
+    '3H', jordanBoard, ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem);
+  const jordanCandidates = getApplicableCandidateCalls(jordanResult);
   checks += 1;
   if (! jordanCandidates.some(({ call, rule }) =>
       call === '3H' && rule.id === 'opener-rebid-three-of-suit-after-jordan-2nt-minimum') ||
@@ -1132,6 +1163,16 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
     failures += 1;
     console.error('FAIL Jordan 2NT continuation leaked into the Jacoby family.');
     console.error(`  Surviving: ${formatCandidates(jordanCandidates)}`);
+  }
+  const jordanRule = jordanResult.userCallMatchingRules.find((rule) =>
+    rule.id === 'opener-rebid-three-of-suit-after-jordan-2nt-minimum');
+  checks += 1;
+  if (jordanRule === undefined ||
+      !getOpenerArtificialSupportRebidLines(jordanResult, jordanRule,
+        getHandFacts(jordanBoard.deal.N))
+        .some((line) => line.includes('10+') && line.includes('Jordan'))) {
+    failures += 1;
+    console.error('FAIL Jordan minimum lacked its 10+ artificial-support explanation.');
   }
 
   const { board: jordanGameBoard } = makeRuleTestBoard({

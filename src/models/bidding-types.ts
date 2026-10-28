@@ -475,6 +475,14 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // Auction observations used to explain opener's response to artificial support bids.
+  // Call eligibility and point ranges remain defined by the bidding rules.
+  openerArtificialSupportRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    responderCall: Call;
+    advancerCall: Call | null;
+  };
   // Observations for opener's rebid after a competitive forcing new-suit response.
   // Rule declarations and refiners remain the authority for qualification.
   openerCompetitiveForcingRebid?: {
