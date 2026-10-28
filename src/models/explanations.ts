@@ -3807,3 +3807,205 @@ export function getResponderSimpleRaiseFailureLines(
   }
   return [];
 }
+
+///
+//// Opener's rebid after responder raises the original suit
+///
+
+const OPENER_RAISE_RULE_IDS = [
+  'opener-rebid-pass-after-minor-simple-raise',
+  'opener-rebid-raise-to-three-after-minor-simple-raise',
+  'opener-rebid-3nt-after-minor-simple-raise',
+  'opener-rebid-game-minor-after-minor-simple-raise',
+  'opener-rebid-pass-after-minor-limit-raise',
+  'opener-rebid-3nt-after-minor-limit-raise',
+  'opener-rebid-game-minor-after-minor-limit-raise',
+  'opener-rebid-pass-after-major-limit-raise',
+  'opener-rebid-game-raise-after-major-limit-raise',
+  'opener-rebid-pass-after-major-simple-raise',
+  'opener-rebid-invite-three-after-major-simple-raise',
+  'opener-rebid-competitive-three-after-major-simple-raise',
+  'opener-rebid-competitive-three-after-major-simple-raise-double',
+  'opener-rebid-help-suit-game-try-after-major-simple-raise',
+  'opener-rebid-2nt-game-try-after-major-simple-raise',
+  'opener-rebid-game-raise-after-major-simple-raise',
+  'opener-rebid-splinter-after-major-simple-raise',
+];
+
+function openerRaiseValue(id: string, facts: HandFacts): string {
+  if (id === 'opener-rebid-2nt-game-try-after-major-simple-raise') {
+    return `${facts.hcp} HCP with balanced shape`;
+  }
+  const majorFit = id.includes('-after-major-');
+  const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
+  const label = majorFit ? 'shortage' : 'length';
+  const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
+  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
+}
+
+/// A matched rule supplies the meaning; these actual hand facts explain its qualification.
+export function getOpenerRaiseRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_RAISE_RULE_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  if (candidate === undefined) return [];
+  const id = rule.id;
+  const call = candidate.call;
+  const majorFit = id.includes('-after-major-');
+  const suitLength = facts.lengths[call.slice(-1) as keyof HandFacts['lengths']];
+  const valuation = openerRaiseValue(id, facts);
+  let reason: string;
+  switch (id) {
+    case 'opener-rebid-pass-after-minor-simple-raise':
+      reason = 'Responder’s natural raise to two of the minor is nonforcing. ' +
+        'With 12–16 length-adjusted points, stopping in the partscore is reasonable.';
+      break;
+    case 'opener-rebid-raise-to-three-after-minor-simple-raise':
+      reason = 'With 17–18 length-adjusted points, raising the agreed minor to three ' +
+        'invites game. Responder can decline; 3NT is normally the more attractive minor-fit game.';
+      break;
+    case 'opener-rebid-3nt-after-minor-simple-raise':
+      reason = 'At 19 or more length-adjusted points, the app selects 3NT as the usual ' +
+        'minor-fit game: nine tricks rather than eleven for five of a minor. ' +
+        'The uncontested rule does not prove that all outside suits are stopped.';
+      break;
+    case 'opener-rebid-game-minor-after-minor-simple-raise':
+      reason = `Your ${suitLength}-card agreed minor, extreme shape and 19+ total points ` +
+        'permit the distributional 5-minor game alternative. It needs eleven tricks; ' +
+        '3NT remains a supported choice when outside suits can be handled.';
+      break;
+    case 'opener-rebid-pass-after-minor-limit-raise':
+      reason = 'Responder’s natural jump raise to three of the minor invites game. ' +
+        'A 12–13-point minimum can decline and stop at the three level.';
+      break;
+    case 'opener-rebid-3nt-after-minor-limit-raise':
+      reason = 'Responder invited with about 11–12 points. The 14+ total-point acceptance ' +
+        'prefers nine tricks in 3NT to eleven in five of the minor. Suit stoppers ' +
+        'and likely tricks still need bridge judgment.';
+      break;
+    case 'opener-rebid-game-minor-after-minor-limit-raise':
+      reason = `Your ${suitLength}-card agreed minor and extreme shape, with 17+ total ` +
+        'points, support choosing five of the minor instead of 3NT. ' +
+        'That alternative requires eleven tricks.';
+      break;
+    case 'opener-rebid-pass-after-major-limit-raise':
+      reason = 'Responder’s jump raise invites game with approximately 11–12 support points. ' +
+        'At 12–13 support points, declining is legitimate; at exactly 13 the game ' +
+        'raise also qualifies, so working honors and trump texture matter.';
+      break;
+    case 'opener-rebid-game-raise-after-major-limit-raise':
+      reason = 'Responder has invited major-suit game. At 14 or more support points ' +
+        'the app accepts; exactly 13 is a judgment boundary where Pass also qualifies. ' +
+        'Shortage is relevant because the major fit is established.';
+      break;
+    case 'opener-rebid-pass-after-major-simple-raise':
+      reason = 'Responder’s simple raise shows limited support and is not forcing. ' +
+        'With 12–16 support points, opener need not continue toward game.';
+      break;
+    case 'opener-rebid-invite-three-after-major-simple-raise':
+      reason = `With ${suitLength} trumps and 17–18 support points, voluntary ${call} ` +
+        'after two opponent Passes invites game. Responder may Pass or bid four; ' +
+        'this is not the obstructive competitive treatment.';
+      break;
+    case 'opener-rebid-competitive-three-after-major-simple-raise':
+    case 'opener-rebid-competitive-three-after-major-simple-raise-double':
+      reason = `With ${suitLength} trumps and 12–16 support points, ${call} ` +
+        'after the opponent’s intervention is competitive or obstructive, not ' +
+        'a game invitation. With no opponent intervention, the app instead ' +
+        'requires 17–18 support points for a voluntary invitational 3-major.';
+      break;
+    case 'opener-rebid-help-suit-game-try-after-major-simple-raise':
+      reason = `Your ${suitLength}-card ${suitPlural(call)} meets the three-card ` +
+        'minimum for a natural help-suit game try, with 17–18 support points. ' +
+        'Responder should look for working honors or useful shortness there before ' +
+        'deciding on game. The app does not determine that this is the best help suit.';
+      break;
+    case 'opener-rebid-2nt-game-try-after-major-simple-raise':
+      reason = 'The balanced 17–18 HCP hand qualifies for a natural 2NT game try. ' +
+        'This treatment uses HCP, not shortage points; responder may decline or accept ' +
+        'the invitation, with the agreed major still a possible final contract.';
+      break;
+    case 'opener-rebid-game-raise-after-major-simple-raise':
+      reason = 'With 19+ shortage-adjusted support points and the major fit known, ' +
+        'the app bids game directly rather than inviting. Very strong hands may ' +
+        'still have slam ambitions outside this modeled continuation.';
+      break;
+    case 'opener-rebid-splinter-after-major-simple-raise':
+      reason = `Your ${suitLength === 0 ? 'void' : 'singleton'} in ${suitPlural(call)}, ` +
+        'five or more trumps and 19+ support points permit an artificial game-forcing ' +
+        'splinter. This names shortness, not a natural second suit; further slam ' +
+        'exploration needs additional partnership judgment.';
+      break;
+    default:
+      return [];
+  }
+  const alternatives = [...new Set(result.ruleDiagnostics.flatMap((item) =>
+    item.candidates.filter((other) => other.ruleApplies && other.call !== call &&
+      OPENER_RAISE_RULE_IDS.includes(other.rule.id)).map((other) => other.call)))];
+  const choices = alternatives.length === 0 ? '' :
+    ` Also supported: ${alternatives.slice(0, 3).join(', ')}. The app does not require ` +
+    'one unique choice when their conditions overlap.';
+  return [`Your ${valuation}. ${reason}${choices} [${id}]`];
+}
+
+/// Give a specific failure only when the same auction generated a rejected candidate.
+export function getOpenerRaiseRebidFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  for (const diagnostic of result.ruleDiagnostics) {
+    const rule = diagnostic.rule;
+    if (!OPENER_RAISE_RULE_IDS.includes(rule.id) ||
+        rule.appliesWhen === undefined || typeof rule.appliesWhen === 'function') continue;
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === call && !item.ruleApplies);
+    if (candidate === undefined) continue;
+    const limits = rule.appliesWhen;
+    const points = limits.totalPoints;
+    const actual = points?.valuation === 'shortage' ? facts.totalPointsWShortage :
+      facts.totalPointsWLength;
+    if (points !== undefined &&
+        ((points.min !== undefined && actual < points.min) ||
+         (points.max !== undefined && actual > points.max))) {
+      const required = points.min !== undefined && points.max !== undefined
+        ? `${points.min}–${points.max}`
+        : points.min !== undefined ? `at least ${points.min}` : `at most ${points.max}`;
+      const measure = points.valuation === 'shortage' ? 'support points' : 'total points';
+      const contest = rule.id === 'opener-rebid-invite-three-after-major-simple-raise'
+        ? ' Without opponent competition, a voluntary three-level raise is an invitation, ' +
+          'not a minimum-strength obstructive action.' : '';
+      return [`${call} requires ${required} ${measure}; your hand has ${actual} ` +
+        `(${openerRaiseValue(rule.id, facts)}).${contest} [${rule.id}]`];
+    }
+    const hcp = limits.hcp;
+    if (hcp !== undefined &&
+        ((hcp.min !== undefined && facts.hcp < hcp.min) ||
+         (hcp.max !== undefined && facts.hcp > hcp.max))) {
+      const required = hcp.min !== undefined && hcp.max !== undefined
+        ? `${hcp.min}–${hcp.max}`
+        : hcp.min !== undefined ? `at least ${hcp.min}` : `at most ${hcp.max}`;
+      return [`${call} requires ${required} HCP; you have ${facts.hcp}. [${rule.id}]`];
+    }
+    const length = call.endsWith('NT') ? null :
+      facts.lengths[call.slice(-1) as keyof HandFacts['lengths']];
+    if (length !== null && limits.supportLength?.min !== undefined &&
+        length < limits.supportLength.min) {
+      return [`${call} requires at least ${limits.supportLength.min} cards in the ` +
+        `agreed suit; you have ${length}. [${rule.id}]`];
+    }
+    if (length !== null && limits.suitLengths?.[0]?.min !== undefined &&
+        length < limits.suitLengths[0].min) {
+      return [`${call} requires at least ${limits.suitLengths[0].min} cards in ` +
+        `${suitPlural(call)}; you have ${length}. [${rule.id}]`];
+    }
+    if (limits.shape?.balanced === true && !facts.balanced) {
+      return [`${call} requires a balanced hand; yours is not balanced. [${rule.id}]`];
+    }
+    if (limits.shape?.balancedOrSemiBalanced === false && facts.balancedOrSemiBalanced) {
+      return [`${call} requires strongly unbalanced shape; yours is too balanced ` +
+        `for that treatment. [${rule.id}]`];
+    }
+  }
+  return [];
+}

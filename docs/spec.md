@@ -325,8 +325,11 @@ tests only when executable qualification or integration could regress.
 - The existing `splinters` agreement also governs opener-side splinters. Opener-side splinters
   use rank `-100` so their teaching explanation remains visible without competing with ordinary
   rebids.
-- After `1M-2M`, a `3M` rebid with six or more trumps is the modern competitive treatment rather
-  than a game try. Natural help-suit game tries use a 3+ card side suit.
+- After uncontested `1M-Pass-2M-Pass`, a voluntary `3M` shows six or more trumps
+  and invites game with 17-18 shortage-adjusted support points. After a natural suit
+  overcall or takeout Double, `3M` can instead be a non-invitational competitive bid
+  with six or more trumps and 12-16 support points. The two meanings use separate
+  auction-context rules. Natural help-suit game tries use a 3+ card side suit.
 - After `1M-2M`, a natural balanced `2NT` game try uses 17-18 HCP, not shortage-point
   valuation. Natural help-suit game tries use shortage points.
 - After `1M-2M`, opener can bid `4M` with 19+ shortage-adjusted support points;

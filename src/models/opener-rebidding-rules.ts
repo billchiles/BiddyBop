@@ -4148,12 +4148,38 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'high',
   },
   //
+  // A voluntary raise to three without opponents intervening is a game invitation.
+  // After opponents compete, a separate rule may describe the bid as obstructive.
+  {
+    id: 'opener-rebid-invite-three-after-major-simple-raise',
+    kind: 'openerRebid',
+    title: 'Invite game with a six-card major after an uncontested simple raise',
+    auctionContext: {
+      stage: 'openerRebid', interference: 'none', openerLevel: 1, openerStrain: 'major',
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: 'pass' },
+    },
+    calls: ['3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['natural', 'invitational'],
+    priority: { rank: 10 },
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
+                   supportLength: { min: 6 } },
+    meaning: 'Show extra values and six or more trumps; responder can decline or accept game.',
+    guidance: ['Without opponent competition, raising the agreed major from two to three is ' +
+               'a game invitation. Help-suit and balanced 2NT invitations remain alternatives.'],
+    certainty: 'high',
+  },
+  //
   {
     id: 'opener-rebid-competitive-three-after-major-simple-raise',
     kind: 'openerRebid',
-    title: 'Compete to three of the major with six-card trump length',
+    title: 'Compete to three of the major after a suit overcall',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', openerRebidAfterInterference: true, interference: 'suitOvercall',
+      openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -4166,7 +4192,31 @@ export const OpenerRebidRules: BidRule[] = [
                 note: 'More specific than the generic minimum Pass; Pass remains visible.' },
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
                    supportLength: { min: 6 } },
-    meaning: 'Modern competitive/obstructive raise with six or more trumps; not a game try.',
+    meaning: 'After a suit overcall, six or more trumps permit a non-invitational competitive raise.',
+    guidance: ['Responder should not treat 3M as an invitation to game in this treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-competitive-three-after-major-simple-raise-double',
+    kind: 'openerRebid',
+    title: 'Compete to three of the major after a takeout Double',
+    auctionContext: {
+      stage: 'openerRebid', openerRebidAfterInterference: true, interference: 'takeoutDouble',
+      openerLevel: 1, openerStrain: 'major',
+      responderCall: { kind: 'raise', level: 2, jump: 0 },
+      advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
+    },
+    calls: ['3H', '3S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
+    callCategory: ['natural'],
+    priority: { rank: 10,
+                note: 'More specific than the generic minimum Pass; Pass remains visible.' },
+    appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
+                   supportLength: { min: 6 } },
+    meaning: 'After a takeout Double, six or more trumps permit a non-invitational competitive raise.',
     guidance: ['Responder should not treat 3M as an invitation to game in this treatment.'],
     certainty: 'high',
   },

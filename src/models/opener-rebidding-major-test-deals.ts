@@ -1200,7 +1200,8 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     west: { S: '92', H: 'QJ95', D: 'AK85', C: 'JT7' },
   },
   {
-    description: '1S-2S: minimum 12 HCP / 15 shortage points with six spades; Pass remains sound, while 3S uses the extra trump length competitively and is not a game invitation.',
+    description: '1S-2S-3S uncontested: 14 HCP / 17 shortage points with six spades; ' +
+                 'the voluntary three-level rebid invites game.',
     practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3S'],
     expectedOpeningCalls: [
       { call: '1S', ruleIds: ['open-five-card-major'] },
@@ -1209,13 +1210,12 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
       { call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
     ],
     expectedOpenerRebidCalls: [
-      { call: 'Pass', ruleIds: ['opener-rebid-pass-after-major-simple-raise'] },
-      { call: '3S', ruleIds: ['opener-rebid-competitive-three-after-major-simple-raise'] },
+      { call: '3S', ruleIds: ['opener-rebid-invite-three-after-major-simple-raise'] },
     ],
-    north: { S: 'AQJ985', H: 'K74', D: 'Q72', C: '8' },
+    north: { S: 'AQJ985', H: 'KQ4', D: 'Q72', C: '8' },
     south: { S: 'K63', H: 'A83', D: 'J64', C: 'Q942' },
     east: { S: '2', H: 'T92', D: 'KT95', C: 'AT753' },
-    west: { S: 'T74', H: 'QJ65', D: 'A83', C: 'KJ6' },
+    west: { S: 'T74', H: 'J765', D: 'A83', C: 'KJ6' },
   },
   {
     description: '1H-2H-2S: 16 HCP / 18 shortage points with 5H-4S; a natural spade help-suit game try asks whether responder has useful values or shortness there.',
