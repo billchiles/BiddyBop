@@ -463,6 +463,24 @@ export interface CallEvidence {
     forcingOneNt: boolean;
   };
   openerOneNtFallback?: 'three-card-minor' | 'two-card-club';
+  // First rebid after an uncontested, forcing one-level new-suit response.
+  // The tested point and shape thresholds remain in requirements.
+  openerOneLevelNewSuitRebid?: {
+    openingSuit: Suit;
+    responseSuit: Suit;
+    rebidSuit: Suit | null;
+    openingLength: number;
+    responseSupport: number;
+    rebidLength: number;
+    hcp: number;
+    lengthPoints: number;
+    shortagePoints: number;
+    totalLengthPoints: number;
+    totalShortagePoints: number;
+    balanced: boolean;
+  };
+  openerFiveCardMinorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
+  openerMinorOneNtSecondSuitAvailable?: boolean;
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |

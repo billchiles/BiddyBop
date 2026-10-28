@@ -3337,3 +3337,188 @@ export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[]
   }
   return [];
 }
+
+
+///
+//// Opener's first rebid after a forcing one-level new-suit response
+///
+
+/// Describe why this particular rebid fits the hand, distinguishing normal descriptions,
+/// stronger invitations, and game-forcing treatments. Do not choose among other valid calls.
+export function getOpenerOneLevelNewSuitRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (! isOpenerOneLevelNewSuitRule(rule.id)) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const facts = candidate.callEvidence?.openerOneLevelNewSuitRebid;
+  if (facts === undefined) return [];
+  const { openingSuit, responseSuit, openingLength, responseSupport, rebidSuit, rebidLength,
+          hcp, lengthPoints, shortagePoints, totalLengthPoints, totalShortagePoints, balanced } = facts;
+  const own = suitPlural(`1${openingSuit}` as Call);
+  const partner = suitPlural(`1${responseSuit}` as Call);
+  const other = rebidSuit === null ? '' : suitPlural(`1${rebidSuit}` as Call);
+  const id = rule.id;
+  const call = candidate.call;
+  const points = candidate.callEvidence?.requirements?.find((item) =>
+    item.kind === 'totalPoints');
+  const valuation = points?.kind === 'totalPoints' ?
+    (rule.id.includes('-raise-') || rule.id.includes('-splinter-') ?
+      `${totalShortagePoints} shortage points (${hcp} HCP + ${shortagePoints} short-suit points)` :
+      `${totalLengthPoints} total points (${hcp} HCP + ${lengthPoints} length points)`) :
+    `${hcp} HCP`;
+  const forcing = `Responder's one-level new suit is forcing for one round, so opener must bid again.`;
+  let explanation: string;
+  if (id.includes('-five-card-minor-fallback-')) {
+    if (diagnostic?.callEvidence?.openerFiveCardMinorFallback !== 'eligible') return [];
+    explanation = `This is the rare five-card minor fallback: your ${openingLength} ${own} would ` +
+      `normally be too short for a simple repeat, which promises six. The one-round force ` +
+      `cannot be Passed, and the evaluator found no four-card support, economical second ` +
+      `suit, or suitable natural 1NT rebid. Responder needs three ${own} to guarantee an ` +
+      `eight-card fit here. The app includes this unusual fallback for educational value; ` +
+      `real-life judgment remains important.`;
+  } else if (id.includes('-1nt-after-')) {
+    explanation = `Your balanced ${hcp}-HCP hand qualifies for natural 1NT (12–14 HCP). ` +
+      `With only ${responseSupport} ${partner}, you lack the usual four-card raise. ` +
+      (id.includes('-minor-') ?
+        `The evaluator also found no four-card second suit available at the one level; ` +
+        `such a suit should normally be shown before 1NT.` :
+        `This describes your minimum without suggesting four-card spade support.`);
+  } else if (id.includes('-2nt-after-')) {
+    explanation = `Your ${hcp} HCP and balanced shape meet the 18–19 HCP natural 2NT rebid. ` +
+      `You have ${responseSupport} ${partner}, fewer than the four needed for the normal ` +
+      `raise. Unlike a six-card jump repeat or support raise, this rebid is judged by HCP, ` +
+      `not length or shortage points. It invites game rather than promising a fit.`;
+  } else if (id.includes('-simple-raise-')) {
+    explanation = `Your ${responseSupport} ${partner} provide four-card or longer support, ` +
+      `and ${valuation} meet the 12–16 shortage-point range for a simple raise to ${call}. ` +
+      `With 17–18 shortage points opener could make the invitational jump raise; ` +
+      `19–21 qualifies for the selected direct game raise.`;
+  } else if (id.includes('-jump-raise-')) {
+    explanation = `With ${responseSupport} ${partner} and ${valuation}, you meet the ` +
+      `four-card support and 17–18 shortage-point requirements for the invitational ${call}. ` +
+      `A simple raise shows only 12–16; direct game requires 19–21 under these rules.`;
+  } else if (id.includes('-game-raise-')) {
+    explanation = `You have ${responseSupport} ${partner} and ${valuation}, satisfying ` +
+      `the four-card support and 19–21 shortage-point requirements to bid ${call} directly. ` +
+      `This places the partnership in game rather than making the weaker invitational jump raise.`;
+  } else if (id.includes('-jump-repeat-')) {
+    explanation = `Your ${openingLength} ${own} and ${valuation} meet the six-card ` +
+      `and 17–18 total-point requirements for a jump repeat to ${call}. ` +
+      `An economical repeat shows only 12–16 points; this jump invites game rather ` +
+      `than establishing a game force.`;
+  } else if (id.includes('-repeat-minor-') || id.includes('-repeat-major-')) {
+    explanation = `Your ${openingLength} ${own} and ${valuation} meet the six-card ` +
+      `and 12–16 total-point requirements for the economical ${call} repeat. ` +
+      `That describes your longer opening suit while fulfilling the one-round force. ` +
+      `A jump repeat would require 17–18 total points.`;
+  } else if (id.includes('-reverse-')) {
+    explanation = `Your ${openingLength} ${own}, ${rebidLength} ${other}, and ${valuation} ` +
+      `meet the five-card opening suit, four-card second suit, and 17–21 total-point ` +
+      `requirements. This reverse (the second-suit bid forces responder to the three ` +
+      `level to return to ${own}) shows extra strength and is forcing.`;
+  } else if (id.includes('-second-suit-')) {
+    const openingLengthText = id.includes('-major-') ?
+      `You have ${openingLength} ${own} and ` :
+      `A minor opening need not contain five cards to show an economical second suit. `;
+    explanation = `${openingLengthText}Your ${rebidLength} ${other} and ${valuation} support ` +
+      `the cheapest natural ${call} rebid. This is not a reverse: responder can ` +
+      `return to ${own} at the two level. Unlike a reverse, it does not promise ` +
+      `17 or more total points.`;
+  } else if (id.includes('-jump-shift-')) {
+    explanation = `Your ${rebidLength} ${other} and ${valuation} meet this ` +
+      `maximum-strength, 19–21 total-point natural jump shift to ${call}. ` +
+      `A cheaper non-reverse bid in the same suit would show it without promising ` +
+      `these maximum values. This jump establishes a game force.`;
+  } else if (id.includes('-game-in-minor-') || id.includes('-game-same-major-')) {
+    explanation = `Your ${openingLength} ${own} and ${valuation} meet the ` +
+      `seven-card and 19–21 total-point requirements for game in opener's long suit. ` +
+      `The direct ${call} does more than invite with a three-level jump repeat.`;
+  } else if (id.includes('-splinter-')) {
+    explanation = `Your ${responseSupport} ${partner} and ${valuation} support ` +
+      `a game-forcing splinter. The ${rebidLength === 0 ? 'void' : 'singleton'} in ` +
+      `${other} is shown by artificial ${call}; it does not promise a second suit. ` +
+      `This specialized option is presented behind ordinary natural descriptions.`;
+  } else {
+    return [];
+  }
+  const alternatives = [...new Set(result.ruleDiagnostics.flatMap((item) => item.candidates)
+    .filter((item) => item.ruleApplies && item.call !== call &&
+      isOpenerOneLevelNewSuitRule(item.rule.id)).map((item) => item.call))];
+  const comparisons = alternatives.length === 0 ? '' :
+    ` Other supported rebids include ${alternatives.slice(0, 3).join(', ')}; ` +
+    `the recorded practice call need not be the only sound choice.`;
+  return [`${forcing} ${explanation}${comparisons} [${id}]`];
+}
+
+/// Report only a requirement actually failed by the student's attempted rebid, or a
+/// documented refiner decision. An absent candidate is not proof that a bridge bid is wrong.
+export function getOpenerOneLevelNewSuitRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const family = result.ruleDiagnostics.filter((item) =>
+    isOpenerOneLevelNewSuitRule(item.rule.id));
+  if (family.length === 0) return [];
+  if (result.normalizedCall === 'Pass') {
+    return [`Responder's one-level new-suit response is forcing for one round. ` +
+      `Opener must make another call if the opponents Pass; an awkward hand or an ` +
+      `unmodeled continuation does not cancel that obligation.`];
+  }
+  for (const diagnostic of family) {
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies);
+    if (candidate === undefined) continue;
+    const facts = candidate.callEvidence?.openerOneLevelNewSuitRebid;
+    if (facts === undefined) continue;
+    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    let explanation: string | null = null;
+    if (failed?.kind === 'hcp' || failed?.kind === 'totalPoints') {
+      const unit = failed.kind === 'hcp' ? 'HCP' : 'total points';
+      const required = failed.min !== undefined && failed.max !== undefined ?
+        `${failed.min}–${failed.max}` : failed.min !== undefined ?
+        `at least ${failed.min}` : `at most ${failed.max}`;
+      const direction = failed.min !== undefined && failed.actual < failed.min ?
+        'too few' : 'too many';
+      explanation = `${result.normalizedCall} requires ${required} ${unit}; ` +
+        `you have ${failed.actual}, ${direction} for this treatment.`;
+      if (failed.kind === 'totalPoints') {
+        explanation += ` This call uses ${diagnostic.rule.id.includes('-raise-') ||
+          diagnostic.rule.id.includes('-splinter-') ? 'shortage' : 'length'} ` +
+          `points in addition to HCP.`;
+      }
+    } else if (failed?.kind === 'partnerSupport') {
+      explanation = `${result.normalizedCall} requires ${failed.min !== undefined ?
+        `at least ${failed.min}` : `at most ${failed.max}`} ` +
+        `${suitPlural(`1${facts.responseSuit}` as Call)} of support; ` +
+        `you have ${failed.actual}.`;
+    } else if (failed?.kind === 'suitLength') {
+      explanation = `${result.normalizedCall} requires ${failed.min ?? failed.exact} ` +
+        `${failed.suit === undefined ? 'cards in the suit' : suitPlural(`1${failed.suit}` as Call)}; ` +
+        `you have ${failed.actual}.`;
+    } else if (failed?.kind === 'balanced' || failed?.kind === 'rebidShape') {
+      explanation = `${result.normalizedCall} requires balanced distribution; ` +
+        `your hand does not meet that shape requirement.`;
+    } else if (candidate.callEvidence?.openerMinorOneNtSecondSuitAvailable === true &&
+               result.normalizedCall === '1NT') {
+      explanation = `Opener has an economical four-card second suit to show at the one ` +
+        `level, so this selected 1NT treatment does not apply.`;
+    }
+    if (explanation !== null) return [`${explanation} [${diagnostic.rule.id}]`];
+  }
+  const fallback = family.find((item) =>
+    item.rule.id === 'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit');
+  const reason = fallback?.callEvidence?.openerFiveCardMinorFallback;
+  if ((result.normalizedCall === '2C' || result.normalizedCall === '2D') &&
+      (reason === 'support-or-notrump' || reason === 'economical-second-suit')) {
+    const why = reason === 'support-or-notrump' ?
+      'four-card support or a qualifying natural 1NT rebid' :
+      'an economical four-card second suit';
+    return [`The rare five-card minor repeat is a fallback only when opener has no ` +
+      `normal descriptive rebid. The evaluator found ${why} instead. ` +
+      `[${fallback?.rule.id}]`];
+  }
+  return [];
+}
+
+function isOpenerOneLevelNewSuitRule(id: string): boolean {
+  return id.endsWith('-after-minor-one-level-new-suit') ||
+    id.endsWith('-after-major-one-level-new-suit');
+}

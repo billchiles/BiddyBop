@@ -1710,7 +1710,8 @@ export function refineOpenerFiveCardMinorFallback (calls: Call[], context: RuleE
   if (context.handFacts.lengths[responderSuit] >= 4 ||
       (context.handFacts.balanced && context.handFacts.hcp >= 12 &&
        context.handFacts.hcp <= 14)) {
-    return { calls: [], telemetryLines: ['Four-card responder support or a normal 1NT rebid is available.'] };
+    return { calls: [], telemetryLines: ['Four-card responder support or a normal 1NT rebid is available.'],
+      callEvidence: { openerFiveCardMinorFallback: 'support-or-notrump' } };
   }
   const anotherSuitAvailable = SUITS.some((suit) => {
     if (suit === opening.strain || suit === responderSuit ||
@@ -1720,12 +1721,13 @@ export function refineOpenerFiveCardMinorFallback (calls: Call[], context: RuleE
     return candidate !== null && ! openerRebidIsReverse(opening, response, candidate);
   });
   if (anotherSuitAvailable) {
-    return { calls: [], telemetryLines: ['A natural economical four-card second suit is available.'] };
+    return { calls: [], telemetryLines: ['A natural economical four-card second suit is available.'],
+      callEvidence: { openerFiveCardMinorFallback: 'economical-second-suit' } };
   }
   const wanted = `2${opening.strain}`;
   return { calls: calls.filter((call) => call === wanted), telemetryLines: [
     `One-round force with no normal minimum rebid: repeat five-card ${opening.strain}.`,
-  ] };
+  ], callEvidence: { openerFiveCardMinorFallback: 'eligible' } };
 }
 
 /// A very strong six-card-minor opener may have no accurate natural rebid after a
@@ -1781,7 +1783,19 @@ export function openerMinorOneLevelOneNtApplies (_call: Call, context: RuleEvalC
       `${supportApplies ? 'PASS' : 'FAIL'}: responder's ${responseSuit} needs fewer than ` +
         'four-card support.',
       `${! hasOneLevelSecondSuit ? 'PASS' : 'FAIL'}: no four-card second suit is available at ` +
-        'the one level.',],};
+        'the one level.'],
+    callEvidence: {
+      requirements: [
+        { kind: 'hcp', actual: context.handFacts.hcp, min: 12, max: 14,
+          passed: hcpApplies },
+        { kind: 'balanced', actual: context.handFacts.balanced, passed: balancedApplies },
+        { kind: 'partnerSupport', suit: responseSuit,
+          actual: context.handFacts.lengths[responseSuit], max: 3,
+          passed: supportApplies },
+      ],
+      openerMinorOneNtSecondSuitAvailable: hasOneLevelSecondSuit,
+    },
+  };
 }
 
 /// openerLowerRankingSecondSuitApplies requires the ordinary 12-18 total-point range,
