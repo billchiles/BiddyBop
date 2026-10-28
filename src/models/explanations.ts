@@ -4191,7 +4191,7 @@ export function getOpenerGameResponseRebidLines(
         item.kind === 'hcp');
       if (checked?.kind !== 'hcp') return [];
       reason = `Your ${checked.actual} HCP meet the ${checked.min}–${checked.max} ` +
-        'HCP requirement for a quantitative slam invitation. Responder's ' +
+        'HCP requirement for a quantitative slam invitation. Responder\'s ' +
         `13–15 HCP suggest ${checked.actual + 13}–${checked.actual + 15} combined HCP. ` +
         'About 33 combined HCP is a useful 6NT guideline, not a guarantee of ' +
         'twelve tricks. 4NT invites 6NT; responder may Pass. This is NOT ' +
