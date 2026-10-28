@@ -4235,3 +4235,130 @@ export function getOpenerGameResponseRebidFailureLines(result: BidEvalResult): s
   }
   return [];
 }
+
+///
+//// Competitive opener rebids after responder's negative Double
+///
+
+const OPENER_NEGATIVE_DOUBLE_IDS = [
+  'opener-rebid-implied-suit-after-negative-double-minimum',
+  'opener-rebid-jump-implied-suit-after-negative-double-medium',
+  'opener-rebid-game-implied-major-after-negative-double-medium',
+  'opener-rebid-game-major-after-negative-double-maximum',
+  'opener-rebid-jump-implied-minor-after-negative-double-maximum',
+  'opener-rebid-implied-suit-after-negative-double-competition-minimum',
+  'opener-rebid-implied-suit-after-negative-double-competition-medium',
+  'opener-rebid-repeat-opening-suit-after-negative-double',
+  'opener-rebid-natural-nt-after-negative-double',
+  'opener-rebid-pass-after-negative-double-competition-minimum',
+];
+
+/// The candidate was already qualified by the auction context, refiner, and hand tests.
+export function getOpenerNegativeDoubleRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_NEGATIVE_DOUBLE_IDS.includes(rule.id)) return [];
+  const match = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((entry) => entry.ruleApplies && entry.call === result.normalizedCall);
+  if (match === undefined) return [];
+  const call = match.call;
+  const support = facts.totalPointsWShortage;
+  const supportLine = `${facts.hcp} HCP + ${facts.shortPoints} shortage points = ` +
+    `${support} support points.`;
+  const isSuit = /^[1-7][CDHS]$/.test(call);
+  const suit = isSuit ? call.slice(-1) as 'C' | 'D' | 'H' | 'S' : null;
+  const length = suit === null ? 0 : facts.lengths[suit];
+  let reason: string;
+  switch (rule.id) {
+    case 'opener-rebid-implied-suit-after-negative-double-minimum':
+      reason = `Your ${supportLine} With ${length} ${suitPlural(call)}, ` +
+        'show the four-card-or-longer suit implied by the negative Double ' +
+        'as cheaply as possible. Responder asked about unbid suits, not penalties.';
+      break;
+    case 'opener-rebid-jump-implied-suit-after-negative-double-medium':
+      reason = `Your ${supportLine} With ${length} ${suitPlural(call)}, ` +
+        'the 17–18-point jump below game invites responder to consider game. ' +
+        'This differs from the minimum economical fit bid.';
+      break;
+    case 'opener-rebid-game-implied-major-after-negative-double-medium':
+      reason = `Your ${supportLine} With ${length} trumps in the implied major, ` +
+        `${call} reaches game after the higher overcall consumed the lower jump. ` +
+        'It is a game bid, not an invitation asking partner to bid game.';
+      break;
+    case 'opener-rebid-game-major-after-negative-double-maximum':
+      reason = `Your ${supportLine} The ${length}-card implied-major fit ` +
+        'and 19+ support points justify bidding major-suit game. This can remain ' +
+        'the selected game action when advancer competes further.';
+      break;
+    case 'opener-rebid-jump-implied-minor-after-negative-double-maximum':
+      reason = `Your ${supportLine} With ${length} cards in the implied minor, ` +
+        'the jump shows strong support while staying below the four level. ' +
+        'It does not assume eleven tricks are available for five of a minor.';
+      break;
+    case 'opener-rebid-implied-suit-after-negative-double-competition-minimum':
+    case 'opener-rebid-implied-suit-after-negative-double-competition-medium':
+      reason = `Your ${supportLine} With ${length} ${suitPlural(call)}, ` +
+        'this is the cheapest still-descriptive bid after advancer acted. ' +
+        'Competition consumed bidding space; a three-level rebid need not have ' +
+        'the invitational meaning of an uncontested jump.';
+      break;
+    case 'opener-rebid-repeat-opening-suit-after-negative-double':
+      reason = `Your ${facts.totalPointsWLength} length-adjusted points include ` +
+        `${facts.hcp} HCP; your ${length}-card opening suit can be repeated ` +
+        'when no four-card implied-suit fit qualifies. The app uses the ' +
+        'cheapest available repeat below game.';
+      break;
+    case 'opener-rebid-natural-nt-after-negative-double':
+      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural ${call}. ` +
+        'The normal 1NT (12–14 HCP) or 2NT (18–19 HCP) level must still be ' +
+        'available, and the app requires basic stoppers in all suits the ' +
+        'opponents have bid naturally. No implied four-card fit or six-card ' +
+        'opening-suit repeat takes precedence.';
+      break;
+    case 'opener-rebid-pass-after-negative-double-competition-minimum':
+      reason = `Your ${supportLine} Advancer has intervened, and no selected ` +
+        'implied-suit fit, six-card repeat, or natural notrump rebid remains. ' +
+        'Pass is a practical minimum action; responder has another turn. ' +
+        'This does not turn the negative Double into a penalty Double.';
+      break;
+    default:
+      return [];
+  }
+  return [`${reason} [${rule.id}]`];
+}
+
+/// Show only a relevant failed point test, or an unfulfilled negative-Double force.
+export function getOpenerNegativeDoubleRebidFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const negativeDoubleRules = result.ruleDiagnostics.filter((entry) =>
+    OPENER_NEGATIVE_DOUBLE_IDS.includes(entry.rule.id));
+  if (call === 'Pass' && result.ruleDiagnostics.some((entry) =>
+      entry.rule.id === 'opener-rebid-scope-boundary-after-negative-double-advancer-pass' ||
+      entry.rule.id === 'opener-rebid-implied-suit-after-negative-double-minimum')) {
+    return ['Responder’s negative Double is takeout, not penalty. With advancer ' +
+      'Passing, opener must respond if a selected description is available. ' +
+      'Where none applies, the specific choice needs further judgment.'];
+  }
+  for (const entry of negativeDoubleRules) {
+    const limits = entry.rule.appliesWhen;
+    if (limits === undefined || typeof limits === 'function' ||
+        limits.totalPoints === undefined) continue;
+    const candidate = entry.candidates.find((item) =>
+      item.call === call && !item.ruleApplies);
+    if (candidate === undefined) continue;
+    const check = limits.totalPoints;
+    const actual = check.valuation === 'shortage' ?
+      facts.totalPointsWShortage : facts.totalPointsWLength;
+    if ((check.min === undefined || actual >= check.min) &&
+        (check.max === undefined || actual <= check.max)) continue;
+    const range = check.min === undefined ? `at most ${check.max}` :
+      check.max === undefined ? `at least ${check.min}` :
+      `${check.min}–${check.max}`;
+    const label = check.valuation === 'shortage' ? 'support points' : 'total points';
+    return [`${call} under [${entry.rule.id}] requires ${range} ${label}; ` +
+      `this hand has ${actual}. The auction and the promised implied-suit fit ` +
+      'must also qualify.'];
+  }
+  return [];
+}

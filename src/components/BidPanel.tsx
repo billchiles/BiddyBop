@@ -34,7 +34,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getResponderSimpleRaiseSupportLines, getResponderSimpleRaiseFailureLines,
          getOpenerRaiseRebidLines, getOpenerRaiseRebidFailureLines,
          getOpenerConventionalRebidLines, getOpenerConventionalRebidFailureLines,
-         getOpenerGameResponseRebidLines, getOpenerGameResponseRebidFailureLines }
+         getOpenerGameResponseRebidLines, getOpenerGameResponseRebidFailureLines,
+         getOpenerNegativeDoubleRebidLines, getOpenerNegativeDoubleRebidFailureLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -196,7 +197,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
         getResponderSimpleRaiseFailureLines(result, handFacts).length > 0 ||
         getOpenerRaiseRebidFailureLines(result, handFacts).length > 0 ||
         getOpenerConventionalRebidFailureLines(result).length > 0 ||
-        getOpenerGameResponseRebidFailureLines(result).length > 0);
+        getOpenerGameResponseRebidFailureLines(result).length > 0 ||
+        getOpenerNegativeDoubleRebidFailureLines(result, handFacts).length > 0);
     const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
       ? buildExplanationLines(title, result, handFacts, auction.length)
       : turnGuidance.some((line) => line.startsWith('------------ '))
@@ -600,6 +602,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const openerRaiseReasons = getOpenerRaiseRebidFailureLines(result, handFacts);
   const openerConventionReasons = getOpenerConventionalRebidFailureLines(result);
   const openerGameReasons = getOpenerGameResponseRebidFailureLines(result);
+  const openerNegativeDoubleReasons = getOpenerNegativeDoubleRebidFailureLines(result, handFacts);
   if (scopeBoundary !== undefined && candidates.length === 0 &&
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
@@ -613,7 +616,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       openerOneNtRebidReasons.length === 0 && openerNewSuitReasons.length === 0 &&
        openerTwoLevelReasons.length === 0 && responderRaiseReasons.length === 0 &&
        openerRaiseReasons.length === 0 && openerConventionReasons.length === 0 &&
-       openerGameReasons.length === 0) {
+       openerGameReasons.length === 0 && openerNegativeDoubleReasons.length === 0) {
     lines.push('Choosing a bid here requires additional judgment.');
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  The app cannot reliably recommend a particular bid here.');
@@ -635,7 +638,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
         openerTwoLevelReasons.length > 0 || responderRaiseReasons.length > 0 ||
         openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-        openerGameReasons.length > 0) {
+        openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0) {
       lines.push(doubleReasons.length > 0
         ? 'Why this Double does not meet the selected requirements:'
         : balancingReasons.length > 0
@@ -657,7 +660,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
           : openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 || openerTwoLevelReasons.length > 0
             ? 'Why this opener rebid does not meet the selected requirements:'
             : openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-             openerGameReasons.length > 0
+             openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0
              ? 'Why this opener rebid does not meet the selected requirements:'
              : responderRaiseReasons.length > 0
              ? 'Why this responder rebid does not meet the selected requirements:'
@@ -670,7 +673,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons,
         ...openerOneNtRebidReasons, ...openerNewSuitReasons, ...openerTwoLevelReasons,
         ...responderRaiseReasons, ...openerRaiseReasons, ...openerConventionReasons,
-        ...openerGameReasons);
+        ...openerGameReasons, ...openerNegativeDoubleReasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
@@ -703,7 +706,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
          openerTwoLevelReasons.length > 0 || responderRaiseReasons.length > 0 ||
          openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-         openerGameReasons.length > 0)) {
+         openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0)) {
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);
@@ -759,6 +762,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));
   lines.push(...getOpenerGameResponseRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerNegativeDoubleRebidLines(result, rule, handFacts));
   appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 

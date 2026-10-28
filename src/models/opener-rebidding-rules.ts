@@ -880,12 +880,29 @@ export const OpenerRebidRules: BidRule[] = [
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
-    calls: ['2H', '2S', '3C', '3D', '3H', '3S', '4H', '4S'],
+    calls: ['2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
-    meaning: 'Jump one level in a four-card or longer suit implied by the negative Double.',
+    meaning: 'Jump one level below game with medium values in a suit implied by the negative Double, inviting game.',
+    certainty: 'high',
+  },
+  {
+    id: 'opener-rebid-game-implied-major-after-negative-double-medium',
+    kind: 'openerRebid',
+    title: 'Bid game in an implied major with medium values after a higher overcall',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      interference: 'suitOvercall', responderCall: { kind: 'double' },
+      advancerCall: { kind: 'pass' },
+    },
+    calls: ['4H', '4S'],
+    callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
+      refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
+    meaning: 'A medium-strength jump to four of an implied major has already reached game; it is not an invitation to bid game.',
     certainty: 'high',
   },
   {
