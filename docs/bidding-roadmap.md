@@ -26,6 +26,14 @@ not a historical progress log or a commitment to model every possible auction.
   recorded final call, even if the real bridge auction would continue.
 
 ## Remaining work
+- [ ] **Finish the remaining selected explanation families.** Opener after Jacoby 2NT,
+  responder splinters, weak/strong jump shifts, and game-level signoffs; then
+  outstanding selected competitive/opener, overcaller/Doubler, and responder rebids.
+  Explain the existing scope rather than add families merely for coverage.
+- [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
+  In particular, Pass versus game after a simple major raise may depend on whether
+  responder's shortness is in opener's original suit; the current point thresholds
+  remain unchanged, although the explanation now acknowledges the limitation.
 - [ ] **Explanation integration review after the remaining explanation work.** Review
   rule buckets in manageable groups for existing explanation functions or evidence
   that do not reach normal feedback, unsupported-call feedback, recorded-call
