@@ -64,6 +64,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   const [auction, setAuction] = useState<Call[]>([]);
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
     getInitialExplanationLines(testDeal, practiceDealIdentification));
+  const [reportNotice, setReportNotice] = useState<{ text: string; version: number } | null>(null);
   const practiceComplete = isPracticeSequenceComplete(auction, testDeal?.practiceAuction);
   // Rule feedback is independent of bridge legality and recorded practice completion.
   // An unsupported turn still accepts legal calls; later turns may be supported again.
@@ -89,7 +90,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
     biddingTurnStatus, practiceComplete, outstandingForce, practiceStep);
-  const displayedExplanation = [...explanationLines, ...turnGuidance];
+  const displayedExplanation = [...explanationLines, ...turnGuidance,
+    ...(reportNotice === null ? [] : ['', reportNotice.text])];
   // Scroll to the last *reviewed* call, not a preview of the next seat's turn.
   // Before the first call, keep the New Deal heading at the top.
   const reviewedHeadingIndex = explanationLines.findLastIndex((line) => line.startsWith('------------ '));
@@ -98,6 +100,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     setBidText('');
     setAuction([]);
     setExplanationLines(getInitialExplanationLines(testDeal, practiceDealIdentification));
+    setReportNotice(null);
   }, [board, biddingSystem, testDeal, practiceDealIdentification]);
 
   // New deals and successful bids leave the next call ready for keyboard entry.
@@ -107,6 +110,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    setReportNotice(null);
     bidInputRef.current?.focus();
     if (auctionComplete || practiceComplete) {
       setExplanationLines((current) => appendExplanation(current, ['',
@@ -246,19 +250,22 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     onTelemetry(lines);
   }
 
+  function showReportNotice(text: string): void {
+    setReportNotice((prior) => ({ text, version: (prior?.version ?? 0) + 1 }));
+  }
+
   function reportState(includeTelemetry: boolean): void {
-    const report = buildReportText(board, auction, displayedExplanation,
+    // The confirmation belongs to the visible panel, not the copied report.
+    const report = buildReportText(board, auction, [...explanationLines, ...turnGuidance],
       biddingSystem, testDeal, practiceDealIdentification,
       includeTelemetry ? telemetryLines : null);
     if (navigator.clipboard === undefined) {
-      setExplanationLines((current) => appendExplanation(current, ['', 'Clipboard unavailable.']));
+      showReportNotice('Clipboard unavailable.');
       return;
     }
     navigator.clipboard.writeText(report)
-      .then(() => setExplanationLines((current) => appendExplanation(current,
-        ['', 'Report copied to clipboard.'])))
-      .catch(() => setExplanationLines((current) => appendExplanation(current,
-        ['', 'Could not copy report. Check clipboard permissions.'])));
+      .then(() => showReportNotice('Report copied to clipboard.'))
+      .catch(() => showReportNotice('Could not copy report. Check clipboard permissions.'));
   }
 
   const inputDisabled = auctionComplete || practiceComplete;
@@ -304,7 +311,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
         <section className="trainerRightColumn">
           <AuctionGrid rows={auctionRows} />
           <ExplanationPanel lines={displayedExplanation} board={board}
-            focusHeadingIndex={Math.max(0, reviewedHeadingIndex)} />
+            focusHeadingIndex={Math.max(0, reviewedHeadingIndex)}
+            reportNotice={reportNotice} />
         </section>
       </section>
     </section>
@@ -815,8 +823,9 @@ function AuctionGrid({ rows }: { rows: AuctionRow[] }) {
 
 /// Align the last reviewed call at the top, even if the next seat's preview follows it.
 /// No parallel transcript or call-history indexes are maintained.
-function ExplanationPanel ({ lines, board, focusHeadingIndex }: {
+function ExplanationPanel ({ lines, board, focusHeadingIndex, reportNotice }: {
   lines: string[]; board: Board; focusHeadingIndex: number;
+  reportNotice: { text: string; version: number } | null;
 }) {
   const explanationRef = useRef<HTMLPreElement | null>(null);
   const lastHeadingRef = useRef(-1);
@@ -841,6 +850,15 @@ function ExplanationPanel ({ lines, board, focusHeadingIndex }: {
     lastHeadingRef.current = focusHeadingIndex;
     setScrollPosition(measureExplanationScroll(element));
   }, [board, text, focusHeadingIndex]);
+
+  // Show a newly copied report confirmation at the end of the same explanation panel.
+  useLayoutEffect(() => {
+    if (reportNotice === null) return;
+    const element = explanationRef.current;
+    if (element === null) return;
+    element.scrollTop = element.scrollHeight;
+    setScrollPosition(measureExplanationScroll(element));
+  }, [reportNotice]);
 
   useEffect(() => {
     const element = explanationRef.current;
