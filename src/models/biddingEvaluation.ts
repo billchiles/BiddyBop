@@ -7,7 +7,7 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type CallRefinementResult,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
-import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
+import { getHandFacts, getCardsForSuit, type Board, type HandFacts, type Suit } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
@@ -461,22 +461,24 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   const telemetryLines: string[] = [];
   telemetryLines.push(`evaluateCandidateCall: Candidate ${call}.`);
   const appliesWhen = rule.appliesWhen;
+  // Even an unconditional call can need observation evidence for teaching.
+  // Do not skip the evidence phase merely because appliesWhen is absent.
+  let result: AppliesWhenResult;
   if (appliesWhen === undefined) {
     telemetryLines.push('PASS: no appliesWhen constraint.');
-    return { rule, call, ruleApplies: true, telemetryLines };
-  }
-
-  let result: AppliesWhenResult;
-  if (typeof appliesWhen === 'function') {
+    result = { success: true, telemetryLines: [] };
+  } else if (typeof appliesWhen === 'function') {
     result = appliesWhen(call, context, system);
   } else {
     result = evaluateHandConstraint(appliesWhen, call, context, system, rule.id);
   }
   telemetryLines.push(...result.telemetryLines);
-  if (result.success) {
-    telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
-  } else {
-    telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
+  if (appliesWhen !== undefined) {
+    if (result.success) {
+      telemetryLines.push(`PASS: ${call} satisfies appliesWhen.`);
+    } else {
+      telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
+    }
   }
   // Preserve the facts actually used in an opener's response-to-1NT rebid, without
   // rechecking eligibility in the explanation layer. The candidate's requirements
@@ -551,6 +553,42 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
         totalLengthPoints: facts.totalPointsWLength,
         totalShortagePoints: facts.totalPointsWShortage,
         balanced: facts.balanced, balancedOrSemiBalanced: facts.balancedOrSemiBalanced,
+      } };
+    }
+  }
+  const conventionalRebid = context.stage === 'openerRebid' &&
+    (rule.id.endsWith('-after-major-jacoby-2nt') ||
+     rule.id.endsWith('-after-major-splinter') ||
+     rule.id.endsWith('-after-strong-jump-shift') ||
+     rule.id === 'opener-rebid-pass-after-weak-jump-shift');
+  if (conventionalRebid) {
+    const original = getOpenerOpeningBid(context);
+    const responseCall = getResponderCall(context.dealer, context.auction);
+    const response = responseCall === null ? null : parseSuitBid(responseCall);
+    if (original !== null && original.strain !== 'NT') {
+      const facts = context.handFacts;
+      const openingSuit = original.strain as Suit;
+      const responseSuit = response !== null && response.strain !== 'NT'
+        ? response.strain as Suit : null;
+      const bidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+      const cards = bidSuit === null ? [] : getCardsForSuit(context.hand, bidSuit);
+      const ranks = cards.map((card) => card.rank);
+      const shortCards = responseSuit === null ? [] : getCardsForSuit(context.hand, responseSuit);
+      const wasted = rule.id.endsWith('-after-major-splinter')
+        ? shortCards.reduce((total, card) => total + (card.rank === 'K' ? 3 :
+            card.rank === 'Q' ? 2 : card.rank === 'J' ? 1 : 0), 0)
+        : 0;
+      const sideControl = bidSuit === null ? null :
+        ranks.includes('A') ? 'ace' :
+        ranks.includes('K') ? 'king' :
+        cards.length === 0 ? 'void' : cards.length === 1 ? 'singleton' : null;
+      evidence = { ...evidence, openerConventionalRebid: {
+        openingSuit, responseSuit, bidSuit, bidSuitLength: cards.length,
+        responseSupport: responseSuit === null ? 0 : facts.lengths[responseSuit],
+        topFourHonors: ranks.filter((rank) =>
+          rank === 'A' || rank === 'K' || rank === 'Q' || rank === 'J').length,
+        splinterWastedHcp: wasted, splinterWorkingHcp: facts.hcp - wasted,
+        sideControl,
       } };
     }
   }

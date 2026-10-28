@@ -4008,3 +4008,132 @@ export function getOpenerRaiseRebidFailureLines(
   }
   return [];
 }
+
+///
+//// Opener explanations after Jacoby 2NT, responder splinters, and jump shifts
+///
+
+const OPENER_CONVENTIONAL_IDS = [
+  'opener-rebid-shortness-after-major-jacoby-2nt',
+  'opener-rebid-side-suit-after-major-jacoby-2nt',
+  'opener-rebid-game-in-opening-major-after-major-jacoby-2nt',
+  'opener-rebid-3nt-after-major-jacoby-2nt',
+  'opener-rebid-strong-3-major-after-major-jacoby-2nt',
+  'opener-rebid-game-in-opening-major-after-major-splinter',
+  'opener-rebid-control-after-major-splinter',
+  'opener-rebid-pass-after-weak-jump-shift',
+  'opener-rebid-raise-after-strong-jump-shift',
+  'opener-rebid-repeat-opening-suit-after-strong-jump-shift',
+  'opener-rebid-new-suit-after-strong-jump-shift',
+  'opener-rebid-notrump-after-strong-jump-shift',
+];
+
+export function getOpenerConventionalRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_CONVENTIONAL_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((entry) => entry.ruleApplies && entry.call === result.normalizedCall);
+  const info = candidate?.callEvidence?.openerConventionalRebid;
+  if (info === undefined || candidate === undefined) return [];
+  const call = candidate.call;
+  const suitLength = info.bidSuitLength;
+  const openingLength = facts.lengths[info.openingSuit];
+  const splinterSuit = info.responseSuit === null ? 'the splinter suit'
+    : suitPlural(`1${info.responseSuit}` as Call);
+  let reason: string;
+  switch (rule.id) {
+    case 'opener-rebid-shortness-after-major-jacoby-2nt':
+      reason = `With ${facts.hcp} HCP and a ${suitLength === 0 ? 'void' : 'singleton'} in ` +
+        `${suitPlural(call)}, describe shortness first. Jacoby 2NT has already ` +
+        'established the major fit and forced game; this new-suit rebid is artificial.';
+      break;
+    case 'opener-rebid-side-suit-after-major-jacoby-2nt':
+      reason = `Your ${suitLength} ${suitPlural(call)} contain ` +
+        `${info.topFourHonors} of A/K/Q/J. The four-level side-suit treatment ` +
+        'requires at least five cards and two of those honors. It remains a ' +
+        'legitimate alternative when a three-level shortness description also qualifies.';
+      break;
+    case 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt':
+      reason = `With ${facts.hcp} HCP and no singleton or void, ${call} is ` +
+        'the minimum (up to 13 HCP) fast-arrival rebid after Jacoby 2NT. ' +
+        'Responder has already forced game; opener is not inviting it.';
+      break;
+    case 'opener-rebid-3nt-after-major-jacoby-2nt':
+      reason = `With ${facts.hcp} HCP and no singleton or void, 3NT ` +
+        'conventionally shows the medium 14–15 HCP opener. This is NOT a proposal ' +
+        'to play notrump; the major remains agreed trump and game is forced.';
+      break;
+    case 'opener-rebid-strong-3-major-after-major-jacoby-2nt':
+      reason = `With ${facts.hcp} HCP and no shortness, three of the agreed ` +
+        'major shows strong 16–21 HCP and slam interest. Responder cannot Pass ' +
+        'below game after the Jacoby 2NT game force.';
+      break;
+    case 'opener-rebid-game-in-opening-major-after-major-splinter':
+      reason = `Responder's splinter shows a game-forcing major fit and shortness in ` +
+        `${splinterSuit}. Choosing ${call} keeps the agreed major as trump. ` +
+        'A control bid may also qualify, but a splinter does not oblige a slam try.';
+      break;
+    case 'opener-rebid-control-after-major-splinter':
+      reason = `Responder's splinter shows shortness in ${splinterSuit}. ` +
+        `Your ${facts.hcp} HCP minus ${info.splinterWastedHcp} K/Q/J points ` +
+        `there give ${info.splinterWorkingHcp} working HCP (15+ required). ` +
+        `Your ${info.sideControl ?? 'control'} in ${suitPlural(call)} is the ` +
+        'cheapest available side-suit control below game. This explores slam; ' +
+        'four of the major remains a legitimate game choice.';
+      break;
+    case 'opener-rebid-pass-after-weak-jump-shift':
+      reason = `Responder's weak jump shift promises a six-card-or-longer suit ` +
+        'with approximately 4–7 HCP and is nonforcing. Passing with your ' +
+        `${facts.hcp} HCP respects that preemptive signoff; exceptional ` +
+        'continuations remain matters of judgment.';
+      break;
+    case 'opener-rebid-raise-after-strong-jump-shift':
+      reason = `Responder's strong jump shift already forces game and shows ` +
+        'five or more cards. Your ' +
+        `${info.responseSupport} ${info.responseSuit === null ? 'support cards' : suitPlural(`1${info.responseSuit}` as Call)} ` +
+        'meet the three-card support requirement. An economical raise shows ' +
+        'the fit without consuming unnecessary bidding space.';
+      break;
+    case 'opener-rebid-repeat-opening-suit-after-strong-jump-shift':
+      reason = `Your ${openingLength} ${suitPlural(`1${info.openingSuit}` as Call)} ` +
+        'meet the six-card requirement for an economical repeat. The strong ' +
+        'jump shift already forces game; this does not show a minimum or invite Pass.';
+      break;
+    case 'opener-rebid-new-suit-after-strong-jump-shift':
+      reason = `Your ${suitLength} ${suitPlural(call)} meet the four-card ` +
+        'second-suit requirement. The strong jump shift has already forced game, ' +
+        'so an economical second-suit bid needs no traditional reverse strength.';
+      break;
+    case 'opener-rebid-notrump-after-strong-jump-shift':
+      reason = `With ${facts.hcp} HCP and balanced or semi-balanced shape, ` +
+        `${call} describes your hand economically. Responder's strong jump ` +
+        'shift already forces game; this is not a partscore signoff.';
+      break;
+    default:
+      return [];
+  }
+  const others = [...new Set(result.ruleDiagnostics.flatMap((entry) =>
+    entry.candidates.filter((other) => other.ruleApplies && other.call !== call &&
+      OPENER_CONVENTIONAL_IDS.includes(other.rule.id)).map((other) => other.call)))];
+  return [`${reason}${others.length > 0 ? ` Other qualifying calls: ${others.slice(0, 3).join(', ')}.` : ''} ` +
+    `[${rule.id}]`];
+}
+
+/// Forcing obligations are certain even where the best rebid still needs judgment.
+export function getOpenerConventionalRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  const ids = result.ruleDiagnostics.map((entry) => entry.rule.id);
+  if (ids.some((id) => id.endsWith('-after-major-jacoby-2nt'))) {
+    return ['Jacoby 2NT has forced game and confirmed the major fit. Pass cannot ' +
+      'satisfy that obligation; opener must describe the hand or bid game.'];
+  }
+  if (ids.some((id) => id.endsWith('-after-major-splinter'))) {
+    return ['Responder’s splinter has forced game. Pass is not supported; opener ' +
+      'can choose major-suit game or explore slam with a qualifying control.'];
+  }
+  if (ids.some((id) => id.endsWith('-after-strong-jump-shift'))) {
+    return ['The selected strong jump-shift agreement forces game. Opener must ' +
+      'continue; an economical shape or fit rebid does not deny strength.'];
+  }
+  return [];
+}

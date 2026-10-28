@@ -462,6 +462,19 @@ export interface CallEvidence {
     previouslyPassed: boolean;
     forcingOneNt: boolean;
   };
+  // Observations for opener's first rebid after Jacoby 2NT, a splinter, or a jump shift.
+  // Eligibility remains exclusively with the corresponding bidding rule and refiner.
+  openerConventionalRebid?: {
+    openingSuit: Suit;
+    responseSuit: Suit | null;
+    bidSuit: Suit | null;
+    bidSuitLength: number;
+    responseSupport: number;
+    topFourHonors: number;
+    splinterWastedHcp: number;
+    splinterWorkingHcp: number;
+    sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
+  };
   openerTwoLevelNewSuitRebid?: {
     agreement: 'standard' | 'twoOverOne';
     openingSuit: Suit;
