@@ -14,10 +14,6 @@ Run the web version directly in your browser:
 
 No installation is required for the web version.
 
-Desktop builds for Windows and macOS may also be available from:
-
-[Downloads and releases](YOUR_GITHUB_RELEASES_URL)
-
 ## Using the app
 
 Start a new deal or select a prepared practice exercise.  Enter every call for every seat,
