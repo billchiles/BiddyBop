@@ -3852,7 +3852,6 @@ export function getOpenerRaiseRebidLines(
   if (candidate === undefined) return [];
   const id = rule.id;
   const call = candidate.call;
-  const majorFit = id.includes('-after-major-');
   const suitLength = facts.lengths[call.slice(-1) as keyof HandFacts['lengths']];
   const valuation = openerRaiseValue(id, facts);
   let reason: string;
