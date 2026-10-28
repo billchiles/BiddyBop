@@ -1297,7 +1297,8 @@ export function refineOpenerFiveCardMajorFallback (calls: Call[], context: RuleE
   if (context.handFacts.lengths[responderSuit] >= minSupport ||
       (context.handFacts.balanced && context.handFacts.hcp >= 12 &&
        context.handFacts.hcp <= 14)) {
-    return { calls: [], telemetryLines: ['Responder support or a minimum balanced 2NT rebid is available.'] };
+    return { calls: [], telemetryLines: ['Responder support or a minimum balanced 2NT rebid is available.'],
+             callEvidence: { openerFiveCardMajorFallback: 'support-or-notrump' } };
   }
   // An economical natural second suit is available only if it does not force preference higher.
   const hasEconomicalSecondSuit = SUITS.some((suit) => {
@@ -1310,13 +1311,15 @@ export function refineOpenerFiveCardMajorFallback (calls: Call[], context: RuleE
     return candidate !== null && ! openerRebidIsReverse(opening, response, candidate);
   });
   if (hasEconomicalSecondSuit) {
-    return { calls: [], telemetryLines: ['An economical natural four-card second suit is available.'] };
+    return { calls: [], telemetryLines: ['An economical natural four-card second suit is available.'],
+             callEvidence: { openerFiveCardMajorFallback: 'economical-second-suit' } };
   }
   // With no descriptive call, show the five-card major rather than promise reverse strength.
   const wantedCall = `2${opening.strain}` as SuitBid;
   return {
     calls: calls.filter((call) => call === wantedCall),
     telemetryLines: ['Minimum Standard fallback: five-card major repeat because no natural rebid fits.'],
+    callEvidence: { openerFiveCardMajorFallback: 'eligible' },
   };
 }
 
@@ -1460,7 +1463,15 @@ export function openerTwoLevelRaiseApplies (_call: Call, context: RuleEvalContex
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${required}-card opener support required after the ` +
     `natural two-level response; actual support ${support}, shortage points ${points}.`,
-  ] };
+  ],
+    callEvidence: { requirements: [
+      { kind: 'partnerSupport', suit: response?.strain as Suit | undefined,
+        actual: support, min: required, passed: support >= required },
+      { kind: 'totalPoints', actual: points, min: minPoints, max: maxPoints,
+        passed: (minPoints === undefined || points >= minPoints) &&
+                (maxPoints === undefined || points <= maxPoints) },
+    ] },
+  };
 }
 
 /// refineOpenerRaiseResponderSuitToLevel keeps the raise of responder's natural suit to the

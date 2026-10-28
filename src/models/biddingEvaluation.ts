@@ -526,6 +526,34 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
       } };
     }
   }
+  const twoLevelRebidFamily = context.stage === 'openerRebid' &&
+    (rule.id.includes('-after-minor-standard-two-level-new-suit') ||
+     rule.id.includes('-after-major-standard-two-level-new-suit') ||
+     rule.id.includes('-after-minor-two-over-one-new-suit') ||
+     rule.id.includes('-after-major-two-over-one-new-suit'));
+  if (twoLevelRebidFamily) {
+    const opening = getOpenerOpeningBid(context);
+    const responseCall = getResponderCall(context.dealer, context.auction);
+    const response = responseCall === null ? null : parseSuitBid(responseCall);
+    const rebid = parseSuitBid(call);
+    if (opening !== null && opening.strain !== 'NT' && response !== null &&
+        response.level === 2 && response.strain !== 'NT') {
+      const openingSuit = opening.strain as Suit;
+      const responseSuit = response.strain as Suit;
+      const rebidSuit = rebid === null || rebid.strain === 'NT' ? null : rebid.strain as Suit;
+      const facts = context.handFacts;
+      evidence = { ...evidence, openerTwoLevelNewSuitRebid: {
+        agreement: rule.id.includes('-standard-two-level-new-suit') ? 'standard' : 'twoOverOne',
+        openingSuit, responseSuit, rebidSuit,
+        openingLength: facts.lengths[openingSuit], responseSupport: facts.lengths[responseSuit],
+        rebidLength: rebidSuit === null ? 0 : facts.lengths[rebidSuit],
+        hcp: facts.hcp, lengthPoints: facts.lengthPoints, shortagePoints: facts.shortPoints,
+        totalLengthPoints: facts.totalPointsWLength,
+        totalShortagePoints: facts.totalPointsWShortage,
+        balanced: facts.balanced, balancedOrSemiBalanced: facts.balancedOrSemiBalanced,
+      } };
+    }
+  }
   return { rule, call, ruleApplies: result.success, telemetryLines,
            callEvidence: evidence };
 }
@@ -1029,6 +1057,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   const explainOpenerOneLevelNewSuitRebid = context.stage === 'openerRebid' &&
     (ruleId.endsWith('-after-minor-one-level-new-suit') ||
      ruleId.endsWith('-after-major-one-level-new-suit'));
+  const explainOpenerTwoLevelNewSuitRebid = context.stage === 'openerRebid' &&
+    (ruleId.includes('-after-minor-standard-two-level-new-suit') ||
+     ruleId.includes('-after-major-standard-two-level-new-suit') ||
+     ruleId.includes('-after-minor-two-over-one-new-suit') ||
+     ruleId.includes('-after-major-two-over-one-new-suit'));
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -1043,7 +1076,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid) {
+        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -1055,7 +1088,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance ||
         explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid) {
+        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -1070,7 +1103,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
           explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
           explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-          explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid) {
+          explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
             suitLength.exact === 4) {
           requirements.push({ kind: 'fourCardMajor', passed: result.pass });
@@ -1087,8 +1120,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
     if ((explainOpeningRequirements || explainMinorResponse || explainNaturalNtResponse ||
-         explainOpenerOneLevelNewSuitRebid) &&
-        constraint.shape.balanced === true) {
+         explainOpenerOneLevelNewSuitRebid ||
+         explainOpenerTwoLevelNewSuitRebid) && constraint.shape.balanced === true) {
       requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
         passed: context.handFacts.balanced });
     }
@@ -1098,6 +1131,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         constraint.shape.balanced === true ? 'balanced' :
         constraint.shape.balancedOrSemiBalanced === true ? 'balancedOrSemiBalanced' : null;
       if (shape !== null) requirements.push({ kind: 'rebidShape', shape, passed: result.pass });
+    }
+    if (explainOpenerTwoLevelNewSuitRebid &&
+        constraint.shape.balancedOrSemiBalanced === true) {
+      requirements.push({ kind: 'rebidShape', shape: 'balancedOrSemiBalanced',
+        passed: result.pass });
     }
     if (explainMinorResponse && constraint.shape.noFourCardMajor === true) {
       const noMajor = !context.handFacts.hasFourCardMajor;
@@ -1111,7 +1149,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
         explainNaturalAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneLevelNewSuitRebid) {
+        explainOpenerOneLevelNewSuitRebid ||
+        explainOpenerTwoLevelNewSuitRebid) {
       const supportSuit = getSupportSuitForStage(context);
       if (supportSuit !== null) {
         requirements.push({ kind: 'partnerSupport', suit: supportSuit,
@@ -1128,7 +1167,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
-      explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ?
+      explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
+      explainOpenerTwoLevelNewSuitRebid ?
         { requirements } : undefined };
 } //evaluateHandConstraint()
 

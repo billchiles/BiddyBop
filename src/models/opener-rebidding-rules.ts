@@ -3316,19 +3316,38 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-jump-raise-after-major-standard-two-level-new-suit',
     kind: 'openerRebid',
-    title: "Jump raise responder's suit with medium values",
+    title: "Invite a minor-suit game with medium values",
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
-    calls: ['4C', '4D', '4H', '4S'],
+    calls: ['4C', '4D'],
     callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 4);
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['invitational', 'natural'],
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
-    meaning: "Show medium values and normal support for responder's natural suit.",
+    meaning: "Invite 5C or 5D with medium values and normal minor-suit support.",
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'opener-rebid-heart-game-raise-after-major-standard-two-level-new-suit',
+    kind: 'openerRebid',
+    title: 'Bid 4H with medium values and a known heart fit',
+    auctionContext: {
+      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      responderCall: { kind: 'newSuit', level: 2, jump: 0 },
+    },
+    calls: ['4H'],
+    callRefinement: (calls: Call[], context: RuleEvalContext) : CallRefinementResult => {
+      return refineOpenerRaiseResponderSuitToLevel(calls, context, 4);
+    },
+    agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
+    callCategory: ['signoff', 'natural'],
+    appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
+    meaning: 'After 1S-2H, three-card support for the five-card heart response and 17-18 shortage points can justify bidding game directly.',
     certainty: 'high',
   },
   //

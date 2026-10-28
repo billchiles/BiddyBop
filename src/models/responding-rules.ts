@@ -85,8 +85,25 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['gameForcing'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
                  note: '2/1 treatment: 13+ and game forcing.' },
-    appliesWhen: { hcp: { min: 13 }, suitLengths: [{ suit: 'C', min: 5 }] },
-    meaning: 'Natural club response at the two level, forcing to game.',
+    appliesWhen: (_call, context): AppliesWhenResult => {
+      const passed = responderPreviouslyPassed(context.dealer, context.auction);
+      const hcp = context.handFacts.hcp;
+      const clubs = context.handFacts.lengths.C;
+      return {
+        success: !passed && hcp >= 13 && clubs >= 5,
+        telemetryLines: [
+          `${!passed ? 'PASS' : 'FAIL'}: a previously passed responder cannot establish a 2/1 game force.`,
+          `${hcp >= 13 ? 'PASS' : 'FAIL'}: 13+ HCP required; responder has ${hcp}.`,
+          `${clubs >= 5 ? 'PASS' : 'FAIL'}: five or more clubs required; responder has ${clubs}.`,
+        ],
+        callEvidence: { requirements: [
+          { kind: 'responderPreviouslyPassed', actual: passed, required: false, passed: !passed },
+          { kind: 'hcp', actual: hcp, min: 13, passed: hcp >= 13 },
+          { kind: 'suitLength', suit: 'C', actual: clubs, min: 5, passed: clubs >= 5 },
+        ] },
+      };
+    },
+    meaning: 'Natural club response at the two level, forcing to game only by an unpassed responder.',
     certainty: 'high',
   },
   //

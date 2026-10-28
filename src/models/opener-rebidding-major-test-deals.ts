@@ -448,7 +448,7 @@ export const OPENER_REBID_AFTER_MAJOR_STANDARD_TWO_LEVEL_NEW_SUIT_TEST_DEALS: Ru
     ],
     expectedOpenerRebidCalls: [
       { call: '3S', ruleIds: ['opener-rebid-jump-repeat-major-after-major-standard-two-level-new-suit'] },
-      { call: '4H', ruleIds: ['opener-rebid-jump-raise-after-major-standard-two-level-new-suit'] },
+      { call: '4H', ruleIds: ['opener-rebid-heart-game-raise-after-major-standard-two-level-new-suit'] },
     ],
     north: { S: 'AQJ985', H: 'KQ4', D: 'K82', C: '6' },
     south: { S: '42', H: 'AJT63', D: 'AQ9', C: 'J43' },

@@ -3522,3 +3522,215 @@ function isOpenerOneLevelNewSuitRule(id: string): boolean {
   return id.endsWith('-after-minor-one-level-new-suit') ||
     id.endsWith('-after-major-one-level-new-suit');
 }
+
+///
+//// Opener's first rebid after a natural two-level new-suit response
+///
+
+function isOpenerTwoLevelNewSuitRule(id: string): boolean {
+  return id.includes('-after-minor-standard-two-level-new-suit') ||
+    id.includes('-after-major-standard-two-level-new-suit') ||
+    id.includes('-after-minor-two-over-one-new-suit') ||
+    id.includes('-after-major-two-over-one-new-suit');
+}
+
+/// Explain the actual qualifying bid, including its forcing implications under Standard or 2/1.
+/// Several rebids can qualify simultaneously; do not turn the recorded call into the only answer.
+export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!isOpenerTwoLevelNewSuitRule(rule.id)) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const facts = candidate.callEvidence?.openerTwoLevelNewSuitRebid;
+  if (facts === undefined) return [];
+  const { openingSuit, responseSuit, openingLength, responseSupport, rebidLength, hcp,
+          totalLengthPoints, totalShortagePoints, lengthPoints, shortagePoints,
+          agreement, balanced } = facts;
+  const id = rule.id;
+  const call = candidate.call;
+  const opening = suitPlural(`1${openingSuit}` as Call);
+  const response = suitPlural(`1${responseSuit}` as Call);
+  const forcing = agreement === 'standard' ?
+    `Responder's natural two-level new suit is forcing for one round, but not to game.` :
+    `Responder's natural two-level new suit has already established a game force.`;
+  const lengthValue = `${totalLengthPoints} total points (${hcp} HCP + ${lengthPoints} length points)`;
+  const shortageValue = `${totalShortagePoints} shortage points (${hcp} HCP + ${shortagePoints} short-suit points)`;
+  const usesShortage = id.includes('-raise-');
+  const value = usesShortage ? shortageValue : lengthValue;
+  const isGame = call === '3NT' || call === '4H' || call === '4S' ||
+    call === '5C' || call === '5D';
+  let reason: string;
+
+  if (id.includes('-five-card-major-fallback-')) {
+    if (diagnostic?.callEvidence?.openerFiveCardMajorFallback !== 'eligible') return [];
+    reason = `The ordinary two-level repeat promises six ${opening}, but this hand has only ` +
+      `${openingLength}. With minimum ${value}, no normal support, balanced notrump or ` +
+      `economical second-suit rebid was available. This rare five-card fallback satisfies ` +
+      `the one-round force; responder must not assume six ${opening}.`;
+  } else if (id.includes('-repeat-diamonds-after-minor-two-over-one-')) {
+    reason = `Your ${openingLength} diamonds satisfy the five-card requirement. Under 2/1, ` +
+      `2D describes diamonds economically without promising a minimum or extra strength; ` +
+      `the partnership is already committed to game.`;
+  } else if (id.includes('-repeat-') && !id.includes('-jump-')) {
+    const minimumLength = id.includes('-repeat-diamonds-after-minor-standard-') ? 5 : 6;
+    reason = `Your ${openingLength} ${opening} meet the ${minimumLength}-card requirement for ` +
+      `this economical repeat with ${value}.`;
+    if (minimumLength === 5 && openingLength === 5) {
+      reason += ` Normally 2D suggests six diamonds; a five-card repeat can be practical ` +
+        `with a minimum hand when a four-card major would require a strong reverse. ` +
+        `This rule does not require that all other descriptions be unavailable.`;
+    } else if (agreement === 'standard') {
+      reason += ` This is a minimum description rather than a strength-showing jump.`;
+    } else {
+      reason += ` The game force is already established, so an economical repeat need not ` +
+        `describe a minimum hand.`;
+    }
+  } else if (id.includes('-reverse-')) {
+    reason = `With ${openingLength} ${opening}, ${rebidLength} cards in the second suit, ` +
+      `and ${lengthValue}, you meet the Standard reverse requirements (17–21 total ` +
+      `points, at least five ${opening}, and at least four cards in the second suit). ` +
+      `The reverse (responder must bid at the three level to return to ${opening}) ` +
+      `therefore shows extra strength in this non-game-forcing auction.`;
+  } else if (id.includes('-major-after-minor-two-over-one-')) {
+    reason = `With fewer than five diamonds and four or more cards in this major, ` +
+      `${call} shows the second suit economically. Although the same auction would be a ` +
+      `strength-showing reverse in Standard, 2/1 has already established a game force; ` +
+      `this rebid makes no extra-strength promise. With two four-card majors, hearts ` +
+      `are shown before spades.`;
+  } else if (id.includes('-second-suit-')) {
+    reason = `Your ${rebidLength}-card second suit meets the natural four-card requirement. ` +
+      (agreement === 'standard'
+        ? `With ${value}, this economical rebid does not force responder above two of ` +
+          `${opening} to give preference, so no reverse strength is promised.`
+        : `The already-established game force lets opener describe the suit at the ` +
+          `cheapest available level, even if responder would need the three level to ` +
+          `return to ${opening}. No traditional 17+ reverse strength is required.`);
+  } else if (id.includes('-jump-shift-')) {
+    reason = `Your ${rebidLength}-card second suit and ${value} meet the 19–21 total-point ` +
+      `maximum-strength jump-shift treatment. A cheaper natural rebid could show ` +
+      `the second suit without advertising these extras; this jump establishes a game force.`;
+  } else if (id.includes('-heart-game-raise-')) {
+    reason = `Responder promised at least five hearts, and your ${responseSupport} ${response} ` +
+      `complete an eight-card fit. With ${shortageValue}, ${call} bids a major-suit ` +
+      `game directly; it is not an invitation to game.`;
+  } else if (id.includes('-game-raise-') || id.includes('-simple-raise-') ||
+             id.includes('-jump-raise-')) {
+    const required = agreement === 'twoOverOne' && openingSuit === 'D' ? 4 :
+      ((openingSuit === 'S' && responseSuit === 'H') ||
+       (openingSuit === 'D' && responseSuit === 'C') ? 3 : 4);
+    const fitText = `Responder's ${response} and your ${responseSupport}-card support ` +
+      `meet the ${required}-card support requirement.`;
+    if (id.includes('-game-raise-')) {
+      reason = `${fitText} Your ${shortageValue} qualify for the 19–21 shortage-point ` +
+        `direct game raise, rather than a minimum or invitational raise.`;
+    } else if (id.includes('-jump-raise-')) {
+      reason = `${fitText} Your ${shortageValue} fall in the 17–18 shortage-point ` +
+        `invitational range. ${call} invites five of the agreed minor; responder may ` +
+        `still decide not to bid game.`;
+    } else if (agreement === 'standard') {
+      reason = `${fitText} Your ${shortageValue} satisfy the ordinary 12–16 shortage-point ` +
+        `simple-raise range. This does not promise the extra strength for a jump raise.`;
+    } else {
+      reason = `${fitText} An economical raise confirms the fit without consuming more ` +
+        `bidding room. It does not limit opener's strength because game is already forced.`;
+    }
+    if (agreement === 'twoOverOne' && id.includes('-after-minor-')) {
+      reason += ` This selected 1D–2C treatment requires four clubs for the 3C raise, ` +
+        `though responder promised five or more.`;
+    }
+  } else if (id.includes('-jump-repeat-')) {
+    reason = `Your ${openingLength} ${opening} and ${value} meet the six-card, 17–18 ` +
+      `total-point jump-repeat treatment. This stronger rebid contrasts with a ` +
+      `minimum economical repeat. The jump is forcing for another round, but does not ` +
+      `by itself establish a game force.`;
+  } else if (id.includes('-2nt-')) {
+    reason = agreement === 'standard'
+      ? `Your ${hcp} HCP and ${balanced ? 'balanced' : 'unbalanced'} shape satisfy ` +
+        `the natural 12–14 HCP 2NT rebid. This uses HCP, not length points, and ` +
+        `does not establish a game force.`
+      : `With ${hcp} HCP and balanced or semi-balanced shape, 2NT describes the ` +
+        `hand economically. The game force already exists, so 2NT is not limited ` +
+        `to 12–14 HCP; in 1D–2C this treatment denies five diamonds and a ` +
+        `four-card major.`;
+  } else if (id.includes('-3nt-')) {
+    reason = `Your ${hcp} HCP and balanced shape meet the natural 18–19 HCP ` +
+      `3NT range. ${call} places the partnership in game rather than making a ` +
+      `12–14 HCP economical 2NT rebid.`;
+  } else if (id.includes('-game-in-diamonds-') || id.includes('-game-same-major-')) {
+    reason = `Your ${openingLength} ${opening} and ${value} meet the seven-card, 19–21 ` +
+      `total-point game treatment. This bids game directly rather than repeating ` +
+      `the long suit economically or inviting with a jump repeat.`;
+  } else {
+    return [];
+  }
+  const other = [...new Set(result.ruleDiagnostics.flatMap((item) => item.candidates)
+    .filter((item) => item.ruleApplies && item.call !== call &&
+      isOpenerTwoLevelNewSuitRule(item.rule.id)).map((item) => item.call))];
+  const alternatives = other.length > 0 ?
+    ` Other qualifying descriptions include ${other.slice(0, 3).join(', ')}; ` +
+      `this need not be the only reasonable rebid.` : '';
+  const obligation = agreement === 'twoOverOne' && isGame ?
+    ` Game has now been reached, so the original game force is fulfilled.` : '';
+  return [`${forcing} ${reason}${alternatives}${obligation} [${id}]`];
+}
+
+/// A failed qualification is evidence only for the actual attempted call and a rule
+/// that tested it. Refined-out bids cannot be blamed on untested hand requirements.
+export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult): string[] {
+  const attempted = result.normalizedCall;
+  if (attempted === null || result.userCallMatchingRules.length > 0) return [];
+  const relevant = result.ruleDiagnostics.filter((item) =>
+    isOpenerTwoLevelNewSuitRule(item.rule.id));
+  if (relevant.length === 0) return [];
+  if (attempted === 'Pass') {
+    const gameForce = relevant.some((item) => item.rule.id.includes('-two-over-one-new-suit'));
+    return [gameForce ?
+      'Responder’s natural 2/1 response has already established a game force. Pass below ' +
+      'game cannot satisfy that obligation.' :
+      'Responder’s natural two-level new suit is forcing for one round. Opener must ' +
+      'bid again when the opponents Pass, even with a minimum hand.'];
+  }
+  for (const diagnostic of relevant) {
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === attempted && !item.ruleApplies);
+    if (candidate === undefined) continue;
+    const facts = candidate.callEvidence?.openerTwoLevelNewSuitRebid;
+    if (facts === undefined) continue;
+    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    if (failed === undefined) continue;
+    let explanation: string;
+    if (failed.kind === 'hcp' || failed.kind === 'totalPoints') {
+      const measure = failed.kind === 'hcp' ? 'HCP' : 'total points';
+      const range = failed.min !== undefined && failed.max !== undefined ?
+        `${failed.min}–${failed.max}` : failed.min !== undefined ?
+        `at least ${failed.min}` : `at most ${failed.max}`;
+      const shortage = diagnostic.rule.id.includes('-raise-');
+      const actual = failed.actual;
+      explanation = `${attempted} requires ${range} ${shortage && failed.kind === 'totalPoints' ?
+        'shortage points' : measure}; you have ${actual}, ` +
+        `${failed.min !== undefined && actual < failed.min ? 'too few' : 'too many'} ` +
+        `for this treatment.`;
+    } else if (failed.kind === 'partnerSupport') {
+      explanation = `${attempted} requires ${failed.min ?? 0} or more cards in responder's ` +
+        `${suitPlural(`1${facts.responseSuit}` as Call)}; you have ${failed.actual}.`;
+    } else if (failed.kind === 'suitLength') {
+      const suit = failed.suit === undefined ? 'the tested suit' :
+        suitPlural(`1${failed.suit}` as Call);
+      const criterion = failed.max !== undefined && failed.actual > failed.max ?
+        `at most ${failed.max}` : failed.min !== undefined ? `at least ${failed.min}` :
+        `exactly ${failed.exact}`;
+      explanation = `${attempted} requires ${criterion} cards in ${suit}; ` +
+        `you have ${failed.actual}.`;
+    } else if (failed.kind === 'balanced') {
+      explanation = `${attempted} requires a balanced hand; this hand is not balanced.`;
+    } else if (failed.kind === 'rebidShape') {
+      explanation = `${attempted} requires ${failed.shape === 'balancedOrSemiBalanced' ?
+        'balanced or semi-balanced' : 'balanced'} shape, which this hand lacks.`;
+    } else {
+      continue;
+    }
+    return [`${explanation} [${diagnostic.rule.id}]`];
+  }
+  return [];
+}
+
