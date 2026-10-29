@@ -38,12 +38,16 @@ not a historical progress log or a commitment to model every possible auction.
   Most ordinary overcalls/Doubles, jump overcalls and balancing have substantial
   instruction; see provisional dispositions in the [instructional review](instructional-explanation-review.md).
   This is a source review, not complete UI play-through sign-off.
-- [ ] **Validate and improve three focused direct-defense gaps.** Inspect representative
-  accepted/rejected feedback and implement only justified improvements: the initial
-  DONT call (actual shape and choice), natural weak-two suit overcalls (length/quality
-  and cheapest-bid reasons), and natural 2NT over weak twos (balanced/HCP/stopper
-  evidence). Then spot-check previously developed direct overcalls and balancing
-  in normal feedback and recorded-call substitutions.
+- [x] **Initial DONT explanation evidence and teaching.** Preserve evaluated
+  shape, honor-quality and HCP facts for all five first DONT treatments; explain
+  supported and unsupported calls without changing the bidding agreement. Verified
+  with targeted rule tests and CI; browser play-through review remains part of the
+  final explanation-integration quality gate.
+- [ ] **Validate and improve two remaining direct-defense gaps.** Inspect representative
+  feedback for natural suit overcalls against weak-two openings (length, honor quality,
+  cheapest-bid selection) and natural 2NT over weak twos (HCP, balanced shape and
+  stopper evidence). Then spot-check previously developed direct overcalls and
+  balancing in normal feedback and recorded-call substitutions.
 - [ ] **Validate selected earlier response/advancing corners (B9–B20).** Especially
   agreements after 1NT/2NT and strong 2C, weak preempt defense/advancing,
   Jordan 2NT/Redouble, competitive negative/responsive Doubles, and unmodeled high
