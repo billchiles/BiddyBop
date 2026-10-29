@@ -1023,6 +1023,39 @@ export function openerForcingResponseCompetitionScopeBoundaryApplies (
   };
 }
 
+/// Pass of a weak competitive response after a takeout Double is selected for a
+/// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
+/// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
+export function openerWeakAfterDoublePassApplies(
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem,
+    requireNtShape = false): AppliesWhenResult {
+  const facts = context.handFacts;
+  const ordinary = facts.hcp >= 12 && facts.hcp <= 14;
+  const light = facts.hcp < 12 && facts.totalPointsWLength >= 12;
+  const shape = !requireNtShape || facts.balancedOrSemiBalanced;
+  return { success: (ordinary || light) && shape, telemetryLines: [
+    `${ordinary || light ? 'PASS' : 'FAIL'}: opener has ${facts.hcp} HCP + ` +
+      `${facts.lengthPoints} length points = ${facts.totalPointsWLength}; ` +
+      'minimum is 12–14 HCP or a length-qualified lighter opening.',
+    `${shape ? 'PASS' : 'FAIL'}: ${requireNtShape
+      ? 'natural 1NT Pass needs balanced or semi-balanced opener shape'
+      : 'no additional shape test for this nonforcing action'}.`,
+  ] };
+}
+
+/// Strong openers after a weak, nonforcing response need fit and game judgment.
+/// The scope boundary is not a recommendation against Pass.
+export function openerWeakAfterDoubleBoundaryApplies(
+    context: RuleEvalContext, naturalOneNt = false): AppliesWhenResult {
+  const facts = context.handFacts;
+  const stronger = facts.hcp >= 15;
+  const ntShapeJudgment = naturalOneNt && !facts.balancedOrSemiBalanced;
+  return { success: stronger || ntShapeJudgment, telemetryLines: [
+    `${stronger || ntShapeJudgment ? 'PASS' : 'FAIL'}: further judgment after weak response; ` +
+      `${facts.hcp} HCP, shape ${facts.balancedOrSemiBalanced ? 'balanced/semi-balanced' : 'distributional'}.`,
+  ] };
+}
+
 /// An opening with fewer than 12 HCP may be legitimate on length-adjusted 12+ points.
   // The natural-notrump responder ranges remain HCP ranges: do not misclassify
   // a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.

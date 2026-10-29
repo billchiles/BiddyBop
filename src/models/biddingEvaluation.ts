@@ -593,6 +593,24 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
       } };
     }
   }
+  const weakCompetitiveRebid = context.stage === 'openerRebid' && rule.kind === 'openerRebid' &&
+    (rule.id.startsWith('opener-rebid-pass-after-double-') ||
+     rule.id === 'opener-rebid-pass-after-overcall-preemptive-three-level-raise' ||
+     rule.id === 'opener-rebid-pass-after-opponent-1nt-weak-new-suit' ||
+     rule.id === 'opener-rebid-pass-after-opponent-1nt-preemptive-raise');
+  if (weakCompetitiveRebid) {
+    const first = getOpenerOpeningBid(context);
+    const responseCall = getResponderCall(context.dealer, context.auction);
+    const response = responseCall === null ? null : parseSuitBid(responseCall);
+    if (first !== null && first.strain !== 'NT' && responseCall !== null) {
+      const openingSuit = first.strain as Suit;
+      const responseSuit = response !== null && response.strain !== 'NT' &&
+        response.strain !== first.strain ? response.strain as Suit : null;
+      evidence = { ...evidence, openerWeakCompetitiveRebid: {
+        openingSuit, responseCall, responseSuit,
+      } };
+    }
+  }
   const competitiveNaturalNtRebid = context.stage === 'openerRebid' &&
     rule.id.includes('-after-overcall-natural-') && rule.kind === 'openerRebid';
   if (competitiveNaturalNtRebid) {

@@ -12,7 +12,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
-         getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines }
+         getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
+         getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -1213,6 +1214,95 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
       call === 'Pass' && rule.id === 'opener-rebid-pass-after-double-weak-jump-raise')) {
     failures += 1;
     console.error("FAIL minimum opener could not Pass responder's weak preemptive jump raise.");
+  }
+
+  // Minimum Passes after a Double recognize the same legitimate light one-level
+  // openings as the opening evaluator; natural 1NT still requires suitable shape.
+  const weakLight = { S: 'Q7', H: 'AKJ842', D: '853', C: '82' };
+  const weakStrong = { S: 'Q72', H: 'AKJ85', D: 'J53', C: 'A7' };
+  const weakUnbalanced = { S: 'Q7', H: 'AKJ8542', D: '853', C: '8' };
+  const weakNtResponse = { S: 'KT5', H: 'T76', D: 'A96', C: 'Q964' };
+  const weakDiamondResponse = { S: 'T95', H: '7', D: 'AQT964', C: 'QJ3' };
+  const weakClubJumpResponse = { S: 'T9', H: '7', D: 'A964', C: 'QJT653' };
+  const weakHeartRaise = { S: 'T95', H: 'Q973', D: '964', C: 'QJ3' };
+  const weakPassCases: { label: string; response: Call; north: typeof weakLight;
+    south: typeof weakLight; ruleId: string; expected: string }[] = [
+    { label: 'natural 1NT', response: '1NT', north: weakLight,
+      south: weakNtResponse, ruleId: 'opener-rebid-pass-after-double-natural-1nt-minimum',
+      expected: '10 HCP + 2 length points = 12 opening points' },
+    { label: 'weak two-level natural suit', response: '2D', north: weakLight,
+      south: weakDiamondResponse, ruleId: 'opener-rebid-pass-after-double-weak-two-level-new-suit',
+      expected: '5–9 HCP' },
+    { label: 'weak three-level jump shift', response: '3C', north: weakLight,
+      south: weakClubJumpResponse,
+      ruleId: 'opener-rebid-pass-after-double-weak-three-level-new-suit',
+      expected: '4–7 HCP' },
+    { label: 'weak three-level raise', response: '3H', north: weakLight,
+      south: weakHeartRaise, ruleId: 'opener-rebid-pass-after-double-weak-jump-raise',
+      expected: 'preemptive raise' },
+  ];
+  for (const test of weakPassCases) {
+    const { board } = makeRuleTestBoard({
+      description: 'Light opener after takeout Double and ' + test.label,
+      practiceAuction: ['1H', 'Double', test.response, 'Pass', 'Pass'],
+      north: test.north, south: test.south,
+    });
+    const opening = getApplicableCandidateCalls(evaluateUserCall(
+      '1H', board, [], defaultBiddingSystem));
+    const result = evaluateUserCall('Pass', board,
+      ['1H', 'Double', test.response, 'Pass'], defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((entry) => entry.id === test.ruleId);
+    const reason = rule === undefined ? [] :
+      getOpenerWeakCompetitiveRebidLines(result, rule, getHandFacts(board.deal.N));
+    checks += 1;
+    if (!opening.some(({ rule: candidateRule, call }) =>
+        call === '1H' && candidateRule.id === 'open-five-card-major') ||
+        rule === undefined || !reason.some((line) => line.includes(test.expected))) {
+      failures += 1;
+      console.error(`FAIL weak competitive light opening ${test.label}: ${reason.join(' | ')}.`);
+    }
+  }
+  // A distributional light opener is not automatically left in responder's natural 1NT.
+  const { board: weakUnbalancedBoard } = makeRuleTestBoard({
+    description: 'Seven-card suit opener does not automatically Pass natural 1NT after Double',
+    practiceAuction: ['1H', 'Double', '1NT', 'Pass'],
+    north: weakUnbalanced, south: weakNtResponse,
+  });
+  const unbalancedStatus = getBiddingTurnStatus(weakUnbalancedBoard,
+    ['1H', 'Double', '1NT', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (unbalancedStatus.kind !== 'scopeBoundary' ||
+      unbalancedStatus.rule.id !== 'opener-rebid-scope-boundary-after-double-natural-1nt') {
+    failures += 1;
+    console.error('FAIL distributional light opener did not reach 1NT shape boundary.');
+  }
+  const strongWeakCases: { response: Call; south: typeof weakNtResponse;
+    boundary: string }[] = [
+    { response: '1NT', south: weakNtResponse,
+      boundary: 'opener-rebid-scope-boundary-after-double-natural-1nt' },
+    { response: '2D', south: weakDiamondResponse,
+      boundary: 'opener-rebid-scope-boundary-after-double-weak-two-level-new-suit' },
+    { response: '3C', south: weakClubJumpResponse,
+      boundary: 'opener-rebid-scope-boundary-after-double-weak-three-level-new-suit' },
+    { response: '3H', south: weakHeartRaise,
+      boundary: 'opener-rebid-scope-boundary-after-double-weak-jump-raise' },
+  ];
+  for (const test of strongWeakCases) {
+    const { board } = makeRuleTestBoard({
+      description: 'Extra value opener after Double weak ' + test.response,
+      practiceAuction: ['1H', 'Double', test.response, 'Pass'],
+      north: weakStrong, south: test.south,
+    });
+    const auction: Call[] = ['1H', 'Double', test.response, 'Pass'];
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    const rejected = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
+    checks += 1;
+    if (status.kind !== 'scopeBoundary' || status.rule.id !== test.boundary ||
+        !getOpenerWeakCompetitiveRebidFailureLines(
+          rejected, getHandFacts(board.deal.N)).some((line) => line.includes('15 HCP'))) {
+      failures += 1;
+      console.error(`FAIL strong opener weak-response judgment after ${test.response}.`);
+    }
   }
 
   // Advancer semantics are part of opener's context: the same contract text can be a natural

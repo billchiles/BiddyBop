@@ -677,6 +677,13 @@ families.
 
 Natural 1NT, weak two-/three-level new suits, and a weak jump raise after a takeout Double are
 nonforcing responder actions. A minimum opener may Pass them rather than manufacture a rebid.
+The selected 12–14-HCP minimum Pass treatment also accepts a legitimate opener with fewer
+than 12 HCP when length points bring the opening to 12 or more; after natural 1NT the opener
+must additionally be balanced or semi-balanced. A distributional hand after natural 1NT, or
+a 15+-HCP opener after any of these weak responses, receives judgment guidance rather than
+an automatic contract recommendation. This does not reclassify a weak response as forcing.
+The explanations distinguish responder's specific weak suit or support requirements,
+length-point opening valuations, and shortage-adjusted support valuations.
 After a negative Double of a natural suit overcall, opener first looks for four-card support in
 one of the suits the Double implied. With advancer Pass, a minimum opener bids that fit economically,
 a medium opener jumps one level, and maximum values place an implied major in game. When both

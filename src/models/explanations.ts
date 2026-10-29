@@ -4364,6 +4364,134 @@ export function getOpenerNegativeDoubleRebidFailureLines(
 }
 
 ///
+//// Opener after weak, nonforcing competitive responses
+///
+
+const OPENER_WEAK_COMPETITIVE_IDS = [
+  'opener-rebid-pass-after-overcall-preemptive-three-level-raise',
+  'opener-rebid-pass-after-opponent-1nt-weak-new-suit',
+  'opener-rebid-pass-after-opponent-1nt-preemptive-raise',
+  'opener-rebid-pass-after-double-natural-1nt-minimum',
+  'opener-rebid-pass-after-double-weak-two-level-new-suit',
+  'opener-rebid-pass-after-double-weak-three-level-new-suit',
+  'opener-rebid-pass-after-double-weak-jump-raise',
+];
+
+/// Explain the precise weak response and the valuation used for opener's minimum Pass.
+export function getOpenerWeakCompetitiveRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_WEAK_COMPETITIVE_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.ruleApplies && item.call === result.normalizedCall);
+  const info = candidate?.callEvidence?.openerWeakCompetitiveRebid;
+  if (candidate === undefined || info === undefined) return [];
+  const suit = info.responseSuit === null ? '' :
+    suitPlural(`1${info.responseSuit}` as Call);
+  const openingSuit = suitPlural(`1${info.openingSuit}` as Call);
+  const isRaise = rule.id.includes('preemptive-three-level-raise') ||
+    rule.id.includes('preemptive-raise');
+  const pointValue = isRaise
+    ? `${facts.hcp} HCP + ${facts.shortPoints} shortage points = ` +
+      `${facts.totalPointsWShortage} support points`
+    : facts.hcp < 12
+      ? `${facts.hcp} HCP + ${facts.lengthPoints} length points = ` +
+        `${facts.totalPointsWLength} opening points`
+      : `${facts.hcp} HCP`;
+  let promise: string;
+  let decision: string;
+  switch (rule.id) {
+    case 'opener-rebid-pass-after-overcall-preemptive-three-level-raise':
+      promise = `Partner's ${info.responseCall} is a weak, preemptive raise: four or ` +
+        `more ${openingSuit} and fewer than 10 shortage-adjusted support points. ` +
+        'It is not an invitational limit raise.';
+      decision = 'The selected 12–15 support-point minimum allows Pass; game is not automatic.';
+      break;
+    case 'opener-rebid-pass-after-opponent-1nt-preemptive-raise':
+      promise = `After the opposing natural 1NT, partner's ${info.responseCall} ` +
+        `is a weak jump raise with 0–6 HCP, at most nine support points, and substantial ${openingSuit} support.`;
+      decision = 'The selected 12–15 support-point minimum accepts this nonforcing raise.';
+      break;
+    case 'opener-rebid-pass-after-opponent-1nt-weak-new-suit':
+      promise = `After the opposing natural 1NT, partner's ${info.responseCall} ` +
+        `shows a good six-card-or-longer ${suit} suit with 5–9 HCP; it is nonforcing.`;
+      decision = `Your minimum values permit Pass to play in partner's ${suit}. ` +
+        'A natural two-level response here is not an uncontested 2/1 game force.';
+      break;
+    case 'opener-rebid-pass-after-double-natural-1nt-minimum':
+      promise = `After the opposing takeout Double, partner's natural 1NT ` +
+        'shows 6–9 HCP and balanced shape; it is nonforcing.';
+      decision = `Your ${facts.balanced ? 'balanced' : 'semi-balanced'} shape and minimum ` +
+        'values allow Pass. No opposing suit was named, so responder did not promise a stopper.';
+      break;
+    case 'opener-rebid-pass-after-double-weak-two-level-new-suit':
+      promise = `After the opposing takeout Double, partner's natural ${info.responseCall} ` +
+        `shows a good six-card-or-longer ${suit} suit and 5–9 HCP. It is nonforcing, ` +
+        'not an uncontested forcing two-level response.';
+      decision = 'Your minimum opening values allow Pass rather than inventing a rebid.';
+      break;
+    case 'opener-rebid-pass-after-double-weak-three-level-new-suit':
+      promise = `After the opposing takeout Double, partner's ${info.responseCall} ` +
+        `is a weak jump shift: a six-card-or-longer ${suit} suit with 4–7 HCP, nonforcing.`;
+      decision = 'Your minimum opening values allow Pass; this is not a strong jump shift.';
+      break;
+    case 'opener-rebid-pass-after-double-weak-jump-raise':
+      promise = `After the opposing takeout Double, partner's ${info.responseCall} ` +
+        `is a weak, preemptive raise with 0–6 HCP and at least four ${openingSuit} ` +
+        '(five clubs when opening clubs), not an invitational limit raise.';
+      decision = 'The selected 12–14-HCP minimum allows Pass, without requiring game.';
+      break;
+    default:
+      return [];
+  }
+  return [`${promise} Your hand has ${pointValue}. ${decision} [${rule.id}]`];
+}
+
+/// A stronger opener's Pass may still be sensible; report only why the selected
+/// deterministic minimum treatment does not confirm it, not that bridge Pass is wrong.
+export function getOpenerWeakCompetitiveRebidFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  for (const entry of result.ruleDiagnostics) {
+    if (!OPENER_WEAK_COMPETITIVE_IDS.includes(entry.rule.id)) continue;
+    const rejected = entry.candidates.find((candidate) =>
+      candidate.call === 'Pass' && !candidate.ruleApplies &&
+      candidate.callEvidence?.openerWeakCompetitiveRebid !== undefined);
+    if (rejected === undefined) continue;
+    const id = entry.rule.id;
+    if (id.includes('-after-double-')) {
+      if (id.endsWith('-natural-1nt-minimum') && !facts.balancedOrSemiBalanced &&
+          (facts.hcp <= 14 || facts.totalPointsWLength >= 12)) {
+        return [`The selected Pass [${id}] after natural 1NT needs balanced or semi-balanced ` +
+          'opener shape. A more distributional hand needs judgment; Pass is not necessarily wrong.'];
+      }
+      if (facts.hcp > 14) {
+        return [`The selected minimum Pass [${id}] applies through 14 HCP (or to a ` +
+          `lighter opening qualified by length points); you have ${facts.hcp} HCP. ` +
+          'With extras, Pass or bidding on requires judgment.'];
+      }
+      if (facts.hcp < 12 && facts.totalPointsWLength < 12) {
+        return [`The selected minimum Pass [${id}] requires a legitimate opening. Your ` +
+          `${facts.hcp} HCP + ${facts.lengthPoints} length points = ` +
+          `${facts.totalPointsWLength}, below the 12-point opening minimum.`];
+      }
+      continue;
+    }
+    if (id.includes('preemptive-raise') || id.includes('preemptive-three-level-raise')) {
+      return [`The selected minimum Pass [${id}] uses 12–15 support points. ` +
+        `Your ${facts.hcp} HCP + ${facts.shortPoints} shortage points = ` +
+        `${facts.totalPointsWShortage}. Further bidding—or Pass with extras—needs judgment.`];
+    }
+    if (id.endsWith('-weak-new-suit')) {
+      return [`The selected minimum Pass [${id}] accepts 12–15 HCP or a lighter opening ` +
+        `with 12–15 length-adjusted points. Your hand has ${facts.hcp} HCP + ` +
+        `${facts.lengthPoints} length points = ${facts.totalPointsWLength}. ` +
+        'With extras, Pass can still be right but is not automatically confirmed.'];
+    }
+  }
+  return [];
+}
+
+///
 //// Opener after natural notrump responses in competition
 ///
 

@@ -475,6 +475,12 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // Auction facts for the selected minimum Passes after weak competitive responses.
+  openerWeakCompetitiveRebid?: {
+    openingSuit: Suit;
+    responseCall: Call;
+    responseSuit: Suit | null;
+  };
   // Auction facts for opener's natural notrump-response continuations after a suit overcall.
   // The rule declarations, not these facts, decide which call qualifies.
   openerCompetitiveNaturalNtRebid?: {
