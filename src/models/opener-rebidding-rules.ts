@@ -2060,15 +2060,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-        id: 'opener-rebid-pass-after-double-natural-1nt-minimum',
-    kind: 'openerRebid',
-    title: 'Pass a natural 1NT response after a takeout Double with a minimum',
-    auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
-      interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 1 },
-    },
-    calls: ['Pass'],
-    callCategory: ['signoff'],
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system, true),
     meaning: 'Responder made a natural nonforcing 1NT bid; a minimum opener may play there.',
@@ -2076,15 +2067,6 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-double-weak-two-level-new-suit',
-    kind: 'openerRebid',
-    title: 'Pass a weak two-level new-suit response after a takeout Double',
-    auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
-      interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 2 },
-    },
-    calls: ['Pass'],
-    callCategory: ['signoff'],
-        id: 'opener-rebid-pass-after-double-weak-two-level-new-suit',
     kind: 'openerRebid',
     title: 'Pass a weak two-level new-suit response after a takeout Double',
     auctionContext: {
@@ -2108,15 +2090,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-        id: 'opener-rebid-pass-after-double-weak-three-level-new-suit',
-    kind: 'openerRebid',
-    title: 'Pass a weak jump shift after a takeout Double',
-    auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
-      interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 3 },
-    },
-    calls: ['Pass'],
-    callCategory: ['signoff'],
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system),
     meaning: "Responder's jump shift is weak and nonforcing; a minimum opener may Pass.",
@@ -2124,15 +2097,6 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-double-weak-jump-raise',
-    kind: 'openerRebid',
-    title: 'Pass a weak jump raise after a takeout Double',
-    auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
-      interference: 'takeoutDouble', responderCall: { kind: 'raise', level: 3 },
-    },
-    calls: ['Pass'],
-    callCategory: ['signoff'],
-        id: 'opener-rebid-pass-after-double-weak-jump-raise',
     kind: 'openerRebid',
     title: 'Pass a weak jump raise after a takeout Double',
     auctionContext: {
