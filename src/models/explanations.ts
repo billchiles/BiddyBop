@@ -850,6 +850,76 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
 }
 
 ///
+/// Natural defenses against opposing weak-two openings
+///
+
+const WEAK_TWO_SUIT_IDS = [
+  'overcall-weak-two-natural-suit-at-two-level',
+  'overcall-weak-two-natural-suit-at-three-level',
+];
+const WEAK_TWO_NT_ID = 'overcall-weak-two-natural-2nt-with-stopper';
+const WEAK_TWO_HONORS = '2 of top 3 honors or 3 of top 5 honors';
+
+function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const points = checks?.find((item) => item.kind === 'totalPoints');
+  return { choice, candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    points: points?.kind === 'totalPoints' ? points : undefined };
+}
+
+function weakTwoNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
+    ?.candidates.find(({ call }) => call === '2NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return { candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
+}
+
+/// Use only rule/refiner decisions and point checks that were actually evaluated.
+export function getWeakTwoOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (WEAK_TWO_SUIT_IDS.includes(rule.id)) {
+    const { choice, candidate, hcp, points } = weakTwoSuitEvidence(result, rule.id);
+    if (choice?.passed !== true || candidate?.ruleApplies !== true ||
+        hcp?.passed !== true || points?.passed !== true) return null;
+    const lengthPoints = points.actual - hcp.actual;
+    const lengthText = `${lengthPoints} length point${lengthPoints === 1 ? '' : 's'}`;
+    const economical = choice.requiredLength === 6
+      ? `${choice.call} is the cheapest available ${suitName(choice.call)} bid. ` : '';
+    const level = choice.requiredLength === 5 ? 'two' : 'three';
+    return `Your ${choice.length}-card ${suitPlural(choice.call)} meet the ` +
+      `suit-quality requirement (${WEAK_TWO_HONORS}). You have ${hcp.actual} HCP ` +
+      `plus ${lengthText}, totaling ${points.actual} points. ` + economical +
+      `That meets the ${points.min}-point and ${choice.requiredLength}-card requirements ` +
+      `for a natural ${level}-level overcall [${rule.id}].`;
+  }
+  if (rule.id === WEAK_TWO_NT_ID) {
+    const { candidate, hcp, balanced, stopper } = weakTwoNtEvidence(result);
+    if (candidate?.ruleApplies !== true || hcp?.passed !== true ||
+        balanced?.passed !== true || stopper?.passed !== true) return null;
+    const doubleAlsoFits = result.ruleDiagnostics.some(({ rule: other, candidates }) =>
+      other.kind === 'overcall' &&
+      candidates.some(({ call, ruleApplies }) => call === 'Double' && ruleApplies));
+    return `Your balanced hand has ${hcp.actual} HCP and a stopper in ` +
+      `${namedStopperSuit(stopper)}, meeting the 15–18 HCP requirements for a natural ` +
+      '2NT overcall. ' + (doubleAlsoFits
+        ? 'Although a takeout Double also qualifies, 2NT directly describes your ' +
+          'balanced hand and stopper. ' : '') + `[${rule.id}]`;
+  }
+  return null;
+}
+
+///
 //// Preemptive jump-overcall explanations
 ///
 
