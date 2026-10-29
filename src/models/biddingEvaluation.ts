@@ -1154,6 +1154,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     (ruleId === 'overcall-preemptive-jump-at-two-level' ||
      ruleId === 'overcall-preemptive-jump-at-three-level' ||
      ruleId === 'overcall-preemptive-jump-at-four-level');
+  const explainWeakTwoSuitOvercall = context.stage === 'overcalling' &&
+    (ruleId === 'overcall-weak-two-natural-suit-at-two-level' ||
+     ruleId === 'overcall-weak-two-natural-suit-at-three-level');
   const explainMinorResponse = context.stage === 'responding' && (
     ruleId === 'respond-to-minor-w/-new-suit-one-level-priority' ||
     ruleId === 'respond-to-minor-w/-1nt' || ruleId === 'respond-to-minor-w/-2nt' ||
@@ -1226,7 +1229,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
-        explainBalancingSuit || explainJumpOvercall || explainMinorResponse ||
+        explainBalancingSuit || explainJumpOvercall || explainWeakTwoSuitOvercall || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
@@ -1239,7 +1242,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.totalPoints !== undefined) {
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
-    if (explainPreemptRequirements || explainMajorSupport || explainNaturalAdvance ||
+    if (explainPreemptRequirements || explainWeakTwoSuitOvercall || explainMajorSupport || explainNaturalAdvance ||
         explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
         explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
@@ -1318,6 +1321,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
+      explainWeakTwoSuitOvercall ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
