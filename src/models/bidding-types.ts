@@ -422,6 +422,14 @@ export interface CallEvidence {
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
+  dontInitial?: {
+    hcp: number;
+    lengths: Record<Suit, number>;
+    // Quality has already been evaluated with the shared honor test, for suits of 5+ cards.
+    qualitySuits: Suit[];
+    singleSuit: Suit | null;
+    twoSuits: [Suit, Suit] | null;
+  };
   majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
   majorGameForceNewSuit?: {
     reason: 'normal' | 'three-card-minor-fallback' | 'unavailable';
