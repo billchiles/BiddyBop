@@ -67,6 +67,41 @@ The family groupings collectively cover each stage's executable declarations and
 | Responder rebid after 2/1 versus Standard new suit, major/minor 1NT, simple/limit raises, game tries, repeated suits, economical second suit, reverse/strong jump shift | Many executable rules and scope boundaries; specialized responder-simple-raise explanation helper exists for only a narrow subset | **Deep review** forcing vs invitational decisions, delayed support, wrong-strain alternatives, rebid order and near-miss explanations |
 | Bidding notes and deliberately unmodeled later auctions | BiddingNotes, scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not promote notes to executable bidding rules |
 
+## First family review: direct overcalls, Doubles, DONT and balancing
+
+Reviewed October 28, 2026 against `overcalling-rules.ts`, `overcalling-functions.ts`,
+`explanations.ts`, `BidPanel.tsx`, `biddingEvaluation.ts`, and the corresponding
+`overcalling-test-deals.ts` families. This first pass checks **all 31 direct
+overcall/balancing rule and boundary declarations by family** against the
+instructional standard; it is a source inspection, not a claim to have rendered
+each possible feedback case in the browser. The overcalling deal module includes
+103 deal definitions across 13 arrays, many for subsequent rebids; relevant
+direct-action examples include DONT, weak-two defense, takeout Doubles, ordinary
+natural overcalls, preemptive jumps and balancing.
+
+| Decision family | Review result | Evidence and follow-up |
+| --- | --- | --- |
+| Direct ordinary and strong takeout Double of a one-level suit or weak two | **Provisionally adequate** | Both ordinary and 18+ HCP branches have hand-based positive and negative explanation helpers. The ordinary variant uses shortage-adjusted values and three-card unbid-suit support; strong shape exception is distinguished. Spot-check genuinely displayed rejections and comparisons with available suit/NT actions before closing. |
+| Ordinary one-/two-level natural suit overcalls | **Provisionally adequate** | Existing explanations distinguish economical bid from jump, level-specific length/strength and honor quality, plus actual rejection evidence. Test a few 7-HCP exceptional suits and longer two-level suits, rather than rewriting the whole family. |
+| Natural 1NT overcall of a one-level suit | **Provisionally adequate** | Existing accepted/rejected explanations use HCP, balanced shape and stopper evidence and say which suit must be stopped. Verify precedence against plausible natural suit or Double alternatives in a small play-through. |
+| Preemptive jump overcalls at levels two, three and four | **Provisionally adequate** | Dedicated explanation uses actual jump selection, required suit length, top-honor quality and limited HCP, including rejected candidates. Sample non-jumps and weak suit-quality near misses. |
+| Initial DONT Double, 2C, 2D, 2H and natural 2S over 1NT | **Improve (medium-high)** | Five initial DONT rules explain call meanings and partner continuations but `dontSingleSuitDoubleApplies`, `dontTwoSuitOvercallApplies` and `dontSpadeOvercallApplies` return only summary telemetry, not structured shape/quality evidence; no direct DONT-overcall accepted/rejected explanation helper is wired. The existing `getDontAdvanceLines` covers *advancer*, not these first calls. Show actual 7+ HCP, one-suit/two-suit shape, key suit lengths and why a plausible different DONT call does not match. Reuse evaluator facts; do not change DONT agreements or manufacture a penalty Double. |
+| Natural suit overcall against a weak-two opening | **Improve (medium)** | The two-level and three-level rules and seven weak-two defense deal definitions exist. `refineWeakTwoSuitOvercall` excludes non-cheapest, short and poor-quality suits without `CallEvidence` recording why. Ordinary natural-overcall explanation helpers recognize only `overcall-simple-suit-*`, so they do not provide equal hand-aware explanation for `overcall-weak-two-natural-suit-*`. Add minimal evaluated evidence for the actual cheapest 2/3-level suit and failed length/quality/strength criteria, then compare actual feedback. |
+| Natural 2NT overcall against a weak-two opening | **Improve (medium)** | `naturalNotrumpOvercallApplies` enforces balanced 15–18 HCP and a stopper for both 1NT and 2NT, but currently emits structured `requirements` only for `call === '1NT'`. Consequently the existing natural-NT explanation helper does not handle weak-two 2NT and cannot show its precise accepted/rejected stopper evidence. Extend the shared evidence, without relaxing the underlying rules. |
+| Fourth-seat balancing: one-/two-level suit, natural 1NT, ordinary/strong Double, Pass | **Provisionally adequate** | Dedicated accepted/rejected helper families explain lighter strength, ordinary vs strong Double shape, 1NT stopper, suit quality and defensive Pass. Passing is not treated as universally wrong if a light balance is also possible. Sample hands with competing Pass and suit choices and strong borderline Double. |
+| Scope boundaries: strong 2C/2NT openings, high preempts, 18+ versus opposing 1NT and fourth-seat balancing gaps | **Judgment boundary, meaning likely sufficient** | Boundaries already state non-modeled convention, defense or penalty judgment and avoid automatic Pass. Verify they surface when no valid modeled action qualifies; do not add algorithmic calls or custom explanation text purely for rule-count coverage. |
+| Generic Pass when no direct competitive action qualifies | **Meaning/guidance likely adequate** | `overcall-pass-no-qualifying-action` documents why the app may prefer defending; detailed failure diagnostics for *every* alternative would be excessive. Confirm fallback suppression and avoid portraying Pass as a universal recommendation on marginal hands. |
+
+**Disposition:** The initial source review is complete, but detailed UI feedback validation
+remains. No source change is recommended for the provisional-adequate or
+judgment-boundary rows absent a demonstrated misleading message. Next, present
+concrete sample accepted/rejected DONT and weak-two-defense explanations;
+then implement the smallest evidence/wiring/test changes warranted by the
+three **Improve** rows, using the regular reviewed CI workflow.
+
+Do not equate this source review with signing off the entirety of subsequent
+`overcallerRebid` rules; those belong to a later, separate decision family.
+
 ## Prioritized review plan
 
 1. **Validate direct defense and balancing comprehensively but efficiently.** Start with the actual earlier B4–B8 helper families. Inspect representative accepted, rejected, alternate, and boundary decisions for natural suit/1NT, ordinary/strong and weak-two takeout Double, preemptive jumps, DONT, balancing. Capture any concrete gap; explicitly mark families adequate when they are.
