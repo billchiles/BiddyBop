@@ -1023,6 +1023,26 @@ export function openerForcingResponseCompetitionScopeBoundaryApplies (
   };
 }
 
+/// An opening with fewer than 12 HCP may be legitimate on length-adjusted 12+ points.
+  // The natural-notrump responder ranges remain HCP ranges: do not misclassify
+  // a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.
+export function openerCompetitiveNaturalNtPassApplies(
+    context: RuleEvalContext, maximumHcp: number,
+    requireSemiBalanced = false): AppliesWhenResult {
+  const { hcp, lengthPoints, totalPointsWLength, balancedOrSemiBalanced } = context.handFacts;
+  const ordinaryMinimum = hcp >= 12 && hcp <= maximumHcp;
+  const lightOpening = hcp < 12 && totalPointsWLength >= 12;
+  const shapeOkay = !requireSemiBalanced || balancedOrSemiBalanced;
+  const success = (ordinaryMinimum || lightOpening) && shapeOkay;
+  return { success, telemetryLines: [
+    `${ordinaryMinimum || lightOpening ? 'PASS' : 'FAIL'}: natural notrump Pass accepts ` +
+      `12–${maximumHcp} HCP or a length-qualified light opening; ` +
+      `hand has ${hcp} HCP + ${lengthPoints} length points = ${totalPointsWLength} opening points.`,
+    `${shapeOkay ? 'PASS' : 'FAIL'}: ${requireSemiBalanced ? 'balanced or semi-balanced shape required' :
+       'no additional opener shape requirement'}.`,
+  ] };
+}
+
 /// A9's cuebid is advancer's artificial bid in opener's known suit after responder's
 /// nonforcing simple raise.  This is not a natural contract in opener's suit.
 function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {

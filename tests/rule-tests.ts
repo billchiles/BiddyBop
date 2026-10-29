@@ -11,7 +11,8 @@ import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
-         getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines }
+         getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
+         getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -1310,6 +1311,122 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
       call === '3NT' && rule.id === 'opener-rebid-3nt-after-overcall-natural-2nt')) {
     failures += 1;
     console.error('FAIL opener did not accept the natural competitive 2NT invitation.');
+  }
+
+  // The competitive natural-NT family is distinct from Jordan, and a light opening
+  // with length-adjusted 12+ opening points remains a valid minimum at every Pass level.
+  const light = { S: 'Q72', H: 'AKJ84', D: 'J53', C: '82' };
+  const lightSix = { S: 'Q7', H: 'AKJ842', D: '953', C: '82' };
+  const normalThirteen = { S: 'Q72', H: 'AKJ84', D: 'K53', C: '82' };
+  const normalFourteen = { S: 'Q72', H: 'AKJ84', D: 'K53', C: 'J2' };
+  const inviteEighteen = { S: 'A7', H: 'AKJ84', D: 'KQ3', C: 'J82' };
+  const gameTwenty = { S: 'A7', H: 'AKQJ84', D: 'K53', C: 'K2' };
+  const gameSeventeen = { S: 'A72', H: 'AKJ84', D: 'K53', C: 'Q2' };
+  const slamEighteen = { S: 'A72', H: 'AKJ84', D: 'K53', C: 'K2' };
+  const oneNtResponder = { S: 'KT5', H: 'T76', D: 'A96', C: 'Q964' };
+  const twoNtResponder = { S: 'KT5', H: 'T76', D: 'AQ9', C: 'K964' };
+  const threeNtResponder = { S: 'KT5', H: 'T76', D: 'AQ9', C: 'AJ64' };
+  const naturalNtCases: { name: string; auction: Call[]; north: typeof light;
+    south: typeof light; call: Call; ruleId: string; expectedLine: string }[] = [
+    { name: 'Light opening Pass after 1NT', auction: ['1H', '1S', '1NT', 'Pass'],
+      north: light, south: oneNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+      expectedLine: '11 HCP + 1 length points = 12 opening points' },
+    { name: 'After the opponents raise, Pass declines to compete',
+      auction: ['1H', '1S', '1NT', '2S'], north: light, south: oneNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+      expectedLine: 'it does not leave partner playing 1NT' },
+    { name: 'Ten HCP plus six-card length points repeat hearts',
+      auction: ['1H', '1S', '1NT', 'Pass'], north: lightSix, south: oneNtResponder, call: '2H',
+      ruleId: 'opener-rebid-repeat-suit-after-overcall-natural-1nt',
+      expectedLine: '10 HCP + 2 length points = 12 total points' },
+    { name: 'Eighteen HCP invite after natural 1NT',
+      auction: ['1H', '1S', '1NT', 'Pass'], north: inviteEighteen,
+      south: oneNtResponder, call: '2NT',
+      ruleId: 'opener-rebid-2nt-after-overcall-natural-1nt',
+      expectedLine: '18–19-HCP' },
+    { name: 'Twenty HCP semi-balanced opener bids 3NT',
+      auction: ['1H', '1S', '1NT', 'Pass'], north: gameTwenty,
+      south: oneNtResponder, call: '3NT',
+      ruleId: 'opener-rebid-3nt-after-overcall-natural-1nt',
+      expectedLine: '20–21 HCP' },
+    { name: 'Light opening declines natural 2NT invitation',
+      auction: ['1H', '1S', '2NT', 'Pass'], north: light,
+      south: twoNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-2nt',
+      expectedLine: 'not Jordan 2NT (an artificial limit-or-better raise' },
+    { name: 'Thirteen HCP declines 2NT invitation',
+      auction: ['1H', '1S', '2NT', 'Pass'], north: normalThirteen,
+      south: twoNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-2nt',
+      expectedLine: 'acceptance starts at 14 HCP' },
+    { name: 'Fourteen HCP accepts 2NT invitation',
+      auction: ['1H', '1S', '2NT', 'Pass'], north: normalFourteen,
+      south: twoNtResponder, call: '3NT',
+      ruleId: 'opener-rebid-3nt-after-overcall-natural-2nt',
+      expectedLine: '14–18 HCP' },
+    { name: 'Light opening Passes natural 3NT game',
+      auction: ['1H', '1S', '3NT', 'Pass'], north: light,
+      south: threeNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-3nt',
+      expectedLine: '11 HCP + 1 length points = 12 opening points' },
+    { name: 'Seventeen HCP passes natural 3NT game',
+      auction: ['1H', '1S', '3NT', 'Pass'], north: gameSeventeen,
+      south: threeNtResponder, call: 'Pass',
+      ruleId: 'opener-rebid-pass-after-overcall-natural-3nt',
+      expectedLine: '17 HCP' },
+  ];
+  for (const test of naturalNtCases) {
+    const { board } = makeRuleTestBoard({
+      description: test.name, practiceAuction: [...test.auction, test.call],
+      north: test.north, south: test.south,
+    });
+    const result = evaluateUserCall(test.call, board, test.auction, defaultBiddingSystem);
+    const matching = result.userCallMatchingRules.find((rule) => rule.id === test.ruleId);
+    const lines = matching === undefined ? [] :
+      getOpenerCompetitiveNaturalNtRebidLines(result, matching, getHandFacts(board.deal.N));
+    checks += 1;
+    if (matching === undefined || !lines.some((line) => line.includes(test.expectedLine))) {
+      failures += 1;
+      console.error(`FAIL competitive natural NT: ${test.name}; ${lines.join(' | ')}`);
+    }
+    if (test.north === light || test.north === lightSix) {
+      checks += 1;
+      const opening = getApplicableCandidateCalls(evaluateUserCall(
+        '1H', board, [], defaultBiddingSystem));
+      if (!opening.some(({ call, rule }) => call === '1H' &&
+          rule.id === 'open-five-card-major')) {
+        failures += 1;
+        console.error(`FAIL light opening does not actually qualify: ${test.name}.`);
+      }
+    }
+  }
+  const { board: rejectedInvitationBoard } = makeRuleTestBoard({
+    description: 'Thirteen HCP cannot automatically accept natural 2NT invitation.',
+    practiceAuction: ['1H', '1S', '2NT', 'Pass', '3NT'],
+    north: normalThirteen, south: twoNtResponder,
+  });
+  const rejectedInvitation = evaluateUserCall('3NT', rejectedInvitationBoard,
+    ['1H', '1S', '2NT', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (!getOpenerCompetitiveNaturalNtRebidFailureLines(rejectedInvitation,
+      getHandFacts(rejectedInvitationBoard.deal.N)).some((line) =>
+        line.includes('14–18 HCP') && line.includes('13'))) {
+    failures += 1;
+    console.error('FAIL rejected natural 2NT invitation acceptance lacks HCP reason.');
+  }
+  const { board: strongGameBoard } = makeRuleTestBoard({
+    description: 'Eighteen HCP after natural 3NT reaches slam judgment, not 3NT Pass.',
+    practiceAuction: ['1H', '1S', '3NT', 'Pass'],
+    north: slamEighteen, south: threeNtResponder,
+  });
+  const strongGameStatus = getBiddingTurnStatus(strongGameBoard,
+    ['1H', '1S', '3NT', 'Pass'], defaultBiddingSystem);
+  checks += 1;
+  if (strongGameStatus.kind !== 'scopeBoundary' ||
+      strongGameStatus.rule.id !== 'opener-rebid-scope-boundary-after-overcall-natural-3nt') {
+    failures += 1;
+    console.error('FAIL 18-HCP 3NT responder sequence did not reach slam boundary.');
   }
 
   const { board: redoubleRunoutBoard } = makeRuleTestBoard({

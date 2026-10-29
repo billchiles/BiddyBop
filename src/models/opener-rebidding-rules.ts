@@ -21,6 +21,7 @@ import {
   openerSupportCuebidPassApplies, openerSupportCuebidGameApplies,
   openerSupportCuebidScopeBoundaryApplies,
   openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies,
+  openerCompetitiveNaturalNtPassApplies,
   openerPreemptNewSuitRepeatApplies, openerPreemptRaisePassApplies,
   openerSecondSuitApplies, openerSuitThreeNtQuantitativeApplies,
   refineForcingOneNtMinorFallback, refineOpenerFiveCardMinorFallback,
@@ -1568,15 +1569,16 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-pass-after-overcall-natural-1nt-minimum',
     kind: 'openerRebid',
-    title: 'Pass responder\'s natural 1NT after an overcall with a minimum',
+    title: 'Pass with a minimum after a natural 1NT response in competition',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balancedOrSemiBalanced: true } },
-    meaning: 'Responder showed 6-10 HCP, balanced shape, and a stopper; a minimum opener may stop.',
+    appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 14, true),
+    meaning: 'Responder showed natural 1NT with 6-10 HCP and a stopper; a minimum opener may ' +
+             'accept 1NT or decline to compete if advancer raises the opposing suit.',
     certainty: 'high',
   },
   {
@@ -1651,8 +1653,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 12, max: 13 } },
-    meaning: 'Responder showed 11-12 HCP and a stopper; a minimum opener declines game.',
+    appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 13),
+    meaning: 'Responder showed natural, invitational 2NT with 11-12 HCP and a stopper; ' +
+             'a minimum opener declines game.',
     certainty: 'high',
   },
   {
@@ -1695,8 +1698,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 12, max: 17 } },
-    meaning: 'Responder showed 13-15 HCP, balanced shape, and a stopper; ordinary game values Pass.',
+    appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 17),
+    meaning: 'Responder showed natural 3NT with 13-15 HCP, balanced shape, and a stopper; ' +
+             'ordinary opener values leave the game contract in place.',
     certainty: 'high',
   },
   {

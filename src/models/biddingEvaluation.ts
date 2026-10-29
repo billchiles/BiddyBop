@@ -593,6 +593,25 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
       } };
     }
   }
+  const competitiveNaturalNtRebid = context.stage === 'openerRebid' &&
+    rule.id.includes('-after-overcall-natural-') && rule.kind === 'openerRebid';
+  if (competitiveNaturalNtRebid) {
+    const first = getOpenerOpeningBid(context);
+    const responseCall = getResponderCall(context.dealer, context.auction);
+    const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+    const opponentCall = openingInfo === null ? undefined :
+      context.auction[openingInfo.index + 1];
+    const opponentBid = opponentCall === undefined ? null : parseSuitBid(opponentCall);
+    if (first !== null && first.strain !== 'NT' && responseCall !== null &&
+        openingInfo !== null && opponentBid !== null && opponentBid.strain !== 'NT') {
+      const openingSuit = first.strain as Suit;
+      evidence = { ...evidence, openerCompetitiveNaturalNtRebid: {
+        openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+        opponentSuit: opponentBid.strain as Suit, responseCall,
+        currentContract: context.auction.filter(isContractBid).slice(-1)[0] ?? responseCall,
+      } };
+    }
+  }
   const artificialSupportRebid = context.stage === 'openerRebid' &&
     (rule.id.includes('-after-support-cuebid') ||
      rule.id.includes('-after-jordan-2nt') ||

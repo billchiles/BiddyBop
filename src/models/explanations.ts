@@ -4364,6 +4364,161 @@ export function getOpenerNegativeDoubleRebidFailureLines(
 }
 
 ///
+//// Opener after natural notrump responses in competition
+///
+
+const OPENER_COMPETITIVE_NT_IDS = [
+  'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+  'opener-rebid-repeat-suit-after-overcall-natural-1nt',
+  'opener-rebid-2nt-after-overcall-natural-1nt',
+  'opener-rebid-3nt-after-overcall-natural-1nt',
+  'opener-rebid-pass-after-overcall-natural-2nt',
+  'opener-rebid-3nt-after-overcall-natural-2nt',
+  'opener-rebid-pass-after-overcall-natural-3nt',
+];
+
+/// Explain the natural responder notrump promise, then the opener's actual hand and decision.
+/// Passing over an opposing raise is distinct from agreeing to play partner's 1NT.
+export function getOpenerCompetitiveNaturalNtRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_COMPETITIVE_NT_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  const info = candidate?.callEvidence?.openerCompetitiveNaturalNtRebid;
+  if (candidate === undefined || info === undefined) return [];
+  const own = suitPlural(`1${info.openingSuit}` as Call);
+  const opponent = suitPlural(`1${info.opponentSuit}` as Call);
+  const strength = facts.hcp < 12
+    ? `Your ${facts.hcp} HCP + ${facts.lengthPoints} length points = ` +
+      `${facts.totalPointsWLength} opening points; this is a legitimate lighter opening, ` +
+      'not a strong notrump hand.'
+    : `Your hand has ${facts.hcp} HCP.`;
+  const responderRange = info.responseCall === '1NT' ? '6–10' :
+    info.responseCall === '2NT' ? '11–12' : '13–15';
+  const jordanNote = info.responseCall === '2NT'
+    ? ' This is natural, not Jordan 2NT (an artificial limit-or-better raise after a takeout Double).'
+    : info.responseCall === '1NT'
+      ? ' This response is nonforcing, even if an uncontested major-opening 1NT would be forcing.'
+      : '';
+  const promise = `Partner's ${info.responseCall} is natural: ${responderRange} HCP, balanced ` +
+    `distribution, and a stopper in the overcalled ${opponent}.${jordanNote}`;
+  let decision: string;
+  switch (rule.id) {
+    case 'opener-rebid-pass-after-overcall-natural-1nt-minimum':
+      decision = info.currentContract === '1NT'
+        ? `Your ${facts.balanced ? 'balanced' : 'semi-balanced'} shape and minimum ` +
+          'strength support Pass, leaving partner in 1NT.'
+        : `Advancer has raised the opponents to ${info.currentContract}. With ` +
+          `${facts.balanced ? 'balanced' : 'semi-balanced'} shape and minimum strength, ` +
+          'Pass declines to compete further; it does not leave partner playing 1NT.';
+      break;
+    case 'opener-rebid-repeat-suit-after-overcall-natural-1nt':
+      decision = `Your ${info.openingLength} ${own} and ${facts.hcp} HCP + ` +
+        `${facts.lengthPoints} length points = ${facts.totalPointsWLength} total points ` +
+        `meet the selected six-card and 12–16-point tests. ${candidate.call} describes ` +
+        'the long opening suit rather than settling in 1NT.';
+      break;
+    case 'opener-rebid-2nt-after-overcall-natural-1nt':
+      decision = `Your ${facts.balanced ? 'balanced' : 'semi-balanced'} 18–19-HCP hand ` +
+        'qualifies for a natural 2NT invitation. Responder may Pass with minimum values ' +
+        'or continue toward game with maximum values.';
+      break;
+    case 'opener-rebid-3nt-after-overcall-natural-1nt':
+      decision = 'Your 20–21 HCP and semi-balanced (but not strictly balanced) shape ' +
+        'satisfy the selected direct game treatment even opposite responder’s 6-HCP minimum.';
+      break;
+    case 'opener-rebid-pass-after-overcall-natural-2nt':
+      decision = 'Pass declines the natural 2NT game invitation. The selected acceptance ' +
+        'starts at 14 HCP; this hand has insufficient HCP for that automatic game action.';
+      break;
+    case 'opener-rebid-3nt-after-overcall-natural-2nt':
+      decision = 'Your 14–18 HCP meet the selected game-acceptance range opposite ' +
+        'responder’s 11–12 HCP invitation. Responder already showed the opposing-suit stopper.';
+      break;
+    case 'opener-rebid-pass-after-overcall-natural-3nt':
+      decision = 'Responder has already chosen game. With ordinary opening strength, ' +
+        'Pass leaves 3NT in place; extra slam exploration is not automatic.';
+      break;
+    default:
+      return [];
+  }
+  return [`${promise} ${strength} ${decision} [${rule.id}]`];
+}
+
+/// Explain only a failed requirement of an actual candidate; extra-strength hands may still
+/// merit bridge judgment rather than an absolute rejection of Pass or 3NT.
+export function getOpenerCompetitiveNaturalNtRebidFailureLines(
+    result: BidEvalResult, facts: HandFacts): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  for (const entry of result.ruleDiagnostics) {
+    if (!OPENER_COMPETITIVE_NT_IDS.includes(entry.rule.id)) continue;
+    const candidate = entry.candidates.find((item) =>
+      item.call === call && !item.ruleApplies &&
+      item.callEvidence?.openerCompetitiveNaturalNtRebid !== undefined);
+    if (candidate === undefined) continue;
+    const info = candidate.callEvidence?.openerCompetitiveNaturalNtRebid;
+    if (info === undefined) continue;
+    if (call === 'Pass') {
+      const maxHcp = info.responseCall === '1NT' ? 14 :
+        info.responseCall === '2NT' ? 13 : 17;
+      if (facts.hcp >= 12 && facts.hcp > maxHcp) {
+        return [`The selected Pass after natural ${info.responseCall} covers ` +
+          `12–${maxHcp} HCP or a lighter length-qualified opening; you have ${facts.hcp} HCP. ` +
+          'Other choices may require additional judgment.'];
+      }
+      if (facts.hcp < 12 && facts.totalPointsWLength < 12) {
+        return [`With ${facts.hcp} HCP + ${facts.lengthPoints} length points = ` +
+          `${facts.totalPointsWLength} opening points, this hand does not meet the ` +
+          '12-point light-opening minimum for the selected Pass treatment.'];
+      }
+      if (info.responseCall === '1NT' && !facts.balancedOrSemiBalanced) {
+        return ['The selected minimum Pass after natural 1NT requires balanced or ' +
+          'semi-balanced opener shape; this hand is more distributional.'];
+      }
+      continue;
+    }
+    if (entry.rule.id === 'opener-rebid-repeat-suit-after-overcall-natural-1nt' &&
+        facts.lengths[info.openingSuit] < 6) {
+      return [`${call} requires at least six ${suitPlural(`1${info.openingSuit}` as Call)}; ` +
+        `you have ${facts.lengths[info.openingSuit]}. ` +
+        'Repeating the opening suit here is a natural length description.'];
+    }
+    const constraint = entry.rule.appliesWhen;
+    if (constraint === undefined || typeof constraint === 'function') continue;
+    const hcp = constraint.hcp;
+    if (hcp !== undefined && ((hcp.min !== undefined && facts.hcp < hcp.min) ||
+        (hcp.max !== undefined && facts.hcp > hcp.max))) {
+      const required = hcp.min !== undefined && hcp.max !== undefined
+        ? `${hcp.min}–${hcp.max}` : hcp.min !== undefined
+          ? `at least ${hcp.min}` : `at most ${hcp.max}`;
+      return [`${call} under [${entry.rule.id}] requires ${required} HCP; ` +
+        `you have ${facts.hcp}. A hand above the selected range may need further judgment.`];
+    }
+    if (constraint.totalPoints !== undefined) {
+      const min = constraint.totalPoints.min;
+      const max = constraint.totalPoints.max;
+      const total = facts.totalPointsWLength;
+      if ((min !== undefined && total < min) || (max !== undefined && total > max)) {
+        return [`${call} under [${entry.rule.id}] requires ${min}–${max} ` +
+          `length-adjusted points; ${facts.hcp} HCP + ${facts.lengthPoints} length points ` +
+          `= ${total}.`];
+      }
+    }
+    if (constraint.shape?.balancedOrSemiBalanced === true &&
+        !facts.balancedOrSemiBalanced) {
+      return [`${call} under [${entry.rule.id}] requires balanced or semi-balanced ` +
+        'shape, which this hand lacks.'];
+    }
+    if (constraint.shape?.balanced === false && facts.balanced) {
+      return [`${call} under [${entry.rule.id}] requires semi-balanced but ` +
+        'not strictly balanced shape.'];
+    }
+  }
+  return [];
+}
+
+///
 //// Opener after artificial support bids in competition
 ///
 

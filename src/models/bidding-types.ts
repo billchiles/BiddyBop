@@ -475,6 +475,15 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // Auction facts for opener's natural notrump-response continuations after a suit overcall.
+  // The rule declarations, not these facts, decide which call qualifies.
+  openerCompetitiveNaturalNtRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    opponentSuit: Suit;
+    responseCall: Call;
+    currentContract: Call;
+  };
   // Auction observations used to explain opener's response to artificial support bids.
   // Call eligibility and point ranges remain defined by the bidding rules.
   openerArtificialSupportRebid?: {

@@ -703,9 +703,17 @@ auction contains it.
 
 After a natural suit overcall, responder's natural 1NT/2NT/3NT bids keep their competitive natural
 meanings on opener's next turn rather than inheriting forcing-1NT or artificial-major-opening
-notrump meanings. Selected continuations preserve ordinary balanced ranges, a six-card opening-suit
-description where defined, invitation acceptance/decline, and 3NT signoff. Stronger hands without a
-selected continuation reach scope guidance rather than manufacturing a quantitative or slam call.
+notrump meanings. Natural competitive 2NT is not Jordan (the artificial limit-or-better support
+raise after a takeout Double). Selected continuations preserve ordinary balanced ranges, a six-card
+opening-suit description, invitation acceptance/decline, and 3NT signoff. A Pass after responder's
+1NT and advancer's Pass accepts partner's 1NT; after advancer raises the opposing suit, the same
+minimum-hand Pass instead declines to compete further. The natural 1NT Pass requires balanced or
+semi-balanced opener shape. A one-level suit opener with fewer than 12 HCP but 12+ points after
+length additions may also make each selected minimum Pass after natural 1NT, 2NT, or 3NT; minimum
+HCP decisions must not route these valid light openers to strong-hand slam guidance. Ordinary
+13-HCP opener hands decline a natural 2NT invitation while 14–18 HCP accept with 3NT; these
+HCP limits are unchanged. Stronger hands without a selected continuation reach scope guidance
+rather than manufacturing a quantitative or slam call.
 A game-forcing three-level natural responder suit can produce major-suit game with support or 3NT
 with balanced/semi-balanced shape and stoppers in every naturally bid opponent suit; other shapes
 terminate with explicit guidance.
