@@ -1316,7 +1316,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   // The competitive natural-NT family is distinct from Jordan, and a light opening
   // with length-adjusted 12+ opening points remains a valid minimum at every Pass level.
   const light = { S: 'Q72', H: 'AKJ84', D: 'J53', C: '82' };
-  const lightSix = { S: 'Q7', H: 'AKJ842', D: '953', C: '82' };
+  const lightSix = { S: 'Q7', H: 'AKJ842', D: '853', C: '82' };
   const normalThirteen = { S: 'Q72', H: 'AKJ84', D: 'K53', C: '82' };
   const normalFourteen = { S: 'Q72', H: 'AKJ84', D: 'K53', C: 'J2' };
   const inviteEighteen = { S: 'A7', H: 'AKJ84', D: 'KQ3', C: 'J82' };
