@@ -98,22 +98,29 @@ export function refineWeakTwoSuitOvercall (calls: Call[], context: RuleEvalConte
       ! ['2D', '2H', '2S'].includes(opening)) {
     return { calls: [], telemetryLines: ['Requires an opposing weak-two opening.'] };
   }
+  const suitChecks: NonNullable<CallEvidence['weakTwoSuit']> = [];
   const qualifying = calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain) {
       return false;
     }
-    if (cheapestBidInStrainAfter(parsedOpening, bid.strain) !== call) {
-      return false;
-    }
     const suit = bid.strain as Suit;
-    const minimumLength = bid.level === 2 ? 5 : bid.level === 3 ? 6 : null;
-    return minimumLength !== null && context.handFacts.lengths[suit] >= minimumLength &&
-      hasPreemptSuitQuality(context.hand, suit);
+    const cheapestCall = cheapestBidInStrainAfter(parsedOpening, bid.strain);
+    const isCheapest = cheapestCall === call;
+    const requiredLength = bid.level === 2 ? 5 : bid.level === 3 ? 6 : 0;
+    const length = context.handFacts.lengths[suit];
+    const good = hasPreemptSuitQuality(context.hand, suit);
+    const passed = isCheapest && requiredLength !== 0 && length >= requiredLength && good;
+    suitChecks.push({ call, length, requiredLength, good, cheapestCall, isCheapest, passed });
+    return passed;
   });
-  return { calls: qualifying, telemetryLines: [
-    'Keep the cheapest natural suit overcall: good 5+ cards at level two, good 6+ at level three.',
-  ] };
+  return {
+    calls: qualifying,
+    telemetryLines: [
+      'Keep the cheapest natural suit overcall: good 5+ cards at level two, good 6+ at level three.',
+    ],
+    callEvidence: { weakTwoSuit: suitChecks },
+  };
 }
 
 /// refinePreemptiveJumpOvercall selects a jump bid for the overcaller, with a good six-,
@@ -278,11 +285,11 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
       `${stopper ? 'PASS' : 'FAIL'}: ${call} overcall needs A, Kx, Qxx, or Jxxx in ` +
         `opener's ${parsed.strain} suit.`,
     ],
-    callEvidence: call === '1NT' ? { requirements: [
+    callEvidence: { requirements: [
       { kind: 'hcp', actual: points, min: 15, max: 18, passed: strength },
       { kind: 'balanced', actual: balanced, passed: balanced },
-      { kind: 'stopper', passed: stopper },
-    ] } : undefined,
+      { kind: 'stopper', suit: parsed.strain as Suit, passed: stopper },
+    ] },
   };
 }
 
