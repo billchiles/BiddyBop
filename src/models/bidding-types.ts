@@ -475,6 +475,17 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // Opener's facts after responder's natural game-forcing three-level new suit.
+  // The evaluated rules still decide fit, shape, stopper tests and call legality.
+  openerThreeLevelGameForceRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    responderSuit: Suit;
+    responseSupport: number;
+    advancerCall: Call;
+    opponentSuits: Suit[];
+    unstoppedSuits: Suit[];
+  };
   // Auction facts for the selected minimum Passes after weak competitive responses.
   openerWeakCompetitiveRebid?: {
     openingSuit: Suit;

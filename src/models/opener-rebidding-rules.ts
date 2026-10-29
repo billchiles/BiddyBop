@@ -1791,7 +1791,7 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition',
     kind: 'openerRebid',
-    title: 'Bid game in a self-supporting opening major after further competition',
+    title: 'Bid the six-card opening major at game with extra values after competition',
     auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
@@ -1799,8 +1799,9 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callCategory: ['signoff', 'natural'],
     appliesWhen: openerThreeLevelForcingResponseOpeningMajorGameApplies,
-    meaning: 'Responder promised game-going values; a strong six-card opening major can ' +
-             "provide the game contract even without a fit in responder's minor.",
+    meaning: 'Responder promised game-going values; opener has six cards in the opening major ' +
+             'and at least 15 length-adjusted points to select that major-suit game, even ' +
+             "without a fit in responder's minor.",
     certainty: 'high',
   },
   {
@@ -1828,12 +1829,15 @@ export const OpenerRebidRules: BidRule[] = [
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
     },
-    meaning: 'Responder has shown a five-card-or-longer natural suit and game-going values, but ' +
-             'the selected major-fit and 3NT routes do not resolve the strain.',
+    meaning: 'Responder showed a five-card-or-longer natural suit and game-going values, but ' +
+             'the selected major-suit game and stopped 3NT routes do not resolve the strain.',
     guidance: [
-      'The partnership must still reach game.  Choosing among repeating opener\'s suit, supporting ' +
-      'a minor, 3NT without the selected shape/stoppers, or another game contract depends on fit, ' +
-      'playing strength, and stopper quality beyond this trainer\'s deterministic treatment.',
+      'The game-going response ordinarily calls for a game contract. When the opponents compete ' +
+      'further, whether to bid on, defend, or Double can also require judgment; the app does not ' +
+      'invent an available game contract or a penalty decision.',
+      'Repeating opener\'s suit, supporting a minor, and choosing notrump depend on fit, ' +
+      'playing strength, and stopper quality. Pass may be right under further competition ' +
+      'but is not confirmed by this boundary.',
     ],
     certainty: 'high',
   },

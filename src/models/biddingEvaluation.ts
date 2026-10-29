@@ -593,6 +593,29 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
       } };
     }
   }
+  const competitiveThreeLevelGameForce = context.stage === 'openerRebid' &&
+    rule.kind === 'openerRebid' &&
+    rule.id.includes('-after-overcall-three-level-forcing-');
+  if (competitiveThreeLevelGameForce) {
+    const first = getOpenerOpeningBid(context);
+    const firstInfo = getOpeningCallInfo(context.dealer, context.auction);
+    const responseCall = getResponderCall(context.dealer, context.auction);
+    const response = responseCall === null ? null : parseSuitBid(responseCall);
+    if (first !== null && first.strain !== 'NT' && response !== null &&
+        response.level === 3 && response.strain !== 'NT' && firstInfo !== null) {
+      const openingSuit = first.strain as Suit;
+      const responderSuit = response.strain as Suit;
+      const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+        context.dealer, context.auction);
+      evidence = { ...evidence, openerThreeLevelGameForceRebid: {
+        openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+        responderSuit, responseSupport: context.handFacts.lengths[responderSuit],
+        advancerCall: context.auction[firstInfo.index + 3] ?? 'Pass',
+        opponentSuits,
+        unstoppedSuits: opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit)),
+      } };
+    }
+  }
   const weakCompetitiveRebid = context.stage === 'openerRebid' && rule.kind === 'openerRebid' &&
     (rule.id.startsWith('opener-rebid-pass-after-double-') ||
      rule.id === 'opener-rebid-pass-after-overcall-preemptive-three-level-raise' ||

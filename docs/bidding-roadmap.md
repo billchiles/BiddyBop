@@ -27,8 +27,8 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Remaining work
 - [ ] **Finish the remaining selected explanation families.** Other selected competitive
-  opener continuations (weak/preemptive responses and game-forcing three-level
-  new suits), then outstanding overcaller/Doubler and responder rebids.
+  overcaller/Doubler and responder rebids, after the selected competitive opener
+  continuations. Explain the existing scope rather than add families for coverage.
   Explain the existing scope rather than add families merely for coverage.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether

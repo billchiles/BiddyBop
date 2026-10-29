@@ -4364,6 +4364,112 @@ export function getOpenerNegativeDoubleRebidFailureLines(
 }
 
 ///
+//// Opener after a competitive game-forcing three-level new suit
+///
+
+const OPENER_THREE_LEVEL_GAME_FORCE_IDS = [
+  'opener-rebid-game-major-after-overcall-three-level-forcing-response',
+  'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition',
+  'opener-rebid-3nt-after-overcall-three-level-forcing-response',
+];
+
+export function getOpenerThreeLevelGameForceRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!OPENER_THREE_LEVEL_GAME_FORCE_IDS.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.ruleApplies && item.call === result.normalizedCall);
+  const info = candidate?.callEvidence?.openerThreeLevelGameForceRebid;
+  if (candidate === undefined || info === undefined) return [];
+  const responseSuit = suitPlural(`1${info.responderSuit}` as Call);
+  const openingSuit = suitPlural(`1${info.openingSuit}` as Call);
+  const opponentSuitDescription = info.opponentSuits.map((suit) =>
+    suitPlural(`1${suit}` as Call)).join(' and ');
+  const opponentAction = info.advancerCall === 'Pass' ? '' :
+    ` Advancer's ${info.advancerCall} does not change the game-going strength ` +
+    'partner has already shown.';
+  const promise = `Partner's natural three-level ${responseSuit} response promises ` +
+    `at least five ${responseSuit} and 13+ HCP; it is game forcing.${opponentAction}`;
+  let decision: string;
+  switch (rule.id) {
+    case 'opener-rebid-game-major-after-overcall-three-level-forcing-response':
+      decision = `Your ${info.responseSupport} ${responseSuit} give at least the ` +
+        `required three-card support for partner's five-card-or-longer major. ` +
+        `${candidate.call} places the partnership in its known major-suit game.`;
+      break;
+    case 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition':
+      decision = `Your ${info.openingLength} ${openingSuit} and ${facts.hcp} HCP + ` +
+        `${facts.lengthPoints} length points = ${facts.totalPointsWLength} meet the ` +
+        'six-card and 15-point tests for game in your opening major after further ' +
+        `opponent competition. The rule does not separately test ${openingSuit} honor quality.`;
+      break;
+    case 'opener-rebid-3nt-after-overcall-three-level-forcing-response':
+      decision = `Your ${facts.balanced ? 'balanced' : 'semi-balanced'} shape and ` +
+        `a stopper in the opponent's ${opponentSuitDescription} support 3NT. ` +
+        `With ${info.responseSupport} ${responseSuit}, there is no selected major-fit ` +
+        'route ahead of 3NT; a minor fit need not displace a stopped notrump game.';
+      break;
+    default:
+      return [];
+  }
+  return [`${promise} ${decision} [${rule.id}]`];
+}
+
+/// Negative feedback uses the tested candidate's auction context and observations.
+/// An unsupported Pass after further opposing competition may be sound bridge judgment.
+export function getOpenerThreeLevelGameForceRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const isFamily = result.ruleDiagnostics.some((entry) =>
+    entry.rule.id === 'opener-rebid-scope-boundary-after-overcall-three-level-forcing-response');
+  if (!isFamily) return [];
+  const diagnostic = result.ruleDiagnostics.find((entry) =>
+    entry.rule.id === 'opener-rebid-3nt-after-overcall-three-level-forcing-response');
+  const info = diagnostic?.candidates[0]?.callEvidence?.openerThreeLevelGameForceRebid;
+  if (call === 'Pass') {
+    return [info?.advancerCall === 'Pass'
+      ? 'Partner\'s natural three-level new suit promises 13+ HCP and is game forcing. ' +
+        'With advancer Passing, the selected rules do not support stopping below game.'
+      : 'Partner\'s natural three-level new suit promised game-going values, but ' +
+        'further opposition may make defending or bidding on a judgment decision. ' +
+        'The app cannot confirm Pass here.'];
+  }
+  if (call === '3NT' && info !== undefined) {
+    const unstopped = info.unstoppedSuits;
+    if (unstopped.length > 0) {
+      const names = unstopped.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+      return [`The selected 3NT route needs a basic stopper in the opponent's ` +
+        `${names}; your hand does not supply one. [${diagnostic?.rule.id}]`];
+    }
+    const tested = diagnostic?.candidates.find((candidate) =>
+      candidate.call === call && !candidate.ruleApplies);
+    if (tested !== undefined) {
+      return [`3NT requires balanced or semi-balanced shape and no known ` +
+        `three-card fit for a responder major. These requirements are not both ` +
+        `met by your hand. [${diagnostic?.rule.id}]`];
+    }
+  }
+  for (const entry of result.ruleDiagnostics) {
+    if (!OPENER_THREE_LEVEL_GAME_FORCE_IDS.includes(entry.rule.id)) continue;
+    const candidate = entry.candidates.find((item) =>
+      item.call === call && !item.ruleApplies &&
+      item.callEvidence?.openerThreeLevelGameForceRebid !== undefined);
+    if (candidate === undefined) continue;
+    const facts = candidate.callEvidence?.openerThreeLevelGameForceRebid;
+    if (facts === undefined) continue;
+    if (entry.rule.id === 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition') {
+      return [`${call} in the original major requires at least six ` +
+        `${suitPlural(`1${facts.openingSuit}` as Call)} and 15 length-adjusted points. ` +
+        'The app cannot confirm this game bid for the present hand.'];
+    }
+    if (entry.rule.id === 'opener-rebid-game-major-after-overcall-three-level-forcing-response') {
+      return [`Raising responder's major to game requires three cards in that major; ` +
+        `opener has ${facts.responseSupport}. [${entry.rule.id}]`];
+    }
+  }
+  return [];
+}
+
+///
 //// Opener after weak, nonforcing competitive responses
 ///
 

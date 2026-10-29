@@ -13,7 +13,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
-         getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines }
+         getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
+         getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -1517,6 +1518,122 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
       strongGameStatus.rule.id !== 'opener-rebid-scope-boundary-after-overcall-natural-3nt') {
     failures += 1;
     console.error('FAIL 18-HCP 3NT responder sequence did not reach slam boundary.');
+  }
+
+  // Game-going three-level natural response: 3NT needs the actual stopper and
+  // shape; a further opposing raise can instead make the long opener major game
+  // available. The high-level boundary does not invent a penalty decision.
+  const forcingNtOpener = { S: 'K83', H: 'AJ874', D: 'AT4', C: '95' };
+  const forcingNoStopper = { S: 'AK3', H: 'AQ874', D: 'T94', C: '95' };
+  const forcingLongMajor = { S: 'A8', H: 'AKQ874', D: 'T94', C: '95' };
+  const forcingClubResponder = { S: 'J97', H: 'KT', D: '632', C: 'AKQ84' };
+  const forcingOtherResponder = { S: 'QJ7', H: '62', D: 'J32', C: 'AKQ84' };
+  const forcingAuction: Call[] = ['1H', '2D', '3C', 'Pass'];
+  const { board: forcingNtBoard } = makeRuleTestBoard({
+    description: 'Three-level game force: natural 3NT requires a diamond stopper.',
+    practiceAuction: [...forcingAuction, '3NT'],
+    north: forcingNtOpener, south: forcingClubResponder,
+  });
+  const forcingNtResult = evaluateUserCall('3NT', forcingNtBoard,
+    forcingAuction, defaultBiddingSystem);
+  const forcingNtRule = forcingNtResult.userCallMatchingRules.find((rule) =>
+    rule.id === 'opener-rebid-3nt-after-overcall-three-level-forcing-response');
+  const forcingNtLines = forcingNtRule === undefined ? [] :
+    getOpenerThreeLevelGameForceRebidLines(forcingNtResult,
+      forcingNtRule, getHandFacts(forcingNtBoard.deal.N));
+  checks += 1;
+  if (forcingNtRule === undefined || !forcingNtLines.some((line) =>
+      line.includes('13+ HCP') && line.includes('stopper'))) {
+    failures += 1;
+    console.error('FAIL stopped 3NT game-force explanation after natural 3C.');
+  }
+  const { board: noStopperForceBoard } = makeRuleTestBoard({
+    description: 'Three-level game force: opener lacks a basic diamond stopper.',
+    practiceAuction: [...forcingAuction, '3NT'],
+    north: forcingNoStopper, south: forcingClubResponder,
+  });
+  const deniedThreeNt = evaluateUserCall('3NT', noStopperForceBoard,
+    forcingAuction, defaultBiddingSystem);
+  checks += 1;
+  if (deniedThreeNt.userCallMatchingRules.some((rule) =>
+      rule.id === 'opener-rebid-3nt-after-overcall-three-level-forcing-response') ||
+      !getOpenerThreeLevelGameForceRebidFailureLines(deniedThreeNt).some((line) =>
+        line.includes('basic stopper') && line.includes('diamonds'))) {
+    failures += 1;
+    console.error('FAIL missing diamond stopper did not explain rejected 3NT.');
+  }
+  const noStopBoundary = getBiddingTurnStatus(noStopperForceBoard,
+    forcingAuction, defaultBiddingSystem);
+  checks += 1;
+  if (noStopBoundary.kind !== 'scopeBoundary' ||
+      noStopBoundary.rule.id !== 'opener-rebid-scope-boundary-after-overcall-three-level-forcing-response') {
+    failures += 1;
+    console.error('FAIL unresolved three-level game force lacks judgment boundary.');
+  }
+  const forcingPass = evaluateUserCall('Pass', noStopperForceBoard,
+    forcingAuction, defaultBiddingSystem);
+  checks += 1;
+  if (!getOpenerThreeLevelGameForceRebidFailureLines(forcingPass).some((line) =>
+      line.includes('game forcing') && line.includes('advancer Passing'))) {
+    failures += 1;
+    console.error('FAIL Pass without further competition ignored the game force.');
+  }
+  const majorAuction: Call[] = ['1H', '2D', '3C', '3D'];
+  const { board: forcingMajorBoard } = makeRuleTestBoard({
+    description: 'Three-level game force: opener has six hearts after advancer raises.',
+    practiceAuction: [...majorAuction, '4H'],
+    north: forcingLongMajor, south: forcingOtherResponder,
+  });
+  const forcingMajorResult = evaluateUserCall('4H', forcingMajorBoard,
+    majorAuction, defaultBiddingSystem);
+  const forcingMajorRule = forcingMajorResult.userCallMatchingRules.find((rule) =>
+    rule.id === 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition');
+  const forcingMajorLines = forcingMajorRule === undefined ? [] :
+    getOpenerThreeLevelGameForceRebidLines(forcingMajorResult,
+      forcingMajorRule, getHandFacts(forcingMajorBoard.deal.N));
+  checks += 1;
+  if (forcingMajorRule === undefined || !forcingMajorLines.some((line) =>
+      line.includes('15') && line.includes('six-card'))) {
+    failures += 1;
+    console.error('FAIL long opening-major game lacks 15-point explanation.');
+  }
+  const highCompetition: Call[] = ['1H', '2D', '3C', '4D'];
+  const highForceStatus = getBiddingTurnStatus(noStopperForceBoard,
+    highCompetition, defaultBiddingSystem);
+  checks += 1;
+  if (highForceStatus.kind !== 'scopeBoundary' ||
+      highForceStatus.rule.id !== 'opener-rebid-scope-boundary-after-overcall-three-level-forcing-response') {
+    failures += 1;
+    console.error('FAIL game-force judgment boundary after high diamond raise.');
+  }
+  // These auctions are only meaningful if South's 3C itself qualifies for
+  // the documented natural game-forcing response before opener decides.
+  for (const board of [forcingNtBoard, noStopperForceBoard, forcingMajorBoard]) {
+    checks += 1;
+    const responseCandidates = getApplicableCandidateCalls(evaluateUserCall(
+      '3C', board, ['1H', '2D'], defaultBiddingSystem));
+    if (!responseCandidates.some(({ call, rule }) => call === '3C' &&
+        rule.id === 'respond-over-suit-new-suit-three-level')) {
+      failures += 1;
+      console.error('FAIL natural 3C game-force test lacks a qualifying responder bid.');
+    }
+  }
+  // Check source hands before deriving opponent hands: the three pairs must be disjoint
+  // full 13-card hands so evaluation actually reaches the intended rule assertion.
+  for (const [opener, responder] of [
+    [forcingNtOpener, forcingClubResponder],
+    [forcingNoStopper, forcingClubResponder],
+    [forcingLongMajor, forcingOtherResponder],
+  ]) {
+    checks += 1;
+    const suits: (keyof typeof forcingNtOpener)[] = ['S', 'H', 'D', 'C'];
+    const overlap = suits.some((suit) =>
+      [...opener[suit]].some((rank) => responder[suit].includes(rank)));
+    if (overlap || suits.reduce((total, suit) => total + opener[suit].length, 0) !== 13 ||
+        suits.reduce((total, suit) => total + responder[suit].length, 0) !== 13) {
+      failures += 1;
+      console.error('FAIL invalid North/South cards in three-level game-force test.');
+    }
   }
 
   const { board: redoubleRunoutBoard } = makeRuleTestBoard({

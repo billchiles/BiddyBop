@@ -721,9 +721,16 @@ HCP decisions must not route these valid light openers to strong-hand slam guida
 13-HCP opener hands decline a natural 2NT invitation while 14–18 HCP accept with 3NT; these
 HCP limits are unchanged. Stronger hands without a selected continuation reach scope guidance
 rather than manufacturing a quantitative or slam call.
-A game-forcing three-level natural responder suit can produce major-suit game with support or 3NT
-with balanced/semi-balanced shape and stoppers in every naturally bid opponent suit; other shapes
-terminate with explicit guidance.
+A natural three-level new-suit response after a suit overcall promises at least five cards and
+13+ HCP, forcing to game. Opener can raise a responder major to game with three-card support,
+or select 3NT with balanced/semi-balanced shape, a basic stopper in each naturally bid opposing
+suit, and no known major fit. When advancer has raised, a six-card opening major plus 15 or more
+length-adjusted points can qualify for game in that original major; this does not separately
+assert that the major has a solid honor holding. Other shapes or missing stoppers reach a
+game-placement boundary. Responder's game-going intention remains meaningful when advancer
+competes, but the actual choice between bidding, defending, and doubling at higher levels
+requires judgment; the app does not invent a compulsory bid or treat the boundary as confirming
+Pass.
 
 A competitive three-level jump raise after a suit overcall is weak and preemptive, not an
 uncontested limit raise. A minimum opener may Pass; extra values use judgment guidance unless a

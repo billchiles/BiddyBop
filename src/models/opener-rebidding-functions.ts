@@ -1128,8 +1128,9 @@ export function openerSupportCuebidScopeBoundaryApplies (
     'game prospects, and defensive judgment.'] };
 }
 
-/// Responder's game-forcing three-level suit survives a further opposing raise. With a
-/// self-supporting six-card opening major, game in that major is a selected natural route.
+/// Responder's game-forcing three-level suit survives a further opposing raise.
+/// With 6+ cards in the opening major and 15+ length-adjusted points, game in that
+/// major is the selected natural route; this does not test the major's honor texture.
 export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
     call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
   const opening = getOpenerOpeningBid(context);
@@ -1147,8 +1148,8 @@ export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
     context.handFacts.lengths[opening.strain as Suit] >= 6 &&
     context.handFacts.totalPointsWLength >= 15;
   return { success: goodLongMajor, telemetryLines: [goodLongMajor
-    ? 'A strong six-card opening major provides a natural game destination after competition.'
-    : 'Not a selected self-supporting major game after a three-level game force.'] };
+    ? 'Six-card opening major and 15+ length-adjusted points support major-suit game.'
+    : 'The selected major game needs six trumps and 15+ length-adjusted points.'] };
 }
 
 /// openerThreeLevelForcingResponseThreeNtApplies keeps a natural 3NT rebid after responder makes
