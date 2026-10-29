@@ -34,6 +34,29 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
 - Use `calls: Call[]` on rules, even when there is only one call.
 - Do not use both `call` and `calls`.
 
+## Bidding Corpus Snapshot
+
+Source-based counts at commit `d920655` (October 28, 2026); update this snapshot when the
+rule declarations, practice-deal registry, or deal corpus materially change.
+
+| Metric | Count | Definition |
+| --- | ---: | --- |
+| Executable bidding rules | **594** | Declarations with a callable bidding rule kind, across the six stage-specific rule modules |
+| Scope-boundary rules | **84** | Explanatory limits; these do not recommend calls |
+| Combined bidding declarations | **678** | Executable rules plus scope boundaries, excluding non-executable `BiddingNotes` |
+| Rule declaration collections | **6** | Opening, responding, advancing, opener rebidding, overcalling/overcaller rebidding, responder rebidding |
+| Executable rule kinds | **7** | `openingBid`, `responseBid`, `advance`, `openerRebid`, `overcall`, `overcallerRebid`, `responderRebid` |
+| Practice/rule-test buckets | **69** | Entries in `RULE_TEST_DEAL_BUCKETS`; the same buckets serve the practice selector and rule tests, not two separate bucket populations |
+| Practice-deal definitions | **626** | Source-defined deal records across the eleven stage/family `*-test-deals.ts` files |
+
+The 626 counts distinct source definitions, **not** the sum of deals shown across all
+buckets: some deal arrays are deliberately reused in more than one bucket. Each
+practice deal specifies four full hands, and North is dealer. Rule totals include
+multiple meaningful alternatives, not a claim of exhaustive bidding coverage.
+Neither numerical rule representation nor custom explanation coverage is a quality
+target; explanations should be assessed for instructional value. This is a dated
+snapshot, not a value automatically recomputed at application startup.
+
 ## Rule Data Policy
 
 - Executable bidding rules are organized by auction stage in arrays such as `OpeningBidRules`, `ResponseBidRules`, `OvercallRules`, `AdvanceRules`, and `OpenerRebidRules`.
