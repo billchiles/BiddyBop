@@ -1284,15 +1284,34 @@ function getDontTwoSuits (context: RuleEvalContext, lowerSuit: Suit,
   return quality ? [lowerSuit, higherSuit] : null;
 }
 
+/// Capture the actual eligibility decisions for the initial DONT call. Explanations use
+/// these observations rather than making their own independent bidding-rule decisions.
+function dontInitialEvidence(context: RuleEvalContext, singleSuit: Suit | null,
+                             twoSuits: [Suit, Suit] | null):
+    NonNullable<CallEvidence['dontInitial']> {
+  return {
+    hcp: context.handFacts.hcp,
+    lengths: { ...context.handFacts.lengths },
+    qualitySuits: SUITS.filter((suit) =>
+      context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit)),
+    singleSuit,
+    twoSuits,
+  };
+}
+
 /// In this compact DONT treatment, Double shows a good one-suited club, diamond, or heart hand.
 /// Direct 2S handles the ordinary one-suited spade hand; stronger spade distinctions are deferred.
 export function dontSingleSuitDoubleApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const suit = getDontSingleSuit(context);
   const success = context.handFacts.hcp >= 7 && suit !== null && suit !== 'S';
-  return { success, telemetryLines: [success ?
-    `PASS: DONT Double shows the one-suited ${suit} hand.` :
-    'FAIL: DONT Double needs 7+ HCP and one good 6+ card non-spade suit.'] };
+  return {
+    success,
+    telemetryLines: [success ?
+      `PASS: DONT Double shows the one-suited ${suit} hand.` :
+      'FAIL: DONT Double needs 7+ HCP and one good 6+ card non-spade suit.'],
+    callEvidence: { dontInitial: dontInitialEvidence(context, suit, null) },
+  };
 }
 
 /// 2C/2D/2H show the named lower suit plus exactly one higher suit, normally at least 5-4.
@@ -1302,18 +1321,27 @@ export function dontTwoSuitOvercallApplies (call: Call, context: RuleEvalContext
     call === '2D' ? getDontTwoSuits(context, 'D', ['H', 'S']) :
     call === '2H' ? getDontTwoSuits(context, 'H', ['S']) : null;
   const success = context.handFacts.hcp >= 7 && shape !== null;
-  return { success, telemetryLines: [success ?
-    `PASS: DONT ${call} shows ${shape[0]} plus ${shape[1]}.` :
-    `FAIL: DONT ${call} needs 7+ HCP and the modeled 5-4-or-better two-suit shape.`] };
+  return {
+    success,
+    telemetryLines: [success ?
+      `PASS: DONT ${call} shows ${shape[0]} plus ${shape[1]}.` :
+      `FAIL: DONT ${call} needs 7+ HCP and the modeled 5-4-or-better two-suit shape.`],
+    callEvidence: { dontInitial: dontInitialEvidence(context, null, shape) },
+  };
 }
 
 /// Direct 2S is the app's ordinary one-suited spade action: 7+ HCP and a good 6+ card suit.
 export function dontSpadeOvercallApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
-  const success = context.handFacts.hcp >= 7 && getDontSingleSuit(context) === 'S';
-  return { success, telemetryLines: [success ?
-    'PASS: direct 2S shows the ordinary one-suited spade DONT hand.' :
-    'FAIL: direct DONT 2S needs 7+ HCP and one good 6+ card spade suit.'] };
+  const suit = getDontSingleSuit(context);
+  const success = context.handFacts.hcp >= 7 && suit === 'S';
+  return {
+    success,
+    telemetryLines: [success ?
+      'PASS: direct 2S shows the ordinary one-suited spade DONT hand.' :
+      'FAIL: direct DONT 2S needs 7+ HCP and one good 6+ card spade suit.'],
+    callEvidence: { dontInitial: dontInitialEvidence(context, suit, null) },
+  };
 }
 
 /// After advancer makes the basic DONT relay/pass-or-correct call and opener passes, the
