@@ -18,36 +18,14 @@ not a historical progress log or a commitment to model every possible auction.
   every seat. North is always dealer, but need not be opener. Exercise completion
   need not mean the actual bridge auction is over.
 
-## Completed interaction work
-
-- [x] **All-seat practice interaction.** Every seat's recorded call, including early
-  Passes, now requires a student entry. A different legal call receives feedback,
-  then the recorded call is used to preserve the lesson. Exercises stop at the
-  recorded final call, even if the real bridge auction would continue.
-
 ## Instructional explanation review
 
-- [x] **Initial source-based instructional census and review queue.** Inventoried rule
-  declarations by stage, identified existing dedicated explanation families and shared
-  meaning/guidance, and prioritized meaningful potential teaching gaps. See
+- [ ] **Spot-check previously developed direct-defense explanations in normal use.**
+  Validate representative takeout Double, natural overcall, jump overcall, DONT,
+  weak-two direct-defense and balancing feedback, including unsupported attempts,
+  recorded-call substitutions and Report output. The source-based instructional
+  decisions and completed improvement batches are recorded in the
   [Instructional Explanation Coverage Review](instructional-explanation-review.md).
-  This is **not** per-rule approval and does not imply every case has been played through.
-- [x] **Source review of direct overcalls, takeout Doubles, DONT and balancing (B4–B8).**
-  Inspected all 31 direct-action/balancing declarations by decision family, with
-  rules, evaluation evidence, existing explanation wiring and relevant practice cases.
-  Most ordinary overcalls/Doubles, jump overcalls and balancing have substantial
-  instruction; see provisional dispositions in the [instructional review](instructional-explanation-review.md).
-  This is a source review, not complete UI play-through sign-off.
-- [x] **Initial DONT explanation evidence and teaching.** Preserve evaluated
-  shape, honor-quality and HCP facts for all five first DONT treatments; explain
-  supported and unsupported calls without changing the bidding agreement. Verified
-  with targeted rule tests and CI; browser play-through review remains part of the
-  final explanation-integration quality gate.
-- [ ] **Validate and improve two remaining direct-defense gaps.** Inspect representative
-  feedback for natural suit overcalls against weak-two openings (length, honor quality,
-  cheapest-bid selection) and natural 2NT over weak twos (HCP, balanced shape and
-  stopper evidence). Then spot-check previously developed direct overcalls and
-  balancing in normal feedback and recorded-call substitutions.
 - [ ] **Validate selected earlier response/advancing corners (B9–B20).** Especially
   agreements after 1NT/2NT and strong 2C, weak preempt defense/advancing,
   Jordan 2NT/Redouble, competitive negative/responsive Doubles, and unmodeled high
@@ -73,9 +51,12 @@ not a historical progress log or a commitment to model every possible auction.
   rule buckets in manageable groups for existing explanation functions or evidence
   that do not reach normal feedback, unsupported-call feedback, recorded-call
   substitutions, or Report output.
-- [ ] **User-facing explanation wording after the remaining explanation work.**
-  Replace "the trainer" with "the app" and explain judgment limits in ordinary
-  bridge language rather than internal scope terminology.
+- [ ] **Final end-user language audit after explanation development.**
+  Review all student-visible instruction, rejection feedback, scope guidance and
+  clipboard Report wording for development jargon such as "model", "modeled",
+  "rule", "scope boundary", "fixture", and "trainer", as well as any other
+  programmer-facing phrasing. Use ordinary bridge language, retaining bracketed
+  rule IDs for diagnostics and meaningful judgment limitations.
 - [ ] **Ending and scope guidance.** Distinguish exercise completion from a finished
   auction; explain unresolved forcing or game-forcing obligations where relevant.
   Finish the focused audit of auction-stage recognition, agreement-sensitive meanings,
