@@ -11,6 +11,7 @@ import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
+         getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
@@ -2853,6 +2854,111 @@ function runDontInitialExplanationTests (): number {
   return failures;
 }
 
+/// Protect the hand-specific explanations for natural suit and 2NT defenses to weak twos.
+/// What-if hands are separate from saved practice deals and have no duplicate cards.
+function runWeakTwoOvercallExplanationTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const expected = WEAK_TWO_DEFENSE_TEST_DEALS;
+  for (const index of [1, 2, 3, 6]) {
+    const deal = expected[index];
+    if (deal === undefined) continue;
+    const recorded = deal.expectedOvercallCalls?.[0];
+    if (recorded === undefined) continue;
+    const result = evaluateUserCall(recorded.call, makeRuleTestBoard(deal).board,
+      deal.practiceAuction.slice(0, 1), defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find(({ id }) => recorded.ruleIds.includes(id));
+    const line = rule === undefined ? null : getWeakTwoOvercallSupportLine(result, rule);
+    checks += 1;
+    if (line === null || !line.includes(`[${recorded.ruleIds[0]}]`) ||
+        !line.includes(index === 6 ? 'stopper in diamonds' :
+          'suit-quality requirement (2 of top 3 honors or 3 of top 5 honors)') ||
+        getWeakTwoOvercallFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL weak-two overcall positive explanation: ${deal.description}`);
+    }
+  }
+
+  const original = expected[1];
+  const weakPass = expected[0];
+  if (original !== undefined && weakPass !== undefined) {
+    const hand = makeRuleTestBoard(original).board;
+    const jump = evaluateUserCall('3H', hand, ['2D'], defaultBiddingSystem);
+    const jumpLines = getWeakTwoOvercallFailureLines(jump);
+    checks += 1;
+    if (!jumpLines.some((line) => line.includes(
+      'natural 2H non-jump overcall supported with this hand')) ||
+        jump.userCallMatchingRules.length !== 0) {
+      failures++;
+      console.error('FAIL weak-two jump explanation must mention qualified non-jump 2H.');
+    }
+    const missed = evaluateUserCall('2H', makeRuleTestBoard(weakPass).board,
+      ['2D'], defaultBiddingSystem);
+    checks += 1;
+    if (!getWeakTwoOvercallFailureLines(missed).some((line) =>
+      line.includes('five hearts; you have four'))) {
+      // The line can use the numeric requirement without repeating the full noun.
+      const lines = getWeakTwoOvercallFailureLines(missed);
+      if (!lines.some((line) => line.includes('at least 5 hearts; you have 4'))) {
+        failures++;
+        console.error('FAIL weak-two deficient-length explanation.');
+      }
+    }
+  }
+
+  // Construct a valid complete board without introducing practice-deal edits.
+  const build = (name: string, hand: { S: string; H: string; D: string; C: string }) => {
+    const ranks = 'AKQJT98765432';
+    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
+      [...ranks].filter((rank) => !hand[suit].includes(rank)).slice(0, count).join('');
+    return makeRuleTestBoard({
+      description: name, dealer: 'W', practiceAuction: ['2D', 'Pass'],
+      north: hand,
+      south: { S: unused('S', 4), H: unused('H', 3),
+               D: unused('D', 3), C: unused('C', 3) },
+    }).board;
+  };
+  const cases: { name: string; hand: { S: string; H: string; D: string; C: string };
+                 auction: Call[]; bid: Call; fragment: string }[] = [
+    { name: 'good hearts below 13 points', bid: '2H', auction: ['2D'],
+      hand: { S: 'A7', H: 'KQJ98', D: '63', C: 'T976' }, fragment: 'points including length' },
+    { name: 'strong overcaller should double', bid: '2H', auction: ['2D'],
+      hand: { S: 'AK', H: 'AKQJT', D: 'Q7', C: 'T982' }, fragment: 'no more than 17 HCP' },
+    { name: 'weak suit honors', bid: '2H', auction: ['2D'],
+      hand: { S: 'AQ', H: 'J9876', D: 'K74', C: 'T52' }, fragment: 'suit-quality requirement' },
+    { name: 'three-level suit too short', bid: '3H', auction: ['2S'],
+      hand: { S: 'A4', H: 'AKJT9', D: 'Q76', C: '982' }, fragment: 'at least 6 hearts' },
+    { name: 'natural 2NT lacks stopper', bid: '2NT', auction: ['2D'],
+      hand: { S: 'AKJ4', H: 'Q96', D: '754', C: 'AJ6' },
+      fragment: 'stopper in diamonds; your hand lacks one' },
+    { name: 'natural 2NT needs balanced distribution', bid: '2NT', auction: ['2D'],
+      hand: { S: 'AKJ84', H: 'Q976', D: 'A4', C: 'J7' }, fragment: 'balanced distribution' },
+    { name: 'natural 2NT below range', bid: '2NT', auction: ['2D'],
+      hand: { S: 'KJ84', H: 'Q96', D: 'A54', C: 'J76' }, fragment: '15–18 HCP' },
+  ];
+  for (const c of cases) {
+    const result = evaluateUserCall(c.bid, build(c.name, c.hand), c.auction,
+      defaultBiddingSystem);
+    const lines = getWeakTwoOvercallFailureLines(result);
+    checks++;
+    if (result.userCallMatchingRules.length !== 0 || !lines.join(' ').includes(c.fragment)) {
+      failures++;
+      console.error(`FAIL weak-two overcall explanation: ${c.name}: ${lines.join(' ')}`);
+    }
+  }
+  const unrelated = evaluateUserCall('2H',
+    makeRuleTestBoard(expected[1]!).board, ['1S'], defaultBiddingSystem);
+  checks++;
+  if (getWeakTwoOvercallFailureLines(unrelated).length !== 0 ||
+      unrelated.userCallMatchingRules.some((rule) =>
+        getWeakTwoOvercallSupportLine(unrelated, rule) !== null)) {
+    failures++;
+    console.error('FAIL weak-two explanation leaked into one-level opening defenses.');
+  }
+  console.log(`${failures} ***FAILURES***. Weak-two direct-overcall explanations: ${checks} checks.\n`);
+  return failures;
+}
+
 /// DONT checks protect the family boundary rather than duplicating every practice deal.
 /// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
 /// responder or opener competes instead of passing through the basic relay.
@@ -5409,6 +5515,7 @@ const testGroups: (() => number)[] = [
   runNaturalSuitOvercallerRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
+  runWeakTwoOvercallExplanationTests,
   runDontInitialExplanationTests,
   runDontBoundaryTests,
   runResponderRebidContextTests,
