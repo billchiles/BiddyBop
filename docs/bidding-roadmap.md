@@ -32,10 +32,18 @@ not a historical progress log or a commitment to model every possible auction.
   meaning/guidance, and prioritized meaningful potential teaching gaps. See
   [Instructional Explanation Coverage Review](instructional-explanation-review.md).
   This is **not** per-rule approval and does not imply every case has been played through.
-- [ ] **Validate prior direct overcall, takeout Double, and balancing explanations (B4–B8).**
-  Check ordinary and weak-two Double variants, natural suit/NT and stopper tests,
-  preemptive jumps, DONT choices, fourth-seat balancing, plausible rejections and
-  deliberate judgment boundaries. Record when existing meaning/guidance is adequate.
+- [x] **Source review of direct overcalls, takeout Doubles, DONT and balancing (B4–B8).**
+  Inspected all 31 direct-action/balancing declarations by decision family, with
+  rules, evaluation evidence, existing explanation wiring and relevant practice cases.
+  Most ordinary overcalls/Doubles, jump overcalls and balancing have substantial
+  instruction; see provisional dispositions in the [instructional review](instructional-explanation-review.md).
+  This is a source review, not complete UI play-through sign-off.
+- [ ] **Validate and improve three focused direct-defense gaps.** Inspect representative
+  accepted/rejected feedback and implement only justified improvements: the initial
+  DONT call (actual shape and choice), natural weak-two suit overcalls (length/quality
+  and cheapest-bid reasons), and natural 2NT over weak twos (balanced/HCP/stopper
+  evidence). Then spot-check previously developed direct overcalls and balancing
+  in normal feedback and recorded-call substitutions.
 - [ ] **Validate selected earlier response/advancing corners (B9–B20).** Especially
   agreements after 1NT/2NT and strong 2C, weak preempt defense/advancing,
   Jordan 2NT/Redouble, competitive negative/responsive Doubles, and unmodeled high
