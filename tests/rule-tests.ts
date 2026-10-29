@@ -10,6 +10,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
+         getDontInitialSupportLine, getDontInitialFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
@@ -2756,6 +2757,102 @@ function runJumpOvercallForcingAdvanceRebidTests (): number {
   return failures;
 }
 
+/// Test initial DONT instructional evidence for each supported treatment and representative
+/// near misses. Use the saved hands without changing the original practice-deal corpus.
+function runDontInitialExplanationTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = DONT_1NT_DEFENSE_TEST_DEALS;
+  for (const deal of deals) {
+    const expected = deal.expectedOvercallCalls?.[0];
+    if (expected === undefined || expected.call === 'Pass') continue;
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(expected.call, board, ['1NT'], defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) => expected.ruleIds.includes(item.id));
+    const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule?.id)
+      ?.candidates.find(({ call }) => call === expected.call);
+    const positive = rule === undefined ? null : getDontInitialSupportLine(result, rule);
+    checks += 1;
+    if (positive === null || !positive.includes('suit-quality requirement') ||
+        !positive.includes('2 of top 3 honors or 3 of top 5 honors') ||
+        candidate?.callEvidence?.dontInitial === undefined ||
+        getDontInitialFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL initial DONT qualifying explanation: ${deal.description}`);
+    }
+  }
+
+  const mistaken: { dealIndex: number; call: Call; expected: string }[] = [
+    { dealIndex: 1, call: '2H', expected: '2H promises both majors' },
+    { dealIndex: 2, call: 'Double', expected: 'one good suit of six or more cards' },
+    { dealIndex: 4, call: '2C', expected: 'You have two clubs' },
+    { dealIndex: 5, call: '2D', expected: 'diamonds and a major' },
+    { dealIndex: 6, call: 'Double', expected: 'natural 2S' },
+  ];
+  for (const test of mistaken) {
+    const deal = deals[test.dealIndex];
+    if (deal === undefined) continue;
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const negative = getDontInitialFailureLines(result);
+    checks += 1;
+    if (result.userCallMatchingRules.length > 0 || !negative.join(' ').includes(test.expected) ||
+        !negative.some((line) => line.includes('instead qualifies for'))) {
+      failures += 1;
+      console.error(`FAIL initial DONT mistaken ${test.call} with ${deal.description}`);
+    }
+  }
+
+  const synthetic: { name: string; north: RuleTestDeal['north']; call: Call;
+                     expected: string }[] = [
+    { name: '6 HCP but good six-card hearts', call: 'Double', expected: '7-HCP minimum',
+      north: { S: '84', H: 'KQJT96', D: '852', C: '73' } },
+    { name: '4-4 two-suit shape', call: '2C', expected: 'total only 8 cards',
+      north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' } },
+    { name: 'Six hearts with inadequate honor quality', call: 'Double',
+      expected: 'suit-quality requirement',
+      north: { S: '84', H: '976432', D: 'AKQ', C: '73' } },
+    { name: 'Five clubs and four hearts, weak club honors', call: '2C',
+      expected: 'Neither suit meets the suit-quality requirement',
+      north: { S: '84', H: 'A765', D: 'KQ', C: 'J9876' } },
+  ];
+  for (const test of synthetic) {
+    // Construct a separate, non-overlapping second hand; these are synthetic tests,
+    // not additional saved practice deals.
+    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
+      'AKQJT98765432'.split('').filter((rank) => !test.north[suit].includes(rank))
+        .slice(0, count).join('');
+    const board = makeRuleTestBoard({
+      description: test.name, dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+      north: test.north,
+      south: { S: unused('S', 4), H: unused('H', 3),
+               D: unused('D', 3), C: unused('C', 3) },
+    }).board;
+    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const lines = getDontInitialFailureLines(result);
+    checks += 1;
+    if (result.userCallMatchingRules.length !== 0 || !lines.join(' ').includes(test.expected)) {
+      failures += 1;
+      console.error(`FAIL DONT initial explanation boundary: ${test.name}`);
+    }
+  }
+
+  const sample = deals[1];
+  if (sample !== undefined) {
+    const board = makeRuleTestBoard(sample).board;
+    const unrelated = evaluateUserCall('2H', board, ['1D'], defaultBiddingSystem);
+    checks += 1;
+    if (getDontInitialFailureLines(unrelated).length !== 0 ||
+        unrelated.userCallMatchingRules.some((rule) =>
+          getDontInitialSupportLine(unrelated, rule) !== null)) {
+      failures += 1;
+      console.error('FAIL initial DONT explanation leaked into natural suit defense.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. DONT initial explanations: ${checks} checks.\n`);
+  return failures;
+}
+
 /// DONT checks protect the family boundary rather than duplicating every practice deal.
 /// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
 /// responder or opener competes instead of passing through the basic relay.
@@ -5312,6 +5409,7 @@ const testGroups: (() => number)[] = [
   runNaturalSuitOvercallerRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
+  runDontInitialExplanationTests,
   runDontBoundaryTests,
   runResponderRebidContextTests,
   runResponderMajorRaiseContextTests,

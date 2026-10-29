@@ -288,6 +288,154 @@ function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints'
 }
 
 ///
+/// Initial DONT overcalls, distinct from partner's DONT advances
+///
+
+const DONT_INITIAL_IDS = [
+  'overcall-dont-single-suit-double', 'overcall-dont-clubs-plus-higher',
+  'overcall-dont-diamonds-plus-major', 'overcall-dont-majors',
+  'overcall-dont-natural-spades',
+];
+const DONT_HONORS = '2 of top 3 honors or 3 of top 5 honors';
+const DONT_NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+                      'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen'];
+
+function dontNumber(n: number): string {
+  return DONT_NUMBERS[n] ?? String(n);
+}
+
+function dontSuit(suit: 'C' | 'D' | 'H' | 'S'): string {
+  return suitPlural(`1${suit}` as Call);
+}
+
+function dontInitialCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
+  return result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+}
+
+/// Use the shape and honor observations captured by the actual applicability function.
+export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (!DONT_INITIAL_IDS.includes(rule.id)) return null;
+  const candidate = dontInitialCandidate(result, rule.id);
+  const info = candidate?.callEvidence?.dontInitial;
+  if (candidate?.ruleApplies !== true || info === undefined) return null;
+  if (info.singleSuit !== null) {
+    const suit = info.singleSuit;
+    const evidence = `Your ${dontNumber(info.lengths[suit])} ${dontSuit(suit)} meet the ` +
+      `suit-quality requirement (${DONT_HONORS}), and you have ${info.hcp} HCP. `;
+    if (rule.id === 'overcall-dont-single-suit-double') {
+      return evidence + 'With one long non-spade suit and no second four-card suit, Double ' +
+        `describes this hand. It is artificial, not a penalty Double [${rule.id}].`;
+    }
+    if (rule.id === 'overcall-dont-natural-spades') {
+      return evidence + 'With one long spade suit and no second four-card suit, natural ' +
+        `2S describes this hand rather than the artificial Double [${rule.id}].`;
+    }
+  }
+  if (info.twoSuits !== null) {
+    const [lower, higher] = info.twoSuits;
+    const quality = info.twoSuits.find((suit) => info.qualitySuits.includes(suit));
+    if (quality === undefined) return null;
+    const meaning = rule.id === 'overcall-dont-clubs-plus-higher'
+      ? 'Bid 2C to show clubs and an unspecified higher suit.'
+      : rule.id === 'overcall-dont-diamonds-plus-major'
+      ? 'Bid 2D to show diamonds and an unspecified major.'
+      : 'Bid 2H to show both majors.';
+    return `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
+      `${dontNumber(info.lengths[higher])} ${dontSuit(higher)} meet the two-suit shape ` +
+      `requirement. The ${dontSuit(quality)} meet the suit-quality requirement ` +
+      `(${DONT_HONORS}), and your ${info.hcp} HCP satisfy the 7-HCP minimum. ` +
+      `${meaning} [${rule.id}]`;
+  }
+  return null;
+}
+
+/// Report only the rejected DONT call's own checks, and cite an alternative only if it
+/// actually survives evaluation. No separate DONT qualification algorithm lives here.
+export function getDontInitialFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length !== 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
+    DONT_INITIAL_IDS.includes(rule.id) && rule.calls?.includes(entered) === true);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === entered);
+  const info = candidate?.callEvidence?.dontInitial;
+  if (candidate === undefined || candidate.ruleApplies || info === undefined ||
+      diagnostic === undefined) return [];
+  const lines: string[] = [];
+  if (info.hcp < 7) {
+    lines.push(`With ${info.hcp} HCP, ${entered} falls below the 7-HCP minimum ` +
+      `[${diagnostic.rule.id}].`);
+  }
+  const suits = ['C', 'D', 'H', 'S'] as const;
+  if (entered === 'Double' || entered === '2S') {
+    const long = suits.filter((suit) => info.lengths[suit] >= 6);
+    const secondFour = long.length === 1 && suits.some((suit) =>
+      suit !== long[0] && info.lengths[suit] >= 4);
+    if (entered === 'Double' && info.singleSuit === 'S') {
+      lines.push('With the DONT convention, Double promises one good long club, diamond ' +
+        `or heart suit. A one-suited spade hand uses natural 2S [${diagnostic.rule.id}].`);
+    } else if (entered === '2S' && info.lengths.S < 6) {
+      lines.push(`With the DONT convention, natural 2S requires six or more spades; ` +
+        `you have ${dontNumber(info.lengths.S)} [${diagnostic.rule.id}].`);
+    } else if (long.length === 0) {
+      lines.push(`With the DONT convention, ${entered} requires one good suit of six or ` +
+        `more cards; your longest is ${Math.max(...Object.values(info.lengths))} ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (long.length === 1 && !info.qualitySuits.includes(long[0]!)) {
+      lines.push(`Your ${dontNumber(info.lengths[long[0]!])} ${dontSuit(long[0]!)} do ` +
+        `not meet the suit-quality requirement (${DONT_HONORS}) ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (secondFour) {
+      lines.push(`With the DONT convention, ${entered} promises a one-suited hand. ` +
+        `You have a second suit of four or more cards [${diagnostic.rule.id}].`);
+    } else if (long.length > 1) {
+      lines.push(`With the DONT convention, ${entered} promises only one long suit; ` +
+        `you have ${long.length} suits of six or more cards [${diagnostic.rule.id}].`);
+    }
+  } else {
+    const lower = entered === '2C' ? 'C' : entered === '2D' ? 'D' : 'H';
+    const eligibleHigher = entered === '2C' ? (['D', 'H', 'S'] as const) :
+      entered === '2D' ? (['H', 'S'] as const) : (['S'] as const);
+    const higher = eligibleHigher.find((suit) => info.lengths[suit] >= 4);
+    const four = suits.filter((suit) => info.lengths[suit] >= 4);
+    const meaning = entered === '2C' ? 'clubs and a higher suit' :
+      entered === '2D' ? 'diamonds and a major' : 'both majors';
+    const opening = `With the DONT convention, ${entered} ` +
+      `${entered === '2H' ? 'promises' : 'shows'} ${meaning}, at least 5–4. `;
+    if (info.lengths[lower] < 4 || higher === undefined) {
+      const actual = entered === '2H' && info.lengths.H >= 4
+        ? `You have ${dontNumber(info.lengths.H)} hearts but only ` +
+          `${dontNumber(info.lengths.S)} spades.`
+        : `You have ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
+          `${higher === undefined ? 'no qualifying four-card higher suit' : 'a higher suit'}.`;
+      lines.push(opening + actual + ` [${diagnostic.rule.id}]`);
+    } else if (four.length !== 2) {
+      lines.push(opening + `You have ${four.length} suits of four or more cards; ` +
+        `exactly two are required [${diagnostic.rule.id}].`);
+    } else if (info.lengths[lower] + info.lengths[higher] < 9) {
+      lines.push(opening + `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} ` +
+        `and ${dontNumber(info.lengths[higher])} ${dontSuit(higher)} total only ` +
+        `${info.lengths[lower] + info.lengths[higher]} cards; nine are required ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (!info.qualitySuits.includes(lower) && !info.qualitySuits.includes(higher)) {
+      lines.push(opening + `Neither suit meets the suit-quality requirement ` +
+        `(${DONT_HONORS}) [${diagnostic.rule.id}].`);
+    }
+  }
+  const alternative = result.ruleDiagnostics.find(({ rule, candidates }) =>
+    DONT_INITIAL_IDS.includes(rule.id) && rule.id !== diagnostic.rule.id &&
+    candidates.some(({ call, ruleApplies }) => ruleApplies && call !== entered));
+  const otherCall = alternative?.candidates.find(({ call, ruleApplies }) =>
+    ruleApplies && call !== entered)?.call;
+  if (alternative !== undefined && otherCall !== undefined) {
+    const name = otherCall === 'Double' ? 'the one-suited DONT Double' :
+      otherCall === '2S' ? 'natural DONT 2S' : `the ${otherCall} treatment`;
+    lines.push(`Your hand instead qualifies for ${name} [${alternative.rule.id}].`);
+  }
+  return lines;
+}
+
+///
 //// Takeout Double explanations
 ///
 
