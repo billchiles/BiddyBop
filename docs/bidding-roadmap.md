@@ -51,6 +51,8 @@ not a historical progress log or a commitment to model every possible auction.
   but audit the remaining corners (particularly NT-opening interference, jump-overcall
   continuations and forcing end states). Do not equate finishing explanation batches
   with blanket approval of every executable rule.
+## Remaining project quality work
+
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
