@@ -2784,8 +2784,8 @@ function runDontInitialExplanationTests (): number {
 
   const mistaken: { dealIndex: number; call: Call; expected: string }[] = [
     { dealIndex: 1, call: '2H', expected: '2H promises both majors' },
-    { dealIndex: 2, call: 'Double', expected: 'one-suited hand' },
-    { dealIndex: 4, call: '2C', expected: 'four-card higher suit' },
+    { dealIndex: 2, call: 'Double', expected: 'one good suit of six or more cards' },
+    { dealIndex: 4, call: '2C', expected: 'You have two clubs' },
     { dealIndex: 5, call: '2D', expected: 'diamonds and a major' },
     { dealIndex: 6, call: 'Double', expected: 'natural 2S' },
   ];
@@ -2817,9 +2817,16 @@ function runDontInitialExplanationTests (): number {
       north: { S: '84', H: 'A765', D: 'KQ', C: 'J9876' } },
   ];
   for (const test of synthetic) {
+    // Construct a separate, non-overlapping second hand; these are synthetic tests,
+    // not additional saved practice deals.
+    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
+      'AKQJT98765432'.split('').filter((rank) => !test.north[suit].includes(rank))
+        .slice(0, count).join('');
     const board = makeRuleTestBoard({
       description: test.name, dealer: 'W', practiceAuction: ['1NT', 'Pass'],
-      north: test.north, south: { S: 'T975', H: '753', D: 'Q84', C: 'K65' },
+      north: test.north,
+      south: { S: unused('S', 4), H: unused('H', 3),
+               D: unused('D', 3), C: unused('C', 3) },
     }).board;
     const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
     const lines = getDontInitialFailureLines(result);
