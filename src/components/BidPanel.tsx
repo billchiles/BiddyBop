@@ -13,6 +13,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getBalancingDoubleSupportLine, getBalancingDoubleFailureLines,
          getBalancingCallSupportLine, getBalancingCallFailureLines,
          getNaturalOvercallSupportLine, getNaturalOvercallFailureLines,
+         getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getJumpOvercallSupportLine, getJumpOvercallFailureLines,
          getMinorResponseSupportLines, getMinorResponseFailureLines,
@@ -593,6 +594,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const balancingReasons = getBalancingCallFailureLines(result);
   const naturalOvercallReasons = [
     ...getNaturalOvercallFailureLines(result),
+    ...getWeakTwoOvercallFailureLines(result),
     ...getDontInitialFailureLines(result),
   ];
   const jumpOvercallReasons = getJumpOvercallFailureLines(result);
@@ -769,6 +771,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
     getBalancingDoubleSupportLine(result, rule) ??
     getBalancingCallSupportLine(result, rule) ??
     getDontInitialSupportLine(result, rule) ??
+    getWeakTwoOvercallSupportLine(result, rule) ??
     getNaturalOvercallSupportLine(result, rule) ??
     getJumpOvercallSupportLine(result, rule);
   if (callEvidenceLine !== null) lines.push(callEvidenceLine);

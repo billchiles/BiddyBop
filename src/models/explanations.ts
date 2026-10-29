@@ -850,6 +850,133 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
 }
 
 ///
+/// Natural defenses against opposing weak-two openings
+///
+
+const WEAK_TWO_SUIT_IDS = [
+  'overcall-weak-two-natural-suit-at-two-level',
+  'overcall-weak-two-natural-suit-at-three-level',
+];
+const WEAK_TWO_NT_ID = 'overcall-weak-two-natural-2nt-with-stopper';
+const WEAK_TWO_HONORS = '2 of top 3 honors or 3 of top 5 honors';
+
+function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const points = checks?.find((item) => item.kind === 'totalPoints');
+  return { choice, candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    points: points?.kind === 'totalPoints' ? points : undefined };
+}
+
+function weakTwoNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
+    ?.candidates.find(({ call }) => call === '2NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return { candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
+}
+
+/// Use only rule/refiner decisions and point checks that were actually evaluated.
+export function getWeakTwoOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (WEAK_TWO_SUIT_IDS.includes(rule.id)) {
+    const { choice, candidate, hcp, points } = weakTwoSuitEvidence(result, rule.id);
+    if (choice?.passed !== true || candidate?.ruleApplies !== true ||
+        hcp?.passed !== true || points?.passed !== true) return null;
+    const lengthPoints = points.actual - hcp.actual;
+    const lengthText = `${lengthPoints} length point${lengthPoints === 1 ? '' : 's'}`;
+    const economical = choice.requiredLength === 6
+      ? `${choice.call} is the cheapest available ${suitName(choice.call)} bid. ` : '';
+    const level = choice.requiredLength === 5 ? 'two' : 'three';
+    return `Your ${choice.length}-card ${suitPlural(choice.call)} meet the ` +
+      `suit-quality requirement (${WEAK_TWO_HONORS}). You have ${hcp.actual} HCP ` +
+      `plus ${lengthText}, totaling ${points.actual} points. ` + economical +
+      `That meets the ${points.min}-point and ${choice.requiredLength}-card requirements ` +
+      `for a natural ${level}-level overcall [${rule.id}].`;
+  }
+  if (rule.id === WEAK_TWO_NT_ID) {
+    const { candidate, hcp, balanced, stopper } = weakTwoNtEvidence(result);
+    if (candidate?.ruleApplies !== true || hcp?.passed !== true ||
+        balanced?.passed !== true || stopper?.passed !== true) return null;
+    const doubleAlsoFits = result.ruleDiagnostics.some(({ rule: other, candidates }) =>
+      other.kind === 'overcall' &&
+      candidates.some(({ call, ruleApplies }) => call === 'Double' && ruleApplies));
+    return `Your balanced hand has ${hcp.actual} HCP and a stopper in ` +
+      `${namedStopperSuit(stopper)}, meeting the 15–18 HCP requirements for a natural ` +
+      '2NT overcall. ' + (doubleAlsoFits
+        ? 'Although a takeout Double also qualifies, 2NT directly describes your ' +
+          'balanced hand and stopper. ' : '') + `[${rule.id}]`;
+  }
+  return null;
+}
+
+/// Report only the checks that actually ran for the student's attempted call.
+/// Refinement can reject a suit before HCP and total points are tested.
+export function getWeakTwoOvercallFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length !== 0) return [];
+  const entered = result.normalizedCall;
+  if (entered === '2NT') {
+    const { candidate, hcp, balanced, stopper } = weakTwoNtEvidence(result);
+    if (candidate === undefined || candidate.ruleApplies ||
+        hcp === undefined || balanced === undefined || stopper === undefined) return [];
+    const lines: string[] = [];
+    if (!hcp.passed) lines.push(`Natural 2NT over a weak two requires 15–18 HCP; ` +
+      `your hand has ${hcp.actual} [${WEAK_TWO_NT_ID}].`);
+    if (!balanced.passed) lines.push(`Natural 2NT over a weak two requires balanced ` +
+      `distribution [${WEAK_TWO_NT_ID}].`);
+    if (!stopper.passed) lines.push(`Natural 2NT over a weak two requires a ` +
+      `stopper in ${namedStopperSuit(stopper)}; your hand lacks one [${WEAK_TWO_NT_ID}].`);
+    return lines;
+  }
+  for (const id of WEAK_TWO_SUIT_IDS) {
+    const { choice, candidate, hcp, points } = weakTwoSuitEvidence(result, id);
+    if (choice === undefined) continue;
+    if (!choice.isCheapest) {
+      if (choice.cheapestCall === null) continue;
+      const cheaper = choice.cheapestCall;
+      const supported = result.ruleDiagnostics.some(({ candidates }) =>
+        candidates.some(({ call, ruleApplies }) => call === cheaper && ruleApplies));
+      return [`Over this opening, ${cheaper} is the cheapest available ` +
+        `${suitName(choice.call)} bid. ${choice.call} is a jump, rather than ` +
+        (supported
+          ? `the natural ${cheaper} non-jump overcall supported with this hand. `
+          : 'a natural non-jump overcall. ') +
+        `This jump requires additional bidding judgment [${id}].`];
+    }
+    const lines: string[] = [];
+    if (choice.length < choice.requiredLength) {
+      lines.push(`A natural ${choice.call} overcall after a weak two requires at least ` +
+        `${choice.requiredLength} ${suitPlural(choice.call)}; you have ${choice.length} ` +
+        `[${id}].`);
+    }
+    if (!choice.good) {
+      lines.push(`Your ${choice.length}-card ${suitName(choice.call)} suit does not meet ` +
+        `the suit-quality requirement (${WEAK_TWO_HONORS}) [${id}].`);
+    }
+    if (candidate?.ruleApplies === false && hcp?.passed === false) {
+      lines.push(`A natural ${choice.call} overcall of a weak two requires no more ` +
+        `than ${hcp.max} HCP; you have ${hcp.actual} [${id}].`);
+    }
+    if (candidate?.ruleApplies === false && points?.passed === false) {
+      lines.push(`A natural ${choice.call} overcall of a weak two requires at least ` +
+        `${points.min} points including length; your hand has ${points.actual} ` +
+        `[${id}].`);
+    }
+    return lines;
+  }
+  return [];
+}
+
+///
 //// Preemptive jump-overcall explanations
 ///
 

@@ -86,23 +86,23 @@ natural overcalls, preemptive jumps and balancing.
 | Natural 1NT overcall of a one-level suit | **Provisionally adequate** | Existing accepted/rejected explanations use HCP, balanced shape and stopper evidence and say which suit must be stopped. Verify precedence against plausible natural suit or Double alternatives in a small play-through. |
 | Preemptive jump overcalls at levels two, three and four | **Provisionally adequate** | Dedicated explanation uses actual jump selection, required suit length, top-honor quality and limited HCP, including rejected candidates. Sample non-jumps and weak suit-quality near misses. |
 | Initial DONT Double, 2C, 2D, 2H and natural 2S over 1NT | **Implemented, browser review pending** | Added hand-specific positive and negative feedback using candidate evidence for suit lengths, 7+ HCP, two-suit shape and suit quality. Explains incorrect conventional meaning and only names an alternative when it actually qualifies. All five initial treatments and representative failures now have focused rule tests; existing agreements, relays and saved deals are unchanged. |
-| Natural suit overcall against a weak-two opening | **Improve (medium)** | The two-level and three-level rules and seven weak-two defense deal definitions exist. `refineWeakTwoSuitOvercall` excludes non-cheapest, short and poor-quality suits without `CallEvidence` recording why. Ordinary natural-overcall explanation helpers recognize only `overcall-simple-suit-*`, so they do not provide equal hand-aware explanation for `overcall-weak-two-natural-suit-*`. Add minimal evaluated evidence for the actual cheapest 2/3-level suit and failed length/quality/strength criteria, then compare actual feedback. |
-| Natural 2NT overcall against a weak-two opening | **Improve (medium)** | `naturalNotrumpOvercallApplies` enforces balanced 15–18 HCP and a stopper for both 1NT and 2NT, but currently emits structured `requirements` only for `call === '1NT'`. Consequently the existing natural-NT explanation helper does not handle weak-two 2NT and cannot show its precise accepted/rejected stopper evidence. Extend the shared evidence, without relaxing the underlying rules. |
+| Natural suit overcall against a weak-two opening | **Implemented, browser review pending (Oct 29)** | Preserved cheapest-call/level, suit length, honor quality, and declarative 13/15 length-inclusive points with 17-HCP ceiling. Added hand-specific support and rejection teaching, including explaining a jump without treating it as an incorrect natural non-jump overcall. Focused tests cover qualifying bids, failed shape/honors/strength and an independently qualifying cheaper call; no bidding agreement changed. |
+| Natural 2NT overcall against a weak-two opening | **Implemented, browser review pending (Oct 29)** | The shared 1NT/2NT evaluator now preserves actual 15–18 HCP, balanced-shape and stopper-in-opener-suit evidence for 2NT too. Accepted and rejected feedback identifies the specific failed condition; when takeout Double also qualifies, the explanation compares the two legitimate choices. No bidding requirement changed. |
 | Fourth-seat balancing: one-/two-level suit, natural 1NT, ordinary/strong Double, Pass | **Provisionally adequate** | Dedicated accepted/rejected helper families explain lighter strength, ordinary vs strong Double shape, 1NT stopper, suit quality and defensive Pass. Passing is not treated as universally wrong if a light balance is also possible. Sample hands with competing Pass and suit choices and strong borderline Double. |
 | Scope boundaries: strong 2C/2NT openings, high preempts, 18+ versus opposing 1NT and fourth-seat balancing gaps | **Judgment boundary, meaning likely sufficient** | Boundaries already state non-modeled convention, defense or penalty judgment and avoid automatic Pass. Verify they surface when no valid modeled action qualifies; do not add algorithmic calls or custom explanation text purely for rule-count coverage. |
 | Generic Pass when no direct competitive action qualifies | **Meaning/guidance likely adequate** | `overcall-pass-no-qualifying-action` documents why the app may prefer defending; detailed failure diagnostics for *every* alternative would be excessive. Confirm fallback suppression and avoid portraying Pass as a universal recommendation on marginal hands. |
 
-**Disposition:** The initial source review is complete, but detailed UI feedback validation
-remains. No source change is recommended for the provisional-adequate or
-judgment-boundary rows absent a demonstrated misleading message. Next, present
-concrete sample accepted/rejected DONT and weak-two-defense explanations;
-then implement the smallest evidence/wiring/test changes warranted by the
-three **Improve** rows, using the regular reviewed CI workflow.
+**Disposition (updated October 29):** Source review and the three identified
+initial-defense instructional improvements (DONT, weak-two natural suit, weak-two
+natural 2NT) are implemented. Actual browser feedback, recorded substitutions and
+Report output still need representative play-throughs before final approval.
+Previously developed direct-defense families remain provisionally adequate;
+judgment-boundary decisions remain deliberate.
 
 Do not equate this source review with signing off the entirety of subsequent
 `overcallerRebid` rules; those belong to a later, separate decision family.
 
-**DONT implementation update (October 29, 2026):** The initial DONT evidence and explanation improvement has been implemented with positive and negative call guidance and targeted tests. Remaining direct-defense **Improve** rows are natural weak-two suit overcalls and natural 2NT over weak twos. Final rendered feedback and Report play-through remains a project-wide integration task.
+**Batch verification (October 29, 2026):** Initial DONT, weak-two natural suit, and weak-two natural 2NT now retain hand-specific evidence and provide accepted/rejected instructional explanations with regression tests. The three families have been implemented without adding any bidding rule or practice deal. Keep their **browser review pending** status until representative actual feedback and Report checks are complete.
 
 ## Prioritized review plan
 
@@ -114,6 +114,15 @@ Do not equate this source review with signing off the entirety of subsequent
 6. **Final integration and play-through quality gate.** For every altered or approved family, verify normal accepted call, plausible rejected call, recorded-call substitution, clipboard Report, rule IDs, chosen system agreement, and next-turn boundary. Inspect actual rendered wording; automated tests alone do not prove tutoring quality.
 
 Sequence is a priority guide, not a mandate to change every family. When reviewing a family, record the four final decision labels above and whether source/test/actual explanation evidence supports it. Avoid rule-count-based progress targets. Keep a concise per-family record here as work proceeds; do not claim a blanket phase is complete merely because a named batch was implemented.
+
+## Student-facing language acceptance gate
+
+After the remaining explanation families are implemented, review all student-facing
+text and Reports—not just newly added explanations—for developer terminology such
+as "model", "modeled", "scope boundary", "fixture", "rule", "the trainer", and
+other internal implementation phrasing. Replace it with natural bridge teaching
+language wherever possible, without obscuring deliberate judgment limits or
+removing bracketed diagnostic rule IDs. Track the outstanding work in the roadmap.
 
 ## Deferred or intentionally limited
 

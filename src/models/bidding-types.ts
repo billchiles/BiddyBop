@@ -421,6 +421,15 @@ export interface CallEvidence {
   balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
+  weakTwoSuit?: {
+    call: Call;
+    length: number;
+    requiredLength: number;
+    good: boolean;
+    cheapestCall: Call | null;
+    isCheapest: boolean;
+    passed: boolean;
+  }[];
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
   dontInitial?: {
     hcp: number;
