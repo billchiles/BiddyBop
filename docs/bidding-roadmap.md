@@ -25,11 +25,32 @@ not a historical progress log or a commitment to model every possible auction.
   then the recorded call is used to preserve the lesson. Exercises stop at the
   recorded final call, even if the real bridge auction would continue.
 
-## Remaining work
-- [ ] **Finish the remaining selected explanation families.** Other selected competitive
-  overcaller/Doubler and responder rebids, after the selected competitive opener
-  continuations. Explain the existing scope rather than add families for coverage.
-  Explain the existing scope rather than add families merely for coverage.
+## Instructional explanation review
+
+- [x] **Initial source-based instructional census and review queue.** Inventoried rule
+  declarations by stage, identified existing dedicated explanation families and shared
+  meaning/guidance, and prioritized meaningful potential teaching gaps. See
+  [Instructional Explanation Coverage Review](instructional-explanation-review.md).
+  This is **not** per-rule approval and does not imply every case has been played through.
+- [ ] **Validate prior direct overcall, takeout Double, and balancing explanations (B4–B8).**
+  Check ordinary and weak-two Double variants, natural suit/NT and stopper tests,
+  preemptive jumps, DONT choices, fourth-seat balancing, plausible rejections and
+  deliberate judgment boundaries. Record when existing meaning/guidance is adequate.
+- [ ] **Validate selected earlier response/advancing corners (B9–B20).** Especially
+  agreements after 1NT/2NT and strong 2C, weak preempt defense/advancing,
+  Jordan 2NT/Redouble, competitive negative/responsive Doubles, and unmodeled high
+  interference. Avoid reworking already-good first actions simply for rule coverage.
+- [ ] **Deep review and improve selected overcaller/takeout-Doubler rebids.** Include
+  natural 1NT overcall conventions/invitations, natural suit overcall advances and
+  later competition, ordinary/strong takeout-Doubler actions, and weak-two defense
+  continuations. Contrast actual strength, fit, stopper, forcing status and alternatives.
+- [ ] **Deep review and improve selected responder rebids.** Include NT conventions,
+  strong 2C/Jacoby/splinters, Standard versus 2/1 forcing sequences, delayed support,
+  economical descriptive suits, simple raises/game tries, and judgment boundaries.
+- [ ] **Final opener-rebid verification.** Extensive explanation work is complete,
+  but audit the remaining corners (particularly NT-opening interference, jump-overcall
+  continuations and forcing end states). Do not equate finishing explanation batches
+  with blanket approval of every executable rule.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
