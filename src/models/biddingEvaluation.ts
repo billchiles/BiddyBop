@@ -1331,7 +1331,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainWeakTwoSuitOvercall || explainResponderRedouble || explainJumpResponder ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
-      explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
+      explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
       explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
       explainOpenerTwoLevelNewSuitRebid ?
         { requirements } : undefined };
