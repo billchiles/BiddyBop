@@ -1161,6 +1161,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     (ruleId === 'respond-over-jump-raise-cheapest-to-three' ||
      ruleId === 'respond-over-jump-new-suit-two-level' ||
      ruleId === 'respond-over-jump-new-suit-three-level');
+  const explainStrongTwoCPositive = context.stage === 'responding' &&
+    ruleId === 'respond-to-2c-w/-positive-suit';
   const explainResponderRedouble = context.stage === 'responding' &&
     ruleId === 'respond-after-double-redouble-values';
   const explainMinorResponse = context.stage === 'responding' && (
@@ -1195,6 +1197,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     ruleId.startsWith('advance-takeout-double-') ||
     ruleId === 'advance-weak-two-double-direct-major-game');
   const explainNaturalNtResponse = ruleId.startsWith('respond-to-1nt-w/-') ||
+    ruleId.startsWith('respond-to-2nt-w/-') ||
     ruleId.startsWith('advance-weak-two-2nt-') ||
     ruleId.startsWith('partner-of-1nt-after-interference-');
   const explainNaturalAdvance = context.stage === 'advancing' && (
@@ -1236,9 +1239,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
         explainBalancingSuit || explainJumpOvercall || explainWeakTwoSuitOvercall ||
-        explainResponderRedouble || explainJumpResponder || explainMinorResponse ||
+        explainResponderRedouble || explainJumpResponder || explainStrongTwoCPositive || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
-        explainNaturalNtResponse || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
+        explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
         explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
@@ -1265,7 +1268,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       telemetryLines.push(result.telemetryLine);
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
-          explainNaturalNtResponse || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
+          explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
           explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
           explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
