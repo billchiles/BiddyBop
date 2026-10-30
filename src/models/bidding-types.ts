@@ -432,6 +432,27 @@ export interface CallEvidence {
   }[];
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
   // Actual tested facts for responder's competitive Double or artificial support action.
+  // Facts checked when responding to partner's weak-two opening. A rejected
+  // new suit can be absent from candidates, so keep the refiner's checks separately.
+  weakTwoResponse?: {
+    openingSuit: Suit;
+    hcp: number;
+    support: number;
+    guideline: number;
+  };
+  weakTwoNewSuit?: {
+    considered: { call: Call; length: number; quality: boolean; economical: boolean }[];
+    selected: Call | null;
+  };
+  // Natural notrump response over an opponent's preemptive jump overcall.
+  jumpResponseNotrump?: {
+    hcp: number;
+    balanced: boolean;
+    stopper: boolean;
+    opponentSuit: Suit;
+    minHcp: number;
+    maxHcp: number;
+  };
   competitiveResponse?: {
     hcp: number;
     minHcp?: number;
