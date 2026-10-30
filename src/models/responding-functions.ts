@@ -1020,7 +1020,11 @@ export function responderCuebidAfterOvercallApplies (_call: Call, context: RuleE
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: cuebid needs 11+ support points and ` +
       `${minor ? 4 : 3}+ trump cards (have ${points} points, ${support} trump).`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: context.handFacts.hcp, supportPoints: points, minSupportPoints: 11,
+    partnerSuit: auction.opening.strain as Suit, partnerSupport: support,
+    minPartnerSupport: minor ? 4 : 3,
+  } } };
 }
 
 /// responderNegativeDoubleAfterOvercallApplies checks strength and unbid-suit length for
@@ -1049,7 +1053,13 @@ export function responderNegativeDoubleAfterOvercallApplies (_call: Call, contex
     `${suitsOkay ? 'PASS' : 'FAIL'}: unbid suit lengths ` +
       `${relevant.map((suit) => `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}; ` +
       `${exactlyFourSpades ? 'requires exactly four spades' : 'requires at least four in each listed suit'}.`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: points, minHcp: min,
+    unbidSuits: relevant.map((suit) => ({
+      suit, length: context.handFacts.lengths[suit], min: 4,
+      exact: exactlyFourSpades && suit === 'S' ? 4 : undefined,
+    })),
+  } } };
 }
 
 /// responderNotrumpAfterOvercallApplies checks responder's natural 1NT, 2NT, or 3NT bid
@@ -1113,7 +1123,10 @@ export function responderJordanTwoNtAfterDoubleApplies (_call: Call, context: Ru
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: Jordan 2NT needs 10+ support points and ` +
       `${minimum}+ ${suit} cards (have ${points} points, ${support} cards).`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: context.handFacts.hcp, supportPoints: points, minSupportPoints: 10,
+    partnerSuit: suit, partnerSupport: support, minPartnerSupport: minimum,
+  } } };
 }
 
 /// responderWeakJumpRaiseAfterInterferenceApplies requires a weak hand and substantial
@@ -1284,7 +1297,12 @@ export function responderNegativeDoubleAfterJumpOvercallApplies (_call: Call, co
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: jump-overcall negative double needs ${minimum}+ HCP and ` +
       `4+ in ${relevant.join(', ')}; have ${context.handFacts.hcp} HCP.`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: context.handFacts.hcp, minHcp: minimum,
+    unbidSuits: relevant.map((suit) => ({
+      suit, length: context.handFacts.lengths[suit], min: 4,
+    })),
+  } } };
 }
 
 /// responderCuebidAfterJumpOvercallApplies checks a 13+ support-point game-going
@@ -1303,7 +1321,11 @@ export function responderCuebidAfterJumpOvercallApplies (_call: Call, context: R
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: support cuebid needs 3+ trump and 13+ support points; ` +
       `have ${support} trump, ${points} points.`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: context.handFacts.hcp, supportPoints: points, minSupportPoints: 13,
+    partnerSuit: auction.opening.strain as Suit,
+    partnerSupport: support, minPartnerSupport: 3,
+  } } };
 }
 
 /// responderNotrumpAfterJumpOvercallApplies checks balanced 2NT/3NT strength and the

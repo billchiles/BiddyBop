@@ -20,6 +20,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getMajorSupportLines, getMajorSupportFailureLines,
          getMajorNoSupportLines, getMajorNoSupportFailureLines,
          getResponderJumpShiftLines, getResponderJumpShiftFailureLines,
+  getCompetitiveResponseLines, getCompetitiveResponseFailureLines,
          getNaturalAdvanceLines, getNaturalAdvanceFailureLines,
          getTakeoutAdvanceLines, getTakeoutAdvanceFailureLines,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
@@ -602,6 +603,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const majorSupportReasons = getMajorSupportFailureLines(result);
   const majorNoSupportReasons = getMajorNoSupportFailureLines(result);
   const jumpShiftReasons = getResponderJumpShiftFailureLines(result);
+  const competitiveResponseReasons = getCompetitiveResponseFailureLines(result);
   const naturalAdvanceReasons = getNaturalAdvanceFailureLines(result);
   const takeoutAdvanceReasons = getTakeoutAdvanceFailureLines(result);
   const notrumpReasons = getNotrumpPartnerResponseFailureLines(result);
@@ -628,7 +630,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       doubleReasons.length === 0 && balancingReasons.length === 0 &&
       naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
       minorResponseReasons.length === 0 && majorSupportReasons.length === 0 &&
-      majorNoSupportReasons.length === 0 && jumpShiftReasons.length === 0 &&
+      majorNoSupportReasons.length === 0 && jumpShiftReasons.length === 0 && competitiveResponseReasons.length === 0 &&
       naturalAdvanceReasons.length === 0 && takeoutAdvanceReasons.length === 0 &&
       notrumpReasons.length === 0 && dontReasons.length === 0 &&
       preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
@@ -656,7 +658,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         balancingReasons.length > 0 || naturalOvercallReasons.length > 0 ||
         jumpOvercallReasons.length > 0 || minorResponseReasons.length > 0 ||
         majorSupportReasons.length > 0 || majorNoSupportReasons.length > 0 ||
-        jumpShiftReasons.length > 0 || naturalAdvanceReasons.length > 0 ||
+        jumpShiftReasons.length > 0 || competitiveResponseReasons.length > 0 || naturalAdvanceReasons.length > 0 ||
         takeoutAdvanceReasons.length > 0 || notrumpReasons.length > 0 ||
         dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
         competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
@@ -696,6 +698,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
         ...naturalOvercallReasons, ...jumpOvercallReasons, ...minorResponseReasons,
         ...majorSupportReasons, ...majorNoSupportReasons, ...jumpShiftReasons,
+        ...competitiveResponseReasons,
         ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons,
         ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
         ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons,
@@ -728,7 +731,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       (doubleReasons.length > 0 || balancingReasons.length > 0 ||
        naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0 ||
        minorResponseReasons.length > 0 || majorSupportReasons.length > 0 ||
-       majorNoSupportReasons.length > 0 || jumpShiftReasons.length > 0 ||
+       majorNoSupportReasons.length > 0 || jumpShiftReasons.length > 0 || competitiveResponseReasons.length > 0 ||
        naturalAdvanceReasons.length > 0 || takeoutAdvanceReasons.length > 0 ||
        notrumpReasons.length > 0 || dontReasons.length > 0 ||
        preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
@@ -779,6 +782,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getMajorSupportLines(result, rule));
   lines.push(...getMajorNoSupportLines(result, rule));
   lines.push(...getResponderJumpShiftLines(result, rule));
+  lines.push(...getCompetitiveResponseLines(result, rule));
   lines.push(...getNaturalAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));

@@ -431,6 +431,17 @@ export interface CallEvidence {
     passed: boolean;
   }[];
   jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
+  // Actual tested facts for responder's competitive Double or artificial support action.
+  competitiveResponse?: {
+    hcp: number;
+    minHcp?: number;
+    supportPoints?: number;
+    minSupportPoints?: number;
+    partnerSuit?: Suit;
+    partnerSupport?: number;
+    minPartnerSupport?: number;
+    unbidSuits?: { suit: Suit; length: number; min: number; exact?: number }[];
+  };
   dontInitial?: {
     hcp: number;
     lengths: Record<Suit, number>;
