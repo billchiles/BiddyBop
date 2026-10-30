@@ -1162,7 +1162,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
      ruleId === 'respond-over-jump-new-suit-two-level' ||
      ruleId === 'respond-over-jump-new-suit-three-level');
   const explainStrongTwoCPositive = context.stage === 'responding' &&
-    ruleId === 'respond-to-2c-w/-positive-suit';
+    (ruleId === 'respond-to-2c-w/-positive-suit' ||
+     ruleId === 'respond-to-2c-w/-2nt-positive-balanced');
   const explainResponderRedouble = context.stage === 'responding' &&
     ruleId === 'respond-after-double-redouble-values';
   const explainMinorResponse = context.stage === 'responding' && (
@@ -1287,6 +1288,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
     if ((explainOpeningRequirements || explainMinorResponse || explainNaturalNtResponse ||
+         explainStrongTwoCPositive ||
          explainOpenerOneLevelNewSuitRebid ||
          explainOpenerTwoLevelNewSuitRebid) && constraint.shape.balanced === true) {
       requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
