@@ -823,6 +823,7 @@ export function guidelineOf17Applies (_call: Call, context: RuleEvalContext): Ap
       `${success ? 'APPLIES' : 'FAIL'}: Guideline of 17 = responder HCP ${context.handFacts.hcp} + ` +
         `${info.supportLength} cards in opener's ${info.opening.strain} = ${info.value}.`,
     ],
+    callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } },
   };
 }
 
@@ -849,7 +850,7 @@ export function weakTwoSimpleRaiseApplies (_call: Call, context: RuleEvalContext
       ? 'FAIL: Three-level raise treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Three-level raise needs exactly three trumps and ` +
         `Guideline of 17 below 17; support=${info.supportLength}, value=${info.value}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// weakTwoFourLevelRaiseApplies uses four-card-or-longer support to raise the six-card weak two to
@@ -863,7 +864,7 @@ export function weakTwoFourLevelRaiseApplies (_call: Call, context: RuleEvalCont
       ? 'FAIL: Four-level raise treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Four-level raise needs 4+ trumps; responder has ` +
         `${info.supportLength}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// threeLevelPreemptPassApplies keeps Pass with two or fewer trumps.  Responder must also judge
