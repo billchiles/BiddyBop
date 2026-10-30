@@ -836,7 +836,7 @@ export function weakTwoPassApplies (_call: Call, context: RuleEvalContext): Appl
       ? 'FAIL: Pass treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Pass needs two or fewer trumps and Guideline of 17 ` +
         `below 17; support=${info.supportLength}, value=${info.value}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// weakTwoSimpleRaiseApplies keeps the three-level preemptive raise with exactly three-card support
