@@ -474,7 +474,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '84', H: 'K653', D: 'AQ7', C: '9865' },
   },
   {
-    description: '1NT: 8 HCP and six clubs headed by KQ; natural 3C invites, whose good suit quality satisfies the rule's honor requirement.',
+    description: '1NT: 8 HCP and six clubs headed by KQ; natural 3C invites, with suit quality satisfying the tested honor requirement.',
     practiceAuction: ['1NT', 'Pass', '3C'],
     requiredSystem: { oneNtOpening: '15-17' },
     expectedOpeningCalls: [
@@ -489,7 +489,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'A8', H: 'K9874', D: 'Q853', C: 'JT' },
   },
   {
-    description: '1NT: 9 HCP and six diamonds headed by AK; natural 3D invites, whose suit quality satisfies the tested honor requirement.',
+    description: '1NT: 9 HCP and six diamonds headed by AK; natural 3D invites, with suit quality satisfying the tested honor requirement.',
     practiceAuction: ['1NT', 'Pass', '3D'],
     requiredSystem: { oneNtOpening: '15-17' },
     expectedOpeningCalls: [
