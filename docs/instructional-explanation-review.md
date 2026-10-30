@@ -130,3 +130,11 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - No extra practice deals solely for coverage percentages; use existing credible cases and add a focused regression case only when a meaningful distinction is fixed.
 - Keep user-facing text concise, use "app" rather than "trainer" in newly written instruction, and preserve [rule IDs]. Cosmetic terminology cleanup belongs to the final integration pass.
 - Clickable auction-call explanations and wider interface redesign remain separate future features.
+
+## Competitive responder qualification review (October 29, 2026)
+
+- **Improved:** first negative Doubles over ordinary and jump overcalls, artificial support cuebids, Jordan 2NT, and strength-showing Redouble. Feedback uses evaluated HCP, shortage-adjusted support points, suit lengths, and legitimate alternative calls.
+- **No bidding changes:** eligibility, priorities, agreements, and recorded practice deals remain untouched.
+- **Provisionally adequate:** strong-2C waiting/positive responses, opposing natural 1NT-overcall responses, and the previously detailed responsive-Double and negative-Double advancing explanations.
+- **Next:** focus on weak-two responses (define the Guideline of 17 parenthetically as HCP plus cards in opener's suit) and selected jump-overcall response corners.
+- **Pending:** actual browser play-throughs, recorded-call substitution, and clipboard Report verification for this batch.
