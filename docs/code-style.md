@@ -228,3 +228,12 @@ Keep domain-specific conventions in the project's own spec rather than turning t
 - a particular project's supported agreements or feature scope.
 
 `code-style.md` should describe how code is written and organized. The project spec should describe what that particular program means and does.
+
+## Tests and Git Commit Workflow
+
+- Add tests when they protect meaningful behavior likely to regress: bid eligibility, priority, auction interpretation, practice-deal integrity, or explanation routing.
+- Do not add tests merely to assert particular instructional wording or cosmetic phrasing. Prefer reviewing sample text directly.
+- Run the existing build and full rule-test suite for source changes; keep additions focused and avoid expanding test infrastructure without a concrete need.
+- Show the proposed commit message to the user before committing or squash-merging.
+- Use a descriptive single-line commit subject only; do not add a commit body, including when specifying the squash merge message.
+- Do not rewrite already published shared commit history merely to improve message formatting.
