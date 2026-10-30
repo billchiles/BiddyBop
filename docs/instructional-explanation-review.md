@@ -138,3 +138,11 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - **Provisionally adequate:** strong-2C waiting/positive responses, opposing natural 1NT-overcall responses, and the previously detailed responsive-Double and negative-Double advancing explanations.
 - **Next:** focus on weak-two responses (define the Guideline of 17 parenthetically as HCP plus cards in opener's suit) and selected jump-overcall response corners.
 - **Pending:** actual browser play-throughs, recorded-call substitution, and clipboard Report verification for this batch.
+
+## Weak-two and jump-overcall response explanations (October 29, 2026)
+
+- **Corrected:** after responder's strength-showing Redouble, opener can Pass when the next opponent Passes, leaving the original doubler another turn. Jordan 2NT is an artificial forcing raise and requires opener to bid. Later penalty decisions remain outside the selected treatment.
+- **Improved:** weak-two Pass, preemptive three- and four-level raises, artificial 2NT game inquiry, and natural forcing new suit. Feedback uses the evaluator's Guideline of 17 (responder HCP plus cards in opener's suit), trump counts, and tested suit length and honor quality. New-suit rejection can explain a failed refiner qualification without inventing a candidate.
+- **Improved:** cheapest nonforcing raises, natural forcing/game-forcing new suits, and natural 2NT/3NT after opposing jump overcalls. Actual HCP, fit, balanced shape, and stopper results are reported when evaluated.
+- **Unchanged:** bidding eligibility, candidate ordering, agreements, practice deals, and conventional scope boundaries. No wording-specific tests; existing build and full rule suite remain the automated quality gate.
+- **Browser review pending:** inspect accepted and rejected cases, recorded substitutions, and copied Report feedback. Continue with deeper overcaller and takeout-Doubler rebid review after this group.
