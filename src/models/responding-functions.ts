@@ -1321,7 +1321,11 @@ export function responderCuebidAfterJumpOvercallApplies (_call: Call, context: R
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: support cuebid needs 3+ trump and 13+ support points; ` +
       `have ${support} trump, ${points} points.`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp: context.handFacts.hcp, supportPoints: points, minSupportPoints: 13,
+    partnerSuit: auction.opening.strain as Suit,
+    partnerSupport: support, minPartnerSupport: 3,
+  } } };
 }
 
 /// responderNotrumpAfterJumpOvercallApplies checks balanced 2NT/3NT strength and the
