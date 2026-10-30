@@ -700,6 +700,13 @@ export function refineStrongTwoCPositiveSuitResponse (calls: Call[], context: Ru
     return { calls: [], telemetryLines: ['A strong-2C positive suit response needs a 2C opening.'] };
   }
 
+  const considered = calls.flatMap((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT') return [];
+    const suit = bid.strain as Suit;
+    return [{ call, length: context.handFacts.lengths[suit],
+      quality: hasPreemptSuitQuality(context.hand, suit) }];
+  });
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT') {
@@ -713,6 +720,7 @@ export function refineStrongTwoCPositiveSuitResponse (calls: Call[], context: Ru
     telemetryLines: [
       'Keep positive suit responses with 5+ cards and at least two of A/K/Q or three of A/K/Q/J/T.',
     ],
+    callEvidence: { strongTwoCPositiveSuit: { considered } },
   };
 }
 
