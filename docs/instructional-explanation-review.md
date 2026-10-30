@@ -146,3 +146,12 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - **Improved:** cheapest nonforcing raises, natural forcing/game-forcing new suits, and natural 2NT/3NT after opposing jump overcalls. Actual HCP, fit, balanced shape, and stopper results are reported when evaluated.
 - **Unchanged:** bidding eligibility, candidate ordering, agreements, practice deals, and conventional scope boundaries. No wording-specific tests; existing build and full rule suite remain the automated quality gate.
 - **Browser review pending:** inspect accepted and rejected cases, recorded substitutions, and copied Report feedback. Continue with deeper overcaller and takeout-Doubler rebid review after this group.
+
+## Earlier response and advancing closeout (October 30, 2026)
+
+- **Improved:** direct responses to a 2NT opening now reuse the hand-aware 1NT/2NT response teaching where applicable: Stayman, Jacoby/Texas transfers, natural major bids, natural notrump game/slam choices, and relevant rejected declarative requirements. Artificial versus natural meanings follow the selected system.
+- **Improved:** strong-2C immediate positive suit responses now preserve actual suit length and honor quality even when a proposed suit is removed by the call refiner; accepted positive suit and balanced 2NT responses explain their strength and game-forcing meaning. Artificial 2D remains the legitimate waiting choice.
+- **Adequate, pending browser sampling:** primary natural overcall and takeout-Double advancing, DONT pass-or-correct, weak-two natural 2NT systems-on, jump-overcall advancing, and competitive negative/responsive-Double and cuebid families already have specialized evidence-driven feedback. No additional general rewrite planned.
+- **Corrected:** three saved 1NT natural-minor invitation deal descriptions inaccurately said suit honor quality was illustrative; the existing rule actually tests for two of A/K/Q. No deals or eligibility changed.
+- **Testing cleanup:** existing DONT and weak-two overcall explanation tests now verify supported/rejected calls, available natural alternatives, preserved facts, and relevant feedback presence without freezing English wording. No new wording tests were added.
+- **Next source-based deep review:** overcaller and takeout-Doubler rebids. Earlier-stage actual browser play-throughs, recorded-call substitution, Report output, and the final end-user terminology audit remain part of the eventual integration quality gate.
