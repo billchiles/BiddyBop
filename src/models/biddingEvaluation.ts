@@ -1157,6 +1157,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   const explainWeakTwoSuitOvercall = context.stage === 'overcalling' &&
     (ruleId === 'overcall-weak-two-natural-suit-at-two-level' ||
      ruleId === 'overcall-weak-two-natural-suit-at-three-level');
+  const explainJumpResponder = context.stage === 'responding' &&
+    (ruleId === 'respond-over-jump-raise-cheapest-to-three' ||
+     ruleId === 'respond-over-jump-new-suit-two-level' ||
+     ruleId === 'respond-over-jump-new-suit-three-level');
   const explainResponderRedouble = context.stage === 'responding' &&
     ruleId === 'respond-after-double-redouble-values';
   const explainMinorResponse = context.stage === 'responding' && (
@@ -1232,9 +1236,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
         explainBalancingSuit || explainJumpOvercall || explainWeakTwoSuitOvercall ||
-        explainResponderRedouble || explainMinorResponse ||
+        explainResponderRedouble || explainJumpResponder || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
-        explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainNaturalNtResponse || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
         explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
@@ -1246,7 +1250,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
     if (explainPreemptRequirements || explainWeakTwoSuitOvercall || explainMajorSupport || explainNaturalAdvance ||
-        explainTakeoutAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainTakeoutAdvance || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
         explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
@@ -1261,7 +1265,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       telemetryLines.push(result.telemetryLine);
       if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
-          explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+          explainNaturalNtResponse || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
           explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
           explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
@@ -1307,7 +1311,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
     if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
-        explainNaturalAdvance || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
+        explainNaturalAdvance || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
         explainOpenerOneLevelNewSuitRebid ||
         explainOpenerTwoLevelNewSuitRebid) {
@@ -1324,7 +1328,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainWeakTwoSuitOvercall || explainResponderRedouble ||
+      explainWeakTwoSuitOvercall || explainResponderRedouble || explainJumpResponder ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||

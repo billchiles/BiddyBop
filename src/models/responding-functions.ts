@@ -730,6 +730,15 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
     return { calls: [], telemetryLines: ['A forcing new-suit response needs a weak-two opening.'] };
   }
 
+  const considered = calls.flatMap((call) => {
+    const parsed = parseSuitBid(call);
+    if (parsed === null || parsed.strain === 'NT' || parsed.strain === opening.strain) return [];
+    const suit = parsed.strain as Suit;
+    return [{ call, length: context.handFacts.lengths[suit],
+      quality: hasPreemptSuitQuality(context.hand, suit),
+      economical: cheapestBidInStrainAfter(opening, suit) === call }];
+  });
+
   const candidates: { call: Call; suit: Suit; length: number }[] = [];
   for (const call of calls) {
     const candidate = parseSuitBid(call);
@@ -747,7 +756,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
   if (candidates.length === 0) {
     return { calls: [], telemetryLines: [
       'No good five-card-or-longer new suit is available at the cheapest legal level.',
-    ] };
+    ], callEvidence: { weakTwoNewSuit: { considered, selected: null } } };
   }
 
   const longest = Math.max(...candidates.map((candidate) => candidate.length));
@@ -758,7 +767,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
     telemetryLines: [
       `Choose the longest good forcing suit after the weak two; equal lengths use the ` +
         `higher-ranking suit: ${best[0]!.call}.`,
-    ],
+    ], callEvidence: { weakTwoNewSuit: { considered, selected: best[0]!.call } },
   };
 }
 
@@ -823,6 +832,7 @@ export function guidelineOf17Applies (_call: Call, context: RuleEvalContext): Ap
       `${success ? 'APPLIES' : 'FAIL'}: Guideline of 17 = responder HCP ${context.handFacts.hcp} + ` +
         `${info.supportLength} cards in opener's ${info.opening.strain} = ${info.value}.`,
     ],
+    callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } },
   };
 }
 
@@ -836,7 +846,7 @@ export function weakTwoPassApplies (_call: Call, context: RuleEvalContext): Appl
       ? 'FAIL: Pass treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Pass needs two or fewer trumps and Guideline of 17 ` +
         `below 17; support=${info.supportLength}, value=${info.value}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// weakTwoSimpleRaiseApplies keeps the three-level preemptive raise with exactly three-card support
@@ -849,7 +859,7 @@ export function weakTwoSimpleRaiseApplies (_call: Call, context: RuleEvalContext
       ? 'FAIL: Three-level raise treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Three-level raise needs exactly three trumps and ` +
         `Guideline of 17 below 17; support=${info.supportLength}, value=${info.value}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// weakTwoFourLevelRaiseApplies uses four-card-or-longer support to raise the six-card weak two to
@@ -863,7 +873,7 @@ export function weakTwoFourLevelRaiseApplies (_call: Call, context: RuleEvalCont
       ? 'FAIL: Four-level raise treatment needs a weak-two opening.'
       : `${success ? 'APPLIES' : 'FAIL'}: Four-level raise needs 4+ trumps; responder has ` +
         `${info.supportLength}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { weakTwoResponse: { openingSuit: info.opening.strain as Suit, hcp: context.handFacts.hcp, support: info.supportLength, guideline: info.value } } };
 }
 
 /// threeLevelPreemptPassApplies keeps Pass with two or fewer trumps.  Responder must also judge
@@ -1344,5 +1354,5 @@ export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: R
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${call} needs ${call === '2NT' ? '11-12' : '13-15'} HCP, ` +
       `balanced shape, and a ${auction.overcall.strain} stopper.`,
-  ] };
+  ], callEvidence: { jumpResponseNotrump: { hcp, balanced: context.handFacts.balanced, stopper, opponentSuit: auction.overcall.strain as Suit, minHcp: call === '2NT' ? 11 : 13, maxHcp: call === '2NT' ? 12 : 15 } } };
 }

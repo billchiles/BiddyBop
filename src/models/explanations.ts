@@ -2038,9 +2038,12 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
       entry.rule.id === 'respond-after-double-jordan-2nt-support')
       ?.candidates.some((item) => item.ruleApplies === true);
     return [`With ${hcp.actual} HCP, Redouble shows strength without promising or ` +
-      `denying support. ${jordan === true ?
-        'Jordan 2NT also qualifies as a more descriptive support raise with this hand. ' : ''}` +
-      `Neither call requires an immediate rebid by opener ${id}.`];
+      'denying support and may lead to penalizing the opponents if they bid. ' +
+      (jordan === true
+        ? 'Jordan 2NT also qualifies with this hand and describes the fit; unlike Redouble, ' +
+          'Jordan requires opener to bid again. '
+        : '') +
+      `If the next opponent Passes, opener may Pass too, leaving the original doubler to act ${id}.`];
   }
   if (facts?.supportPoints === undefined || facts.partnerSupport === undefined ||
       facts.partnerSuit === undefined) return [];
@@ -2097,6 +2100,207 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
         return [`This artificial support bid requires at least ${facts.minSupportPoints} ` +
           `shortage-adjusted support points; you have ${facts.supportPoints} [${id}].`];
       }
+    }
+  }
+  return [];
+}
+
+///
+/// Responder to partner's weak two: preserve the rule's actual calculation and suit selection.
+///
+const WEAK_TWO_RESPONSE_IDS = [
+  'respond-to-weak-two-w/-pass',
+  'respond-to-weak-two-w/-raise-to-three',
+  'respond-to-weak-two-w/-raise-to-four',
+  'respond-to-weak-two-w/-2nt-inquiry',
+  'respond-to-weak-two-w/-new-suit-forcing',
+];
+
+function weakTwoResponseDiagnostic(result: BidEvalResult, id: string) {
+  const entry = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const candidate = entry?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { entry, candidate, facts: candidate?.callEvidence?.weakTwoResponse };
+}
+
+function guidelineOf17Explanation(facts: NonNullable<CallEvidence['weakTwoResponse']>): string {
+  return `Guideline of 17 (HCP plus the number of cards you hold in opener's suit): ` +
+    `${facts.hcp} + ${facts.support} = ${facts.guideline}`;
+}
+
+export function getWeakTwoResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!WEAK_TWO_RESPONSE_IDS.includes(rule.id)) return [];
+  const { entry, candidate, facts } = weakTwoResponseDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true || facts === undefined) return [];
+  const id = `[${rule.id}]`;
+  const suit = suitPlural(`1${facts.openingSuit}` as Call);
+  if (rule.id.endsWith('/-pass')) {
+    return [`You have ${facts.support} ${suit}. ${guidelineOf17Explanation(facts)}, ` +
+      `below 17. Pass leaves the weak two in place; unusual playing strength still calls ` +
+      `for judgment ${id}.`];
+  }
+  if (rule.id.endsWith('/-raise-to-three')) {
+    return [`With exactly three ${suit}, your partnership has at least nine trumps. ` +
+      `${guidelineOf17Explanation(facts)}, below 17. This raise furthers the preempt; ` +
+      `it is nonforcing and opener normally Passes ${id}.`];
+  }
+  if (rule.id.endsWith('/-raise-to-four')) {
+    const major = facts.openingSuit === 'H' || facts.openingSuit === 'S';
+    return [`Your ${facts.support} ${suit} give the partnership at least ten trumps. ` +
+      (major
+        ? 'The raise may be a further preempt or an attempt to make game. '
+        : 'This is a further preempt, not a game contract in a minor. ') +
+      `Opener is not required to bid again ${id}.`];
+  }
+  if (rule.id.endsWith('/-2nt-inquiry')) {
+    return [`${guidelineOf17Explanation(facts)}, meeting 17. ` +
+      `Artificial 2NT investigates game by asking opener about strength and features; ` +
+      `it is not an offer to play in notrump ${id}.`];
+  }
+  const selection = entry?.callEvidence?.weakTwoNewSuit;
+  const chosen = selection?.considered.find((item) => item.call === result.normalizedCall);
+  if (chosen === undefined || !chosen.quality || selection?.selected !== result.normalizedCall) return [];
+  const twoNt = result.ruleDiagnostics.find(({ rule: other }) =>
+    other.id === 'respond-to-weak-two-w/-2nt-inquiry')
+    ?.candidates.some(({ ruleApplies }) => ruleApplies);
+  return [`${guidelineOf17Explanation(facts)}, meeting 17. Your ${chosen.length}-card ` +
+    `${suitPlural(result.normalizedCall!)} satisfy the suit-quality requirement ` +
+    '(2 of top 3 honors or 3 of top 5 honors). ' +
+    `This is a natural new suit, forcing one round. ` +
+    (twoNt ? 'Artificial 2NT is also supported if you prefer to ask about opener’s hand. ' : '') +
+    `[${rule.id}].`];
+}
+
+export function getWeakTwoResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  for (const id of WEAK_TWO_RESPONSE_IDS) {
+    const { entry, candidate, facts } = weakTwoResponseDiagnostic(result, id);
+    if (id.endsWith('/-new-suit-forcing')) {
+      const choice = entry?.callEvidence?.weakTwoNewSuit;
+      const checked = choice?.considered.find((item) => item.call === call);
+      if (checked === undefined) continue;
+      if (!checked.economical) return [`${call} is above the cheapest available bid in ` +
+        `that suit after opener's weak two [${id}].`];
+      if (checked.length < 5) return [`A forcing new-suit response requires at least five ` +
+        `${suitPlural(call)}; you have ${checked.length} [${id}].`];
+      if (!checked.quality) return [`Your ${checked.length}-card ${suitPlural(call)} lack ` +
+        `the required suit quality (2 of top 3 honors or 3 of top 5 honors) [${id}].`];
+      if (choice?.selected !== null && choice?.selected !== call) {
+        return [`With more than one good new suit, ${choice?.selected} comes first ` +
+          `by length and suit rank [${id}].`];
+      }
+    }
+    if (candidate === undefined || candidate.ruleApplies || facts === undefined) continue;
+    if (id.endsWith('/-pass') && call === 'Pass') {
+      if (facts.support > 2) return [`The weak-two Pass requires at most two ` +
+        `${suitPlural(`1${facts.openingSuit}` as Call)}; you have ${facts.support} [${id}].`];
+      if (facts.guideline >= 17) return [`${guidelineOf17Explanation(facts)}, reaching ` +
+        `the threshold for investigating game rather than automatically Passing [${id}].`];
+    }
+    if (id.endsWith('/-raise-to-three') && call === candidate.call) {
+      if (facts.support !== 3) return [`This preemptive raise needs exactly three trumps; ` +
+        `you have ${facts.support} [${id}].`];
+      if (facts.guideline >= 17) return [`${guidelineOf17Explanation(facts)}, ` +
+        `so a game investigation may be more suitable than this weak raise [${id}].`];
+    }
+    if (id.endsWith('/-raise-to-four') && call === candidate.call && facts.support < 4) {
+      return [`The four-level raise needs at least four trumps; you have ` +
+        `${facts.support} [${id}].`];
+    }
+    if (id.endsWith('/-2nt-inquiry') && call === '2NT' && facts.guideline < 17) {
+      return [`${guidelineOf17Explanation(facts)}, below the 17 required for ` +
+        `the forcing 2NT inquiry [${id}].`];
+    }
+    if (id.endsWith('/-new-suit-forcing') && call === candidate.call && facts.guideline < 17) {
+      return [`${guidelineOf17Explanation(facts)}, below the 17 required for ` +
+        `this forcing new-suit response [${id}].`];
+    }
+  }
+  return [];
+}
+
+///
+/// Responder's natural choices when an opponent makes a preemptive jump overcall.
+///
+const JUMP_RESPONSE_IDS = [
+  'respond-over-jump-raise-cheapest-to-three',
+  'respond-over-jump-new-suit-two-level',
+  'respond-over-jump-new-suit-three-level',
+  'respond-over-jump-natural-notrump',
+];
+
+export function getJumpResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!JUMP_RESPONSE_IDS.includes(rule.id) || result.normalizedCall === null) return [];
+  const candidate = result.ruleDiagnostics.find(({ rule: other }) => other.id === rule.id)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const id = `[${rule.id}]`;
+  if (rule.id.endsWith('natural-notrump')) {
+    const facts = candidate.callEvidence?.jumpResponseNotrump;
+    if (facts === undefined) return [];
+    const description = result.normalizedCall === '2NT'
+      ? 'a natural, invitational 2NT' : 'natural 3NT at game';
+    return [`With ${facts.hcp} HCP, balanced distribution, and a stopper in ` +
+      `${suitPlural(`1${facts.opponentSuit}` as Call)}, this is ${description}. ` +
+      `It is not an artificial support raise ${id}.`];
+  }
+  if (rule.id.endsWith('raise-cheapest-to-three')) {
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (points === undefined || support === undefined) return [];
+    return [`With ${points.actual} shortage-adjusted support points and ` +
+      `${support.actual} ${suitPlural(`1${support.suit}` as Call)}, this is the cheapest ` +
+      `available raise after the opponent's preempt. It is nonforcing, not a ` +
+      `strength-showing jump raise ${id}.`];
+  }
+  const hcp = minorRequirement(candidate, 'hcp');
+  const length = minorRequirement(candidate, 'suitLength');
+  if (hcp === undefined || length === undefined) return [];
+  const three = rule.id.endsWith('new-suit-three-level');
+  return [`With ${hcp.actual} HCP and ${length.actual} ${suitPlural(result.normalizedCall)}, ` +
+    `${result.normalizedCall} is a natural new suit at the cheapest available level. ` +
+    (three ? 'At the three level it forces to game. ' : 'At the two level it forces one round. ') +
+    `[${rule.id}].`];
+}
+
+export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const id of JUMP_RESPONSE_IDS) {
+    const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === id)
+      ?.candidates.find(({ call }) => call === result.normalizedCall);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    if (id.endsWith('natural-notrump')) {
+      const facts = candidate.callEvidence?.jumpResponseNotrump;
+      if (facts === undefined) continue;
+      if (facts.hcp < facts.minHcp || facts.hcp > facts.maxHcp) {
+        return [`Natural ${result.normalizedCall} requires ${facts.minHcp}–${facts.maxHcp} HCP; ` +
+          `you have ${facts.hcp} [${id}].`];
+      }
+      if (!facts.balanced) return [`Natural ${result.normalizedCall} requires ` +
+        `balanced distribution [${id}].`];
+      if (!facts.stopper) return [`Natural ${result.normalizedCall} requires ` +
+        `a stopper in the opponent's ${suitPlural(`1${facts.opponentSuit}` as Call)} [${id}].`];
+      continue;
+    }
+    const hcp = minorRequirement(candidate, 'hcp');
+    const length = minorRequirement(candidate, 'suitLength');
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (hcp !== undefined && !hcp.passed) {
+      return [`This natural new-suit response requires at least ${hcp.min} HCP; ` +
+        `you have ${hcp.actual} [${id}].`];
+    }
+    if (length !== undefined && !length.passed) {
+      return [`This natural new-suit response requires at least ${length.min} ` +
+        `${suitPlural(result.normalizedCall)}; you have ${length.actual} [${id}].`];
+    }
+    if (points !== undefined && !points.passed) {
+      return [`The nonforcing three-level raise requires 8–10 shortage-adjusted ` +
+        `support points; you have ${points.actual} [${id}].`];
+    }
+    if (support !== undefined && !support.passed) {
+      return [`This raise needs at least ${support.min} trumps; ` +
+        `you have ${support.actual} [${id}].`];
     }
   }
   return [];

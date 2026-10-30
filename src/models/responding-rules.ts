@@ -1086,7 +1086,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: weakTwoPassApplies, // Guideline of 17 below 17 and at most two trumps
     meaning: 'No game investigation and no useful fit; leave the weak two in place.',
-    guidance: ['The Guideline of 17 is only a rough check; actual playing tricks can override it.'],
+    guidance: ['The Guideline of 17 (your HCP plus cards in opener’s suit) is only a rough check; actual playing tricks can override it.'],
     certainty: 'high',
   },
   {
@@ -1125,7 +1125,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing', 'conventional'],
     appliesWhen: guidelineOf17Applies, // HCP + cards in opener's suit >= 17 is the rough game-interest test
     meaning: 'Artificial inquiry asking opener to describe minimum/maximum strength and features.',
-    guidance: ['The Guideline of 17 is a rough trigger for investigating game, not a playing-trick ' +
+    guidance: ['The Guideline of 17 (your HCP plus cards in opener’s suit) is a rough trigger for investigating game, not a playing-trick ' +
                'calculator.  Controls, fit, honor location, and vulnerability still matter.'],
     certainty: 'high',
   },
@@ -1139,7 +1139,7 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing', 'natural'],
     appliesWhen: guidelineOf17Applies, // use the same rough game-interest check as the 2NT inquiry
     meaning: 'Natural new suit, forcing one round, showing a good five-card-or-longer suit.',
-    guidance: ['Use only with game interest; the Guideline of 17 is a rough executable guide rather ' +
+    guidance: ['Use only with game interest; the Guideline of 17 (your HCP plus cards in opener’s suit) is a rough guide rather ' +
                'than an estimate of actual playing tricks.'],
     certainty: 'high',
   },
