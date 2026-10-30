@@ -2795,7 +2795,7 @@ function runDontInitialExplanationTests (): number {
     const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
     const negative = getDontInitialFailureLines(result);
     checks += 1;
-    if (result.userCallMatchingRules.length > 0 || negative.length === 0)) {
+    if (result.userCallMatchingRules.length > 0 || negative.length === 0) {
       failures += 1;
       console.error(`FAIL initial DONT mistaken ${test.call} with ${deal.description}`);
     }
