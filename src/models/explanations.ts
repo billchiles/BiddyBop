@@ -2536,7 +2536,8 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
     return oneNtInterferencePartnerLines(result, rule);
   }
   const isOneNt = rule.id.startsWith('respond-to-1nt-w/-');
-  const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-');
+  const isTwoNtOpening = rule.id.startsWith('respond-to-2nt-w/-');
+  const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-') || isTwoNtOpening;
   if ((!isOneNt && !isTwoNt) || result.normalizedCall === null) return [];
   const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
@@ -2584,9 +2585,11 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
       `Partner can Pass with a minimum or bid game with extra values.${shape} ${id}`];
   }
   if (call === '3NT') {
-    const context = isTwoNt
-      ? 'After partner’s 2NT overcall, there is no lower natural notrump invitation; this treatment bids game directly.'
-      : 'This places the partnership in game, rather than inviting partner to decide.';
+    const context = isTwoNtOpening
+      ? 'After a 20–21 HCP 2NT opening, this places the partnership in game without requiring opener to choose.'
+      : isTwoNt
+        ? 'After partner’s 2NT overcall, there is no lower natural notrump invitation; this treatment bids game directly.'
+        : 'This places the partnership in game, rather than inviting partner to decide.';
     return [`With ${hcp?.actual} HCP, within ${hcp === undefined ? 'the required range' : hcpRangeText(hcp)}, ` +
       `and balanced distribution, 3NT is a natural game ` +
       `response to partner's ${ntLevel}. ${context} ${id}`];
@@ -2602,6 +2605,12 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   if (call === '6NT' || call === '7NT') {
     return [`With ${hcp?.actual} HCP and balanced distribution, ${call} is a direct ` +
       `${call === '6NT' ? 'small' : 'grand'}-slam signoff ${id}.`];
+  }
+  if (rule.id === 'respond-to-2nt-w/-3c-natural-forcing' ||
+      rule.id === 'respond-to-2nt-w/-3d-natural-forcing') {
+    return [`With Stayman or Jacoby transfers disabled as appropriate, ${call} shows
+      a natural, unbalanced minor-suit hand with at least 10 HCP and five cards in the suit.
+      This is game forcing, not an artificial conventional response ${id}.`.replace(/\s+/g, ' ')];
   }
   if (rule.id.endsWith('-4c-gerber')) {
     return [`With ${hcp?.actual} HCP, 4♣ is the specialized Gerber ace inquiry, not ` +
@@ -2638,6 +2647,7 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
   for (const { rule, candidates } of result.ruleDiagnostics) {
     const afterInterference = rule.id.startsWith('partner-of-1nt-after-interference-');
     if (!rule.id.startsWith('respond-to-1nt-w/-') &&
+        !rule.id.startsWith('respond-to-2nt-w/-') &&
         !rule.id.startsWith('advance-weak-two-2nt-') && !afterInterference) continue;
     const candidate = candidates.find(({ call }) => call === entered);
     if (candidate === undefined || candidate.ruleApplies) continue;
@@ -2696,6 +2706,77 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
       return [`Natural ${entered} requires a ${suit} stopper after the opponent's suit bid; ` +
         `your hand lacks one ${id}.`];
     }
+  }
+  return [];
+}
+
+///
+/// Responses to a strong artificial 2C opening: distinguish the waiting bid from
+/// positive suit and balanced responses. Check only facts supplied by the evaluator.
+///
+export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id !== 'respond-to-2c-w/-positive-suit' &&
+      rule.id !== 'respond-to-2c-w/-2nt-positive-balanced') return [];
+  const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (hcp === undefined) return [];
+  if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
+    const balanced = minorRequirement(candidate, 'balanced');
+    if (balanced?.passed !== true) return [];
+    return [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
+      response to the strong 2C opening. It forces the partnership to game
+      [${rule.id}].`.replace(/\s+/g, ' ')];
+  }
+  const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
+  const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
+  if (suit === undefined || suit.length < 5 || !suit.quality) return [];
+  return [`With ${hcp.actual} HCP and a good ${suit.length}-card
+    ${suitPlural(result.normalizedCall)}, ${result.normalizedCall} is a natural,
+    game-forcing positive response. The suit satisfies the honor requirement
+    (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
+    response is also available, but does not describe this suit immediately
+    [${rule.id}].`.replace(/\s+/g, ' ')];
+}
+
+export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-positive-suit');
+  const suit = diagnostic?.callEvidence?.strongTwoCPositiveSuit?.considered.find(
+    ({ call: tested }) => tested === call);
+  const id = '[respond-to-2c-w/-positive-suit]';
+  if (suit !== undefined) {
+    if (suit.length < 5) return [`A positive natural ${call} response to strong 2C
+      requires at least five ${suitPlural(call)}; you have ${suit.length}.
+      Artificial 2D remains a waiting response ${id}.`.replace(/\s+/g, ' ')];
+    if (!suit.quality) return [`Your ${suit.length}-card ${suitPlural(call)}
+      do not meet the positive-suit honor requirement (2 of top 3 honors or
+      3 of top 5 honors). You can respond with the artificial 2D waiting
+      bid instead ${id}.`.replace(/\s+/g, ' ')];
+    const hcp = diagnostic?.candidates.find(({ call: tested }) => tested === call);
+    const check = hcp === undefined ? undefined : minorRequirement(hcp, 'hcp');
+    if (check !== undefined && !check.passed) {
+      return [`A positive natural ${call} response to strong 2C requires
+        at least 8 HCP; you have ${check.actual}. The artificial 2D waiting
+        bid remains available ${id}.`.replace(/\s+/g, ' ')];
+    }
+  }
+  const twoNt = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
+    ?.candidates.find(({ call: tested }) => tested === call);
+  if (twoNt === undefined || twoNt.ruleApplies) return [];
+  const strength = minorRequirement(twoNt, 'hcp');
+  if (strength !== undefined && !strength.passed) {
+    return [`The positive 2NT response to strong 2C needs at least 8 HCP;
+      you have ${strength.actual} [respond-to-2c-w/-2nt-positive-balanced].`.replace(/\s+/g, ' ')];
+  }
+  const balanced = minorRequirement(twoNt, 'balanced');
+  if (balanced !== undefined && !balanced.passed) {
+    return ['The positive 2NT response to strong 2C requires balanced distribution ' +
+      '[respond-to-2c-w/-2nt-positive-balanced].'];
   }
   return [];
 }
