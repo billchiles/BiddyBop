@@ -2001,6 +2001,108 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
 
 
 ///
+/// Competitive responder's first action: factual qualification, not another bidding decision.
+///
+const COMPETITIVE_RESPONSE_RULES = [
+  'respond-over-suit-negative-double',
+  'respond-over-jump-negative-double',
+  'respond-over-suit-support-cuebid',
+  'respond-over-jump-support-cuebid-major',
+  'respond-after-double-jordan-2nt-support',
+  'respond-after-double-redouble-values',
+];
+
+function competitiveResponseCandidate(result: BidEvalResult, id: string) {
+  return result.ruleDiagnostics.find((entry) => entry.rule.id === id)
+    ?.candidates.find((item) => item.call === result.normalizedCall);
+}
+
+export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!COMPETITIVE_RESPONSE_RULES.includes(rule.id)) return [];
+  const candidate = competitiveResponseCandidate(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const facts = candidate.callEvidence?.competitiveResponse;
+  const id = `[${rule.id}]`;
+  if (rule.id.endsWith('-negative-double')) {
+    if (facts?.unbidSuits === undefined || facts.minHcp === undefined) return [];
+    const suits = facts.unbidSuits.map(({ suit, length, exact }) =>
+      `${length} ${suitPlural(`1${suit}` as Call)}${exact === undefined ? '' : ' (exactly four required)'}`);
+    return [`With ${facts.hcp} HCP and ${suits.join(' and ')}, Double meets the ` +
+      `${facts.minHcp}-HCP requirement and shows the unbid suits. It is a negative, ` +
+      `not a penalty, Double ${id}.`];
+  }
+  if (rule.id === 'respond-after-double-redouble-values') {
+    const hcp = candidate.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    if (hcp?.kind !== 'hcp') return [];
+    const jordan = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'respond-after-double-jordan-2nt-support')
+      ?.candidates.some((item) => item.ruleApplies === true);
+    return [`With ${hcp.actual} HCP, Redouble shows strength without promising or ` +
+      `denying support. ${jordan === true ?
+        'Jordan 2NT also qualifies as a more descriptive support raise with this hand. ' : ''}` +
+      `Neither call requires an immediate rebid by opener ${id}.`];
+  }
+  if (facts?.supportPoints === undefined || facts.partnerSupport === undefined ||
+      facts.partnerSuit === undefined) return [];
+  const suit = suitPlural(`1${facts.partnerSuit}` as Call);
+  if (rule.id === 'respond-after-double-jordan-2nt-support') {
+    const redouble = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'respond-after-double-redouble-values')
+      ?.candidates.some((item) => item.ruleApplies === true);
+    return [`With ${facts.supportPoints} shortage-adjusted support points (${facts.hcp} HCP) ` +
+      `and ${facts.partnerSupport} ${suit}, Jordan 2NT is an artificial limit-raise-or-better ` +
+      `response, not natural notrump. ${redouble === true ?
+        'Redouble also qualifies to show general strength, but Jordan identifies the fit. ' : ''}` +
+      `It forces partner to continue ${id}.`];
+  }
+  return [`With ${facts.supportPoints} shortage-adjusted support points and ` +
+    `${facts.partnerSupport} ${suit}, this cuebid artificially shows strong support, ` +
+    `not a natural suit. Partner must bid again ${id}.`];
+}
+
+export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const id of COMPETITIVE_RESPONSE_RULES) {
+    const candidate = competitiveResponseCandidate(result, id);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const facts = candidate.callEvidence?.competitiveResponse;
+    const entered = result.normalizedCall;
+    if (id.endsWith('-negative-double') && entered === 'Double' && facts !== undefined) {
+      if (facts.minHcp !== undefined && facts.hcp < facts.minHcp) {
+        return [`Negative Double requires at least ${facts.minHcp} HCP; you have ${facts.hcp} [${id}].`];
+      }
+      for (const suit of facts.unbidSuits ?? []) {
+        if (suit.length < suit.min || (suit.exact !== undefined && suit.length !== suit.exact)) {
+          const requirement = suit.exact === undefined ? `at least ${suit.min}` : `exactly ${suit.exact}`;
+          return [`Negative Double requires ${requirement} ${suitPlural(`1${suit.suit}` as Call)}; ` +
+            `you have ${suit.length} [${id}].`];
+        }
+      }
+    }
+    if (id === 'respond-after-double-redouble-values' && entered === 'Redouble') {
+      const hcp = candidate.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+      if (hcp?.kind === 'hcp' && !hcp.passed) {
+        return [`Strength-showing Redouble requires at least 10 HCP; you have ${hcp.actual} [${id}].`];
+      }
+    }
+    if (facts !== undefined && (id.includes('support-cuebid') || id.includes('jordan-2nt'))) {
+      if (facts.minPartnerSupport !== undefined && facts.partnerSupport !== undefined &&
+          facts.partnerSupport < facts.minPartnerSupport) {
+        return [`This artificial support bid requires at least ${facts.minPartnerSupport} ` +
+          `cards in partner's ${suitPlural(`1${facts.partnerSuit}` as Call)}; you have ` +
+          `${facts.partnerSupport} [${id}].`];
+      }
+      if (facts.minSupportPoints !== undefined && facts.supportPoints !== undefined &&
+          facts.supportPoints < facts.minSupportPoints) {
+        return [`This artificial support bid requires at least ${facts.minSupportPoints} ` +
+          `shortage-adjusted support points; you have ${facts.supportPoints} [${id}].`];
+      }
+    }
+  }
+  return [];
+}
+
+///
 //// Advancing takeout Doubles after responder Pass (B15)
 ///
 
