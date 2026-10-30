@@ -434,6 +434,9 @@ export interface CallEvidence {
   // Actual tested facts for responder's competitive Double or artificial support action.
   // Facts checked when responding to partner's weak-two opening. A rejected
   // new suit can be absent from candidates, so keep the refiner's checks separately.
+  strongTwoCPositiveSuit?: {
+    considered: { call: Call; length: number; quality: boolean }[];
+  };
   weakTwoResponse?: {
     openingSuit: Suit;
     hcp: number;
