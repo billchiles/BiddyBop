@@ -2536,7 +2536,8 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
     return oneNtInterferencePartnerLines(result, rule);
   }
   const isOneNt = rule.id.startsWith('respond-to-1nt-w/-');
-  const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-');
+  const isTwoNtOpening = rule.id.startsWith('respond-to-2nt-w/-');
+  const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-') || isTwoNtOpening;
   if ((!isOneNt && !isTwoNt) || result.normalizedCall === null) return [];
   const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
@@ -2584,9 +2585,11 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
       `Partner can Pass with a minimum or bid game with extra values.${shape} ${id}`];
   }
   if (call === '3NT') {
-    const context = isTwoNt
-      ? 'After partner’s 2NT overcall, there is no lower natural notrump invitation; this treatment bids game directly.'
-      : 'This places the partnership in game, rather than inviting partner to decide.';
+    const context = isTwoNtOpening
+      ? 'After a 20–21 HCP 2NT opening, this places the partnership in game without requiring opener to choose.'
+      : isTwoNt
+        ? 'After partner’s 2NT overcall, there is no lower natural notrump invitation; this treatment bids game directly.'
+        : 'This places the partnership in game, rather than inviting partner to decide.';
     return [`With ${hcp?.actual} HCP, within ${hcp === undefined ? 'the required range' : hcpRangeText(hcp)}, ` +
       `and balanced distribution, 3NT is a natural game ` +
       `response to partner's ${ntLevel}. ${context} ${id}`];
@@ -2602,6 +2605,12 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   if (call === '6NT' || call === '7NT') {
     return [`With ${hcp?.actual} HCP and balanced distribution, ${call} is a direct ` +
       `${call === '6NT' ? 'small' : 'grand'}-slam signoff ${id}.`];
+  }
+  if (rule.id === 'respond-to-2nt-w/-3c-natural-forcing' ||
+      rule.id === 'respond-to-2nt-w/-3d-natural-forcing') {
+    return [`With Stayman or Jacoby transfers disabled as appropriate, ${call} shows
+      a natural, unbalanced minor-suit hand with at least 10 HCP and five cards in the suit.
+      This is game forcing, not an artificial conventional response ${id}.`.replace(/\s+/g, ' ')];
   }
   if (rule.id.endsWith('-4c-gerber')) {
     return [`With ${hcp?.actual} HCP, 4♣ is the specialized Gerber ace inquiry, not ` +
@@ -2638,6 +2647,7 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
   for (const { rule, candidates } of result.ruleDiagnostics) {
     const afterInterference = rule.id.startsWith('partner-of-1nt-after-interference-');
     if (!rule.id.startsWith('respond-to-1nt-w/-') &&
+        !rule.id.startsWith('respond-to-2nt-w/-') &&
         !rule.id.startsWith('advance-weak-two-2nt-') && !afterInterference) continue;
     const candidate = candidates.find(({ call }) => call === entered);
     if (candidate === undefined || candidate.ruleApplies) continue;
