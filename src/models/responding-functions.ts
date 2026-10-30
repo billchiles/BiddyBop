@@ -730,6 +730,15 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
     return { calls: [], telemetryLines: ['A forcing new-suit response needs a weak-two opening.'] };
   }
 
+  const considered = calls.flatMap((call) => {
+    const parsed = parseSuitBid(call);
+    if (parsed === null || parsed.strain === 'NT' || parsed.strain === opening.strain) return [];
+    const suit = parsed.strain as Suit;
+    return [{ call, length: context.handFacts.lengths[suit],
+      quality: hasPreemptSuitQuality(context.hand, suit),
+      economical: cheapestBidInStrainAfter(opening, suit) === call }];
+  });
+
   const candidates: { call: Call; suit: Suit; length: number }[] = [];
   for (const call of calls) {
     const candidate = parseSuitBid(call);
@@ -747,7 +756,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
   if (candidates.length === 0) {
     return { calls: [], telemetryLines: [
       'No good five-card-or-longer new suit is available at the cheapest legal level.',
-    ] };
+    ], callEvidence: { weakTwoNewSuit: { considered, selected: null } } };
   }
 
   const longest = Math.max(...candidates.map((candidate) => candidate.length));
@@ -758,7 +767,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
     telemetryLines: [
       `Choose the longest good forcing suit after the weak two; equal lengths use the ` +
         `higher-ranking suit: ${best[0]!.call}.`,
-    ],
+    ], callEvidence: { weakTwoNewSuit: { considered, selected: best[0]!.call } },
   };
 }
 
