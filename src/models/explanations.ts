@@ -2038,9 +2038,12 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
       entry.rule.id === 'respond-after-double-jordan-2nt-support')
       ?.candidates.some((item) => item.ruleApplies === true);
     return [`With ${hcp.actual} HCP, Redouble shows strength without promising or ` +
-      `denying support. ${jordan === true ?
-        'Jordan 2NT also qualifies as a more descriptive support raise with this hand. ' : ''}` +
-      `Neither call requires an immediate rebid by opener ${id}.`];
+      'denying support and may lead to penalizing the opponents if they bid. ' +
+      (jordan === true
+        ? 'Jordan 2NT also qualifies with this hand and describes the fit; unlike Redouble, ' +
+          'Jordan requires opener to bid again. '
+        : '') +
+      `If the next opponent Passes, opener may Pass too, leaving the original doubler to act ${id}.`];
   }
   if (facts?.supportPoints === undefined || facts.partnerSupport === undefined ||
       facts.partnerSuit === undefined) return [];
