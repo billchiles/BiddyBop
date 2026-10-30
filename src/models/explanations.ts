@@ -2711,6 +2711,77 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
 }
 
 ///
+/// Responses to a strong artificial 2C opening: distinguish the waiting bid from
+/// positive suit and balanced responses. Check only facts supplied by the evaluator.
+///
+export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id !== 'respond-to-2c-w/-positive-suit' &&
+      rule.id !== 'respond-to-2c-w/-2nt-positive-balanced') return [];
+  const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (hcp === undefined) return [];
+  if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
+    const balanced = minorRequirement(candidate, 'balanced');
+    if (balanced?.passed !== true) return [];
+    return [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
+      response to the strong 2C opening. It forces the partnership to game
+      [${rule.id}].`.replace(/\s+/g, ' ')];
+  }
+  const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
+  const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
+  if (suit === undefined || suit.length < 5 || !suit.quality) return [];
+  return [`With ${hcp.actual} HCP and a good ${suit.length}-card
+    ${suitPlural(result.normalizedCall)}, ${result.normalizedCall} is a natural,
+    game-forcing positive response. The suit satisfies the honor requirement
+    (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
+    response is also available, but does not describe this suit immediately
+    [${rule.id}].`.replace(/\s+/g, ' ')];
+}
+
+export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-positive-suit');
+  const suit = diagnostic?.callEvidence?.strongTwoCPositiveSuit?.considered.find(
+    ({ call: tested }) => tested === call);
+  const id = '[respond-to-2c-w/-positive-suit]';
+  if (suit !== undefined) {
+    if (suit.length < 5) return [`A positive natural ${call} response to strong 2C
+      requires at least five ${suitPlural(call)}; you have ${suit.length}.
+      Artificial 2D remains a waiting response ${id}.`.replace(/\s+/g, ' ')];
+    if (!suit.quality) return [`Your ${suit.length}-card ${suitPlural(call)}
+      do not meet the positive-suit honor requirement (2 of top 3 honors or
+      3 of top 5 honors). You can respond with the artificial 2D waiting
+      bid instead ${id}.`.replace(/\s+/g, ' ')];
+    const hcp = diagnostic?.candidates.find(({ call: tested }) => tested === call);
+    const check = hcp === undefined ? undefined : minorRequirement(hcp, 'hcp');
+    if (check !== undefined && !check.passed) {
+      return [`A positive natural ${call} response to strong 2C requires
+        at least 8 HCP; you have ${check.actual}. The artificial 2D waiting
+        bid remains available ${id}.`.replace(/\s+/g, ' ')];
+    }
+  }
+  const twoNt = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
+    ?.candidates.find(({ call: tested }) => tested === call);
+  if (twoNt === undefined || twoNt.ruleApplies) return [];
+  const strength = minorRequirement(twoNt, 'hcp');
+  if (strength !== undefined && !strength.passed) {
+    return [`The positive 2NT response to strong 2C needs at least 8 HCP;
+      you have ${strength.actual} [respond-to-2c-w/-2nt-positive-balanced].`.replace(/\s+/g, ' ')];
+  }
+  const balanced = minorRequirement(twoNt, 'balanced');
+  if (balanced !== undefined && !balanced.passed) {
+    return ['The positive 2NT response to strong 2C requires balanced distribution ' +
+      '[respond-to-2c-w/-2nt-positive-balanced].'];
+  }
+  return [];
+}
+
+///
 //// Limited Pass after responder's preemptive jump
 ///
 
