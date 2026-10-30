@@ -2220,6 +2220,93 @@ export function getWeakTwoResponseFailureLines(result: BidEvalResult): string[] 
 }
 
 ///
+/// Responder's natural choices when an opponent makes a preemptive jump overcall.
+///
+const JUMP_RESPONSE_IDS = [
+  'respond-over-jump-raise-cheapest-to-three',
+  'respond-over-jump-new-suit-two-level',
+  'respond-over-jump-new-suit-three-level',
+  'respond-over-jump-natural-notrump',
+];
+
+export function getJumpResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!JUMP_RESPONSE_IDS.includes(rule.id) || result.normalizedCall === null) return [];
+  const candidate = result.ruleDiagnostics.find(({ rule: other }) => other.id === rule.id)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const id = `[${rule.id}]`;
+  if (rule.id.endsWith('natural-notrump')) {
+    const facts = candidate.callEvidence?.jumpResponseNotrump;
+    if (facts === undefined) return [];
+    const description = result.normalizedCall === '2NT'
+      ? 'a natural, invitational 2NT' : 'natural 3NT at game';
+    return [`With ${facts.hcp} HCP, balanced distribution, and a stopper in ` +
+      `${suitPlural(`1${facts.opponentSuit}` as Call)}, this is ${description}. ` +
+      `It is not an artificial support raise ${id}.`];
+  }
+  if (rule.id.endsWith('raise-cheapest-to-three')) {
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (points === undefined || support === undefined) return [];
+    return [`With ${points.actual} shortage-adjusted support points and ` +
+      `${support.actual} ${suitPlural(`1${support.suit}` as Call)}, this is the cheapest ` +
+      `available raise after the opponent's preempt. It is nonforcing, not a ` +
+      `strength-showing jump raise ${id}.`];
+  }
+  const hcp = minorRequirement(candidate, 'hcp');
+  const length = minorRequirement(candidate, 'suitLength');
+  if (hcp === undefined || length === undefined) return [];
+  const three = rule.id.endsWith('new-suit-three-level');
+  return [`With ${hcp.actual} HCP and ${length.actual} ${suitPlural(result.normalizedCall)}, ` +
+    `${result.normalizedCall} is a natural new suit at the cheapest available level. ` +
+    (three ? 'At the three level it forces to game. ' : 'At the two level it forces one round. ') +
+    `[${rule.id}].`];
+}
+
+export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const id of JUMP_RESPONSE_IDS) {
+    const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === id)
+      ?.candidates.find(({ call }) => call === result.normalizedCall);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    if (id.endsWith('natural-notrump')) {
+      const facts = candidate.callEvidence?.jumpResponseNotrump;
+      if (facts === undefined) continue;
+      if (facts.hcp < facts.minHcp || facts.hcp > facts.maxHcp) {
+        return [`Natural ${result.normalizedCall} requires ${facts.minHcp}–${facts.maxHcp} HCP; ` +
+          `you have ${facts.hcp} [${id}].`];
+      }
+      if (!facts.balanced) return [`Natural ${result.normalizedCall} requires ` +
+        `balanced distribution [${id}].`];
+      if (!facts.stopper) return [`Natural ${result.normalizedCall} requires ` +
+        `a stopper in the opponent's ${suitPlural(`1${facts.opponentSuit}` as Call)} [${id}].`];
+      continue;
+    }
+    const hcp = minorRequirement(candidate, 'hcp');
+    const length = minorRequirement(candidate, 'suitLength');
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (hcp !== undefined && !hcp.passed) {
+      return [`This natural new-suit response requires at least ${hcp.min} HCP; ` +
+        `you have ${hcp.actual} [${id}].`];
+    }
+    if (length !== undefined && !length.passed) {
+      return [`This natural new-suit response requires at least ${length.min} ` +
+        `${suitPlural(result.normalizedCall)}; you have ${length.actual} [${id}].`];
+    }
+    if (points !== undefined && !points.passed) {
+      return [`The nonforcing three-level raise requires 8–10 shortage-adjusted ` +
+        `support points; you have ${points.actual} [${id}].`];
+    }
+    if (support !== undefined && !support.passed) {
+      return [`This raise needs at least ${support.min} trumps; ` +
+        `you have ${support.actual} [${id}].`];
+    }
+  }
+  return [];
+}
+
+///
 //// Advancing takeout Doubles after responder Pass (B15)
 ///
 
