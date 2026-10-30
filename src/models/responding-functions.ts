@@ -1354,5 +1354,5 @@ export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: R
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${call} needs ${call === '2NT' ? '11-12' : '13-15'} HCP, ` +
       `balanced shape, and a ${auction.overcall.strain} stopper.`,
-  ] };
+  ], callEvidence: { jumpResponseNotrump: { hcp, balanced: context.handFacts.balanced, stopper, opponentSuit: auction.overcall.strain as Suit, minHcp: call === '2NT' ? 11 : 13, maxHcp: call === '2NT' ? 12 : 15 } } };
 }
