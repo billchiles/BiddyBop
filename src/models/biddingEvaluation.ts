@@ -1157,6 +1157,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   const explainWeakTwoSuitOvercall = context.stage === 'overcalling' &&
     (ruleId === 'overcall-weak-two-natural-suit-at-two-level' ||
      ruleId === 'overcall-weak-two-natural-suit-at-three-level');
+  const explainResponderRedouble = context.stage === 'responding' &&
+    ruleId === 'respond-after-double-redouble-values';
   const explainMinorResponse = context.stage === 'responding' && (
     ruleId === 'respond-to-minor-w/-new-suit-one-level-priority' ||
     ruleId === 'respond-to-minor-w/-1nt' || ruleId === 'respond-to-minor-w/-2nt' ||
@@ -1229,7 +1231,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
     if (explainOpeningRequirements || explainPreemptRequirements || explainStrongTakeoutDouble ||
-        explainBalancingSuit || explainJumpOvercall || explainWeakTwoSuitOvercall || explainMinorResponse ||
+        explainBalancingSuit || explainJumpOvercall || explainWeakTwoSuitOvercall ||
+        explainResponderRedouble || explainMinorResponse ||
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainJumpAdvance || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
@@ -1321,7 +1324,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   return { success: pass, telemetryLines,
     callEvidence: explainOpeningRequirements || explainPreemptRequirements ||
       explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainWeakTwoSuitOvercall ||
+      explainWeakTwoSuitOvercall || explainResponderRedouble ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
