@@ -73,7 +73,7 @@ export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'After the completed spade transfer, two-HCP responder Passes. ' +
                  '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
-    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'],
+    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass', 'Pass'],
     requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
     expectedOpeningCalls: [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
@@ -120,7 +120,7 @@ export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
     description: 'Minimum responder declines opener's natural 2NT game try in 3S. ' +
                  '1S-2S: 18 HCP balanced 5-3-3-2, above the default 15-17 1NT opening range; 2NT is the preferred natural balanced game try.  A direct 4S is a more aggressive alternative.',
     requiredSystem: { oneNtOpening: '15-17' },
-    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT', '3S'],
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT', 'Pass', '3S'],
     expectedOpeningCalls: [
       { call: '1S', ruleIds: ['open-five-card-major'] },
     ],
@@ -169,7 +169,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
     description: 'After 2C–2D–2NT, weak responder Passes the nonforcing balanced rebid. ' +
                  '2C-2D-2NT: a 23-HCP 4-3-3-3 opener uses the artificial waiting response to ' +
                  'show the 22-24 balanced range.',
-    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'],
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass', 'Pass'],
     expectedOpeningCalls: [
       { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
     ],
@@ -190,7 +190,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
   {
     description: 'After Jacoby 2NT and opener's minimum 4H, responder can Pass. ' +
                  '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
-    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass'],
+    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass', 'Pass'],
     requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
     expectedOpeningCalls: [
       { call: '1H', ruleIds: ['open-five-card-major'] },
@@ -217,7 +217,7 @@ export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
     description: 'Responder's diamond splinter and opener's heart control lead to spade game. ' +
                  '1S-4D-4H: opener has unbalanced 5-4-2-2 shape and a heart control ' +
                  'for a slam-interest bid after the splinter; 4S remains the practical game choice.',
-    practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H', '4S'],
+    practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H', 'Pass', '4S'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
       { call: '1S', ruleIds: ['open-five-card-major'] },
@@ -241,7 +241,7 @@ export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
     description: 'Opener splinters in diamonds for hearts; responder chooses 4H. ' +
                  '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both ' +
                  '4H and optional 4D splinter remain candidates.',
-    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D', '4H'],
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D', 'Pass', '4H'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
