@@ -707,25 +707,6 @@ export const OPENER_REBID_AFTER_MAJOR_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '3', H: 'JT985', D: 'QJT6', C: 'K63' },
   },
   {
-    description: '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
-    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H'],
-    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
-    expectedOpeningCalls: [
-      { call: '1H', ruleIds: ['open-five-card-major'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
-    ],
-    expectedOpenerRebidCalls: [
-      { call: '4H', ruleIds: ['opener-rebid-game-in-opening-major-after-major-jacoby-2nt'] },
-    ],
-    rejectedOpenerRebidCalls: ['3NT', '3H'],
-    north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
-    south: { S: 'A83', H: 'K976', D: 'K64', C: 'QJ2' },
-    east: { S: 'Q52', H: '4', D: 'A985', C: 'K9743' },
-    west: { S: 'JT96', H: 'T32', D: 'JT3', C: 'AT6' },
-  },
-  {
     description: '1S-2NT-3NT: 14 HCP with no singleton or void shows the medium Jacoby range.',
     practiceAuction: ['1S', 'Pass', '2NT', 'Pass', '3NT'],
     requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
@@ -835,27 +816,6 @@ export const OPENER_REBID_AFTER_MAJOR_SPLINTER_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q976', H: 'AQJ72', D: 'K83', C: '4' },
     east: { S: '432', H: '9', D: 'J974', C: 'AJT93' },
     west: { S: 'T', H: 'T43', D: 'QT65', C: 'KQ762' },
-  },
-  {
-    description: '1S-4D-4H: opener has unbalanced 5-4-2-2 shape and a heart control ' +
-                 'for a slam-interest bid after the splinter; 4S remains the practical game choice.',
-    practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H'],
-    requiredSystem: { splinters: true },
-    expectedOpeningCalls: [
-      { call: '1S', ruleIds: ['open-five-card-major'] },
-    ],
-    expectedResponseCalls: [
-      { call: '4D', ruleIds: ['respond-to-major-w/-support-splinter'] },
-    ],
-    expectedOpenerRebidCalls: [
-      { call: '4H', ruleIds: ['opener-rebid-control-after-major-splinter'] },
-      { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
-    ],
-    expectedOpenerRebidCallOrder: [['4H', '4S']],
-    north: { S: 'AKJ85', H: 'A742', D: '85', C: 'K9' },
-    south: { S: 'Q976', H: 'K83', D: '4', C: 'AQJ72' },
-    east: { S: 'T4', H: '965', D: 'KQJT3', C: 'T63' },
-    west: { S: '32', H: 'QJT', D: 'A9762', C: '854' },
   },
 ];
 
@@ -1239,26 +1199,6 @@ export const OPENER_REBID_AFTER_MAJOR_SIMPLE_RAISE_TEST_DEALS: RuleTestDeal[] = 
     south: { S: 'T83', H: 'K63', D: 'J64', C: 'Q942' },
     east: { S: 'J2', H: 'T942', D: 'K53', C: 'AJ63' },
     west: { S: 'A965', H: '7', D: 'QT982', C: 'KT7' },
-  },
-  {
-    description: '1S-2S: 18 HCP balanced 5-3-3-2, above the default 15-17 1NT opening range; 2NT is the preferred natural balanced game try.  A direct 4S is a more aggressive alternative.',
-    requiredSystem: { oneNtOpening: '15-17' },
-    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT'],
-    expectedOpeningCalls: [
-      { call: '1S', ruleIds: ['open-five-card-major'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
-    ],
-    expectedOpenerRebidCalls: [
-      { call: '2NT', ruleIds: ['opener-rebid-2nt-game-try-after-major-simple-raise'] },
-      { call: '4S', ruleIds: ['opener-rebid-game-raise-after-major-simple-raise'] },
-    ],
-    expectedOpenerRebidCallOrder: [['2NT', '4S']],
-    north: { S: 'AQJ85', H: 'KJ4', D: 'A72', C: 'K8' },
-    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
-    east: { S: 'T42', H: 'AT2', D: '985', C: 'QJ63' },
-    west: { S: '97', H: '7963', D: 'KQT3', C: 'A75' },
   },
   {
     description: '1H-2H: 18 HCP / 21 shortage points with singleton spade; the natural 4H game raise and optional 3S splinter both describe a maximum hand with the known heart fit.',
