@@ -536,7 +536,20 @@ The trainer does not evaluate vulnerability, which may affect practical decision
 An ordinary takeout double requires at least 13 points with shortage and three or more cards
 in every unbid suit; an 18+ HCP strong-hand exception has no distribution requirement. Strong
 playing-strength exceptions below 18 HCP remain judgment-only. The double is informational, never
-a generic penalty-double rule. Natural 1NT overcalls use 15-18 HCP, strict balanced shape,
+a generic penalty-double rule.
+After a one-level suit opening, an ordinary takeout Doubler's uncontested rebid
+following advancer's cheapest major-suit response follows a support-point ladder:
+13–15 shortage-adjusted points may Pass; 16–18 with four-card support raise
+economically to two; 19+ with four-card support jump to three to **invite** game.
+Advancer's cheapest suit response was forced and may have almost no HCP, so the jump
+to three is nonforcing. A strong 18–21-HCP Double with four-card support can make the
+same invitation. Direct game over that minimum response is reserved for exceptional
+22+ HCP with four-card support. A separate invitational jump *by advancer* can be
+accepted at game with the previously selected strength/support tests. Do not confuse
+this takeout-Doubler rebid invitation with an opener's invitational major raise.
+The later decision by advancer to accept or decline a three-level invitation is
+outside the currently selected overcaller-rebid teaching depth.
+ Natural 1NT overcalls use 15-18 HCP, strict balanced shape,
 and A, Kx, Qxx, or Jxxx in opener's suit as a simple stopper approximation. Preemptive
 jump overcalls use the shared good-suit test with six cards at the two level (5-11 HCP),
 seven at the three level (under 10 HCP), or eight at the four level (under 10 HCP).
