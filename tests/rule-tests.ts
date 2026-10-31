@@ -5492,8 +5492,8 @@ function runTakeoutDoublerRebidExplanationTests (): number {
     const evidence = accepted.ruleDiagnostics.find(({ rule }) => rule.id === match?.id)
       ?.candidates.find(({ call }) => call === '3S')?.callEvidence?.takeoutDoublerRebid;
     checks++;
-    if (match === undefined || evidence?.support < 4 ||
-        evidence?.supportPoints < 19 || positive.length === 0 ||
+    if (match === undefined || evidence === undefined || evidence.support < 4 ||
+        evidence.supportPoints < 19 || positive.length === 0 ||
         getTakeoutDoublerRebidFailureLines(accepted).length !== 0) {
       failures++;
       console.error(`FAIL takeout-Doubler strong invitation: ${deal.description}`);
