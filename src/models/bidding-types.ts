@@ -628,6 +628,33 @@ export interface CallEvidence {
     bidSuitLength: number;
     rejection?: 'strength' | 'support' | 'shape' | 'stopper' | 'forcing';
   };
+  contestedSuitOvercallerRebid?: {
+    treatment: string;
+    responderKind: 'raise' | 'natural' | 'negativeDouble';
+    advanceKind: string;
+    overcallSuit: Suit;
+    overcallLevel: 1 | 2;
+    openingSuit: Suit;
+    responderSuit: Suit | null;
+    advanceSuit: Suit | null;
+    hcp: number;
+    overcallLength: number;
+    support: number;
+    balanced: boolean;
+    stopped: boolean;
+    stoppedSuits: { suit: Suit; stopped: boolean }[];
+    secondSuit: Suit | null;
+    secondSuitLength: number;
+    preferredResponsiveCall: Call | null;
+    selectedSuitLength: number;
+    minHcp?: number;
+    maxHcp?: number;
+    minOvercallLength?: number;
+    minSupport?: number;
+    minSecondSuitLength?: number;
+    rejection?: 'strength' | 'support' | 'length' | 'balanced' | 'stopper' |
+      'preferFit' | 'preferRepeat' | 'upLine';
+  };
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |

@@ -164,3 +164,24 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - Evidence-driven explanation coverage now includes minimum Pass/raise, invitations and exceptional direct game, strong natural suit/NT rebids, cuebids, responsive Doubles, and selected competitive choices. Rejected actions name only requirements actually tested.
 - Added a narrow behavioral check: both invitation deals qualify for 3S, not premature 4S; no exact English-text assertions. Advancer's later decision after the three-level invitation remains outside the selected continuation depth.
 - Next deep-review group: competitive natural suit-overcaller rebids, then selected natural 1NT and weak-two defensive continuations.
+
+## Competitive natural suit-overcaller rebids (October 30, 2026)
+
+- **Improved:** after responder raises, bids a natural suit/NT, or makes a negative
+  Double, the overcaller now has evaluator-grounded explanations for Pass, raises,
+  support cuebids, forcing/nonforcing new suits, responsive Double replies, and NT.
+  A tested rejected call can explain insufficient HCP, fit, length, shape, missing
+  opponent-suit stoppers, or why the economical responsive-Double choice comes first.
+- **Verified existing up-the-line treatment:** with two four-card unbid suits after
+  advancer's responsive Double, the existing comparator already chooses the lower
+  available suit at the same level (SUITS is stored in descending rank order).
+  Clarified its intent and added a behavioral test to protect that choice.
+  A 16+ HCP overcaller with a five-card major can bid game after advancer's strong
+  support cuebid (contested or uncontested); a sixth trump is no longer demanded
+  for that *cuebid* situation. Ordinary simple-raise game requirements remain
+  separate, as do forcing economical returns already at game level.
+- **Testing:** existing fixed contested practice deals remain intact. Focused
+  behavioral what-if checks cover the responsive-Double suit order, accepted 5-card
+  game after a strong support cuebid in both auction contexts, and rejection with
+  inadequate strength; no explanation-text snapshot assertions.
+- **Next:** selected 1NT-overcaller rebids and weak-two defensive continuations.

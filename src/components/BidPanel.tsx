@@ -34,6 +34,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines,
          getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOpenerOneNtRebidLines, getOpenerOneNtRebidFailureLines,
          getOpenerOneLevelNewSuitRebidLines, getOpenerOneLevelNewSuitRebidFailureLines,
@@ -203,6 +204,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
        getCompetitiveNaturalAdvanceFailureLines(result).length > 0 ||
        getNegativeDoubleAdvanceFailureLines(result).length > 0 ||
        getNaturalSuitOvercallerRebidFailureLines(result).length > 0 ||
+       getContestedSuitOvercallerRebidFailureLines(result).length > 0 ||
        getTakeoutDoublerRebidFailureLines(result).length > 0 ||
        getOpenerOneNtRebidFailureLines(result).length > 0 ||
        getOpenerOneLevelNewSuitRebidFailureLines(result).length > 0 ||
@@ -621,6 +623,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const competitiveNaturalReasons = getCompetitiveNaturalAdvanceFailureLines(result);
   const negativeDoubleAdvanceReasons = getNegativeDoubleAdvanceFailureLines(result);
   const overcallerRebidReasons = getNaturalSuitOvercallerRebidFailureLines(result);
+  const contestedOvercallerReasons = getContestedSuitOvercallerRebidFailureLines(result);
   const doublerRebidReasons = getTakeoutDoublerRebidFailureLines(result);
   const openerOneNtRebidReasons = getOpenerOneNtRebidFailureLines(result);
   const openerTwoLevelReasons = getOpenerTwoLevelNewSuitRebidFailureLines(result);
@@ -646,6 +649,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
       preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
       competitiveNaturalReasons.length === 0 &&
       negativeDoubleAdvanceReasons.length === 0 && overcallerRebidReasons.length === 0 &&
+      contestedOvercallerReasons.length === 0 &&
       openerOneNtRebidReasons.length === 0 && openerNewSuitReasons.length === 0 &&
        openerTwoLevelReasons.length === 0 && responderRaiseReasons.length === 0 &&
        openerRaiseReasons.length === 0 && openerConventionReasons.length === 0 &&
@@ -674,6 +678,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
         competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
         negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
+        contestedOvercallerReasons.length > 0 ||
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
         openerTwoLevelReasons.length > 0 || responderRaiseReasons.length > 0 ||
         openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
@@ -714,7 +719,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         ...weakTwoResponseReasons, ...jumpResponseReasons,
         ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons, ...strongTwoCReasons,
         ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
-        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons, ...doublerRebidReasons,
+        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons,
+        ...contestedOvercallerReasons, ...doublerRebidReasons,
         ...openerOneNtRebidReasons, ...openerNewSuitReasons, ...openerTwoLevelReasons,
         ...responderRaiseReasons, ...openerRaiseReasons, ...openerConventionReasons,
         ...openerGameReasons, ...openerNegativeDoubleReasons,
@@ -751,6 +757,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
        preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
        competitiveNaturalReasons.length > 0 ||
         negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
+        contestedOvercallerReasons.length > 0 ||
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
          openerTwoLevelReasons.length > 0 || responderRaiseReasons.length > 0 ||
          openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
@@ -810,6 +817,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
   lines.push(...getNegativeDoubleAdvanceLines(result, rule));
   lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
+  lines.push(...getContestedSuitOvercallerRebidLines(result, rule));
   lines.push(...getTakeoutDoublerRebidLines(result, rule));
   lines.push(...getOpenerOneNtRebidLines(result, rule));
   lines.push(...getOpenerTwoLevelNewSuitRebidLines(result, rule));
