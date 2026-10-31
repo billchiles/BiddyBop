@@ -5742,6 +5742,52 @@ function runNaturalResponderRebidTeachingTests (): number {
     failures++;
     console.error('FAIL missing explanatory New Minor Forcing alternative after a five-card major.');
   }
+  // A Standard club repeat stops after one round, unlike the identical 2/1 auction.
+  const standardDeal = makeRuleTestBoard({
+    description: 'Standard six-card club repeat', dealer: 'N',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass', '3C'],
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+  }).board;
+  const standardAuction: Call[] = ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass'];
+  const standardResult = evaluateUserCall('3C', standardDeal, standardAuction,
+    { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' });
+  const standardRule = standardResult.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-standard-two-level-repeat-response');
+  checks++;
+  if (standardRule === undefined || !getNaturalResponderRebidLines(standardResult, standardRule,
+      getHandFacts(standardDeal.deal.S)).some((line) => line.includes('nonforcing'))) {
+    failures++;
+    console.error('FAIL Standard three-level club repeat should explain its nonforcing meaning.');
+  }
+  const standardAsTwoOverOne = evaluateUserCall('3C', standardDeal, standardAuction, system);
+  const twoOverOneRule = standardAsTwoOverOne.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-two-over-one-repeat-long-suit');
+  checks++;
+  if (twoOverOneRule === undefined || !getNaturalResponderRebidLines(standardAsTwoOverOne,
+      twoOverOneRule, getHandFacts(standardDeal.deal.S)).some((line) =>
+        line.includes('game forcing'))) {
+    failures++;
+    console.error('FAIL 2/1 six-card repeat should retain and explain game force.');
+  }
+  // A previously passed responder cannot retrospectively establish a 2/1 game force.
+  const passedAuction: Call[] = [
+    'Pass', 'Pass', 'Pass', '1D', 'Pass', '2C', 'Pass', '2D', 'Pass',
+  ];
+  const previouslyPassed = makeRuleTestBoard({
+    description: 'Responder passed before the opening', dealer: 'E',
+    practiceAuction: [...passedAuction, '3C'],
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+  }).board;
+  const passedResult = evaluateUserCall('3C', previouslyPassed, passedAuction, system);
+  checks++;
+  if (passedResult.userCallMatchingRules.some(({ id }) =>
+      id === 'responder-rebid-two-over-one-repeat-long-suit') ||
+      passedResult.applicableRules.some(({ id }) => id === 'responder-rebid-boundary-after-two-over-one')) {
+    failures++;
+    console.error('FAIL a previously passed responder was treated as establishing a 2/1 game force.');
+  }
   console.log(`${failures} ***FAILURES***. Natural responder rebid teaching: ${checks} checks.\n`);
   return failures;
 }
