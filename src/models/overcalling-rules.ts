@@ -1190,7 +1190,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['4H', '4S'],
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'cue-game'),
-    meaning: 'With an upper-range six-card major and known support, place the contract in game.',
+    meaning: 'With 16+ HCP, five or more cards in the overcalled major and known cuebid support, bid game.',
     certainty: 'high',
   },
   //
