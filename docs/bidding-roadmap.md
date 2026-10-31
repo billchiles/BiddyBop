@@ -34,9 +34,6 @@ not a historical progress log or a commitment to model every possible auction.
   natural 1NT overcall conventions/invitations, natural suit overcall advances and
   later competition, ordinary/strong takeout-Doubler actions, and weak-two defense
   continuations. Contrast actual strength, fit, stopper, forcing status and alternatives.
-- [ ] **Deep review and improve selected responder rebids.** Include NT conventions,
-  strong 2C/Jacoby/splinters, Standard versus 2/1 forcing sequences, delayed support,
-  economical descriptive suits, simple raises/game tries, and judgment boundaries.
 - [ ] **Final opener-rebid verification.** Extensive explanation work is complete,
   but audit the remaining corners (particularly NT-opening interference, jump-overcall
   continuations and forcing end states). Do not equate finishing explanation batches
