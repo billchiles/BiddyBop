@@ -5760,12 +5760,19 @@ function runNaturalResponderRebidTeachingTests (): number {
     failures++;
     console.error('FAIL Standard three-level club repeat should explain its nonforcing meaning.');
   }
-  const standardAsTwoOverOne = evaluateUserCall('3C', standardDeal, standardAuction, system);
+  const forcingDeal = makeRuleTestBoard({
+    description: '2/1 six-card club repeat', dealer: 'N',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass', '3C'],
+    north: { S: 'AKQ986', H: 'K74', D: 'Q5', C: 'T2' },
+    south: { S: '4', H: 'AQ5', D: 'K32', C: 'KQJ987' },
+  }).board;
+  const forcingAuction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass'];
+  const standardAsTwoOverOne = evaluateUserCall('3C', forcingDeal, forcingAuction, system);
   const twoOverOneRule = standardAsTwoOverOne.userCallMatchingRules.find(({ id }) =>
     id === 'responder-rebid-two-over-one-repeat-long-suit');
   checks++;
   if (twoOverOneRule === undefined || !getNaturalResponderRebidLines(standardAsTwoOverOne,
-      twoOverOneRule, getHandFacts(standardDeal.deal.S)).some((line) =>
+      twoOverOneRule, getHandFacts(forcingDeal.deal.S)).some((line) =>
         line.includes('game forcing'))) {
     failures++;
     console.error('FAIL 2/1 six-card repeat should retain and explain game force.');
