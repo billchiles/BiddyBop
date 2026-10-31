@@ -185,3 +185,27 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
   game after a strong support cuebid in both auction contexts, and rejection with
   inadequate strength; no explanation-text snapshot assertions.
 - **Next:** selected 1NT-overcaller rebids and weak-two defensive continuations.
+
+## Natural 1NT and weak-two defensive overcaller rebids (October 30, 2026)
+
+- Corrected the selected natural 1NT-overcaller Pass after responder's natural
+  two-level interference and advancer Pass: strong 17–18 HCP overcallers may
+  Pass without treating a weak advance as an invitation. The separate 2NT
+  invitation after interference retains its agreement-specific strength test.
+- Added evaluator-grounded explanations for 1NT invitation acceptance and
+  decline (2NT and quantitative 4NT), fitting A/K/Q in advancer's six-card
+  minor, direct three-major agreement meanings, and selected interfering
+  Pass/2NT continuations. Compulsory Stayman, Jacoby and Texas completions
+  remain covered by their existing concise meanings.
+- Added hand-specific weak-two defensive rebid explanations for the takeout
+  Doubler's minimum/strong actions, constructive suit advances, forcing
+  cuebids and new suits, natural notrump decisions, and selected rejection
+  requirements. A strong 16+ HCP overcaller can bid major game with five cards
+  after advancer's strong support cuebid; an ordinary simple-raise game still
+  requires six trumps.
+- Preserved the entire fixed practice-deal corpus. Added targeted synthetic
+  tests for the 18-HCP Pass with each 1NT configuration, five-card cuebid
+  game versus the lower-strength counterexample, and existing selected
+  family explanations. No exact instructional sentence snapshots.
+- Later-stage continuations and Lebensohl remain judgment-only boundaries.
+  Next: review responder rebids and subsequent end-to-end explanatory UI.

@@ -15,6 +15,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
+         getOneNtOvercallerRebidLines, getOneNtOvercallerRebidFailureLines,
+         getWeakTwoDefenseRebidLines, getWeakTwoDefenseRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
@@ -23,7 +25,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
 import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
-         TAKEOUT_DOUBLER_REBID_TEST_DEALS }
+         TAKEOUT_DOUBLER_REBID_TEST_DEALS, NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
+         WEAK_TWO_REBID_TEST_DEALS }
   from '../src/models/overcalling-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -5608,6 +5611,87 @@ function runContestedSuitOvercallerRebidExplanationTests (): number {
   return failures;
 }
 
+/// Verify the revised 1NT-overcaller Pass and weak-two five-card major game
+/// alongside selected existing practice-deal rebid explanation families.
+function runOneNtAndWeakTwoRebidExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const deal of [...NATURAL_1NT_OVERCALL_REBID_TEST_DEALS, ...WEAK_TWO_REBID_TEST_DEALS]) {
+    const expected = deal.expectedOvercallerRebidCalls?.[0];
+    if (expected === undefined) continue;
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(expected.call, board,
+      deal.practiceAuction.slice(0, -1),
+      { ...defaultBiddingSystem, ...deal.requiredSystem });
+    const rule = result.userCallMatchingRules.find(({ id }) => expected.ruleIds.includes(id));
+    const conventional = expected.ruleIds.some((id) =>
+      id.includes('stayman') || id.includes('jacoby') || id.includes('texas') ||
+      id.includes('natural-signoff'));
+    const lines = rule === undefined ? [] :
+      [...getOneNtOvercallerRebidLines(result, rule), ...getWeakTwoDefenseRebidLines(result, rule)];
+    checks++;
+    if (rule === undefined || (!conventional && lines.length === 0)) {
+      failures++;
+      console.error(`FAIL 1NT/weak-two rebid explanation: ${deal.description}`);
+    }
+  }
+  const strongNt = makeRuleTestBoard({
+    description: '18-HCP 1NT overcaller may Pass when responder interferes and advancer Passes',
+    dealer: 'N', practiceAuction: ['1D', '1NT', '2H', 'Pass', 'Pass', 'Pass'],
+    east: { S: 'AKJ6', H: 'K8', D: 'K65', C: 'AT76' },
+    north: { S: 'Q72', H: 'AQJ76', D: 'AQJ94', C: '' },
+    south: { S: 'T985', H: 'T954', D: 'T32', C: 'QJ' },
+  }).board;
+  const competition: Call[] = ['1D', '1NT', '2H', 'Pass', 'Pass'];
+  for (const system of [defaultBiddingSystem,
+    { ...defaultBiddingSystem, oneNtOpening: '16-18' as const }]) {
+    const result = evaluateUserCall('Pass', strongNt, competition, system);
+    const rule = result.userCallMatchingRules.find(({ id }) =>
+      id === 'overcaller-rebid-interfered-1nt-pass');
+    checks++;
+    if (rule === undefined || getOneNtOvercallerRebidLines(result, rule).length === 0) {
+      failures++;
+      console.error('FAIL maximum 1NT overcaller should Pass noninviting competition.');
+    }
+  }
+  const knownHands = {
+    north: { S: '852', H: '73', D: 'KQJ987', C: 'T4' },
+    south: { S: 'T963', H: 'T854', D: 'T65', C: 'J8' },
+  };
+  const afterCue: Call[] = ['2D', '2H', 'Pass', '3D', 'Pass'];
+  const strong = makeRuleTestBoard({
+    description: '16-HCP good five-card major after strong weak-two support cuebid',
+    dealer: 'N', practiceAuction: [...afterCue, '4H'],
+    ...knownHands,
+    east: { S: 'A4', H: 'AKQJ9', D: '32', C: 'Q976' },
+  }).board;
+  const accepted = evaluateUserCall('4H', strong, afterCue, defaultBiddingSystem);
+  const game = accepted.userCallMatchingRules.find(({ id }) =>
+    id === 'overcaller-rebid-weak-two-suit-cue-game');
+  checks++;
+  if (game === undefined || getWeakTwoDefenseRebidLines(accepted, game).length === 0) {
+    failures++;
+    console.error('FAIL strong five-card major should accept cuebid with 4H.');
+  }
+  const weaker = makeRuleTestBoard({
+    description: '14-HCP five-card major does not accept weak-two support cuebid at game',
+    dealer: 'N', practiceAuction: [...afterCue, '4H'],
+    north: { S: '852', H: '73', D: 'KQJ987', C: 'Q4' },
+    south: knownHands.south,
+    east: { S: 'A4', H: 'AKQJ9', D: '32', C: 'T976' },
+  }).board;
+  const rejected = evaluateUserCall('4H', weaker, afterCue, defaultBiddingSystem);
+  checks++;
+  if (rejected.userCallMatchingRules.some(({ id }) =>
+        id === 'overcaller-rebid-weak-two-suit-cue-game') ||
+      getWeakTwoDefenseRebidFailureLines(rejected).length === 0) {
+    failures++;
+    console.error('FAIL minimum five-card weak-two overcall must not bid game.');
+  }
+  console.log(`${failures} ***FAILURES***. 1NT and weak-two rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5638,6 +5722,7 @@ const testGroups: (() => number)[] = [
   runNaturalSuitOvercallerRebidExplanationTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
+  runOneNtAndWeakTwoRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
   runWeakTwoOvercallExplanationTests,

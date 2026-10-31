@@ -3910,6 +3910,195 @@ export function getContestedSuitOvercallerRebidFailureLines(result: BidEvalResul
 }
 
 ///
+/// //// Natural 1NT overcaller and selected weak-two defensive rebids
+///
+
+/// Keep accepted-call explanations tied to facts returned by the evaluator.
+/// Compulsory Stayman and transfers retain their existing brief rule meanings.
+export function getOneNtOvercallerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null ||
+      !(rule.id.startsWith('overcaller-rebid-1nt-') ||
+        rule.id.startsWith('overcaller-rebid-interfered-1nt-'))) return [];
+  const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+  const f = candidate?.callEvidence?.ntOvercallerRebid;
+  if (candidate?.ruleApplies !== true || f === undefined) return [];
+  const id = `[${rule.id}]`;
+  if (f.kind === 'interfered') {
+    if (f.treatment === 'pass') return [
+      `Responder has competed naturally in ${suitPlural(`1${f.responderSuit}` as Call)}. ` +
+      `Advancer's Pass does not invite game. With ${f.hcp} HCP, you may also Pass ` +
+      `rather than bid solely because the 1NT overcall was strong ${id}.`];
+    return [f.treatment === 'invite-accept' ?
+      `Advancer's 2NT is invitational after responder's natural interference. ` +
+        `Your ${f.hcp} HCP meet the ${f.cutoff}+ HCP acceptance threshold for 3NT ${id}.` :
+      `Advancer's 2NT invites game after interference. With ${f.hcp} HCP, ` +
+        `you may decline at the selected ${f.cutoff}-HCP boundary ${id}.`];
+  }
+  if (f.kind === 'invitation') {
+    const slam = f.invitation === '4NT';
+    return [`Advancer's natural ${f.invitation} is a ${slam ? 'quantitative small-slam' : 'game'} ` +
+      `invitation. Your 1NT overcall still shows 15–18 HCP, but the selected ` +
+      `1NT agreement puts this invitation boundary at ${f.cutoff} HCP. ` +
+      `With ${f.hcp} HCP, ${f.treatment === 'accept' ?
+        `accept with ${slam ? '6NT' : '3NT'}` : 'decline by Passing'} ${id}.` +
+      (f.hcp === f.cutoff ? ' Both choices are supported at the borderline.' : '')];
+  }
+  if (f.kind === 'minor') {
+    const minor = suitPlural(`1${f.minor}` as Call);
+    return [f.topHonor ?
+      `Partner's natural three-level ${minor} bid invites game with a good six-card suit. ` +
+        `You have an A, K, or Q in ${minor}; accept with 3NT ${id}.` :
+      `Partner's natural three-level ${minor} bid is invitational, not forcing. ` +
+        `Without an A, K, or Q in ${minor}, Pass accepts partner's suit ${id}.`];
+  }
+  if (f.kind === 'major') {
+    const major = suitPlural(`1${f.major}` as Call);
+    if (f.treatment === 'slam-interest') return [
+      `With Jacoby transfers on, advancer's direct three-level ${major} shows slam ` +
+      `interest. Four ${major} is the bounded response; further slam exploration ` +
+      `is beyond the selected treatment ${id}.`];
+    return [`With Jacoby transfers off, partner's three-level ${major} is natural and forcing. ` +
+      `Your ${f.support}-card support ${f.support === 2 ?
+        'makes 3NT the selected choice without claiming a major fit' :
+        `supports game in ${major} with a known eight-card fit`} ${id}.`];
+  }
+  return [];
+}
+
+/// Rejected actions are explained only when a tested condition actually failed.
+export function getOneNtOvercallerRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!(diagnostic.rule.id.startsWith('overcaller-rebid-1nt-') ||
+          diagnostic.rule.id.startsWith('overcaller-rebid-interfered-1nt-'))) continue;
+    const c = diagnostic.candidates.find(({ call }) => call === result.normalizedCall);
+    const f = c?.callEvidence?.ntOvercallerRebid;
+    if (c === undefined || c.ruleApplies || f === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (f.kind === 'invitation' && f.advance === f.invitation && f.cutoff !== undefined) {
+      if (f.treatment === 'accept' && f.hcp < f.cutoff)
+        return [`Accepting the ${f.invitation} invitation requires at least ${f.cutoff} HCP; ` +
+          `you have ${f.hcp} ${id}.`];
+      if (f.treatment === 'decline' && f.hcp > f.cutoff)
+        return [`Declining this invitation is supported through ${f.cutoff} HCP; ` +
+          `you have ${f.hcp} ${id}.`];
+    }
+    if (f.kind === 'minor' && f.advance === `3${f.minor}`) {
+      if (f.treatment === 'accept' && !f.topHonor)
+        return [`Accepting the minor invitation at 3NT requires an A, K, or Q in ` +
+          `partner's long minor; your hand has none ${id}.`];
+      if (f.treatment === 'decline' && f.topHonor)
+        return [`The selected treatment accepts the minor invitation at 3NT ` +
+          `with a fitting A, K, or Q ${id}.`];
+    }
+    if (f.kind === 'major' && f.treatment === 'natural') {
+      if (result.normalizedCall === `4${f.major}` && (f.support ?? 0) < 3)
+        return [`Natural major game requires three-card support for partner's ` +
+          `five-card ${suitPlural(`1${f.major}` as Call)}; you have ${f.support} ${id}.`];
+      if (result.normalizedCall === '3NT' && f.support !== 2)
+        return [`The selected 3NT continuation requires exactly two cards in ` +
+          `partner's major; you have ${f.support} ${id}.`];
+    }
+  }
+  return [];
+}
+
+export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null || !rule.id.startsWith('overcaller-rebid-weak-two-'))
+    return [];
+  const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+  const f = candidate?.callEvidence?.weakTwoDefenseRebid;
+  if (candidate?.ruleApplies !== true || f === undefined) return [];
+  const id = `[${rule.id}]`;
+  const partner = f.advanceSuit === null ? 'partner’s suit' :
+    suitPlural(`1${f.advanceSuit}` as Call);
+  const own = f.overcallSuit === undefined ? '' : suitPlural(`1${f.overcallSuit}` as Call);
+  if (f.defense === 'Double') {
+    switch (f.action) {
+      case 'minimum-pass': return [`Partner's cheapest suit reply to a weak-two ` +
+        `takeout Double may be compulsory and very weak. With an ordinary Double ` +
+        `and ${f.hcp} HCP, Pass is supported ${id}.`];
+      case 'jump-pass': return [`Partner's jump suit advance invites game. ` +
+        `Your ${f.hcp} HCP do not qualify for game ${id}.`];
+      case 'jump-game': return [`Partner's invitational jump shows additional values. ` +
+        `Your ${f.hcp} HCP and ${f.support}-card ${partner} accept at major game ${id}.`];
+      case 'minimum-raise': return [`A strong ${f.hcp}-HCP Double and ${f.support}-card ` +
+        `${partner} justify the economical raise after partner's minimum response ${id}.`];
+      case 'nt-pass': return [`Partner's natural 2NT invites game. With ${f.hcp} HCP, ` +
+        `your ordinary Double can decline ${id}.`];
+      case 'nt-game': return [`Partner's natural 2NT invites game; your ${f.hcp} HCP ` +
+        `qualify for accepting at 3NT ${id}.`];
+      case 'game-pass': return [`Partner has placed the contract in natural game; ` +
+        `Pass accepts that choice ${id}.`];
+      case 'cue-suit': return [`Partner's artificial cuebid of opener's weak-two suit ` +
+        `requires another call. Your economical unbid-suit reply shows four-card ` +
+        `or longer length, not a fit in opener's suit ${id}.`];
+      case 'cue-nt': return [`Partner's artificial cuebid forces a reply. Your ${f.hcp} HCP, ` +
+        `balanced or semi-balanced shape, and stopper in opener's suit support 3NT ${id}.`];
+      case 'strong-suit': return [`Double followed by your natural suit shows a strong ` +
+        `${f.hcp}-HCP hand with a good five-card or longer suit, not an ordinary ` +
+        `minimum takeout Double ${id}.`];
+      case 'strong-nt': return [`Your strong ${f.hcp}-HCP Double followed by natural notrump ` +
+        `shows a balanced hand with a stopper in opener's weak-two suit ${id}.`];
+    }
+  }
+  switch (f.action) {
+    case 'raise-pass': return [`Partner's simple raise of ${own} is nonforcing. ` +
+      `Your ${f.hcp} HCP and ${f.ownLength} ${own} support Pass ${id}.`];
+    case 'raise-game': return [`Your ${f.hcp} HCP and six-card ${own} support game ` +
+      `after partner's constructive raise ${id}.`];
+    case 'nt-pass': return [`Partner's natural 2NT invites game; ${f.hcp} HCP ` +
+      `support declining by Passing ${id}.`];
+    case 'nt-game': return [`With ${f.hcp} HCP and balanced or semi-balanced shape, ` +
+      `accept partner's natural 2NT invitation at 3NT ${id}.`];
+    case 'game-pass': return [`Partner chose natural 3NT game. Pass accepts ${id}.`];
+    case 'cue-return': return [`Partner's artificial support cuebid forces one reply. ` +
+      `With ${f.hcp} HCP, the economical return to ${own} answers that force ${id}.`];
+    case 'cue-game': return [`Partner's strong support cuebid establishes a major fit. ` +
+      `Your ${f.hcp} HCP and ${f.ownLength} ${own} meet the 16+ HCP and five-card ` +
+      `requirements for major game ${id}.`];
+    case 'new-support': return [`Partner's new suit forces a reply. Your ${f.support} ` +
+      `cards in ${partner} establish an eight-card fit; the economical raise answers ` +
+      `that force ${id}.`];
+    case 'new-repeat': return [`Partner's new suit forces a reply; your ${f.ownLength} ` +
+      `${own} support a natural six-card repeat ${id}.`];
+    case 'new-nt': return [`Partner's new suit forces a reply. With ${f.hcp} HCP, ` +
+      `balanced or semi-balanced shape, and a stopper in opener's suit, 3NT ` +
+      `describes your hand ${id}.`];
+  }
+  return [];
+}
+
+export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!diagnostic.rule.id.startsWith('overcaller-rebid-weak-two-')) continue;
+    const c = diagnostic.candidates.find(({ call }) => call === result.normalizedCall);
+    const f = c?.callEvidence?.weakTwoDefenseRebid;
+    if (c === undefined || c.ruleApplies || f?.rejection === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    switch (f.rejection) {
+      case 'strength': return [`This ${f.action.replaceAll('-', ' ')} requires more ` +
+        `strength; you have ${f.hcp} HCP ${id}.`];
+      case 'support': return [`This raise needs four cards in partner's suit; ` +
+        `you have ${f.support} ${id}.`];
+      case 'length': return [f.action === 'cue-game' ?
+        `Game after partner's strong support cuebid requires five of your overcalled ` +
+          `major; you have ${f.ownLength} ${id}.` :
+        `This natural repeat or game requires a longer original suit; ` +
+          `you have ${f.ownLength} ${id}.`];
+      case 'shape': return [`Natural notrump here needs balanced or semi-balanced ` +
+        `distribution ${id}.`];
+      case 'stopper': return [`This natural notrump rebid requires a stopper in ` +
+        `opener's weak-two suit ${id}.`];
+    }
+  }
+  return [];
+}
+
+///
 //// Natural suit overcaller rebids after uncontested advances
 ///
 

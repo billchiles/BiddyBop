@@ -577,6 +577,29 @@ forced by the auction and does not independently promise extra values. For
 ordinary simple raises, a direct major game continues to require the separately
 selected 16+ HCP and six-card overcall treatment. These are distinct decisions.
 
+Natural 1NT-overcaller rebids keep the selected 15–18 HCP overcall range while
+advancer's invitation thresholds follow the configured 1NT partnership agreement.
+After uncontested natural 2NT or quantitative 4NT invitations, borderline values
+permit either accepting or declining. A natural three-level minor invitation
+calls for a fitting A/K/Q to accept at 3NT. Direct three-level major responses
+have agreement-dependent natural or slam-interest meanings. When responder
+interferes naturally over a 1NT overcall and advancer Passes, overcaller may also
+Pass regardless of HCP; it is not an HCP-based game-invitation decision. A natural
+2NT invitation from advancer after that interference retains the separate
+selected acceptance/decline strength boundary. No artificial transfers are
+re-enabled when responder has interfered naturally.
+
+After a weak-two takeout Double, a compulsory economical suit advance may be
+weak, while a jump, natural notrump, or cuebid has a separate meaning. After a
+natural two-level suit overcall of a weak two, advancer's cuebid establishes
+strong support and forces a reply. With at least 16 HCP and a five-card or
+longer overcalled major, game may be bid directly; six cards are not necessary.
+An ordinary constructive raise continues to require the selected stronger
+six-card overcall for direct major game. Natural new-suit advances remain
+forcing one round; Pass is not inferred as a response when no reliable rebid
+qualifies. Lebensohl and further judgment-heavy continuations remain outside
+this selected treatment.
+
 The direct overcalling Pass rule remains a fallback through 17 HCP after selected
 one-level and weak-two openings.  An available concrete overcall or informational Double
 suppresses that fallback Pass.  For an opposing artificial strong `2C`, strong `2NT`,

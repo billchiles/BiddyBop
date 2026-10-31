@@ -901,17 +901,22 @@ export function contestedOneNtOvercallerRebidApplies (
   }
   // The natural overcall still shows 15-18 HCP.  The selected 1NT response agreement
   // changes what advancer promises with 2NT, so the borderline acceptance strength shifts.
-  // The selected limited Pass continuation retains the same strength cutoff.
+  // Passing when advancer also Passes is not an HCP-based invitation decision.
   const responseStrengthCutoffHcp = system.oneNtOpening === '15-17' ? 16 : 17;
   const hcp = context.handFacts.hcp;
-  const success = treatment === 'pass' ? advance === 'Pass' && call === 'Pass' &&
-    hcp <= responseStrengthCutoffHcp :
+  const success = treatment === 'pass' ? advance === 'Pass' && call === 'Pass' :
     treatment === 'invite-decline' ? advance === '2NT' && call === 'Pass' &&
       hcp <= responseStrengthCutoffHcp :
     advance === '2NT' && call === '3NT' && hcp >= responseStrengthCutoffHcp;
   return { success, telemetryLines: [success ?
     'PASS: limited natural continuation after interference over our 1NT overcall.' :
-    'FAIL: no modeled natural continuation or missing stopper/strength.'] };
+    'FAIL: no selected natural continuation after this interference.'],
+    callEvidence: { ntOvercallerRebid: {
+      kind: 'interfered', treatment, advance, hcp, cutoff: responseStrengthCutoffHcp,
+      originalSuit: opening.strain as Suit, responderSuit: response.strain as Suit,
+      // The selected invitation continuation is strength-based; it does not test a stopper.
+    } },
+  };
 }
 
 export function contestedOneNtOvercallerBoundaryApplies (context: RuleEvalContext):
@@ -997,7 +1002,10 @@ export function naturalOneNtOvercallerInvitationApplies (
   const success = advance === invitation && strengthApplies;
   return { success, telemetryLines: [success ?
     `PASS: ${hcp} HCP permits ${accept ? 'accepting' : 'declining'} the ${invitation} invitation.` :
-    `FAIL: ${invitation} ${accept ? 'acceptance' : 'decline'} does not qualify at ${hcp} HCP.`] };
+    `FAIL: ${invitation} ${accept ? 'acceptance' : 'decline'} does not qualify at ${hcp} HCP.`],
+    callEvidence: { ntOvercallerRebid: { kind: 'invitation', treatment: accept ? 'accept' : 'decline',
+      advance, hcp, cutoff: invitationBorderlineHcp, invitation } },
+  };
 }
 
 /// A good six-card minor invitation is accepted only with a fitting top honor in that minor.
@@ -1010,7 +1018,12 @@ export function naturalOneNtOvercallerMinorInvitationApplies (
   const success = minor !== null && (accept ? topHonor : ! topHonor);
   return { success, telemetryLines: [success ?
     `PASS: ${accept ? 'accept' : 'decline'} 3${minor} with${topHonor ? '' : 'out'} a fitting A/K/Q.` :
-    'FAIL: the natural minor invitation or required fitting-honor condition is absent.'] };
+    'FAIL: the natural minor invitation or required fitting-honor condition is absent.'],
+    callEvidence: minor === null ? undefined : { ntOvercallerRebid: {
+      kind: 'minor', treatment: accept ? 'accept' : 'decline', advance, minor, topHonor,
+      hcp: context.handFacts.hcp,
+    } },
+  };
 }
 
 /// With natural 3M (Jacoby off), select 3NT on doubleton support or major game with 3+ support.
@@ -1024,8 +1037,13 @@ export function naturalOneNtOvercallerThreeMajorApplies (
     ? call === `4${suit}` :
     (support === 2 && call === '3NT') || (support >= 3 && call === `4${suit}`));
   return { success, telemetryLines: [success ?
-    `PASS: natural 3${suit} continuation with ${support}-card support.` :
-    'FAIL: no matching selected three-major continuation.'] };
+    `PASS: 3${suit} continuation with ${support}-card support.` :
+    'FAIL: no matching selected three-major continuation.'],
+    callEvidence: suit === null ? undefined : { ntOvercallerRebid: {
+      kind: 'major', treatment: system.jacobyTransfers ? 'slam-interest' : 'natural',
+      advance, hcp: context.handFacts.hcp, major: suit, support,
+    } },
+  };
 }
 
 export function naturalOneNtOvercallerSignoffApplies (
@@ -1255,9 +1273,35 @@ export function weakTwoDoublerRebidApplies (
           (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
       break;
   }
+  let rejection: 'strength' | 'support' | 'shape' | 'stopper' | undefined;
+  if (!success) {
+    if (action === 'jump-game' && info.kind === 'jumpSuit' && suit !== null &&
+        call === `4${suit}`) rejection = support < 4 ? 'support' :
+      !strong && hcp < 16 ? 'strength' : undefined;
+    else if (action === 'minimum-raise' && info.kind === 'minimumSuit' &&
+             call === suitRebid && suit !== null) rejection = support < 4 ? 'support' :
+      !strong ? 'strength' : undefined;
+    else if (action === 'strong-suit' &&
+             ['minimumSuit', 'jumpSuit'].includes(info.kind) && !strong && strongSuit)
+      rejection = 'strength';
+    else if (action === 'strong-nt' && ['minimumSuit', 'jumpSuit'].includes(info.kind) &&
+             (call === '2NT' || call === '3NT')) rejection =
+      !context.handFacts.balanced ? 'shape' : !stopper ? 'stopper' : 'strength';
+    else if (action === 'cue-nt' && info.kind === 'cuebid' && call === '3NT') rejection =
+      !context.handFacts.balancedOrSemiBalanced ? 'shape' : !stopper ? 'stopper' :
+      hcp < 14 ? 'strength' : undefined;
+  }
   return { success, telemetryLines: [success ?
     `PASS: ${action} after a ${ordinary ? 'support-oriented' : 'strong'} weak-two Double.` :
-    `FAIL: ${action} does not fit this weak-two Double and advance.`] };
+    `FAIL: ${action} does not fit this weak-two Double and advance.`],
+    callEvidence: { weakTwoDefenseRebid: {
+      defense: 'Double', action, advanceKind: info.kind, openingSuit: info.opening,
+      advanceSuit: suit, hcp, supportPoints: context.handFacts.totalPointsWShortage,
+      support, ownLength: 0, ordinary, strong,
+      balanced: context.handFacts.balanced, stopped: stopper,
+      rejection,
+    } },
+  };
 }
 
 /// The two-level overcall is natural and not forcing. A simple raise or 3NT may
@@ -1304,7 +1348,8 @@ export function weakTwoSuitOvercallerRebidApplies (
         cheapest(ownSuit) === call && (parseSuitBid(call)?.level ?? 8) <= 3;
       break;
     case 'cue-game':
-      success = info.kind === 'cuebid' && hcp >= 16 && ownLength >= 6 &&
+      // Advancer's cuebid promises a fit; five trumps suffice with upper-range values.
+      success = info.kind === 'cuebid' && hcp >= 16 && ownLength >= 5 &&
         (ownSuit === 'H' || ownSuit === 'S') && call === `4${ownSuit}`;
       break;
     case 'new-support':
@@ -1322,9 +1367,36 @@ export function weakTwoSuitOvercallerRebidApplies (
         hasBasicSuitStopper(context, info.opening) && call === '3NT';
       break;
   }
+  const stopper = hasBasicSuitStopper(context, info.opening);
+  let rejection: 'strength' | 'length' | 'support' | 'shape' | 'stopper' | undefined;
+  if (!success) {
+    if ((action === 'cue-game' && info.kind === 'cuebid' ||
+         action === 'raise-game' && info.kind === 'simpleRaise') && call === `4${ownSuit}`) {
+      rejection = hcp < 16 ? 'strength' :
+        ownLength < (action === 'cue-game' ? 5 : 6) ? 'length' : undefined;
+    } else if (action === 'new-support' && info.kind === 'forcingNewSuit' &&
+               info.advanceSuit !== null && call === cheapest(info.advanceSuit)) {
+      rejection = support < 3 ? 'support' : undefined;
+    } else if (action === 'new-repeat' && info.kind === 'forcingNewSuit' &&
+               call === cheapest(ownSuit)) {
+      rejection = ownLength < 6 ? 'length' : undefined;
+    } else if (action === 'new-nt' && info.kind === 'forcingNewSuit' && call === '3NT') {
+      rejection = hcp < 15 ? 'strength' :
+        !context.handFacts.balancedOrSemiBalanced ? 'shape' : !stopper ? 'stopper' : undefined;
+    }
+  }
   return { success, telemetryLines: [success ?
     `PASS: selected ${action} after a natural weak-two-defense overcall.` :
-    `FAIL: no selected ${action} in this weak-two-defense auction.`] };
+    `FAIL: no selected ${action} in this weak-two-defense auction.`],
+    callEvidence: { weakTwoDefenseRebid: {
+      defense: 'suit', action, advanceKind: info.kind, openingSuit: info.opening,
+      advanceSuit: info.advanceSuit, overcallSuit: ownSuit,
+      hcp, supportPoints: context.handFacts.totalPointsWShortage,
+      support, ownLength, ordinary: false, strong: false,
+      balanced: context.handFacts.balancedOrSemiBalanced, stopped: stopper,
+      rejection,
+    } },
+  };
 }
 
 /// Boundaries at the selected rebid depth are explicit when the available space
