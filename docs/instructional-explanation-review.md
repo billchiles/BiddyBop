@@ -209,3 +209,12 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
   family explanations. No exact instructional sentence snapshots.
 - Later-stage continuations and Lebensohl remain judgment-only boundaries.
   Next: review responder rebids and subsequent end-to-end explanatory UI.
+
+
+## Natural responder rebids, first teaching batch (October 31, 2026)
+
+- Explicitly chose not to implement New Minor Forcing yet. After opener's 12–14 HCP 1NT rebid and a responder five-card major, the selected natural 2NT and 3NT continuations mention that many partnerships use New Minor Forcing to ask about three-card support; the convention and subsequent auctions are beyond the trainer's present depth.
+- Under 2/1 game forcing, natural 2NT after opener's non-game suit rebid remains a balanced, forcing description with no unbid-suit stopper test. Natural 3NT **continues** requiring stoppers in the remaining unbid suits and no preferred known major fit.
+- The explanatory layer now consumes recorded decision facts for selected natural responder rebids after economical second suits, a major-opening 1NT response, a minor-opening 1NT response, and 2/1 game forcing. The untouched rule families continue using their normal concise rule meaning and guidance.
+- Strong/minimum 1NT/2NT responder continuations selectively explain what responder's actual HCP and major length mean; a five-card major and possible New Minor Forcing receive a carefully qualified note, not an executable recommendation.
+- Focused synthetic checks cover the relaxed 2NT and retained 3NT stopper requirement, plus a natural 2NT invitation with a five-card major and explanatory reference to New Minor Forcing. No practice deals were added or changed.

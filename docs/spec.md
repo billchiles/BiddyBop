@@ -863,3 +863,21 @@ opposing contract, so `1H-(2S)-3H` and `1S-(3H)-3S` are economical raises, not j
 These are explicit deterministic thresholds, not universal agreements or playing-trick
 calculations. The selected responder treatment excludes responses after a four-level jump
 preempt, penalty doubles, and scoring.
+
+### Responder's natural 2NT after a 2/1 game force and New Minor Forcing boundary
+
+In an uncontested two-over-one game force, responder's natural 2NT after an
+opener suit rebid describes a balanced 13–16 HCP hand without a preferred known
+major fit. It **does not** require responder to hold a stopper in any unbid suit;
+the game force remains in effect and opener must continue. Natural 3NT remains a
+separate contract-placement decision and requires the selected basic stoppers
+in every remaining unbid suit, balanced shape, game-going strength, and no
+preferred major fit.
+
+After a one-level natural major response and opener's 12–14 HCP balanced 1NT
+rebid, the trainer's natural signoffs and invitations remain in place. With
+exactly five cards in responder's major, some of these decisions may be less
+certain because opener could have three-card support. Many partnerships use
+**New Minor Forcing** to investigate this fit. The convention is not executable
+in this trainer; its artificial bid and opener/responder continuations would
+need to be added as a coherent sequence, not as an isolated recommended call.

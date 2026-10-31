@@ -509,7 +509,8 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     calls: ['2NT'], callCategory: ['natural', 'gameForcing'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'forcingNt'),
-    meaning: 'A natural 2NT rebid describes shape and remains forcing; opener must continue.',
+    meaning: 'A natural 2NT rebid describes a balanced hand and remains game forcing; ' +
+             'no unbid-suit stopper is promised and opener must continue.',
     guidance: ['Opener should further describe suit length, a fit, or notrump suitability. ' +
                'Neither partner may stop below game under this 2/1 agreement.'],
     certainty: 'high',
@@ -1108,7 +1109,10 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
     meaning: "Invite game opposite opener's 12-14 balanced rebid.",
     guidance: ['Opener normally Passes with a minimum and bids 3NT with a suitable maximum; ' +
-               'the middle of the 12–14 range requires judgment.'],
+               'the middle of the 12–14 range requires judgment.',
+               'With five cards in the major first shown, many partnerships use New Minor ' +
+               'Forcing to investigate opener’s three-card support. This trainer does not ' +
+               'implement New Minor Forcing or its follow-up auction.'],
     certainty: 'high',
   },
   //
@@ -1168,8 +1172,9 @@ export const ResponderRebidRules: BidRule[] = [
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'suit',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' },
                       openerRebidCall: '1NT' },
-    meaning: 'A different hand may call for a checkback agreement, a different strain, ' +
-             'or careful slam investigation.',
+    meaning: 'With a five-card major after opener rebids 1NT, many partnerships ' +
+             'use New Minor Forcing to look for three-card support. This trainer does ' +
+             'not implement that convention or its continuations.',
     guidance: ['Those decisions depend on too many variables and judgment for this app to ' +
                'reliably recommend one bid, including Pass.'],
     certainty: 'high',

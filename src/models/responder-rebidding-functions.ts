@@ -179,7 +179,15 @@ export function responderEconomicalDecisionApplies (_call: Call, context: RuleEv
     `${success ? 'PASS' : 'FAIL'}: economical second suit ${info.second}, ${decision}; ` +
     `opening ${info.opening}, response ${info.response}, lengths ${openingLength}/${responseLength}/${secondLength}, ` +
     `length points ${lengthPoints}, support points ${fitPoints}, HCP ${f.hcp}.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+      family: 'economical', decision: decision, hcp: f.hcp,
+      lengthPoints: f.totalPointsWLength,
+      supportPoints: f.totalPointsWShortage,
+      balanced: f.balanced,
+      openingSuit: info.opening, responseSuit: info.response, rebidSuit: info.second,
+      openingLength, responseLength, rebidLength: secondLength,
+      success,
+    } } };
 }
 
 //// Responder after opener's strong natural second suit
@@ -402,7 +410,15 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
     `${success ? 'PASS' : 'FAIL'}: ${decision} after ${info.kind} of ${info.rebid}; ` +
     `HCP ${facts.hcp}, major length ${majorLength}, second length ${suitLength}, ` +
     `forcing 1NT ${system.majorOneNtResponse === 'forcing'}.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+      family: 'majorOneNt', decision: decision, hcp: facts.hcp,
+      lengthPoints: facts.totalPointsWLength,
+      supportPoints: facts.totalPointsWShortage,
+      balanced: facts.balanced,
+      openingSuit: info.opening, responseSuit: null, rebidSuit: info.rebid,
+      openingLength: majorLength, responseLength: 0, rebidLength: suitLength,
+      success,
+    } } };
 }
 
 //// Responder after a natural 1NT response to a minor opening
@@ -456,7 +472,15 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: natural minor-1NT ${choice}; opener ${info.opening}, ` +
     `rebid ${info.kind}, responder ${f.hcp} HCP.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+      family: 'minorOneNt', decision: choice, hcp: f.hcp,
+      lengthPoints: f.totalPointsWLength,
+      supportPoints: f.totalPointsWShortage,
+      balanced: f.balanced,
+      openingSuit: info.opening, responseSuit: null, rebidSuit: null,
+      openingLength: f.lengths[info.opening], responseLength: 0, rebidLength: 0,
+      success,
+    } } };
 }
 
 //// Responder after opener jump-repeats a six-card minor following a one-level major response
@@ -608,12 +632,11 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
       break;
     }
     case 'forcingNt': {
-      const unbid = (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
-        suit !== info.opening && suit !== info.response && suit !== info.second);
       success = call === '2NT' && ordinary && f.balanced &&
         (info.kind === 'repeatOpening' || info.kind === 'secondSuit') &&
-        ! knownOpeningFit && !(newMajor && f.lengths[info.second!] >= 4) &&
-        unbid.some((suit) => hasBasicSuitStopper(context, suit));
+        ! knownOpeningFit && !(newMajor && f.lengths[info.second!] >= 4);
+      // Responder remains game forcing: unbid-suit stoppers are not prerequisites
+      // for a descriptive 2NT. The separate 3NT rule retains its stopper tests.
       break;
     }
   }
@@ -621,7 +644,19 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
     `${success ? 'PASS' : 'FAIL'}: 2/1 ${choice} after ${info.opening}/${info.response}/${info.rebid}; ` +
     `HCP ${f.hcp}, support points ${supportPoints}, original/response lengths ` +
     `${f.lengths[info.opening]}/${f.lengths[info.response]}.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+      family: 'twoOverOne', decision: choice, hcp: f.hcp,
+      lengthPoints: f.totalPointsWLength,
+      supportPoints: f.totalPointsWShortage,
+      balanced: f.balanced,
+      openingSuit: info.opening, responseSuit: info.response, rebidSuit: info.second,
+      openingLength: f.lengths[info.opening], responseLength: f.lengths[info.response],
+      rebidLength: info.second === null ? 0 : f.lengths[info.second],
+      missingStoppers: choice === 'gameNt' ? (['C', 'D', 'H', 'S'] as Suit[])
+        .filter((suit) => suit !== info.opening && suit !== info.response &&
+          suit !== info.second && !hasBasicSuitStopper(context, suit)) : [],
+      success,
+    } } };
 }
 
 //// Standard two-level new-suit responder continuations

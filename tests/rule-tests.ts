@@ -13,6 +13,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOneNtOvercallerRebidLines, getOneNtOvercallerRebidFailureLines,
@@ -5692,6 +5693,59 @@ function runOneNtAndWeakTwoRebidExplanationTests (): number {
   return failures;
 }
 
+/// Ensure the 2/1 forcing 2NT treatment does not invent an unbid-suit stopper
+/// requirement, while 3NT retains that requirement. These are synthetic what-if
+/// hands; no stored practice deal is changed.
+function runNaturalResponderRebidTeachingTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const system: BiddingSystem = { ...defaultBiddingSystem,
+    twoLevelNewSuitResponse: 'twoOverOne' };
+  const board = makeRuleTestBoard({
+    description: 'Balanced 2/1 responder with 14 HCP but no heart stopper',
+    dealer: 'N', practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass', '2NT'],
+    north: { S: 'AKJ74', H: 'Q64', D: 'QJ93', C: '2' },
+    south: { S: '83', H: 'J85', D: 'K65', C: 'AKQJ9' },
+  }).board;
+  const auction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass'];
+  const invite = evaluateUserCall('2NT', board, auction, system);
+  const rule = invite.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-two-over-one-forcing-2nt');
+  checks++;
+  if (rule === undefined || getNaturalResponderRebidLines(invite, rule,
+      getHandFacts(board.deal.S)).length === 0 ||
+      getNaturalResponderRebidFailureLines(invite).length > 0) {
+    failures++;
+    console.error('FAIL 2/1 forcing 2NT should not require an unbid-suit stopper.');
+  }
+  const threeNt = evaluateUserCall('3NT', board, auction, system);
+  const reason = getNaturalResponderRebidFailureLines(threeNt);
+  checks++;
+  if (threeNt.userCallMatchingRules.some(({ id }) =>
+        id === 'responder-rebid-two-over-one-game-3nt') || reason.length === 0) {
+    failures++;
+    console.error('FAIL 2/1 3NT should still require the missing heart stopper.');
+  }
+  const checkback = makeRuleTestBoard({
+    description: 'Five-card heart major after opener rebids natural 1NT',
+    dealer: 'N', practiceAuction: ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'],
+    north: { S: 'A94', H: 'Q76', D: 'QJ84', C: 'Q83' },
+    south: { S: 'Q73', H: 'KJ984', D: 'K65', C: 'K2' },
+  }).board;
+  const afterOneNt: Call[] = ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass'];
+  const result = evaluateUserCall('2NT', checkback, afterOneNt, defaultBiddingSystem);
+  const natural = result.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-2nt-after-minimum-1nt');
+  checks++;
+  if (natural === undefined || !getNaturalResponderRebidLines(result, natural,
+      getHandFacts(checkback.deal.S)).some((line) => line.includes('New Minor Forcing'))) {
+    failures++;
+    console.error('FAIL missing explanatory New Minor Forcing alternative after a five-card major.');
+  }
+  console.log(`${failures} ***FAILURES***. Natural responder rebid teaching: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5720,6 +5774,7 @@ const testGroups: (() => number)[] = [
   runOneNtInterferencePartnerBoundaryTests,
   runOneNtInterferenceExplanationTests,
   runNaturalSuitOvercallerRebidExplanationTests,
+  runNaturalResponderRebidTeachingTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,
