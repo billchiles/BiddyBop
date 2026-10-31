@@ -611,6 +611,23 @@ export interface CallEvidence {
   };
   openerFiveCardMinorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
   openerMinorOneNtSecondSuitAvailable?: boolean;
+  takeoutDoublerRebid?: {
+    treatment: string;
+    advanceKind: string;
+    openingSuit: Suit;
+    partnerSuit: Suit | null;
+    hcp: number;
+    supportPoints: number;
+    support: number;
+    ordinary: boolean;
+    strong: boolean;
+    balanced: boolean;
+    stopped: boolean;
+    chosenFit: Suit | null;
+    chosenFitLength: number;
+    bidSuitLength: number;
+    rejection?: 'strength' | 'support' | 'shape' | 'stopper' | 'forcing';
+  };
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |

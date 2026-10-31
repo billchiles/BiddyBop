@@ -1509,8 +1509,11 @@ export function takeoutDoublerRebidApplies (
         support >= 4 && suitLevel <= 3 && call === suitBid;
       break;
     case 'maximum-raise':
-      success = info.kind === 'minimumSuit' && ordinary && points >= 19 && support >= 4 &&
-        major && call === `4${info.suit}` && suitLevel <= 4;
+      // Advancer's cheapest response can be nearly worthless. With four-card major support,
+      // 19+ support points invite at three, even on a strong 18–21 HCP Double.
+      success = info.kind === 'minimumSuit' && (ordinary || strong && hcp <= 21) &&
+        points >= 19 && support >= 4 && major &&
+        suitLevel === 2 && call === `3${info.suit}`;
       break;
     case 'jump-pass':
       success = info.kind === 'jumpSuit' && ordinary && points <= 16 && call === 'Pass';
@@ -1569,8 +1572,10 @@ export function takeoutDoublerRebidApplies (
           (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
       break;
     case 'strong-fit':
-      success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
-        support >= 4 && major && suitLevel <= 4 && call === `4${info.suit}`;
+      // Direct game opposite a potentially zero-HCP minimum response needs an
+      // exceptional strong Double, not just any 18+ HCP takeout Double.
+      success = info.kind === 'minimumSuit' && hcp >= 22 &&
+        support >= 4 && major && suitLevel <= 2 && call === `4${info.suit}`;
       break;
     case 'competitive-pass':
       success = info.responderActed && info.kind === 'competitiveSuit' && ordinary &&
@@ -1590,9 +1595,49 @@ export function takeoutDoublerRebidApplies (
       success = info.kind === 'escape' && ordinary && call === 'Pass';
       break;
   }
+  // Preserve the exact hand facts and tested decision, including rejections.
+  // Text explanations consume this evidence rather than reimplementing eligibility.
+  let rejection: 'strength' | 'support' | 'shape' | 'stopper' | 'forcing' | undefined;
+  if (!success) {
+    if (info.kind === 'minimumSuit' && call === 'Pass' && treatment === 'minimum-pass' &&
+        ordinary && points > 15) rejection = 'strength';
+    else if (info.kind === 'minimumSuit' && call === suitBid &&
+             treatment === 'minimum-raise') {
+      rejection = support < 4 ? 'support' : 'strength';
+    } else if (info.kind === 'minimumSuit' && major && call === `3${info.suit}` &&
+               treatment === 'maximum-raise') {
+      rejection = support < 4 ? 'support' : 'strength';
+    } else if (info.kind === 'minimumSuit' && major && call === `4${info.suit}` &&
+               treatment === 'strong-fit') {
+      rejection = support < 4 ? 'support' : 'strength';
+    } else if (info.kind === 'jumpSuit' && treatment === 'jump-pass' && call === 'Pass' &&
+               ordinary && points > 16) rejection = 'strength';
+    else if (info.kind === 'cuebid' && treatment === 'cue-suit' && call === fitCall &&
+             bestFit !== undefined && context.handFacts.lengths[bestFit] < 4) {
+      rejection = 'support';
+    } else if ((treatment === 'strong-nt' || treatment === 'cue-nt') &&
+               (call === '1NT' || call === '2NT' || call === '3NT') &&
+               (info.kind === 'minimumSuit' || info.kind === 'jumpSuit' ||
+                info.kind === 'cuebid')) {
+      rejection = !context.handFacts.balancedOrSemiBalanced ? 'shape' :
+        !stopped ? 'stopper' : 'strength';
+    }
+  }
   return { success, telemetryLines: [success ?
     `PASS: ${treatment} after a ${ordinary ? 'support-oriented' : 'strong'} takeout Double.` :
-    `FAIL: ${treatment} does not fit the Double, advance, and hand strength/shape.`] };
+    `FAIL: ${treatment} does not fit the Double, advance, and hand strength/shape.`],
+    callEvidence: { takeoutDoublerRebid: {
+      treatment, advanceKind: info.kind, openingSuit: info.opening,
+      partnerSuit: info.suit, hcp, supportPoints: points, support,
+      ordinary, strong, balanced: context.handFacts.balanced,
+      stopped, chosenFit: bestFit ?? null,
+      chosenFitLength: bestFit === undefined ? 0 : context.handFacts.lengths[bestFit],
+      bidSuitLength: parseSuitBid(call)?.strain !== 'NT' &&
+        parseSuitBid(call) !== null ?
+        context.handFacts.lengths[parseSuitBid(call)!.strain as Suit] : 0,
+      rejection,
+    } },
+  };
 }
 
 export function takeoutDoublerBoundaryApplies (

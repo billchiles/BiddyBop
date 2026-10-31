@@ -155,3 +155,12 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - **Corrected:** three saved 1NT natural-minor invitation deal descriptions inaccurately said suit honor quality was illustrative; the existing rule actually tests for two of A/K/Q. No deals or eligibility changed.
 - **Testing cleanup:** existing DONT and weak-two overcall explanation tests now verify supported/rejected calls, available natural alternatives, preserved facts, and relevant feedback presence without freezing English wording. No new wording tests were added.
 - **Next source-based deep review:** overcaller and takeout-Doubler rebids. Earlier-stage actual browser play-throughs, recorded-call substitution, Report output, and the final end-user terminology audit remain part of the eventual integration quality gate.
+
+## Takeout-Doubler rebids — first deep-review batch (October 30, 2026)
+
+- Revised the minimum-advance ladder: 13–15 shortage-adjusted support points may Pass; 16–18 and four-card support raise economically; 19+ with four-card major support invite with a jump to three rather than automatically bidding four.
+- Strong takeout Doubles of 18–21 HCP with a four-card major fit can also invite after a minimum advance; direct game over a minimum suit reply now requires exceptional 22+ HCP and four-card support. This change does not alter the separate rules for accepting an invitational *jump by advancer*.
+- Two full four-hand practice deals exercise the corrected invitation: one ordinary 17-HCP Double with a singleton in opener's suit (19 support points) and a previously direct-game 20-HCP strong Double changed to 3S. Existing other deals remain intact.
+- Evidence-driven explanation coverage now includes minimum Pass/raise, invitations and exceptional direct game, strong natural suit/NT rebids, cuebids, responsive Doubles, and selected competitive choices. Rejected actions name only requirements actually tested.
+- Added a narrow behavioral check: both invitation deals qualify for 3S, not premature 4S; no exact English-text assertions. Advancer's later decision after the three-level invitation remains outside the selected continuation depth.
+- Next deep-review group: competitive natural suit-overcaller rebids, then selected natural 1NT and weak-two defensive continuations.

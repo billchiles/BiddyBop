@@ -1375,13 +1375,14 @@ export const OvercallRules: BidRule[] = [
   {
     id: 'overcaller-rebid-takeout-maximum-raise',
     kind: 'overcallerRebid',
-    title: 'Bid major game with maximum support',
+    title: "Invite game after advancer's minimum major-suit response",
     auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
                       interference: 'takeoutDouble' },
-    calls: ['4H', '4S'],
-    callCategory: ['natural'],
+    calls: ['3H', '3S'],
+    callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'maximum-raise'),
-    meaning: 'Maximum ordinary takeout Double with a clear major fit and playing strength.',
+    meaning: 'Jump raise to three with 19+ shortage-adjusted support points, four-card ' +
+             'support, and less than 22 HCP. Invites game; advancer may Pass.',
     certainty: 'high',
   },
   //
@@ -1521,13 +1522,14 @@ export const OvercallRules: BidRule[] = [
   {
     id: 'overcaller-rebid-takeout-strong-fit',
     kind: 'overcallerRebid',
-    title: "Raise advancer's major with a very strong Double",
+    title: "Bid major game after a truly exceptional strong Double",
     auctionContext: { stage: 'overcallerRebid', openerLevel: 1, openerStrain: 'suit',
                       interference: 'takeoutDouble' },
     calls: ['4H', '4S'],
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-fit'),
-    meaning: 'A strong doubler can show a substantial fit rather than inventing a side suit.',
+    meaning: 'Direct major game over a potentially very weak minimum advance requires ' +
+             'at least 22 HCP and four-card support; lesser strong hands can invite.',
     certainty: 'high',
   },
   //

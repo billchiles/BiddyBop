@@ -1159,6 +1159,24 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     ] }],
   },
   {
+    description: 'An ordinary 17-HCP Doubler with a singleton heart and four spades invites with 3S after the minimum 1S advance.',
+    dealer: 'N',
+    practiceAuction: ['1H', 'Double', 'Pass', '1S', 'Pass', '3S'],
+    north: { S: 'K72', H: 'AKT768', D: 'QA5', C: '9' },
+    east: { S: 'AQJ4', H: 'Q', D: 'K86', C: 'KQ728' },
+    south: { S: '53', H: '539', D: 'T742', C: 'JT63' },
+    west: { S: 'T986', H: 'J42', D: 'J93', C: 'A54' },
+    expectedOvercallCalls: [{ call: 'Double', ruleIds: [
+      'overcall-takeout-double-with-unbid-suit-support',
+    ] }],
+    expectedAdvanceCalls: [{ call: '1S', ruleIds: [
+      'advance-takeout-double-minimum-suit',
+    ] }],
+    expectedOvercallerRebidCalls: [{ call: '3S', ruleIds: [
+      'overcaller-rebid-takeout-maximum-raise',
+    ] }],
+  },
+  {
     description: 'An ordinary minimum takeout Doubler declines a 2S invitational jump.',
     dealer: 'N',
     practiceAuction: ['1H', 'Double', 'Pass', '2S', 'Pass', 'Pass'],
@@ -1326,14 +1344,14 @@ export const TAKEOUT_DOUBLER_REBID_TEST_DEALS: RuleTestDeal[] = [
     ] }],
   },
   {
-    description: 'A strong 20 HCP doubler with four spades bids game over a weak spade advance.',
+    description: 'A 20-HCP strong Doubler with four spades invites, rather than bidding game over a minimum response.',
     dealer: 'N',
-    practiceAuction: ['1H', 'Double', 'Pass', '1S', 'Pass', '4S'],
+    practiceAuction: ['1H', 'Double', 'Pass', '1S', 'Pass', '3S'],
     north: { S: 'K72', H: 'AQ976', D: 'K85', C: '93' },
     east: { S: 'AQJ4', H: 'KJ3', D: 'AQ6', C: 'K72' },
     south: { S: '35', H: '85', D: 'T742', C: 'QJT86' },
     west: { S: 'T986', H: 'T42', D: 'J93', C: 'A54' },
-    expectedOvercallerRebidCalls: [{ call: '4S', ruleIds: ['overcaller-rebid-takeout-strong-fit'] }],
+    expectedOvercallerRebidCalls: [{ call: '3S', ruleIds: ['overcaller-rebid-takeout-maximum-raise'] }],
   },
 ];
 
