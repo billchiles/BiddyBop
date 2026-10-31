@@ -71,8 +71,7 @@ export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: ['responder-rebid-nt-transfer-game-3nt'] }],
   },
   {
-    description: 'After the completed spade transfer, two-HCP responder Passes. ' +
-                 '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
+    description: '1NT–2H–2S: with two HCP, responder Passes the completed spade transfer.',
     practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass', 'Pass'],
     requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
     expectedOpeningCalls: [
@@ -117,8 +116,7 @@ export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: ['responder-rebid-accept-game-try-after-major-simple-raise'] }],
   },
   {
-    description: 'Minimum responder declines opener's natural 2NT game try in 3S. ' +
-                 '1S-2S: 18 HCP balanced 5-3-3-2, above the default 15-17 1NT opening range; 2NT is the preferred natural balanced game try.  A direct 4S is a more aggressive alternative.',
+    description: '1S–2S–2NT: opener makes a balanced game try with 18 HCP; six-support-point responder declines in 3S.',
     requiredSystem: { oneNtOpening: '15-17' },
     practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT', 'Pass', '3S'],
     expectedOpeningCalls: [
@@ -166,9 +164,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: ['responder-rebid-jacoby-2nt-major-game'] }],
   },
   {
-    description: 'After 2C–2D–2NT, weak responder Passes the nonforcing balanced rebid. ' +
-                 '2C-2D-2NT: a 23-HCP 4-3-3-3 opener uses the artificial waiting response to ' +
-                 'show the 22-24 balanced range.',
+    description: '2C–2D–2NT: a 23-HCP balanced opener rebid can be Passed by a two-HCP responder.',
     practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass', 'Pass'],
     expectedOpeningCalls: [
       { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
@@ -188,8 +184,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
     west: { S: '9', H: 'JT5', D: 'AJT93', C: 'A842' },
   },
   {
-    description: 'After Jacoby 2NT and opener's minimum 4H, responder can Pass. ' +
-                 '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
+    description: '1H–2NT–4H: Jacoby 2NT forced to game; responder Passes opener\'s minimum fast-arrival 4H.',
     practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass', 'Pass'],
     requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
     expectedOpeningCalls: [
@@ -214,9 +209,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
 /// Selected responder game decisions after a splinter by either partner.
 export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: 'Responder's diamond splinter and opener's heart control lead to spade game. ' +
-                 '1S-4D-4H: opener has unbalanced 5-4-2-2 shape and a heart control ' +
-                 'for a slam-interest bid after the splinter; 4S remains the practical game choice.',
+    description: '1S–4D–4H: responder\'s diamond splinter and opener\'s heart control lead to 4S game.',
     practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H', 'Pass', '4S'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
@@ -238,9 +231,7 @@ export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '32', H: 'QJT', D: 'A9762', C: '854' },
   },
   {
-    description: 'Opener splinters in diamonds for hearts; responder chooses 4H. ' +
-                 '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both ' +
-                 '4H and optional 4D splinter remain candidates.',
+    description: '1C–1H–4D: opener splinters with diamond shortness and heart support; responder chooses 4H.',
     practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D', 'Pass', '4H'],
     requiredSystem: { splinters: true },
     expectedOpeningCalls: [
