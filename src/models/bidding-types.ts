@@ -705,7 +705,7 @@ export interface CallEvidence {
     // notrump continuation does not treat that fit as overriding.
     knownMajorFit?: boolean;
     forceKind?: 'reverse' | 'jumpShift';
-    openerRebid?: Call;
+    openerRebid?: string;
     success: boolean;
   };
   naturalSuitOvercallerRebid?: {
