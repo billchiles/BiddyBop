@@ -13,6 +13,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
@@ -21,7 +22,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
-import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, TAKEOUT_DOUBLER_REBID_TEST_DEALS }
+import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
+         TAKEOUT_DOUBLER_REBID_TEST_DEALS }
   from '../src/models/overcalling-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
@@ -5514,6 +5516,98 @@ function runTakeoutDoublerRebidExplanationTests (): number {
   return failures;
 }
 
+/// Verify the selected competitive overcaller rebids and their explanations,
+/// including the up-the-line response to a responsive Double and five-card cuebid game.
+function runContestedSuitOvercallerRebidExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const deal of CONTESTED_OVERCALL_REBID_TEST_DEALS) {
+    const expected = deal.expectedOvercallerRebidCalls?.[0];
+    if (expected === undefined || !expected.ruleIds[0]?.startsWith('overcaller-rebid-contested-suit-')) {
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(expected.call, board,
+      deal.practiceAuction.slice(0, -1), defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find(({ id }) => expected.ruleIds.includes(id));
+    const evidence = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule?.id)
+      ?.candidates.find(({ call }) => call === expected.call)?.callEvidence
+      ?.contestedSuitOvercallerRebid;
+    checks++;
+    if (rule === undefined || evidence === undefined ||
+        getContestedSuitOvercallerRebidLines(result, rule).length === 0 ||
+        getContestedSuitOvercallerRebidFailureLines(result).length !== 0) {
+      failures++;
+      console.error(`FAIL contested overcaller rebid explanation: ${deal.description}`);
+    }
+  }
+  // Synthetic what-if boards fix the relevant three hands and fill the fourth.
+  // Do not corrupt any saved four-hand practice deal to test the equal-suit decision.
+  const responsive = makeRuleTestBoard({
+    description: 'Equal four-card minors after responsive Double', dealer: 'N',
+    practiceAuction: ['1H', '1S', '2H', 'Double', 'Pass', '3C'],
+    east: { S: 'AQJ86', H: '', D: 'K765', C: 'AT93' },
+    north: { S: 'K72', H: 'AKT96', D: 'Q32', C: '54' },
+    south: { S: 'T95', H: 'QJ875', D: 'AJ8', C: 'QJ' },
+  }).board;
+  const afterResponsive: Call[] = ['1H', '1S', '2H', 'Double', 'Pass'];
+  const clubs = evaluateUserCall('3C', responsive, afterResponsive, defaultBiddingSystem);
+  const diamonds = evaluateUserCall('3D', responsive, afterResponsive, defaultBiddingSystem);
+  const clubsRule = clubs.userCallMatchingRules.find(({ id }) =>
+    id === 'overcaller-rebid-contested-suit-responsive-suit');
+  checks += 2;
+  if (clubsRule === undefined ||
+      getContestedSuitOvercallerRebidLines(clubs, clubsRule).length === 0) {
+    failures++;
+    console.error('FAIL responsive Double should permit 3C first with both four-card minors.');
+  }
+  if (diamonds.userCallMatchingRules.some(({ id }) =>
+        id === 'overcaller-rebid-contested-suit-responsive-suit') ||
+      getContestedSuitOvercallerRebidFailureLines(diamonds).length === 0) {
+    failures++;
+    console.error('FAIL responsive Double should prefer 3C over 3D with equal four-card minors.');
+  }
+  const strongFive = makeRuleTestBoard({
+    description: 'Strong five-card spade overcall opposite support cuebid', dealer: 'N',
+    practiceAuction: ['1D', '1S', '2D', '3D', 'Pass', '4S'],
+    east: { S: 'AKQJ9', H: 'A76', D: '8', C: 'K964' },
+    north: { S: 'T72', H: 'Q53', D: 'AKQJ7', C: '82' },
+    south: { S: '864', H: 'KJ82', D: 'T965', C: 'A5' },
+  }).board;
+  const auctions: Call[][] = [
+    ['1D', '1S', 'Pass', '2D', 'Pass'],
+    ['1D', '1S', '2D', '3D', 'Pass'],
+  ];
+  const gameRules = ['overcaller-rebid-cuebid-game', 'overcaller-rebid-contested-suit-cue-game'];
+  for (const [index, auction] of auctions.entries()) {
+    const result = evaluateUserCall('4S', strongFive, auction, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find(({ id }) => id === gameRules[index]);
+    checks++;
+    if (rule === undefined || (index === 0 ?
+      getNaturalSuitOvercallerRebidLines(result, rule) :
+      getContestedSuitOvercallerRebidLines(result, rule)).length === 0) {
+      failures++;
+      console.error(`FAIL five-card strong cuebid major game: ${gameRules[index]}`);
+    }
+  }
+  const weakFive = makeRuleTestBoard({
+    description: 'Five-card suit without enough strength for game after support cuebid',
+    dealer: 'N', practiceAuction: ['1D', '1S', '2D', '3D', 'Pass', '4S'],
+    east: { S: 'AQJ86', H: '762', D: '8', C: 'K964' },
+    north: { S: 'T72', H: 'Q53', D: 'AKQJ7', C: '82' },
+    south: { S: 'K43', H: 'AJT8', D: 'T965', C: 'A5' },
+  }).board;
+  const weakGame = evaluateUserCall('4S', weakFive, auctions[1]!, defaultBiddingSystem);
+  checks++;
+  if (weakGame.userCallMatchingRules.some(({ id }) => id === gameRules[1]) ||
+      getContestedSuitOvercallerRebidFailureLines(weakGame).length === 0) {
+    failures++;
+    console.error('FAIL competitive support cuebid game must still meet the HCP threshold.');
+  }
+  console.log(`${failures} ***FAILURES***. Competitive overcaller rebid teaching: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5542,6 +5636,7 @@ const testGroups: (() => number)[] = [
   runOneNtInterferencePartnerBoundaryTests,
   runOneNtInterferenceExplanationTests,
   runNaturalSuitOvercallerRebidExplanationTests,
+  runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,

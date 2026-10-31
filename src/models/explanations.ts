@@ -3756,6 +3756,160 @@ export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): strin
 }
 
 ///
+//// Competitive natural suit-overcaller rebids after responder acts
+///
+
+/// Explain the chosen call from the same HCP, fit and forcing tests that qualified it.
+/// Opponent bids and advancer's conventional calls retain their distinct meanings.
+export function getContestedSuitOvercallerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!rule.id.startsWith('overcaller-rebid-contested-suit-')) return [];
+  const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+  const decision = candidate?.callEvidence?.contestedSuitOvercallerRebid;
+  if (candidate?.ruleApplies !== true || decision === undefined) return [];
+  const { treatment, advanceKind, hcp, overcallSuit, overcallLength,
+    advanceSuit, support, openingSuit, selectedSuitLength,
+    secondSuit, secondSuitLength, stoppedSuits } = decision;
+  const own = suitPlural(`1${overcallSuit}` as Call);
+  const partnerSuit = advanceSuit === null ? '' : suitPlural(`1${advanceSuit}` as Call);
+  const id = `[${rule.id}]`;
+  switch (treatment) {
+    case 'raise-pass':
+      return [advanceKind === 'weakJumpRaise' ?
+        `Partner's jump raise is preemptive, not forcing. With ${hcp} HCP, ` +
+          `Pass keeps the contract in partner's chosen suit ${id}.` :
+        `Partner's competitive raise is nonforcing. With ${hcp} HCP and ` +
+          `${overcallLength} ${own}, Pass accepts this level rather than ` +
+          `promising extras or forcing partner higher ${id}.`];
+    case 'raise-invite':
+      return [`After the competitive raise, your ${hcp} HCP and ${overcallLength} ${own} ` +
+        `support a further invitation at the three level. Partner may Pass ${id}.`];
+    case 'raise-game':
+      return [`After the competitive raise, your ${hcp} HCP and six-card ` +
+        `${own} meet the selected direct major-game requirements ${id}.`];
+    case 'cue-return': {
+      const forcedToGame = result.normalizedCall === `4${overcallSuit}`;
+      return [`Partner's artificial cuebid of opener's ${suitPlural(`1${openingSuit}` as Call)} ` +
+        `shows strong support and forces a reply. Your ${hcp} HCP and ` +
+        `${overcallLength} ${own} support the economical return to your suit. ` +
+        (forcedToGame ? 'The cheapest available return is already at game; this is ' +
+          'not a separate claim of exceptional strength. ' :
+          'Partner may bid again after this natural reply. ') + id];
+    }
+    case 'cue-game':
+      return [`Partner's artificial support cuebid establishes at least an eight-card ` +
+        `${own} fit. Your ${hcp} HCP and ${overcallLength}-card major meet the ` +
+        `16+ HCP and five-card requirement to bid game rather than return ` +
+        `economically ${id}.`];
+    case 'new-pass':
+      return [`Partner's one-level new suit is natural and nonforcing even after ` +
+        `responder's action. With ${hcp} HCP, Pass accepts that choice ${id}.`];
+    case 'new-support':
+      return [`Partner's natural new suit promises five or more ${partnerSuit}; ` +
+        `your ${support}-card support establishes an eight-card fit. ` +
+        (advanceKind === 'forcingNewSuit' ?
+          `Raising answers the one-round force ${id}.` :
+          `Your ${hcp} HCP justify bidding again after a nonforcing advance ${id}.`)];
+    case 'new-repeat':
+      return [`With ${overcallLength} ${own} and fewer than three cards in partner's ` +
+        `new suit, repeating your overcall ` +
+        (advanceKind === 'forcingNewSuit' ? 'answers the one-round force' :
+          `shows extra values (${hcp} HCP) after a nonforcing advance`) + ` ${id}.`];
+    case 'new-nt':
+      return [`Partner's natural new suit forces one reply. With ${hcp} HCP, ` +
+        `balanced or semi-balanced shape, no known fit, and fewer than six ${own}, ` +
+        `you choose ${candidate.call} rather than repeat your suit. ` +
+        `Your hand has stoppers in the opponents' naturally bid suits ` +
+        `(${stoppedSuits.map(({ suit }) => suitPlural(`1${suit}` as Call)).join(' and ')}) ${id}.`];
+    case 'new-second-suit':
+      return [`After partner's forcing new suit, your ${hcp} HCP and ` +
+        `${secondSuitLength} ${secondSuit === null ? 'cards in another suit' :
+          suitPlural(`1${secondSuit}` as Call)} permit a natural second-suit rebid. ` +
+        `You have no three-card fit for partner and fewer than six ${own} ${id}.`];
+    case 'responsive-suit':
+      return [`Partner's responsive Double is takeout-oriented, asking for an ` +
+        `unbid suit rather than penalties. Your ${selectedSuitLength} ` +
+        `${suitPlural(result.normalizedCall!)} meet the four-card requirement. ` +
+        `${result.normalizedCall} is the cheapest available four-card choice; ` +
+        `bid up the line when both unbid suits can be shown at the same level ${id}.`];
+    case 'responsive-repeat':
+      return [`Partner's responsive Double asks for an unbid suit, but you lack ` +
+        `four cards in either. Your ${overcallLength} ${own} support repeating ` +
+        `the original six-card overcall rather than inventing an unbid fit ${id}.`];
+    case 'nt-pass':
+      return [advanceKind === 'threeNt' ?
+        `Partner's natural 3NT chooses game. Pass leaves that contract in place ${id}.` :
+        `Partner's natural notrump advance is nonforcing. With ${hcp} HCP, ` +
+        `Pass accepts that choice rather than inviting or bidding game ${id}.`];
+    case 'nt-invite':
+      return [`Partner's natural 1NT is nonforcing. With ${hcp} HCP, your 2NT ` +
+        `rebid invites game; partner can decline ${id}.`];
+    case 'nt-game':
+      return [`After partner's natural ${advanceKind === 'oneNt' ? '1NT' : '2NT'}, ` +
+        `your ${hcp} HCP meet the selected strength requirement for 3NT ${id}.`];
+  }
+  return [];
+}
+
+/// Give a specific reason only for an attempted call whose contested treatment was tested.
+export function getContestedSuitOvercallerRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!diagnostic.rule.id.startsWith('overcaller-rebid-contested-suit-')) continue;
+    const candidate = diagnostic.candidates.find(({ call }) => call === result.normalizedCall);
+    const evidence = candidate?.callEvidence?.contestedSuitOvercallerRebid;
+    if (candidate === undefined || candidate.ruleApplies || evidence?.rejection === undefined) continue;
+    const { treatment, rejection, hcp, overcallLength, support,
+      selectedSuitLength, minHcp, maxHcp, minSupport, preferredResponsiveCall,
+      advanceSuit, stoppedSuits } = evidence;
+    const id = `[${diagnostic.rule.id}]`;
+    switch (rejection) {
+      case 'strength':
+        if (treatment === 'cue-game' || treatment === 'raise-game') {
+          return [`Direct major game here requires at least 16 HCP; you have ${hcp} ${id}.`];
+        }
+        return [`This ${treatment.replaceAll('-', ' ')} rebid requires ` +
+          `${naturalSuitRebidStrengthText(minHcp, maxHcp)}; you have ${hcp} HCP ${id}.`];
+      case 'support':
+        return [`Supporting partner's ${advanceSuit === null ? 'new suit' :
+          suitPlural(`1${advanceSuit}` as Call)} requires ${minSupport ?? 3} cards; ` +
+          `you have ${support} ${id}.`];
+      case 'length':
+        if (treatment === 'cue-game') {
+          return [`Bidding major game after partner's support cuebid requires at least ` +
+            `five trumps; you have ${overcallLength} ${id}.`];
+        }
+        if (treatment === 'responsive-suit') {
+          return [`Answering a responsive Double in this unbid suit requires four cards; ` +
+            `you have ${selectedSuitLength} ${id}.`];
+        }
+        return [`This natural ${treatment.replaceAll('-', ' ')} needs more cards in ` +
+          `the selected suit (you have ${selectedSuitLength || overcallLength}) ${id}.`];
+      case 'balanced':
+        return [`This natural notrump rebid requires balanced or semi-balanced ` +
+          `distribution ${id}.`];
+      case 'stopper': {
+        const missing = stoppedSuits.filter(({ stopped }) => !stopped)
+          .map(({ suit }) => suitPlural(`1${suit}` as Call));
+        return [`This natural notrump rebid requires a stopper in ` +
+          `${missing.join(' and ')}; your hand lacks it ${id}.`];
+      }
+      case 'preferFit':
+        return [`You have ${support} cards in partner's five-card new suit. ` +
+          `The selected treatment supports that known fit first ${id}.`];
+      case 'preferRepeat':
+        return [`Your original overcall was a six-card or longer suit. ` +
+          `The selected treatment repeats it rather than promising a second suit or notrump ${id}.`];
+      case 'upLine':
+        return [`After partner's responsive Double, bid the cheaper suitable unbid suit ` +
+          `when both four-card suits are available at the same level. ` +
+          `${preferredResponsiveCall} is the economical choice ${id}.`];
+    }
+  }
+  return [];
+}
+
+///
 //// Natural suit overcaller rebids after uncontested advances
 ///
 
@@ -3812,8 +3966,8 @@ export function getNaturalSuitOvercallerRebidLines(result: BidEvalResult, rule: 
         `jump invitation in ${own}; partner decides whether to continue to game ${id}.`];
     case 'cue-game':
       return [`Advancer's cuebid promises support and requires a reply. Your ${hcp} HCP ` +
-        `and ${overcallLength} ${own} meet the 16+ HCP and six-card requirements ` +
-        `for bidding major-suit game directly ${id}.`];
+        `and ${overcallLength} ${own} meet the 16+ HCP and five-card requirements ` +
+        `for accepting the strong support cuebid at major-suit game ${id}.`];
     case 'new-pass':
       return [`Advancer's one-level new suit is natural and nonforcing, promising at least ` +
         `five cards. With ${hcp} HCP (${strength}), you may Pass instead of describing ` +

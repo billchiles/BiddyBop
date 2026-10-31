@@ -564,6 +564,19 @@ satisfies advancer's one-round force without suggesting extras.  Further advance
 NT, second suits, and other high-level judgments remain outside the selected treatment;
 no automatic Pass is allowed over the forcing new suit.
 
+Competitive natural suit-overcaller rebids after responder acts follow the advancer’s
+actual meaning: simple and weak jump raises are nonforcing, an artificial support
+cuebid and natural two-/three-level new suits require an answer, and a responsive
+Double after a raise asks for an unbid suit rather than penalties. With both
+unbid suits holding four cards and both available at the same level, the overcaller
+bids up the line (clubs before diamonds); there is no convenient-minor-opening
+preference in this auction. With a strong support cuebid establishing an eight-card
+major fit, an overcaller with 16+ HCP and five or more cards in the overcalled
+major may bid game. The otherwise economical return at the four level can be
+forced by the auction and does not independently promise extra values. For
+ordinary simple raises, a direct major game continues to require the separately
+selected 16+ HCP and six-card overcall treatment. These are distinct decisions.
+
 The direct overcalling Pass rule remains a fallback through 17 HCP after selected
 one-level and weak-two openings.  An available concrete overcall or informational Double
 suppresses that fallback Pass.  For an opposing artificial strong `2C`, strong `2NT`,
