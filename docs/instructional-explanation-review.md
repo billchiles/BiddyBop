@@ -218,3 +218,12 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - The explanatory layer now consumes recorded decision facts for selected natural responder rebids after economical second suits, a major-opening 1NT response, a minor-opening 1NT response, and 2/1 game forcing. The untouched rule families continue using their normal concise rule meaning and guidance.
 - Strong/minimum 1NT/2NT responder continuations selectively explain what responder's actual HCP and major length mean; a five-card major and possible New Minor Forcing receive a carefully qualified note, not an executable recommendation.
 - Focused synthetic checks cover the relaxed 2NT and retained 3NT stopper requirement, plus a natural 2NT invitation with a five-card major and explanatory reference to New Minor Forcing. No practice deals were added or changed.
+
+## Standard, 2/1 and strong responder rebids — R2 (October 31, 2026)
+
+- Standard two-level continuations now explain the one-round force, nonforcing suit repetition and partscore stops, or game placement, using evaluated responder values and fit. The corresponding 2/1 suit repeat remains game forcing.
+- The existing 17-support-point threshold for a slow three-level major raise under 2/1 remains unchanged. Natural 2NT/3NT explanations now acknowledge an eight-card opener-major fit when responder holds three cards, without silently changing the selected notrump eligibility.
+- Opener reverses remain forcing one round but not necessarily to game; strong opener jump shifts remain game forcing. Selected major games and 3NT after these auctions, and clear games after responder's own strong jump shift, now have hand-aware explanations and limited specific rejection feedback.
+- A previously passed responder cannot create the 2/1 continuation obligation in later responder-rebid recognition. Rejected natural responder rebids receive the correct UI heading.
+- Two existing complete four-hand classic strong jump-shift exercises now extend through responder's game placement. Judgment-heavy lower-level reverse and slam auctions remain explicit boundaries.
+- Focused behavioral checks cover the Standard/2/1 distinction and previously passed responder; actual browser feedback and copied Report still merit manual review.

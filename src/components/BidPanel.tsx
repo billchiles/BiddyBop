@@ -720,7 +720,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
              openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
               openerForcingCompetitionReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0
              ? 'Why this opener rebid does not meet the selected requirements:'
-             : responderRaiseReasons.length > 0
+             : responderNaturalReasons.length > 0 || responderRaiseReasons.length > 0
              ? 'Why this responder rebid does not meet the selected requirements:'
              : 'Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,

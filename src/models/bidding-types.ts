@@ -687,7 +687,8 @@ export interface CallEvidence {
       'preferFit' | 'preferRepeat' | 'upLine';
   };
   naturalResponderRebid?: {
-    family: 'economical' | 'majorOneNt' | 'minorOneNt' | 'twoOverOne';
+    family: 'economical' | 'majorOneNt' | 'minorOneNt' | 'twoOverOne' |
+      'standardTwoLevel' | 'strongSecondSuit' | 'strongJumpShift';
     decision: string;
     hcp: number;
     lengthPoints: number;
@@ -700,6 +701,11 @@ export interface CallEvidence {
     responseLength: number;
     rebidLength: number;
     missingStoppers?: Suit[];
+    // A previously shown five-card major may have a known fit even if the selected
+    // notrump continuation does not treat that fit as overriding.
+    knownMajorFit?: boolean;
+    forceKind?: 'reverse' | 'jumpShift';
+    openerRebid?: string;
     success: boolean;
   };
   naturalSuitOvercallerRebid?: {

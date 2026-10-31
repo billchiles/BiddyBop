@@ -248,7 +248,18 @@ export function responderStrongSecondSuitGameApplies (call: Call, context: RuleE
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${info.kind} after ${info.opening}/${info.response}/${info.second}; ` +
     `game ${call}, HCP ${f.hcp}, support points ${points}.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+    family: 'strongSecondSuit', decision: call === '3NT' ? 'gameNt' : 'majorGame',
+    hcp: f.hcp, lengthPoints: f.totalPointsWLength, supportPoints: points,
+    balanced: f.balanced, openingSuit: info.opening, responseSuit: info.response,
+    rebidSuit: info.second, openingLength: f.lengths[info.opening],
+    responseLength: f.lengths[info.response], rebidLength: f.lengths[info.second],
+    forceKind: info.kind,
+    missingStoppers: call === '3NT' ? (['C', 'D', 'H', 'S'] as Suit[])
+      .filter((suit) => suit !== info.opening && suit !== info.response &&
+        suit !== info.second && !hasBasicSuitStopper(context, suit)) : [],
+    success,
+  } } };
 }
 
 //// Responder after a natural 1NT response to a major opening
@@ -545,6 +556,7 @@ export function getResponderTwoOverOne (context: RuleEvalContext):
       responseJump(bids[0] as `1${Suit}`, bids[1] as `2${Suit}`) !== 0 || bids[0][1] === bids[1][1]) return null;
   const opening = bids[0][1] as Suit;
   const response = bids[1][1] as Suit;
+  if (responderPreviouslyPassed(context.dealer, context.auction)) return null;
   const rebid = bids[2];
   const suit = parseSuitBid(rebid);
   const repeat = suit !== null && suit.strain === opening && suit.level === 2;
@@ -599,6 +611,7 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
   const newMajor = info.second === 'H' || info.second === 'S';
   const knownOpeningFit = openingMajor && info.kind === 'repeatOpening' &&
     f.lengths[info.opening] >= 2;
+  const knownMajorFit = openingMajor && f.lengths[info.opening] >= 3;
   let success = false;
   switch (choice) {
     case 'passReachedGame': {
@@ -655,6 +668,8 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
       missingStoppers: choice === 'gameNt' ? (['C', 'D', 'H', 'S'] as Suit[])
         .filter((suit) => suit !== info.opening && suit !== info.response &&
           suit !== info.second && !hasBasicSuitStopper(context, suit)) : [],
+      knownMajorFit,
+      openerRebid: info.rebid,
       success,
     } } };
 }
@@ -722,7 +737,14 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: Standard two-level ${choice}; ` +
     `${info.opening}-${info.response}-${info.rebid}, ${f.hcp} HCP.`,
-  ] };
+  ], callEvidence: { naturalResponderRebid: {
+    family: 'standardTwoLevel', decision: choice, hcp: f.hcp,
+    lengthPoints: f.totalPointsWLength, supportPoints: f.totalPointsWShortage,
+    balanced: f.balanced, openingSuit: info.opening, responseSuit: info.response,
+    rebidSuit: null, openingLength: f.lengths[info.opening],
+    responseLength: f.lengths[info.response], rebidLength: 0,
+    openerRebid: info.rebid, success,
+  } } };
 }
 
 //// Responder after a direct 1NT-3M slam try and opener's side-control reply
@@ -1072,7 +1094,15 @@ export function responderAfterStrongJumpShiftGameApplies (call: Call, context: R
     `${success ? 'PASS' : 'FAIL'}: responder strong jump shift ${info?.opening ?? '-'} / ` +
     `${info?.response ?? '-'}, opener ${info?.rebid ?? '-'} (${info?.kind ?? '-'}); ` +
     `responder HCP ${f.hcp}, choice ${call}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { naturalResponderRebid: {
+    family: 'strongJumpShift', decision: call === 'Pass' ? 'passGame' :
+      call === '3NT' ? 'gameNt' : 'majorGame',
+    hcp: f.hcp, lengthPoints: f.totalPointsWLength, supportPoints: f.totalPointsWShortage,
+    balanced: f.balanced, openingSuit: info.opening, responseSuit: info.response,
+    rebidSuit: null, openingLength: f.lengths[info.opening],
+    responseLength: f.lengths[info.response], rebidLength: 0,
+    openerRebid: info.rebid, success,
+  } } };
 }
 
 //// Responder after strong 2C, Jacoby 2NT and splinter continuations
