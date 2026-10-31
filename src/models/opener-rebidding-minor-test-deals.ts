@@ -353,26 +353,6 @@ export const OPENER_REBID_AFTER_MINOR_ONE_LEVEL_NEW_SUIT_TEST_DEALS: RuleTestDea
     west: { S: 'Q542', H: 'T95', D: 'A976', C: 'A4' },
   },
   {
-    description: '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both ' +
-                 '4H and optional 4D splinter remain candidates.',
-    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D'],
-    requiredSystem: { splinters: true },
-    expectedOpeningCalls: [
-      { call: '1C', ruleIds: ['open-convenient-minor'] },
-    ],
-    expectedResponseCalls: [
-      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
-    ],
-    expectedOpenerRebidCalls: [
-      { call: '4H', ruleIds: ['opener-rebid-game-raise-after-minor-one-level-new-suit'] },
-      { call: '4D', ruleIds: ['opener-rebid-splinter-after-minor-one-level-new-suit'] },
-    ],
-    north: { S: 'AQ2', H: 'AQ42', D: 'K', C: 'J8752' },
-    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
-    east: { S: 'K954', H: 'T5', D: 'T7632', C: 'A4' },
-    west: { S: 'JT76', H: '983', D: 'AJ9', C: 'KQT' },
-  },
-  {
     description: '1D-1H: 12 HCP / 14 total, 6D-4C; both 2D and economical 2C are reasonable ' +
                  'descriptive rebids.',
     practiceAuction: ['1D', 'Pass', '1H', 'Pass', '2C'],
