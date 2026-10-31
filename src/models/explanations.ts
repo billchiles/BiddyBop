@@ -3618,6 +3618,144 @@ export function getNegativeDoubleAdvanceFailureLines(result: BidEvalResult): str
 
 
 ///
+/// Takeout-Doubler rebids: interpret the actual evaluated strength, shortage-adjusted
+/// points, fit, stopper, and forcing context. Do not re-evaluate eligibility here.
+///
+const TAKEOUT_DOUBLER_REBID_PREFIX = 'overcaller-rebid-takeout-';
+
+export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX) ||
+      result.normalizedCall === null) return [];
+  const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const decision = candidate?.callEvidence?.takeoutDoublerRebid;
+  if (candidate?.ruleApplies !== true || decision === undefined) return [];
+  const { treatment, advanceKind, hcp, supportPoints, support, partnerSuit,
+          chosenFit, chosenFitLength, bidSuitLength, stopped } = decision;
+  const suit = partnerSuit === null ? 'partner’s suit' :
+    suitPlural(`1${partnerSuit}` as Call);
+  const id = `[${rule.id}]`;
+  switch (treatment) {
+    case 'minimum-pass':
+      return [`Advancer's cheapest suit response may show almost no strength. Your ` +
+        `${supportPoints} shortage-adjusted points are in the 13–15 minimum range, ` +
+        `so Pass is supported rather than assuming game ${id}.`];
+    case 'minimum-raise':
+      return [`After a minimum response, ${supportPoints} shortage-adjusted points ` +
+        `and ${support} ${suit} support an economical, constructive raise. This shows ` +
+        `16–18 support points, not a game force. Advancer may Pass ${id}.`];
+    case 'maximum-raise':
+      return [`With ${supportPoints} shortage-adjusted support points, ${hcp} HCP, ` +
+        `and ${support} ${suit}, the jump to ${result.normalizedCall} is a strong ` +
+        `game invitation. Advancer's earlier minimum response could have been made ` +
+        `with very few points; partner may decline. Direct game requires greater ` +
+        `strength under this treatment ${id}.`];
+    case 'strong-fit':
+      return [`Your ${hcp} HCP and ${support}-card fit justify an exceptional direct ` +
+        `major game after partner's potentially very weak minimum response. The ordinary ` +
+        `19+ support-point jump to three merely invites; this 22+ HCP treatment ` +
+        `bids game immediately ${id}.`];
+    case 'jump-pass':
+      return [`Advancer's jump response already invites game. With ${supportPoints} ` +
+        `shortage-adjusted points, your ordinary Double is too weak to accept ` +
+        `that invitation, so Pass is supported ${id}.`];
+    case 'jump-game':
+      return [`Partner's jump response is invitational. Your ${hcp} HCP and ` +
+        `${support} ${suit} support accepting it at major-suit game ${id}.`];
+    case 'cue-suit':
+      return [`Partner's artificial cuebid shows strong values and requires another ` +
+        `call. With ${chosenFitLength} ${chosenFit === null ? 'cards in the selected suit' :
+          suitPlural(`1${chosenFit}` as Call)}, you show your best available unbid ` +
+        `suit economically. The cuebid was not a natural request to play opener's suit ${id}.`];
+    case 'cue-nt':
+      return [`Advancer's artificial cuebid requires a reply. With ${hcp} HCP, ` +
+        `suitable balanced or semi-balanced shape, and a stopper in opener's suit, ` +
+        `${result.normalizedCall} describes notrump rather than an unbid-suit fit ${id}.`];
+    case 'strong-suit':
+      return [`With ${hcp} HCP and ${bidSuitLength} ${suitPlural(result.normalizedCall)}, ` +
+        `Double followed by a natural suit shows a substantially stronger hand than ` +
+        `a routine takeout Double. The suit meets the required length and honor ` +
+        `quality tests ${id}.`];
+    case 'strong-nt':
+      return [`With ${hcp} HCP, balanced distribution, and a stopper in opener's ` +
+        `suit, Double followed by ${result.normalizedCall} describes your extra ` +
+        `notrump strength rather than a minimum takeout hand ${id}.`];
+    case 'nt-pass':
+      return [`Partner's natural notrump advance is nonforcing. With ${hcp} HCP, ` +
+        `you can stop rather than accepting an invitation or raising to game ${id}.`];
+    case 'nt-invite':
+      return [`Partner's natural 1NT was nonforcing. Your ${hcp} HCP support a ` +
+        `2NT invitation, which partner may decline ${id}.`];
+    case 'nt-game':
+      return [`With ${hcp} HCP, you have enough additional strength to ` +
+        `bid natural 3NT after partner's notrump advance ${id}.`];
+    case 'game-pass':
+      return [`Advancer already chose game. Pass accepts that natural game ` +
+        `without inventing a slam invitation ${id}.`];
+    case 'responsive-suit':
+      return [`Partner's responsive Double asks you to select an unbid suit. ` +
+        `Your ${chosenFitLength} ${chosenFit === null ? 'cards in the selected suit' :
+          suitPlural(`1${chosenFit}` as Call)} identify the economical available ` +
+        `choice; this is not a penalty Double ${id}.`];
+    case 'competitive-pass':
+      return [`Responder has competed, so advancer's natural suit bid was voluntary. ` +
+        `With ${supportPoints} shortage-adjusted points, Pass can be reasonable ` +
+        `because partner was not forced to bid ${id}.`];
+    case 'competitive-raise':
+      return [`After responder's competition, your ${hcp} HCP and ${support}-card ` +
+        `major fit support the selected game raise ${id}.`];
+    case 'escape-pass':
+      return [`After responder's strength-showing Redouble, advancer has chosen a ` +
+        `weak natural escape. Pass accepts that choice; no penalty treatment is ` +
+        `implied ${id}.`];
+  }
+  return [];
+}
+
+export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!diagnostic.rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX)) continue;
+    const candidate = diagnostic.candidates.find(({ call }) =>
+      call === result.normalizedCall);
+    const evidence = candidate?.callEvidence?.takeoutDoublerRebid;
+    if (candidate === undefined || candidate.ruleApplies || evidence?.rejection === undefined) continue;
+    const { treatment, rejection, hcp, supportPoints, support } = evidence;
+    const id = `[${diagnostic.rule.id}]`;
+    if (rejection === 'support') {
+      return [`This takeout-Doubler raise requires four-card trump support; ` +
+        `you have ${support} ${id}.`];
+    }
+    if (rejection === 'shape') {
+      return [`This natural notrump rebid requires balanced or suitable ` +
+        `semi-balanced distribution ${id}.`];
+    }
+    if (rejection === 'stopper') {
+      return [`This natural notrump rebid requires a stopper in opener's suit ${id}.`];
+    }
+    if (rejection === 'strength') {
+      if (treatment === 'maximum-raise') return [`Inviting at the three level ` +
+        `needs 19+ shortage-adjusted support points with fewer than 22 HCP; ` +
+        `you have ${supportPoints} support points and ${hcp} HCP ${id}.`];
+      if (treatment === 'strong-fit') return [`Direct major game opposite ` +
+        `advancer's possibly very weak minimum response requires 22+ HCP and ` +
+        `four-card support. You have ${hcp} HCP; the jump to three may be ` +
+        `an appropriate invitation ${id}.`];
+      if (treatment === 'minimum-pass') return [`With ${supportPoints} ` +
+        `shortage-adjusted points, this is no longer the 13–15-point minimum ` +
+        `Pass treatment ${id}.`];
+      if (treatment === 'minimum-raise') return [`The constructive raise ` +
+        `requires 16–18 shortage-adjusted support points; you have ` +
+        `${supportPoints} ${id}.`];
+      if (treatment === 'jump-pass') return [`With ${supportPoints} ` +
+        `shortage-adjusted points, the ordinary minimum Pass treatment does not ` +
+        `support declining partner's jump invitation ${id}.`];
+    }
+  }
+  return [];
+}
+
+///
 //// Natural suit overcaller rebids after uncontested advances
 ///
 
