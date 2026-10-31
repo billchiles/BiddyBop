@@ -13,6 +13,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
+         getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
@@ -20,7 +21,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
-import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS } from '../src/models/overcalling-test-deals';
+import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, TAKEOUT_DOUBLER_REBID_TEST_DEALS }
+  from '../src/models/overcalling-test-deals';
 import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
@@ -5473,6 +5475,45 @@ function runNaturalSuitOvercallerRebidExplanationTests (): number {
   return failures;
 }
 
+/// Verify the actual maximum-raise distinction without freezing any explanation wording.
+function runTakeoutDoublerRebidExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const invitations = TAKEOUT_DOUBLER_REBID_TEST_DEALS.filter((deal) =>
+    deal.expectedOvercallerRebidCalls?.some(({ call, ruleIds }) =>
+      call === '3S' && ruleIds.includes('overcaller-rebid-takeout-maximum-raise')));
+  for (const deal of invitations) {
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, -1);
+    const accepted = evaluateUserCall('3S', board, auction, defaultBiddingSystem);
+    const match = accepted.userCallMatchingRules.find(({ id }) =>
+      id === 'overcaller-rebid-takeout-maximum-raise');
+    const positive = match === undefined ? [] : getTakeoutDoublerRebidLines(accepted, match);
+    const evidence = accepted.ruleDiagnostics.find(({ rule }) => rule.id === match?.id)
+      ?.candidates.find(({ call }) => call === '3S')?.callEvidence?.takeoutDoublerRebid;
+    checks++;
+    if (match === undefined || evidence?.support < 4 ||
+        evidence?.supportPoints < 19 || positive.length === 0 ||
+        getTakeoutDoublerRebidFailureLines(accepted).length !== 0) {
+      failures++;
+      console.error(`FAIL takeout-Doubler strong invitation: ${deal.description}`);
+    }
+    const prematureGame = evaluateUserCall('4S', board, auction, defaultBiddingSystem);
+    const negative = getTakeoutDoublerRebidFailureLines(prematureGame);
+    checks++;
+    if (prematureGame.userCallMatchingRules.length !== 0 || negative.length === 0) {
+      failures++;
+      console.error(`FAIL takeout-Doubler premature game should not qualify: ${deal.description}`);
+    }
+  }
+  if (invitations.length < 2) {
+    failures++;
+    console.error('FAIL missing ordinary and strong takeout-Doubler invitation practice deals.');
+  }
+  console.log(`${failures} ***FAILURES***. Takeout-Doubler rebid teaching: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5501,6 +5542,7 @@ const testGroups: (() => number)[] = [
   runOneNtInterferencePartnerBoundaryTests,
   runOneNtInterferenceExplanationTests,
   runNaturalSuitOvercallerRebidExplanationTests,
+  runTakeoutDoublerRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
   runWeakTwoOvercallExplanationTests,
