@@ -874,7 +874,13 @@ export function responderNtConventionApplies (call: Call, context: RuleEvalConte
     `${success ? 'PASS' : 'FAIL'}: ${info.opening} ${info.convention} ${choice} ` +
     `after ${info.reply}; HCP ${f.hcp}, major length ${suitLength}, ` +
     `Texas ${system.texasTransfers}.`,
-  ] };
+  ], callEvidence: { conventionalResponderRebid: {
+    family: 'ntConvention', decision: choice, hcp: f.hcp,
+    supportPoints: f.totalPointsWShortage, balanced: f.balanced,
+    opening: info.opening, openerRebid: info.reply, major: info.major,
+    majorLength: suitLength, shortSuit: null, helpSuit: null,
+    usefulHelp: false, fitFound: info.matched, success,
+  } } };
 }
 
 
@@ -960,7 +966,15 @@ export function responderMajorGameTryApplies (call: Call, context: RuleEvalConte
     `${success ? 'PASS' : 'FAIL'}: ${info?.kind ?? 'no'} game try, ` +
     `agreed ${info?.major ?? '-'}, help suit ${info?.helpSuit ?? '-'}, ` +
     `responder ${points} support points, help=${helped}, call=${call}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { conventionalResponderRebid: {
+    family: 'majorGameTry', decision: call === `4${info.major}` ? 'accept' : 'decline',
+    hcp: context.handFacts.hcp, supportPoints: points,
+    balanced: context.handFacts.balanced, opening: `1${info.major}` as Call,
+    openerRebid: info.kind === 'balanced' ? '2NT' : null,
+    major: info.major, majorLength: context.handFacts.lengths[info.major],
+    shortSuit: null, helpSuit: info.helpSuit, usefulHelp: helped,
+    fitFound: true, success,
+  } } };
 }
 
 //// Responder after opener makes a splinter agreeing responder's suit
@@ -1011,7 +1025,13 @@ export function responderOpenerSplinterMajorGameApplies (call: Call, context: Ru
     `${success ? 'PASS' : 'FAIL'}: opener splinter agreeing ${info?.agreedSuit ?? '-'}, ` +
     `short suit ${info?.shortSuit ?? '-'}, response ${info?.responseKind ?? '-'}, ` +
     `support ${support}, support points ${points} (normal 6-${maximum}).`,
-  ] };
+  ], callEvidence: info === null ? undefined : { conventionalResponderRebid: {
+    family: 'openerSplinter', decision: 'majorGame',
+    hcp: context.handFacts.hcp, supportPoints: points,
+    balanced: context.handFacts.balanced, opening: null, openerRebid: null,
+    major: info.agreedSuit, majorLength: support, shortSuit: info.shortSuit,
+    helpSuit: null, usefulHelp: false, fitFound: true, success,
+  } } };
 }
 
 /// A splinter in support of responder's *major* always returns to that major for
@@ -1144,7 +1164,16 @@ export function responderStrongTwoCDecisionApplies (_call: Call, context: RuleEv
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: strong 2C responder ${decision}; ` +
     `response ${info?.response ?? '-'}, rebid ${info?.rebid ?? '-'}, HCP ${f.hcp}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { conventionalResponderRebid: {
+    family: 'strongTwoC', decision, hcp: f.hcp,
+    supportPoints: f.totalPointsWShortage, balanced: f.balanced,
+    opening: '2C', openerRebid: info.rebid, major:
+      info.response === '2H' || info.response === '2S' ? info.response[1] as Suit : null,
+    majorLength: info.response === '2H' || info.response === '2S' ?
+      f.lengths[info.response[1] as Suit] : 0,
+    shortSuit: null, helpSuit: null, usefulHelp: false,
+    fitFound: info.response === '2H' || info.response === '2S', success,
+  } } };
 }
 
 export function refineResponderStrongTwoCMajorGame (calls: Call[], context: RuleEvalContext):
@@ -1190,7 +1219,15 @@ export function responderMajorSupportConventionApplies (call: Call, context: Rul
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${decision} after ${info?.kind ?? '-'}, ` +
     `opener ${info?.rebid ?? '-'}, major ${info?.major ?? '-'}, support points ${fitPoints}.`,
-  ] };
+  ], callEvidence: info === null ? undefined : { conventionalResponderRebid: {
+    family: 'majorSupport', decision: `${kind}-${decision}`,
+    hcp: context.handFacts.hcp, supportPoints: fitPoints,
+    balanced: context.handFacts.balanced, opening: null,
+    openerRebid: info.rebid, major: info.major,
+    majorLength: context.handFacts.lengths[info.major],
+    shortSuit: null, helpSuit: null, usefulHelp: false,
+    fitFound: true, success,
+  } } };
 }
 
 export function refineResponderSupportMajorGame (calls: Call[], context: RuleEvalContext,

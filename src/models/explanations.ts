@@ -6378,3 +6378,125 @@ export function getNaturalResponderRebidFailureLines(result: BidEvalResult): str
   }
   return [];
 }
+
+///
+/// Conventional responder rebids and major game-try decisions
+///
+
+/// Use the actual candidate evidence; the rule's ordinary meaning and guidance
+/// remain visible below this hand-specific teaching sentence.
+export function getConventionalResponderRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  const e = candidate?.callEvidence?.conventionalResponderRebid;
+  if (e === undefined || !e.success) return [];
+  const id = `[${rule.id}]`;
+  switch (e.family) {
+    case 'majorGameTry': {
+      const answer = e.decision === 'accept' ? 'accept with four' : 'decline at three';
+      if (e.helpSuit === null) {
+        return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation; with eight points both answers are judgment choices ${id}.`];
+      }
+      return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${e.helpSuit}. ${e.supportPoints === 8 ?
+        (e.usefulHelp ? 'Useful honor strength or shortness in that suit favors game.' :
+          'Without useful honors or shortness in that suit, stopping below game is reasonable.') :
+        (e.decision === 'accept' ? 'Your upper-range support values justify game.' :
+          'Your minimum support values favor partscore.')} ${id}`];
+    }
+    case 'ntConvention': {
+      const fit = e.fitFound && e.major !== null;
+      if (e.decision.startsWith('stayman')) {
+        return [`Stayman ${fit ? `found a four-four fit in ${e.major}` :
+          'did not find a four-four fit with your major'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
+          'invite game' : 'choose game'} in ${fit ? 'the agreed major' : 'notrump'}. ${id}`];
+      }
+      if (e.decision === 'transferPass') {
+        return [`Opener completed the transfer to ${e.major}; your ${e.majorLength}-card major and ${e.hcp} HCP favor playing there at the current level ${id}.`];
+      }
+      if (e.decision === 'transferInviteMajor') {
+        return [`Your ${e.majorLength}-card ${e.major} suit establishes a major fit. With ${e.hcp} HCP, invite game at the three level ${id}.`];
+      }
+      if (e.decision === 'transferGameMajor') {
+        return [`Your ${e.majorLength}-card ${e.major} suit and ${e.hcp} HCP support major game. Under these agreements, the natural four-level continuation is available without a Texas transfer ${id}.`];
+      }
+      return [`You have ${e.hcp} HCP, balanced distribution and exactly five cards in the transferred ${e.major} suit. ${e.decision === 'transferInviteNt' ?
+        '2NT invites game' : '3NT offers game'} while allowing opener to choose the major with three-card support ${id}.`];
+    }
+    case 'strongTwoC':
+      if (e.decision === 'passMinimumNt') {
+        return [`After the waiting 2D, opener's balanced 2NT rebid shows 22–24 HCP and is not forcing. With only ${e.hcp} HCP, Pass is reasonable ${id}.`];
+      }
+      if (e.decision === 'gameMinimumNt') {
+        return [`Your balanced ${e.hcp}-HCP hand has enough for 3NT opposite opener's 22–24 HCP 2NT rebid; the waiting 2D did not deny useful values ${id}.`];
+      }
+      if (e.decision === 'positiveMajorGame') {
+        return [`Your positive response showed ${e.majorLength} cards in ${e.major}, and opener raised that major to establish a fit. With ${e.hcp} HCP, place the game in the agreed suit ${id}.`];
+      }
+      return [`Opener has already reached natural 3NT after strong 2C. Your ${e.hcp}-HCP hand can accept that game; stronger holdings may deserve slam investigation ${id}.`];
+    case 'majorSupport':
+      if (e.decision.startsWith('jacoby2NT')) {
+        return [`Your Jacoby 2NT established a game force and ${e.majorLength}-card support for opener's ${e.major}. ${e.openerRebid === '3NT' ?
+          "Opener's 3NT describes medium strength by agreement; it is not a notrump contract to Pass." :
+          e.openerRebid === `4${e.major}` ? 'Opener has already placed the contract in major game.' :
+            "Opener's descriptive rebid keeps the game force active."} ${e.decision.endsWith('returnToGame') ?
+          'Return to the agreed major with ordinary game-going values.' : 'You may Pass the agreed major game.'} ${id}`];
+      }
+      return [`Your splinter showed ${e.majorLength}-card support for opener's ${e.major} and established a game force. ${e.decision.endsWith('passGame') ?
+        'Opener has already bid major game, so Pass is permitted.' :
+        "Opener's continuation remains forcing; choose four of the agreed major with ordinary game-going values."} ${id}`];
+    case 'openerSplinter':
+      return [`Opener's splinter showed support for your ${e.major} suit and shortness in ${e.shortSuit}; the short-suit bid is not natural. With ${e.supportPoints} support points, return to major game. Honors opposite opener's shortness may be less useful for slam ${id}.`];
+  }
+}
+
+/// Explain a forcing Pass only when the evaluator has actually qualified a
+/// competing conventional continuation in this auction.
+export function getConventionalResponderRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const qualified = result.ruleDiagnostics.flatMap((diagnostic) => diagnostic.candidates
+    .filter((candidate) => candidate.ruleApplies &&
+      candidate.callEvidence?.conventionalResponderRebid?.success === true));
+  if (result.normalizedCall === 'Pass') {
+    const candidate = qualified.find((item) => {
+      const family = item.callEvidence?.conventionalResponderRebid?.family;
+      return family === 'majorGameTry' || family === 'majorSupport' || family === 'openerSplinter';
+    });
+    const e = candidate?.callEvidence?.conventionalResponderRebid;
+    if (e?.family === 'majorGameTry') {
+      return [`Opener's game try requires a reply in the agreed ${e.major} major. With ${e.supportPoints} support points, choose three or four of that suit [${candidate!.rule.id}].`];
+    }
+    if (e?.family === 'majorSupport') {
+      if (e.decision.startsWith('jacoby2NT') && e.openerRebid === '3NT') {
+        return [`Opener's 3NT after Jacoby 2NT is artificial medium-strength information, not a contract to Pass. The spade or heart game force still applies [${candidate!.rule.id}].`];
+      }
+      return [`The ${e.decision.startsWith('jacoby2NT') ? 'Jacoby 2NT' : 'splinter'} game force is not satisfied below four of the agreed major. Opener has not signed off [${candidate!.rule.id}].`];
+    }
+    if (e?.family === 'openerSplinter') {
+      return [`Opener's splinter is a forcing description of shortness in ${e.shortSuit}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
+    }
+  }
+  // A tested near miss can be explained without inferring an unsupported rule.
+  for (const diagnostic of result.ruleDiagnostics) {
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies &&
+      item.callEvidence?.conventionalResponderRebid !== undefined);
+    const e = candidate?.callEvidence?.conventionalResponderRebid;
+    if (e === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (e.family === 'majorGameTry' && e.supportPoints >= 6 && e.supportPoints <= 10) {
+      return [`With ${e.supportPoints} support points, ${e.helpSuit === null ?
+        'opener\'s balanced 2NT invitation leaves judgment at eight points' :
+        `the ${e.helpSuit} help-suit try ${e.usefulHelp ? 'has useful support' : 'lacks useful support'}`}. The selected guidance does not support ${result.normalizedCall} here ${id}.`];
+    }
+    if (e.family === 'ntConvention' && e.decision.startsWith('stayman') && !e.fitFound &&
+        (result.normalizedCall === '3H' || result.normalizedCall === '3S' ||
+         result.normalizedCall === '4H' || result.normalizedCall === '4S')) {
+      return [`Stayman did not establish a four-four fit in opener's shown major, so the selected major raise is not supported ${id}.`];
+    }
+    if (e.family === 'strongTwoC' && e.decision === 'passMinimumNt' && e.hcp > 2) {
+      return [`Opener's balanced 2NT rebid shows 22–24 HCP. The selected Pass treatment requires at most 2 HCP; you have ${e.hcp} ${id}.`];
+    }
+  }
+  return [];
+}

@@ -42,6 +42,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getOpenerOneLevelNewSuitRebidLines, getOpenerOneLevelNewSuitRebidFailureLines,
          getOpenerTwoLevelNewSuitRebidLines, getOpenerTwoLevelNewSuitRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
+         getConventionalResponderRebidLines, getConventionalResponderRebidFailureLines,
          getResponderSimpleRaiseSupportLines, getResponderSimpleRaiseFailureLines,
          getOpenerRaiseRebidLines, getOpenerRaiseRebidFailureLines,
          getOpenerConventionalRebidLines, getOpenerConventionalRebidFailureLines,
@@ -635,6 +636,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
   const openerTwoLevelReasons = getOpenerTwoLevelNewSuitRebidFailureLines(result);
   const openerNewSuitReasons = getOpenerOneLevelNewSuitRebidFailureLines(result);
   const responderNaturalReasons = getNaturalResponderRebidFailureLines(result);
+  const responderConventionReasons = getConventionalResponderRebidFailureLines(result);
   const responderRaiseReasons = getResponderSimpleRaiseFailureLines(result, handFacts);
   const openerRaiseReasons = getOpenerRaiseRebidFailureLines(result, handFacts);
   const openerConventionReasons = getOpenerConventionalRebidFailureLines(result);
@@ -689,7 +691,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         contestedOvercallerReasons.length > 0 || oneNtOvercallerReasons.length > 0 ||
         weakTwoDefenseReasons.length > 0 ||
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
-        openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderRaiseReasons.length > 0 ||
+        openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0 ||
         openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
         openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
         openerForcingCompetitionReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0) {
@@ -720,7 +722,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
              openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
               openerForcingCompetitionReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0
              ? 'Why this opener rebid does not meet the selected requirements:'
-             : responderNaturalReasons.length > 0 || responderRaiseReasons.length > 0
+             : responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0
              ? 'Why this responder rebid does not meet the selected requirements:'
              : 'Why this opening does not meet the selected requirements:');
       lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
@@ -734,7 +736,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         ...contestedOvercallerReasons, ...doublerRebidReasons,
         ...oneNtOvercallerReasons, ...weakTwoDefenseReasons,
         ...openerOneNtRebidReasons, ...openerNewSuitReasons, ...openerTwoLevelReasons,
-        ...responderNaturalReasons, ...responderRaiseReasons, ...openerRaiseReasons, ...openerConventionReasons,
+        ...responderNaturalReasons, ...responderConventionReasons, ...responderRaiseReasons, ...openerRaiseReasons, ...openerConventionReasons,
         ...openerGameReasons, ...openerNegativeDoubleReasons,
         ...openerForcingCompetitionReasons, ...openerArtificialSupportReasons,
         ...openerCompetitiveNtReasons, ...openerWeakCompetitiveReasons,
@@ -772,7 +774,7 @@ function buildExplanationLines (title: string, result: BidEvalResult,
         contestedOvercallerReasons.length > 0 || oneNtOvercallerReasons.length > 0 ||
         weakTwoDefenseReasons.length > 0 ||
         openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
-         openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderRaiseReasons.length > 0 ||
+         openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0 ||
          openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
          openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
           openerForcingCompetitionReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0)) {
@@ -838,6 +840,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getOpenerTwoLevelNewSuitRebidLines(result, rule));
   lines.push(...getOpenerOneLevelNewSuitRebidLines(result, rule));
   lines.push(...getNaturalResponderRebidLines(result, rule, handFacts));
+  lines.push(...getConventionalResponderRebidLines(result, rule));
   lines.push(...getResponderSimpleRaiseSupportLines(result, rule, handFacts));
   lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));

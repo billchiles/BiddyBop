@@ -14,6 +14,7 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
+         getConventionalResponderRebidLines, getConventionalResponderRebidFailureLines,
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOneNtOvercallerRebidLines, getOneNtOvercallerRebidFailureLines,
@@ -5799,6 +5800,61 @@ function runNaturalResponderRebidTeachingTests (): number {
   return failures;
 }
 
+/// Check moved practice exercises and selected R3 evidence through the production evaluator.
+function runConventionalResponderTeachingTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const cases = [
+    { bucket: 'responder-rebid-after-nt-conventions', auction: '1NT Pass 2H Pass 2S Pass Pass' },
+    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '2C Pass 2D Pass 2NT Pass Pass' },
+    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '1H Pass 2NT Pass 4H Pass Pass' },
+    { bucket: 'responder-rebid-after-major-game-try', auction: '1S Pass 2S Pass 2NT Pass 3S' },
+    { bucket: 'responder-rebid-after-splinters', auction: '1S Pass 4D Pass 4H Pass 4S' },
+    { bucket: 'responder-rebid-after-splinters', auction: '1C Pass 1H Pass 4D Pass 4H' },
+  ];
+  for (const test of cases) {
+    const buckets = RULE_TEST_DEAL_BUCKETS.filter((bucket) =>
+      bucket.deals.some((deal) => deal.practiceAuction.join(' ') === test.auction));
+    checks++;
+    if (buckets.length !== 1 || buckets[0]?.id !== test.bucket) {
+      failures++;
+      console.error(`FAIL R3 moved practice auction bucket: ${test.auction}, ` +
+        `found ${buckets.map((bucket) => bucket.id).join(', ')}.`);
+    }
+    const deal = buckets[0]?.deals.find((item) =>
+      item.practiceAuction.join(' ') === test.auction);
+    if (deal === undefined) continue;
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 6);
+    const call = deal.practiceAuction[6]!;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluation = evaluateUserCall(call, board, auction, system);
+    const rule = evaluation.userCallMatchingRules.find(({ id }) =>
+      deal.expectedResponderRebidCalls?.some((expected) =>
+        expected.call === call && expected.ruleIds.includes(id)));
+    checks++;
+    if (rule === undefined || getConventionalResponderRebidLines(evaluation, rule).length === 0) {
+      failures++;
+      console.error(`FAIL R3 accepted responder decision lacks teaching evidence: ${test.auction}.`);
+    }
+  }
+  const jacoby = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((deal) =>
+    deal.practiceAuction.join(' ') === '1S Pass 2NT Pass 3NT Pass 4S');
+  if (jacoby !== undefined) {
+    const rejection = evaluateUserCall('Pass', makeRuleTestBoard(jacoby).board,
+      jacoby.practiceAuction.slice(0, 6),
+      { ...defaultBiddingSystem, ...jacoby.requiredSystem });
+    checks++;
+    if (rejection.userCallMatchingRules.length > 0 ||
+        getConventionalResponderRebidFailureLines(rejection).length === 0) {
+      failures++;
+      console.error('FAIL R3 Jacoby artificial 3NT Pass should receive forcing guidance.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Conventional responder teaching: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5828,6 +5884,7 @@ const testGroups: (() => number)[] = [
   runOneNtInterferenceExplanationTests,
   runNaturalSuitOvercallerRebidExplanationTests,
   runNaturalResponderRebidTeachingTests,
+  runConventionalResponderTeachingTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,
