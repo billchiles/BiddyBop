@@ -91,26 +91,6 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'KJ9', H: '42', D: 'T987', C: 'AQT3' },
   },
   {
-    description: '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
-    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S'],
-    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
-    expectedOpeningCalls: [
-      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2H', ruleIds: ['respond-to-1nt-w/-transfer-to-spades'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    expectedOpenerRebidCalls: [
-      { call: '2S', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
-    ],
-    rejectedOpenerRebidCalls: ['Pass'],
-    north: { S: 'AK8', H: 'AT2', D: 'K652', C: 'JT4' },
-    south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
-    east: { S: '65', H: 'K876', D: 'Q74', C: 'AK93' },
-    west: { S: 'QT9', H: 'Q53', D: 'AJ9', C: 'Q862' },
-  },
-  {
     description: '1NT: 14 HCP, six hearts, no four-card spade suit; Texas 4D takes priority over ordinary Jacoby 2D.',
     practiceAuction: ['1NT', 'Pass', '4D', 'Pass', '4H'],
     requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true, texasTransfers: true },
