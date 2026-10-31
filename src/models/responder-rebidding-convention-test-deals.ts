@@ -70,6 +70,29 @@ export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
     practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Responder has five hearts, not six, and balanced game-going values. Offer 3NT rather than insist on hearts; opener has only two hearts on this board.' }],
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: ['responder-rebid-nt-transfer-game-3nt'] }],
   },
+  {
+    description: 'After the completed spade transfer, two-HCP responder Passes. ' +
+                 '1NT: 2-HCP responder with five spades transfers with 2H rather than passing 1NT.',
+    practiceAuction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'],
+    requiredSystem: { oneNtOpening: '15-17', jacobyTransfers: true },
+    expectedOpeningCalls: [
+      { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2H', ruleIds: ['respond-to-1nt-w/-transfer-to-spades'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '2S', ruleIds: ['opener-rebid-complete-jacoby-after-nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['Pass'],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'The 2H transfer asked opener to bid spades. With only two HCP, Pass the completion and play 2S.' }],
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-nt-transfer-pass-weak'] }],
+    north: { S: 'AK8', H: 'AT2', D: 'K652', C: 'JT4' },
+    south: { S: 'J7432', H: 'J94', D: 'T83', C: '75' },
+    east: { S: '65', H: 'K876', D: 'Q74', C: 'AK93' },
+    west: { S: 'QT9', H: 'Q53', D: 'AJ9', C: 'Q862' },
+  },
 ];
 
 export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
@@ -92,6 +115,29 @@ export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'T965', H: '7', D: 'QT982', C: 'KT7' },
     practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'The spade ace is useful opposite opener’s spade game try, and responder has ten support points. Accept with 4H.' }],
     expectedResponderRebidCalls: [{ call: '4H', ruleIds: ['responder-rebid-accept-game-try-after-major-simple-raise'] }],
+  },
+  {
+    description: 'Minimum responder declines opener's natural 2NT game try in 3S. ' +
+                 '1S-2S: 18 HCP balanced 5-3-3-2, above the default 15-17 1NT opening range; 2NT is the preferred natural balanced game try.  A direct 4S is a more aggressive alternative.',
+    requiredSystem: { oneNtOpening: '15-17' },
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '2NT', '3S'],
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2S', ruleIds: ['respond-to-major-w/-support-simple-raise'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-game-try-after-major-simple-raise'] },
+      { call: '4S', ruleIds: ['opener-rebid-game-raise-after-major-simple-raise'] },
+    ],
+    expectedOpenerRebidCallOrder: [['2NT', '4S']],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'The balanced 2NT game try invited 4S, not 3NT. With six support points, decline by returning to 3S.' }],
+    expectedResponderRebidCalls: [{ call: '3S', ruleIds: ['responder-rebid-decline-game-try-after-major-simple-raise'] }],
+    north: { S: 'AQJ85', H: 'KJ4', D: 'A72', C: 'K8' },
+    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    east: { S: 'T42', H: 'AT2', D: '985', C: 'QJ63' },
+    west: { S: '97', H: '7963', D: 'KQT3', C: 'A75' },
   },
 ];
 
@@ -118,5 +164,100 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
     west: { S: 'T7', H: 'J86', D: 'J9', C: 'KQT963' },
     practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Jacoby 2NT agreed spades and forced game. Opener’s 3NT is an artificial medium-strength description, not a contract proposal. With an ordinary minimum game-force raise, bid 4S.' }],
     expectedResponderRebidCalls: [{ call: '4S', ruleIds: ['responder-rebid-jacoby-2nt-major-game'] }],
+  },
+  {
+    description: 'After 2C–2D–2NT, weak responder Passes the nonforcing balanced rebid. ' +
+                 '2C-2D-2NT: a 23-HCP 4-3-3-3 opener uses the artificial waiting response to ' +
+                 'show the 22-24 balanced range.',
+    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'],
+    expectedOpeningCalls: [
+      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
+    ],
+    rejectedResponseCalls: ['Pass'],
+    expectedOpenerRebidCalls: [
+      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-2c-2d'] },
+    ],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Opener shows 22–24 balanced HCP, but 2NT is not forcing. With two HCP, Pass is permitted.' }],
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-strong-2c-waiting-pass-2nt'] }],
+    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
+    south: { S: '876', H: 'Q876', D: '8765', C: '76' },
+    east: { S: 'KT532', H: '942', D: '2', C: 'QT95' },
+    west: { S: '9', H: 'JT5', D: 'AJT93', C: 'A842' },
+  },
+  {
+    description: 'After Jacoby 2NT and opener's minimum 4H, responder can Pass. ' +
+                 '1H-2NT-4H: 12 HCP with no singleton or void is the minimum fast-arrival rebid.',
+    practiceAuction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass'],
+    requiredSystem: { majorGameForceWithSupport: 'jacoby2NT' },
+    expectedOpeningCalls: [
+      { call: '1H', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '2NT', ruleIds: ['respond-to-major-w/-support-jacoby-2nt-agreement'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-in-opening-major-after-major-jacoby-2nt'] },
+    ],
+    rejectedOpenerRebidCalls: ['3NT', '3H'],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Jacoby 2NT forced to game. Opener has bid 4H, so the game force is satisfied and ordinary responder values can Pass.' }],
+    expectedResponderRebidCalls: [{ call: 'Pass', ruleIds: ['responder-rebid-jacoby-2nt-pass-major-game'] }],
+    north: { S: 'K74', H: 'AQJ85', D: 'Q72', C: '85' },
+    south: { S: 'A83', H: 'K976', D: 'K64', C: 'QJ2' },
+    east: { S: 'Q52', H: '4', D: 'A985', C: 'K9743' },
+    west: { S: 'JT96', H: 'T32', D: 'JT3', C: 'AT6' },
+  },
+];
+
+/// Selected responder game decisions after a splinter by either partner.
+export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Responder's diamond splinter and opener's heart control lead to spade game. ' +
+                 '1S-4D-4H: opener has unbalanced 5-4-2-2 shape and a heart control ' +
+                 'for a slam-interest bid after the splinter; 4S remains the practical game choice.',
+    practiceAuction: ['1S', 'Pass', '4D', 'Pass', '4H', '4S'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1S', ruleIds: ['open-five-card-major'] },
+    ],
+    expectedResponseCalls: [
+      { call: '4D', ruleIds: ['respond-to-major-w/-support-splinter'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-control-after-major-splinter'] },
+      { call: '4S', ruleIds: ['opener-rebid-game-in-opening-major-after-major-splinter'] },
+    ],
+    expectedOpenerRebidCallOrder: [['4H', '4S']],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'The diamond splinter already agreed spades and forced game. Opener\'s heart control is not a signoff; choose 4S with ordinary game-going values.' }],
+    expectedResponderRebidCalls: [{ call: '4S', ruleIds: ['responder-rebid-splinter-major-game'] }],
+    north: { S: 'AKJ85', H: 'A742', D: '85', C: 'K9' },
+    south: { S: 'Q976', H: 'K83', D: '4', C: 'AQJ72' },
+    east: { S: 'T4', H: '965', D: 'KQJT3', C: 'T63' },
+    west: { S: '32', H: 'QJT', D: 'A9762', C: '854' },
+  },
+  {
+    description: 'Opener splinters in diamonds for hearts; responder chooses 4H. ' +
+                 '1C-1H-4D: 16 HCP becomes 19 shortage points with the diamond singleton; both ' +
+                 '4H and optional 4D splinter remain candidates.',
+    practiceAuction: ['1C', 'Pass', '1H', 'Pass', '4D', '4H'],
+    requiredSystem: { splinters: true },
+    expectedOpeningCalls: [
+      { call: '1C', ruleIds: ['open-convenient-minor'] },
+    ],
+    expectedResponseCalls: [
+      { call: '1H', ruleIds: ['respond-to-minor-w/-new-suit-one-level-priority'] },
+    ],
+    expectedOpenerRebidCalls: [
+      { call: '4H', ruleIds: ['opener-rebid-game-raise-after-minor-one-level-new-suit'] },
+      { call: '4D', ruleIds: ['opener-rebid-splinter-after-minor-one-level-new-suit'] },
+    ],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Opener\'s diamond shortness agrees hearts and forces game. With a minimum response, return to 4H; diamond honors may be wasted.' }],
+    expectedResponderRebidCalls: [{ call: '4H', ruleIds: ['responder-rebid-game-after-opener-splinter'] }],
+    north: { S: 'AQ2', H: 'AQ42', D: 'K', C: 'J8752' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    east: { S: 'K954', H: 'T5', D: 'T7632', C: 'A4' },
+    west: { S: 'JT76', H: '983', D: 'AJ9', C: 'KQT' },
   },
 ];
