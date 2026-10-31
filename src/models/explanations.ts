@@ -3630,7 +3630,7 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
   const decision = candidate?.callEvidence?.takeoutDoublerRebid;
   if (candidate?.ruleApplies !== true || decision === undefined) return [];
-  const { treatment, advanceKind, hcp, supportPoints, support, partnerSuit,
+  const { treatment, hcp, supportPoints, support, partnerSuit,
           chosenFit, chosenFitLength, bidSuitLength } = decision;
   const suit = partnerSuit === null ? 'partner’s suit' :
     suitPlural(`1${partnerSuit}` as Call);
