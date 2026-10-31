@@ -708,6 +708,22 @@ export interface CallEvidence {
     openerRebid?: string;
     success: boolean;
   };
+  conventionalResponderRebid?: {
+    family: 'ntConvention' | 'majorGameTry' | 'strongTwoC' | 'majorSupport' | 'openerSplinter';
+    decision: string;
+    hcp: number;
+    supportPoints: number;
+    balanced: boolean;
+    opening: Call | null;
+    openerRebid: Call | null;
+    major: Suit | null;
+    majorLength: number;
+    shortSuit: Suit | null;
+    helpSuit: Suit | null;
+    usefulHelp: boolean;
+    fitFound: boolean;
+    success: boolean;
+  };
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
