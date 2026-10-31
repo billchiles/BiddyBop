@@ -3631,7 +3631,7 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
   const decision = candidate?.callEvidence?.takeoutDoublerRebid;
   if (candidate?.ruleApplies !== true || decision === undefined) return [];
   const { treatment, advanceKind, hcp, supportPoints, support, partnerSuit,
-          chosenFit, chosenFitLength, bidSuitLength, stopped } = decision;
+          chosenFit, chosenFitLength, bidSuitLength } = decision;
   const suit = partnerSuit === null ? 'partner’s suit' :
     suitPlural(`1${partnerSuit}` as Call);
   const id = `[${rule.id}]`;
@@ -3674,8 +3674,8 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
     case 'strong-suit':
       return [`With ${hcp} HCP and ${bidSuitLength} ${suitPlural(result.normalizedCall)}, ` +
         `Double followed by a natural suit shows a substantially stronger hand than ` +
-        `a routine takeout Double. The suit meets the required length and honor ` +
-        `quality tests ${id}.`];
+        `a routine takeout Double. The suit meets the required length and ` +
+        `applicable honor-quality tests ${id}.`];
     case 'strong-nt':
       return [`With ${hcp} HCP, balanced distribution, and a stopper in opener's ` +
         `suit, Double followed by ${result.normalizedCall} describes your extra ` +
