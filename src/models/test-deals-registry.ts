@@ -70,7 +70,8 @@ import { RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
   from './responder-rebidding-test-deals';
 import { RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS,
          RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS,
-         RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS } from './responder-rebidding-convention-test-deals';
+         RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS,
+         RESPONDER_AFTER_SPLINTERS_TEST_DEALS } from './responder-rebidding-convention-test-deals';
 import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
 
@@ -126,6 +127,8 @@ export interface RuleTestExpectedCall {
 export {
   RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS,
   RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS,
+  RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS,
+  RESPONDER_AFTER_SPLINTERS_TEST_DEALS,
   RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS,
   RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS,
   RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS,
@@ -194,6 +197,9 @@ export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'responder-rebid-after-strong-2c-and-jacoby-2nt', group: 'Responder Rebids (7 bids)',
     label: 'After strong 2C and Jacoby 2NT',
     deals: RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS },
+  { id: 'responder-rebid-after-splinters', group: 'Responder Rebids (7 bids)',
+    label: 'After splinters and control bids',
+    deals: RESPONDER_AFTER_SPLINTERS_TEST_DEALS },
   { id: 'responder-rebid-after-major-game-try', group: 'Responder Rebids (7 bids)',
     label: 'After opener makes a major game try',
     deals: RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS,
