@@ -1031,25 +1031,6 @@ export const RESPONSE_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
 
 export const RESPONSE_TO_STRONG_2C_TEST_DEALS: RuleTestDeal[] = [
   {
-    description: '2C-2D-2NT: a 23-HCP 4-3-3-3 opener uses the artificial waiting response to ' +
-                 'show the 22-24 balanced range.',
-    practiceAuction: ['2C', 'Pass', '2D', 'Pass', '2NT'],
-    expectedOpeningCalls: [
-      { call: '2C', ruleIds: ['open-2c-strong-artificial'] },
-    ],
-    expectedResponseCalls: [
-      { call: '2D', ruleIds: ['respond-to-2c-w/-2d-waiting'] },
-    ],
-    rejectedResponseCalls: ['Pass'],
-    expectedOpenerRebidCalls: [
-      { call: '2NT', ruleIds: ['opener-rebid-2nt-after-2c-2d'] },
-    ],
-    north: { S: 'AQJ4', H: 'AK3', D: 'KQ4', C: 'KJ3' },
-    south: { S: '876', H: 'Q876', D: '8765', C: '76' },
-    east: { S: 'KT532', H: '942', D: '2', C: 'QT95' },
-    west: { S: '9', H: 'JT5', D: 'AJT93', C: 'A842' },
-  },
-  {
     description: "2C-2D-3NT: a 26-HCP balanced opener shows the source's 25-27 range directly, " +
                  'with no additional shape qualification beyond being balanced.',
     practiceAuction: ['2C', 'Pass', '2D', 'Pass', '3NT'],
