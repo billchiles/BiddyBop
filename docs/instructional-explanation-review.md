@@ -227,3 +227,11 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - A previously passed responder cannot create the 2/1 continuation obligation in later responder-rebid recognition. Rejected natural responder rebids receive the correct UI heading.
 - Two existing complete four-hand classic strong jump-shift exercises now extend through responder's game placement. Judgment-heavy lower-level reverse and slam auctions remain explicit boundaries.
 - Focused behavioral checks cover the Standard/2/1 distinction and previously passed responder; actual browser feedback and copied Report still merit manual review.
+
+## Conventional responder rebids and game tries — R3 (October 31, 2026)
+
+- Game-try replies explain actual shortage-adjusted support points and, at the borderline, evaluated help in opener's side suit. Balanced 2NT game tries at eight points still permit either judgment choice; no qualification thresholds changed.
+- Stayman and Jacoby-transfer continuations explain the shown major, responder's actual strength/length, whether a fit is known, and invitations versus game placement. Texas-related distinctions and slam-judgment boundaries remain unchanged.
+- Selected strong 2C rebids, Jacoby 2NT, and both directions of splinter bidding explain the artificial/natural meaning, known trump fit, game-force obligations and the evaluated hand. Rejected Pass after an artificial Jacoby 3NT, forcing game try, or below-game splinter receives specific context-based guidance when another supported call establishes the obligation.
+- Six existing complete four-hand exercises were extended to responder's decision and moved, not copied, from the shorter opener/response buckets into the corresponding responder-rebid practice buckets. Added a dedicated splinter responder bucket. Corrected an existing misgrouping that also listed strong-2C/Jacoby deals in the game-try bucket.
+- Only focused checks for bucket placement, supported continuation and meaningful feedback were added. Further source/Report and normal-browser play-through remains part of integration review; the rule suite is not a substitute for instructional assessment.
