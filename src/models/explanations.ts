@@ -6185,3 +6185,132 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
   }
   return [];
 }
+
+
+///
+/// Natural responder rebids — first instructional batch
+///
+
+/// The rule evaluator records the decision and hand measurements.  Use those facts,
+/// rather than an independent test of bidding eligibility, for teaching text.
+export function getNaturalResponderRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!rule.id.startsWith('responder-rebid-')) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const e = candidate.callEvidence?.naturalResponderRebid;
+  const id = `[${rule.id}]`;
+  if (e !== undefined && e.success) {
+    switch (e.family) {
+      case 'economical':
+        switch (e.decision) {
+          case 'passSecond':
+            return [`Opener's economical second suit does not promise extra strength. With ${e.lengthPoints} length points and ${e.rebidLength} cards in that suit, you can Pass ${id}.`];
+          case 'preferOpening':
+            return [`With ${e.lengthPoints} length points and ${e.openingLength} cards in opener's first suit, you can prefer opener's original suit over the second suit. This is nonforcing ${id}.`];
+          case 'repeatResponse':
+            return [`With ${e.responseLength} cards in your original suit and ${e.lengthPoints} length points, repeating it is a nonforcing natural signoff ${id}.`];
+          case 'inviteNt':
+            return [`Your balanced ${e.hcp}-HCP hand invites game with 2NT after opener's economical second suit; opener has not promised extra values ${id}.`];
+          case 'gameNt':
+            return [`Your balanced ${e.hcp}-HCP hand meets the game range and has the required stopper in the remaining unbid suit for 3NT ${id}.`];
+          case 'inviteOpening': case 'inviteSecond': case 'majorSecondInvite':
+            return [`Your ${e.supportPoints} shortage-adjusted support points and known fit support a nonforcing game invitation; partner may decline ${id}.`];
+          case 'majorSecondGame':
+            return [`Your ${e.supportPoints} support points and four-card fit for opener's newly shown major justify bidding game ${id}.`];
+          case 'majorSecondPartscore':
+            return [`With ${e.lengthPoints} length points and four-card support for opener's newly shown major, choose the economical partscore ${id}.`];
+        }
+        break;
+      case 'majorOneNt':
+        switch (e.decision) {
+          case 'passMajor': case 'preferMajor':
+            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support stopping in that suit. Under forcing 1NT, opener's minor rebid can be a rare manufactured fallback ${id}.`];
+          case 'passSecond':
+            return [`With ${e.hcp} HCP and ${e.rebidLength} cards in opener's second suit, you have the fit required by the selected 1NT-response agreement to Pass ${id}.`];
+          case 'inviteMajor': case 'delayedLimitRaise':
+            return [`Your ${e.supportPoints} support points show invitational strength with opener's major. This is not a game force; opener may decline ${id}.`];
+          case 'longMinor':
+            return [`Your minimum ${e.hcp}-HCP response includes a six-card minor; bidding it naturally avoids suggesting a stronger notrump hand ${id}.`];
+          case 'inviteNt':
+            return [`With ${e.hcp} HCP, balanced distribution, and at most two cards in opener's major, a natural 2NT invites game ${id}.`];
+        }
+        break;
+      case 'minorOneNt':
+        switch (e.decision) {
+          case 'passRepeat': case 'passSecond': case 'preferOpening':
+            return [`Your balanced 1NT response showed limited values. With ${e.hcp} HCP and a suitable fit, this nonforcing choice stops in opener's natural minor-suit contract ${id}.`];
+          case 'decline2Nt':
+            return [`Opener's 2NT is an invitation, not a force. Your balanced ${e.hcp}-HCP hand is at the minimum for declining ${id}.`];
+          case 'accept2Nt':
+            return [`Opener invited game with 2NT. Your balanced ${e.hcp}-HCP hand meets the selected 7–10 HCP acceptance range for 3NT ${id}.`];
+          case 'declineJump':
+            return [`Opener's six-card minor jump repeat is invitational. With ${e.hcp} HCP you may decline and Pass ${id}.`];
+          case 'passGame':
+            return [`Opener has already selected game. With ordinary ${e.hcp}-HCP responding values, Pass accepts that contract ${id}.`];
+        }
+        break;
+      case 'twoOverOne':
+        switch (e.decision) {
+          case 'forcingNt':
+            return [`Your balanced ${e.hcp}-HCP hand has no known major fit to show. Natural 2NT describes your shape without promising an unbid-suit stopper; the 2/1 game force remains active and opener must continue ${id}.`];
+          case 'gameNt':
+            return [`Your balanced ${e.hcp}-HCP hand has game values, no preferred major fit, and the required unbid-suit stoppers to place the contract in 3NT ${id}.`];
+          case 'openingSlowRaise':
+            return [`Your ${e.supportPoints} support points and ${e.openingLength}-card fit for opener's major favor a slower game-forcing raise, preserving bidding room ${id}.`];
+          case 'openingGame': case 'secondMajorGame':
+            return [`A known major fit and ${e.supportPoints} support points permit a natural game placement. The original 2/1 game force is satisfied ${id}.`];
+          case 'repeatResponse':
+            return [`With ${e.responseLength} cards in your original response suit, repeating it describes the length while remaining game forcing under 2/1 ${id}.`];
+          case 'passReachedGame':
+            return [`Opener has already bid a natural game. The 2/1 game force is fulfilled, so Pass does not violate the agreement ${id}.`];
+        }
+        break;
+    }
+  }
+  // The remaining ordinary 1NT/2NT cases have declarative conditions rather than
+  // a dedicated appliesWhen function; qualify them from the rule result, not guessed ranges.
+  const accepted = rule.id;
+  if (accepted === 'responder-rebid-2nt-after-minimum-1nt' ||
+      accepted === 'responder-rebid-3nt-after-minimum-1nt') {
+    const invitation = accepted.includes('-2nt-');
+    const fiveCardMajor = facts.lengths.H === 5 || facts.lengths.S === 5;
+    const base = `Your balanced ${facts.hcp}-HCP hand ${invitation ? 'invites game with 2NT' : 'places game in 3NT'} opposite opener's 12–14 HCP 1NT rebid.`;
+    return [base + (fiveCardMajor ?
+      ' A five-card responder major may conceal an eight-card fit; many partnerships use New Minor Forcing to investigate three-card opener support. That convention and its follow-up auction are not included in this trainer.' : '') + ` ${id}`];
+  }
+  if (accepted === 'responder-rebid-three-major-after-strong-2nt') {
+    return [`Your five-card major is not yet known to have an eight-card fit. Showing it at the three level asks opener to choose between major game with three-card support and 3NT; this is forcing to game ${id}.`];
+  }
+  if (accepted === 'responder-rebid-four-major-after-strong-2nt') {
+    return [`With ${facts.lengths.H >= 6 ? facts.lengths.H : facts.lengths.S} cards in your major, an eight-card fit is assured opposite balanced opener; place game in the major ${id}.`];
+  }
+  return [];
+}
+
+/// Explain only the specific requirement of a tested, rejected natural rebid.
+export function getNaturalResponderRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!diagnostic.rule.id.startsWith('responder-rebid-')) continue;
+    const candidate = diagnostic.candidates.find((item) => item.call === result.normalizedCall);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const e = candidate.callEvidence?.naturalResponderRebid;
+    if (e?.family !== 'twoOverOne' ||
+        (e.decision !== 'forcingNt' && e.decision !== 'gameNt')) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (!e.balanced) return [`Natural ${result.normalizedCall} in this 2/1 auction requires a balanced hand ${id}.`];
+    if (e.hcp < 13 || e.hcp > 16) {
+      return [`This selected 2/1 notrump continuation requires 13–16 HCP; you have ${e.hcp} ${id}.`];
+    }
+    if (e.decision === 'forcingNt') {
+      return [`Natural 2NT stays game forcing but must not bypass a known major fit. It does not require an unbid-suit stopper ${id}.`];
+    }
+    if (e.missingStoppers?.length) {
+      return [`3NT requires a stopper in each unbid suit; your hand lacks a stopper in ${e.missingStoppers.join(' and ')} [${diagnostic.rule.id}].`];
+    }
+    return [];
+  }
+  return [];
+}

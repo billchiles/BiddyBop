@@ -686,6 +686,22 @@ export interface CallEvidence {
     rejection?: 'strength' | 'support' | 'length' | 'balanced' | 'stopper' |
       'preferFit' | 'preferRepeat' | 'upLine';
   };
+  naturalResponderRebid?: {
+    family: 'economical' | 'majorOneNt' | 'minorOneNt' | 'twoOverOne';
+    decision: string;
+    hcp: number;
+    lengthPoints: number;
+    supportPoints: number;
+    balanced: boolean;
+    openingSuit: Suit;
+    responseSuit: Suit | null;
+    rebidSuit: Suit | null;
+    openingLength: number;
+    responseLength: number;
+    rebidLength: number;
+    missingStoppers?: Suit[];
+    success: boolean;
+  };
   naturalSuitOvercallerRebid?: {
     treatment: NaturalSuitRebidTreatment;
     advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
