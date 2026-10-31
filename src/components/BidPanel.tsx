@@ -701,7 +701,8 @@ function buildExplanationLines (title: string, result: BidEvalResult,
             ? 'Why this advance does not meet the selected requirements:'
           : naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0
             ? 'Why this overcall does not meet the selected requirements:'
-            : overcallerRebidReasons.length > 0
+            : overcallerRebidReasons.length > 0 || contestedOvercallerReasons.length > 0 ||
+              doublerRebidReasons.length > 0
             ? 'Why this overcaller rebid does not meet the selected requirements:'
           : openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 || openerTwoLevelReasons.length > 0
             ? 'Why this opener rebid does not meet the selected requirements:'

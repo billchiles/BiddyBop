@@ -788,6 +788,7 @@ export function contestedSuitOvercallerRebidApplies (
         call === '2NT' && cheapest('NT') === '2NT';
       break;
     case 'nt-game':
+      minHcp = info.advanceKind === 'oneNt' ? 17 : info.level === 1 ? 14 : 15;
       success = call === '3NT' && ((info.advanceKind === 'oneNt' && hcp >= 17) ||
         (info.advanceKind === 'twoNt' && hcp >= (info.level === 1 ? 14 : 15)));
       break;
