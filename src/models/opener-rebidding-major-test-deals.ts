@@ -888,7 +888,7 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     description: '1C-2H-3H: after a classic strong jump shift, opener has three hearts and four ' +
                  'spades; supporting responder is the first descriptive priority, while 2S and ' +
                  '2NT remain available.',
-    practiceAuction: ['1C', 'Pass', '2H', 'Pass', '3H'],
+    practiceAuction: ['1C', 'Pass', '2H', 'Pass', '3H', 'Pass', '4H'],
     requiredSystem: { jumpShift: 'strong' },
     expectedOpeningCalls: [
       { call: '1C', ruleIds: ['open-convenient-minor'] },
@@ -903,6 +903,9 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
       { call: '2NT', ruleIds: ['opener-rebid-notrump-after-strong-jump-shift'] },
     ],
     expectedOpenerRebidCallOrder: [['3H', '2S'], ['3H', '2NT']],
+    expectedResponderRebidCalls: [{ call: '4H', ruleIds: [
+      'responder-rebid-game-after-strong-responder-jump-shift',
+    ] }],
     north: { S: 'QJT4', H: 'A73', D: '985', C: 'KQ4' },
     south: { S: 'A62', H: 'KQT85', D: 'KQ7', C: 'A9' },
     east: { S: 'K9875', H: '964', D: 'J3', C: '873' },
@@ -953,7 +956,7 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1H-2S-2NT: opener is 5-3-3-2 with only two spades, no six-card heart suit, ' +
                  'and no four-card second suit; describe the balanced hand economically.',
-    practiceAuction: ['1H', 'Pass', '2S', 'Pass', '2NT'],
+    practiceAuction: ['1H', 'Pass', '2S', 'Pass', '2NT', 'Pass', '3NT'],
     requiredSystem: { jumpShift: 'strong' },
     expectedOpeningCalls: [
       { call: '1H', ruleIds: ['open-five-card-major'] },
@@ -965,6 +968,9 @@ export const OPENER_REBID_AFTER_JUMP_SHIFT_TEST_DEALS: RuleTestDeal[] = [
     expectedOpenerRebidCalls: [
       { call: '2NT', ruleIds: ['opener-rebid-notrump-after-strong-jump-shift'] },
     ],
+    expectedResponderRebidCalls: [{ call: '3NT', ruleIds: [
+      'responder-rebid-game-after-strong-responder-jump-shift',
+    ] }],
     north: { S: 'K7', H: 'AJ985', D: 'K84', C: 'J92' },
     south: { S: 'AQT98', H: 'K6', D: 'AQ7', C: 'K83' },
     east: { S: '6432', H: 'QT43', D: 'T3', C: 'AQ6' },
