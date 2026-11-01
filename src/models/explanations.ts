@@ -6500,3 +6500,158 @@ export function getConventionalResponderRebidFailureLines(result: BidEvalResult)
   }
   return [];
 }
+
+///
+/// Selected opener continuations after interference over a 1NT opening
+///
+
+/// The candidate's own qualification supplies the decision; its evidence supplies the
+/// actual stopper, fit and strength facts. Artificial DONT 2H shows *both* majors.
+export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  if (candidate === undefined) return [];
+  const e = (candidate.callEvidence ?? diagnostic?.callEvidence)?.openerOneNtInterference;
+  if (e === undefined) return [];
+  const opponents = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+  const responseSuit = e.responseSuit === null ? '' : suitPlural(`1${e.responseSuit}` as Call);
+  const id = `[${rule.id}]`;
+  switch (e.treatment) {
+    case 'doubleFit':
+      return [`Responder's Double of the natural spade overcall is takeout-oriented, not penalty. Your ${e.fitLength} ${suitPlural(`1${e.fitSuit}` as Call)} supply the requested minor fit; show it economically with ${candidate.call} ${id}.`];
+    case 'doubleNt':
+      return [`Responder's takeout Double found no four-card minor fit. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
+    case 'naturalPass':
+      return [`Responder's ${e.response} is natural and nonforcing. With ${e.hcp} HCP${e.responseLevel === 3 ? ` and no complete set of stoppers in ${opponents}` : ''}, Pass accepts partner's ${responseSuit} rather than inventing a game bid ${id}.`];
+    case 'majorRaise':
+      return [`Responder's ${e.response} shows ${responseSuit} naturally. Your ${e.support}-card support and ${e.hcp} HCP permit ${candidate.call === `3${e.responseSuit}` ? 'an invitation' : 'game'} in the agreed major ${id}.`];
+    case 'naturalThreeNt':
+      return [`Responder's ${e.response} is a constructive natural ${responseSuit} bid. The opponent's ${e.opponentSuits.length === 2 ? 'DONT 2H shows both majors' : '2S shows spades'}, and your hand has stoppers in ${opponents}; with no preferred major fit, 3NT is supported ${id}.`];
+  }
+}
+
+/// A missing tested stopper or a forcing takeout Double is informative. Do not
+/// infer rejection from a call that never survived its auction-specific refiner.
+export function getOpenerOneNtInterferenceFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const call = result.normalizedCall;
+  for (const diagnostic of result.ruleDiagnostics) {
+    const candidate = diagnostic.candidates.find((item) => item.call === call &&
+      !item.ruleApplies && item.callEvidence?.openerOneNtInterference !== undefined);
+    const e = candidate?.callEvidence?.openerOneNtInterference;
+    if (e === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (call === '3NT' && e.missingStoppers.length > 0 &&
+        (e.treatment === 'naturalThreeNt' || e.treatment === 'doubleNt')) {
+      const promised = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+      const missing = e.missingStoppers.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+      return [`This 3NT treatment needs stoppers in ${promised}; your hand lacks a stopper in ${missing} ${id}.`];
+    }
+    if (e.treatment === 'majorRaise' && e.support < 3) {
+      return [`Raising responder's ${e.responseSuit === null ? 'major' : suitPlural(`1${e.responseSuit}` as Call)} requires at least three-card support; you have ${e.support} ${id}.`];
+    }
+  }
+  if (call === 'Pass') {
+    const fit = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-fit-after-1nt-interference-double');
+    const e = fit?.callEvidence?.openerOneNtInterference;
+    if (e?.treatment === 'doubleFit' && e.fitSuit !== null) {
+      return [`Responder's Double is a takeout request, not penalty. You have a four-card ${suitPlural(`1${e.fitSuit}` as Call)} fit and must respond; Pass does not describe it [${fit!.rule.id}].`];
+    }
+  }
+  return [];
+}
+
+
+///
+//// Opener after a preemptive jump overcall and advancer Pass
+///
+
+/// The jump-overcall refiner selects one descriptive action before qualification.
+/// Its rule-level evidence remains available even when the refiner removed a
+/// different candidate; use it only to describe the tested selected action.
+export function getOpenerJumpOvercallRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  if (candidate === undefined) return [];
+  const e = (candidate.callEvidence ?? diagnostic?.callEvidence)?.openerJumpOvercallRebid;
+  if (e === undefined || e.selectedCall !== candidate.call) return [];
+  const own = suitPlural(`1${e.openingSuit}` as Call);
+  const opponent = suitPlural(`1${e.opponentSuit}` as Call);
+  const shown = e.responseSuit === null ? '' : suitPlural(`1${e.responseSuit}` as Call);
+  const id = `[${rule.id}]`;
+  if (e.kind === 'supportCuebid') {
+    return [`Responder's ${e.responseCall} cuebids the opponent's ${opponent} artificially to promise strong ${own} support. Return to the agreed major at ${candidate.call}; the cuebid did not show ${opponent} ${id}.`];
+  }
+  if (e.kind === 'raise') {
+    return [`Responder's three-level ${own} raise is nonforcing. Your ${e.supportPoints} support points ${candidate.call === 'Pass' ? 'allow Pass rather than pushing to game' : 'support bidding major game'} ${id}.`];
+  }
+  if (e.kind === 'notrumpTwo') {
+    return [`Responder's natural 2NT is invitational and already promises a ${opponent} stopper. Your ${e.hcp} HCP ${candidate.call === 'Pass' ? 'decline' : 'accept'} the invitation ${id}.`];
+  }
+  if (e.kind === 'notrumpThree') {
+    return [`Responder has already bid natural 3NT. Your ${e.hcp} HCP do not require further bidding over this game signoff ${id}.`];
+  }
+  if (e.kind === 'negativeDouble') {
+    if (e.selectedSuit !== null && e.selectedSuit !== e.openingSuit) {
+      return [`Responder's negative Double asks for the unbid suits. Your ${e.selectedLength} ${suitPlural(`1${e.selectedSuit}` as Call)} justify showing the available fit with ${candidate.call} ${id}.`];
+    }
+    if (e.selectedSuit === e.openingSuit) {
+      return [`Responder's negative Double is forcing. With no four-card implied-suit fit but ${e.openingLength} ${own}, repeat your opening suit at ${candidate.call} ${id}.`];
+    }
+    return [`Responder's negative Double is forcing. Without a four-card implied-suit fit, your ${e.hcp}-HCP notrump hand stops the opponent's ${opponent}; describe it with ${candidate.call} ${id}.`];
+  }
+  if (e.kind === 'newSuitTwo' || e.kind === 'newSuitThree') {
+    const force = e.kind === 'newSuitThree' ? 'game forcing' : 'forcing for one round';
+    const lead = `Responder's ${e.responseCall} shows natural ${shown} and is ${force}.`;
+    if (e.selectedSuit === e.responseSuit) {
+      return [`${lead} Your ${e.responseSupport}-card support establishes a fit; raise to ${candidate.call} ${id}.`];
+    }
+    if (e.selectedSuit === e.openingSuit) {
+      return [`${lead} With ${e.openingLength} ${own} and no earlier eligible fit, repeat your opening suit at ${candidate.call} ${id}.`];
+    }
+    if (e.selectedSuit !== null) {
+      return [`${lead} Your ${e.selectedLength} ${suitPlural(`1${e.selectedSuit}` as Call)} allow the economical second-suit description ${candidate.call} ${id}.`];
+    }
+    return [`${lead} Your ${e.hcp}-HCP balanced or semi-balanced hand stops the opponent's ${opponent}, supporting natural ${candidate.call} ${id}.`];
+  }
+  return [];
+}
+
+export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const call = result.normalizedCall;
+  const considered = result.ruleDiagnostics.filter((item) =>
+    item.rule.id.startsWith('opener-rebid-after-jump-overcall-') &&
+    item.callEvidence?.openerJumpOvercallRebid !== undefined);
+  // Cite the rule that actually qualified the selected alternative, not an
+  // unrelated suit rule whose refiner returned no calls.
+  const diagnostic = considered.find((item) => item.candidates.some((candidate) =>
+    candidate.ruleApplies)) ??
+    considered.find((item) => call === '3NT' &&
+      item.rule.id === 'opener-rebid-after-jump-overcall-natural-nt') ??
+    considered[0];
+  const evidence = diagnostic?.callEvidence?.openerJumpOvercallRebid ??
+    result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .find((item) => item.callEvidence?.openerJumpOvercallRebid !== undefined)
+      ?.callEvidence?.openerJumpOvercallRebid;
+  if (evidence === undefined) return [];
+  const e = evidence;
+  const id = diagnostic === undefined ? '' : ` [${diagnostic.rule.id}]`;
+  const forcing = e.kind === 'negativeDouble' || e.kind === 'newSuitTwo' ||
+    e.kind === 'newSuitThree' || e.kind === 'supportCuebid';
+  if (call === 'Pass' && forcing) {
+    return [`Responder's ${e.responseCall} ${e.kind === 'negativeDouble' ? 'negative Double' :
+      e.kind === 'supportCuebid' ? 'artificial support cuebid' : 'natural new suit'} is ${e.kind === 'newSuitThree' || e.kind === 'supportCuebid' ? 'game forcing' : 'forcing for one round'}. Pass does not satisfy the force; ${e.selectedCall === null ? 'a further bid needs partnership judgment' : `${e.selectedCall} is a selected descriptive reply`}${id}.`];
+  }
+  if (call === '3NT' && forcing && !e.stopped) {
+    return [`A natural 3NT response to ${e.responseCall} requires a stopper in the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)}; your hand has no such stopper${id}.`];
+  }
+  if (e.kind === 'supportCuebid' && e.selectedCall !== null &&
+      call === `4${e.opponentSuit}`) {
+    return [`Responder's cuebid names the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)} artificially; it supports opener's ${suitPlural(`1${e.openingSuit}` as Call)}. The selected game is ${e.selectedCall}, not the opponent's suit${id}.`];
+  }
+  return [];
+}

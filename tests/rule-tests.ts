@@ -21,6 +21,8 @@ import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getWeakTwoDefenseRebidLines, getWeakTwoDefenseRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
+         getOpenerOneNtInterferenceLines, getOpenerOneNtInterferenceFailureLines,
+         getOpenerJumpOvercallRebidLines, getOpenerJumpOvercallRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
          getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines }
   from '../src/models/explanations';
@@ -50,6 +52,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
+         OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS, getRulesBucketTestDeals, isPracticeDealCompatible, OPENING_BID_TEST_DEALS, BALANCING_TEST_DEALS,
          type RuleTestDeal, type RuleTestExpectedCall }
   from '../src/models/test-deals-registry';
@@ -5855,6 +5858,93 @@ function runConventionalResponderTeachingTests (): number {
   return failures;
 }
 
+/// Verify the remaining opener interference teaching without changing any bid thresholds.
+function runOpenerInterferenceTeachingTests (): number {
+  let failures = 0;
+  let checks = 0;
+  // A DONT 2H shows both majors, so a heart stopper alone is not enough.
+  const { board } = makeRuleTestBoard({
+    description: 'DONT two-major stopper: hearts stopped but spades unstopped',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    north: { S: 'T74', H: 'AK4', D: 'AQ7', C: 'K983' },
+    south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
+  });
+  const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
+  const failed = evaluateUserCall('3NT', board, auction, defaultBiddingSystem);
+  const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+  checks++;
+  if (failed.userCallMatchingRules.some(({ id }) =>
+        id === 'opener-rebid-3nt-after-1nt-interference-natural-suit') ||
+      status.kind !== 'scopeBoundary' ||
+      (status.kind === 'scopeBoundary' &&
+        status.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') ||
+      !getOpenerOneNtInterferenceFailureLines(failed).some((line) =>
+        line.includes('spades'))) {
+    failures++;
+    console.error('FAIL DONT two-major stopper gap and judgment boundary.');
+  }
+  const goodNt = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1NT 2H 3C Pass 3NT');
+  checks++;
+  if (goodNt === undefined) {
+    failures++;
+    console.error('FAIL no existing DONT natural 3C to 3NT practice example.');
+  } else {
+    const accepted = evaluateUserCall('3NT', makeRuleTestBoard(goodNt).board,
+      goodNt.practiceAuction.slice(0, 4), defaultBiddingSystem);
+    const rule = accepted.userCallMatchingRules.find(({ id }) =>
+      id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
+    if (rule === undefined ||
+        !getOpenerOneNtInterferenceLines(accepted, rule).some((line) =>
+          line.includes('hearts and spades'))) {
+      failures++;
+      console.error('FAIL qualifying DONT continuation lacks two-major explanation.');
+    }
+  }
+  const auctions: { sequence: string; ruleId: string; rejected?: Call }[] = [
+    { sequence: '1H 2S 3H Pass Pass',
+      ruleId: 'opener-rebid-after-jump-overcall-nonforcing-pass' },
+    { sequence: '1C 2D 2S Pass 3S',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
+    { sequence: '1H 2S 3S Pass 4H',
+      ruleId: 'opener-rebid-after-jump-overcall-major-game', rejected: 'Pass' },
+    { sequence: '1H 2S 3C Pass 3NT',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-nt', rejected: 'Pass' },
+    { sequence: '1S 3H Double Pass 3S',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
+  ];
+  for (const test of auctions) {
+    const deal = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === test.sequence);
+    checks++;
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing jump-overcall practice ${test.sequence}.`);
+      continue;
+    }
+    const { board: jumpBoard } = makeRuleTestBoard(deal);
+    const prefix = deal.practiceAuction.slice(0, 4);
+    const call = deal.practiceAuction[4]!;
+    const accepted = evaluateUserCall(call, jumpBoard, prefix, defaultBiddingSystem);
+    const rule = accepted.userCallMatchingRules.find(({ id }) => id === test.ruleId);
+    if (rule === undefined || getOpenerJumpOvercallRebidLines(accepted, rule).length === 0) {
+      failures++;
+      console.error(`FAIL jump-overcall explanation ${test.sequence}.`);
+    }
+    if (test.rejected !== undefined) {
+      const rejection = evaluateUserCall(test.rejected, jumpBoard, prefix, defaultBiddingSystem);
+      checks++;
+      if (rejection.userCallMatchingRules.length > 0 ||
+          getOpenerJumpOvercallRebidFailureLines(rejection).length === 0) {
+        failures++;
+        console.error(`FAIL forcing rejection after ${test.sequence}.`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Opener interference teaching: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5885,6 +5975,7 @@ const testGroups: (() => number)[] = [
   runNaturalSuitOvercallerRebidExplanationTests,
   runNaturalResponderRebidTeachingTests,
   runConventionalResponderTeachingTests,
+  runOpenerInterferenceTeachingTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,

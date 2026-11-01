@@ -2,6 +2,7 @@
 
 import {
   STRAIN_ORDER, type AdvancerCallKind, type AppliesWhenResult, type BiddingSystem, type Call,
+  type CallEvidence,
   type CallRefinementResult, type RuleEvalContext, type SuitBid
 } from './bidding-types';
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
@@ -63,7 +64,29 @@ function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit 
   return candidates.find((suit) => context.handFacts.lengths[suit] >= 4) ?? null;
 }
 
-export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext):
+function oneNtInterferenceEvidence(context: RuleEvalContext, system: BiddingSystem,
+    treatment: NonNullable<CallEvidence['openerOneNtInterference']>['treatment']):
+    CallEvidence | undefined {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null) return undefined;
+  const opponentSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+  const missingStoppers = opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit));
+  const responseSuit = info.naturalSuit;
+  const fitSuit = info.response === 'Double'
+    ? getOneNtDoubleFit(context, info.opposingSuit)
+    : responseSuit === 'H' || responseSuit === 'S' ? responseSuit : null;
+  return { openerOneNtInterference: {
+    treatment, hcp: context.handFacts.hcp,
+    minimumHcp: system.oneNtOpening === '15-17' ? 15 : 16,
+    response: info.response, opponentSuits, missingStoppers,
+    responseSuit, responseLevel: info.naturalLevel,
+    support: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
+    fitSuit, fitLength: fitSuit === null ? 0 : context.handFacts.lengths[fitSuit],
+  } };
+}
+
+export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext,
+    system: BiddingSystem):
     CallRefinementResult {
   const info = getOneNtInterferenceContinuation(context);
   if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
@@ -78,7 +101,8 @@ export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEv
     isCallAvailableInAuction(call, context.auction)), telemetryLines: [
       fit === null ? 'No four-card fit for responder\'s takeout Double.' :
       `Show the available four-card ${fit} fit at ${wanted}.`,
-  ] };
+  ], callEvidence: oneNtInterferenceEvidence(context,
+    system, 'doubleFit') };
 }
 
 export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalContext,
@@ -94,7 +118,7 @@ export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalC
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: no four-card takeout fit, stopper, and ` +
     `${call === '2NT' ? 'minimum/middle' : 'maximum'} NT opening strength.`,
-  ] };
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'doubleNt') };
 }
 
 export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleEvalContext,
@@ -117,7 +141,7 @@ export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleE
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: nonforcing natural suit, ` +
     `${hcp} HCP and ${support}-card support; Pass only where no modeled improvement fits.`,
-  ] };
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalPass') };
 }
 
 export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
@@ -137,11 +161,11 @@ export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: natural major support with ${support} trumps, ` +
     `${hcp} HCP, and responder's ${info?.naturalLevel ?? '?'}-level action.`,
-  ] };
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'majorRaise') };
 }
 
 export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
-    context: RuleEvalContext): AppliesWhenResult {
+    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
   const info = getOneNtInterferenceContinuation(context);
   const suit = info?.naturalSuit;
   const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
@@ -152,7 +176,7 @@ export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: constructive three-level natural response; ` +
     'prefer 3NT when the opposing suit is stopped and no major fit is present.',
-  ] };
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalThreeNt') };
 }
 
 export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
@@ -169,7 +193,9 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
   } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
     const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
       context.handFacts.lengths[info.naturalSuit] >= 3;
-    success = ! majorFit && ! hasBasicSuitStopper(context, info.opposingSuit);
+    // DONT 2H shows both majors: missing either stopper leaves strain judgment unresolved.
+    const requiredSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+    success = ! majorFit && requiredSuits.some((suit) => !hasBasicSuitStopper(context, suit));
   }
   return { success, telemetryLines: [success ? 'No deterministic natural strain or stopper.' :
     'A selected Pass, suit fit, or notrump description remains available.'] };
@@ -309,13 +335,36 @@ function getJumpOvercallOpenerAction (context: RuleEvalContext): Call | null {
   return second[0]?.bid ?? null;
 }
 
+function jumpOvercallRebidEvidence(context: RuleEvalContext, selectedCall: Call | null):
+    CallEvidence | undefined {
+  const info = getJumpOvercallContinuation(context);
+  if (info === null) return undefined;
+  const responseSuit = info.responseBid === null || info.responseBid.strain === 'NT'
+    ? null : info.responseBid.strain as Suit;
+  const selectedBid = selectedCall === null ? null : parseSuitBid(selectedCall);
+  const selectedSuit = selectedBid === null || selectedBid.strain === 'NT'
+    ? null : selectedBid.strain as Suit;
+  return { openerJumpOvercallRebid: {
+    kind: info.kind, openingSuit: info.opening.strain as Suit,
+    opponentSuit: info.overcall.strain as Suit, responseSuit,
+    responseCall: info.response, hcp: context.handFacts.hcp,
+    supportPoints: context.handFacts.totalPointsWShortage,
+    openingLength: context.handFacts.lengths[info.opening.strain as Suit],
+    responseSupport: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
+    stopped: hasBasicSuitStopper(context, info.overcall.strain as Suit),
+    selectedCall, selectedSuit,
+    selectedLength: selectedSuit === null ? 0 : context.handFacts.lengths[selectedSuit],
+  } };
+}
+
 export function refineJumpOvercallOpenerAction (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const wanted = getJumpOvercallOpenerAction(context);
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
     telemetryLines: [wanted === null
       ? 'No selected natural opener continuation; consult the auction-specific boundary.'
-      : `Selected opener description after a jump overcall: ${wanted}.`] };
+      : `Selected opener description after a jump overcall: ${wanted}.`],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
 }
 
 export function jumpOvercallOpenerContinuationApplies (call: Call, context: RuleEvalContext,
@@ -324,7 +373,8 @@ export function jumpOvercallOpenerContinuationApplies (call: Call, context: Rule
   const success = wanted !== null && wanted === call;
   return { success, telemetryLines: [success
     ? `PASS: ${call} matches the selected response to partner's action over the jump overcall.`
-    : 'FAIL: this action does not match the selected continuation for the current hand.'] };
+    : 'FAIL: this action does not match the selected continuation for the current hand.'],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
 }
 
 export function jumpOvercallOpenerBoundaryApplies (context: RuleEvalContext,
