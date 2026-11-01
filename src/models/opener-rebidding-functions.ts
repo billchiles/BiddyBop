@@ -335,13 +335,36 @@ function getJumpOvercallOpenerAction (context: RuleEvalContext): Call | null {
   return second[0]?.bid ?? null;
 }
 
+function jumpOvercallRebidEvidence(context: RuleEvalContext, selectedCall: Call | null):
+    CallEvidence | undefined {
+  const info = getJumpOvercallContinuation(context);
+  if (info === null) return undefined;
+  const responseSuit = info.responseBid === null || info.responseBid.strain === 'NT'
+    ? null : info.responseBid.strain as Suit;
+  const selectedBid = selectedCall === null ? null : parseSuitBid(selectedCall);
+  const selectedSuit = selectedBid === null || selectedBid.strain === 'NT'
+    ? null : selectedBid.strain as Suit;
+  return { openerJumpOvercallRebid: {
+    kind: info.kind, openingSuit: info.opening.strain as Suit,
+    opponentSuit: info.overcall.strain as Suit, responseSuit,
+    responseCall: info.response, hcp: context.handFacts.hcp,
+    supportPoints: context.handFacts.totalPointsWShortage,
+    openingLength: context.handFacts.lengths[info.opening.strain as Suit],
+    responseSupport: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
+    stopped: hasBasicSuitStopper(context, info.overcall.strain as Suit),
+    selectedCall, selectedSuit,
+    selectedLength: selectedSuit === null ? 0 : context.handFacts.lengths[selectedSuit],
+  } };
+}
+
 export function refineJumpOvercallOpenerAction (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const wanted = getJumpOvercallOpenerAction(context);
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
     telemetryLines: [wanted === null
       ? 'No selected natural opener continuation; consult the auction-specific boundary.'
-      : `Selected opener description after a jump overcall: ${wanted}.`] };
+      : `Selected opener description after a jump overcall: ${wanted}.`],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
 }
 
 export function jumpOvercallOpenerContinuationApplies (call: Call, context: RuleEvalContext,
@@ -350,7 +373,8 @@ export function jumpOvercallOpenerContinuationApplies (call: Call, context: Rule
   const success = wanted !== null && wanted === call;
   return { success, telemetryLines: [success
     ? `PASS: ${call} matches the selected response to partner's action over the jump overcall.`
-    : 'FAIL: this action does not match the selected continuation for the current hand.'] };
+    : 'FAIL: this action does not match the selected continuation for the current hand.'],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
 }
 
 export function jumpOvercallOpenerBoundaryApplies (context: RuleEvalContext,
