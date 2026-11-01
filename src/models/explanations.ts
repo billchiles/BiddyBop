@@ -6623,15 +6623,16 @@ export function getOpenerJumpOvercallRebidLines(result: BidEvalResult, rule: Bid
 export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): string[] {
   if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
   const call = result.normalizedCall;
-  const diagnostic = result.ruleDiagnostics.find((item) =>
-    item.rule.id === 'opener-rebid-after-jump-overcall-natural-suit' &&
-    item.callEvidence?.openerJumpOvercallRebid !== undefined) ??
-    result.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-after-jump-overcall-major-game' &&
-      item.callEvidence?.openerJumpOvercallRebid !== undefined) ??
-    result.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-after-jump-overcall-natural-nt' &&
-      item.callEvidence?.openerJumpOvercallRebid !== undefined);
+  const considered = result.ruleDiagnostics.filter((item) =>
+    item.rule.id.startsWith('opener-rebid-after-jump-overcall-') &&
+    item.callEvidence?.openerJumpOvercallRebid !== undefined);
+  // Cite the rule that actually qualified the selected alternative, not an
+  // unrelated suit rule whose refiner returned no calls.
+  const diagnostic = considered.find((item) => item.candidates.some((candidate) =>
+    candidate.ruleApplies)) ??
+    considered.find((item) => call === '3NT' &&
+      item.rule.id === 'opener-rebid-after-jump-overcall-natural-nt') ??
+    considered[0];
   const evidence = diagnostic?.callEvidence?.openerJumpOvercallRebid ??
     result.ruleDiagnostics.flatMap((item) => item.candidates)
       .find((item) => item.callEvidence?.openerJumpOvercallRebid !== undefined)
