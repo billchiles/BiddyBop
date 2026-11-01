@@ -553,6 +553,39 @@ export interface CallEvidence {
     responseCall: Call;
     currentContract: Call;
   };
+  // Facts retained from the selected opener continuation after 1NT interference.
+  // The applicability checks, not these observations, decide whether the call qualifies.
+  openerOneNtInterference?: {
+    treatment: 'doubleFit' | 'doubleNt' | 'naturalPass' | 'majorRaise' | 'naturalThreeNt';
+    hcp: number;
+    minimumHcp: number;
+    response: Call;
+    opponentSuits: Suit[];
+    missingStoppers: Suit[];
+    responseSuit: Suit | null;
+    responseLevel: number | null;
+    support: number;
+    fitSuit: Suit | null;
+    fitLength: number;
+  };
+  // The A8 refiner selects one descriptive opener call. Preserve its selected
+  // action and the evaluated auction facts even when it removes another call.
+  openerJumpOvercallRebid?: {
+    kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
+      'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
+    openingSuit: Suit;
+    opponentSuit: Suit;
+    responseSuit: Suit | null;
+    responseCall: Call;
+    hcp: number;
+    supportPoints: number;
+    openingLength: number;
+    responseSupport: number;
+    stopped: boolean;
+    selectedCall: Call | null;
+    selectedSuit: Suit | null;
+    selectedLength: number;
+  };
   // Auction observations used to explain opener's response to artificial support bids.
   // Call eligibility and point ranges remain defined by the bidding rules.
   openerArtificialSupportRebid?: {
