@@ -5867,7 +5867,7 @@ function runOpenerInterferenceTeachingTests (): number {
     description: 'DONT two-major stopper: hearts stopped but spades unstopped',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
     north: { S: 'T74', H: 'AK4', D: 'AQ7', C: 'K983' },
-    south: { S: 'Q85', H: 'T72', D: 'K83', C: 'AQJ74' },
+    south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
   });
   const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
   const failed = evaluateUserCall('3NT', board, auction, defaultBiddingSystem);
