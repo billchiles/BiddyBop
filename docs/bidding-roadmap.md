@@ -46,7 +46,11 @@ not a historical progress log or a commitment to model every possible auction.
   claims when the actual fit may be five-four. Retain [rule IDs].
   Add **non-browser** regression tests from the real evaluator through final
   assembled explanation lines for representative supported, rejected, and
-  boundary cases. No automated browser tests or new test infrastructure required.
+  boundary cases. **Do not hardcode exact English sentences or snapshots**:
+  assert structured evaluated facts, nonempty relevant generated reasons, and
+  that those dynamically generated reasons reach the assembled feedback.
+  A narrow hand-fact check may use a suit/value derived from evaluator evidence,
+  never a copied whole sentence. No browser tests or new test infrastructure.
 - [ ] **Q2 — Richer positive instruction and valid alternatives.** Review modeled
   stages in manageable groups, starting with responding/advancing, then rebids
   and direct competitive decisions. Where *both* bids genuinely qualify, use
