@@ -242,3 +242,143 @@ removing bracketed diagnostic rule IDs. Track the outstanding work in the roadma
 - Evidence from the actual 1NT-interference candidate supplies responder's natural/Double meaning, opener HCP, suit fit, and the opposing suit or suits for concise accepted and stopper-related rejected feedback.
 - After a jump overcall, selected Pass, suit, major game, and notrump explanations use the refiner's actual chosen continuation and evaluated HCP, support, length, and stopper. Selective negative feedback distinguishes forcing new suits, negative Doubles, artificial support cuebids, and missing stoppers from unmodeled competitive judgment.
 - Existing complete four-hand practice deals and focused regression cases are used; no new DONT setting, bidding ranges, conventions, or practice buckets were introduced. Normal interactive-feedback and Report play-through remain part of the separate teaching-quality integration review.
+
+## Second-pass instructional-quality findings and Q1–Q4 implementation plan (November 1, 2026)
+
+**Status:** Source-based review and planning only, not a browser play-through and
+not a claim that all cases have been reproduced as actual displayed failures.
+First-pass work has been implemented across opening, direct overcalling, Double,
+balancing, responding, advancing, opener rebid, responder rebid, and
+overcaller/takeout-Doubler rebid. There is no separate modeled advancer-rebid stage.
+Continue to discuss exact changes and commit subject before each coding batch.
+
+### Architecture and terminology agreed for this pass
+
+1. **Bidding evaluator** (`biddingEvaluation.ts` and rule/functions modules):
+   selects agreement/auction rules, refines candidate calls, qualifies them from
+   the actual hand, applies cross-rule suppressions and retains candidate/rule
+   evidence. A nonqualifying tested candidate can explain an actual failed check;
+   a refiner-eliminated call may leave no candidate-level failure evidence.
+2. **Instructional explanation functions** (`explanations.ts`): turn supported
+   candidate facts and selected failed constraints into bridge teaching text. They
+   must not independently infer bidding qualifications from a fresh decision tree.
+3. **Feedback assembly** (now inside `BidPanel.tsx`): decides whether to use
+   supported-call explanation, call-specific rejected feedback, scope guidance or
+   generic unjudged feedback, and collects the corresponding text. Some of this
+   selection should move to a small pure TypeScript function, leaving React to
+   handle input, transcript state and rendering. **No new bidding logic in React.**
+4. **Report button**: private developer/debug clipboard dump for user/developer
+   investigation, not a student-facing lesson report. Preserve hands, auction,
+   agreements, internal identifiers, [rule IDs], explanations and optional
+   telemetry. Its correctness criterion is fidelity to the displayed explanation
+   transcript and explicit recorded-call substitutions, **not** student readability.
+
+### Q1 — Feedback routing and factual correctness (first priority)
+
+**Confirmed source-level integration inconsistency.** In `BidPanel.tsx`,
+`finishBidEntry()` computes `hasCallSpecificFailure` from a hand-written subset
+of negative explanation helpers before deciding whether to invoke
+`buildExplanationLines()`. That full builder collects a larger set, including
+`getConventionalResponderRebidFailureLines`,
+`getOpenerOneNtInterferenceFailureLines`,
+`getOpenerJumpOvercallRebidFailureLines`,
+`getOneNtOvercallerRebidFailureLines`,
+`getWeakTwoDefenseRebidFailureLines`, and other helpers. An unsupported turn
+without any qualified bid can thus select generic feedback without executing
+the later full builder, even when a specific negative explanation exists.
+This mismatch is not necessarily visible on every turn: a supported-status
+turn already takes the full-builder path. **Reproduce selected affected contexts
+before fixing; don't claim every listed helper currently loses feedback.**
+
+**Second source-level inconsistency.** In the initial scope-boundary/no-candidate
+test inside `buildExplanationLines()`, collected
+`responderConventionReasons` and `doublerRebidReasons` are not included in
+the check for existing call-specific reasons, although subsequent branches can
+use them. Broad judgment guidance may therefore override more precise
+rejection feedback in a suitable context.
+
+**Recommended narrow repair:** Collect all appropriate call-specific reasons
+once; reuse that same result to select specific-versus-unjudged feedback, the
+rejection heading, and whether to append a distinct judgment note. Prefer a
+small pure TypeScript explanation-assembly function or similarly minimal
+extraction from the component, without broad architecture changes. Ensure
+the output labels depend on evaluated stage/call semantics, not which helper
+happened to run first. Preserve actual evidence and do not falsely grade
+out-of-coverage choices as wrong.
+
+**Source-identified wording corrections to verify:** avoid duplicated
+"Double negative Double"; change "4M" to natural bridge language; do not assert
+a four-four Stayman fit when responder has five cards and opener four; use
+"hearts/spades/diamonds" in prose rather than bare H/S/D; and identify the
+actual agreed major in Jacoby game-force feedback instead of "spade or heart."
+Keep bracketed rule IDs. Review these in their actual context before patching.
+
+**Tests without browser automation:** From a known complete four-hand deal
+and saved auction, call `evaluateUserCall`, then the *same pure explanation
+assembly function used by BidPanel*. Assert complete lines for a supported
+bid, a specific failed candidate whose explanation was previously bypassed,
+a valid rejected forcing Pass, and a no-candidate judgment boundary. Include
+a case where a call is not judged rather than incorrectly rejected. Keep
+small focused tests and existing `npm run build` / `npm run test:rules`;
+do not introduce a browser or snapshot-testing framework. Verify the Report
+uses the already assembled transcript (and stays debugging-oriented).
+
+### Q2 — Meaningful positive teaching and qualified alternatives
+
+Review the real assembled positive feedback stage by stage, beginning with
+responding/advancing, then opener/responder rebids, overcaller/Doubler rebids
+and direct overcalls/balancing. Teach the student's choice in relation to
+*other bids that genuinely qualify*; use evaluated priorities only as
+preferences, not proof that another supported call is wrong. Examples:
+3NT versus five of a minor; economical suit versus jump; one-level suit
+selection; minor-fit versus major-fit priorities; invitations versus immediate
+game. Emphasize partner's promise, actual HCP/support/stoppers/fit, level,
+forcing status and why the comparison is useful. Straightforward Pass,
+signoff and mandatory transfer completion may need no extra text. No
+gratuitous new practice deals, tests or bidding rules just for coverage.
+
+### Q3 — Plausible negative feedback
+
+Classify each selected candidate context before writing a rejection message:
+(a) a generated and evaluated call failed a *specific* requirement;
+(b) a call was filtered by convention/refiner/cross-rule bidding preference
+and needs that *actual decision* explained when educationally important;
+(c) the partnership has a proved one-round/game-forcing obligation; or
+(d) a legal call requires bridge judgment/out-of-coverage agreement and must
+not be called wrong. Prioritize wrong convention/strain, missing major fit,
+missing suit stopper, natural versus artificial interpretation, and Pass
+during a force. Refiner-filtered calls have no automatic failed-hand evidence;
+persist selective decision facts where truly useful instead of guessing.
+Negative feedback should avoid exhaustive diagnostics from unrelated rules
+and should compare a supported alternative where relevant.
+
+### Q4 — Concision, end-user language and final integration
+
+Check entire assembled explanation for **instructional economy**: hand-specific
+reason, rule meaning/guidance, substituted recorded-call reason, practice note,
+and final takeaway may repeat the same point. Keep substantive teaching
+without stacks of redundant wording. Remove programmer-facing prose such
+as "modeled", "refiner", "scope boundary", "fixture" and "trainer" from
+student-facing guidance where normal bridge language is better. Do not
+strip these from debugging Report fields or source comments. Sample across
+each modeled stage and relevant agreement settings: accepted, rejected,
+supported-but-less-preferred, recorded substitutions, genuine judgment
+limits, and practice ending before real auction/game force completion.
+
+**Testing boundary:** We want normal TypeScript-level evaluation-to-assembled-
+text assertions, not browser automation. A short *manual* on-screen
+check remains useful for scroll behavior and wording appearance, but
+do not create an automated browser-test project. Reports are debug artifacts.
+
+### Priorities and scope
+
+- **P1:** Q1 routing defects and demonstrably inaccurate teaching statements.
+- **P2:** Q2 supported alternatives and Q3 instructive rejections in manageable
+  stage/family batches, with analyses and agreement before coding.
+- **P3:** Q4 clarity, duplication, consistency, captured Report fidelity and
+  final roadmap/documentation reconciliation.
+- **Deferred:** Optional DONT-on/off natural defense is an independent,
+  potentially large cross-stage agreement project after Q1–Q4; fixed DONT
+  stays on for now. Clickable historical calls remain a separate UI enhancement.
+  Avoid re-auditing all bidding qualifications or inventing extra conventions
+  solely for explanation completeness.
