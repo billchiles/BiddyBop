@@ -17,6 +17,7 @@ import { getBidExplanationLines, getCompetitiveResponseAlternativeLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
+         getOpenerOneLevelNewSuitRebidLines, getOpenerTwoLevelNewSuitRebidLines,
          getConventionalResponderRebidLines, getConventionalResponderRebidFailureLines,
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
@@ -6141,6 +6142,118 @@ function runQ2PositiveAlternativeDeliveryTests (): number {
   return failures;
 }
 
+/// Check reciprocal rebid explanations on existing hands through evaluator and feedback.
+/// No exact English is asserted; only qualification, generated teaching and delivery.
+function runQ2RebidAlternativesTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const scenarios: { name: string; auction: string; system: Partial<BiddingSystem>;
+    selected: Call; alternative: Call; stage: 'oneLevel' | 'twoLevel' | 'responder' }[] = [
+    { name: 'diamond repeat versus clubs', auction: '1D Pass 1H Pass 2C',
+      system: {}, selected: '2D', alternative: '2C', stage: 'oneLevel' },
+    { name: 'clubs versus diamond repeat', auction: '1D Pass 1H Pass 2C',
+      system: {}, selected: '2C', alternative: '2D', stage: 'oneLevel' },
+    { name: 'heart repeat versus diamonds', auction: '1H Pass 1S Pass 2D',
+      system: {}, selected: '2H', alternative: '2D', stage: 'oneLevel' },
+    { name: 'diamonds versus heart repeat', auction: '1H Pass 1S Pass 2D',
+      system: {}, selected: '2D', alternative: '2H', stage: 'oneLevel' },
+    { name: 'Standard spades versus heart fit', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'standard' },
+      selected: '2S', alternative: '3H', stage: 'twoLevel' },
+    { name: 'Standard heart fit versus spades', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'standard' },
+      selected: '3H', alternative: '2S', stage: 'twoLevel' },
+    { name: '2/1 spades versus heart fit', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '2S', alternative: '3H', stage: 'twoLevel' },
+    { name: '2/1 heart fit versus spades', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '3H', alternative: '2S', stage: 'twoLevel' },
+    { name: '2/1 notrump versus club fit', auction: '1D Pass 2C Pass 2NT',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '2NT', alternative: '3C', stage: 'twoLevel' },
+    { name: '2/1 club fit versus notrump', auction: '1D Pass 2C Pass 2NT',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '3C', alternative: '2NT', stage: 'twoLevel' },
+    { name: 'heart invitation versus 2NT', auction: '1H Pass 1S Pass 2H Pass 2NT',
+      system: {}, selected: '3H', alternative: '2NT', stage: 'responder' },
+    { name: '2NT versus heart invitation', auction: '1H Pass 1S Pass 2H Pass 2NT',
+      system: {}, selected: '2NT', alternative: '3H', stage: 'responder' },
+    { name: 'spade invitation versus hearts', auction: '1H Pass 1S Pass 2H Pass 3S',
+      system: {}, selected: '3S', alternative: '3H', stage: 'responder' },
+    { name: 'heart invitation versus spades', auction: '1H Pass 1S Pass 2H Pass 3S',
+      system: {}, selected: '3H', alternative: '3S', stage: 'responder' },
+    { name: 'notrump game versus heart game', auction: '1H Pass 1S Pass 2H Pass 3NT',
+      system: {}, selected: '3NT', alternative: '4H', stage: 'responder' },
+    { name: 'heart game versus notrump game', auction: '1H Pass 1S Pass 2H Pass 3NT',
+      system: {}, selected: '4H', alternative: '3NT', stage: 'responder' },
+  ];
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction &&
+      Object.entries(scenario.system).every(([key, value]) =>
+        item.requiredSystem?.[key as keyof BiddingSystem] === value));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q2 rebid practice deal missing: ${scenario.name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const prefix = deal.practiceAuction.slice(0, scenario.stage === 'responder' ? 6 : 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...scenario.system };
+    const result = evaluateUserCall(scenario.selected, board, prefix, system);
+    const qualifiedAlternative = getApplicableCandidateCalls(result).some((item) =>
+      item.call === scenario.alternative && item.ruleApplies);
+    const matched = result.userCallMatchingRules.find((item) =>
+      scenario.stage === 'responder' ? item.id.startsWith('responder-rebid-') :
+      scenario.stage === 'oneLevel' ? item.id.includes('-one-level-new-suit') :
+        item.id.includes('-standard-two-level-new-suit') ||
+        item.id.includes('-two-over-one-new-suit'));
+    const handFacts = getHandFacts(board.deal[scenario.stage === 'responder' ? 'S' : 'N']);
+    const generated = matched === undefined ? [] :
+      scenario.stage === 'responder' ? getNaturalResponderRebidLines(result, matched, handFacts) :
+      scenario.stage === 'oneLevel' ? getOpenerOneLevelNewSuitRebidLines(result, matched) :
+        getOpenerTwoLevelNewSuitRebidLines(result, matched);
+    const delivered = getBidExplanationLines({
+      title: 'Rebid', call: scenario.selected,
+      status: getBiddingTurnStatus(board, prefix, system), result, handFacts,
+      auctionLength: prefix.length, previewLines: [],
+      seatLabel: scenario.stage === 'responder' ? 'South' : 'North',
+      recordedUnjudged: false,
+    });
+    if (!qualifiedAlternative || matched === undefined || generated.length === 0 ||
+        !generated.some((line) => line.includes(scenario.alternative)) ||
+        !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q2 rebid comparison or delivery: ${scenario.name}.`);
+    }
+  }
+  // The matching major game is not invented for a responder who lacks game values.
+  const minimum = deals.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H Pass 1S Pass 2H Pass 2S');
+  checks++;
+  if (minimum === undefined) {
+    failures++;
+    console.error('FAIL Q2 missing minimum responder practice hand.');
+  } else {
+    const board = makeRuleTestBoard(minimum).board;
+    const prefix: Call[] = ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'];
+    const result = evaluateUserCall('2S', board, prefix, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'responder-rebid-two-original-suit-after-minimum-repeat');
+    if (rule === undefined || getApplicableCandidateCalls(result).some((item) =>
+        item.call === '4H' && item.ruleApplies) ||
+        getNaturalResponderRebidLines(result, rule, getHandFacts(board.deal.S))
+          .some((line) => line.includes('4H'))) {
+      failures++;
+      console.error('FAIL Q2 invented a game alternative for minimum responder.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q2 rebid positive alternatives: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Check qualified competitive alternatives, including reciprocal directions,
 /// from the evaluator through the same explanation assembly used by the panel.
 function runCompetitiveResponseAlternativesTests (): number {
@@ -6276,6 +6389,7 @@ const testGroups: (() => number)[] = [
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
   runQ2PositiveAlternativeDeliveryTests,
+  runQ2RebidAlternativesTests,
   runCompetitiveResponseAlternativesTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
