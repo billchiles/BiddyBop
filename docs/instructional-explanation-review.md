@@ -412,3 +412,86 @@ do not create an automated browser-test project. Reports are debug artifacts.
   dynamically generated helper lines arrive in the output. They do not copy
   English sentences or use snapshots. Build and full rule-test CI passed on
   the code branch before this documentation update.
+
+## Q2 source review — responding and advancing positive alternatives (November 2, 2026)
+
+**Status:** Analysis and proposed changes only; no bidding or explanation implementation
+approved or performed in this section. Based on current `master` responding/
+advancing rule, refiner, explanation and existing full-hand practice-deal sources.
+Q2 continues stage by stage after discussing this first selection.
+
+### Already adequate: preserve rather than rewrite
+
+- After a minor opening: four-four majors (bid up the line), equal five-card
+  majors (higher suit first), and the expressly retained longer-diamond
+  alternative with minimum response strength already have refiner evidence
+  and positive explanatory comparison (`minorSuitSelectionText`).
+- Major-opening support: splinter versus Jacoby 2NT, strong new-suit-then-raise
+  versus support fallback, and three-card support routes already explain
+  the specific agreement and many actual alternatives.
+- Responding after a takeout Double of our opening: Jordan 2NT and Redouble
+  are already contrasted in both directions when both qualify.
+- Natural and takeout-Double advances: forcing status, stopper/shape and suit
+  selection already receive evidence-based feedback; a nonforcing Pass is
+  not necessarily graded wrong. Avoid adding general-purpose comparison prose.
+
+### Candidate focused improvements (discuss before coding)
+
+1. **Ordinary response versus a simultaneously qualifying weak/strong jump
+   shift, after a minor or major opening.** Existing exercises include
+   `1C–2H` (6 HCP with six good hearts under weak jump shifts, ordinary 1H
+   also qualifying) and `1C–2H` (18 HCP with five strong hearts under
+   classic strong jump shifts, 1H also qualifying), and `1H–2S` for the
+   analogous major case. The accepted jump-shift helper already explains
+   the ordinary response as a valid alternative; accepting the ordinary
+   one-level response does not reciprocally explain the higher-priority jump.
+   Add a *short, conditional* comparison on the accepted ordinary response,
+   only when the actual jump-shift candidate qualifies under the chosen
+   agreement, identifying weak/preemptive versus strong/game-forcing meaning.
+   Do not say the ordinary natural response is incorrect.
+2. **Simple versus preemptive raise of a one-level suit overcall.** Existing
+   complete exercise `1D–(1S)–Pass–3S` has exactly six support points
+   and four spades; both 3S and 2S qualify and the recorded priority is
+   3S ahead of 2S. The existing preemptive-raise explanation mentions
+   the supported simple raise, but the positive **2S** explanation does
+   not reciprocally discuss 3S. Add a brief conditional comparison when
+   both genuinely qualify; focus on competition/bidding room, not claim
+   2S is wrong or invent vulnerability judgment.
+3. **Strong 2C waiting response versus a positive description.** The
+   `2D` waiting call always remains available, below positive suit and
+   balanced 2NT responses in the rule priority; positive-suit teaching
+   already notes the 2D fallback. The accepted 2D line is mainly generic
+   meaning/guidance and does not identify an *actually qualifying* better
+   description for this hand. A bounded hand-aware comparison is useful
+   only when a positive candidate qualifies (e.g., existing 2C–2H
+   and 2C–3C deals), explaining that 2D remains valid but postpones shape/
+   strength information. Preserve 2D as acceptable.
+4. **Optional lower-priority comparison:** 2C positive suit versus positive
+   balanced 2NT could *both* qualify on a balanced 5-3-3-2 hand with a good
+   five-card suit and 8+ HCP. The suit rule currently ranks above 2NT;
+   first verify an actual qualifying hand and whether this distinction
+   adds meaningful teaching, rather than assuming that every balanced
+   positive response has a better suit alternative.
+5. **Optional advancer contrast without ranking:** A natural one-level
+   new-suit advance (5+ cards, 8–13 HCP) can sometimes qualify alongside
+   1NT (balanced, 8–11 HCP, opener-suit stopper). Neither rule currently
+   establishes a preferred order. At most explain how the calls describe
+   different holdings if both *actually* qualify, without inventing
+   a priority, new agreement, or an unsupported stronger recommendation.
+
+### Implementation/testing boundaries for Q2
+
+- Keep bidding qualification and preference ranks unchanged. Compare only
+  **actual surviving qualified candidate calls** from the evaluator; do not
+  equate a higher rule priority with a universal best bridge bid.
+- Extend the relevant existing positive explanation functions in
+  `explanations.ts`; don't introduce a global alternatives algorithm,
+  add a React-layer teaching decision, or create a new module.
+- Use existing four-hand deals and agreements. The test should verify both
+  calls really qualify, correct relative rank where explicit, and any newly
+  generated comparative explanation reaches shared feedback assembly.
+  **Never assert exact English sentences or snapshots.**
+- Defer broader rejected-call teaching to Q3 and general verbosity/wording
+  cleanup to Q4. Q2's next families after this initial batch are further
+  competitive responding/advancing where specific alternatives genuinely
+  overlap, then opener/responder and overcaller/Doubler rebids.
