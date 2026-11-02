@@ -8,7 +8,8 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
-import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
+import { getBidExplanationLines,
+         getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
@@ -5945,6 +5946,104 @@ function runOpenerInterferenceTeachingTests (): number {
   return failures;
 }
 
+/// The explanation assembler must display the actual helper-generated reasons,
+/// not merely make those helpers available to an independent unit test. Tests
+/// compare current output and structured bidding evidence, never fixed English.
+function runBidExplanationDeliveryTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const system = defaultBiddingSystem;
+  const board = makeRuleTestBoard({
+    description: 'DONT two-major stopper explanation reaches the student',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    north: { S: 'T74', H: 'AK4', D: 'AQ7', C: 'K983' },
+    south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
+  }).board;
+  const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
+  const rejected = evaluateUserCall('3NT', board, auction, system);
+  const failedRule = rejected.ruleDiagnostics.find((item) =>
+    item.rule.id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
+  const evidence = failedRule?.candidates.find((candidate) =>
+    candidate.call === '3NT')?.callEvidence?.openerOneNtInterference;
+  const generated = getOpenerOneNtInterferenceFailureLines(rejected);
+  const delivered = getBidExplanationLines({
+    title: 'Opener rebid', call: '3NT',
+    status: getBiddingTurnStatus(board, auction, system), result: rejected,
+    handFacts: getHandFacts(board.deal.N), auctionLength: auction.length,
+    previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+  });
+  checks++;
+  if (evidence?.missingStoppers.includes('S') !== true || generated.length === 0 ||
+      !generated.every((line) => delivered.includes(line))) {
+    failures++;
+    console.error('FAIL missing-stopper feedback was absent from assembled explanation.');
+  }
+  const game = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1NT 2H 3C Pass 3NT');
+  checks++;
+  if (game === undefined) {
+    failures++;
+    console.error('FAIL no qualifying DONT game deal for feedback delivery.');
+  } else {
+    const gameBoard = makeRuleTestBoard(game).board;
+    const gameAuction = game.practiceAuction.slice(0, 4);
+    const accepted = evaluateUserCall('3NT', gameBoard, gameAuction, system);
+    const qualified = accepted.userCallMatchingRules.find((rule) =>
+      rule.id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
+    const support = qualified === undefined ? [] :
+      getOpenerOneNtInterferenceLines(accepted, qualified);
+    const output = getBidExplanationLines({
+      title: 'Opener rebid', call: '3NT',
+      status: getBiddingTurnStatus(gameBoard, gameAuction, system), result: accepted,
+      handFacts: getHandFacts(gameBoard.deal.N), auctionLength: gameAuction.length,
+      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (qualified === undefined || support.length === 0 ||
+        !support.every((line) => output.includes(line))) {
+      failures++;
+      console.error('FAIL accepted-hand teaching was absent from assembled explanation.');
+    }
+  }
+  const forcing = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1C 2D 2S Pass 3S');
+  checks++;
+  if (forcing === undefined) {
+    failures++;
+    console.error('FAIL no forcing jump-overcall deal for feedback delivery.');
+  } else {
+    const forcingBoard = makeRuleTestBoard(forcing).board;
+    const forcingAuction = forcing.practiceAuction.slice(0, 4);
+    const declined = evaluateUserCall('Pass', forcingBoard, forcingAuction, system);
+    const specific = getOpenerJumpOvercallRebidFailureLines(declined);
+    const output = getBidExplanationLines({
+      title: 'Opener rebid', call: 'Pass',
+      status: getBiddingTurnStatus(forcingBoard, forcingAuction, system),
+      result: declined, handFacts: getHandFacts(forcingBoard.deal.N),
+      auctionLength: forcingAuction.length, previewLines: [],
+      seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (specific.length === 0 || !specific.every((line) => output.includes(line))) {
+      failures++;
+      console.error('FAIL forcing-Pass feedback was absent from assembled explanation.');
+    }
+  }
+  // An unjudged call still produces a neutral transcript without invoking
+  // hand-specific reasons or treating Pass as an evaluator-supported choice.
+  const unjudged = getBidExplanationLines({
+    title: 'Unjudged turn', call: 'Pass', status: { kind: 'noModeledStage' },
+    result: null, handFacts: getHandFacts(board.deal.N),
+    auctionLength: auction.length, previewLines: [], seatLabel: 'North',
+    recordedUnjudged: false,
+  });
+  checks++;
+  if (unjudged.length === 0 || unjudged[0] !== 'Unjudged turn') {
+    failures++;
+    console.error('FAIL genuinely unjudged call did not produce neutral feedback.');
+  }
+  console.log(`${failures} ***FAILURES***. Explanation delivery: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -5976,6 +6075,7 @@ const testGroups: (() => number)[] = [
   runNaturalResponderRebidTeachingTests,
   runConventionalResponderTeachingTests,
   runOpenerInterferenceTeachingTests,
+  runBidExplanationDeliveryTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,
