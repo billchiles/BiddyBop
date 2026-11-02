@@ -2,8 +2,289 @@
 /// The qualification and selection decisions remain in their existing rule functions.
 
 import type { CallEvidence, BidRule, Call } from './bidding-types';
-import type { BidEvalResult, CandidateCallMatch } from './biddingEvaluation';
+import { getApplicableCandidateCalls, type BidEvalResult, type BiddingTurnStatus,
+         type CandidateCallMatch } from './biddingEvaluation';
 import type { HandFacts } from './cards';
+
+///
+/// Call feedback assembly
+///
+/// Bidding rules decide qualification and record the facts. These pure functions
+/// assemble the student-facing feedback, while React handles display and input.
+
+export interface BidExplanationRequest {
+  title: string;
+  call: Call;
+  status: BiddingTurnStatus;
+  result: BidEvalResult | null;
+  handFacts: HandFacts;
+  auctionLength: number;
+  previewLines: string[];
+  seatLabel: string;
+  recordedUnjudged: boolean;
+}
+
+/// All failed-call reasons are collected exactly once per evaluated user call.
+/// The same collection decides feedback routing, wording and boundary guidance.
+export function getBidExplanationLines(request: BidExplanationRequest): string[] {
+  const { title, call, status, result, handFacts, auctionLength,
+    previewLines, seatLabel, recordedUnjudged } = request;
+  const reasons = result === null || result.userCallMatchingRules.length > 0
+    ? [] : collectBidFailureLines(result, handFacts);
+  if (result !== null && (status.kind === 'supported' || reasons.length > 0)) {
+    return buildEvaluatedExplanationLines(title, result, handFacts, auctionLength, status, reasons);
+  }
+  if (previewLines.some((line) => line.startsWith('------------ '))) {
+    return [...previewLines, recordedUnjudged
+      ? `${seatLabel} entered ${call}, as recorded for this practice auction.`
+      : `${seatLabel} entered ${call}. The app did not judge whether this was the best call.`];
+  }
+  return buildUnjudgedCallExplanation(title, call, status);
+}
+
+/// The same hand-specific explanation is used for a student's supported call
+/// and a substituted recorded call within a practice deal.
+export function getMatchedCallExplanationLines(result: BidEvalResult, rule: BidRule,
+    handFacts: HandFacts, auctionLength: number): string[] {
+  const lines: string[] = [];
+  appendMatchedCallExplanation(lines, result, rule, handFacts, auctionLength);
+  return lines;
+}
+
+/// Rule meaning and guidance are also used when previewing an unjudged turn.
+export function getRuleExplanationLines(rule: BidRule, handFacts?: HandFacts,
+    auctionLength?: number): string[] {
+  const lines: string[] = [];
+  appendRuleExplanation(lines, rule, handFacts, auctionLength);
+  return lines;
+}
+
+function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
+  return [
+    ...getOpeningRequirementFailureLines(result),
+    ...getOpeningSelectionFailureLines(result),
+    ...getPreemptOpeningFailureLines(result),
+    ...getTakeoutDoubleFailureLines(result),
+    ...getBalancingDoubleFailureLines(result),
+    ...getBalancingCallFailureLines(result),
+    ...getNaturalOvercallFailureLines(result),
+    ...getWeakTwoOvercallFailureLines(result),
+    ...getDontInitialFailureLines(result),
+    ...getJumpOvercallFailureLines(result),
+    ...getMinorResponseFailureLines(result),
+    ...getMajorSupportFailureLines(result),
+    ...getMajorNoSupportFailureLines(result),
+    ...getResponderJumpShiftFailureLines(result),
+    ...getCompetitiveResponseFailureLines(result),
+    ...getWeakTwoResponseFailureLines(result),
+    ...getJumpResponseFailureLines(result),
+    ...getNaturalAdvanceFailureLines(result),
+    ...getTakeoutAdvanceFailureLines(result),
+    ...getNotrumpPartnerResponseFailureLines(result),
+    ...getStrongTwoCResponseFailureLines(result),
+    ...getDontAdvanceFailureLines(result),
+    ...getJumpAdvanceFailureLines(result),
+    ...getCompetitiveRaiseAdvanceFailureLines(result),
+    ...getCompetitiveNaturalAdvanceFailureLines(result),
+    ...getNegativeDoubleAdvanceFailureLines(result),
+    ...getNaturalSuitOvercallerRebidFailureLines(result),
+    ...getContestedSuitOvercallerRebidFailureLines(result),
+    ...getTakeoutDoublerRebidFailureLines(result),
+    ...getOneNtOvercallerRebidFailureLines(result),
+    ...getWeakTwoDefenseRebidFailureLines(result),
+    ...getOpenerOneNtRebidFailureLines(result),
+    ...getOpenerOneLevelNewSuitRebidFailureLines(result),
+    ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
+    ...getNaturalResponderRebidFailureLines(result),
+    ...getConventionalResponderRebidFailureLines(result),
+    ...getResponderSimpleRaiseFailureLines(result, handFacts),
+    ...getOpenerRaiseRebidFailureLines(result, handFacts),
+    ...getOpenerConventionalRebidFailureLines(result),
+    ...getOpenerGameResponseRebidFailureLines(result),
+    ...getOpenerNegativeDoubleRebidFailureLines(result, handFacts),
+    ...getOpenerForcingCompetitionRebidFailureLines(result),
+    ...getOpenerOneNtInterferenceFailureLines(result),
+    ...getOpenerJumpOvercallRebidFailureLines(result),
+    ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
+    ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
+    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
+    ...getOpenerThreeLevelGameForceRebidFailureLines(result, handFacts),
+  ];
+}
+
+function failureHeading(status: BiddingTurnStatus, call: Call): string {
+  if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
+  const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
+    status.kind === 'noApplicableRule' ? status.stage : null;
+  switch (stage) {
+    case 'opening': return 'Why this opening does not meet the selected requirements:';
+    case 'responding': return 'Why this response does not meet the selected requirements:';
+    case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
+    case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
+    case 'advancing': return 'Why this advance does not meet the selected requirements:';
+    case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
+    case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
+    case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
+    case null: return 'Why this call does not meet the selected requirements:';
+  }
+}
+
+function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
+    handFacts: HandFacts, auctionLength: number, status: BiddingTurnStatus,
+    reasons: string[]): string[] {
+  const lines: string[] = [title];
+  const candidates = getApplicableCandidateCalls(result);
+  const scopeBoundary = result.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
+  if (scopeBoundary !== undefined && candidates.length === 0 && reasons.length === 0) {
+    lines.push('Choosing a bid here requires additional judgment.');
+    appendRuleExplanation(lines, scopeBoundary);
+    lines.push('  The app cannot reliably recommend a particular bid here.');
+  } else if (result.userCallMatchingRules.length === 0) {
+    if (reasons.length > 0) {
+      lines.push(failureHeading(status, result.normalizedCall ?? 'Pass'));
+      lines.push(...reasons);
+    } else {
+      lines.push('This call does not match a recommendation for this hand and auction. ' +
+        'It is not necessarily a wrong bridge call.');
+    }
+    const preferredRule = result.applicableRules.find((rule) => rule.kind !== 'scopeBoundary');
+    if (preferredRule !== undefined) {
+      lines.push('');
+      lines.push('The trainer prefers:');
+      appendRuleExplanation(lines, preferredRule, handFacts, auctionLength);
+    }
+  } else {
+    lines.push('Why this call fits:');
+    for (const rule of result.userCallMatchingRules) {
+      appendMatchedCallExplanation(lines, result, rule, handFacts, auctionLength);
+    }
+  }
+  // A failed, *tested* call is specific evidence; the scope boundary is separate.
+  if (scopeBoundary !== undefined && candidates.length === 0 && reasons.length > 0) {
+    lines.push('');
+    lines.push('Additional auction guidance:');
+    appendRuleExplanation(lines, scopeBoundary);
+    lines.push('  The scope boundary does not recommend Pass.');
+  }
+  lines.push('');
+  lines.push('Calls supported for this hand:');
+  if (candidates.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const candidate of candidates) {
+      lines.push(`- ${candidate.call}: ${candidate.rule.title} [${candidate.rule.id}]`);
+    }
+  }
+  return lines;
+}
+
+function buildUnjudgedCallExplanation(title: string, call: Call,
+                                      status: BiddingTurnStatus): string[] {
+  const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
+  if (status.kind === 'scopeBoundary') {
+    appendRuleExplanation(lines, status.rule);
+    lines.push('The auction may continue; this scope boundary does not recommend Pass.');
+  } else if (status.kind === 'noApplicableRule') {
+    lines.push('The trainer has no recommendation for this hand and auction. ' +
+      'That does not mean your call is wrong.');
+  } else {
+    lines.push('This part of the auction is not covered by the trainer. ' +
+      'You may continue bidding, and later calls may be evaluated.');
+  }
+  return lines;
+}
+
+/// Use one explanation path for the student's supported call and any substituted recorded call.
+/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
+function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
+                                      handFacts: HandFacts, auctionLength: number): void {
+  const handEvidence = getOpeningRequirementSupportLine(result, rule);
+  if (handEvidence !== null) lines.push(handEvidence);
+  lines.push(...getOpeningSelectionSupportLines(result, rule));
+  const preempt = getPreemptOpeningSupportLine(result, rule);
+  if (preempt !== null) lines.push(preempt);
+  const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
+    getBalancingDoubleSupportLine(result, rule) ??
+    getBalancingCallSupportLine(result, rule) ??
+    getDontInitialSupportLine(result, rule) ??
+    getWeakTwoOvercallSupportLine(result, rule) ??
+    getNaturalOvercallSupportLine(result, rule) ??
+    getJumpOvercallSupportLine(result, rule);
+  if (callEvidenceLine !== null) lines.push(callEvidenceLine);
+  lines.push(...getMinorResponseSupportLines(result, rule));
+  lines.push(...getMajorSupportLines(result, rule));
+  lines.push(...getMajorNoSupportLines(result, rule));
+  lines.push(...getResponderJumpShiftLines(result, rule));
+  lines.push(...getCompetitiveResponseLines(result, rule));
+  lines.push(...getWeakTwoResponseLines(result, rule));
+  lines.push(...getJumpResponseLines(result, rule));
+  lines.push(...getNaturalAdvanceLines(result, rule));
+  lines.push(...getTakeoutAdvanceLines(result, rule));
+  lines.push(...getNotrumpPartnerResponseLines(result, rule));
+  lines.push(...getStrongTwoCResponseLines(result, rule));
+  lines.push(...getResponderPreemptiveAdvanceLines(result, rule));
+  lines.push(...getDontAdvanceLines(result, rule));
+  lines.push(...getJumpAdvanceLines(result, rule));
+  lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
+  lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
+  lines.push(...getNegativeDoubleAdvanceLines(result, rule));
+  lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
+  lines.push(...getContestedSuitOvercallerRebidLines(result, rule));
+  lines.push(...getTakeoutDoublerRebidLines(result, rule));
+  lines.push(...getOneNtOvercallerRebidLines(result, rule));
+  lines.push(...getWeakTwoDefenseRebidLines(result, rule));
+  lines.push(...getOpenerOneNtRebidLines(result, rule));
+  lines.push(...getOpenerOneNtInterferenceLines(result, rule));
+  lines.push(...getOpenerJumpOvercallRebidLines(result, rule));
+  lines.push(...getOpenerTwoLevelNewSuitRebidLines(result, rule));
+  lines.push(...getOpenerOneLevelNewSuitRebidLines(result, rule));
+  lines.push(...getNaturalResponderRebidLines(result, rule, handFacts));
+  lines.push(...getConventionalResponderRebidLines(result, rule));
+  lines.push(...getResponderSimpleRaiseSupportLines(result, rule, handFacts));
+  lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerGameResponseRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerNegativeDoubleRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerForcingCompetitionRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerArtificialSupportRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerCompetitiveNaturalNtRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerWeakCompetitiveRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerThreeLevelGameForceRebidLines(result, rule, handFacts));
+  appendRuleExplanation(lines, rule, handFacts, auctionLength);
+}
+
+/// Add the actual hand valuation only where it explains a light one-level opening.  The
+/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
+function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
+                                auctionLength?: number): void {
+  lines.push(`- ${rule.title} [${rule.id}]`);
+  if (rule.meaning !== undefined && rule.meaning !== '') {
+    lines.push(`  Meaning: ${rule.meaning}`);
+  }
+  if ((rule.id === 'open-five-card-major' || rule.id === 'open-convenient-minor') &&
+      handFacts !== undefined && handFacts.hcp < 12 && handFacts.totalPointsWLength >= 12) {
+    lines.push(`  Hand value: ${handFacts.hcp} HCP + ${handFacts.lengthPoints} length ` +
+      `point${handFacts.lengthPoints === 1 ? '' : 's'} = ` +
+      `${handFacts.totalPointsWLength} total points. This meets the trainer's ` +
+      '12-total-point minimum for an ordinary one-level suit opening.');
+    lines.push('  This is a light opening. Some players prefer at least 12 HCP and might ' +
+      'Pass; the trainer recommends opening under its length-point treatment.');
+    if (auctionLength !== undefined && auctionLength <= 1) {
+      const twoLongest = Object.values(handFacts.lengths).sort((a, b) => b - a);
+      const longest = twoLongest[0] ?? 0;
+      const secondLongest = twoLongest[1] ?? 0;
+      const ruleOf20 = handFacts.hcp + longest + secondLongest;
+      lines.push(`  Guideline of 20: ${handFacts.hcp} + ${longest} + ${secondLongest} ` +
+        `= ${ruleOf20} (${ruleOf20 >= 20 ? 'meets' : 'below'} 20). ` +
+        'This is a separate opening-hand guideline.');
+    }
+  }
+  if (rule.guidance !== undefined) {
+    for (const guidanceLine of rule.guidance) {
+      lines.push(`  ${guidanceLine}`);
+    }
+  }
+}
 
 ///
 //// Opening bid explanations
