@@ -315,13 +315,20 @@ Keep bracketed rule IDs. Review these in their actual context before patching.
 
 **Tests without browser automation:** From a known complete four-hand deal
 and saved auction, call `evaluateUserCall`, then the *same pure explanation
-assembly function used by BidPanel*. Assert complete lines for a supported
-bid, a specific failed candidate whose explanation was previously bypassed,
-a valid rejected forcing Pass, and a no-candidate judgment boundary. Include
-a case where a call is not judged rather than incorrectly rejected. Keep
-small focused tests and existing `npm run build` / `npm run test:rules`;
-do not introduce a browser or snapshot-testing framework. Verify the Report
-uses the already assembled transcript (and stays debugging-oriented).
+assembly function used by BidPanel*. Do **not** assert exact English sentences,
+sentence fragments, or snapshots. Instead test that (1) the real evaluation
+records the expected rule/decision and relevant structured fact (for example,
+a missing stopper in suit S); (2) the corresponding helper emits a nonempty,
+specific reason; and (3) the assembled feedback actually includes the
+**dynamically generated** reason, such as by comparing against the helper's
+current returned lines. To check that an actual suit/value was conveyed, prefer
+a domain-derived suit/value token over hardcoded prose, or lightweight
+structured reason metadata only if needed. Cover a supported bid, an actually
+tested failed requirement that was previously bypassed, a forcing Pass, a
+no-candidate judgment boundary, and a genuinely unjudged call. Keep focused
+tests and existing `npm run build` / `npm run test:rules`; no browser or
+snapshot framework. The developer-only Report must copy the already assembled
+transcript without re-evaluating or rewriting instructional text.
 
 ### Q2 — Meaningful positive teaching and qualified alternatives
 
