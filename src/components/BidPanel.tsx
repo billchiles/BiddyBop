@@ -2,59 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
-import { getHandFacts, SEATS, SUITS, type Board, type Hand, type HandFacts, type Seat } from '../models/cards';
+import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
-import { type BidRule, type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
+import { type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
-import { getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
-         getOpeningSelectionFailureLines, getOpeningSelectionSupportLines,
-         getPreemptOpeningSupportLine, getPreemptOpeningFailureLines,
-         getTakeoutDoubleSupportLine, getTakeoutDoubleFailureLines,
-         getBalancingDoubleSupportLine, getBalancingDoubleFailureLines,
-         getBalancingCallSupportLine, getBalancingCallFailureLines,
-         getNaturalOvercallSupportLine, getNaturalOvercallFailureLines,
-         getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
-         getDontInitialSupportLine, getDontInitialFailureLines,
-         getJumpOvercallSupportLine, getJumpOvercallFailureLines,
-         getMinorResponseSupportLines, getMinorResponseFailureLines,
-         getMajorSupportLines, getMajorSupportFailureLines,
-         getMajorNoSupportLines, getMajorNoSupportFailureLines,
-         getResponderJumpShiftLines, getResponderJumpShiftFailureLines,
-         getCompetitiveResponseLines, getCompetitiveResponseFailureLines,
-         getWeakTwoResponseLines, getWeakTwoResponseFailureLines,
-         getJumpResponseLines, getJumpResponseFailureLines,
-         getNaturalAdvanceLines, getNaturalAdvanceFailureLines,
-         getTakeoutAdvanceLines, getTakeoutAdvanceFailureLines,
-         getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
-         getStrongTwoCResponseLines, getStrongTwoCResponseFailureLines,
-         getResponderPreemptiveAdvanceLines,
-         getDontAdvanceLines, getDontAdvanceFailureLines,
-         getJumpAdvanceLines, getJumpAdvanceFailureLines,
-         getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
-         getCompetitiveNaturalAdvanceLines, getCompetitiveNaturalAdvanceFailureLines,
-         getNegativeDoubleAdvanceLines, getNegativeDoubleAdvanceFailureLines,
-         getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
-         getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
-         getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
-         getOneNtOvercallerRebidLines, getOneNtOvercallerRebidFailureLines,
-         getWeakTwoDefenseRebidLines, getWeakTwoDefenseRebidFailureLines,
-         getOpenerOneNtRebidLines, getOpenerOneNtRebidFailureLines,
-         getOpenerOneNtInterferenceLines, getOpenerOneNtInterferenceFailureLines,
-         getOpenerJumpOvercallRebidLines, getOpenerJumpOvercallRebidFailureLines,
-         getOpenerOneLevelNewSuitRebidLines, getOpenerOneLevelNewSuitRebidFailureLines,
-         getOpenerTwoLevelNewSuitRebidLines, getOpenerTwoLevelNewSuitRebidFailureLines,
-         getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
-         getConventionalResponderRebidLines, getConventionalResponderRebidFailureLines,
-         getResponderSimpleRaiseSupportLines, getResponderSimpleRaiseFailureLines,
-         getOpenerRaiseRebidLines, getOpenerRaiseRebidFailureLines,
-         getOpenerConventionalRebidLines, getOpenerConventionalRebidFailureLines,
-         getOpenerGameResponseRebidLines, getOpenerGameResponseRebidFailureLines,
-         getOpenerNegativeDoubleRebidLines, getOpenerNegativeDoubleRebidFailureLines,
-         getOpenerForcingCompetitionRebidLines, getOpenerForcingCompetitionRebidFailureLines,
-         getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
-         getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
-         getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
-         getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines }
+import { getBidExplanationLines, getMatchedCallExplanationLines, getRuleExplanationLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -191,49 +143,11 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const title = `------------ ${getSeatLabel(seat)} ${call} — ${getStageLabel(stage)} ------------`;
     // The next-seat preview already occupies this position in the visible transcript.
     // Commit its exact lines before recording the call, so they never jump between seats.
-    const hasCallSpecificFailure = result !== null &&
-      (getTakeoutDoubleFailureLines(result).length > 0 ||
-       getBalancingDoubleFailureLines(result).length > 0 ||
-       getBalancingCallFailureLines(result).length > 0 ||
-       getNaturalOvercallFailureLines(result).length > 0 ||
-       getJumpOvercallFailureLines(result).length > 0 ||
-       getMinorResponseFailureLines(result).length > 0 ||
-       getMajorSupportFailureLines(result).length > 0 ||
-       getMajorNoSupportFailureLines(result).length > 0 ||
-       getResponderJumpShiftFailureLines(result).length > 0 ||
-       getNaturalAdvanceFailureLines(result).length > 0 ||
-       getTakeoutAdvanceFailureLines(result).length > 0 ||
-       getNotrumpPartnerResponseFailureLines(result).length > 0 ||
-       getDontAdvanceFailureLines(result).length > 0 ||
-       getJumpAdvanceFailureLines(result).length > 0 ||
-       getCompetitiveRaiseAdvanceFailureLines(result).length > 0 ||
-       getCompetitiveNaturalAdvanceFailureLines(result).length > 0 ||
-       getNegativeDoubleAdvanceFailureLines(result).length > 0 ||
-       getNaturalSuitOvercallerRebidFailureLines(result).length > 0 ||
-       getContestedSuitOvercallerRebidFailureLines(result).length > 0 ||
-       getTakeoutDoublerRebidFailureLines(result).length > 0 ||
-       getOpenerOneNtRebidFailureLines(result).length > 0 ||
-       getOpenerOneLevelNewSuitRebidFailureLines(result).length > 0 ||
-       getOpenerTwoLevelNewSuitRebidFailureLines(result).length > 0 ||
-        getNaturalResponderRebidFailureLines(result).length > 0 ||
-        getResponderSimpleRaiseFailureLines(result, handFacts).length > 0 ||
-        getOpenerRaiseRebidFailureLines(result, handFacts).length > 0 ||
-        getOpenerConventionalRebidFailureLines(result).length > 0 ||
-        getOpenerGameResponseRebidFailureLines(result).length > 0 ||
-        getOpenerNegativeDoubleRebidFailureLines(result, handFacts).length > 0 ||
-        getOpenerForcingCompetitionRebidFailureLines(result).length > 0 ||
-        getOpenerArtificialSupportRebidFailureLines(result, handFacts).length > 0 ||
-        getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts).length > 0 ||
-        getOpenerWeakCompetitiveRebidFailureLines(result, handFacts).length > 0 ||
-        getOpenerThreeLevelGameForceRebidFailureLines(result).length > 0);
-    const explanation = (status.kind === 'supported' || hasCallSpecificFailure) && result !== null
-      ? buildExplanationLines(title, result, handFacts, auction.length)
-      : turnGuidance.some((line) => line.startsWith('------------ '))
-        ? [...turnGuidance, correction === null && testDeal !== undefined
-          ? `${getSeatLabel(seat)} entered ${call}, as recorded for this practice auction.`
-          : `${getSeatLabel(seat)} entered ${call}. ` +
-            'The trainer did not judge whether this was the best call.']
-        : buildUnjudgedCallExplanation(title, call, status);
+    const explanation = getBidExplanationLines({
+      title, call, status, result, handFacts, auctionLength: auction.length,
+      previewLines: turnGuidance, seatLabel: getSeatLabel(seat),
+      recordedUnjudged: correction === null && testDeal !== undefined,
+    });
     if (status.kind === 'supported' && result !== null) {
       const intervention = getInterferenceAfterOpening(board.dealer, auction);
       if (stage === 'responding' && intervention !== 'none' &&
@@ -254,7 +168,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
         explanation.push('Reason for the recorded call:');
         for (const rule of matched) {
           if (correction.result !== null) {
-            appendMatchedCallExplanation(explanation, correction.result, rule, handFacts, auction.length);
+            explanation.push(...getMatchedCallExplanationLines(correction.result, rule,
+              handFacts, auction.length));
           }
         }
       } else if (correction.result !== null && status.kind === 'supported') {
@@ -478,7 +393,7 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
         `call, the lesson will still continue with ${practiceStep.recordedCall}.`);
       if (status.kind === 'scopeBoundary') {
         lines.push('Why this turn is not evaluated:');
-        appendRuleExplanation(lines, status.rule);
+        lines.push(...getRuleExplanationLines(status.rule));
       }
     } else {
       switch (status.kind) {
@@ -490,7 +405,7 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
           `${getStageLabel(status.stage)} ------------`,
           `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
           'this auction. The following treatment explains why:');
-        appendRuleExplanation(lines, status.rule);
+        lines.push(...getRuleExplanationLines(status.rule));
         lines.push('This does not recommend Pass or any other particular call.');
         break;
       case 'noApplicableRule':
@@ -537,22 +452,6 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
 /// A legal call outside modeled rule feedback is recorded, not graded as wrong.  Pass may
 /// be expected when the other partnership is describing its hands, but we do not infer that
 /// it is the best call merely because the trainer has no applicable rule.
-function buildUnjudgedCallExplanation(title: string, call: Call,
-                                      status: BiddingTurnStatus): string[] {
-  const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
-  if (status.kind === 'scopeBoundary') {
-    appendRuleExplanation(lines, status.rule);
-    lines.push('The auction may continue; this scope boundary does not recommend Pass.');
-  } else if (status.kind === 'noApplicableRule') {
-    lines.push('The trainer has no recommendation for this hand and auction. ' +
-      'That does not mean your call is wrong.');
-  } else {
-    lines.push('This part of the auction is not covered by the trainer. ' +
-      'You may continue bidding, and later calls may be evaluated.');
-  }
-  return lines;
-}
-
 function getStageLabel(stage: BidStage | null): string {
   switch (stage) {
     case null:
@@ -594,305 +493,6 @@ function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean
     return 'Auction complete';
   }
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;
-}
-
-function buildExplanationLines (title: string, result: BidEvalResult,
-                                handFacts: HandFacts, auctionLength: number): string[] {
-  const lines: string[] = [];
-  const candidates = getApplicableCandidateCalls(result);
-  lines.push(title);
-  const scopeBoundary = result.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
-  const doubleReasons = [
-    ...getTakeoutDoubleFailureLines(result),
-    ...getBalancingDoubleFailureLines(result),
-  ];
-  const balancingReasons = getBalancingCallFailureLines(result);
-  const naturalOvercallReasons = [
-    ...getNaturalOvercallFailureLines(result),
-    ...getWeakTwoOvercallFailureLines(result),
-    ...getDontInitialFailureLines(result),
-  ];
-  const jumpOvercallReasons = getJumpOvercallFailureLines(result);
-  const minorResponseReasons = getMinorResponseFailureLines(result);
-  const majorSupportReasons = getMajorSupportFailureLines(result);
-  const majorNoSupportReasons = getMajorNoSupportFailureLines(result);
-  const jumpShiftReasons = getResponderJumpShiftFailureLines(result);
-  const competitiveResponseReasons = getCompetitiveResponseFailureLines(result);
-  const weakTwoResponseReasons = getWeakTwoResponseFailureLines(result);
-  const jumpResponseReasons = getJumpResponseFailureLines(result);
-  const naturalAdvanceReasons = getNaturalAdvanceFailureLines(result);
-  const takeoutAdvanceReasons = getTakeoutAdvanceFailureLines(result);
-  const notrumpReasons = getNotrumpPartnerResponseFailureLines(result);
-  const strongTwoCReasons = getStrongTwoCResponseFailureLines(result);
-  const dontReasons = getDontAdvanceFailureLines(result);
-  const preemptAdvanceReasons = getJumpAdvanceFailureLines(result);
-  const competitiveRaiseReasons = getCompetitiveRaiseAdvanceFailureLines(result);
-  const competitiveNaturalReasons = getCompetitiveNaturalAdvanceFailureLines(result);
-  const negativeDoubleAdvanceReasons = getNegativeDoubleAdvanceFailureLines(result);
-  const overcallerRebidReasons = getNaturalSuitOvercallerRebidFailureLines(result);
-  const contestedOvercallerReasons = getContestedSuitOvercallerRebidFailureLines(result);
-  const doublerRebidReasons = getTakeoutDoublerRebidFailureLines(result);
-  const oneNtOvercallerReasons = getOneNtOvercallerRebidFailureLines(result);
-  const weakTwoDefenseReasons = getWeakTwoDefenseRebidFailureLines(result);
-  const openerOneNtRebidReasons = getOpenerOneNtRebidFailureLines(result);
-  const openerTwoLevelReasons = getOpenerTwoLevelNewSuitRebidFailureLines(result);
-  const openerNewSuitReasons = getOpenerOneLevelNewSuitRebidFailureLines(result);
-  const responderNaturalReasons = getNaturalResponderRebidFailureLines(result);
-  const responderConventionReasons = getConventionalResponderRebidFailureLines(result);
-  const responderRaiseReasons = getResponderSimpleRaiseFailureLines(result, handFacts);
-  const openerRaiseReasons = getOpenerRaiseRebidFailureLines(result, handFacts);
-  const openerConventionReasons = getOpenerConventionalRebidFailureLines(result);
-  const openerGameReasons = getOpenerGameResponseRebidFailureLines(result);
-  const openerNegativeDoubleReasons = getOpenerNegativeDoubleRebidFailureLines(result, handFacts);
-  const openerCompetitiveReasons = [
-    ...getOpenerForcingCompetitionRebidFailureLines(result),
-    ...getOpenerOneNtInterferenceFailureLines(result),
-    ...getOpenerJumpOvercallRebidFailureLines(result),
-  ];
-  const openerArtificialSupportReasons = getOpenerArtificialSupportRebidFailureLines(result, handFacts);
-  const openerCompetitiveNtReasons = getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts);
-  const openerWeakCompetitiveReasons = getOpenerWeakCompetitiveRebidFailureLines(result, handFacts);
-  const openerThreeLevelGameForceReasons = getOpenerThreeLevelGameForceRebidFailureLines(result);
-  if (scopeBoundary !== undefined && candidates.length === 0 &&
-      doubleReasons.length === 0 && balancingReasons.length === 0 &&
-      naturalOvercallReasons.length === 0 && jumpOvercallReasons.length === 0 &&
-      minorResponseReasons.length === 0 && majorSupportReasons.length === 0 &&
-      majorNoSupportReasons.length === 0 && jumpShiftReasons.length === 0 && competitiveResponseReasons.length === 0 &&
-      weakTwoResponseReasons.length === 0 && jumpResponseReasons.length === 0 &&
-      naturalAdvanceReasons.length === 0 && takeoutAdvanceReasons.length === 0 &&
-      notrumpReasons.length === 0 && strongTwoCReasons.length === 0 && dontReasons.length === 0 &&
-      preemptAdvanceReasons.length === 0 && competitiveRaiseReasons.length === 0 &&
-      competitiveNaturalReasons.length === 0 &&
-      negativeDoubleAdvanceReasons.length === 0 && overcallerRebidReasons.length === 0 &&
-      contestedOvercallerReasons.length === 0 &&
-      oneNtOvercallerReasons.length === 0 && weakTwoDefenseReasons.length === 0 &&
-      openerOneNtRebidReasons.length === 0 && openerNewSuitReasons.length === 0 &&
-       openerTwoLevelReasons.length === 0 && responderNaturalReasons.length === 0 && responderRaiseReasons.length === 0 &&
-       openerRaiseReasons.length === 0 && openerConventionReasons.length === 0 &&
-       openerGameReasons.length === 0 && openerNegativeDoubleReasons.length === 0 &&
-       openerCompetitiveReasons.length === 0 &&
-       openerArtificialSupportReasons.length === 0 &&
-       openerCompetitiveNtReasons.length === 0 &&
-       openerWeakCompetitiveReasons.length === 0 &&
-       openerThreeLevelGameForceReasons.length === 0) {
-    lines.push('Choosing a bid here requires additional judgment.');
-    appendRuleExplanation(lines, scopeBoundary);
-    lines.push('  The app cannot reliably recommend a particular bid here.');
-  } else if (result.userCallMatchingRules.length === 0) {
-    const openingReasons = [
-      ...getOpeningRequirementFailureLines(result),
-      ...getOpeningSelectionFailureLines(result),
-      ...getPreemptOpeningFailureLines(result),
-    ];
-    if (openingReasons.length > 0 || doubleReasons.length > 0 ||
-        balancingReasons.length > 0 || naturalOvercallReasons.length > 0 ||
-        jumpOvercallReasons.length > 0 || minorResponseReasons.length > 0 ||
-        majorSupportReasons.length > 0 || majorNoSupportReasons.length > 0 ||
-        jumpShiftReasons.length > 0 || competitiveResponseReasons.length > 0 ||
-        weakTwoResponseReasons.length > 0 || jumpResponseReasons.length > 0 || naturalAdvanceReasons.length > 0 ||
-        takeoutAdvanceReasons.length > 0 || notrumpReasons.length > 0 || strongTwoCReasons.length > 0 ||
-        dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
-        competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
-        contestedOvercallerReasons.length > 0 || oneNtOvercallerReasons.length > 0 ||
-        weakTwoDefenseReasons.length > 0 ||
-        openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
-        openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0 ||
-        openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-        openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
-        openerCompetitiveReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0) {
-      lines.push(doubleReasons.length > 0
-        ? 'Why this Double does not meet the selected requirements:'
-        : balancingReasons.length > 0
-          ? 'Why this balancing call does not meet the selected requirements:'
-          : minorResponseReasons.length > 0 || majorSupportReasons.length > 0 ||
-            majorNoSupportReasons.length > 0 || jumpShiftReasons.length > 0 ||
-            weakTwoResponseReasons.length > 0 || jumpResponseReasons.length > 0
-            ? 'Why this response does not meet the selected requirements:'
-          : notrumpReasons.length > 0
-            ? 'Why this notrump-partnership call does not meet the selected requirements:'
-          : naturalAdvanceReasons.length > 0 || takeoutAdvanceReasons.length > 0 ||
-            dontReasons.length > 0 || preemptAdvanceReasons.length > 0 ||
-            competitiveRaiseReasons.length > 0 || competitiveNaturalReasons.length > 0 ||
-            negativeDoubleAdvanceReasons.length > 0
-            ? 'Why this advance does not meet the selected requirements:'
-          : naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0
-            ? 'Why this overcall does not meet the selected requirements:'
-            : overcallerRebidReasons.length > 0 || contestedOvercallerReasons.length > 0 ||
-              doublerRebidReasons.length > 0 || oneNtOvercallerReasons.length > 0 ||
-              weakTwoDefenseReasons.length > 0
-            ? 'Why this overcaller rebid does not meet the selected requirements:'
-          : openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 || openerTwoLevelReasons.length > 0
-            ? 'Why this opener rebid does not meet the selected requirements:'
-            : openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-             openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
-              openerCompetitiveReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0
-             ? 'Why this opener rebid does not meet the selected requirements:'
-             : responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0
-             ? 'Why this responder rebid does not meet the selected requirements:'
-             : 'Why this opening does not meet the selected requirements:');
-      lines.push(...openingReasons, ...doubleReasons, ...balancingReasons,
-        ...naturalOvercallReasons, ...jumpOvercallReasons, ...minorResponseReasons,
-        ...majorSupportReasons, ...majorNoSupportReasons, ...jumpShiftReasons,
-        ...competitiveResponseReasons,
-        ...weakTwoResponseReasons, ...jumpResponseReasons,
-        ...naturalAdvanceReasons, ...takeoutAdvanceReasons, ...notrumpReasons, ...strongTwoCReasons,
-        ...dontReasons, ...preemptAdvanceReasons, ...competitiveRaiseReasons,
-        ...competitiveNaturalReasons, ...negativeDoubleAdvanceReasons, ...overcallerRebidReasons,
-        ...contestedOvercallerReasons, ...doublerRebidReasons,
-        ...oneNtOvercallerReasons, ...weakTwoDefenseReasons,
-        ...openerOneNtRebidReasons, ...openerNewSuitReasons, ...openerTwoLevelReasons,
-        ...responderNaturalReasons, ...responderConventionReasons, ...responderRaiseReasons, ...openerRaiseReasons, ...openerConventionReasons,
-        ...openerGameReasons, ...openerNegativeDoubleReasons,
-        ...openerCompetitiveReasons, ...openerArtificialSupportReasons,
-        ...openerCompetitiveNtReasons, ...openerWeakCompetitiveReasons,
-        ...openerThreeLevelGameForceReasons);
-    } else {
-      lines.push('This call does not match a recommendation for this hand and auction. ' +
-        'It is not necessarily a wrong bridge call.');
-    }
-    const preferredRule = result.applicableRules.find((rule) => rule.kind !== 'scopeBoundary');
-    if (preferredRule !== undefined) {
-      lines.push('');
-      lines.push('The trainer prefers:');
-      appendRuleExplanation(lines, preferredRule, handFacts, auctionLength);
-    }
-  } else {
-    lines.push('Why this call fits:');
-    for (const rule of result.userCallMatchingRules) {
-      appendMatchedCallExplanation(lines, result, rule, handFacts, auctionLength);
-    }
-  }
-
-  // Keep the scope boundary after call-specific failures when it adds distinct guidance.
-  // Its broader judgment limits are not themselves evidence that this call is wrong.
-  if (scopeBoundary !== undefined && candidates.length === 0 &&
-      (doubleReasons.length > 0 || balancingReasons.length > 0 ||
-       naturalOvercallReasons.length > 0 || jumpOvercallReasons.length > 0 ||
-       minorResponseReasons.length > 0 || majorSupportReasons.length > 0 ||
-       majorNoSupportReasons.length > 0 || jumpShiftReasons.length > 0 || competitiveResponseReasons.length > 0 ||
-        weakTwoResponseReasons.length > 0 || jumpResponseReasons.length > 0 ||
-       naturalAdvanceReasons.length > 0 || takeoutAdvanceReasons.length > 0 ||
-       notrumpReasons.length > 0 || strongTwoCReasons.length > 0 || dontReasons.length > 0 ||
-       preemptAdvanceReasons.length > 0 || competitiveRaiseReasons.length > 0 ||
-       competitiveNaturalReasons.length > 0 ||
-        negativeDoubleAdvanceReasons.length > 0 || overcallerRebidReasons.length > 0 ||
-        contestedOvercallerReasons.length > 0 || oneNtOvercallerReasons.length > 0 ||
-        weakTwoDefenseReasons.length > 0 ||
-        openerOneNtRebidReasons.length > 0 || openerNewSuitReasons.length > 0 ||
-         openerTwoLevelReasons.length > 0 || responderNaturalReasons.length > 0 || responderConventionReasons.length > 0 || responderRaiseReasons.length > 0 ||
-         openerRaiseReasons.length > 0 || openerConventionReasons.length > 0 ||
-         openerGameReasons.length > 0 || openerNegativeDoubleReasons.length > 0 ||
-          openerCompetitiveReasons.length > 0 || openerArtificialSupportReasons.length > 0 || openerCompetitiveNtReasons.length > 0 || openerWeakCompetitiveReasons.length > 0 || openerThreeLevelGameForceReasons.length > 0)) {
-    lines.push('');
-    lines.push('Additional auction guidance:');
-    appendRuleExplanation(lines, scopeBoundary);
-    lines.push('  The scope boundary does not recommend Pass.');
-  }
-
-  lines.push('');
-  lines.push('Calls supported for this hand:');
-  if (candidates.length === 0) {
-    lines.push('- none');
-  } else {
-    for (const candidate of candidates) {
-      lines.push(`- ${candidate.call}: ${candidate.rule.title} [${candidate.rule.id}]`);
-    }
-  }
-
-  return lines;
-} // buildExplanationLines()
-
-/// Use one explanation path for the student's supported call and any substituted recorded call.
-/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
-function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
-                                      handFacts: HandFacts, auctionLength: number): void {
-  const handEvidence = getOpeningRequirementSupportLine(result, rule);
-  if (handEvidence !== null) lines.push(handEvidence);
-  lines.push(...getOpeningSelectionSupportLines(result, rule));
-  const preempt = getPreemptOpeningSupportLine(result, rule);
-  if (preempt !== null) lines.push(preempt);
-  const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
-    getBalancingDoubleSupportLine(result, rule) ??
-    getBalancingCallSupportLine(result, rule) ??
-    getDontInitialSupportLine(result, rule) ??
-    getWeakTwoOvercallSupportLine(result, rule) ??
-    getNaturalOvercallSupportLine(result, rule) ??
-    getJumpOvercallSupportLine(result, rule);
-  if (callEvidenceLine !== null) lines.push(callEvidenceLine);
-  lines.push(...getMinorResponseSupportLines(result, rule));
-  lines.push(...getMajorSupportLines(result, rule));
-  lines.push(...getMajorNoSupportLines(result, rule));
-  lines.push(...getResponderJumpShiftLines(result, rule));
-  lines.push(...getCompetitiveResponseLines(result, rule));
-  lines.push(...getWeakTwoResponseLines(result, rule));
-  lines.push(...getJumpResponseLines(result, rule));
-  lines.push(...getNaturalAdvanceLines(result, rule));
-  lines.push(...getTakeoutAdvanceLines(result, rule));
-  lines.push(...getNotrumpPartnerResponseLines(result, rule));
-  lines.push(...getStrongTwoCResponseLines(result, rule));
-  lines.push(...getResponderPreemptiveAdvanceLines(result, rule));
-  lines.push(...getDontAdvanceLines(result, rule));
-  lines.push(...getJumpAdvanceLines(result, rule));
-  lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
-  lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
-  lines.push(...getNegativeDoubleAdvanceLines(result, rule));
-  lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
-  lines.push(...getContestedSuitOvercallerRebidLines(result, rule));
-  lines.push(...getTakeoutDoublerRebidLines(result, rule));
-  lines.push(...getOneNtOvercallerRebidLines(result, rule));
-  lines.push(...getWeakTwoDefenseRebidLines(result, rule));
-  lines.push(...getOpenerOneNtRebidLines(result, rule));
-  lines.push(...getOpenerOneNtInterferenceLines(result, rule));
-  lines.push(...getOpenerJumpOvercallRebidLines(result, rule));
-  lines.push(...getOpenerTwoLevelNewSuitRebidLines(result, rule));
-  lines.push(...getOpenerOneLevelNewSuitRebidLines(result, rule));
-  lines.push(...getNaturalResponderRebidLines(result, rule, handFacts));
-  lines.push(...getConventionalResponderRebidLines(result, rule));
-  lines.push(...getResponderSimpleRaiseSupportLines(result, rule, handFacts));
-  lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerGameResponseRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerNegativeDoubleRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerForcingCompetitionRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerArtificialSupportRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerCompetitiveNaturalNtRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerWeakCompetitiveRebidLines(result, rule, handFacts));
-  lines.push(...getOpenerThreeLevelGameForceRebidLines(result, rule, handFacts));
-  appendRuleExplanation(lines, rule, handFacts, auctionLength);
-}
-
-/// Add the actual hand valuation only where it explains a light one-level opening.  The
-/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
-function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
-                                auctionLength?: number): void {
-  lines.push(`- ${rule.title} [${rule.id}]`);
-  if (rule.meaning !== undefined && rule.meaning !== '') {
-    lines.push(`  Meaning: ${rule.meaning}`);
-  }
-  if ((rule.id === 'open-five-card-major' || rule.id === 'open-convenient-minor') &&
-      handFacts !== undefined && handFacts.hcp < 12 && handFacts.totalPointsWLength >= 12) {
-    lines.push(`  Hand value: ${handFacts.hcp} HCP + ${handFacts.lengthPoints} length ` +
-      `point${handFacts.lengthPoints === 1 ? '' : 's'} = ` +
-      `${handFacts.totalPointsWLength} total points. This meets the trainer's ` +
-      '12-total-point minimum for an ordinary one-level suit opening.');
-    lines.push('  This is a light opening. Some players prefer at least 12 HCP and might ' +
-      'Pass; the trainer recommends opening under its length-point treatment.');
-    if (auctionLength !== undefined && auctionLength <= 1) {
-      const twoLongest = Object.values(handFacts.lengths).sort((a, b) => b - a);
-      const longest = twoLongest[0] ?? 0;
-      const secondLongest = twoLongest[1] ?? 0;
-      const ruleOf20 = handFacts.hcp + longest + secondLongest;
-      lines.push(`  Guideline of 20: ${handFacts.hcp} + ${longest} + ${secondLongest} ` +
-        `= ${ruleOf20} (${ruleOf20 >= 20 ? 'meets' : 'below'} 20). ` +
-        'This is a separate opening-hand guideline.');
-    }
-  }
-  if (rule.guidance !== undefined) {
-    for (const guidanceLine of rule.guidance) {
-      lines.push(`  ${guidanceLine}`);
-    }
-  }
 }
 
 interface AuctionRow {
