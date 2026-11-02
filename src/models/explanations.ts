@@ -7,7 +7,7 @@ import { getApplicableCandidateCalls, type BidEvalResult, type BiddingTurnStatus
 import type { HandFacts } from './cards';
 
 ///
-/// Call feedback assembly
+//// Call feedback assembly
 ///
 /// Bidding rules decide qualification and record the facts. These pure functions
 /// assemble the student-facing feedback, while React handles display and input.
