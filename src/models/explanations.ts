@@ -107,7 +107,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getOpenerJumpOvercallRebidFailureLines(result),
     ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
     ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
-    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
+    ...getOpenerWeakCompetitiveRebidFailureLines(result),
     ...getOpenerThreeLevelGameForceRebidFailureLines(result, handFacts),
   ];
 }
