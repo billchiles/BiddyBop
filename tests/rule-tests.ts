@@ -8,7 +8,8 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
-import { getBidExplanationLines, getMinorResponseSupportLines, getMajorNoSupportLines,
+import { getBidExplanationLines, getCompetitiveResponseAlternativeLines,
+         getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
@@ -2637,7 +2638,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
   return failures;
 }
 
-/// B4: an economical forcing new-suit advance after a preemptive jump overcall
+/// An economical forcing new-suit advance after a preemptive jump overcall
 /// requires one overcaller reply.  Test both levels, suit-fit quality, and leakage
 /// into nearby non-jump or competitively interrupted auction contexts.
 function runJumpOvercallForcingAdvanceRebidTests (): number {
@@ -4193,7 +4194,7 @@ function runBalancingAuctionAndDealTests (): number {
   return failures;
 }
 
-/// B1: after responder's simple major raise, answer opener's natural help-suit or balanced
+/// After responder's simple major raise, answer opener's natural help-suit or balanced
 /// game try.  Check the actual context and alternative bids, not just a recorded practice call.
 function runResponderAfterMajorGameTryTests (): number {
   const spadeOpener = { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' };
@@ -4273,7 +4274,7 @@ function runResponderAfterMajorGameTryTests (): number {
   return failures;
 }
 
-/// B2: opener's optional splinter shows a fit and forces to game.  Responder must
+/// Opener's optional splinter shows a fit and forces to game.  Responder must
 /// distinguish it from an ordinary jump shift and from responder's *own* earlier
 /// splinter.  Check both 1m/1M–1new-suit and 1M–2M auctions, including the minor fit.
 function runResponderAfterOpenerSplinterTests (): number {
@@ -4347,7 +4348,7 @@ function runResponderAfterOpenerSplinterTests (): number {
   return failures;
 }
 
-/// B3: responder's original classic strong jump shift (17+ HCP) is game forcing.
+/// Responder's original classic strong jump shift (17+ HCP) is game forcing.
 /// Distinguish it from opener's strong second suit, permit Pass only at game,
 /// and leave uncertain strain or exceptional slam values at an explicit boundary.
 function runResponderAfterStrongJumpShiftTests (): number {
@@ -4446,7 +4447,7 @@ function runResponderAfterStrongJumpShiftTests (): number {
 
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
-/// B5: stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
+/// Stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
 /// require a truthful boundary rather than an invented 3NT/minor game.  Confirm that the
 /// underlying response was itself a qualifying artificial support bid, and that a minimum
 /// opener still has the existing concrete 3m continuation.
@@ -4566,7 +4567,7 @@ function runStrongMinorArtificialSupportTests (): number {
   return failures;
 }
 
-/// B6/B7: slam-control replies require explicit stopping guidance, while an accepted
+/// Slam-control replies require explicit stopping guidance, while an accepted
 /// forcing responder rebid (or balancing Double) must not appear to end real bidding.
 /// Check the preceding actual call against the production evaluator before inferring a force.
 function runLaterStageTerminationGuidanceTests (): number {
@@ -5006,7 +5007,7 @@ function runContinuousAuctionFeedbackTests (): number {
   return failures;
 }
 
-/// R1 regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
+/// Regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
 /// A similar hand with a five-card suit must retain the existing natural suit rebid instead.
 function runStrongTwoCFourFourFourOneBoundaryTests (): number {
   const south = { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' };
@@ -5040,7 +5041,7 @@ function runStrongTwoCFourFourFourOneBoundaryTests (): number {
   return failures;
 }
 
-/// R2 regression: a major opener stronger than the old 21-support-point ceiling must still
+/// Regression: a major opener stronger than the old 21-support-point ceiling must still
 /// be able to bid game, with a short-suit splinter available only under that agreement.
 function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
   const auction: Call[] = ['1H', 'Pass', '2H', 'Pass'];
@@ -5070,7 +5071,7 @@ function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
   return failures;
 }
 
-/// R3 regression: opener normally Passes a nonforcing raise of the original weak preempt.
+/// Regression: opener normally Passes a nonforcing raise of the original weak preempt.
 /// Reuse the existing response fixtures, and guard against leaking into a forcing 2NT inquiry.
 function runOpenerPassAfterPreemptRaiseTests (): number {
   const cases: { auction: Call[]; label: string }[] = [
@@ -5110,7 +5111,7 @@ function runOpenerPassAfterPreemptRaiseTests (): number {
   return failures;
 }
 
-/// R4 regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
+/// Regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
 /// a carefully stopped 3NT option, and judgment guidance without leaking into other rebids.
 function runResponderAfterMinorJumpRepeatTests (): number {
   const minAuction: Call[] = ['1C', 'Pass', '1H', 'Pass', '3C', 'Pass'];
@@ -5301,7 +5302,7 @@ function runThirdAuditRebidTests (): number {
 }
 
 
-/// Guard the two semantic B12 fixes without testing explanation wording: the nonforcing 1NT
+/// Guard the two semantic fixes without testing explanation wording: the nonforcing 1NT
 /// range follows Standard vs 2/1, and a passed responder cannot establish a 2/1 game force.
 function runMajorNoSupportAgreementTests (): number {
   const opening = { S: 'AKQ96', H: 'A43', D: '972', C: '54' };
@@ -5805,7 +5806,7 @@ function runNaturalResponderRebidTeachingTests (): number {
   return failures;
 }
 
-/// Check moved practice exercises and selected R3 evidence through the production evaluator.
+/// Check moved practice exercises and selected evidence through the production evaluator.
 function runConventionalResponderTeachingTests (): number {
   let failures = 0;
   let checks = 0;
@@ -6140,6 +6141,108 @@ function runQ2PositiveAlternativeDeliveryTests (): number {
   return failures;
 }
 
+/// Check qualified competitive alternatives, including reciprocal directions,
+/// from the evaluator through the same explanation assembly used by the panel.
+function runCompetitiveResponseAlternativesTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const scenarios: {
+    deal: RuleTestDeal;
+    chosen: Call;
+    selectedRule: string;
+    alternatives: { call: Call; ruleId: string }[];
+  }[] = [];
+  const naturalMajors = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1C 1D 1H');
+  if (naturalMajors !== undefined) {
+    const alternative = [
+      { call: 'Double' as Call, ruleId: 'respond-over-suit-negative-double' },
+      { call: '1H' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
+      { call: '1S' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
+    ];
+    for (const selected of alternative) scenarios.push({
+      deal: naturalMajors, chosen: selected.call, selectedRule: selected.ruleId,
+      alternatives: alternative.filter((item) => item.call !== selected.call),
+    });
+  }
+  const afterDouble = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H Double Redouble' &&
+    deal.expectedResponseCalls?.some((item) => item.call === '1S'));
+  if (afterDouble !== undefined) {
+    scenarios.push({ deal: afterDouble, chosen: '1S',
+      selectedRule: 'respond-after-double-new-suit-one-level',
+      alternatives: [{ call: 'Redouble', ruleId: 'respond-after-double-redouble-values' }] });
+    scenarios.push({ deal: afterDouble, chosen: 'Redouble',
+      selectedRule: 'respond-after-double-redouble-values',
+      alternatives: [{ call: '1S', ruleId: 'respond-after-double-new-suit-one-level' }] });
+  }
+  const jump = RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H 2S 3C' &&
+    deal.expectedResponseCalls?.length === 3);
+  if (jump !== undefined) {
+    const options = [
+      { call: '3C' as Call, ruleId: 'respond-over-jump-new-suit-three-level' },
+      { call: '3S' as Call, ruleId: 'respond-over-jump-support-cuebid-major' },
+      { call: '4H' as Call, ruleId: 'respond-over-jump-major-game-constructive' },
+    ];
+    for (const selected of options) scenarios.push({
+      deal: jump, chosen: selected.call, selectedRule: selected.ruleId,
+      alternatives: options.filter((item) => item.call !== selected.call),
+    });
+  }
+  checks++;
+  if (scenarios.length !== 8) {
+    failures++;
+    console.error('FAIL competitive alternatives did not find the three existing hands.');
+  }
+  for (const scenario of scenarios) {
+    checks++;
+    const { deal, chosen, alternatives } = scenario;
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(chosen, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === scenario.selectedRule);
+    const qualified = getApplicableCandidateCalls(result);
+    const allSupported = alternatives.every((item) =>
+      qualified.some((candidate) => candidate.call === item.call &&
+        candidate.rule.id === item.ruleId && candidate.ruleApplies));
+    const generated = rule === undefined ? [] : getCompetitiveResponseAlternativeLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Competitive response', call: chosen,
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || !allSupported || generated.length === 0 ||
+        !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL competitive comparison not qualified or delivered for ${deal.practiceAuction.join(' ')} as ${chosen}.`);
+    }
+  }
+  // A negative Double by itself is not grounds to mention an unavailable
+  // one-level natural response. Only real evaluated overlaps yield comparisons.
+  const noOverlap = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1D 1S Double');
+  checks++;
+  if (noOverlap === undefined) {
+    failures++;
+    console.error('FAIL negative-Double no-overlap fixture missing.');
+  } else {
+    const board = makeRuleTestBoard(noOverlap).board;
+    const auction: Call[] = ['1D', '1S'];
+    const result = evaluateUserCall('Double', board, auction, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-over-suit-negative-double');
+    if (rule === undefined || getCompetitiveResponseAlternativeLines(result, rule).length !== 0) {
+      failures++;
+      console.error('FAIL negative-Double comparison invented a natural one-level alternative.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Competitive response alternatives: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -6173,6 +6276,7 @@ const testGroups: (() => number)[] = [
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
   runQ2PositiveAlternativeDeliveryTests,
+  runCompetitiveResponseAlternativesTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,

@@ -218,6 +218,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveResponseLines(result, rule));
   lines.push(...getWeakTwoResponseLines(result, rule));
   lines.push(...getJumpResponseLines(result, rule));
+  lines.push(...getCompetitiveResponseAlternativeLines(result, rule));
   lines.push(...getNaturalAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));
@@ -1490,7 +1491,7 @@ function minorSuitSelectionText(
 }
 
 ///
-//// Strong support for partner's one-level major (B11)
+//// Strong support for partner's one-level major
 ///
 
 const STRONG_MAJOR_NEW_SUIT_IDS = [
@@ -1598,7 +1599,7 @@ function strongMajorSupportLines(result: BidEvalResult, rule: BidRule): string[]
   return [];
 }
 
-/// Diagnose only the attempted B11 treatment. An agreement-disabled rule cannot establish a
+/// Diagnose only the attempted treatment. An agreement-disabled rule cannot establish a
 /// failure, and a refiner's excluded call is not misreported as having failed a hand constraint.
 function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
@@ -1819,7 +1820,7 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
 }
 
 ///
-//// Responses to a major opening without support (B12)
+//// Responses to a major opening without support
 ///
 
 const MAJOR_NO_SUPPORT_IDS = [
@@ -1864,7 +1865,7 @@ function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): strin
     `Bid up the line (${preferred} first); ${other} remains supported.`;
 }
 
-/// Give positive explanations for actual qualifying B12 calls, including the selected forcing
+/// Give positive explanations for actual qualifying calls, including the selected forcing
 /// obligation. Do not infer a game force from a Standard new-suit response.
 export function getMajorNoSupportLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!MAJOR_NO_SUPPORT_IDS.includes(rule.id)) return [];
@@ -1920,7 +1921,7 @@ export function getMajorNoSupportLines(result: BidEvalResult, rule: BidRule): st
 }
 
 /// Explain only the attempted no-support treatment, using evaluated requirements rather than
-/// repeating the rule logic. Support-based routes (B10/B11) retain their own explanations.
+/// repeating the rule logic. Support-based routes retain their own explanations.
 export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   const entered = result.normalizedCall;
@@ -1967,7 +1968,7 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
 
 
 ///
-//// Weak and strong responder jump shifts (B13)
+//// Weak and strong responder jump shifts
 ///
 
 const RESPONDER_JUMP_SHIFT_IDS = [
@@ -2110,7 +2111,7 @@ function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
 
 
 ///
-//// Advancing natural suit overcalls after responder Pass (B14)
+//// Advancing natural suit overcalls after responder Pass
 ///
 
 const NATURAL_ADVANCE_RULES = [
@@ -2384,6 +2385,67 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
     `not a natural suit. Partner must bid again ${id}.`];
 }
 
+/// Compare competing descriptions only when every referenced call actually
+/// qualifies for this hand. A supported alternative is not necessarily wrong.
+function qualifiedResponse(result: BidEvalResult, ruleId: string, call: Call): boolean {
+  return result.ruleDiagnostics.some(({ rule, candidates }) =>
+    rule.id === ruleId && candidates.some((item) => item.call === call && item.ruleApplies));
+}
+
+/// Explain selected genuine overlaps in competitive responder's first action.
+/// The bidding evaluator supplies the qualified alternatives; this adds no new rules.
+export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, rule: BidRule): string[] {
+  const call = result.normalizedCall;
+  if (call === null || !result.userCallMatchingRules.some((item) => item.id === rule.id)) return [];
+  const negativeId = 'respond-over-suit-negative-double';
+  const naturalId = 'respond-over-suit-new-suit-one-level';
+  const redoubleId = 'respond-after-double-redouble-values';
+  const doubledNaturalId = 'respond-after-double-new-suit-one-level';
+  if (rule.id === negativeId && call === 'Double') {
+    const naturalCalls: Call[] = ['1H', '1S'];
+    const alternatives = naturalCalls.filter((item) => qualifiedResponse(result, naturalId, item));
+    if (alternatives.length === 0) return [];
+    const suits = result.ruleDiagnostics.find(({ rule: item }) => item.id === negativeId)
+      ?.candidates.find((item) => item.call === 'Double')
+      ?.callEvidence?.competitiveResponse?.unbidSuits;
+    if (suits === undefined) return [];
+    return [`Natural ${alternatives.join(' or ')} also ${alternatives.length === 1 ? 'qualifies' : 'qualify'}, ` +
+      `but ${call} describes both unbid majors (${suits.map((item) =>
+        `${item.length} ${suitPlural(`1${item.suit}` as Call)}`).join(' and ')}) ` +
+      `rather than choosing one suit immediately [${rule.id}].`];
+  }
+  if (rule.id === naturalId && (call === '1H' || call === '1S') &&
+      qualifiedResponse(result, negativeId, 'Double')) {
+    return [`${call} is a supported natural, forcing suit response. Negative Double also ` +
+      `qualifies here and describes the holdings in both unbid majors, rather than ` +
+      `starting with just ${suitPlural(call)} [${negativeId}].`];
+  }
+  if (rule.id === doubledNaturalId && call === '1S' &&
+      qualifiedResponse(result, redoubleId, 'Redouble')) {
+    return [`Redouble also qualifies to show general strength, but natural 1S immediately ` +
+      `identifies your spade suit and forces opener to bid again [${redoubleId}].`];
+  }
+  if (rule.id === redoubleId && call === 'Redouble' &&
+      qualifiedResponse(result, doubledNaturalId, '1S')) {
+    return [`Natural 1S is also supported and immediately shows the spade suit, while ` +
+      `Redouble shows general strength without identifying a suit [${doubledNaturalId}].`];
+  }
+  const threeCallRules: { call: Call; id: string }[] = [
+    { call: '3C', id: 'respond-over-jump-new-suit-three-level' },
+    { call: '3S', id: 'respond-over-jump-support-cuebid-major' },
+    { call: '4H', id: 'respond-over-jump-major-game-constructive' },
+  ];
+  if (threeCallRules.some((item) => item.call === call && item.id === rule.id) &&
+      threeCallRules.every((item) => qualifiedResponse(result, item.id, item.call))) {
+    return [`All three continuations qualify: 3C naturally shows the long club suit ` +
+      `and forces to game; 3S artificially shows game-going support for opener's ` +
+      `hearts; 4H bids the major-suit game directly. Your ${call} is a supported ` +
+      `way to describe this hand, emphasizing a different feature than the ` +
+      `other choices [${rule.id}].`];
+  }
+  return [];
+}
+
 export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   for (const id of COMPETITIVE_RESPONSE_RULES) {
@@ -2628,7 +2690,7 @@ export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
 }
 
 ///
-//// Advancing takeout Doubles after responder Pass (B15)
+//// Advancing takeout Doubles after responder Pass
 ///
 
 const TAKEOUT_ADVANCE_RULES = [
@@ -2829,7 +2891,7 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
 }
 
 ///
-//// Natural notrump partner responses and advances (B16)
+//// Natural notrump partner responses and advances
 ///
 
 function notrumpPartnerDiagnostic(result: BidEvalResult, ruleId: string) {
@@ -3200,7 +3262,7 @@ function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): st
 }
 
 ///
-//// DONT and preemptive jump-overcall advances (B17)
+//// DONT and preemptive jump-overcall advances
 ///
 
 const DONT_ADVANCE_ID = 'advance-dont-pass-or-correct';
@@ -3368,7 +3430,7 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
 }
 
 ///
-//// Competitive advances after responder raises opener (B18)
+//// Competitive advances after responder raises opener
 ///
 
 const COMPETITIVE_RAISE_PREFIXES = [
@@ -3595,7 +3657,7 @@ export function getCompetitiveRaiseAdvanceFailureLines(result: BidEvalResult): s
 
 
 ///
-//// Competitive advances after responder bids naturally (B19)
+//// Competitive advances after responder bids naturally
 ///
 
 const COMPETITIVE_NATURAL_PREFIXES = [
@@ -3746,7 +3808,7 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
 }
 
 ///
-//// Competitive advances after negative Doubles and Redoubles (B20)
+//// Competitive advances after negative Doubles and Redoubles
 ///
 
 const REDOUBLED_TAKEOUT_ESCAPE_ID =
@@ -3765,7 +3827,7 @@ function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) 
   return { diagnostic, candidate };
 }
 
-/// Explain the actual qualifying B20 treatment, not every alternative that was considered.
+/// Explain the actual qualifying treatment, not every alternative that was considered.
 export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if ((!negativeDoubleAdvanceRule(rule.id) &&
        rule.id !== REDOUBLED_TAKEOUT_ESCAPE_ID) || result.normalizedCall === null) return [];
