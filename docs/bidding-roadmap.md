@@ -32,7 +32,7 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Second-pass instructional quality punch list (Q1–Q4)
 
-- [ ] **Q1 — Correctness and feedback integration (first).** In `BidPanel.tsx`,
+- [x] **Q1 — Correctness and feedback integration (first).** In `BidPanel.tsx`,
   the early `hasCallSpecificFailure` check omits some helpers that
   `buildExplanationLines` later uses; the no-candidate scope-boundary checks
   also omit some collected reasons. Investigate actual affected auctions and
@@ -51,6 +51,12 @@ not a historical progress log or a commitment to model every possible auction.
   that those dynamically generated reasons reach the assembled feedback.
   A narrow hand-fact check may use a suit/value derived from evaluator evidence,
   never a copied whole sentence. No browser tests or new test infrastructure.
+  **Completed:** The shared high-level assembly and rule-meaning helpers are
+  grouped near the top of `explanations.ts`; `BidPanel.tsx` calls them for the
+  student's feedback and recorded-call explanations. The same list of rejected
+  reasons now controls routing, headings and scope guidance. Representative
+  delivery tests compare generated helper lines dynamically and inspect
+  structured stopper evidence; no English snapshots or browser tests.
 - [ ] **Q2 — Richer positive instruction and valid alternatives.** Review modeled
   stages in manageable groups, starting with responding/advancing, then rebids
   and direct competitive decisions. Where *both* bids genuinely qualify, use
