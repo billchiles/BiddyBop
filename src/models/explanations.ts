@@ -3043,7 +3043,6 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
   if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
   const hcp = minorRequirement(candidate, 'hcp');
-  if (hcp === undefined) return [];
   if (rule.id === waitingId) {
     const positive = result.ruleDiagnostics
       .filter(({ rule: item }) => item.id === 'respond-to-2c-w/-positive-suit' ||
@@ -3054,19 +3053,22 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
       .sort((left, right) => (right.rule.priority?.rank ?? 0) -
         (left.rule.priority?.rank ?? 0))[0];
     if (positive === undefined) return [];
+    const positiveHcp = minorRequirement(positive.candidate, 'hcp');
+    if (positiveHcp === undefined) return [];
     if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
       const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
         (item) => item.call === positive.candidate.call);
       if (holding === undefined) return [];
-      return [`The artificial 2D waiting response is supported, but with ${hcp.actual} HCP ` +
+      return [`The artificial 2D waiting response is supported, but with ${positiveHcp.actual} HCP ` +
         `and a good ${holding.length}-card ${suitName(positive.candidate.call)} suit, ` +
         `${positive.candidate.call} is also a qualifying, higher-priority positive response. ` +
         `It describes your suit and game-going values immediately [${positive.rule.id}].`];
     }
-    return [`The artificial 2D waiting response is supported, but with ${hcp.actual} HCP ` +
+    return [`The artificial 2D waiting response is supported, but with ${positiveHcp.actual} HCP ` +
       `and balanced distribution, positive 2NT also qualifies and more directly shows ` +
       `your game-going values [${positive.rule.id}].`];
   }
+  if (hcp === undefined) return [];
   if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
     const balanced = minorRequirement(candidate, 'balanced');
     if (balanced?.passed !== true) return [];
