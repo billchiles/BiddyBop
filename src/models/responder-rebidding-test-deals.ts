@@ -234,10 +234,6 @@ export const RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS: RuleTestDeal[] = 
   },
   {
     description: 'Balanced game values allow 3NT, while the eight-card heart fit is preferred.',
-    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: '3NT is a reasonable ' +
-      'game choice with balanced values, but opener has shown six hearts and ' +
-      'responder holds two, giving an eight-card heart fit. 4H is generally ' +
-      'preferred; this deal follows the modeled 3NT alternative.' }],
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass', '3NT'],
     north: { S: 'Q8', H: 'AKJT83', D: 'K74', C: '65' },
     south: { S: 'AK64', H: 'Q5', D: 'AQ2', C: 'T983' },

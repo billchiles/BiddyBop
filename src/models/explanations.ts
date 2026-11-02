@@ -4995,10 +4995,22 @@ export function getOpenerOneLevelNewSuitRebidLines(result: BidEvalResult, rule: 
   const alternatives = [...new Set(result.ruleDiagnostics.flatMap((item) => item.candidates)
     .filter((item) => item.ruleApplies && item.call !== call &&
       isOpenerOneLevelNewSuitRule(item.rule.id)).map((item) => item.call))];
-  const comparisons = alternatives.length === 0 ? '' :
-    ` Other supported rebids include ${alternatives.slice(0, 3).join(', ')}; ` +
-    `the recorded practice call need not be the only sound choice.`;
-  return [`${forcing} ${explanation}${comparisons} [${id}]`];
+  let comparison = '';
+  const repeatCall = `2${openingSuit}` as Call;
+  const secondCall: Call | null = openingSuit === 'D' && responseSuit === 'H' ? '2C' :
+    openingSuit === 'H' && responseSuit === 'S' ? '2D' : null;
+  if (secondCall !== null && (call === repeatCall || call === secondCall) &&
+      alternatives.includes(call === repeatCall ? secondCall : repeatCall)) {
+    comparison = ` Repeating ${repeatCall} emphasizes your six-card ${own}, while ` +
+      `${secondCall} introduces your four-card second suit. Both describe minimum ` +
+      `hands without promising extra strength; ${secondCall} is not a reverse.`;
+  }
+  const remaining = alternatives.filter((item) =>
+    comparison === '' || (item !== repeatCall && item !== secondCall));
+  const comparisons = remaining.length === 0 ? '' :
+    ` Other supported rebids include ${remaining.slice(0, 3).join(', ')}; ` +
+    `the practice call need not be the only sound choice.`;
+  return [`${forcing} ${explanation}${comparison}${comparisons} [${id}]`];
 }
 
 /// Report only a requirement actually failed by the student's attempted rebid, or a
@@ -5217,12 +5229,33 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
   const other = [...new Set(result.ruleDiagnostics.flatMap((item) => item.candidates)
     .filter((item) => item.ruleApplies && item.call !== call &&
       isOpenerTwoLevelNewSuitRule(item.rule.id)).map((item) => item.call))];
-  const alternatives = other.length > 0 ?
-    ` Other qualifying descriptions include ${other.slice(0, 3).join(', ')}; ` +
+  let comparison = '';
+  if ((call === '2S' || call === '3H') && openingSuit === 'S' &&
+      responseSuit === 'H' &&
+      other.includes(call === '2S' ? '3H' : '2S')) {
+    comparison = ` Repeating 2S emphasizes your six-card spade suit, while 3H ` +
+      `confirms an eight-card heart fit with responder's promised five or more ` +
+      `hearts. Both are useful descriptions; ` +
+      (agreement === 'standard'
+        ? `responder's two-level new suit forced only one round, so 3H does ` +
+          `not by itself establish a game force.`
+        : `the 2/1 game force remains in effect whichever rebid you choose.`);
+  } else if ((call === '2NT' || call === '3C') && openingSuit === 'D' &&
+             responseSuit === 'C' && agreement === 'twoOverOne' &&
+             other.includes(call === '2NT' ? '3C' : '2NT')) {
+    comparison = ` The economical 2NT describes your balanced or semi-balanced ` +
+      `hand in notrump, while 3C confirms support for responder's five-card-or-longer ` +
+      `club suit. Neither changes the established 2/1 game force.`;
+  }
+  const compared = comparison === '' ? [] : openingSuit === 'S' ?
+    ['2S', '3H'] : ['2NT', '3C'];
+  const remaining = other.filter((item) => !compared.includes(item));
+  const alternatives = remaining.length > 0 ?
+    ` Other qualifying descriptions include ${remaining.slice(0, 3).join(', ')}; ` +
       `this need not be the only reasonable rebid.` : '';
   const obligation = agreement === 'twoOverOne' && isGame ?
     ` Game has now been reached, so the original game force is fulfilled.` : '';
-  return [`${forcing} ${reason}${alternatives}${obligation} [${id}]`];
+  return [`${forcing} ${reason}${comparison}${alternatives}${obligation} [${id}]`];
 }
 
 /// A failed qualification is evidence only for the actual attempted call and a rule
@@ -6707,6 +6740,40 @@ export function getNaturalResponderRebidLines(
   // The remaining ordinary 1NT/2NT cases have declarative conditions rather than
   // a dedicated appliesWhen function; qualify them from the rule result, not guessed ranges.
   const accepted = rule.id;
+  const chosen = result.normalizedCall;
+  const repeatedHeartCalls: Call[] = ['2NT', '3H', '3S', '3NT', '4H'];
+  const repeatedHearts = result.ruleDiagnostics.some((item) =>
+    item.rule.id === 'responder-rebid-three-hearts-after-repeated-hearts');
+  if (repeatedHearts && chosen !== null && repeatedHeartCalls.includes(chosen) &&
+      (accepted === 'responder-rebid-2nt-after-minimum-suit-repeat' ||
+       accepted === 'responder-rebid-three-hearts-after-repeated-hearts' ||
+       accepted === 'responder-rebid-three-original-suit-after-minimum-repeat' ||
+       accepted === 'responder-rebid-3nt-after-minimum-suit-repeat' ||
+       accepted === 'responder-rebid-four-hearts-after-repeated-hearts')) {
+    const supported = result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .filter((item) => item.ruleApplies && item.call !== chosen)
+      .map((item) => item.call);
+    if ((chosen === '2NT' && supported.includes('3H')) ||
+        (chosen === '3H' && supported.includes('2NT'))) {
+      return [`Your balanced ${facts.hcp}-HCP hand can invite 3NT with 2NT, while ` +
+        `3H invites game in the known eight-card heart fit (opener has six or more, ` +
+        `and you have ${facts.lengths.H}). The heart fit often favors the suit invitation ${id}.`];
+    }
+    if ((chosen === '3S' && supported.includes('3H')) ||
+        (chosen === '3H' && supported.includes('3S'))) {
+      return [`With ${facts.lengths.S} spades, 3S invites game by emphasizing your ` +
+        `own long suit, while 3H invites in the known eight-card heart fit ` +
+        `(opener has six or more hearts, and you have ${facts.lengths.H}). ` +
+        `Either invitation can be reasonable ${id}.`];
+    }
+    if ((chosen === '3NT' && supported.includes('4H')) ||
+        (chosen === '4H' && supported.includes('3NT'))) {
+      return [`Your balanced ${facts.hcp}-HCP hand can choose 3NT as a legitimate ` +
+        `game, while 4H uses the known eight-card heart fit (opener has six or ` +
+        `more hearts, and you have ${facts.lengths.H}). The established major ` +
+        `fit usually makes 4H attractive, although 3NT can be reasonable ${id}.`];
+    }
+  }
   if (accepted === 'responder-rebid-2nt-after-minimum-1nt' ||
       accepted === 'responder-rebid-3nt-after-minimum-1nt') {
     const invitation = accepted.includes('-2nt-');
