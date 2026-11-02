@@ -2638,7 +2638,7 @@ function runJumpOvercallAdvanceBoundaryTests (): number {
   return failures;
 }
 
-/// an economical forcing new-suit advance after a preemptive jump overcall
+/// An economical forcing new-suit advance after a preemptive jump overcall
 /// requires one overcaller reply.  Test both levels, suit-fit quality, and leakage
 /// into nearby non-jump or competitively interrupted auction contexts.
 function runJumpOvercallForcingAdvanceRebidTests (): number {
@@ -4194,7 +4194,7 @@ function runBalancingAuctionAndDealTests (): number {
   return failures;
 }
 
-/// after responder's simple major raise, answer opener's natural help-suit or balanced
+/// After responder's simple major raise, answer opener's natural help-suit or balanced
 /// game try.  Check the actual context and alternative bids, not just a recorded practice call.
 function runResponderAfterMajorGameTryTests (): number {
   const spadeOpener = { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' };
@@ -4274,7 +4274,7 @@ function runResponderAfterMajorGameTryTests (): number {
   return failures;
 }
 
-/// opener's optional splinter shows a fit and forces to game.  Responder must
+/// Opener's optional splinter shows a fit and forces to game.  Responder must
 /// distinguish it from an ordinary jump shift and from responder's *own* earlier
 /// splinter.  Check both 1m/1M–1new-suit and 1M–2M auctions, including the minor fit.
 function runResponderAfterOpenerSplinterTests (): number {
@@ -4348,7 +4348,7 @@ function runResponderAfterOpenerSplinterTests (): number {
   return failures;
 }
 
-/// responder's original classic strong jump shift (17+ HCP) is game forcing.
+/// Responder's original classic strong jump shift (17+ HCP) is game forcing.
 /// Distinguish it from opener's strong second suit, permit Pass only at game,
 /// and leave uncertain strain or exceptional slam values at an explicit boundary.
 function runResponderAfterStrongJumpShiftTests (): number {
@@ -4447,7 +4447,7 @@ function runResponderAfterStrongJumpShiftTests (): number {
 
 /// Turn status is derived independently of recorded practice length; an unjudged intervening
 /// call is not mistaken for the end of modeled bidding.
-/// stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
+/// Stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
 /// require a truthful boundary rather than an invented 3NT/minor game.  Confirm that the
 /// underlying response was itself a qualifying artificial support bid, and that a minimum
 /// opener still has the existing concrete 3m continuation.
@@ -4567,7 +4567,7 @@ function runStrongMinorArtificialSupportTests (): number {
   return failures;
 }
 
-/// slam-control replies require explicit stopping guidance, while an accepted
+/// Slam-control replies require explicit stopping guidance, while an accepted
 /// forcing responder rebid (or balancing Double) must not appear to end real bidding.
 /// Check the preceding actual call against the production evaluator before inferring a force.
 function runLaterStageTerminationGuidanceTests (): number {
@@ -5007,7 +5007,7 @@ function runContinuousAuctionFeedbackTests (): number {
   return failures;
 }
 
-/// regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
+/// Regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
 /// A similar hand with a five-card suit must retain the existing natural suit rebid instead.
 function runStrongTwoCFourFourFourOneBoundaryTests (): number {
   const south = { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' };
@@ -5041,7 +5041,7 @@ function runStrongTwoCFourFourFourOneBoundaryTests (): number {
   return failures;
 }
 
-/// regression: a major opener stronger than the old 21-support-point ceiling must still
+/// Regression: a major opener stronger than the old 21-support-point ceiling must still
 /// be able to bid game, with a short-suit splinter available only under that agreement.
 function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
   const auction: Call[] = ['1H', 'Pass', '2H', 'Pass'];
@@ -5071,7 +5071,7 @@ function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
   return failures;
 }
 
-/// regression: opener normally Passes a nonforcing raise of the original weak preempt.
+/// Regression: opener normally Passes a nonforcing raise of the original weak preempt.
 /// Reuse the existing response fixtures, and guard against leaking into a forcing 2NT inquiry.
 function runOpenerPassAfterPreemptRaiseTests (): number {
   const cases: { auction: Call[]; label: string }[] = [
@@ -5111,7 +5111,7 @@ function runOpenerPassAfterPreemptRaiseTests (): number {
   return failures;
 }
 
-/// regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
+/// Regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
 /// a carefully stopped 3NT option, and judgment guidance without leaking into other rebids.
 function runResponderAfterMinorJumpRepeatTests (): number {
   const minAuction: Call[] = ['1C', 'Pass', '1H', 'Pass', '3C', 'Pass'];
