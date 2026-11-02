@@ -3053,20 +3053,18 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
       .sort((left, right) => (right.rule.priority?.rank ?? 0) -
         (left.rule.priority?.rank ?? 0))[0];
     if (positive === undefined) return [];
-    const positiveHcp = minorRequirement(positive.candidate, 'hcp');
-    if (positiveHcp === undefined) return [];
     if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
       const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
         (item) => item.call === positive.candidate.call);
       if (holding === undefined) return [];
-      return [`The artificial 2D waiting response is supported, but with ${positiveHcp.actual} HCP ` +
-        `and a good ${holding.length}-card ${suitName(positive.candidate.call)} suit, ` +
-        `${positive.candidate.call} is also a qualifying, higher-priority positive response. ` +
-        `It describes your suit and game-going values immediately [${positive.rule.id}].`];
+      return [`The artificial 2D waiting response is supported, but your good ${holding.length}-card ` +
+        `${suitName(positive.candidate.call)} suit also qualifies for positive ${positive.candidate.call}. ` +
+        `The positive response ranks ahead because it shows your suit and game-going values ` +
+        `immediately [${positive.rule.id}].`];
     }
-    return [`The artificial 2D waiting response is supported, but with ${positiveHcp.actual} HCP ` +
-      `and balanced distribution, positive 2NT also qualifies and more directly shows ` +
-      `your game-going values [${positive.rule.id}].`];
+    return [`The artificial 2D waiting response is supported, but positive 2NT also qualifies ` +
+      `with your balanced hand. The higher-priority 2NT immediately shows your ` +
+      `game-going values [${positive.rule.id}].`];
   }
   if (hcp === undefined) return [];
   if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
