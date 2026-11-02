@@ -6112,10 +6112,7 @@ function runQ2PositiveAlternativeDeliveryTests (): number {
         comparison.length === 0 ||
         !comparison.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q2 supported alternative teaching was not delivered: ${test.name}. ` +
-        `chosenRule=${supported?.id ?? 'none'} preferred=${preferred?.rule.id ?? 'none'} ` +
-        `rank=${preferred?.rule.priority?.rank}/${supported?.priority?.rank} ` +
-        `generated=${JSON.stringify(generated)} delivered=${JSON.stringify(delivered)}.`);
+      console.error(`FAIL Q2 supported alternative teaching was not delivered: ${test.name}.`);
     }
   }
   // Ordinary, without an actually qualifying jump, must not imply that the
