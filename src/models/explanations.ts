@@ -6539,7 +6539,7 @@ export function getNaturalResponderRebidLines(
           case 'gameNt':
             return [`Your balanced ${e.hcp}-HCP hand has game values and the required unbid-suit stoppers for 3NT. ${e.knownMajorFit ? 'Three-card support for opener\'s five-card major also gives an eight-card fit worth considering.' : 'No eight-card opener-major fit is known.'} ${id}`];
           case 'openingSlowRaise':
-            return [`Your ${e.supportPoints} support points and ${e.openingLength}-card support for opener's major qualify for a slower game-forcing raise. Instead of jumping straight to 4M, it leaves room to consider controls and possible slam interest; opener must continue ${id}.`];
+            return [`Your ${e.supportPoints} support points and ${e.openingLength}-card support for opener's major qualify for a slower game-forcing raise. Instead of jumping directly to four of opener's major, it leaves room to consider controls and possible slam interest; opener must continue ${id}.`];
           case 'openingGame': case 'secondMajorGame':
             return [`A known major fit and ${e.supportPoints} support points permit a natural game placement. The original 2/1 game force is satisfied ${id}.`];
           case 'repeatResponse':
@@ -6679,7 +6679,7 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
       if (e.helpSuit === null) {
         return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation; with eight points both answers are judgment choices ${id}.`];
       }
-      return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${e.helpSuit}. ${e.supportPoints === 8 ?
+      return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${suitPlural(`1${e.helpSuit}` as Call)}. ${e.supportPoints === 8 ?
         (e.usefulHelp ? 'Useful honor strength or shortness in that suit favors game.' :
           'Without useful honors or shortness in that suit, stopping below game is reasonable.') :
         (e.decision === 'accept' ? 'Your upper-range support values justify game.' :
@@ -6688,20 +6688,20 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
     case 'ntConvention': {
       const fit = e.fitFound && e.major !== null;
       if (e.decision.startsWith('stayman')) {
-        return [`Stayman ${fit ? `found a four-four fit in ${e.major}` :
-          'did not find a four-four fit with your major'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
+        return [`Stayman ${fit ? `found a major-suit fit in ${e.major === 'H' ? 'hearts' : 'spades'}` :
+          'did not find an eight-card fit in opener\'s shown major'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
           'invite game' : 'choose game'} in ${fit ? 'the agreed major' : 'notrump'}. ${id}`];
       }
       if (e.decision === 'transferPass') {
-        return [`Opener completed the transfer to ${e.major}; your ${e.majorLength}-card major and ${e.hcp} HCP favor playing there at the current level ${id}.`];
+        return [`Opener completed the transfer to ${e.major === 'H' ? 'hearts' : 'spades'}; your ${e.majorLength}-card major and ${e.hcp} HCP favor playing there at the current level ${id}.`];
       }
       if (e.decision === 'transferInviteMajor') {
-        return [`Your ${e.majorLength}-card ${e.major} suit establishes a major fit. With ${e.hcp} HCP, invite game at the three level ${id}.`];
+        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit establishes a major fit. With ${e.hcp} HCP, invite game at the three level ${id}.`];
       }
       if (e.decision === 'transferGameMajor') {
-        return [`Your ${e.majorLength}-card ${e.major} suit and ${e.hcp} HCP support major game. Under these agreements, the natural four-level continuation is available without a Texas transfer ${id}.`];
+        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit and ${e.hcp} HCP support major game. Under these agreements, the natural four-level continuation is available without a Texas transfer ${id}.`];
       }
-      return [`You have ${e.hcp} HCP, balanced distribution and exactly five cards in the transferred ${e.major} suit. ${e.decision === 'transferInviteNt' ?
+      return [`You have ${e.hcp} HCP, balanced distribution and exactly five cards in the transferred ${e.major === 'H' ? 'heart' : 'spade'} suit. ${e.decision === 'transferInviteNt' ?
         '2NT invites game' : '3NT offers game'} while allowing opener to choose the major with three-card support ${id}.`];
     }
     case 'strongTwoC':
@@ -6712,12 +6712,12 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
         return [`Your balanced ${e.hcp}-HCP hand has enough for 3NT opposite opener's 22–24 HCP 2NT rebid; the waiting 2D did not deny useful values ${id}.`];
       }
       if (e.decision === 'positiveMajorGame') {
-        return [`Your positive response showed ${e.majorLength} cards in ${e.major}, and opener raised that major to establish a fit. With ${e.hcp} HCP, place the game in the agreed suit ${id}.`];
+        return [`Your positive response showed ${e.majorLength} cards in ${e.major === 'H' ? 'hearts' : 'spades'}, and opener raised that major to establish a fit. With ${e.hcp} HCP, place the game in the agreed suit ${id}.`];
       }
       return [`Opener has already reached natural 3NT after strong 2C. Your ${e.hcp}-HCP hand can accept that game; stronger holdings may deserve slam investigation ${id}.`];
     case 'majorSupport':
       if (e.decision.startsWith('jacoby2NT')) {
-        return [`Your Jacoby 2NT established a game force and ${e.majorLength}-card support for opener's ${e.major}. ${e.openerRebid === '3NT' ?
+        return [`Your Jacoby 2NT established a game force and ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'}. ${e.openerRebid === '3NT' ?
           "Opener's 3NT describes medium strength by agreement; it is not a notrump contract to Pass." :
           e.openerRebid === `4${e.major}` ? 'Opener has already placed the contract in major game.' :
             "Opener's descriptive rebid keeps the game force active."} ${e.decision.endsWith('returnToGame') ?
@@ -6727,7 +6727,7 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
         'Opener has already bid major game, so Pass is permitted.' :
         "Opener's continuation remains forcing; choose four of the agreed major with ordinary game-going values."} ${id}`];
     case 'openerSplinter':
-      return [`Opener's splinter showed support for your ${e.major} suit and shortness in ${e.shortSuit}; the short-suit bid is not natural. With ${e.supportPoints} support points, return to major game. Honors opposite opener's shortness may be less useful for slam ${id}.`];
+      return [`Opener's splinter showed support for your ${e.major === 'H' ? 'heart' : 'spade'} suit and shortness in ${suitPlural(`1${e.shortSuit}` as Call)}; the short-suit bid is not natural. With ${e.supportPoints} support points, return to major game. Honors opposite opener's shortness may be less useful for slam ${id}.`];
   }
 }
 
@@ -6745,16 +6745,16 @@ export function getConventionalResponderRebidFailureLines(result: BidEvalResult)
     });
     const e = candidate?.callEvidence?.conventionalResponderRebid;
     if (e?.family === 'majorGameTry') {
-      return [`Opener's game try requires a reply in the agreed ${e.major} major. With ${e.supportPoints} support points, choose three or four of that suit [${candidate!.rule.id}].`];
+      return [`Opener's game try requires a reply in the agreed ${e.major === 'H' ? 'heart' : 'spade'} suit. With ${e.supportPoints} support points, choose three or four of that suit [${candidate!.rule.id}].`];
     }
     if (e?.family === 'majorSupport') {
       if (e.decision.startsWith('jacoby2NT') && e.openerRebid === '3NT') {
-        return [`Opener's 3NT after Jacoby 2NT is artificial medium-strength information, not a contract to Pass. The spade or heart game force still applies [${candidate!.rule.id}].`];
+        return [`Opener's 3NT after Jacoby 2NT is artificial medium-strength information, not a contract to Pass. The ${e.major === 'H' ? 'heart' : 'spade'} game force still applies [${candidate!.rule.id}].`];
       }
       return [`The ${e.decision.startsWith('jacoby2NT') ? 'Jacoby 2NT' : 'splinter'} game force is not satisfied below four of the agreed major. Opener has not signed off [${candidate!.rule.id}].`];
     }
     if (e?.family === 'openerSplinter') {
-      return [`Opener's splinter is a forcing description of shortness in ${e.shortSuit}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
+      return [`Opener's splinter is a forcing description of shortness in ${suitPlural(`1${e.shortSuit}` as Call)}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
     }
   }
   // A tested near miss can be explained without inferring an unsupported rule.
@@ -6768,12 +6768,12 @@ export function getConventionalResponderRebidFailureLines(result: BidEvalResult)
     if (e.family === 'majorGameTry' && e.supportPoints >= 6 && e.supportPoints <= 10) {
       return [`With ${e.supportPoints} support points, ${e.helpSuit === null ?
         'opener\'s balanced 2NT invitation leaves judgment at eight points' :
-        `the ${e.helpSuit} help-suit try ${e.usefulHelp ? 'has useful support' : 'lacks useful support'}`}. The selected guidance does not support ${result.normalizedCall} here ${id}.`];
+        `the ${suitPlural(`1${e.helpSuit}` as Call)} help-suit try ${e.usefulHelp ? 'has useful support' : 'lacks useful support'}`}. The selected guidance does not support ${result.normalizedCall} here ${id}.`];
     }
     if (e.family === 'ntConvention' && e.decision.startsWith('stayman') && !e.fitFound &&
         (result.normalizedCall === '3H' || result.normalizedCall === '3S' ||
          result.normalizedCall === '4H' || result.normalizedCall === '4S')) {
-      return [`Stayman did not establish a four-four fit in opener's shown major, so the selected major raise is not supported ${id}.`];
+      return [`Stayman did not establish an eight-card fit in opener's shown major, so the selected major raise is not supported ${id}.`];
     }
     if (e.family === 'strongTwoC' && e.decision === 'passMinimumNt' && e.hcp > 2) {
       return [`Opener's balanced 2NT rebid shows 22–24 HCP. The selected Pass treatment requires at most 2 HCP; you have ${e.hcp} ${id}.`];
@@ -6924,8 +6924,8 @@ export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): s
   const forcing = e.kind === 'negativeDouble' || e.kind === 'newSuitTwo' ||
     e.kind === 'newSuitThree' || e.kind === 'supportCuebid';
   if (call === 'Pass' && forcing) {
-    return [`Responder's ${e.responseCall} ${e.kind === 'negativeDouble' ? 'negative Double' :
-      e.kind === 'supportCuebid' ? 'artificial support cuebid' : 'natural new suit'} is ${e.kind === 'newSuitThree' || e.kind === 'supportCuebid' ? 'game forcing' : 'forcing for one round'}. Pass does not satisfy the force; ${e.selectedCall === null ? 'a further bid needs partnership judgment' : `${e.selectedCall} is a selected descriptive reply`}${id}.`];
+    return [`Responder's ${e.kind === 'negativeDouble' ? 'negative Double' :
+      `${e.responseCall} ${e.kind === 'supportCuebid' ? 'artificial support cuebid' : 'natural new suit'}`} is ${e.kind === 'newSuitThree' || e.kind === 'supportCuebid' ? 'game forcing' : 'forcing for one round'}. Pass does not satisfy the force; ${e.selectedCall === null ? 'a further bid needs partnership judgment' : `${e.selectedCall} is a selected descriptive reply`}${id}.`];
   }
   if (call === '3NT' && forcing && !e.stopped) {
     return [`A natural 3NT response to ${e.responseCall} requires a stopper in the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)}; your hand has no such stopper${id}.`];
