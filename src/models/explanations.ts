@@ -730,6 +730,14 @@ const STRONG_IDS = [
   'overcall-weak-two-takeout-double-strong-hand',
 ];
 
+/// Find an actually qualifying alternative from the specified rule families.
+function qualifyingOvercallAlternative(result: BidEvalResult, ruleIds: string[],
+                                     excluded: Call): Call | null {
+  const candidate = getApplicableCandidateCalls(result).find((item) =>
+    ruleIds.includes(item.rule.id) && item.call !== excluded);
+  return candidate?.call ?? null;
+}
+
 /// Give actual hand evidence for the qualifying treatment, without reporting failures of
 /// another takeout-Double rule when this one succeeds.
 export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -747,19 +755,34 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
     const valuation = shortage > 0
       ? `You have ${hcp.actual} HCP plus ${shortage} shortage points, for ${points.actual} points.`
       : `You have ${points.actual} points including shortage valuation.`;
+    const notrump = qualifyingOvercallAlternative(result,
+      [NATURAL_ONE_NT_OVERCALL_ID, WEAK_TWO_NT_ID], 'Double');
+    const suit = qualifyingOvercallAlternative(result,
+      [...NATURAL_SUIT_OVERCALL_IDS, ...WEAK_TWO_SUIT_IDS], 'Double');
+    const comparison = notrump !== null
+      ? ` ${notrump} also qualifies and directly describes your balanced hand and ` +
+        `stopper; Double asks partner to choose an unbid suit instead.`
+      : suit !== null
+        ? ` ${suit} also qualifies and shows your own ${suitPlural(suit)}; ` +
+          `Double instead lets partner choose among the unbid suits.` : '';
     return `${valuation} That meets the 13-point requirement. You have at least ` +
-      `three cards in each unbid suit [${rule.id}].`;
+      `three cards in each unbid suit.${comparison} [${rule.id}]`;
   }
   if (STRONG_IDS.includes(rule.id)) {
     const hcp = requirements.find((item) => item.kind === 'hcp');
     if (hcp?.kind !== 'hcp' || !hcp.passed) return null;
-    const comparison = rule.id === 'overcall-takeout-double-strong-hand'
-      ? 'A direct suit overcall would understate your strength, while a jump overcall ' +
-        'would promise a weak preemptive hand. '
-      : 'A natural suit overcall would understate your strength. ';
+    const notrump = qualifyingOvercallAlternative(result,
+      [NATURAL_ONE_NT_OVERCALL_ID, WEAK_TWO_NT_ID], 'Double');
+    const comparison = notrump !== null
+      ? `${notrump} also qualifies and directly describes your balanced hand and stopper. ` +
+        `Double instead begins a strong-hand sequence. `
+      : rule.id === 'overcall-takeout-double-strong-hand'
+        ? 'A direct suit overcall would understate your strength, while a jump overcall ' +
+          'would promise a weak preemptive hand. '
+        : 'A natural suit overcall would understate your strength. ';
     return `With ${hcp.actual} HCP, your hand meets the 18+ HCP strong-hand takeout ` +
       `Double requirement. This treatment does not require support for every unbid suit. ` +
-      comparison + `Double first, then show your suit on a later turn [${rule.id}].`;
+      comparison + `Double first, then describe your hand on a later turn [${rule.id}].`;
   }
   return null;
 }
@@ -954,10 +977,14 @@ export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule
     const { candidate, hcp, balanced, stopper } = balancingNtEvidence(result);
     if (candidate?.ruleApplies !== true || hcp === undefined ||
         balanced?.passed !== true || stopper?.passed !== true) return null;
+    const defensivePass = qualifyingOvercallAlternative(result, [BALANCING_PASS_ID], '1NT');
+    const comparison = defensivePass === 'Pass'
+      ? ' Pass is also a supported defensive choice; 1NT keeps your partnership in the ' +
+        'auction rather than defending the opening suit.' : '';
     return `Your ${hcp.actual} HCP and balanced distribution qualify for natural balancing 1NT. ` +
       `You have a stopper in ${namedStopperSuit(stopper)}. Balancing 1NT ` +
-      `shows 12–15 HCP, less than ` +
-      `a natural 1NT overcall in the seat immediately after opener [${rule.id}].`;
+      `shows 12–15 HCP, less than a natural 1NT overcall in the seat immediately ` +
+      `after opener.${comparison} [${rule.id}]`;
   }
   if (rule.id === BALANCING_PASS_ID) {
     const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule.id)
@@ -968,9 +995,13 @@ export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule
       return `With ${pass.hcp} HCP, Pass is supported rather than reopening the auction ` +
         `[${rule.id}].`;
     }
+    const notrump = qualifyingOvercallAlternative(result, [BALANCING_NT_ID], 'Pass');
+    const comparison = notrump === '1NT'
+      ? ' Natural 1NT also qualifies, with a balanced hand and opener-suit stopper, ' +
+        'but it competes rather than defending the existing contract.' : '';
     return `With ${pass.hcp} HCP and ${pass.openerSuitLength} cards in opener's suit, ` +
       `Pass is a supported defensive choice. Reopening may help the opponents ` +
-      `find a better contract [${rule.id}].`;
+      `find a better contract.${comparison} [${rule.id}]`;
   }
   return null;
 }
@@ -1055,6 +1086,17 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
   if (NATURAL_SUIT_OVERCALL_IDS.includes(rule.id)) {
     const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
     if (check === undefined || candidate?.ruleApplies !== true) return null;
+    const double = qualifyingOvercallAlternative(result, [ORDINARY_IDS[0]],
+      result.normalizedCall ?? check.call);
+    const jump = getApplicableCandidateCalls(result).find((item) =>
+      JUMP_OVERCALL_IDS.includes(item.rule.id) &&
+      item.call[1] === check.call[1] && item.call !== check.call);
+    const comparison = double === 'Double'
+      ? ` A takeout Double also qualifies, inviting partner to choose among unbid ` +
+        `suits; ${check.call} instead shows your own ${suitPlural(check.call)}.` : '';
+    const jumpComparison = jump !== undefined
+      ? ` ${jump.call} is also supported as a weak jump overcall, taking away more ` +
+        `bidding room; ${check.call} introduces the suit economically.` : '';
     if (check.level === 1 && strength !== undefined) {
       const strengthText = strength.exceptionalSeven
         ? `Your ${strength.hcp} HCP qualify under the excellent-suit exception to the normal 8–17 ` +
@@ -1062,12 +1104,14 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
         : `Your ${strength.hcp} HCP meet the normal 8–17 HCP range. `;
       return strengthText + `Your ${check.length}-card ${suitName(result.normalizedCall ?? check.call)} ` +
         `suit qualifies${check.good ? ' by honor quality' : ' by having at least six cards'}. ` +
-        `A one-level overcall does not promise opening strength [${rule.id}].`;
+        `A one-level overcall does not promise opening strength.${comparison}` +
+        `${jumpComparison} [${rule.id}]`;
     }
     if (check.level === 2 && strength?.passed === true) {
       return `Your ${strength.hcp} HCP and good ${check.length}-card ` +
         `${suitName(result.normalizedCall ?? check.call)} suit meet the ${strength.min}–17 HCP ` +
-        `requirement for this natural two-level overcall [${rule.id}].`;
+        `requirement for this natural two-level overcall.${comparison}${jumpComparison} ` +
+        `[${rule.id}]`;
     }
     return null;
   }
@@ -1075,10 +1119,14 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
     const { candidate, hcp, balanced, stopper } = naturalOneNtOvercallEvidence(result);
     if (candidate?.ruleApplies !== true || hcp === undefined ||
         balanced?.passed !== true || stopper?.passed !== true) return null;
+    const double = qualifyingOvercallAlternative(result,
+      [...ORDINARY_IDS, ...STRONG_IDS], '1NT');
+    const comparison = double === 'Double'
+      ? ' Takeout Double also qualifies, but asks partner to choose an unbid suit ' +
+        'rather than describing your balanced hand and stopper directly.' : '';
     return `Your ${hcp.actual} HCP and balanced distribution meet the 15–18 HCP ` +
       `requirement for a natural 1NT overcall. You have a stopper in ` +
-      `${namedStopperSuit(stopper)} ` +
-      `[${rule.id}].`;
+      `${namedStopperSuit(stopper)}.${comparison} [${rule.id}]`;
   }
   return null;
 }
@@ -1287,11 +1335,18 @@ export function getJumpOvercallSupportLine(result: BidEvalResult, rule: BidRule)
     return null;
   }
   const range = strengthRange(hcp);
+  const economical = getApplicableCandidateCalls(result).find((item) =>
+    NATURAL_SUIT_OVERCALL_IDS.includes(item.rule.id) &&
+    item.call[1] === result.normalizedCall?.[1] &&
+    item.call !== result.normalizedCall);
+  const comparison = economical === undefined ? '' :
+    ` ${economical.call} also qualifies, showing your ${suitPlural(economical.call)} ` +
+    `economically and leaving partner more room to bid.`;
   return `${result.normalizedCall} is a jump overcall: a cheaper bid in that suit was available. ` +
     `Your ${check.requiredLength}-card ${suitName(result.normalizedCall)} suit has ` +
     `${JUMP_OVERCALL_HONORS}, and your ${hcp.actual} HCP meet the ${range} ` +
     `requirement. This jump is preemptive, showing limited strength and taking away ` +
-    `bidding room from the opponents [${rule.id}].`;
+    `bidding room from the opponents.${comparison} [${rule.id}]`;
 }
 
 /// A refinement failure can establish suit length or quality; HCP is explained only if the
