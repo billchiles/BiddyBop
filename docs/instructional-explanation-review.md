@@ -389,3 +389,26 @@ do not create an automated browser-test project. Reports are debug artifacts.
   stays on for now. Clickable historical calls remain a separate UI enhancement.
   Avoid re-auditing all bidding qualifications or inventing extra conventions
   solely for explanation completeness.
+
+## Q1 implementation disposition (November 2, 2026)
+
+- **Completed:** Extracted the main explanation assembly from `BidPanel.tsx` into
+  the top-level `Call feedback assembly` section of `explanations.ts`, preserving
+  the original helper functions underneath. No additional source module was
+  created; the existing long file remains a single organized TypeScript module.
+- All 48 relevant negative-feedback helpers now feed one ordered collection,
+  used for detailed-vs-unjudged selection, the rejection heading based on the
+  actual bidding stage, and distinct judgment-boundary guidance. React handles
+  input/transcript/display rather than deciding which evidence to teach.
+- The same shared explanation functions are used for substituted practice
+  calls and next-turn rule guidance; the Report remains the existing developer
+  debugging clipboard capture and is not a student-facing lesson artifact.
+- Corrected selected clear wording mistakes (duplicated negative Double,
+  placeholder 4M, Stayman fit described too narrowly, and exposed suit symbols
+  in selected conventional rebids). Broader teaching and terminology polish
+  remain in Q2–Q4.
+- New tests follow an evaluator result into the **same assembly function used
+  by the UI**, check structured missing-spade-stopper evidence, and assert that
+  dynamically generated helper lines arrive in the output. They do not copy
+  English sentences or use snapshots. Build and full rule-test CI passed on
+  the code branch before this documentation update.
