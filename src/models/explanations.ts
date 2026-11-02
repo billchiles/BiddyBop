@@ -1354,6 +1354,8 @@ export function getMinorResponseSupportLines(result: BidEvalResult, rule: BidRul
     if (selection !== undefined) {
       lines.push(minorSuitSelectionText(selection, result.normalizedCall) + ` [${rule.id}]`);
     }
+    const jumpAlternative = qualifyingResponderJumpShift(result, rule);
+    if (jumpAlternative !== null) lines.push(jumpAlternative);
     return lines;
   }
   if (MINOR_NT_IDS.includes(rule.id) && hcp !== undefined) {
@@ -1878,11 +1880,14 @@ export function getMajorNoSupportLines(result: BidEvalResult, rule: BidRule): st
     const suppressedOneNt = result.ruleDiagnostics.find((item) =>
       (item.rule.id === MAJOR_NO_SUPPORT_IDS[3] || item.rule.id === MAJOR_NO_SUPPORT_IDS[5]) &&
       item.callEvidence?.suppressedBy === entered);
-    return [`With ${hcp.actual} HCP, ${suit.actual} spades, and no heart fit, ` +
+    const lines = [`With ${hcp.actual} HCP, ${suit.actual} spades, and no heart fit, ` +
       `respond 1S. This natural new-suit response is forcing for one round, not to game. ` +
       `Opener must bid again without interference.` +
       (suppressedOneNt === undefined ? '' : ' Show the four-card-or-longer spade suit before using 1NT.') +
       ` [${rule.id}].`];
+    const jumpAlternative = qualifyingResponderJumpShift(result, rule);
+    if (jumpAlternative !== null) lines.push(jumpAlternative);
+    return lines;
   }
   if (rule.id === MAJOR_NO_SUPPORT_IDS[1] || rule.id === MAJOR_NO_SUPPORT_IDS[2]) {
     const suit = minorRequirement(candidate, 'suitLength');
@@ -2013,6 +2018,32 @@ export function getResponderJumpShiftLines(result: BidEvalResult, rule: BidRule)
       `communicates the exceptional strength and game commitment [${rule.id}].`);
   }
   return lines;
+}
+
+/// Compare a supported ordinary response with the same-suit jump shift only when
+/// that jump really qualified and outranks the ordinary call. Its refiner already
+/// established suit quality, length and whether this is the weak or strong treatment.
+function qualifyingResponderJumpShift(result: BidEvalResult, ordinaryRule: BidRule): string | null {
+  const ordinaryCall = result.normalizedCall;
+  if (ordinaryCall === null) return null;
+  for (const ruleId of RESPONDER_JUMP_SHIFT_IDS) {
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+    const selection = diagnostic?.callEvidence?.jumpShift;
+    if (selection?.ordinaryCall !== ordinaryCall || selection.selectedCall === null ||
+        (diagnostic?.rule.priority?.rank ?? 0) <= (ordinaryRule.priority?.rank ?? 0)) continue;
+    const jump = diagnostic?.candidates.find((item) =>
+      item.call === selection.selectedCall && item.ruleApplies);
+    const chosen = selection.considered.find((item) => item.call === jump?.call);
+    if (jump === undefined || chosen === undefined) continue;
+    const kind = selection.treatment === 'weak'
+      ? 'a weak, nonforcing preemptive jump shift'
+      : 'a classic strong, game-forcing jump shift with slam interest';
+    return `${ordinaryCall} remains a supported natural response. Your ${selection.selectedCall} ` +
+      `also qualifies with ${chosen.length} ${suitPlural(selection.selectedCall)} and is ` +
+      `preferred under the selected agreement: it immediately shows ${kind} ` +
+      `[${diagnostic!.rule.id}].`;
+  }
+  return null;
 }
 
 /// Diagnose only an actually attempted single jump covered by the selected agreement.
@@ -2178,9 +2209,18 @@ export function getNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): st
         (simple ? ' A simple raise also qualifies, but conveys less preemptive pressure.' : '')];
     }
     if (rule.id.includes('simple-raise')) {
+      const jumpCall = `3${call.slice(1)}` as Call;
+      const alternative = rule.id === 'advance-one-level-suit-overcall-simple-raise'
+        ? result.ruleDiagnostics.find(({ rule: item, candidates }) =>
+          item.id === 'advance-one-level-suit-overcall-preemptive-raise' &&
+          candidates.some((item) => item.call === jumpCall && item.ruleApplies))
+        : undefined;
+      const comparison = alternative === undefined ? '' :
+        ` ${jumpCall} also qualifies and ranks ahead with your ${support.actual}-card fit: ` +
+        'the preemptive jump takes away more bidding room. Your simple raise remains sound.';
       return [base + `${call} qualifies as a constructive, nonforcing raise. ` +
         `Partner may Pass; this is ${call[0] === '3' ? 'a single raise of a two-level overcall' :
-          'not the stronger forcing cuebid'} ${id}.`];
+          'not the stronger forcing cuebid'}.` + comparison + ` ${id}.`];
     }
   }
   if (hcp !== undefined && balanced?.passed === true && stopper?.passed === true) {
@@ -2996,12 +3036,36 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
 /// positive suit and balanced responses. Check only facts supplied by the evaluator.
 ///
 export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule): string[] {
-  if (rule.id !== 'respond-to-2c-w/-positive-suit' &&
+  const waitingId = 'respond-to-2c-w/-2d-waiting';
+  if (rule.id !== waitingId && rule.id !== 'respond-to-2c-w/-positive-suit' &&
       rule.id !== 'respond-to-2c-w/-2nt-positive-balanced') return [];
   const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
   if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
   const hcp = minorRequirement(candidate, 'hcp');
+  if (rule.id === waitingId) {
+    const positive = result.ruleDiagnostics
+      .filter(({ rule: item }) => item.id === 'respond-to-2c-w/-positive-suit' ||
+        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
+      .flatMap(({ rule: item, candidates, callEvidence }) =>
+        candidates.filter((item) => item.ruleApplies)
+          .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })))
+      .sort((left, right) => (right.rule.priority?.rank ?? 0) -
+        (left.rule.priority?.rank ?? 0))[0];
+    if (positive === undefined) return [];
+    if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
+      const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
+        (item) => item.call === positive.candidate.call);
+      if (holding === undefined) return [];
+      return [`The artificial 2D waiting response is supported, but your good ${holding.length}-card ` +
+        `${suitName(positive.candidate.call)} suit also qualifies for positive ${positive.candidate.call}. ` +
+        `The positive response ranks ahead because it shows your suit and game-going values ` +
+        `immediately [${positive.rule.id}].`];
+    }
+    return [`The artificial 2D waiting response is supported, but positive 2NT also qualifies ` +
+      `with your balanced hand. The higher-priority 2NT immediately shows your ` +
+      `game-going values [${positive.rule.id}].`];
+  }
   if (hcp === undefined) return [];
   if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
     const balanced = minorRequirement(candidate, 'balanced');
