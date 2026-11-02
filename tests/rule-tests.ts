@@ -8,7 +8,8 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
-import { getBidExplanationLines,
+import { getBidExplanationLines, getMinorResponseSupportLines, getMajorNoSupportLines,
+         getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
@@ -6044,6 +6045,101 @@ function runBidExplanationDeliveryTests (): number {
   return failures;
 }
 
+/// A less-preferred bid is still legitimate; the explanation should acknowledge
+/// the higher-priority *qualifying* choice. Use generated lines, not English snapshots.
+function runQ2PositiveAlternativeDeliveryTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const tests: { name: string; auction: string; system: Partial<BiddingSystem>;
+    chosen: Call; preferred: Call; ruleId: string; seat: 'S' | 'W';
+    explain: (result: ReturnType<typeof evaluateUserCall>, rule: BidRule) => string[] }[] = [
+    { name: 'minor weak jump shift', auction: '1C Pass 2H',
+      system: { jumpShift: 'weak' }, chosen: '1H', preferred: '2H', seat: 'S',
+      ruleId: 'respond-to-minor-w/-new-suit-one-level-priority',
+      explain: getMinorResponseSupportLines },
+    { name: 'minor strong jump shift', auction: '1C Pass 2H',
+      system: { jumpShift: 'strong' }, chosen: '1H', preferred: '2H', seat: 'S',
+      ruleId: 'respond-to-minor-w/-new-suit-one-level-priority',
+      explain: getMinorResponseSupportLines },
+    { name: 'major weak jump shift', auction: '1H Pass 2S',
+      system: { jumpShift: 'weak' }, chosen: '1S', preferred: '2S', seat: 'S',
+      ruleId: 'respond-to-major-w/o-support-new-suit-one-level',
+      explain: getMajorNoSupportLines },
+    { name: 'preemptive versus simple overcall raise', auction: '1D 1S Pass 3S',
+      system: {}, chosen: '2S', preferred: '3S', seat: 'W',
+      ruleId: 'advance-one-level-suit-overcall-simple-raise',
+      explain: getNaturalAdvanceLines },
+    { name: 'strong 2C waiting versus suit response', auction: '2C Pass 2H Pass 3H',
+      system: {}, chosen: '2D', preferred: '2H', seat: 'S',
+      ruleId: 'respond-to-2c-w/-2d-waiting',
+      explain: getStrongTwoCResponseLines },
+    { name: 'strong 2C waiting versus balanced response', auction: '2C Pass 2NT Pass 3NT',
+      system: {}, chosen: '2D', preferred: '2NT', seat: 'S',
+      ruleId: 'respond-to-2c-w/-2d-waiting',
+      explain: getStrongTwoCResponseLines },
+  ];
+  for (const test of tests) {
+    const deal = deals.find((candidate) =>
+      candidate.practiceAuction.join(' ') === test.auction &&
+      Object.entries(test.system).every(([key, value]) =>
+        candidate.requiredSystem?.[key as keyof BiddingSystem] === value));
+    checks++;
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q2 missing existing practice deal: ${test.name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...test.system };
+    const prefix = deal.practiceAuction.slice(0, 2 + (test.seat === 'W' ? 1 : 0));
+    const result = evaluateUserCall(test.chosen, board, prefix, system);
+    const preferredResult = evaluateUserCall(test.preferred, board, prefix, system);
+    const supported = result.userCallMatchingRules.find((rule) => rule.id === test.ruleId);
+    const preferred = getApplicableCandidateCalls(preferredResult)
+      .find((candidate) => candidate.call === test.preferred && candidate.ruleApplies);
+    const generated = supported === undefined ? [] : test.explain(result, supported);
+    const comparison = generated.filter((line) => line.includes(test.preferred));
+    const delivered = getBidExplanationLines({
+      title: test.name, call: test.chosen,
+      status: getBiddingTurnStatus(board, prefix, system), result,
+      handFacts: getHandFacts(board.deal[test.seat]), auctionLength: prefix.length,
+      previewLines: [], seatLabel: test.seat === 'S' ? 'South' : 'West',
+      recordedUnjudged: false,
+    });
+    if (supported === undefined || preferred === undefined ||
+        (preferred.rule.priority?.rank ?? 0) <= (supported.priority?.rank ?? 0) ||
+        comparison.length === 0 ||
+        !comparison.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q2 supported alternative teaching was not delivered: ${test.name}.`);
+    }
+  }
+  // Ordinary, without an actually qualifying jump, must not imply that the
+  // higher-level bid was supported just because the convention is enabled.
+  const ordinaryDeal = deals.find((deal) =>
+    deal.practiceAuction.join(' ') === '1C Pass 1H' &&
+    deal.description.includes('four hearts and four spades'));
+  checks++;
+  if (ordinaryDeal === undefined) {
+    failures++;
+    console.error('FAIL Q2 ordinary no-jump comparison fixture missing.');
+  } else {
+    const board = makeRuleTestBoard(ordinaryDeal).board;
+    const result = evaluateUserCall('1H', board, ['1C', 'Pass'],
+      { ...defaultBiddingSystem, jumpShift: 'weak' });
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-to-minor-w/-new-suit-one-level-priority');
+    if (rule === undefined || getMinorResponseSupportLines(result, rule)
+      .some((line) => line.includes('2H'))) {
+      failures++;
+      console.error('FAIL Q2 unqualified jump shift was presented as a supported alternative.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q2 reciprocal positive alternatives: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -6076,6 +6172,7 @@ const testGroups: (() => number)[] = [
   runConventionalResponderTeachingTests,
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
+  runQ2PositiveAlternativeDeliveryTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runOneNtAndWeakTwoRebidExplanationTests,
