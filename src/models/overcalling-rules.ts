@@ -1655,7 +1655,8 @@ export const OvercallRules: BidRule[] = [
              'or any six-card-or-longer suit. A particularly strong suit can justify 7 HCP.',
     guidance: ['With 7 HCP, the trainer requires at least two of A/K/Q and the 10 in a ' +
                'five-card-or-longer suit; vulnerability is not modeled.',
-               'With 18+ HCP, begin with a takeout Double and describe the hand later.'],
+               'With 18+ HCP and a strong suit-oriented hand, begin with a takeout Double. ' +
+               'A balanced 18-HCP hand with an opener-suit stopper may instead qualify for 1NT.'],
     certainty: 'high',
   },
   //

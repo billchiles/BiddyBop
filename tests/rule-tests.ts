@@ -8,7 +8,7 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
-import { getBidExplanationLines, getCompetitiveResponseAlternativeLines,
+import { getBidExplanationLines, getMatchedCallExplanationLines, getCompetitiveResponseAlternativeLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
@@ -6356,6 +6356,100 @@ function runCompetitiveResponseAlternativesTests (): number {
   return failures;
 }
 
+/// Exercise the remaining reciprocal Q2 comparisons on existing recorded hands.
+/// Assert qualification and feedback delivery, not particular English wording.
+function runQ2DirectOvercallAlternativesTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const scenarios: { name: string; description: string; selected: Call;
+    alternative: Call; ruleId: string; prefix: Call[]; seat: 'E' | 'W' }[] = [
+    { name: 'natural spades versus takeout Double',
+      description: 'Good five-card spades and 10 HCP:', selected: '1S',
+      alternative: 'Double', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'takeout Double versus natural spades',
+      description: 'Good five-card spades and 10 HCP:', selected: 'Double',
+      alternative: '1S', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'natural 1NT versus takeout Double',
+      description: '15 HCP and K83 in diamonds:', selected: '1NT',
+      alternative: 'Double', ruleId: 'overcall-natural-1nt-with-stopper',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'takeout Double versus natural 1NT',
+      description: '15 HCP and K83 in diamonds:', selected: 'Double',
+      alternative: '1NT', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'weak-two natural 2NT versus Double',
+      description: 'Balanced 15 HCP with the diamond ace:', selected: '2NT',
+      alternative: 'Double', ruleId: 'overcall-weak-two-natural-2nt-with-stopper',
+      prefix: ['2D'], seat: 'E' },
+    { name: 'weak-two Double versus natural 2NT',
+      description: 'Balanced 15 HCP with the diamond ace:', selected: 'Double',
+      alternative: '2NT', ruleId: 'overcall-weak-two-takeout-double-with-unbid-suit-support',
+      prefix: ['2D'], seat: 'E' },
+    { name: 'weak jump hearts versus natural hearts',
+      description: 'Six good hearts, 10 HCP:', selected: '2H',
+      alternative: '1H', ruleId: 'overcall-preemptive-jump-at-two-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'natural hearts versus weak jump',
+      description: 'Six good hearts, 10 HCP:', selected: '1H',
+      alternative: '2H', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'four-level weak jump versus natural spades',
+      description: 'Eight good spades, fewer than 10 HCP:', selected: '4S',
+      alternative: '1S', ruleId: 'overcall-preemptive-jump-at-four-level',
+      prefix: ['1C'], seat: 'E' },
+    { name: 'natural spades versus four-level weak jump',
+      description: 'Eight good spades, fewer than 10 HCP:', selected: '1S',
+      alternative: '4S', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1C'], seat: 'E' },
+    { name: 'balancing 1NT versus defensive Pass',
+      description: 'Balanced 12 HCP with spade stopper:', selected: '1NT',
+      alternative: 'Pass', ruleId: 'balance-natural-1nt',
+      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
+    { name: 'balancing defensive Pass versus 1NT',
+      description: 'Balanced 12 HCP with spade stopper:', selected: 'Pass',
+      alternative: '1NT', ruleId: 'balance-pass-defend',
+      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
+  ];
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.description.startsWith(scenario.description) &&
+      scenario.prefix.every((call, index) => item.practiceAuction[index] === call));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q2 direct/balancing practice deal missing: ${scenario.name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.selected, board, scenario.prefix, system);
+    const selectedRule = result.userCallMatchingRules.find((rule) =>
+      rule.id === scenario.ruleId);
+    const alternative = getApplicableCandidateCalls(result).some((candidate) =>
+      candidate.call === scenario.alternative && candidate.ruleApplies);
+    const handFacts = getHandFacts(board.deal[scenario.seat]);
+    const generated = selectedRule === undefined ? [] :
+      getMatchedCallExplanationLines(result, selectedRule, handFacts, scenario.prefix.length);
+    const comparison = generated.filter((line) => line.includes(scenario.alternative) &&
+      !line.startsWith('- ') && !line.startsWith('  '));
+    const delivered = getBidExplanationLines({
+      title: 'Direct and balancing calls', call: scenario.selected,
+      status: getBiddingTurnStatus(board, scenario.prefix, system), result,
+      handFacts, auctionLength: scenario.prefix.length, previewLines: [],
+      seatLabel: scenario.seat === 'E' ? 'East' : 'West', recordedUnjudged: false,
+    });
+    if (selectedRule === undefined || !alternative || comparison.length === 0 ||
+        !comparison.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q2 direct/balancing comparison or delivery: ${scenario.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q2 direct/balancing alternatives: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -6390,6 +6484,7 @@ const testGroups: (() => number)[] = [
   runBidExplanationDeliveryTests,
   runQ2PositiveAlternativeDeliveryTests,
   runQ2RebidAlternativesTests,
+  runQ2DirectOvercallAlternativesTests,
   runCompetitiveResponseAlternativesTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
