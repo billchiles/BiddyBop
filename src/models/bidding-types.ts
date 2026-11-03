@@ -416,6 +416,12 @@ export interface CallEvidence {
     hasFiveCardMajor: boolean;
   };
   suppressedBy?: Call;
+  // A candidate passed its hand checks but a specific response treatment took precedence.
+  responseSelection?: {
+    preferredCall: Call;
+    reason: 'staymanOverJacoby' | 'fiveFiveTransferOrder' | 'majorSlamOverJacoby' |
+      'majorGameOverJacoby' | 'suitBeforeNaturalNt';
+  };
   preemptSuitQuality?: { call: Call; passed: boolean }[];
   balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
