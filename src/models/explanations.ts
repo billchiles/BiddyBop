@@ -81,6 +81,8 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getNaturalAdvanceFailureLines(result),
     ...getTakeoutAdvanceFailureLines(result),
     ...getNotrumpPartnerResponseFailureLines(result),
+    ...getResponseSelectionFailureLines(result),
+    ...getConventionalForcingPassFailureLines(result),
     ...getStrongTwoCResponseFailureLines(result),
     ...getDontAdvanceFailureLines(result),
     ...getJumpAdvanceFailureLines(result),
@@ -112,6 +114,82 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
   ];
 }
 
+/// Explain only a call that passed its individual requirements and was then removed
+/// by an actual response-selection decision. Verify the preferred call still qualifies.
+export function getResponseSelectionFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const supported = getApplicableCandidateCalls(result);
+  for (const diagnostic of result.ruleDiagnostics) {
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies &&
+      item.callEvidence?.responseSelection !== undefined);
+    const selection = candidate?.callEvidence?.responseSelection;
+    if (selection === undefined || !supported.some((item) => item.call === selection.preferredCall)) {
+      continue;
+    }
+    const id = `[${diagnostic.rule.id}]`;
+    const preferredRule = supported.find((item) => item.call === selection.preferredCall)?.rule;
+    switch (selection.reason) {
+      case 'staymanOverJacoby':
+        return [`Your Jacoby transfer has enough cards in its major, but with five cards in ` +
+          `one major and four in the other, ${selection.preferredCall} Stayman explores both ` +
+          `major-suit fits first ${id}.`];
+      case 'fiveFiveTransferOrder':
+        return [`With at least five cards in each major, ${selection.preferredCall} is the ` +
+          `first transfer selected for this strength; it preserves the appropriate ` +
+          `invitational or game-forcing continuation ${id}.`];
+      case 'majorSlamOverJacoby':
+        return [`Your ordinary Jacoby transfer meets its suit requirement, but ` +
+          `${selection.preferredCall} directly describes a strong, long-major hand with ` +
+          `slam interest under the selected agreement ${id}.`];
+      case 'majorGameOverJacoby':
+        return [`Your Jacoby transfer meets its suit requirement, but ` +
+          `${selection.preferredCall} is the selected direct route to major game with this ` +
+          `hand, ${preferredRule?.agreement?.setting === 'texasTransfers' &&
+            preferredRule.agreement.value === true ? 'using Texas' : 'bidding game naturally'} ${id}.`];
+      case 'suitBeforeNaturalNt':
+        return [`${selection.preferredCall} is the qualifying suit-response route that ` +
+          `takes precedence over direct ${result.normalizedCall} in this auction ${id}.`];
+    }
+  }
+  return [];
+}
+
+/// A conventional response imposes an obligation only when the actual current
+/// auction has a qualifying continuation for that conventional treatment.
+export function getConventionalForcingPassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  const qualified = getApplicableCandidateCalls(result);
+  const find = (ids: string[]): CandidateCallMatch | undefined =>
+    qualified.find((item) => ids.includes(item.rule.id));
+  const stayman = find([
+    'opener-rebid-deny-major-after-nt-stayman',
+    'opener-rebid-show-hearts-after-nt-stayman',
+    'opener-rebid-show-spades-after-nt-stayman',
+  ]);
+  if (stayman !== undefined) {
+    return [`Responder's Stayman inquiry is forcing; opener must show or deny a ` +
+      `four-card major. ${stayman.call} is supported with this hand ` +
+      `[${stayman.rule.id}].`];
+  }
+  const transfer = find([
+    'opener-rebid-complete-jacoby-after-nt',
+    'opener-rebid-complete-texas-after-nt',
+  ]);
+  if (transfer !== undefined) {
+    return [`Responder's ${transfer.rule.id.includes('jacoby') ? 'Jacoby' : 'Texas'} ` +
+      `transfer is forcing; opener must complete it with ${transfer.call} rather than Pass ` +
+      `[${transfer.rule.id}].`];
+  }
+  const strongTwoC = find(['respond-to-2c-w/-2d-waiting']);
+  if (strongTwoC !== undefined) {
+    return [`The strong artificial 2C opening requires a response. ${strongTwoC.call} ` +
+      `is an available waiting bid; Pass does not answer opener's force ` +
+      `[${strongTwoC.rule.id}].`];
+  }
+  return [];
+}
+
 function failureHeading(status: BiddingTurnStatus, call: Call): string {
   if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
   const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
@@ -141,7 +219,13 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
     lines.push('  The app cannot reliably recommend a particular bid here.');
   } else if (result.userCallMatchingRules.length === 0) {
     if (reasons.length > 0) {
-      lines.push(failureHeading(status, result.normalizedCall ?? 'Pass'));
+      const selectedAlternative = result.ruleDiagnostics.some((diagnostic) =>
+        diagnostic.candidates.some((candidate) =>
+          candidate.call === result.normalizedCall &&
+          candidate.callEvidence?.responseSelection !== undefined));
+      lines.push(selectedAlternative
+        ? 'Why another response takes precedence under the selected agreements:'
+        : failureHeading(status, result.normalizedCall ?? 'Pass'));
       lines.push(...reasons);
     } else {
       lines.push('This call does not match a recommendation for this hand and auction. ' +
@@ -3226,9 +3310,9 @@ export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string
         bid remains available ${id}.`.replace(/\s+/g, ' ')];
     }
   }
-  const twoNt = result.ruleDiagnostics.find(({ rule }) =>
+  const twoNt = call === '2NT' ? result.ruleDiagnostics.find(({ rule }) =>
     rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
-    ?.candidates.find(({ call: tested }) => tested === call);
+    ?.candidates.find(({ call: tested }) => tested === call) : undefined;
   if (twoNt === undefined || twoNt.ruleApplies) return [];
   const strength = minorRequirement(twoNt, 'hcp');
   if (strength !== undefined && !strength.passed) {

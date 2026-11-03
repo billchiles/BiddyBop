@@ -838,7 +838,7 @@ function maybeSuppressTransfersForStayman (ruleDiagnostics: RuleEvalResult[]):
     result.telemetryLines.push(`  ${suppressionLine}`);
     for (const candidate of result.candidates) {
       if (candidate.ruleApplies) {
-        candidate.ruleApplies = false;
+        suppressForResponseSelection(candidate, 'staymanOverJacoby', staymanCandidate.call);
         candidate.telemetryLines.push(suppressionLine);
       }
     }
@@ -909,7 +909,7 @@ function maybeSuppressOneFiveOrMoreMajorTransfer (ruleDiagnostics: RuleEvalResul
       const suppressionLine =
         `SUPPRESSED: with 5-5 majors, ${preferredTransfer} is the preferred first transfer ` +
         'for this strength.';
-      candidate.ruleApplies = false;
+      suppressForResponseSelection(candidate, 'fiveFiveTransferOrder', preferredTransfer);
       candidate.telemetryLines.push(suppressionLine);
       result.telemetryLines.push(`  ${suppressionLine}`);
       suppressed = true;
@@ -961,7 +961,7 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleDiagnostics: RuleEvalResult[
       'response, so do not use the ordinary Jacoby transfer.';
     for (const candidate of result.candidates) {
       if (candidate.ruleApplies) {
-        candidate.ruleApplies = false;
+        suppressForResponseSelection(candidate, 'majorSlamOverJacoby', majorSlamCandidate!.call);
         candidate.telemetryLines.push(suppressionLine);
       }
     }
@@ -1011,7 +1011,7 @@ function maybeSuppressJacobyForMajorGame (ruleDiagnostics: RuleEvalResult[]):
       'so do not use the Jacoby transfer.';
     for (const candidate of result.candidates) {
       if (candidate.ruleApplies) {
-        candidate.ruleApplies = false;
+        suppressForResponseSelection(candidate, 'majorGameOverJacoby', majorGameCandidate.call);
         candidate.telemetryLines.push(suppressionLine);
       }
     }
@@ -1077,7 +1077,7 @@ function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
       const suppressionLine =
         `SUPPRESSED: ${suitCandidate.call} is a preferred suit response, ` +
         `so do not use direct ${candidate.call}.`;
-      candidate.ruleApplies = false;
+      suppressForResponseSelection(candidate, 'suitBeforeNaturalNt', suitCandidate.call);
       candidate.telemetryLines.push(suppressionLine);
       result.telemetryLines.push(`  ${suppressionLine}`);
       suppressed = true;
@@ -1089,6 +1089,16 @@ function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
   }
   return ruleDiagnostics;
 } // maybeSuppressNtResponseFallback()
+
+/// Preserve the actual convention or suit-response selection before disqualifying a
+/// previously valid candidate; a failed hand test must never get this evidence.
+function suppressForResponseSelection (candidate: CandidateCallMatch,
+    reason: NonNullable<CallEvidence['responseSelection']>['reason'], preferredCall: Call): void {
+  if (!candidate.ruleApplies) return;
+  candidate.callEvidence = { ...candidate.callEvidence,
+    responseSelection: { reason, preferredCall } };
+  candidate.ruleApplies = false;
+}
 
 /// maybeSuppress1NTWhenMajorSupport takes all applicable rules for current auction and responder's
 /// hand and removes the no-support 1NT response when responder already has a qualifying one-level
@@ -1336,7 +1346,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainWeakTwoSuitOvercall || explainResponderRedouble || explainJumpResponder ||
       explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
-      explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
+      explainStrongTwoCPositive || explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
       explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
       explainOpenerTwoLevelNewSuitRebid ?
         { requirements } : undefined };

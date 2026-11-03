@@ -13,6 +13,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getCompetitiveR
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
+         getResponseSelectionFailureLines, getConventionalForcingPassFailureLines,
+         getStrongTwoCResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
@@ -50,6 +52,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          WEAK_TWO_2NT_CONTINUATION_TEST_DEALS, WEAK_TWO_DEFENSE_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONSE_AFTER_2NT_OPENING_TEST_DEALS,
+         OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS,
          RESPONSE_TO_STRONG_2C_TEST_DEALS,
          RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS,
@@ -6450,6 +6453,156 @@ function runQ2DirectOvercallAlternativesTests (): number {
   return failures;
 }
 
+/// Confirm rejected calls retain actual selection or tested-failure evidence,
+/// and that these generated explanations reach the ordinary displayed feedback.
+function runQ3ConventionalRejectionTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const ntResponses = [
+    ...RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
+    ...RESPONSE_AFTER_2NT_OPENING_TEST_DEALS,
+    ...OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS,
+  ];
+  const selections: { description: string; rejected: Call;
+    reason: NonNullable<NonNullable<CandidateCallMatch['callEvidence']>['responseSelection']>['reason'];
+    prefixLength: number }[] = [
+    { description: '8-HCP responder with five hearts and four spades', rejected: '2D',
+      reason: 'staymanOverJacoby', prefixLength: 2 },
+    { description: '9 HCP and five cards in each major', rejected: '2H',
+      reason: 'fiveFiveTransferOrder', prefixLength: 2 },
+    { description: '11 HCP and five cards in each major', rejected: '2D',
+      reason: 'fiveFiveTransferOrder', prefixLength: 2 },
+    { description: '14 HCP, six hearts', rejected: '2D',
+      reason: 'majorGameOverJacoby', prefixLength: 2 },
+    { description: '16 HCP and six hearts', rejected: '2D',
+      reason: 'majorSlamOverJacoby', prefixLength: 2 },
+    { description: '12 HCP and six spades, with Texas off', rejected: '2H',
+      reason: 'majorGameOverJacoby', prefixLength: 2 },
+    { description: 'with six hearts and four spades', rejected: '3D',
+      reason: 'staymanOverJacoby', prefixLength: 2 },
+    { description: '16-18: 7 HCP and four hearts qualify for Stayman', rejected: '2NT',
+      reason: 'suitBeforeNaturalNt', prefixLength: 2 },
+    { description: '2NT: with 3 HCP and two five-card majors', rejected: 'Pass',
+      reason: 'suitBeforeNaturalNt', prefixLength: 2 },
+  ];
+  for (const scenario of selections) {
+    checks++;
+    const deal = ntResponses.find((item) => item.description.includes(scenario.description));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q3 missing convention deal: ${scenario.description}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const auction = deal.practiceAuction.slice(0, scenario.prefixLength);
+    const result = evaluateUserCall(scenario.rejected, board, auction, system);
+    const selected = result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .find((candidate) => candidate.call === scenario.rejected &&
+        candidate.callEvidence?.responseSelection?.reason === scenario.reason);
+    const preferred = selected?.callEvidence?.responseSelection?.preferredCall;
+    const generated = getResponseSelectionFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'Response', call: scenario.rejected,
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length !== 0 || preferred === undefined ||
+        !getApplicableCandidateCalls(result).some((candidate) => candidate.call === preferred) ||
+        generated.length === 0 || !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q3 convention suppression evidence/delivery: ${scenario.description}.`);
+    }
+  }
+  const forcing: { description: string; source: RuleTestDeal[]; prefixLength: number }[] = [
+    { description: '12-HCP responder with four hearts asks',
+      source: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS, prefixLength: 4 },
+    { description: '6-HCP responder with five hearts transfers',
+      source: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS, prefixLength: 4 },
+    { description: '14 HCP, six hearts, no four-card spade suit',
+      source: OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS, prefixLength: 4 },
+    { description: '2C-2D-3NT: a 26-HCP balanced opener',
+      source: RESPONSE_TO_STRONG_2C_TEST_DEALS, prefixLength: 2 },
+  ];
+  for (const scenario of forcing) {
+    checks++;
+    const deal = scenario.source.find((item) => item.description.includes(scenario.description));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q3 missing forcing Pass deal: ${scenario.description}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const auction = deal.practiceAuction.slice(0, scenario.prefixLength);
+    const result = evaluateUserCall('Pass', board, auction, system);
+    const generated = getConventionalForcingPassFailureLines(result);
+    const seat = scenario.prefixLength === 2 ? 'S' : 'N';
+    const delivered = getBidExplanationLines({
+      title: 'Forcing continuation', call: 'Pass',
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat === 'N' ? 'North' : 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length !== 0 || generated.length === 0 ||
+        !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q3 forcing Pass explanation/delivery: ${scenario.description}.`);
+    }
+  }
+  const strong = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '2C Pass 2D Pass 3NT');
+  checks++;
+  if (strong === undefined) {
+    failures++;
+    console.error('FAIL Q3 missing weak responder to strong 2C.');
+  } else {
+    const board = makeRuleTestBoard(strong).board;
+    const auction: Call[] = ['2C', 'Pass'];
+    const result = evaluateUserCall('2NT', board, auction, defaultBiddingSystem);
+    const candidate = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
+      ?.candidates.find((item) => item.call === '2NT');
+    const check = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'hcp' && !item.passed);
+    const generated = getStrongTwoCResponseFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'Strong 2C response', call: '2NT',
+      status: getBiddingTurnStatus(board, auction, defaultBiddingSystem), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    const unrelated = evaluateUserCall('3H', board, auction, defaultBiddingSystem);
+    if (check?.kind !== 'hcp' || check.actual >= 8 || generated.length === 0 ||
+        !generated.every((line) => delivered.includes(line)) ||
+        getStrongTwoCResponseFailureLines(unrelated).some((line) =>
+          line.includes('positive 2NT response'))) {
+      failures++;
+      console.error('FAIL Q3 strong 2C positive 2NT evidence or unrelated-call safety.');
+    }
+  }
+  // A legitimate natural signoff is not an outstanding conventional force.
+  const signoff = OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '1NT Pass 3NT Pass Pass');
+  checks++;
+  if (signoff === undefined) {
+    failures++;
+    console.error('FAIL Q3 missing natural notrump signoff.');
+  } else {
+    const board = makeRuleTestBoard(signoff).board;
+    const result = evaluateUserCall('Pass', board, ['1NT', 'Pass', '3NT', 'Pass'],
+      defaultBiddingSystem);
+    if (result.userCallMatchingRules.length === 0 ||
+        getConventionalForcingPassFailureLines(result).length > 0) {
+      failures++;
+      console.error('FAIL Q3 treated a natural notrump signoff as forcing.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q3 convention and forcing rejection: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -6482,6 +6635,7 @@ const testGroups: (() => number)[] = [
   runConventionalResponderTeachingTests,
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
+  runQ3ConventionalRejectionTests,
   runQ2PositiveAlternativeDeliveryTests,
   runQ2RebidAlternativesTests,
   runQ2DirectOvercallAlternativesTests,

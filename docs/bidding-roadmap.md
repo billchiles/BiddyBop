@@ -57,7 +57,7 @@ not a historical progress log or a commitment to model every possible auction.
   reasons now controls routing, headings and scope guidance. Representative
   delivery tests compare generated helper lines dynamically and inspect
   structured stopper evidence; no English snapshots or browser tests.
-- [ ] **Q2 — Richer positive instruction and valid alternatives.** Review modeled
+- [x] **Q2 — Richer positive instruction and valid alternatives.** Review modeled
   stages in manageable groups, starting with responding/advancing, then rebids
   and direct competitive decisions. Where *both* bids genuinely qualify, use
   evaluated evidence and priority to explain when one is preferable (e.g.,
