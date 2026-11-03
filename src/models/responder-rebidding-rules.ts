@@ -868,8 +868,8 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 10 },
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'preferMajor'),
     meaning: 'With minimum values, prefer opener\'s five-card major with even two cards in support.',
-    guidance: ['A two-card preference may be safer than a manufactured minor after forcing 1NT; ' +
-               '2C can contain only two clubs when opener has no normal rebid.'],
+    guidance: ['A two-card preference for opener\'s known five-card major can be safer than ' +
+               'a weak fit in the newly shown minor.'],
     certainty: 'high',
   },
   //
@@ -900,7 +900,8 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'longMinor'),
     meaning: 'After showing a hand through 1NT, identify a long minor naturally and nonforcing.',
-    guidance: ['The initial forcing 1NT obligation has been satisfied by opener\'s rebid.'],
+    guidance: ['Opener has already rebid, so this natural minor continuation is nonforcing ' +
+               'under the selected 1NT-response agreement.'],
     certainty: 'high',
   },
   //

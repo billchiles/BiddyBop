@@ -428,6 +428,8 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
       balanced: facts.balanced,
       openingSuit: info.opening, responseSuit: null, rebidSuit: info.rebid,
       openingLength: majorLength, responseLength: 0, rebidLength: suitLength,
+      forcingOneNt: system.majorOneNtResponse === 'forcing' &&
+        !responderPreviouslyPassed(context.dealer, context.auction),
       success,
     } } };
 }

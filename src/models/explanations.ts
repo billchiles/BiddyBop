@@ -6959,11 +6959,11 @@ export function getNaturalResponderRebidLines(
       case 'economical':
         switch (e.decision) {
           case 'passSecond':
-            return [`Opener's economical second suit does not promise extra strength. With ${e.lengthPoints} length points and ${e.rebidLength} cards in that suit, you can Pass ${id}.`];
+            return [`Opener's economical second suit does not promise extra strength. With ${e.lengthPoints} total points with length and ${e.rebidLength} cards in that suit, you can Pass ${id}.`];
           case 'preferOpening':
-            return [`With ${e.lengthPoints} length points and ${e.openingLength} cards in opener's first suit, you can prefer opener's original suit over the second suit. This is nonforcing ${id}.`];
+            return [`With ${e.lengthPoints} total points with length and ${e.openingLength} cards in opener's first suit, you can prefer opener's original suit over the second suit. This is nonforcing ${id}.`];
           case 'repeatResponse':
-            return [`With ${e.responseLength} cards in your original suit and ${e.lengthPoints} length points, repeating it is a nonforcing natural signoff ${id}.`];
+            return [`With ${e.responseLength} cards in your original suit and ${e.lengthPoints} total points with length, repeating it is a nonforcing natural signoff ${id}.`];
           case 'inviteNt':
             return [`Your balanced ${e.hcp}-HCP hand invites game with 2NT after opener's economical second suit; opener has not promised extra values ${id}.`];
           case 'gameNt':
@@ -6973,13 +6973,15 @@ export function getNaturalResponderRebidLines(
           case 'majorSecondGame':
             return [`Your ${e.supportPoints} support points and four-card fit for opener's newly shown major justify bidding game ${id}.`];
           case 'majorSecondPartscore':
-            return [`With ${e.lengthPoints} length points and four-card support for opener's newly shown major, choose the economical partscore ${id}.`];
+            return [`With ${e.lengthPoints} total points with length and four-card support for opener's newly shown major, choose the economical partscore ${id}.`];
         }
         break;
       case 'majorOneNt':
         switch (e.decision) {
-          case 'passMajor': case 'preferMajor':
-            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support stopping in that suit. Under forcing 1NT, opener's minor rebid can be a rare manufactured fallback ${id}.`];
+          case 'passMajor':
+            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support stopping in that suit ${id}.`];
+          case 'preferMajor':
+            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support preferring that suit to the new minor.${e.forcingOneNt ? ' Under the forcing-1NT agreement, opener may have manufactured a shorter minor rather than showing a four-card suit.' : ''} ${id}`];
           case 'passSecond':
             return [`With ${e.hcp} HCP and ${e.rebidLength} cards in opener's second suit, you have the fit required by the selected 1NT-response agreement to Pass ${id}.`];
           case 'inviteMajor': case 'delayedLimitRaise':
@@ -7172,7 +7174,7 @@ export function getResponderForcingPassFailureLines(result: BidEvalResult): stri
   if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
       result.responderPassForce === null || result.responderPassForce === undefined) return [];
   if (result.responderPassForce.kind === 'gameForce') {
-    return ['The earlier game-forcing response still commits both partners to reach game. ' +
+    return ['The partnership remains committed to game. ' +
       'Opener has not yet bid game, so responder cannot Pass here.'];
   }
   return ["Opener's preceding forcing rebid requires responder to bid again. " +
@@ -7196,7 +7198,7 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
     case 'majorGameTry': {
       const answer = e.decision === 'accept' ? 'accept with four' : 'decline at three';
       if (e.helpSuit === null) {
-        return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation; with eight points both answers are judgment choices ${id}.`];
+        return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation.${e.supportPoints === 8 ? ' With eight points both answers are judgment choices.' : ''} ${id}`];
       }
       return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${suitPlural(`1${e.helpSuit}` as Call)}. ${e.supportPoints === 8 ?
         (e.usefulHelp ? 'Useful honor strength or shortness in that suit favors game.' :
@@ -7242,7 +7244,7 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
             "Opener's descriptive rebid keeps the game force active."} ${e.decision.endsWith('returnToGame') ?
           'Return to the agreed major with ordinary game-going values.' : 'You may Pass the agreed major game.'} ${id}`];
       }
-      return [`Your splinter showed ${e.majorLength}-card support for opener's ${e.major} and established a game force. ${e.decision.endsWith('passGame') ?
+      return [`Your splinter showed ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'} and established a game force. ${e.decision.endsWith('passGame') ?
         'Opener has already bid major game, so Pass is permitted.' :
         "Opener's continuation remains forcing; choose four of the agreed major with ordinary game-going values."} ${id}`];
     case 'openerSplinter':
@@ -7274,6 +7276,30 @@ export function getConventionalResponderRebidFailureLines(result: BidEvalResult)
     }
     if (e?.family === 'openerSplinter') {
       return [`Opener's splinter is a forcing description of shortness in ${suitPlural(`1${e.shortSuit}` as Call)}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
+    }
+    // An invitational or game-going convention continuation is supported by the
+    // candidate's evaluated hand, not by assuming that Pass is always wrong.
+    const ntCandidate = qualified.find((item) => {
+      const evidence = item.callEvidence?.conventionalResponderRebid;
+      return evidence?.family === 'ntConvention' && evidence.decision !== 'transferPass';
+    });
+    const nt = ntCandidate?.callEvidence?.conventionalResponderRebid;
+    if (nt !== undefined && ntCandidate !== undefined) {
+      const invitation = nt.decision.includes('Invite');
+      const level = invitation ? 'invite game' : 'bid game';
+      const id = `[${ntCandidate.rule.id}]`;
+      if (nt.decision.startsWith('stayman')) {
+        if (nt.fitFound && nt.major !== null) {
+          return [`Stayman found an eight-card ${nt.major === 'H' ? 'heart' : 'spade'} fit. With ${nt.hcp} HCP, this hand qualifies to ${level} in that major rather than Pass ${id}.`];
+        }
+        return [`Stayman did not find a major fit. With ${nt.hcp} HCP, the supported ${ntCandidate.call} continuation ${invitation ? 'invites' : 'bids'} notrump game rather than Pass ${id}.`];
+      }
+      if (nt.decision.startsWith('transfer')) {
+        if (nt.decision.endsWith('Major')) {
+          return [`The completed transfer and your ${nt.majorLength}-card ${nt.major === 'H' ? 'heart' : 'spade'} suit establish a major fit. With ${nt.hcp} HCP, ${ntCandidate.call} ${invitation ? 'invites' : 'bids'} game instead of stopping in partscore ${id}.`];
+        }
+        return [`With a balanced ${nt.hcp}-HCP hand and five ${nt.major === 'H' ? 'hearts' : 'spades'} after the transfer, ${ntCandidate.call} ${invitation ? 'invites' : 'offers'} notrump game while allowing opener to choose the major with three-card support ${id}.`];
+      }
     }
   }
   // A tested near miss can be explained without inferring an unsupported rule.
