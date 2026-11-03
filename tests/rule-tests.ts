@@ -3395,6 +3395,28 @@ function runResponderMajorOneNtContextTests (): number {
     failures += 1;
     console.error('FAIL manufactured-minor four-card support distinction.');
   }
+  // The same natural preference remains valid under either 1NT agreement, but
+  // only a forcing response can make the minor a manufactured fallback.
+  const preferenceDeal = bucket?.deals.find((item) =>
+    item.practiceAuction.join(' ') === '1S Pass 1NT Pass 2C Pass 2S');
+  if (preferenceDeal === undefined) {
+    failures++;
+    console.error('FAIL missing forcing-1NT preference practice hand.');
+  } else {
+    const preferenceBoard = makeRuleTestBoard(preferenceDeal).board;
+    for (const setting of ['forcing', 'nonForcing'] as const) {
+      const choice = evaluateUserCall('2S', preferenceBoard,
+        preferenceDeal.practiceAuction.slice(0, 6),
+        { ...defaultBiddingSystem, majorOneNtResponse: setting });
+      const candidate = getApplicableCandidateCalls(choice).find((item) =>
+        item.rule.id === 'responder-rebid-prefer-major-after-major-1nt');
+      if (candidate?.callEvidence?.naturalResponderRebid?.forcingOneNt !==
+          (setting === 'forcing')) {
+        failures++;
+        console.error(`FAIL missing ${setting} 1NT responder preference agreement evidence.`);
+      }
+    }
+  }
   const { board: limitBoard } = makeRuleTestBoard(limitSeed);
   for (const majorOneNtResponse of ['forcing', 'nonForcing'] as const) {
     const result = evaluateUserCall('3S', limitBoard, limitSeed.practiceAuction.slice(0, 6),
@@ -5863,6 +5885,34 @@ function runConventionalResponderTeachingTests (): number {
         getConventionalResponderRebidFailureLines(rejection).length === 0) {
       failures++;
       console.error('FAIL R3 Jacoby artificial 3NT Pass should receive forcing guidance.');
+    }
+  }
+  // A rejected Pass after a completed convention is explained only when a
+  // stronger continuation actually qualified. An ordinary weak transfer Pass remains valid.
+  const responderPassCases: { auction: string; shouldQualify: boolean }[] = [
+    { auction: '1NT Pass 2C Pass 2H Pass 3H', shouldQualify: false },
+    { auction: '1NT Pass 2D Pass 2H Pass 2NT', shouldQualify: false },
+    { auction: '1NT Pass 2H Pass 2S Pass Pass', shouldQualify: true },
+  ];
+  for (const testCase of responderPassCases) {
+    const deal = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((item) =>
+      item.practiceAuction.join(' ') === testCase.auction);
+    checks++;
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing responder convention practice ${testCase.auction}.`);
+      continue;
+    }
+    const auction = deal.practiceAuction.slice(0, 6);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluated = evaluateUserCall('Pass', makeRuleTestBoard(deal).board, auction, system);
+    const passQualifies = evaluated.userCallMatchingRules.length > 0;
+    const feedback = getConventionalResponderRebidFailureLines(evaluated);
+    checks++;
+    if (passQualifies !== testCase.shouldQualify ||
+        (testCase.shouldQualify ? feedback.length > 0 : feedback.length === 0)) {
+      failures++;
+      console.error(`FAIL unsupported convention Pass teaching for ${testCase.auction}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Conventional responder teaching: ${checks} checks.\n`);

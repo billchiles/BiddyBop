@@ -749,6 +749,8 @@ export interface CallEvidence {
     // notrump continuation does not treat that fit as overriding.
     knownMajorFit?: boolean;
     forceKind?: 'reverse' | 'jumpShift';
+    // Responder's selected 1NT response created an actual one-round force.
+    forcingOneNt?: boolean;
     openerRebid?: string;
     success: boolean;
   };

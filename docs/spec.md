@@ -152,6 +152,10 @@ or implementing one line per treatment is not a measure of instructional complet
 For a qualifying bid, teach the *decisive reasoning*: partner's promise and forcing
 status; the tested strength, suit length, support, shape, stopper, or suit quality; and
 why the chosen level/strain conveys this hand better than a nearby plausible option.
+When quoting point totals, distinguish HCP from "total points with length"
+and "total points with shortage" (or explicitly qualified support points).
+Do not call the HCP-plus-length total "length points" or leave the valuation
+ambiguous when it affects an explanation.
 Give actual thresholds where they explain the decision. Distinguish declining,
 inviting, accepting game, and satisfying a one-round force. Use a compact progression
 of facts and choices, not an exhaustive inventory of every card or every possible bid.
