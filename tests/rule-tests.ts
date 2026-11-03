@@ -14,7 +14,9 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getCompetitiveR
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getResponseSelectionFailureLines, getConventionalForcingPassFailureLines,
-         getStrongTwoCResponseFailureLines,
+         getResponderForcingPassFailureLines, getOvercallerConventionFailureLines,
+         getCompetitiveResponseFailureLines, getMajorSupportFailureLines,
+         getOpenerConventionalRebidFailureLines, getStrongTwoCResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
@@ -6603,6 +6605,204 @@ function runQ3ConventionalRejectionTests (): number {
   return failures;
 }
 
+/// Verify Q3 near-miss reasons against existing practice hands, with the same
+/// evaluated feedback assembly used for normal student input.
+function runQ3NaturalCompetitiveRejectionTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const all = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
+  const delivered = (deal: RuleTestDeal, auction: Call[], call: Call,
+      system: BiddingSystem, reason: string[]): string[] => {
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(call, board, auction, system);
+    const seat = makeRuleEvalContext(board, auction).seat;
+    const lines = getBidExplanationLines({
+      title: 'Bid feedback', call, status: getBiddingTurnStatus(board, auction, system),
+      result, handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    return reason.filter((item) => !lines.includes(item));
+  };
+  const forceCases: { prefix: Call[]; kind: 'gameForce' | 'oneRoundForce';
+    system?: Partial<BiddingSystem> }[] = [
+    { prefix: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass'], kind: 'gameForce',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' } },
+    { prefix: ['1S', 'Pass', '2D', 'Pass', '2H', 'Pass'], kind: 'gameForce',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' } },
+    { prefix: ['1C', 'Pass', '1S', 'Pass', '2H', 'Pass'], kind: 'oneRoundForce' },
+  ];
+  for (const scenario of forceCases) {
+    checks++;
+    const deal = all.find((item) =>
+      item.practiceAuction.slice(0, scenario.prefix.length).join(' ') ===
+      scenario.prefix.join(' '));
+    if (deal === undefined) { failures++; console.error(`FAIL Q3 forcing deal ${scenario.prefix.join(' ')}`); continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...scenario.system };
+    const result = evaluateUserCall('Pass', board, scenario.prefix, system);
+    const generated = getResponderForcingPassFailureLines(result);
+    if (result.userCallMatchingRules.length > 0 || result.responderPassForce?.kind !== scenario.kind ||
+        generated.length === 0 || delivered(deal, scenario.prefix, 'Pass', system, generated).length > 0) {
+      failures++; console.error(`FAIL Q3 responder force ${scenario.prefix.join(' ')}.`);
+    }
+  }
+  // The completed Standard one-round force does not become a game force.
+  checks++;
+  const standard = all.find((item) =>
+    item.practiceAuction.slice(0, 6).join(' ') === '1S Pass 2C Pass 2S Pass');
+  if (standard === undefined) { failures++; console.error('FAIL Q3 missing Standard control.'); }
+  else {
+    const board = makeRuleTestBoard(standard).board;
+    const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const };
+    const result = evaluateUserCall('Pass', board, ['1S','Pass','2C','Pass','2S','Pass'], system);
+    if (result.responderPassForce !== null || getResponderForcingPassFailureLines(result).length > 0) {
+      failures++; console.error('FAIL Q3 invented Standard game force.');
+    }
+  }
+  const conventionCases: { source: RuleTestDeal[]; prefix: Call[]; rejected: Call;
+    preferred: Call; ruleId: string }[] = [
+    { source: NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
+      prefix: ['1D','1NT','Pass','2C','Pass'], rejected: '2H', preferred: '2D',
+      ruleId: 'overcaller-rebid-1nt-stayman' },
+    { source: NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
+      prefix: ['1D','1NT','Pass','2D','Pass'], rejected: 'Pass', preferred: '2H',
+      ruleId: 'overcaller-rebid-1nt-jacoby' },
+    { source: NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
+      prefix: ['1D','1NT','Pass','4D','Pass'], rejected: 'Pass', preferred: '4H',
+      ruleId: 'overcaller-rebid-1nt-texas' },
+    { source: WEAK_TWO_2NT_CONTINUATION_TEST_DEALS,
+      prefix: ['2D','2NT','Pass','3C','Pass'], rejected: 'Pass', preferred: '3H',
+      ruleId: 'overcaller-rebid-weak-two-2nt-stayman' },
+    { source: WEAK_TWO_2NT_CONTINUATION_TEST_DEALS,
+      prefix: ['2S','2NT','Pass','3D','Pass'], rejected: 'Pass', preferred: '3H',
+      ruleId: 'overcaller-rebid-weak-two-2nt-jacoby' },
+    { source: WEAK_TWO_2NT_CONTINUATION_TEST_DEALS,
+      prefix: ['2H','2NT','Pass','4H','Pass'], rejected: 'Pass', preferred: '4S',
+      ruleId: 'overcaller-rebid-weak-two-2nt-texas' },
+  ];
+  for (const scenario of conventionCases) {
+    checks++;
+    const deal = scenario.source.find((item) =>
+      item.practiceAuction.slice(0, scenario.prefix.length).join(' ') ===
+      scenario.prefix.join(' '));
+    if (deal === undefined) { failures++; console.error(`FAIL Q3 convention deal ${scenario.ruleId}`); continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.rejected, board, scenario.prefix, system);
+    const generated = getOvercallerConventionFailureLines(result);
+    if (result.userCallMatchingRules.length > 0 ||
+        !getApplicableCandidateCalls(result).some((item) =>
+          item.call === scenario.preferred && item.rule.id === scenario.ruleId) ||
+        generated.length === 0 || generated.some((line) => !line.includes(scenario.preferred)) ||
+        delivered(deal, scenario.prefix, scenario.rejected, system, generated).length > 0) {
+      failures++; console.error(`FAIL Q3 overcaller convention ${scenario.ruleId}.`);
+    }
+  }
+  // Transfer-disabled natural signoffs must remain eligible, with no forcing warning.
+  checks++;
+  const signoff = NATURAL_1NT_OVERCALL_REBID_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1D 1NT Pass 2S Pass Pass');
+  if (signoff === undefined) { failures++; console.error('FAIL Q3 natural signoff missing.'); }
+  else {
+    const board = makeRuleTestBoard(signoff).board;
+    const system = { ...defaultBiddingSystem, ...signoff.requiredSystem };
+    const result = evaluateUserCall('Pass', board, signoff.practiceAuction.slice(0, 5), system);
+    if (result.userCallMatchingRules.length === 0 ||
+        getOvercallerConventionFailureLines(result).length !== 0) {
+      failures++; console.error('FAIL Q3 natural signoff mislabeled as transfer.');
+    }
+  }
+  // A two-level natural heart response was eliminated for four-card length;
+  // a negative Double actually qualified with those same four hearts.
+  checks++;
+  const competitive = all.find((deal) =>
+    deal.practiceAuction.join(' ') === '1D 1S Double Pass 2H');
+  if (competitive === undefined) { failures++; console.error('FAIL Q3 competitive example missing.'); }
+  else {
+    const board = makeRuleTestBoard(competitive).board;
+    const auction: Call[] = ['1D','1S'];
+    const system = { ...defaultBiddingSystem, ...competitive.requiredSystem };
+    const result = evaluateUserCall('2H', board, auction, system);
+    const check = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'respond-over-suit-new-suit-two-level')
+      ?.callEvidence?.competitiveNewSuit?.considered.find((item) => item.call === '2H');
+    const generated = getCompetitiveResponseFailureLines(result);
+    const unrelated = evaluateUserCall('3NT', board, auction, system);
+    if (check?.length !== 4 || check.minimum !== 5 ||
+        !getApplicableCandidateCalls(result).some((item) =>
+          item.call === 'Double' && item.rule.id === 'respond-over-suit-negative-double') ||
+        result.userCallMatchingRules.length !== 0 || generated.length === 0 ||
+        delivered(competitive, auction, '2H', system, generated).length > 0 ||
+        getCompetitiveResponseFailureLines(unrelated).some((line) =>
+          line.includes('[respond-over-suit-new-suit-two-level]'))) {
+      failures++; console.error('FAIL Q3 competitive length/refiner evidence.');
+    }
+  }
+  // Three-card invitational support justifies the spade-first explanation, but
+  // a long spade suit with game strength does not imply a future heart raise.
+  checks += 2;
+  const threeSupport = all.find((deal) =>
+    deal.description.includes('11 HCP plus one shortage point gives 12 support points'));
+  const longSpades = all.find((deal) =>
+    deal.description.includes('A six-card spade suit and game strength favor 4S'));
+  if (threeSupport === undefined || longSpades === undefined) {
+    failures++; console.error('FAIL Q3 support examples missing.');
+  } else {
+    for (const [deal, expected] of [[threeSupport, true], [longSpades, false]] as const) {
+      const board = makeRuleTestBoard(deal).board;
+      const auction: Call[] = ['1H','Pass'];
+      const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+      const result = evaluateUserCall('1NT', board, auction, system);
+      const available = getApplicableCandidateCalls(result).some((item) =>
+        item.call === '1S' && item.rule.id ===
+        'respond-to-major-w/-support-limit-raise-three-card-new-suit-first');
+      const generated = getMajorSupportFailureLines(result);
+      const selectedRoute = generated.some((line) =>
+        line.includes('[respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback]'));
+      if (available !== expected || selectedRoute !== expected ||
+          (expected && delivered(deal, auction, '1NT', system, generated).length > 0)) {
+        failures++; console.error(`FAIL Q3 spades-first support route ${deal.description}.`);
+      }
+    }
+  }
+  // Opener's actual singleton and strength tests distinguish the artificial
+  // Jacoby 3NT description from shortness and minimum fast arrival.
+  const jacobyCases: { prefix: Call[]; chosen: Call; outcome: 'shortness' | 'hcp';
+    expectedHcp?: number; match: string }[] = [
+    { prefix: ['1S','Pass','2NT','Pass'], chosen: '3NT', outcome: 'shortness',
+      match: 'diamond singleton before generic strength' },
+    { prefix: ['1H','Pass','2NT','Pass'], chosen: '3NT', outcome: 'hcp', expectedHcp: 12,
+      match: "opener's minimum fast-arrival" },
+    { prefix: ['1H','Pass','2NT','Pass'], chosen: '3NT', outcome: 'hcp', expectedHcp: 17,
+      match: '17-HCP 5-4-2-2 major opener' },
+  ];
+  for (const scenario of jacobyCases) {
+    checks++;
+    const deal = all.find((item) => item.description.includes(scenario.match));
+    if (deal === undefined) { failures++; console.error(`FAIL Q3 Jacoby example ${scenario.match}`); continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.chosen, board, scenario.prefix, system);
+    const candidate = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-3nt-after-major-jacoby-2nt')?.candidates
+      .find((item) => item.call === scenario.chosen);
+    const facts = candidate?.callEvidence?.openerConventionalRebid;
+    const failedHcp = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'hcp' && !item.passed);
+    const generated = getOpenerConventionalRebidFailureLines(result);
+    if (candidate?.ruleApplies !== false || result.userCallMatchingRules.length > 0 ||
+        facts === undefined ||
+        (scenario.outcome === 'shortness' ? facts.shortSuits.length === 0 :
+          failedHcp?.kind !== 'hcp' || failedHcp.actual !== scenario.expectedHcp) ||
+        generated.length === 0 ||
+        delivered(deal, scenario.prefix, scenario.chosen, system, generated).length > 0) {
+      failures++; console.error(`FAIL Q3 Jacoby rebid ${scenario.match}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q3 natural and competitive rejections: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
@@ -6636,6 +6836,7 @@ const testGroups: (() => number)[] = [
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
   runQ3ConventionalRejectionTests,
+  runQ3NaturalCompetitiveRejectionTests,
   runQ2PositiveAlternativeDeliveryTests,
   runQ2RebidAlternativesTests,
   runQ2DirectOvercallAlternativesTests,
