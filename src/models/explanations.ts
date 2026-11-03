@@ -51,6 +51,39 @@ export function getMatchedCallExplanationLines(result: BidEvalResult, rule: BidR
   return lines;
 }
 
+/// A substituted practice call retains its hand-specific evidence. Omit only the
+/// general meaning/guidance of a rule already explained for the student's call;
+/// those shared rule explanations remain available in New Deal and other auctions.
+export function getRecordedCallExplanationLines(enteredResult: BidEvalResult | null,
+    recordedResult: BidEvalResult | null, status: BiddingTurnStatus,
+    handFacts: HandFacts, auctionLength: number): string[] {
+  const matched = recordedResult?.userCallMatchingRules ?? [];
+  if (recordedResult !== null && matched.length > 0) {
+    const explainedRuleIds = new Set<string>();
+    if (enteredResult !== null && status.kind === 'supported') {
+      if (enteredResult.userCallMatchingRules.length > 0) {
+        for (const rule of enteredResult.userCallMatchingRules) {
+          explainedRuleIds.add(rule.id);
+        }
+      } else {
+        const comparison = getApplicableCandidateCalls(enteredResult)[0];
+        if (comparison !== undefined) explainedRuleIds.add(comparison.rule.id);
+      }
+    }
+    const lines = ['Reason for the recorded call:'];
+    for (const rule of matched) {
+      appendMatchedCallExplanation(lines, recordedResult, rule, handFacts, auctionLength,
+        !explainedRuleIds.has(rule.id));
+    }
+    return lines;
+  }
+  if (recordedResult !== null && status.kind === 'supported') {
+    return ['This recorded continuation is not supported by an applicable rule ' +
+      'under the current bidding configuration.'];
+  }
+  return ['The app does not evaluate the recorded call in this bidding context.'];
+}
+
 /// Rule meaning and guidance are also used when previewing an unjudged turn.
 export function getRuleExplanationLines(rule: BidRule, handFacts?: HandFacts,
     auctionLength?: number): string[] {
@@ -235,11 +268,14 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
     }
-    const preferredRule = result.applicableRules.find((rule) => rule.kind !== 'scopeBoundary');
-    if (preferredRule !== undefined) {
+    const comparison = candidates[0];
+    if (comparison !== undefined) {
       lines.push('');
-      lines.push('The trainer prefers:');
-      appendRuleExplanation(lines, preferredRule, handFacts, auctionLength);
+      lines.push('One supported call for comparison:');
+      appendRuleExplanation(lines, comparison.rule, handFacts, auctionLength);
+    } else if (reasons.length > 0 && scopeBoundary === undefined) {
+      lines.push('The failed requirement does not establish a better call; ' +
+        'the app has no qualifying recommendation for this hand and auction.');
     }
   } else {
     lines.push('Why this call fits:');
@@ -285,7 +321,8 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
 /// Use one explanation path for the student's supported call and any substituted recorded call.
 /// The latter is evaluated against the recorded auction, but uses the same hand evidence.
 function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
-                                      handFacts: HandFacts, auctionLength: number): void {
+                                      handFacts: HandFacts, auctionLength: number,
+                                      includeRuleExplanation = true): void {
   const handEvidence = getOpeningRequirementSupportLine(result, rule);
   if (handEvidence !== null) lines.push(handEvidence);
   lines.push(...getOpeningSelectionSupportLines(result, rule));
@@ -339,7 +376,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getOpenerCompetitiveNaturalNtRebidLines(result, rule, handFacts));
   lines.push(...getOpenerWeakCompetitiveRebidLines(result, rule, handFacts));
   lines.push(...getOpenerThreeLevelGameForceRebidLines(result, rule, handFacts));
-  appendRuleExplanation(lines, rule, handFacts, auctionLength);
+  if (includeRuleExplanation) appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 
 /// Add the actual hand valuation only where it explains a light one-level opening.  The

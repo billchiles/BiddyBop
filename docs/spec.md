@@ -36,8 +36,9 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
 
 ## Bidding Corpus Snapshot
 
-Source-based counts at commit `d920655` (October 28, 2026); update this snapshot when the
-rule declarations, practice-deal registry, or deal corpus materially change.
+Rule counts are from commit `d920655` (October 28, 2026); practice-deal counts were
+rechecked against the November 2026 `master` baseline. Update these counts only when
+the corresponding source changes materially.
 
 | Metric | Count | Definition |
 | --- | ---: | --- |
@@ -46,11 +47,11 @@ rule declarations, practice-deal registry, or deal corpus materially change.
 | Combined bidding declarations | **678** | Executable rules plus scope boundaries, excluding non-executable `BiddingNotes` |
 | Rule declaration collections | **6** | Opening, responding, advancing, opener rebidding, overcalling/overcaller rebidding, responder rebidding |
 | Executable rule kinds | **7** | `openingBid`, `responseBid`, `advance`, `openerRebid`, `overcall`, `overcallerRebid`, `responderRebid` |
-| Practice/rule-test buckets | **69** | Entries in `RULE_TEST_DEAL_BUCKETS`; the same buckets serve the practice selector and rule tests, not two separate bucket populations |
-| Practice-deal definitions | **626** | Source-defined deal records across the eleven stage/family `*-test-deals.ts` files |
+| Practice/rule-test buckets | **70** | Entries in `RULE_TEST_DEAL_BUCKETS`; the same buckets serve the practice selector and rule tests, not two separate bucket populations |
+| Practice-deal definitions | **626** | Distinct source-defined deal records across the stage/family `*-test-deals.ts` files |
 
-The 626 counts distinct source definitions, **not** the sum of deals shown across all
-buckets: some deal arrays are deliberately reused in more than one bucket. Each
+The 626 counts distinct source definitions; the 70 buckets expose 627 practice-deal
+selections because some deals are deliberately reused in more than one bucket. Each
 practice deal specifies four full hands, and North is dealer. Rule totals include
 multiple meaningful alternatives, not a claim of exhaustive bidding coverage.
 Neither numerical rule representation nor custom explanation coverage is a quality
@@ -176,6 +177,20 @@ unrecorded failures. Ensure both student-entered and recorded-substitution paths
 the same useful explanation, without duplicating feedback for a correctly entered
 recorded call. Preserve rule IDs in square brackets for diagnostics alongside readable
 bridge terminology.
+
+Candidate order is for presentation, not proof that the first qualifying call is
+uniquely best. When several calls qualify, introduce a selected comparison as one
+supported possibility and retain the other supported alternatives. A rejected call's
+failed requirement does not establish a better call when no candidate qualifies.
+An unjudged recorded practice continuation maintains the exercise's auction; it is
+not an evaluated endorsement of that call.
+
+Rule meaning and guidance must remain available in both New Deal and practice mode.
+In a practice substitution, retain hand-specific evidence for the recorded call and
+omit its generic meaning/guidance only if that same rule was already explained in
+the current feedback. Do not globally remove shared teaching to avoid local repeats.
+Deal-specific `practiceGuidance` can supplement normal feedback but must not replace
+reusable instruction needed for an equivalent New Deal auction.
 
 Review the *actual wording* across representative qualifying, rejected, ambiguous,
 and forcing examples before calling a batch finished. State meaningful limitations and

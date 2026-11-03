@@ -6,7 +6,7 @@ import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '..
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
-import { getBidExplanationLines, getMatchedCallExplanationLines, getRuleExplanationLines }
+import { getBidExplanationLines, getRecordedCallExplanationLines, getRuleExplanationLines }
   from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
@@ -51,8 +51,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
     getUnmodeledContinuationForce(board, auction, biddingSystem),
     [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
-  // On an unjudged practice turn, use the known recorded auction to explain
-  // its appropriate continuation without claiming we evaluated the alternatives.
+  // At an unjudged practice turn, show the recorded continuation without
+  // implying its alternatives have been evaluated.
   const practiceRecordedCall = testDeal?.practiceAuction[auction.length];
   const hasFollowingPracticeCall = testDeal !== undefined &&
     auction.length + 1 < testDeal.practiceAuction.length;
@@ -163,21 +163,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       explanation.push('', `Practice continuation: You entered ${call}, but ` +
         `this exercise records ${correction.call}.  The auction uses ${correction.call} so ` +
         'you can continue the lesson.  The recorded call is not necessarily the only sound bid.');
-      const matched = correction.result?.userCallMatchingRules ?? [];
-      if (matched.length > 0) {
-        explanation.push('Reason for the recorded call:');
-        for (const rule of matched) {
-          if (correction.result !== null) {
-            explanation.push(...getMatchedCallExplanationLines(correction.result, rule,
-              handFacts, auction.length));
-          }
-        }
-      } else if (correction.result !== null && status.kind === 'supported') {
-        explanation.push('This recorded continuation is not supported by an applicable rule ' +
-          'under the current bidding configuration.');
-      } else {
-        explanation.push('The app does not evaluate the recorded call in this bidding context.');
-      }
+      explanation.push(...getRecordedCallExplanationLines(result, correction.result,
+        status, handFacts, auction.length));
     }
     if (practiceNotes.length > 0) explanation.push('', ...practiceNotes);
     // A deal description may reveal its intended decision. Treat it as a lesson
@@ -386,9 +373,8 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
           (practiceStep.followingStage === null ? 'next call' :
             getStageLabel(practiceStep.followingStage));
       lines.push('', `------------ ${getSeatLabel(seat)} to call — practice continuation ------------`,
-        `The recorded ${practiceStep.recordedCall} is appropriate for this reviewed practice ` +
-        'auction, but this turn is included for continuity rather than as a separate ' +
-        'evaluated bidding decision.',
+        `The recorded ${practiceStep.recordedCall} keeps this exercise on its intended ` +
+        'auction path. The app does not evaluate alternative choices at this turn.',
         `Enter ${practiceStep.recordedCall} to ${next}. If you enter a different legal ` +
         `call, the lesson will still continue with ${practiceStep.recordedCall}.`);
       if (status.kind === 'scopeBoundary') {
