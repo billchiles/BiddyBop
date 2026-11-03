@@ -32,7 +32,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getCompetitiveR
          getOpenerOneNtInterferenceLines, getOpenerOneNtInterferenceFailureLines,
          getOpenerJumpOvercallRebidLines, getOpenerJumpOvercallRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
-         getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines }
+         getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines,
+         getOpenerForcingRebidPassFailureLines, getOvercallerForcingAdvancePassFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -6805,6 +6806,148 @@ function runQ3NaturalCompetitiveRejectionTests (): number {
 
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
+/// Q3 closeout: use recorded auction positions to verify a forcing obligation,
+/// the hand's actual supported continuation, and delivery of the rejected-Pass reason.
+/// Ordinary nonforcing advances, raises, and defensive Passes must not be flagged.
+function runQ3ForcingContinuationPassTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const all = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
+  const cases: { auction: Call[]; call: Call; ruleId: string;
+    stage: 'openerRebid' | 'overcallerRebid' }[] = [
+    { auction: ['2C','Pass','2D','Pass'], call: '2NT',
+      ruleId: 'opener-rebid-2nt-after-2c-2d', stage: 'openerRebid' },
+    { auction: ['2C','Pass','2D','Pass'], call: '2S',
+      ruleId: 'opener-rebid-longest-suit-after-2c-2d', stage: 'openerRebid' },
+    { auction: ['2S','Pass','2NT','Pass'], call: '3C',
+      ruleId: 'opener-rebid-feature-after-weak-two-2nt-inquiry', stage: 'openerRebid' },
+    { auction: ['2D','Pass','2NT','Pass'], call: '3NT',
+      ruleId: 'opener-rebid-3nt-after-weak-two-2nt-inquiry', stage: 'openerRebid' },
+    { auction: ['2D','Pass','2S','Pass'], call: '3S',
+      ruleId: 'opener-rebid-raise-after-preempt-new-suit', stage: 'openerRebid' },
+    { auction: ['3H','Pass','3S','Pass'], call: '4H',
+      ruleId: 'opener-rebid-repeat-after-preempt-new-suit', stage: 'openerRebid' },
+    { auction: ['1D','1S','Pass','2D','Pass'], call: '2S',
+      ruleId: 'overcaller-rebid-cuebid-return', stage: 'overcallerRebid' },
+    { auction: ['1D','1S','Pass','2H','Pass'], call: '3H',
+      ruleId: 'overcaller-rebid-new-suit-support', stage: 'overcallerRebid' },
+    { auction: ['1D','1S','2D','3D','Pass'], call: '3S',
+      ruleId: 'overcaller-rebid-contested-suit-cue-return', stage: 'overcallerRebid' },
+    { auction: ['1D','1S','2D','2H','Pass'], call: '3H',
+      ruleId: 'overcaller-rebid-contested-suit-new-support', stage: 'overcallerRebid' },
+    { auction: ['1D','1S','2D','Double','Pass'], call: '3C',
+      ruleId: 'overcaller-rebid-contested-suit-responsive-suit', stage: 'overcallerRebid' },
+    { auction: ['1D','Double','Pass','2D','Pass'], call: '2H',
+      ruleId: 'overcaller-rebid-takeout-cue-suit', stage: 'overcallerRebid' },
+    { auction: ['1H','Double','2H','Double','Pass'], call: '2S',
+      ruleId: 'overcaller-rebid-takeout-responsive-suit', stage: 'overcallerRebid' },
+    { auction: ['2H','Double','Pass','3H','Pass'], call: '3S',
+      ruleId: 'overcaller-rebid-weak-two-double-cue-suit', stage: 'overcallerRebid' },
+    { auction: ['2D','2H','Pass','2S','Pass'], call: '3S',
+      ruleId: 'overcaller-rebid-weak-two-suit-new-support', stage: 'overcallerRebid' },
+    { auction: ['2D','2H','Pass','3D','Pass'], call: '3H',
+      ruleId: 'overcaller-rebid-weak-two-suit-cue-return', stage: 'overcallerRebid' },
+  ];
+  for (const item of cases) {
+    checks++;
+    const example = all.find((deal) => {
+      if (deal.practiceAuction.slice(0, item.auction.length).join(' ') !==
+          item.auction.join(' ')) return false;
+      const board = makeRuleTestBoard(deal).board;
+      const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+      return getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+        item.auction, system)).some((candidate) =>
+          candidate.call === item.call && candidate.rule.id === item.ruleId);
+    });
+    if (example === undefined) {
+      failures++;
+      console.error(`FAIL Q3 missing forced-rebid case ${item.ruleId}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(example).board;
+    const system = { ...defaultBiddingSystem, ...example.requiredSystem };
+    const rejected = evaluateUserCall('Pass', board, item.auction, system);
+    const selected = getApplicableCandidateCalls(rejected);
+    const reason = item.stage === 'openerRebid' ?
+      getOpenerForcingRebidPassFailureLines(rejected) :
+      getOvercallerForcingAdvancePassFailureLines(rejected);
+    const seat = makeRuleEvalContext(board, item.auction).seat;
+    const displayed = getBidExplanationLines({
+      title: 'Bid feedback', call: 'Pass', status: getBiddingTurnStatus(board, item.auction, system),
+      result: rejected, handFacts: getHandFacts(board.deal[seat]),
+      auctionLength: item.auction.length, previewLines: [], seatLabel: seat,
+      recordedUnjudged: false,
+    });
+    if (rejected.userCallMatchingRules.length !== 0 ||
+        !selected.some((candidate) => candidate.rule.id === item.ruleId &&
+          candidate.call === item.call) || reason.length === 0 ||
+        !reason.some((line) => line.includes(item.call) && line.includes(`[${item.ruleId}]`)) ||
+        reason.some((line) => !displayed.includes(line))) {
+      failures++;
+      console.error(`FAIL Q3 forced-rebid explanation ${item.ruleId}.`);
+    }
+  }
+  const controls: Call[][] = [
+    ['1H','Pass','4H','Pass'],
+    ['1C','Pass','1NT','Pass'],
+    ['1D','1H','Pass','1S','Pass'],
+    ['1D','1S','2D','Double'],
+    ['2D','2H','Pass','3H','Pass'],
+    ['2H','Double','Pass','2S','Pass'],
+  ];
+  for (const auction of controls) {
+    checks++;
+    const example = all.find((deal) => {
+      if (deal.practiceAuction.slice(0, auction.length).join(' ') !== auction.join(' ')) {
+        return false;
+      }
+      const board = makeRuleTestBoard(deal).board;
+      const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+      return getApplicableCandidateCalls(evaluateUserCall('Pass', board, auction, system))
+        .some((candidate) => candidate.call === 'Pass');
+    });
+    if (example === undefined) {
+      failures++;
+      console.error(`FAIL Q3 missing nonforcing control ${auction.join(' ')}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(example).board;
+    const system = { ...defaultBiddingSystem, ...example.requiredSystem };
+    const result = evaluateUserCall('Pass', board, auction, system);
+    if (result.userCallMatchingRules.length === 0 ||
+        getOpenerForcingRebidPassFailureLines(result).length > 0 ||
+        getOvercallerForcingAdvancePassFailureLines(result).length > 0) {
+      failures++;
+      console.error(`FAIL Q3 nonforcing Pass mislabeled ${auction.join(' ')}.`);
+    }
+  }
+  // A forcing advance can legitimately reach a judgment boundary with no
+  // qualifying concrete rebid. Explain that boundary, not an invented call.
+  checks++;
+  const boundary = all.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H 1S 2H 3C Pass');
+  if (boundary === undefined) {
+    failures++;
+    console.error('FAIL Q3 missing forcing competitive judgment boundary.');
+  } else {
+    const board = makeRuleTestBoard(boundary).board;
+    const auction = boundary.practiceAuction;
+    const system = { ...defaultBiddingSystem, ...boundary.requiredSystem };
+    const result = evaluateUserCall('Pass', board, auction, system);
+    const status = getBiddingTurnStatus(board, auction, system);
+    if (status.kind !== 'scopeBoundary' ||
+        status.rule.id !== 'overcaller-rebid-contested-forcing-boundary' ||
+        getApplicableCandidateCalls(result).length !== 0 ||
+        getOvercallerForcingAdvancePassFailureLines(result).length !== 0) {
+      failures++;
+      console.error('FAIL Q3 invented a forced reply at judgment boundary.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q3 forcing continuation closeout: ` +
+    `${checks} recorded-position checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -6837,6 +6980,7 @@ const testGroups: (() => number)[] = [
   runBidExplanationDeliveryTests,
   runQ3ConventionalRejectionTests,
   runQ3NaturalCompetitiveRejectionTests,
+  runQ3ForcingContinuationPassTests,
   runQ2PositiveAlternativeDeliveryTests,
   runQ2RebidAlternativesTests,
   runQ2DirectOvercallAlternativesTests,

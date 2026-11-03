@@ -90,11 +90,13 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getCompetitiveNaturalAdvanceFailureLines(result),
     ...getNegativeDoubleAdvanceFailureLines(result),
     ...getNaturalSuitOvercallerRebidFailureLines(result),
+    ...getOvercallerForcingAdvancePassFailureLines(result),
     ...getContestedSuitOvercallerRebidFailureLines(result),
     ...getTakeoutDoublerRebidFailureLines(result),
     ...getOneNtOvercallerRebidFailureLines(result),
     ...getOvercallerConventionFailureLines(result),
     ...getWeakTwoDefenseRebidFailureLines(result),
+    ...getOpenerForcingRebidPassFailureLines(result),
     ...getOpenerOneNtRebidFailureLines(result),
     ...getOpenerOneLevelNewSuitRebidFailureLines(result),
     ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
@@ -4688,6 +4690,48 @@ export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): strin
 
 /// Interpret the choice made by the evaluator, including the requirement that actually
 /// distinguishes an ordinary rebid from an invitation, game, or a forced reply.
+/// A supported forced reply after an advance explains why overcaller cannot Pass.
+/// Use the current qualifying rule and its advance kind, not a general auction
+/// force scan that might belong to the opposing partnership.
+export function getOvercallerForcingAdvancePassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  for (const selected of getApplicableCandidateCalls(result)) {
+    const id = selected.rule.id;
+    const natural = selected.callEvidence?.naturalSuitOvercallerRebid;
+    const contested = selected.callEvidence?.contestedSuitOvercallerRebid;
+    const weakTwo = selected.callEvidence?.weakTwoDefenseRebid;
+    const doubler = selected.callEvidence?.takeoutDoublerRebid;
+    let obligation: string | null = null;
+    if (id.startsWith('overcaller-rebid-cuebid-') ||
+        id.startsWith('overcaller-rebid-contested-suit-cue-') ||
+        id.startsWith('overcaller-rebid-weak-two-suit-cue-') ||
+        id.startsWith('overcaller-rebid-weak-two-double-cue-') ||
+        id.startsWith('overcaller-rebid-takeout-cue-')) {
+      obligation = `Advancer's cuebid is artificial and forcing; it does not ` +
+        `offer to play in the opponents' suit.`;
+    } else if ((id.startsWith('overcaller-rebid-new-suit-') &&
+                natural?.advanceKind === 'forcingNewSuit') ||
+               (id.startsWith('overcaller-rebid-contested-suit-new-') &&
+                contested?.advanceKind === 'forcingNewSuit') ||
+               id.startsWith('overcaller-rebid-jump-new-suit-') ||
+               (id.startsWith('overcaller-rebid-weak-two-suit-new-') &&
+                weakTwo?.action.startsWith('new-') === true)) {
+      obligation = `Advancer's natural new suit is forcing for one round.`;
+    } else if ((id.startsWith('overcaller-rebid-contested-suit-responsive-') &&
+                contested?.advanceKind === 'responsiveDouble') ||
+               (id === 'overcaller-rebid-takeout-responsive-suit' &&
+                doubler?.treatment === 'responsive-suit')) {
+      obligation = `Advancer's responsive Double asks for a takeout description, ` +
+        `not a penalty Pass.`;
+    }
+    if (obligation !== null) {
+      return [`${obligation} ${selected.call} is an available descriptive reply; ` +
+        `Pass does not answer partner's request [${id}].`];
+    }
+  }
+  return [];
+}
+
 export function getNaturalSuitOvercallerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
     ?.candidates.find((item) => item.call === result.normalizedCall);
@@ -5000,6 +5044,36 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
 
 /// Give only failed checks of the particular attempted rebid. Missing a refiner-generated
 /// candidate is not proof that a student's judgment call is wrong.
+/// A forcing waiting response, weak-two inquiry, or natural new-suit response
+/// obliges opener to describe the hand. Only a qualifying current rebid can
+/// establish this duty; nonforcing raises and scope boundaries do not.
+export function getOpenerForcingRebidPassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  const selected = getApplicableCandidateCalls(result).find((candidate) =>
+    candidate.rule.id === 'opener-rebid-2nt-after-2c-2d' ||
+    candidate.rule.id === 'opener-rebid-3nt-after-2c-2d' ||
+    candidate.rule.id === 'opener-rebid-4nt-after-2c-2d' ||
+    candidate.rule.id === 'opener-rebid-longest-suit-after-2c-2d' ||
+    candidate.rule.id === 'opener-rebid-repeat-after-weak-two-2nt-inquiry' ||
+    candidate.rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry' ||
+    candidate.rule.id === 'opener-rebid-3nt-after-weak-two-2nt-inquiry' ||
+    candidate.rule.id === 'opener-rebid-raise-after-preempt-new-suit' ||
+    candidate.rule.id === 'opener-rebid-repeat-after-preempt-new-suit');
+  if (selected === undefined) return [];
+  const id = `[${selected.rule.id}]`;
+  if (selected.rule.id.endsWith('-after-2c-2d')) {
+    return [`Responder's 2D is a waiting response to your strong 2C opening, not a ` +
+      `diamond signoff. You must continue; ${selected.call} describes your hand ${id}.`];
+  }
+  if (selected.rule.id.endsWith('-weak-two-2nt-inquiry')) {
+    return [`Responder's 2NT is a forcing inquiry after your weak two. ` +
+      `You must answer; ${selected.call} is supported by this hand ${id}.`];
+  }
+  return [`Responder's natural new suit after your preempt forces one reply. ` +
+    `${selected.call} describes your fit or returns economically to your opening suit; ` +
+    `Pass does not satisfy the force ${id}.`];
+}
+
 export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   // A genuine one-round force rules out Pass even though the agreement suppresses
