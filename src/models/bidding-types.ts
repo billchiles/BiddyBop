@@ -462,6 +462,10 @@ export interface CallEvidence {
     minHcp: number;
     maxHcp: number;
   };
+  // Refiner checks for natural new suits after a direct suit overcall, including removed calls.
+  competitiveNewSuit?: {
+    considered: { call: Call; suit: Suit; length: number; minimum: number }[];
+  };
   competitiveResponse?: {
     hcp: number;
     minHcp?: number;
@@ -524,6 +528,7 @@ export interface CallEvidence {
   // Eligibility remains exclusively with the corresponding bidding rule and refiner.
   openerConventionalRebid?: {
     openingSuit: Suit;
+    shortSuits: Suit[];
     responseSuit: Suit | null;
     bidSuit: Suit | null;
     bidSuitLength: number;

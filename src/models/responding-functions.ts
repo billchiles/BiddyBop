@@ -1,7 +1,7 @@
 /// Responder Bid Functions: refiners, applicability checks, and related helpers.
 
 import {biddingBaseline, STRAIN_ORDER, type AppliesWhenResult,
-        type BiddingSystem, type Call, type CallRefinementResult, type RuleEvalContext, 
+        type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult, type RuleEvalContext, 
         type SuitBid} from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, responderPreviouslyPassed,
@@ -967,6 +967,7 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
   if (auction === null) {
     return { calls: [], telemetryLines: ['No direct non-jump suit overcall.'] };
   }
+  const considered: NonNullable<CallEvidence['competitiveNewSuit']>['considered'] = [];
   const survivors = calls.filter((call) => {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' ||
@@ -979,7 +980,10 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
       (auction.opening.strain === 'C' || auction.opening.strain === 'D') &&
       auction.overcall.strain === 'D' &&
       (candidate.strain === 'H' || candidate.strain === 'S') ? 4 : 5;
-    return context.handFacts.lengths[candidate.strain as Suit] >= minimum;
+    const suit = candidate.strain as Suit;
+    const length = context.handFacts.lengths[suit];
+    considered.push({ call, suit, length, minimum });
+    return length >= minimum;
   });
   survivors.sort((a, b) => {
     const first = parseSuitBid(a)!.strain as Suit;
@@ -989,7 +993,7 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
   });
   return { calls: survivors, telemetryLines: [
     'Natural new suits must not be the opponent suit; use the cheapest bid after interference.',
-  ] };
+  ], callEvidence: { competitiveNewSuit: { considered } } };
 }
 
 /// refineResponderRaiseAfterOvercall selects responder's raise of opener's suit at the

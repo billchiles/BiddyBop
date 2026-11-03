@@ -18,52 +18,8 @@ not a historical progress log or a commitment to model every possible auction.
   every seat. North is always dealer, but need not be opener. Exercise completion
   need not mean the actual bridge auction is over.
 
-## First-pass instructional milestone
+## Second-pass instructional quality punch list (Q3–Q4)
 
-- [x] Source-based first-pass explanation development across all modeled bidding stages:
-  opening, responding, opener rebid, responder rebid, direct overcalling/Double,
-  balancing, advancing, and overcaller/takeout-Doubler rebid. The final targeted
-  opener-rebid interference closeout is merged. The project does **not** model a
-  separate advancer's rebid stage.
-- This milestone means the identified first-pass families were addressed; it is
-  **not** a final certification of all rendered feedback or all bidding rules.
-  Detailed decisions and earlier batches remain in
-  [Instructional Explanation Coverage Review](instructional-explanation-review.md).
-
-## Second-pass instructional quality punch list (Q1–Q4)
-
-- [x] **Q1 — Correctness and feedback integration (first).** In `BidPanel.tsx`,
-  the early `hasCallSpecificFailure` check omits some helpers that
-  `buildExplanationLines` later uses; the no-candidate scope-boundary checks
-  also omit some collected reasons. Investigate actual affected auctions and
-  correct the path so available rejected-call evidence is not bypassed.
-  Consolidate relevant feedback gathering/selection into a small *pure TypeScript*
-  presentation/assembly function outside React, reusing the **same** collected
-  reasons for the decision to show detail, the heading, and any additional
-  judgment guidance. Keep bidding qualifications in the model; do not rebuild
-  bidding logic in the React component. Fix confirmed misleading text, e.g.,
-  duplicated "Double negative Double", "4M" shorthand, and four-four Stayman-fit
-  claims when the actual fit may be five-four. Retain [rule IDs].
-  Add **non-browser** regression tests from the real evaluator through final
-  assembled explanation lines for representative supported, rejected, and
-  boundary cases. **Do not hardcode exact English sentences or snapshots**:
-  assert structured evaluated facts, nonempty relevant generated reasons, and
-  that those dynamically generated reasons reach the assembled feedback.
-  A narrow hand-fact check may use a suit/value derived from evaluator evidence,
-  never a copied whole sentence. No browser tests or new test infrastructure.
-  **Completed:** The shared high-level assembly and rule-meaning helpers are
-  grouped near the top of `explanations.ts`; `BidPanel.tsx` calls them for the
-  student's feedback and recorded-call explanations. The same list of rejected
-  reasons now controls routing, headings and scope guidance. Representative
-  delivery tests compare generated helper lines dynamically and inspect
-  structured stopper evidence; no English snapshots or browser tests.
-- [x] **Q2 — Richer positive instruction and valid alternatives.** Review modeled
-  stages in manageable groups, starting with responding/advancing, then rebids
-  and direct competitive decisions. Where *both* bids genuinely qualify, use
-  evaluated evidence and priority to explain when one is preferable (e.g.,
-  3NT versus five of a minor, suitable suit/support responses). A supported
-  alternative must not be graded as wrong or treated as uniquely inferior.
-  Do not add prose to automatic transfers or ordinary Passes merely for coverage.
 - [ ] **Q3 — Better negative feedback for plausible bids.** Distinguish a tested
   failed requirement, an auction/refiner-selected convention or priority, an
   outstanding force, and a judgment/out-of-coverage situation. For a few highly
@@ -83,7 +39,7 @@ not a historical progress log or a commitment to model every possible auction.
   captures the same explanation transcript. Reconcile docs and punch-list
   statuses when completed.
 
-For each Q batch, discuss evidence and precise changes before coding. Existing
+For each remaining Q batch, discuss evidence and precise changes before coding. Existing
 practice hands and tests are the main inputs; no new deals just for numerical
 coverage, no wholesale bidding-rule re-audit, and no browser-automation suite.
 
@@ -107,7 +63,7 @@ coverage, no wholesale bidding-rule re-audit, and no browser-automation suite.
 ## Deferred enhancements
 
 - [ ] **Optional DONT agreement versus a natural defense to a strong 1NT.**
-  Defer until after Q1–Q4. This is a separate, cross-stage project: analyze,
+  Defer until after Q3–Q4. This is a separate, cross-stage project: analyze,
   then implement in deliberate batches for overcaller, advancer, opener/responder
   interpretations and rebids, practice-bucket compatibility and explanations.
   Include the settings checkbox only as part of a complete coherent treatment;

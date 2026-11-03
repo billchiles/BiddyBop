@@ -93,11 +93,13 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getContestedSuitOvercallerRebidFailureLines(result),
     ...getTakeoutDoublerRebidFailureLines(result),
     ...getOneNtOvercallerRebidFailureLines(result),
+    ...getOvercallerConventionFailureLines(result),
     ...getWeakTwoDefenseRebidFailureLines(result),
     ...getOpenerOneNtRebidFailureLines(result),
     ...getOpenerOneLevelNewSuitRebidFailureLines(result),
     ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
     ...getNaturalResponderRebidFailureLines(result),
+    ...getResponderForcingPassFailureLines(result),
     ...getConventionalResponderRebidFailureLines(result),
     ...getResponderSimpleRaiseFailureLines(result, handFacts),
     ...getOpenerRaiseRebidFailureLines(result, handFacts),
@@ -1918,8 +1920,18 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
   if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
   const entered = result.normalizedCall;
   const lines: string[] = strongMajorSupportFailureLines(result);
+  const supportedSpadesFirst = getApplicableCandidateCalls(result).some((item) =>
+    item.call === '1S' &&
+    item.rule.id === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first');
   for (const ruleId of BASIC_MAJOR_SUPPORT_IDS) {
     const { candidate, diagnostic } = majorSupportCandidate(result, ruleId);
+    if (candidate === undefined && entered === '1NT' && supportedSpadesFirst &&
+        ruleId === 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback' &&
+        diagnostic?.callEvidence?.majorSupportRoute?.reason === 'spades-first') {
+      lines.push(`With four or more spades after partner opens 1H, respond 1S first ` +
+        `and plan an invitational heart raise later [${ruleId}].`);
+      continue;
+    }
     if (candidate?.ruleApplies !== false) continue;
     const points = minorRequirement(candidate, 'totalPoints');
     const support = minorRequirement(candidate, 'partnerSupport');
@@ -1945,14 +1957,6 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
     if (hcp?.passed === false) {
       lines.push(`Pass under this weak-response treatment requires at most 5 HCP; ` +
         `your hand has ${hcp.actual} [${ruleId}].`);
-    }
-    // A 1NT fallback filtered out because 1S is available has no hand check to report.
-    if (candidate === undefined && entered === '1NT' &&
-        diagnostic?.callEvidence?.majorSupportRoute?.reason === 'spades-first') {
-      // A separate supported response rule may still cover 1NT; in that case this
-      // function was already short-circuited by userCallMatchingRules above.
-      lines.push(`With four or more spades after partner opens 1H, respond 1S first ` +
-        `and plan an invitational heart raise later [${ruleId}].`);
     }
   }
   return lines;
@@ -2587,6 +2591,16 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
 
 export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const newSuit = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-over-suit-new-suit-two-level');
+  const checked = newSuit?.callEvidence?.competitiveNewSuit?.considered.find((item) =>
+    item.call === result.normalizedCall && item.length < item.minimum);
+  if (checked !== undefined && getApplicableCandidateCalls(result).some((item) =>
+      item.call === 'Double' && item.rule.id === 'respond-over-suit-negative-double')) {
+    return [`Natural ${checked.call} needs at least ${checked.minimum} ${suitPlural(checked.call)}; ` +
+      `you have ${checked.length}. Negative Double shows the suitable unbid-major holdings ` +
+      `[${newSuit!.rule.id}].`];
+  }
   for (const id of COMPETITIVE_RESPONSE_RULES) {
     const candidate = competitiveResponseCandidate(result, id);
     if (candidate === undefined || candidate.ruleApplies) continue;
@@ -4550,6 +4564,30 @@ export function getOneNtOvercallerRebidFailureLines(result: BidEvalResult): stri
   return [];
 }
 
+/// A natural notrump overcaller must answer advancer's actual Stayman or transfer
+/// request. Only a qualifying conventional continuation can establish that duty.
+export function getOvercallerConventionFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const selected = getApplicableCandidateCalls(result).find((candidate) =>
+    candidate.rule.id === 'overcaller-rebid-1nt-stayman' ||
+    candidate.rule.id === 'overcaller-rebid-1nt-jacoby' ||
+    candidate.rule.id === 'overcaller-rebid-1nt-texas' ||
+    candidate.rule.id === 'overcaller-rebid-weak-two-2nt-stayman' ||
+    candidate.rule.id === 'overcaller-rebid-weak-two-2nt-jacoby' ||
+    candidate.rule.id === 'overcaller-rebid-weak-two-2nt-texas');
+  if (selected === undefined) return [];
+  const id = `[${selected.rule.id}]`;
+  if (selected.rule.id.endsWith('-stayman')) {
+    const shown = selected.call.endsWith('D') ? 'denies a four-card major' :
+      selected.call.endsWith('H') ? 'shows at least four hearts' : 'shows four spades without four hearts';
+    return [`Advancer's Stayman inquiry requires a reply. ${selected.call} ${shown}; ` +
+      `${result.normalizedCall} is not the selected answer for this hand ${id}.`];
+  }
+  return [`Advancer's ${selected.rule.id.endsWith('-jacoby') ? 'Jacoby' : 'Texas'} transfer ` +
+    `requires completion at ${selected.call}, rather than ${result.normalizedCall}. ` +
+    `The transfer is compulsory under the selected agreement ${id}.`];
+}
+
 export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null || !rule.id.startsWith('overcaller-rebid-weak-two-'))
     return [];
@@ -5843,7 +5881,32 @@ export function getOpenerConventionalRebidLines(
 
 /// Forcing obligations are certain even where the best rebid still needs judgment.
 export function getOpenerConventionalRebidFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  if (result.normalizedCall !== 'Pass') {
+    for (const diagnostic of result.ruleDiagnostics) {
+      if (diagnostic.rule.id !== 'opener-rebid-3nt-after-major-jacoby-2nt' &&
+          diagnostic.rule.id !== 'opener-rebid-strong-3-major-after-major-jacoby-2nt' &&
+          diagnostic.rule.id !== 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt') continue;
+      const candidate = diagnostic.candidates.find((item) =>
+        item.call === result.normalizedCall && !item.ruleApplies);
+      const facts = candidate?.callEvidence?.openerConventionalRebid;
+      if (facts === undefined) continue;
+      const id = `[${diagnostic.rule.id}]`;
+      if (facts.shortSuits.length > 0) {
+        const suit = facts.shortSuits[0]!;
+        return [`After Jacoby 2NT, ${result.normalizedCall} describes strength with no ` +
+          `singleton or void. Your shortness in ${suitPlural(`1${suit}` as Call)} should ` +
+          `be shown first ${id}.`];
+      }
+      const hcp = candidate?.callEvidence?.requirements?.find((item) =>
+        item.kind === 'hcp');
+      if (hcp?.kind === 'hcp' && !hcp.passed) {
+        return [`With no singleton or void, ${result.normalizedCall} after Jacoby 2NT ` +
+          `requires ${strengthRange(hcp)}; you have ${hcp.actual} HCP ${id}.`];
+      }
+    }
+    return [];
+  }
   const ids = result.ruleDiagnostics.map((entry) => entry.rule.id);
   if (ids.some((id) => id.endsWith('-after-major-jacoby-2nt'))) {
     return ['Jacoby 2NT has forced game and confirmed the major fit. Pass cannot ' +
@@ -6990,6 +7053,19 @@ export function getNaturalResponderRebidFailureLines(result: BidEvalResult): str
     return [];
   }
   return [];
+}
+
+/// An evaluated responder Pass can break a previously established force even when
+/// the available natural rebids require further judgment.
+export function getResponderForcingPassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
+      result.responderPassForce === null || result.responderPassForce === undefined) return [];
+  if (result.responderPassForce.kind === 'gameForce') {
+    return ['The earlier game-forcing response still commits both partners to reach game. ' +
+      'Opener has not yet bid game, so responder cannot Pass here.'];
+  }
+  return ["Opener's preceding forcing rebid requires responder to bid again. " +
+    'Pass cannot satisfy the one-round force.'];
 }
 
 ///

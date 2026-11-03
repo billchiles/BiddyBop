@@ -65,6 +65,8 @@ export interface BidEvalResult extends CurrentContextRules {
   normalizedCall: Call | null;
   // Applicable concrete-call rules matching the submitted call; excludes scope boundaries.
   userCallMatchingRules: BidRule[];
+  // An outstanding obligation is checked for an unsupported responder-rebid Pass.
+  responderPassForce?: UnmodeledContinuationForce | null;
 }
 
 /// Diagnostic outcome of one rule after agreement and auction-context filtering.
@@ -208,10 +210,14 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
         : `Scope boundary ${boundary.id} applies; ${inputCall} is not judged by a candidate rule.`
       : `User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`,
   ];
+  const responderPassForce = inputCall === 'Pass' && matchingRulesForUserCall.length === 0 &&
+    getNextBiddingRuleStage(board.dealer, auction) === 'responderRebid'
+      ? getUnmodeledContinuationForce(board, auction, system) : null;
   return {
     ...currentRules,
     normalizedCall: inputCall,
     userCallMatchingRules: matchingRulesForUserCall,
+    responderPassForce,
     telemetryLines,
   };
 }
@@ -699,7 +705,9 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
         ranks.includes('K') ? 'king' :
         cards.length === 0 ? 'void' : cards.length === 1 ? 'singleton' : null;
       evidence = { ...evidence, openerConventionalRebid: {
-        openingSuit, responseSuit, bidSuit, bidSuitLength: cards.length,
+        openingSuit, shortSuits: (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
+          suit !== openingSuit && facts.lengths[suit] <= 1),
+        responseSuit, bidSuit, bidSuitLength: cards.length,
         responseSupport: responseSuit === null ? 0 : facts.lengths[responseSuit],
         topFourHonors: ranks.filter((rank) =>
           rank === 'A' || rank === 'K' || rank === 'Q' || rank === 'J').length,
@@ -1239,6 +1247,10 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
      ruleId.includes('-after-major-standard-two-level-new-suit') ||
      ruleId.includes('-after-minor-two-over-one-new-suit') ||
      ruleId.includes('-after-major-two-over-one-new-suit'));
+  const explainOpenerJacobyRebid = context.stage === 'openerRebid' &&
+    (ruleId === 'opener-rebid-3nt-after-major-jacoby-2nt' ||
+     ruleId === 'opener-rebid-strong-3-major-after-major-jacoby-2nt' ||
+     ruleId === 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -1254,7 +1266,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
+        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid ||
+        explainOpenerJacobyRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -1348,7 +1361,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
       explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
       explainStrongTwoCPositive || explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
       explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
-      explainOpenerTwoLevelNewSuitRebid ?
+      explainOpenerTwoLevelNewSuitRebid || explainOpenerJacobyRebid ?
         { requirements } : undefined };
 } //evaluateHandConstraint()
 
