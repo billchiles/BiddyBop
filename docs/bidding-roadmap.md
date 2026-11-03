@@ -18,15 +18,8 @@ not a historical progress log or a commitment to model every possible auction.
   every seat. North is always dealer, but need not be opener. Exercise completion
   need not mean the actual bridge auction is over.
 
-## Second-pass instructional quality punch list (Q3–Q4)
+## Second-pass instructional quality punch list (Q4)
 
-- [ ] **Q3 — Better negative feedback for plausible bids.** Distinguish a tested
-  failed requirement, an auction/refiner-selected convention or priority, an
-  outstanding force, and a judgment/out-of-coverage situation. For a few highly
-  instructional refiner-filtered alternatives, preserve the *actual refiner
-  decision* when needed rather than guessing a failed requirement. Prioritize
-  wrong convention/strain, missing fit/stopper, forcing Pass, and legitimate
-  alternatives. Never infer "wrong" from merely absent model support.
 - [ ] **Q4 — Presentation and instructional quality gate.** Review actual
   assembled explanations across all modeled stages for accuracy, economy,
   duplication of hand-specific text/rule meaning/practice guidance, natural
@@ -39,7 +32,7 @@ not a historical progress log or a commitment to model every possible auction.
   captures the same explanation transcript. Reconcile docs and punch-list
   statuses when completed.
 
-For each remaining Q batch, discuss evidence and precise changes before coding. Existing
+For Q4, discuss evidence and precise changes before coding. Existing
 practice hands and tests are the main inputs; no new deals just for numerical
 coverage, no wholesale bidding-rule re-audit, and no browser-automation suite.
 
@@ -63,7 +56,7 @@ coverage, no wholesale bidding-rule re-audit, and no browser-automation suite.
 ## Deferred enhancements
 
 - [ ] **Optional DONT agreement versus a natural defense to a strong 1NT.**
-  Defer until after Q3–Q4. This is a separate, cross-stage project: analyze,
+  Defer until after Q4. This is a separate, cross-stage project: analyze,
   then implement in deliberate batches for overcaller, advancer, opener/responder
   interpretations and rebids, practice-bucket compatibility and explanations.
   Include the settings checkbox only as part of a complete coherent treatment;
