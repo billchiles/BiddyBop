@@ -8,7 +8,8 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
-import { getBidExplanationLines, getMatchedCallExplanationLines, getCompetitiveResponseAlternativeLines,
+import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
+         getRuleExplanationLines, getCompetitiveResponseAlternativeLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
@@ -6053,6 +6054,80 @@ function runBidExplanationDeliveryTests (): number {
   return failures;
 }
 
+/// A practice substitution must not repeat an already displayed rule's generic
+/// guidance, but must retain hand-specific evidence and all other supported rules.
+function runRecordedCallFeedbackTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const deal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '1NT Pass 2D' &&
+    item.description.includes('five cards in each major'));
+  if (deal === undefined) {
+    console.error('FAIL recorded-call feedback: missing two-transfer practice deal.');
+    return 1;
+  }
+  const board = makeRuleTestBoard(deal).board;
+  const auction = deal.practiceAuction.slice(0, 2);
+  const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+  const status = getBiddingTurnStatus(board, auction, system);
+  const handFacts = getHandFacts(board.deal.S);
+  const attempted = evaluateUserCall('2C', board, auction, system);
+  const recorded = evaluateUserCall('2D', board, auction, system);
+  const candidates = getApplicableCandidateCalls(attempted);
+  const recordedRule = recorded.userCallMatchingRules.find((rule) =>
+    rule.id === 'respond-to-1nt-w/-transfer-to-hearts');
+  const first = candidates[0];
+  checks++;
+  if (status.kind !== 'supported' || candidates.length < 2 ||
+      first?.rule.id !== recordedRule?.id || recordedRule === undefined ||
+      attempted.userCallMatchingRules.length > 0) {
+    failures++;
+    console.error('FAIL recorded-call feedback: two-transfer qualification or comparison order.');
+  } else {
+    const rejectedLines = getBidExplanationLines({
+      title: 'Rejected response', call: '2C', status, result: attempted,
+      handFacts, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'South', recordedUnjudged: false,
+    });
+    const correctionLines = getRecordedCallExplanationLines(attempted, recorded,
+      status, handFacts, auction.length);
+    const ruleLines = getRuleExplanationLines(recordedRule, handFacts, auction.length);
+    const fullMatchedLines = getMatchedCallExplanationLines(recorded, recordedRule,
+      handFacts, auction.length);
+    const handEvidence = fullMatchedLines.slice(0, -ruleLines.length);
+    checks++;
+    if (ruleLines.some((line) => !rejectedLines.includes(line)) ||
+        correctionLines.some((line) => ruleLines.includes(line)) ||
+        handEvidence.length === 0 ||
+        handEvidence.some((line) => !correctionLines.includes(line)) ||
+        getApplicableCandidateCalls(recorded).length !== candidates.length) {
+      failures++;
+      console.error('FAIL recorded-call feedback: duplicate rule guidance or missing recorded-call evidence.');
+    }
+    const anotherSupported = evaluateUserCall('2H', board, auction, system);
+    const anotherCorrection = getRecordedCallExplanationLines(anotherSupported,
+      recorded, status, handFacts, auction.length);
+    checks++;
+    if (anotherSupported.userCallMatchingRules.length === 0 ||
+        ruleLines.some((line) => !anotherCorrection.includes(line))) {
+      failures++;
+      console.error('FAIL recorded-call feedback: distinct rules lost recorded-call teaching.');
+    }
+    const newDealLines = getBidExplanationLines({
+      title: 'New Deal response', call: '2D', status, result: recorded,
+      handFacts, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'South', recordedUnjudged: false,
+    });
+    checks++;
+    if (ruleLines.some((line) => !newDealLines.includes(line))) {
+      failures++;
+      console.error('FAIL recorded-call feedback: shared rule guidance missing outside practice correction.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Recorded-call feedback: ${checks} checks.\n`);
+  return failures;
+}
+
 /// A less-preferred bid is still legitimate; the explanation should acknowledge
 /// the higher-priority *qualifying* choice. Use generated lines, not English snapshots.
 function runQ2PositiveAlternativeDeliveryTests (): number {
@@ -6978,6 +7053,7 @@ const testGroups: (() => number)[] = [
   runConventionalResponderTeachingTests,
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
+  runRecordedCallFeedbackTests,
   runQ3ConventionalRejectionTests,
   runQ3NaturalCompetitiveRejectionTests,
   runQ3ForcingContinuationPassTests,

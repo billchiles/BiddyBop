@@ -34,7 +34,7 @@ The provisional statuses below mean **previously developed**, **targeted validat
 | responder-rebidding-rules.ts | 95 | 26 | Many executable families use primarily generic meaning/guidance; high priority |
 | **Total** | **594** | **84** | **678 declarations, not 678 required explanations** |
 
-There are 69 practice buckets in test-deals-registry.ts: 1 opening, 10 responding, 13 overcalling, 11 advancing, 20 opener rebid, and 14 responder rebid. Existing rule-test and CI success establishes executable expectations, **not** the instructional sufficiency of the displayed text or completeness of coverage.
+There are 70 practice buckets in test-deals-registry.ts: 1 opening, 10 responding, 13 overcalling, 11 advancing, 20 opener rebid, and 15 responder rebid. They expose 627 practice selections from 626 distinct deal definitions. A baseline replay of 2,979 recorded calls found 2,479 at supported stages; comparing these with equivalent New Deal auctions yielded identical core explanation lines. Passing rule tests and this parity check establish execution consistency, **not** instructional sufficiency.
 
 Inspection sources: the six stage rule modules above; explanations.ts and BidPanel.tsx for specialized helpers/wiring; biddingEvaluation.ts and bidding-types.ts for evidence; test-deals-registry.ts and the stage deal modules for practice cases. The review is a **structural census and provisional teaching-gap triage**; it is not a per-hand playback or an exhaustive branch audit.
 
@@ -68,13 +68,11 @@ The family groupings collectively cover each stage's executable declarations and
 | Bidding notes and deliberately unmodeled later auctions | BiddingNotes, scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not promote notes to executable bidding rules |
 
 
-## Pending second-pass review plan
+## Pending instructional review
 
-**Q2 — Positive teaching and supported alternatives: complete.** Qualifying alternatives are compared across selected response/advance, opener/responder rebid, and direct overcalling/balancing families, including natural suit versus takeout Double, NT versus Double, weak jump versus economical overcall, and balancing Pass versus 1NT. The overcaller and takeout-Doubler rebid review established no further comparisons requiring a change. These comparisons preserve both qualified calls without implying one is always best.
-**Q3 — Negative feedback: complete.** The first batch preserved actual 1NT/2NT response-convention selections, explained forcing Pass after Stayman, Jacoby/Texas, and strong 2C, and restored positive 2NT evidence. The second batch covered responder game-force/reverse Pass, overcaller compulsory convention replies, competitive negative-Double alternatives, three-card support, and Jacoby 2NT rebid near misses. The final batch explains rejected Pass after forcing preempt continuations, strong 2C waiting responses, forcing natural advances, cuebids, and responsive Doubles, using qualified current-bid evidence. Judgment and deliberately unsupported continuations remain cautious rather than being called wrong.
-1. **Q4 — Final instructional quality gate.** Inspect assembled feedback for accuracy, redundancy, end-user language, agreement-specific meaning, practice substitutions, and unresolved forces. Confirm that the debugging Report copies the explanation transcript; do not treat it as a student report. Keep tests evidence-based, without hardcoded English sentences or browser automation.
+**Q4 — Final instructional quality gate.** Continue stage-by-stage scrutiny of responder rebids, natural and conventional opener rebids, overcaller continuations, advancing/competitive responding, then openings and initial responses. Inspect actual assembled feedback for bridge accuracy, evaluated hand evidence, alternative calls, forces, agreement-sensitive meaning, and concise student-facing language. Preserve reusable guidance in both New Deal and practice mode, and distinguish exercise completion from auction completion. Finish with a cross-stage integration check, including the debugging Report. Keep tests evidence-based, without hardcoded English sentences or browser automation.
 
-Q1 feedback assembly/delivery is complete. The initial first-pass family explanation development is complete. The optional DONT checkbox remains a separate deferred enhancement. Keep this inventory and pending plan current; do not accumulate completed work-batch analyses here.
+The optional DONT checkbox remains a separate deferred enhancement. Keep this inventory focused on pending instructional review, not a running log of resolved findings.
 
 ## Student-facing language acceptance gate
 
