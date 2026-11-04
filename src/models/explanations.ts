@@ -5954,7 +5954,7 @@ export function getOpenerConventionalRebidLines(
         'major shows strong 16–21 HCP and slam interest. Responder cannot Pass ' +
         'below game after the Jacoby 2NT game force.';
       break;
-    case 'opener-rebid-game-in-opening-major-after-major-splinter':
+    case 'opener-rebid-game-in-opening-major-after-major-splinter': {
       const diagnostic = result.ruleDiagnostics.find((item) =>
         item.rule.id === 'opener-rebid-control-after-major-splinter');
       const control = diagnostic?.callEvidence?.openerSplinterControl;
@@ -5974,6 +5974,7 @@ export function getOpenerConventionalRebidLines(
           'the splinter does not require a slam investigation.';
       }
       break;
+    }
     case 'opener-rebid-control-after-major-splinter':
       reason = `Responder's splinter shows shortness in ${splinterSuit}. ` +
         `Your ${facts.hcp} HCP minus ${info.splinterWastedHcp} K/Q/J points ` +
