@@ -2534,10 +2534,13 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
     if (facts?.unbidSuits === undefined || facts.minHcp === undefined) return [];
     const suits = facts.unbidSuits.map(({ suit, length, exact }) =>
       `${length} ${suitPlural(`1${suit}` as Call)}${exact === undefined ? '' : ' (exactly four required)'}`);
-    const promised = facts.unbidSuits.length === 1 ?
-      `the required unbid ${suitPlural(`1${facts.unbidSuits[0]!.suit}` as Call)} holding` :
+    const onlySuit = facts.unbidSuits[0];
+    const promised = facts.unbidSuits.length === 1 && onlySuit !== undefined ?
+      `${onlySuit.exact === undefined ? `at least ${onlySuit.min}` :
+        `exactly ${onlySuit.exact}`} cards in ${suitPlural(`1${onlySuit.suit}` as Call)}` :
       facts.unbidSuits.every((item) => item.suit === 'H' || item.suit === 'S') ?
-        'both unbid majors' : 'both unbid minors';
+        'the shown holdings in both unbid majors' :
+        'the shown holdings in both unbid minors';
     return [`With ${facts.hcp} HCP and ${suits.join(' and ')}, Double meets the ` +
       `${facts.minHcp}-HCP requirement and promises ${promised}. It is a negative, ` +
       `not a penalty, Double ${id}.`];
@@ -2618,10 +2621,13 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
     ?.callEvidence?.competitiveResponse?.unbidSuits;
   const doubleSuitText = doubleSuits?.map((item) =>
     suitPlural(`1${item.suit}` as Call)).join(' and ');
-  if (rule.id === naturalTwoId && doubleSuitText !== undefined &&
+  const doubleRequirements = doubleSuits?.map((item) =>
+    `${item.exact === undefined ? `at least ${item.min}` : `exactly ${item.exact}`} ` +
+    `cards in ${suitPlural(`1${item.suit}` as Call)}`).join(' and ');
+  if (rule.id === naturalTwoId && doubleRequirements !== undefined &&
       qualifiedResponse(result, negativeId, 'Double')) {
     return [`${call} is a natural, one-round forcing suit response. Negative Double also ` +
-      `qualifies, promising four or more cards in ${doubleSuitText} without choosing ` +
+      `qualifies, promising ${doubleRequirements} without choosing ` +
       `this natural suit immediately [${negativeId}].`];
   }
   if (rule.id === negativeId && call === 'Double' && doubleSuitText !== undefined) {
