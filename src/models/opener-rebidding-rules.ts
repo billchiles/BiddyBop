@@ -3857,7 +3857,7 @@ export const OpenerRebidRules: BidRule[] = [
     priority: { rank: 30, note: 'Keep behind a three-level shortness description when both apply.' },
     appliesWhen: openerJacobyGoodSideSuitApplies,
     meaning: 'Show a good five-card-or-longer side suit after the Jacoby 2NT game force.',
-    guidance: ['This project uses at least two of A/K/Q/J as the executable suit-quality threshold.',
+    guidance: ['Our agreed treatment requires at least two of A/K/Q/J for the good side suit.',
                'When both shortness and a good side suit can be described, shortness is presented ' +
                'first while this bid remains visible as a reasonable partnership judgment.'],
     certainty: 'high',
@@ -3969,15 +3969,15 @@ export const OpenerRebidRules: BidRule[] = [
                        'shows slam interest.' },
     priority: { rank: 30, note: 'Present the slam-interest control ahead of the game signoff.' },
     meaning: 'Show slam interest and first- or second-round control in the bid side suit.',
-    guidance: ['This project uses 15+ working HCP as the executable slam-interest threshold, ' +
+    guidance: ['This treatment uses 15+ working HCP for slam interest, ' +
                'discounting K/Q/J held in responder\'s splinter suit.',
                'Because the splinter does not distinguish singleton from void, an ace in the ' +
                'splinter suit remains counted in this approximation.',
                'A control is an ace, king, singleton, or void.  Bid the cheapest available control ' +
                'below four of the agreed major; the control bid is exploratory, not a commitment ' +
                'to reach slam.',
-               'If no modeled control bid is available below game, four of the major remains the ' +
-               'modeled continuation; later keycard or higher-level slam methods are deferred.'],
+               'If no qualifying control bid is available below game, bid four of the major; ' +
+               'later keycard or higher-level slam methods are beyond these exercises.'],
     certainty: 'medium',
   },
   //

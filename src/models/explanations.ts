@@ -369,6 +369,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getResponderSimpleRaiseSupportLines(result, rule, handFacts));
   lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerStrongTwoCRebidLines(result, rule, handFacts));
   lines.push(...getOpenerGameResponseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerNegativeDoubleRebidLines(result, rule, handFacts));
   lines.push(...getOpenerForcingCompetitionRebidLines(result, rule, handFacts));
@@ -5091,6 +5092,10 @@ export function getOpenerForcingRebidPassFailureLines(result: BidEvalResult): st
     candidate.rule.id === 'opener-rebid-3nt-after-2c-2d' ||
     candidate.rule.id === 'opener-rebid-4nt-after-2c-2d' ||
     candidate.rule.id === 'opener-rebid-longest-suit-after-2c-2d' ||
+    candidate.rule.id === 'opener-rebid-support-positive-major-after-2c' ||
+    candidate.rule.id === 'opener-rebid-support-positive-minor-after-2c' ||
+    candidate.rule.id === 'opener-rebid-longest-suit-after-2c-positive' ||
+    candidate.rule.id === 'opener-rebid-natural-nt-after-2c-positive' ||
     candidate.rule.id === 'opener-rebid-repeat-after-weak-two-2nt-inquiry' ||
     candidate.rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry' ||
     candidate.rule.id === 'opener-rebid-3nt-after-weak-two-2nt-inquiry' ||
@@ -5098,6 +5103,12 @@ export function getOpenerForcingRebidPassFailureLines(result: BidEvalResult): st
     candidate.rule.id === 'opener-rebid-repeat-after-preempt-new-suit');
   if (selected === undefined) return [];
   const id = `[${selected.rule.id}]`;
+  if (selected.rule.id.endsWith('-after-2c-positive') ||
+      selected.rule.id === 'opener-rebid-support-positive-major-after-2c' ||
+      selected.rule.id === 'opener-rebid-support-positive-minor-after-2c') {
+    return [`Responder's positive response to your strong 2C opening has established a ` +
+      `game force. Pass is not a signoff; ${selected.call} is supported by this hand ${id}.`];
+  }
   if (selected.rule.id.endsWith('-after-2c-2d')) {
     return [`Responder's 2D is a waiting response to your strong 2C opening, not a ` +
       `diamond signoff. You must continue; ${selected.call} describes your hand ${id}.`];
@@ -5944,9 +5955,24 @@ export function getOpenerConventionalRebidLines(
         'below game after the Jacoby 2NT game force.';
       break;
     case 'opener-rebid-game-in-opening-major-after-major-splinter':
+      const diagnostic = result.ruleDiagnostics.find((item) =>
+        item.rule.id === 'opener-rebid-control-after-major-splinter');
+      const control = diagnostic?.callEvidence?.openerSplinterControl;
+      const actualControl = diagnostic?.candidates.find((item) => item.ruleApplies);
       reason = `Responder's splinter shows a game-forcing major fit and shortness in ` +
-        `${splinterSuit}. Choosing ${call} keeps the agreed major as trump. ` +
-        'A control bid may also qualify, but a splinter does not oblige a slam try.';
+        `${splinterSuit}. Choosing ${call} keeps the agreed major as trump. `;
+      if (control !== undefined && control.workingHcp < control.requiredWorkingHcp) {
+        reason += `Your ${facts.hcp} HCP include ${control.wastedHcp} K/Q/J points in ` +
+          `${splinterSuit}; discounting them leaves ${control.workingHcp} working HCP, ` +
+          `below the ${control.requiredWorkingHcp} needed to investigate slam with a ` +
+          'control bid. This hand supports game rather than a control-bidding try.';
+      } else if (actualControl !== undefined) {
+        reason += `${actualControl.call} is also a supported control-bidding alternative, ` +
+          'but the splinter does not require a slam investigation.';
+      } else {
+        reason += 'No control rebid qualifies under the selected treatment; ' +
+          'the splinter does not require a slam investigation.';
+      }
       break;
     case 'opener-rebid-control-after-major-splinter':
       reason = `Responder's splinter shows shortness in ${splinterSuit}. ` +
@@ -5994,10 +6020,97 @@ export function getOpenerConventionalRebidLines(
     `[${rule.id}]`];
 }
 
+/// Hand-specific rebids after strong 2C, without changing the selection rules.
+/// The natural-suit refiner has already selected the longest eligible suit.
+export function getOpenerStrongTwoCRebidLines(result: BidEvalResult, rule: BidRule,
+    facts: HandFacts): string[] {
+  const calls = [
+    'opener-rebid-2nt-after-2c-2d',
+    'opener-rebid-3nt-after-2c-2d',
+    'opener-rebid-4nt-after-2c-2d',
+    'opener-rebid-longest-suit-after-2c-2d',
+  ];
+  if (!calls.includes(rule.id)) return [];
+  const selected = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  if (selected === undefined) return [];
+  const id = `[${rule.id}]`;
+  if (rule.id !== 'opener-rebid-longest-suit-after-2c-2d') {
+    const requirement = typeof rule.appliesWhen === 'function' ? undefined :
+      rule.appliesWhen?.hcp;
+    return [`Your balanced ${facts.hcp}-HCP hand meets the ${requirement !== undefined ?
+      `${requirement.min}–${requirement.max}` : 'specified'} HCP range for ${selected.call} ` +
+      `after the 2D waiting response ${id}.`];
+  }
+  const suit = selected.call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+  const longSuit = facts.lengths[suit];
+  const others = (['C', 'D', 'H', 'S'] as const).filter((other) =>
+    other !== suit && facts.lengths[other] >= 5);
+  const sameLength = others.filter((other) => facts.lengths[other] === longSuit);
+  const comparison = sameLength.length > 0 ?
+    `Tied with ${sameLength.map((other) => `${facts.lengths[other]} ${suitPlural(`1${other}` as Call)}`).join(' and ')}, ` +
+      `${suitPlural(selected.call)} are higher-ranking under this treatment.` :
+    others.length > 0 ?
+      `That is longer than your ${others.map((other) =>
+        `${facts.lengths[other]} ${suitPlural(`1${other}` as Call)}`).join(' and ')}.` :
+      'No other suit has five or more cards.';
+  return [`With ${facts.hcp} HCP and an unbalanced hand after the 2D waiting response, ` +
+    `your ${longSuit} ${suitPlural(selected.call)} are your longest suit. ` +
+    `${comparison} ${selected.call} shows it naturally and remains forcing ${id}.`];
+}
+
 /// Forcing obligations are certain even where the best rebid still needs judgment.
 export function getOpenerConventionalRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   if (result.normalizedCall !== 'Pass') {
+    const shortness = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-shortness-after-major-jacoby-2nt');
+    const shortnessCandidate = shortness?.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies);
+    const length = shortnessCandidate?.callEvidence?.openerConventionalRebid?.bidSuitLength;
+    if (length !== undefined && length > 1) {
+      const supported = getApplicableCandidateCalls(result).find((item) =>
+        item.rule.id === 'opener-rebid-shortness-after-major-jacoby-2nt');
+      return [`After Jacoby 2NT, ${result.normalizedCall} promises a singleton or void ` +
+        `in ${suitPlural(result.normalizedCall)}. You have ${length} cards there, ` +
+        `not the required shortness.${supported === undefined ? '' :
+          ` ${supported.call} shows your actual shortness.`} [${shortness!.rule.id}].`];
+    }
+    const sideSuit = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-side-suit-after-major-jacoby-2nt');
+    const sideCandidate = sideSuit?.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies);
+    const side = sideCandidate?.callEvidence?.openerJacobySideSuit;
+    if (side !== undefined && (side.length < 5 || side.topFourHonors < 2)) {
+      const supported = getApplicableCandidateCalls(result)[0];
+      return [`After Jacoby 2NT, ${result.normalizedCall} requires five or more ` +
+        `cards and at least two of A/K/Q/J in ${suitPlural(result.normalizedCall)}. ` +
+        `You have ${side.length} cards and ${side.topFourHonors} of those honors.` +
+        (supported === undefined ? '' : ` ${supported.call} qualifies for this hand.`) +
+        ` [${sideSuit!.rule.id}].`];
+    }
+    const controlDiagnostic = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-control-after-major-splinter');
+    const control = controlDiagnostic?.callEvidence?.openerSplinterControl;
+    const attempted = controlDiagnostic?.rule.calls?.includes(result.normalizedCall);
+    const game = getApplicableCandidateCalls(result).find((item) =>
+      item.rule.id === 'opener-rebid-game-in-opening-major-after-major-splinter');
+    if (control !== undefined && attempted === true && game !== undefined) {
+      const id = `[${controlDiagnostic!.rule.id}]`;
+      if (control.workingHcp < control.requiredWorkingHcp) {
+        return [`After responder's splinter, the control-bidding slam try requires ` +
+          `${control.requiredWorkingHcp} working HCP. Discounting ${control.wastedHcp} ` +
+          `K/Q/J points in responder's short ${suitPlural(`1${control.splinterSuit}` as Call)} ` +
+          `leaves ${control.workingHcp}; ${game.call} is supported instead ${id}.`];
+      }
+      if (control.cheapestCall !== null &&
+          control.qualifyingControls.includes(result.normalizedCall) &&
+          control.cheapestCall !== result.normalizedCall) {
+        return [`After responder's splinter, ${result.normalizedCall} shows a side-suit ` +
+          `control, but ${control.cheapestCall} is the cheapest qualifying control ` +
+          `below game. ${game.call} also remains a game choice ${id}.`];
+      }
+    }
     for (const diagnostic of result.ruleDiagnostics) {
       if (diagnostic.rule.id !== 'opener-rebid-3nt-after-major-jacoby-2nt' &&
           diagnostic.rule.id !== 'opener-rebid-strong-3-major-after-major-jacoby-2nt' &&
