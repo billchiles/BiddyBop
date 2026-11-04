@@ -129,7 +129,8 @@ export const OvercallRules: BidRule[] = [
     agreement: { setting: 'stayman', value: true },
     callRefinement: refineNaturalOneNtOvercallStayman,
     callCategory: ['conventional'],
-    meaning: 'Show hearts first with four cards in both majors, or deny a major with 2D.',
+    meaning: 'After 2C Stayman, 2D denies a four-card major, 2H shows four or more hearts ' +
+      '(including both four-card majors), and 2S shows four spades without four hearts.',
     certainty: 'high',
   },
   //
@@ -883,7 +884,8 @@ export const OvercallRules: BidRule[] = [
     callRefinement: refineWeakTwoTwoNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
     callCategory: ['conventional'],
-    meaning: 'Show a four-card major after Stayman, or bid 3D to deny one.',
+    meaning: 'After 3C Stayman, 3D denies a four-card major, 3H shows four or more hearts ' +
+      '(including both four-card majors), and 3S shows four spades without four hearts.',
     certainty: 'high',
   },
   //
@@ -941,7 +943,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'minimum-pass'),
-    meaning: 'Pass an unforced minimum advance with ordinary takeout-Double strength.',
+    meaning: 'An ordinary takeout Doubler may Pass advancer’s possibly compulsory minimum suit response.',
     certainty: 'high',
   },
   //
@@ -1381,7 +1383,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['3H', '3S'],
     callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'maximum-raise'),
-    meaning: 'Jump raise to three with 19+ shortage-adjusted support points, four-card ' +
+    meaning: 'Jump raise to three with 19+ total points with shortage, four-card ' +
              'support, and less than 22 HCP. Invites game; advancer may Pass.',
     certainty: 'high',
   },

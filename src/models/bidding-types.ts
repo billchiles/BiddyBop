@@ -670,6 +670,12 @@ export interface CallEvidence {
   };
   openerFiveCardMinorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
   openerMinorOneNtSecondSuitAvailable?: boolean;
+  // The Stayman refiner evaluated both major lengths before selecting its reply.
+  overcallerStaymanReply?: {
+    heartsLength: number;
+    spadesLength: number;
+    selectedReply: Call;
+  };
   ntOvercallerRebid?: {
     kind: 'interfered' | 'invitation' | 'minor' | 'major';
     treatment: string;
