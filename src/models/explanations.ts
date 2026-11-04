@@ -357,6 +357,8 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
   lines.push(...getContestedSuitOvercallerRebidLines(result, rule));
   lines.push(...getTakeoutDoublerRebidLines(result, rule));
+  lines.push(...getTakeoutDoublerAlternativeLines(result, rule));
+  lines.push(...getOvercallerStaymanRebidLines(result, rule));
   lines.push(...getOneNtOvercallerRebidLines(result, rule));
   lines.push(...getWeakTwoDefenseRebidLines(result, rule));
   lines.push(...getOpenerOneNtRebidLines(result, rule));
@@ -4217,6 +4219,65 @@ export function getNegativeDoubleAdvanceFailureLines(result: BidEvalResult): str
 }
 
 
+/// Compare actual qualifying suit and notrump descriptions, without choosing a winner.
+function getTakeoutDoublerAlternativeLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null || !rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX))
+    return [];
+  const supported = getApplicableCandidateCalls(result).filter((item) =>
+    item.rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX) &&
+    item.callEvidence?.takeoutDoublerRebid !== undefined);
+  const chosen = supported.find((item) =>
+    item.rule.id === rule.id && item.call === result.normalizedCall);
+  const selected = chosen?.callEvidence?.takeoutDoublerRebid;
+  if (selected === undefined) return [];
+  const other = supported.find((item) => {
+    if (item.call === result.normalizedCall) return false;
+    const treatment = item.callEvidence?.takeoutDoublerRebid?.treatment;
+    return (selected.treatment === 'strong-nt' &&
+        (treatment === 'strong-suit' || treatment === 'maximum-raise')) ||
+      ((selected.treatment === 'strong-suit' || selected.treatment === 'maximum-raise') &&
+        treatment === 'strong-nt');
+  });
+  const alternate = other?.callEvidence?.takeoutDoublerRebid;
+  if (other === undefined || alternate === undefined) return [];
+  const natural = selected.treatment === 'strong-nt' ? other : chosen;
+  const naturalFacts = selected.treatment === 'strong-nt' ? alternate : selected;
+  const nt = selected.treatment === 'strong-nt' ? chosen : other;
+  if (natural === undefined || nt === undefined) return [];
+  const suitDescription = naturalFacts.treatment === 'maximum-raise' ?
+    `${naturalFacts.support}-card support for partner's major and invites game` :
+    `your ${naturalFacts.bidSuitLength}-card natural suit`;
+  return [`Both ${natural.call} and ${nt.call} qualify. ${natural.call} shows ` +
+    `${suitDescription}; ${nt.call} shows a balanced hand with a stopper in opener's ` +
+    `suit. Strain selection remains a bridge judgment [${rule.id}].`];
+}
+
+/// Use the hand facts evaluated by the Stayman refiner for its actual selected reply.
+export function getOvercallerStaymanRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null ||
+      (rule.id !== 'overcaller-rebid-1nt-stayman' &&
+       rule.id !== 'overcaller-rebid-weak-two-2nt-stayman')) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  const facts = candidate?.callEvidence?.overcallerStaymanReply ??
+    diagnostic?.callEvidence?.overcallerStaymanReply;
+  if (candidate === undefined || facts === undefined ||
+      facts.selectedReply !== candidate.call) return [];
+  const id = `[${rule.id}]`;
+  if (candidate.call.endsWith('D')) {
+    return [`Your ${facts.heartsLength} hearts and ${facts.spadesLength} spades ` +
+      `include neither four-card major, so ${candidate.call} denies one ${id}.`];
+  }
+  if (candidate.call.endsWith('H')) {
+    return [`Your ${facts.heartsLength} hearts qualify for the ${candidate.call} Stayman ` +
+      `reply.${facts.spadesLength >= 4 ? ' With both four-card majors, show hearts first.' :
+        ''} ${id}`];
+  }
+  return [`Your ${facts.spadesLength} spades and ${facts.heartsLength} hearts qualify ` +
+    `for ${candidate.call}: show spades when you do not have four hearts ${id}.`];
+}
+
 ///
 /// Takeout-Doubler rebids: interpret the actual evaluated strength, shortage-adjusted
 /// points, fit, stopper, and forcing context. Do not re-evaluate eligibility here.
@@ -4238,14 +4299,14 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
   switch (treatment) {
     case 'minimum-pass':
       return [`Advancer's cheapest suit response may show almost no strength. Your ` +
-        `${supportPoints} shortage-adjusted points are in the 13–15 minimum range, ` +
+        `${supportPoints} total points with shortage are in the 13–15 minimum range, ` +
         `so Pass is supported rather than assuming game ${id}.`];
     case 'minimum-raise':
-      return [`After a minimum response, ${supportPoints} shortage-adjusted points ` +
+      return [`After a minimum response, ${supportPoints} total points with shortage ` +
         `and ${support} ${suit} support an economical, constructive raise. This shows ` +
-        `16–18 support points, not a game force. Advancer may Pass ${id}.`];
+        `16–18 total points with shortage, not a game force. Advancer may Pass ${id}.`];
     case 'maximum-raise':
-      return [`With ${supportPoints} shortage-adjusted support points, ${hcp} HCP, ` +
+      return [`With ${supportPoints} total points with shortage, ${hcp} HCP, ` +
         `and ${support} ${suit}, the jump to ${result.normalizedCall} is a strong ` +
         `game invitation. Advancer's earlier minimum response could have been made ` +
         `with very few points; partner may decline. Direct game requires greater ` +
@@ -4253,11 +4314,11 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
     case 'strong-fit':
       return [`Your ${hcp} HCP and ${support}-card fit justify an exceptional direct ` +
         `major game after partner's potentially very weak minimum response. The ordinary ` +
-        `19+ support-point jump to three merely invites; this 22+ HCP treatment ` +
+        `19+ total-points-with-shortage jump to three merely invites; this 22+ HCP treatment ` +
         `bids game immediately ${id}.`];
     case 'jump-pass':
       return [`Advancer's jump response already invites game. With ${supportPoints} ` +
-        `shortage-adjusted points, your ordinary Double is too weak to accept ` +
+        `total points with shortage, your ordinary Double is too weak to accept ` +
         `that invitation, so Pass is supported ${id}.`];
     case 'jump-game':
       return [`Partner's jump response is invitational. Your ${hcp} HCP and ` +
@@ -4299,7 +4360,7 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
         `choice; this is not a penalty Double ${id}.`];
     case 'competitive-pass':
       return [`Responder has competed, so advancer's natural suit bid was voluntary. ` +
-        `With ${supportPoints} shortage-adjusted points, Pass can be reasonable ` +
+        `With ${supportPoints} total points with shortage, Pass can be reasonable ` +
         `because partner was not forced to bid ${id}.`];
     case 'competitive-raise':
       return [`After responder's competition, your ${hcp} HCP and ${support}-card ` +
@@ -4314,6 +4375,25 @@ export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule
 
 export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  // A strong Double followed by an involuntary minimum advance needs another description.
+  // Do not make that claim at an unsupported bidding or judgment boundary.
+  if (result.normalizedCall === 'Pass') {
+    const strong = getApplicableCandidateCalls(result).filter((item) => {
+      const facts = item.callEvidence?.takeoutDoublerRebid;
+      return item.rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX) &&
+        item.call !== 'Pass' && facts?.strong === true &&
+        facts.advanceKind === 'minimumSuit';
+    });
+    const first = strong[0];
+    const facts = first?.callEvidence?.takeoutDoublerRebid;
+    if (facts !== undefined && first !== undefined) {
+      const calls = [...new Set(strong.map((item) => item.call))].join(' and ');
+      return [`Advancer's cheapest suit reply may be compulsory with very few points. ` +
+        `With ${facts.hcp} HCP, your strong takeout Double needs a further description: ` +
+        `${calls} ${strong.length === 1 ? 'qualifies' : 'qualify'} for this hand rather than ` +
+        `Pass [${first.rule.id}].`];
+    }
+  }
   for (const diagnostic of result.ruleDiagnostics) {
     if (!diagnostic.rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX)) continue;
     const candidate = diagnostic.candidates.find(({ call }) =>
@@ -4335,20 +4415,20 @@ export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): strin
     }
     if (rejection === 'strength') {
       if (treatment === 'maximum-raise') return [`Inviting at the three level ` +
-        `needs 19+ shortage-adjusted support points with fewer than 22 HCP; ` +
+        `needs 19+ total points with shortage with fewer than 22 HCP; ` +
         `you have ${supportPoints} support points and ${hcp} HCP ${id}.`];
       if (treatment === 'strong-fit') return [`Direct major game opposite ` +
         `advancer's possibly very weak minimum response requires 22+ HCP and ` +
         `four-card support. You have ${hcp} HCP; the jump to three may be ` +
         `an appropriate invitation ${id}.`];
       if (treatment === 'minimum-pass') return [`With ${supportPoints} ` +
-        `shortage-adjusted points, this is no longer the 13–15-point minimum ` +
+        `total points with shortage, this is no longer the 13–15-point minimum ` +
         `Pass treatment ${id}.`];
       if (treatment === 'minimum-raise') return [`The constructive raise ` +
-        `requires 16–18 shortage-adjusted support points; you have ` +
+        `requires 16–18 total points with shortage; you have ` +
         `${supportPoints} ${id}.`];
       if (treatment === 'jump-pass') return [`With ${supportPoints} ` +
-        `shortage-adjusted points, the ordinary minimum Pass treatment does not ` +
+        `total points with shortage, the ordinary minimum Pass treatment does not ` +
         `support declining partner's jump invitation ${id}.`];
     }
   }
@@ -4697,6 +4777,21 @@ export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule
 
 export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  if (result.normalizedCall === 'Pass') {
+    const continuation = getApplicableCandidateCalls(result).find((item) => {
+      const facts = item.callEvidence?.weakTwoDefenseRebid;
+      return item.rule.id.startsWith('overcaller-rebid-weak-two-double-') &&
+        item.call !== 'Pass' && facts?.defense === 'Double' &&
+        facts.strong && facts.advanceKind === 'minimumSuit';
+    });
+    const facts = continuation?.callEvidence?.weakTwoDefenseRebid;
+    if (facts !== undefined && continuation !== undefined) {
+      return [`Partner's cheapest suit advance after a weak-two takeout Double may be ` +
+        `compulsory and very weak. Your ${facts.hcp} HCP are strong-Doubler values, ` +
+        `so Pass would conceal that strength; ${continuation.call} qualifies as a ` +
+        `continuation [${continuation.rule.id}].`];
+    }
+  }
   for (const diagnostic of result.ruleDiagnostics) {
     if (!diagnostic.rule.id.startsWith('overcaller-rebid-weak-two-')) continue;
     const c = diagnostic.candidates.find(({ call }) => call === result.normalizedCall);
@@ -4889,6 +4984,10 @@ function naturalSuitRebidStrengthText(min: number | undefined, max: number | und
 /// treat an unmodeled bid as incorrect just because no matching rule supplied evidence.
 export function getNaturalSuitOvercallerRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  // When an eligible forced reply is available, the specific continuation teaches
+  // the same obligation better than the generic failed-Pass rule.
+  if (result.normalizedCall === 'Pass' &&
+      getOvercallerForcingAdvancePassFailureLines(result).length > 0) return [];
   for (const diagnostic of result.ruleDiagnostics) {
     const candidate = diagnostic.candidates.find((item) => item.call === result.normalizedCall);
     if (candidate === undefined || candidate.ruleApplies) continue;

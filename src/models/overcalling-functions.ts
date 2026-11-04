@@ -965,7 +965,13 @@ export function refineNaturalOneNtOvercallStayman (calls: Call[], context: RuleE
   }
   const wanted: Call = context.handFacts.lengths.H >= 4 ? '2H' :
     context.handFacts.lengths.S >= 4 ? '2S' : '2D';
-  return { calls: calls.filter((call) => call === wanted), telemetryLines: [] };
+  return { calls: calls.filter((call) => call === wanted), telemetryLines: [],
+    callEvidence: { overcallerStaymanReply: {
+      heartsLength: context.handFacts.lengths.H,
+      spadesLength: context.handFacts.lengths.S,
+      selectedReply: wanted,
+    } },
+  };
 }
 
 /// Transfers are compulsory regardless of the overcaller's strength; superaccepts are not modeled.
@@ -1091,7 +1097,13 @@ export function refineWeakTwoTwoNtStaymanReply (calls: Call[], context: RuleEval
   }
   const wanted: Call = context.handFacts.lengths.H >= 4 ? '3H'
     : context.handFacts.lengths.S >= 4 ? '3S' : '3D';
-  return { calls: calls.filter((call) => call === wanted), telemetryLines: [] };
+  return { calls: calls.filter((call) => call === wanted), telemetryLines: [],
+    callEvidence: { overcallerStaymanReply: {
+      heartsLength: context.handFacts.lengths.H,
+      spadesLength: context.handFacts.lengths.S,
+      selectedReply: wanted,
+    } },
+  };
 }
 
 /// Complete the basic 3D/3H Jacoby transfer after a natural 2NT overcall of a weak two.

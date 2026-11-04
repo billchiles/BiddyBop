@@ -28,6 +28,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
          getOneNtOvercallerRebidLines, getOneNtOvercallerRebidFailureLines,
+         getOvercallerStaymanRebidLines,
          getWeakTwoDefenseRebidLines, getWeakTwoDefenseRebidFailureLines,
          getOpenerArtificialSupportRebidLines, getOpenerArtificialSupportRebidFailureLines,
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
@@ -5558,6 +5559,117 @@ function runTakeoutDoublerRebidExplanationTests (): number {
   return failures;
 }
 
+/// Validate Q4 overcaller teaching from real evaluated evidence, not English wording.
+function runQ4OvercallerRebidQualityTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const strongAuctions = [
+    '1H Double Pass 2D Pass 2S',
+    '1H Double Pass 1S Pass 1NT',
+    '2S Double Pass 3C Pass 3H',
+  ];
+  for (const name of strongAuctions) {
+    checks++;
+    const weakTwo = name.startsWith('2');
+    const deals = weakTwo ? WEAK_TWO_REBID_TEST_DEALS : TAKEOUT_DOUBLER_REBID_TEST_DEALS;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === name);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing Q4 strong-Double hand: ${name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, -1);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const attempted = evaluateUserCall('Pass', board, auction, system);
+    const options = getApplicableCandidateCalls(attempted).filter((item) =>
+      item.call !== 'Pass' && (weakTwo ?
+        item.callEvidence?.weakTwoDefenseRebid?.strong === true :
+        item.callEvidence?.takeoutDoublerRebid?.strong === true));
+    const reasons = weakTwo ? getWeakTwoDefenseRebidFailureLines(attempted) :
+      getTakeoutDoublerRebidFailureLines(attempted);
+    const delivered = getBidExplanationLines({
+      title: 'East bids Pass', call: 'Pass', result: attempted,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal.E), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'East', recordedUnjudged: false,
+    });
+    if (attempted.userCallMatchingRules.length > 0 || options.length === 0 ||
+        reasons.length === 0 || !reasons.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL strong-Double Pass teaching: ${name}.`);
+    }
+  }
+  checks++;
+  const ordinary = WEAK_TWO_REBID_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '2H Double Pass 2S Pass Pass');
+  if (ordinary === undefined) {
+    failures++;
+    console.error('FAIL missing ordinary weak-two Double example.');
+  } else {
+    const result = evaluateUserCall('Pass', makeRuleTestBoard(ordinary).board,
+      ordinary.practiceAuction.slice(0, -1), defaultBiddingSystem);
+    if (!result.userCallMatchingRules.some((item) =>
+        item.id === 'overcaller-rebid-weak-two-double-minimum-pass')) {
+      failures++;
+      console.error('FAIL ordinary Doubler minimum Pass was lost.');
+    }
+  }
+  for (const name of ['1D 1S Pass 2D Pass 2S', '1D 1S Pass 2H Pass 3H']) {
+    checks++;
+    const deal = NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === name);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing forced overcaller example: ${name}.`);
+      continue;
+    }
+    const result = evaluateUserCall('Pass', makeRuleTestBoard(deal).board,
+      deal.practiceAuction.slice(0, -1), defaultBiddingSystem);
+    if (getOvercallerForcingAdvancePassFailureLines(result).length === 0 ||
+        getNaturalSuitOvercallerRebidFailureLines(result).length > 0) {
+      failures++;
+      console.error(`FAIL forcing-Pass explanations overlap: ${name}.`);
+    }
+  }
+  const stayman = [...NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
+    ...WEAK_TWO_2NT_CONTINUATION_TEST_DEALS].filter((deal) =>
+      deal.expectedOvercallerRebidCalls?.some((item) => item.ruleIds.some((id) =>
+        id === 'overcaller-rebid-1nt-stayman' ||
+        id === 'overcaller-rebid-weak-two-2nt-stayman')));
+  for (const deal of stayman) {
+    checks++;
+    const board = makeRuleTestBoard(deal).board;
+    const recorded = deal.expectedOvercallerRebidCalls?.find((item) =>
+      item.ruleIds.some((id) => id.endsWith('-stayman')));
+    if (recorded === undefined) continue;
+    const auction = deal.practiceAuction.slice(0, -1);
+    const result = evaluateUserCall(recorded.call, board, auction,
+      { ...defaultBiddingSystem, ...deal.requiredSystem });
+    const rule = result.userCallMatchingRules.find((item) =>
+      recorded.ruleIds.includes(item.id));
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule?.id);
+    const facts = diagnostic?.callEvidence?.overcallerStaymanReply ??
+      diagnostic?.candidates.find((item) => item.call === recorded.call)
+        ?.callEvidence?.overcallerStaymanReply;
+    const explained = rule === undefined ? [] : getOvercallerStaymanRebidLines(result, rule);
+    const delivered = rule === undefined ? [] : getMatchedCallExplanationLines(result, rule,
+      getHandFacts(board.deal.E), auction.length);
+    const hand = getHandFacts(board.deal.E);
+    if (rule === undefined || facts?.selectedReply !== recorded.call ||
+        facts.heartsLength !== hand.lengths.H || facts.spadesLength !== hand.lengths.S ||
+        explained.length === 0 || !explained.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Stayman reply evidence and delivery: ${deal.description}.`);
+    }
+  }
+  if (stayman.length < 3) {
+    failures++;
+    console.error('FAIL insufficient Stayman practice coverage.');
+  }
+  console.log(`${failures} ***FAILURES***. Q4 overcaller rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
 /// Verify the selected competitive overcaller rebids and their explanations,
 /// including the up-the-line response to a responsive Double and five-card cuebid game.
 function runContestedSuitOvercallerRebidExplanationTests (): number {
@@ -7311,6 +7423,7 @@ const testGroups: (() => number)[] = [
   runCompetitiveResponseAlternativesTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
+  runQ4OvercallerRebidQualityTests,
   runOneNtAndWeakTwoRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
