@@ -5566,7 +5566,7 @@ function runQ4OvercallerRebidQualityTests (): number {
   const strongAuctions = [
     '1H Double Pass 2D Pass 2S',
     '1H Double Pass 1S Pass 1NT',
-    '2H Double Pass 3C Pass 3H',
+    '2S Double Pass 3C Pass 3H',
   ];
   for (const name of strongAuctions) {
     checks++;
