@@ -1266,8 +1266,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
         explainMajorSupport || explainMajorNoSupport || explainJumpShift || explainNaturalAdvance ||
         explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid ||
-        explainOpenerJacobyRebid) {
+        explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
+        explainOpenerTwoLevelNewSuitRebid || explainOpenerJacobyRebid) {
       requirements.push({ kind: 'hcp', actual: context.handFacts.hcp,
         min: range.min, max: range.max, passed: result.pass });
     }
@@ -1279,7 +1279,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     if (explainPreemptRequirements || explainWeakTwoSuitOvercall || explainMajorSupport || explainNaturalAdvance ||
         explainTakeoutAdvance || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
         explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
+        explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
+        explainOpenerTwoLevelNewSuitRebid) {
       requirements.push({ kind: 'totalPoints', actual: result.actual,
         hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
         min: constraint.totalPoints.min, max: constraint.totalPoints.max, passed: result.pass });
@@ -1294,7 +1295,8 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
           explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
           explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
           explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-          explainOpenerOneNtRebid || explainOpenerTwoLevelNewSuitRebid) {
+          explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
+          explainOpenerTwoLevelNewSuitRebid) {
         if (explainNaturalNtResponse && suitLength.suit === 'major' &&
             suitLength.exact === 4) {
           requirements.push({ kind: 'fourCardMajor', passed: result.pass });

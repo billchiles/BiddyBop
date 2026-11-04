@@ -22,7 +22,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
-         getOpenerOneLevelNewSuitRebidLines, getOpenerTwoLevelNewSuitRebidLines,
+         getOpenerOneLevelNewSuitRebidLines, getOpenerOneLevelNewSuitRebidFailureLines,
+         getOpenerTwoLevelNewSuitRebidLines,
          getConventionalResponderRebidLines, getConventionalResponderRebidFailureLines,
          getContestedSuitOvercallerRebidLines, getContestedSuitOvercallerRebidFailureLines,
          getTakeoutDoublerRebidLines, getTakeoutDoublerRebidFailureLines,
@@ -6273,6 +6274,95 @@ function runQ2PositiveAlternativeDeliveryTests (): number {
   return failures;
 }
 
+/// Validate evaluated point evidence and delivery on existing natural opener-rebid hands.
+/// The teaching uses the same candidate requirements for both successful and rejected bids.
+function runNaturalOpenerRebidEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const cases: { auction: string; ruleId: string; call: Call; points: number }[] = [
+    { auction: '1C Pass 1H Pass 2H',
+      ruleId: 'opener-rebid-simple-raise-after-minor-one-level-new-suit',
+      call: '2H', points: 12 },
+    { auction: '1C Pass 1H Pass 3H',
+      ruleId: 'opener-rebid-jump-raise-after-minor-one-level-new-suit',
+      call: '3H', points: 17 },
+    { auction: '1C Pass 1H Pass 4H',
+      ruleId: 'opener-rebid-game-raise-after-minor-one-level-new-suit',
+      call: '4H', points: 19 },
+    { auction: '1C Pass 1H Pass 2D',
+      ruleId: 'opener-rebid-reverse-after-minor-one-level-new-suit',
+      call: '2D', points: 18 },
+  ];
+  for (const testCase of cases) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === testCase.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL natural opener-rebid deal missing: ${testCase.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(testCase.call, board, auction, system);
+    const candidate = getApplicableCandidateCalls(result).find((item) =>
+      item.call === testCase.call && item.rule.id === testCase.ruleId);
+    const points = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const hand = getHandFacts(board.deal.N);
+    const usesShortage = testCase.ruleId.includes('-raise-');
+    const actual = usesShortage ? hand.totalPointsWShortage : hand.totalPointsWLength;
+    const lines = candidate === undefined ? [] :
+      getOpenerOneLevelNewSuitRebidLines(result, candidate.rule);
+    const delivered = candidate === undefined ? [] :
+      getMatchedCallExplanationLines(result, candidate.rule, hand, auction.length);
+    if (points?.kind !== 'totalPoints' || !points.passed ||
+        points.actual !== testCase.points || actual !== points.actual ||
+        lines.length === 0 || !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL natural opener-rebid evaluated evidence or feedback: ${testCase.auction}.`);
+    }
+  }
+
+  // The minimum hand has enough heart support but fails the actual strength test
+  // for 3H; its rejection must reach the student without inventing a different bid.
+  const minimum = deals.find((item) =>
+    item.practiceAuction.join(' ') === '1C Pass 1H Pass 2H');
+  checks++;
+  if (minimum === undefined) {
+    failures++;
+    console.error('FAIL natural opener minimum support hand missing.');
+  } else {
+    const board = makeRuleTestBoard(minimum).board;
+    const auction = minimum.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...minimum.requiredSystem };
+    const rejected = evaluateUserCall('3H', board, auction, system);
+    const candidate = rejected.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-jump-raise-after-minor-one-level-new-suit')
+      ?.candidates.find((item) => item.call === '3H');
+    const pointCheck = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const hand = getHandFacts(board.deal.N);
+    const reasons = getOpenerOneLevelNewSuitRebidFailureLines(rejected);
+    const delivered = getBidExplanationLines({
+      title: 'North bids 3H', call: '3H',
+      status: getBiddingTurnStatus(board, auction, system), result: rejected,
+      handFacts: hand, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (rejected.userCallMatchingRules.length > 0 || pointCheck?.kind !== 'totalPoints' ||
+        pointCheck.passed || pointCheck.actual !== hand.totalPointsWShortage ||
+        pointCheck.min !== 17 || pointCheck.max !== 18 ||
+        reasons.length === 0 || !reasons.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL rejected opener jump raise lost tested shortage-point evidence.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Natural opener rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Check reciprocal rebid explanations on existing hands through evaluator and feedback.
 /// No exact English is asserted; only qualification, generated teaching and delivery.
 function runQ2RebidAlternativesTests (): number {
@@ -7108,6 +7198,7 @@ const testGroups: (() => number)[] = [
   runQ3NaturalCompetitiveRejectionTests,
   runQ3ForcingContinuationPassTests,
   runQ2PositiveAlternativeDeliveryTests,
+  runNaturalOpenerRebidEvidenceTests,
   runQ2RebidAlternativesTests,
   runQ2DirectOvercallAlternativesTests,
   runCompetitiveResponseAlternativesTests,
