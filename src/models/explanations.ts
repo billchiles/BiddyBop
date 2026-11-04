@@ -2338,7 +2338,7 @@ function supportedAdvanceAlternative(result: BidEvalResult): { call: Call; evide
   const stopper = minorRequirement(candidate, 'stopper');
   const facts: string[] = [];
   if (points?.passed) {
-    facts.push(`${points.actual} ${support?.passed ? 'support' : 'length-adjusted'} points`);
+    facts.push(`${points.actual} total points with ${support?.passed ? 'shortage' : 'length'}`);
   } else if (hcp?.passed) {
     facts.push(`${hcp.actual} HCP`);
   }
@@ -2380,7 +2380,7 @@ export function getNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): st
   if (points !== undefined && support !== undefined) {
     const suit = support.suit === undefined ? 'partner’s suit' :
       ({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' }[support.suit]);
-    const base = `With ${points.actual} support points and ${support.actual} ${suit}, `;
+    const base = `With ${points.actual} total points with shortage and ${support.actual} ${suit}, `;
     if (rule.id.includes('support-cuebid')) {
       return [base + `${call} qualifies as an artificial strong raise of partner's overcall. ` +
         `You are bidding opener's suit, not promising that suit; the cuebid shows ` +
@@ -2481,8 +2481,8 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
     }
     if (points?.kind === 'totalPoints' && !points.passed) {
       return [`${entered} under this raise treatment requires ` +
-        `${strengthRange(points).replace('total points', 'support points')}; ` +
-        `you have ${points.actual} support points [${ruleId}].`];
+        `${strengthRange(points).replace('total points', 'total points with shortage')}; ` +
+        `you have ${points.actual} total points with shortage [${ruleId}].`];
     }
     if (length?.kind === 'suitLength' && !length.passed) {
       return [`The natural ${entered} advance requires at least ${length.min} ` +
@@ -2534,8 +2534,15 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
     if (facts?.unbidSuits === undefined || facts.minHcp === undefined) return [];
     const suits = facts.unbidSuits.map(({ suit, length, exact }) =>
       `${length} ${suitPlural(`1${suit}` as Call)}${exact === undefined ? '' : ' (exactly four required)'}`);
+    const onlySuit = facts.unbidSuits[0];
+    const promised = facts.unbidSuits.length === 1 && onlySuit !== undefined ?
+      `${onlySuit.exact === undefined ? `at least ${onlySuit.min}` :
+        `exactly ${onlySuit.exact}`} cards in ${suitPlural(`1${onlySuit.suit}` as Call)}` :
+      facts.unbidSuits.every((item) => item.suit === 'H' || item.suit === 'S') ?
+        'the shown holdings in both unbid majors' :
+        'the shown holdings in both unbid minors';
     return [`With ${facts.hcp} HCP and ${suits.join(' and ')}, Double meets the ` +
-      `${facts.minHcp}-HCP requirement and shows the unbid suits. It is a negative, ` +
+      `${facts.minHcp}-HCP requirement and promises ${promised}. It is a negative, ` +
       `not a penalty, Double ${id}.`];
   }
   if (rule.id === 'respond-after-double-redouble-values') {
@@ -2559,13 +2566,13 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
     const redouble = result.ruleDiagnostics.find((entry) =>
       entry.rule.id === 'respond-after-double-redouble-values')
       ?.candidates.some((item) => item.ruleApplies === true);
-    return [`With ${facts.supportPoints} shortage-adjusted support points (${facts.hcp} HCP) ` +
+    return [`With ${facts.supportPoints} total points with shortage (${facts.hcp} HCP) ` +
       `and ${facts.partnerSupport} ${suit}, Jordan 2NT is an artificial limit-raise-or-better ` +
       `response, not natural notrump. ${redouble === true ?
         'Redouble also qualifies to show general strength, but Jordan identifies the fit. ' : ''}` +
       `It forces partner to continue ${id}.`];
   }
-  return [`With ${facts.supportPoints} shortage-adjusted support points and ` +
+  return [`With ${facts.supportPoints} total points with shortage and ` +
     `${facts.partnerSupport} ${suit}, this cuebid artificially shows strong support, ` +
     `not a natural suit. Partner must bid again ${id}.`];
 }
@@ -2589,7 +2596,7 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
   if (rule.id === negativeId && call === 'Double') {
     const naturalCalls: Call[] = ['1H', '1S'];
     const alternatives = naturalCalls.filter((item) => qualifiedResponse(result, naturalId, item));
-    if (alternatives.length === 0) return [];
+    if (alternatives.length > 0) {
     const suits = result.ruleDiagnostics.find(({ rule: item }) => item.id === negativeId)
       ?.candidates.find((item) => item.call === 'Double')
       ?.callEvidence?.competitiveResponse?.unbidSuits;
@@ -2598,12 +2605,76 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
       `but ${call} describes both unbid majors (${suits.map((item) =>
         `${item.length} ${suitPlural(`1${item.suit}` as Call)}`).join(' and ')}) ` +
       `rather than choosing one suit immediately [${rule.id}].`];
+    }
   }
   if (rule.id === naturalId && (call === '1H' || call === '1S') &&
       qualifiedResponse(result, negativeId, 'Double')) {
     return [`${call} is a supported natural, forcing suit response. Negative Double also ` +
       `qualifies here and describes the holdings in both unbid majors, rather than ` +
       `starting with just ${suitPlural(call)} [${negativeId}].`];
+  }
+  // A two-level natural suit and the Double may both qualify after a suit overcall.
+  // Describe only the suits actually promised by the evaluated negative Double.
+  const naturalTwoId = 'respond-over-suit-new-suit-two-level';
+  const doubleSuits = result.ruleDiagnostics.find(({ rule: item }) => item.id === negativeId)
+    ?.candidates.find((item) => item.call === 'Double' && item.ruleApplies)
+    ?.callEvidence?.competitiveResponse?.unbidSuits;
+  const doubleSuitText = doubleSuits?.map((item) =>
+    suitPlural(`1${item.suit}` as Call)).join(' and ');
+  const doubleRequirements = doubleSuits?.map((item) =>
+    `${item.exact === undefined ? `at least ${item.min}` : `exactly ${item.exact}`} ` +
+    `cards in ${suitPlural(`1${item.suit}` as Call)}`).join(' and ');
+  if (rule.id === naturalTwoId && doubleRequirements !== undefined &&
+      qualifiedResponse(result, negativeId, 'Double')) {
+    return [`${call} is a natural, one-round forcing suit response. Negative Double also ` +
+      `qualifies, promising ${doubleRequirements} without choosing ` +
+      `this natural suit immediately [${negativeId}].`];
+  }
+  if (rule.id === negativeId && call === 'Double' && doubleSuitText !== undefined) {
+    const alternatives = (['2C', '2D', '2H', '2S'] as Call[]).filter((item) =>
+      qualifiedResponse(result, naturalTwoId, item));
+    if (alternatives.length > 0) {
+      return [`${alternatives.join(' or ')} also ${alternatives.length === 1 ?
+        'qualifies' : 'qualify'} as a natural forcing suit response. Negative Double ` +
+        `instead shows the ${doubleSuitText} holdings without selecting one suit ` +
+        `immediately [${rule.id}].`];
+    }
+  }
+  // Competition changes a jump shift to a weak, preemptive treatment.
+  const weakTwoId = 'respond-after-double-new-suit-two-level';
+  const weakJumpId = 'respond-after-double-weak-jump-shift';
+  if (rule.id === weakTwoId && call[0] === '2') {
+    const jump = `3${call.slice(1)}` as Call;
+    if (qualifiedResponse(result, weakJumpId, jump)) {
+      return [`Both ${call} and ${jump} qualify. ${call} is an economical natural, ` +
+        `nonforcing new suit; the weak ${jump} jump shift takes away more bidding ` +
+        `room. It does not promise extra strength [${weakJumpId}].`];
+    }
+  }
+  if (rule.id === weakJumpId && call[0] === '3') {
+    const economical = `2${call.slice(1)}` as Call;
+    if (qualifiedResponse(result, weakTwoId, economical)) {
+      return [`Both ${economical} and ${call} qualify. The natural ${economical} ` +
+        `keeps bidding low; the weak, nonforcing ${call} jump shift is preemptive ` +
+        `and consumes more room [${weakTwoId}].`];
+    }
+  }
+  const preemptiveId = 'respond-over-suit-preemptive-jump-raise';
+  if (rule.id === preemptiveId && qualifiedResponse(result, preemptiveId, call) &&
+      getApplicableCandidateCalls(result).some((item) => item.call === 'Pass')) {
+    return [`Pass also qualifies with this hand. ${call} instead uses the known ` +
+      `trump fit for a weak preemptive raise, taking away bidding room without ` +
+      `promising an invitation. Vulnerability and playing strength affect the ` +
+      `tactical choice [${preemptiveId}].`];
+  }
+  if (call === 'Pass') {
+    const jump = getApplicableCandidateCalls(result).find((item) =>
+      item.rule.id === preemptiveId && item.call !== 'Pass');
+    if (jump !== undefined) {
+      return [`Pass is supported, but ${jump.call} also qualifies as a weak, ` +
+        `preemptive raise using the known trump fit. It sacrifices bidding room ` +
+        `for the opponents rather than promising extra strength [${preemptiveId}].`];
+    }
   }
   if (rule.id === doubledNaturalId && call === '1S' &&
       qualifiedResponse(result, redoubleId, 'Redouble')) {
@@ -2640,7 +2711,7 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
   if (checked !== undefined && getApplicableCandidateCalls(result).some((item) =>
       item.call === 'Double' && item.rule.id === 'respond-over-suit-negative-double')) {
     return [`Natural ${checked.call} needs at least ${checked.minimum} ${suitPlural(checked.call)}; ` +
-      `you have ${checked.length}. Negative Double shows the suitable unbid-major holdings ` +
+      `you have ${checked.length}. Negative Double instead shows the required unbid-suit holdings ` +
       `[${newSuit!.rule.id}].`];
   }
   for (const id of COMPETITIVE_RESPONSE_RULES) {
@@ -2676,7 +2747,7 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
       if (facts.minSupportPoints !== undefined && facts.supportPoints !== undefined &&
           facts.supportPoints < facts.minSupportPoints) {
         return [`This artificial support bid requires at least ${facts.minSupportPoints} ` +
-          `shortage-adjusted support points; you have ${facts.supportPoints} [${id}].`];
+          `total points with shortage; you have ${facts.supportPoints} [${id}].`];
       }
     }
   }
@@ -2826,7 +2897,7 @@ export function getJumpResponseLines(result: BidEvalResult, rule: BidRule): stri
     const points = minorRequirement(candidate, 'totalPoints');
     const support = minorRequirement(candidate, 'partnerSupport');
     if (points === undefined || support === undefined) return [];
-    return [`With ${points.actual} shortage-adjusted support points and ` +
+    return [`With ${points.actual} total points with shortage and ` +
       `${support.actual} ${suitPlural(`1${support.suit}` as Call)}, this is the cheapest ` +
       `available raise after the opponent's preempt. It is nonforcing, not a ` +
       `strength-showing jump raise ${id}.`];
@@ -2873,8 +2944,8 @@ export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
         `${suitPlural(result.normalizedCall)}; you have ${length.actual} [${id}].`];
     }
     if (points !== undefined && !points.passed) {
-      return [`The nonforcing three-level raise requires 8–10 shortage-adjusted ` +
-        `support points; you have ${points.actual} [${id}].`];
+      return [`The nonforcing three-level raise requires 8–10 total points with shortage; ` +
+        `you have ${points.actual} [${id}].`];
     }
     if (support !== undefined && !support.passed) {
       return [`This raise needs at least ${support.min} trumps; ` +
@@ -2926,7 +2997,7 @@ export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): st
     const fallback = selected.length === 3 && !choice.hasFourCardUnbidSuit;
     const forcedThree = choice.openingLevel === 2 && call[0] === '3';
     const base = `Partner's takeout Double normally asks you to choose a suit, even with ` +
-      `no HCP. With ${points.actual} length-adjusted points and ${selected.length} ` +
+      `no HCP. With ${points.actual} total points with length and ${selected.length} ` +
       `${suitPlural(call)}, ${call} is a natural, nonforcing response at the cheapest level; ` +
       `partner may Pass ${id}.`;
     const special = fallback
@@ -2934,7 +3005,7 @@ export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): st
         'not a promise of four cards.'
       : forcedThree
         ? ' After the weak-two opening, bidding space forces this cheapest suit response to ' +
-          `the three level; it can show as many as ${points.max} length-adjusted points ` +
+          `the three level; it can show as many as ${points.max} total points with length ` +
           'without becoming an invitation.'
         : '';
     const first = choice.retainedCalls[0];
@@ -2946,14 +3017,14 @@ export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): st
   if (rule.id.endsWith('-invitational-jump')) {
     const selected = choice?.considered.find((item) => item.call === call);
     if (points === undefined || selected === undefined) return [];
-    return [`With ${points.actual} length-adjusted points and ${selected.length} ` +
+    return [`With ${points.actual} total points with length and ${selected.length} ` +
       `${suitPlural(call)}, ${call} is an invitational jump above the cheapest ` +
       `${selected.cheapest ?? 'available'} response in that suit. It shows more strength ` +
       `than the minimum response but is not forcing: partner may Pass ${id}.`];
   }
   if (rule.id.endsWith('-strong-cuebid')) {
     if (points === undefined) return [];
-    return [`With ${points.actual} length-adjusted points, ${call} qualifies as a strong ` +
+    return [`With ${points.actual} total points with length, ${call} qualifies as a strong ` +
       `artificial cuebid of opener's suit. It does not promise that suit or support for any ` +
       `one unbid suit. Partner must bid again, but the cuebid alone does not force to game ${id}.`];
   }
@@ -2973,7 +3044,7 @@ export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): st
       (item) => item.call === call);
     const actualLength = length?.actual ?? selected?.length;
     if (actualLength === undefined) return [];
-    return [`With ${points.actual} length-adjusted points and ${actualLength} ` +
+    return [`With ${points.actual} total points with length and ${actualLength} ` +
       `${suitPlural(call)}, ${call} is a natural game signoff, not a forcing request ` +
       `to describe your hand further. It assumes partner has the normal takeout-Double ` +
       `support for unbid suits; a strong off-shape Double may require judgment ${id}.`];
@@ -3562,12 +3633,12 @@ export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): strin
   if (points === undefined || considered === undefined) return [];
   if (rule.id.endsWith('-major-game')) {
     const partnerLength = evidence.overcallLevel === 2 ? 6 : 7;
-    return [`With ${points.actual} support points and ${evidence.support} ${suitPlural(call)}, ` +
+    return [`With ${points.actual} total points with shortage and ${evidence.support} ${suitPlural(call)}, ` +
       `${call} bids natural game. Partner's preempt typically shows ${partnerLength} trumps, ` +
       `so the combined fit is substantial. This is a game signoff, not a slam invitation ${id}.`];
   }
   const combined = evidence.overcallLevel === 2 ? 6 + evidence.support : 7 + evidence.support;
-  return [`With ${points.actual} support points and ${evidence.support} ${suitPlural(call)}, ` +
+  return [`With ${points.actual} total points with shortage and ${evidence.support} ${suitPlural(call)}, ` +
     `${call} raises partner's weak preempt competitively. Your partnership expects about ` +
     `${combined} trumps; the raise takes away opponents' bidding room rather than inviting ` +
     `game. Partner may Pass ${id}.`];
@@ -3597,8 +3668,8 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
       const points = minorRequirement(candidate, 'totalPoints');
       if (points !== undefined && !points.passed) {
         return [`${entered} under this treatment requires ` +
-          `${strengthRange(points).replace('total points', 'support points')}; ` +
-          `you have ${points.actual} support points ${id}.`];
+          `${strengthRange(points).replace('total points', 'total points with shortage')}; ` +
+          `you have ${points.actual} total points with shortage ${id}.`];
       }
       const hcp = minorRequirement(candidate, 'hcp');
       if (hcp !== undefined && !hcp.passed) {
@@ -3676,7 +3747,7 @@ export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: Bid
       suits.slice(0, -1).join(', ') + ', and ' + suits[suits.length - 1];
     const supportText = choice.partnerSupport === undefined ? '' :
       ` and only ${choice.partnerSupport} cards in partner's overcalled suit`;
-    return [`With ${choice.points} length-adjusted points, four or more cards in ` +
+    return [`With ${choice.points} total points with length, four or more cards in ` +
       `${suitText}${supportText}, your Double is responsive, not a penalty Double. ` +
       `It asks partner to help choose a suitable unbid suit rather than guessing one ${id}.`];
   }
@@ -3694,29 +3765,29 @@ export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: Bid
   if (rule.id.endsWith('-support-cuebid') || rule.id.endsWith('-strong-cuebid')) {
     if (points === undefined) return [];
     if (support !== undefined) {
-      return [`With ${points.actual} support points and ${support.actual} cards in partner's ` +
+      return [`With ${points.actual} total points with shortage and ${support.actual} cards in partner's ` +
         `overcalled suit, ${call} is an artificial strong raise, not a natural bid in opener's suit. ` +
         `It forces partner to bid again ${id}.`];
     }
-    return [`With ${points.actual} length-adjusted points, ${call} is a strong artificial ` +
+    return [`With ${points.actual} total points with length, ${call} is a strong artificial ` +
       `cuebid of opener's suit after partner's takeout Double. It does not promise a ` +
       `particular trump fit; partner must bid again ${id}.`];
   }
   if (rule.id.endsWith('-simple-raise') || rule.id.endsWith('-preemptive-raise')) {
     if (points === undefined || support === undefined) return [];
     if (rule.id.endsWith('-preemptive-raise')) {
-      return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
         `is a weak preemptive jump raise. It takes away bidding room rather than ` +
         `inviting game; the jump does not promise extra strength ${id}.`];
     }
-    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+    return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
       `is a constructive, nonforcing raise of partner's overcall. Partner may Pass; ` +
       `this is not the stronger artificial cuebid ${id}.`];
   }
   if (rule.id.includes('-new-suit-')) {
     if (length === undefined) return [];
     const strength = hcp !== undefined ? `${hcp.actual} HCP` : points !== undefined ?
-      `${points.actual} length-adjusted points` : null;
+      `${points.actual} total points with length` : null;
     if (strength === null) return [];
     const forcing = rule.callCategory?.includes('forcing') === true;
     const quality = rule.id.endsWith('-three-level') ?
@@ -3894,28 +3965,28 @@ export function getCompetitiveNaturalAdvanceLines(result: BidEvalResult, rule: B
   if (rule.id.endsWith('-support-cuebid') || rule.id.endsWith('-strong-cuebid')) {
     if (points === undefined) return [];
     if (support !== undefined) {
-      return [`With ${points.actual} support points and ${support.actual} cards in partner's ` +
+      return [`With ${points.actual} total points with shortage and ${support.actual} cards in partner's ` +
         `overcalled suit, ${call} is an artificial strong raise, forcing for one round. ` +
         `You are not showing ${suitPlural(call)} because that is the opponents' opening suit ${id}.`];
     }
-    return [`With ${points.actual} length-adjusted points, ${call} is a strong artificial ` +
+    return [`With ${points.actual} total points with length, ${call} is a strong artificial ` +
       `cuebid of opener's suit. It does not show that suit or promise one particular ` +
       `unbid-suit fit; partner must bid again ${id}.`];
   }
   if (rule.id.endsWith('-simple-raise') || rule.id.endsWith('-preemptive-raise')) {
     if (points === undefined || support === undefined) return [];
     if (rule.id.endsWith('-preemptive-raise')) {
-      return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
         `is a weak preemptive jump raise. The purpose is to consume bidding room, ` +
         `not to invite game ${id}.`];
     }
-    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+    return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
       `is a constructive, nonforcing raise of partner's suit overcall. ` +
       `Partner may Pass ${id}.`];
   }
   if (rule.id.includes('-new-suit-') && length !== undefined) {
     const strength = hcp !== undefined ? `${hcp.actual} HCP` :
-      points !== undefined ? `${points.actual} length-adjusted points` : null;
+      points !== undefined ? `${points.actual} total points with length` : null;
     if (strength === null) return [];
     const quality = rule.id.endsWith('-three-level') ?
       ` The suit meets the honor requirement (${PREEMPT_SUIT_QUALITY}).` : '';
@@ -4044,7 +4115,7 @@ export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRu
         `the fallback; it does not promise four cards.` :
       `Your ${considered.length} ${suitPlural(call)} provide a possible contract strain.`;
     return [`Responder's Redouble shows strength for the opponents. With ` +
-      `${points.actual} length-adjusted points, ${call} is a weak, natural escape ` +
+      `${points.actual} total points with length, ${call} is a weak, natural escape ` +
       `at the cheapest level. ${fallback} It is not an invitation to game ${id}.`];
   }
   if (rule.id.endsWith('-pass')) {
@@ -4057,16 +4128,16 @@ export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRu
   if (rule.id.endsWith('-simple-raise') || rule.id.endsWith('-preemptive-raise')) {
     if (points === undefined || support === undefined) return [];
     if (rule.id.endsWith('-preemptive-raise')) {
-      return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+      return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
         `is a weak preemptive jump raise. It takes bidding space away from the opponents ` +
         `rather than inviting game; partner may Pass ${id}.`];
     }
-    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+    return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
       `is a constructive, nonforcing raise of partner's overcall. Partner may Pass ${id}.`];
   }
   if (rule.id.endsWith('-support-cuebid')) {
     if (points === undefined || support === undefined) return [];
-    return [`With ${points.actual} support points and ${support.actual} trumps, ${call} ` +
+    return [`With ${points.actual} total points with shortage and ${support.actual} trumps, ${call} ` +
       `is an artificial strong raise of partner's suit. It bids the opponents' opening ` +
       `suit, not a natural suit of your own, and forces partner to bid again. ` +
       `It describes your fit more precisely than a general strength-showing Redouble ${id}.`];
