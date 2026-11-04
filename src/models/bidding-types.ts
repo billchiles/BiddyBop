@@ -538,6 +538,21 @@ export interface CallEvidence {
     splinterWorkingHcp: number;
     sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
   };
+  // A rejected Jacoby side-suit rebid has these actually tested length/quality facts.
+  openerJacobySideSuit?: {
+    suit: Suit;
+    length: number;
+    topFourHonors: number;
+  };
+  // Splinter-control selection facts survive the refiner even when it selects no call.
+  openerSplinterControl?: {
+    splinterSuit: Suit;
+    wastedHcp: number;
+    workingHcp: number;
+    requiredWorkingHcp: number;
+    cheapestCall: Call | null;
+    qualifyingControls: Call[];
+  };
   // Opener's facts after responder's natural game-forcing three-level new suit.
   // The evaluated rules still decide fit, shape, stopper tests and call legality.
   openerThreeLevelGameForceRebid?: {

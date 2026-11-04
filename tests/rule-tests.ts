@@ -6671,6 +6671,112 @@ function runQ2DirectOvercallAlternativesTests (): number {
   return failures;
 }
 
+/// Q4: conventional opener explanations must use the evaluated facts and reach the student.
+/// No wording assertions: verify actual rule qualifications, evidence and feedback delivery.
+function runQ4ConventionalOpenerEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const scenarios: { auction: string; call: Call; family: 'positiveForce' |
+    'jacobyShortness' | 'jacobySideSuit' | 'splinterLow' | 'splinterCheapest' |
+    'strongTwoCLongSuit' | 'strongTwoCNt' | 'weakJumpShift' }[] = [
+    { auction: '1S Pass 2NT Pass 3D', call: '3C', family: 'jacobyShortness' },
+    { auction: '1S Pass 2NT Pass 3NT', call: '4D', family: 'jacobySideSuit' },
+    { auction: '1H Pass 3S Pass 4H', call: '4D', family: 'splinterLow' },
+    { auction: '1S Pass 4C Pass 4D', call: '4H', family: 'splinterCheapest' },
+    { auction: '2C Pass 2H Pass 3H', call: 'Pass', family: 'positiveForce' },
+    { auction: '2C Pass 3C Pass 3NT', call: 'Pass', family: 'positiveForce' },
+    { auction: '2C Pass 2D Pass 3C', call: '3C', family: 'strongTwoCLongSuit' },
+    { auction: '2C Pass 2D Pass 3NT', call: '3NT', family: 'strongTwoCNt' },
+    { auction: '1C Pass 2H Pass Pass', call: 'Pass', family: 'weakJumpShift' },
+  ];
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4 conventional deal not found: ${scenario.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluated = evaluateUserCall(scenario.call, board, auction, system);
+    const hand = getHandFacts(board.deal.N);
+    const status = getBiddingTurnStatus(board, auction, system);
+    const delivered = getBidExplanationLines({
+      title: 'North bids ' + scenario.call, call: scenario.call,
+      status, result: evaluated, handFacts: hand, auctionLength: auction.length,
+      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    const reasons = scenario.family === 'positiveForce' ?
+      getOpenerForcingRebidPassFailureLines(evaluated) :
+      getOpenerConventionalRebidFailureLines(evaluated);
+    const available = getApplicableCandidateCalls(evaluated);
+    const jacoby = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-shortness-after-major-jacoby-2nt');
+    const side = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-side-suit-after-major-jacoby-2nt');
+    const control = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-control-after-major-splinter')
+      ?.callEvidence?.openerSplinterControl;
+    let valid = false;
+    switch (scenario.family) {
+      case 'positiveForce':
+        valid = evaluated.userCallMatchingRules.length === 0 &&
+          available.some((item) => item.rule.id.includes('-after-2c')) &&
+          reasons.length > 0;
+        break;
+      case 'jacobyShortness': {
+        const attempted = jacoby?.candidates.find((item) => item.call === scenario.call);
+        valid = attempted?.ruleApplies === false &&
+          attempted.callEvidence?.openerConventionalRebid?.bidSuitLength === 4 &&
+          available.some((item) => item.call === '3D') && reasons.length > 0;
+        break;
+      }
+      case 'jacobySideSuit': {
+        const attempted = side?.candidates.find((item) => item.call === scenario.call);
+        const facts = attempted?.callEvidence?.openerJacobySideSuit;
+        valid = attempted?.ruleApplies === false && facts?.length === 3 &&
+          facts.topFourHonors === 1 && reasons.length > 0;
+        break;
+      }
+      case 'splinterLow':
+        valid = control?.workingHcp === 12 && control.wastedHcp === 6 &&
+          control.cheapestCall === null && reasons.length > 0 &&
+          available.some((item) => item.call === '4H');
+        break;
+      case 'splinterCheapest':
+        valid = control?.workingHcp === 15 && control.cheapestCall === '4D' &&
+          control.qualifyingControls.includes('4H') && reasons.length > 0 &&
+          available.some((item) => item.call === '4S');
+        break;
+      case 'strongTwoCLongSuit':
+      case 'strongTwoCNt': {
+        const rule = evaluated.userCallMatchingRules.find((item) =>
+          item.id.endsWith('-after-2c-2d'));
+        const matched = rule === undefined ? [] :
+          getMatchedCallExplanationLines(evaluated, rule, hand, auction.length);
+        valid = rule !== undefined && matched.length > 0 &&
+          matched.every((line) => delivered.includes(line));
+        break;
+      }
+      case 'weakJumpShift':
+        valid = evaluated.userCallMatchingRules.some((rule) =>
+          rule.id === 'opener-rebid-pass-after-weak-jump-shift') &&
+          getOpenerForcingRebidPassFailureLines(evaluated).length === 0;
+        break;
+    }
+    if (!valid || (reasons.length > 0 &&
+        !reasons.every((line) => delivered.includes(line)))) {
+      failures++;
+      console.error(`FAIL Q4 conventional opener evidence or delivery: ${scenario.auction} / ${scenario.call}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q4 conventional opener evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Confirm rejected calls retain actual selection or tested-failure evidence,
 /// and that these generated explanations reach the ordinary displayed feedback.
 function runQ3ConventionalRejectionTests (): number {
@@ -7194,6 +7300,7 @@ const testGroups: (() => number)[] = [
   runOpenerInterferenceTeachingTests,
   runBidExplanationDeliveryTests,
   runRecordedCallFeedbackTests,
+  runQ4ConventionalOpenerEvidenceTests,
   runQ3ConventionalRejectionTests,
   runQ3NaturalCompetitiveRejectionTests,
   runQ3ForcingContinuationPassTests,

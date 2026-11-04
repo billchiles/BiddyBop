@@ -1322,7 +1322,10 @@ export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEval
     return { calls: [], telemetryLines: [
       `No splinter control bid: ${context.handFacts.hcp} HCP - ${wastedHcp} wasted K/Q/J points ` +
       `in ${splinterSuit} = ${workingHcp} working HCP; 15+ is the slam-interest threshold.`,
-    ] };
+    ], callEvidence: { openerSplinterControl: {
+      splinterSuit, wastedHcp, workingHcp, requiredWorkingHcp: 15,
+      cheapestCall: null, qualifyingControls: [],
+    } } };
   }
   // A control bid must be a side suit below game in the agreed major.  Exclude both the trump
   // suit and responder's already-announced splinter suit before examining opener's side suits.
@@ -1351,9 +1354,13 @@ export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEval
     telemetryLines: [
       `${workingHcp} working HCP after discounting K/Q/J in responder's ${splinterSuit} splinter.`,
       cheapestControl === undefined
-        ? `No modeled side-suit control is available below 4${opening.strain}.`
+        ? `No side-suit control is available below 4${opening.strain} under the selected treatment.`
         : `Use the cheapest available A/K/singleton/void control below game: ${cheapestControl}.`,
     ],
+    callEvidence: { openerSplinterControl: {
+      splinterSuit, wastedHcp, workingHcp, requiredWorkingHcp: 15,
+      cheapestCall: cheapestControl ?? null, qualifyingControls: legalControls,
+    } },
   };
 }
 
@@ -2003,7 +2010,9 @@ export function openerJacobyGoodSideSuitApplies (call: Call, context: RuleEvalCo
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${suit} has ${cards.length} cards and ${honorCount} of A/K/Q/J; ` +
     'Jacoby side-suit rebid needs 5+ cards and at least two top-four honors.',
-  ] };
+  ], callEvidence: { openerJacobySideSuit: {
+    suit, length: cards.length, topFourHonors: honorCount,
+  } } };
 }
 
 ///
