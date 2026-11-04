@@ -5570,7 +5570,7 @@ function runQ4OvercallerRebidQualityTests (): number {
   ];
   for (const name of strongAuctions) {
     checks++;
-    const weakTwo = name.startsWith('2H');
+    const weakTwo = name.startsWith('2');
     const deals = weakTwo ? WEAK_TWO_REBID_TEST_DEALS : TAKEOUT_DOUBLER_REBID_TEST_DEALS;
     const deal = deals.find((item) => item.practiceAuction.join(' ') === name);
     if (deal === undefined) {
