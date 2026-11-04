@@ -6587,6 +6587,114 @@ function runQ2RebidAlternativesTests (): number {
   return failures;
 }
 
+/// Q4 competitive explanations: verify hand-specific promises and reciprocal alternatives.
+/// Use existing deals and inspect evaluated evidence plus assembled feedback, not prose snapshots.
+function runQ4CompetitiveExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const doubleHands: { auction: string; promised: string[] }[] = [
+    { auction: '1D 1S Double', promised: ['H'] },
+    { auction: '1H 1S 2C', promised: ['C', 'D'] },
+  ];
+  for (const example of doubleHands) {
+    checks++;
+    const deal = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing Q4 negative-Double hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall('Double', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-over-suit-negative-double');
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule?.id)
+      ?.candidates.find((item) => item.call === 'Double');
+    const evidence = candidate?.callEvidence?.competitiveResponse?.unbidSuits;
+    const actual = evidence?.map((item) => item.suit).sort();
+    const expected = [...example.promised].sort();
+    const hand = getHandFacts(board.deal.S);
+    const handEvidence = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, hand, auction.length);
+    if (rule === undefined || actual?.join(',') !== expected.join(',') ||
+        evidence?.some((item) => item.length !== hand.lengths[item.suit] ||
+          item.length < item.min) || handEvidence.length === 0) {
+      failures++;
+      console.error(`FAIL Q4 negative-Double promised-suit evidence: ${example.auction}.`);
+    }
+  }
+  const comparisons: { auction: string; selected: Call; ruleId: string;
+    alternative: Call }[] = [
+    { auction: '1H 1S 2C', selected: '2C',
+      ruleId: 'respond-over-suit-new-suit-two-level', alternative: 'Double' },
+    { auction: '1H 1S 2C', selected: 'Double',
+      ruleId: 'respond-over-suit-negative-double', alternative: '2C' },
+    { auction: '1H Double 2D', selected: '2D',
+      ruleId: 'respond-after-double-new-suit-two-level', alternative: '3D' },
+    { auction: '1H Double 2D', selected: '3D',
+      ruleId: 'respond-after-double-weak-jump-shift', alternative: '2D' },
+    { auction: '1S 2H 3S', selected: '3S',
+      ruleId: 'respond-over-suit-preemptive-jump-raise', alternative: 'Pass' },
+  ];
+  for (const example of comparisons) {
+    checks++;
+    const collection = example.auction.includes('Double') ?
+      RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS : RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS;
+    const deal = collection.find((item) => item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing Q4 competitive comparison hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.selected, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const supported = getApplicableCandidateCalls(result);
+    const alternative = supported.find((item) => item.call === example.alternative);
+    const explanation = rule === undefined ? [] :
+      getCompetitiveResponseAlternativeLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'South bids', call: example.selected, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || alternative === undefined || explanation.length === 0 ||
+        !explanation.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q4 competitive alternative: ${example.selected} after ${auction.join(' ')}.`);
+    }
+  }
+  // Jordan's explicit shortage valuation must agree with the scored hand.
+  checks++;
+  const jordan = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '1D Double 2NT');
+  if (jordan === undefined) {
+    failures++;
+    console.error('FAIL missing Q4 Jordan example.');
+  } else {
+    const board = makeRuleTestBoard(jordan).board;
+    const result = evaluateUserCall('2NT', board, jordan.practiceAuction.slice(0, 2),
+      defaultBiddingSystem);
+    const evidence = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'respond-after-double-jordan-2nt-support')
+      ?.candidates.find((item) => item.call === '2NT')
+      ?.callEvidence?.competitiveResponse;
+    if (!result.userCallMatchingRules.some((item) =>
+        item.id === 'respond-after-double-jordan-2nt-support') ||
+        evidence?.supportPoints !== getHandFacts(board.deal.S).totalPointsWShortage) {
+      failures++;
+      console.error('FAIL Jordan total-points-with-shortage evidence mismatch.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q4 competitive teaching: ${checks} checks.\n`);
+  return failures;
+}
 /// Check qualified competitive alternatives, including reciprocal directions,
 /// from the evaluator through the same explanation assembly used by the panel.
 function runCompetitiveResponseAlternativesTests (): number {
@@ -7421,6 +7529,7 @@ const testGroups: (() => number)[] = [
   runQ2RebidAlternativesTests,
   runQ2DirectOvercallAlternativesTests,
   runCompetitiveResponseAlternativesTests,
+  runQ4CompetitiveExplanationTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
   runQ4OvercallerRebidQualityTests,

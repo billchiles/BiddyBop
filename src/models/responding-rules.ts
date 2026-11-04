@@ -1234,7 +1234,8 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing', 'conventional'],
     appliesWhen: responderNegativeDoubleAfterOvercallApplies,
     priority: { rank: 100 },
-    meaning: 'Informational negative double: strength to compete and suitable unbid suits.',
+    meaning: 'Informational negative Double: enough strength and the specified unbid-major holding, ' +
+      'or both unbid minors when the majors have been bid. It does not promise every unbid suit.',
     guidance: ['This is a negative (takeout-oriented) double, never a penalty-double rule.',
                'Modeled after non-jump suit overcalls at levels one and two; jump preempts follow later.'],
     certainty: 'high',
