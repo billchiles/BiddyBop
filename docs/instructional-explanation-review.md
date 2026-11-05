@@ -102,6 +102,19 @@ for this turn"; a later evaluated turn may still receive feedback. Seven
 focused regression checks protect these behaviors. The coverage statistics and
 unrepresented-rule inventory live only in `docs/by-the-numbers.md`.
 
+## Coverage-guided convention-continuation check (November 5, 2026)
+
+Constructed four-hand auctions exposed an unpracticed inconsistency after
+1NT–(2S)–Double–(Pass): responder's existing takeout Double promises at least
+four hearts, while opener previously searched for a minor-suit fit. Opener now
+shows four-card heart support with 3H, or a stopped natural 2NT/3NT when there
+is no heart fit. Opposing raises remain outside the selected deterministic
+continuation. The responder's agreed Double meaning and bidding eligibility
+did not change. After 2NT Stayman denies a major fit, feedback now avoids
+claiming opener showed a major. Focused constructed-hand tests cover both
+evaluated bids and their delivered explanation lines; no student practice
+deals were added.
+
 ## Deferred or intentionally limited
 
 - No generalized penalty doubles/redoubles, Lebensohl, unconstrained later auctions, speculative game/slam judgment, or new convention families solely to close a coverage gap.
