@@ -344,8 +344,11 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
     appendRuleExplanation(lines, status.rule);
     lines.push('The auction may continue; this explanation does not recommend Pass.');
   } else if (status.kind === 'noApplicableRule') {
-    lines.push('The trainer has no recommendation for this hand and auction. ' +
-      'That does not mean your call is wrong.');
+    lines.push(status.hasAuctionTreatment
+      ? 'No supported bid qualifies for this hand and auction. This does not mean ' +
+        'your call is wrong.'
+      : 'The app does not evaluate bids in this auction context. Your call has not ' +
+        'been judged, and this does not recommend Pass.');
   } else {
     lines.push('This part of the auction is not covered by the trainer. ' +
       'You may continue bidding, and later calls may be evaluated.');
