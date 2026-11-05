@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
+import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce,
+         getUnfulfilledGameForceAtAuctionEnd, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
@@ -47,6 +48,9 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   const biddingTurnStatus = useMemo(() => getBiddingTurnStatus(board, auction, biddingSystem),
     [board, auction, biddingSystem]);
   const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
+  const violatedGameForce = useMemo(() => auctionComplete &&
+    getUnfulfilledGameForceAtAuctionEnd(board, auction, biddingSystem),
+    [board, auction, biddingSystem, auctionComplete]);
   const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'auctionComplete' ||
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
     getUnmodeledContinuationForce(board, auction, biddingSystem),
@@ -65,7 +69,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   };
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
-    biddingTurnStatus, practiceComplete, outstandingForce, practiceStep);
+    biddingTurnStatus, practiceComplete, outstandingForce, practiceStep, violatedGameForce);
   const displayedExplanation = [...explanationLines, ...turnGuidance,
     ...(reportNotice === null ? [] : ['', reportNotice.text])];
   // Scroll to the last *reviewed* call, not a preview of the next seat's turn.
@@ -358,7 +362,8 @@ function formatHand(hand: Hand): string {
 function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComplete: boolean,
                              outstandingForce: UnmodeledContinuationForce | null,
                              practiceStep: { recordedCall: Call; followingSeat: Seat | null;
-                                             followingStage: BidStage | null } | null): string[] {
+                                             followingStage: BidStage | null } | null,
+                             violatedGameForce: boolean): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
     lines.push('', status.kind === 'auctionComplete'
@@ -387,8 +392,8 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
     } else {
       switch (status.kind) {
       case 'auctionComplete':
-        lines.push('', 'Bridge auction complete.  Select New Deal or Test Deal to continue.');
-        return lines;
+        lines.push('', 'Bridge auction complete. Select New Deal or Test Deal to continue.');
+        break;
       case 'scopeBoundary':
         lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
           `${getStageLabel(status.stage)} ------------`,
@@ -400,18 +405,26 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       case 'noApplicableRule':
         lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
           `${getStageLabel(status.stage)} ------------`,
-          'No reliable recommendation applies to this hand at this point in the auction. ' +
-          'You may choose any legal call; an unsupported call is not necessarily incorrect.');
+          status.hasAuctionTreatment
+            ? 'No supported bid qualifies for this hand and auction. Further judgment is ' +
+              'needed; this does not recommend Pass.'
+            : 'The app does not teach bids in this auction context. You may enter any legal ' +
+              'call; this does not recommend Pass.');
         break;
       case 'noModeledStage':
-        lines.push('', `------------ ${getSeatLabel(seat)} to call — later auction ------------`,
-          `The app cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
-          'this auction. Some later bids may still have specific feedback.');
+        lines.push('', `------------ ${getSeatLabel(seat)} to call — no bidding guidance for this turn ------------`,
+          `The app does not evaluate ${getSeatLabel(seat)}'s call at this point. ` +
+          'Later turns may have bidding guidance.');
         break;
       case 'supported':
         break;
       }
     }
+  }
+  if (violatedGameForce) {
+    lines.push('The auction has ended below game even though a game-forcing bid ' +
+      'committed the partnership to reach game. The final Passes ended the auction ' +
+      'legally but did not honor that bidding agreement.');
   }
   // Completion ends the *lesson*, not the partnership commitment. Never invent
   // an unmodeled third bid or imply that a forcing call authorizes partner to Pass.

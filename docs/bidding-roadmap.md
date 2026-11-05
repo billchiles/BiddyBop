@@ -37,20 +37,6 @@ not a historical progress log or a commitment to model every possible auction.
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
   remain unchanged, although the explanation now acknowledges the limitation.
-- [ ] **Ending and scope guidance — targeted defects identified.**
-  * A natural 3NT after an evaluated 2/1 game force must discharge that force
-    when the prior auction establishes a natural notrump game; preserve artificial
-    Jacoby 3NT, Texas transfers, and artificial control bids.
-  * An auction that legally ends below an established game force must still
-    identify the broken partnership commitment, without prohibiting Pass.
-  * Distinguish an auction for which no bidding treatment exists (e.g. responder
-    after an opposing Double of a weak-two opening) from an evaluated auction
-    with no qualifying call. Neither condition implies Pass is recommended.
-  * Replace misleading "later auction" headings with "no bidding guidance for
-    this turn." New Deal should make no promise about later turns; practice mode
-    can identify the next known recorded lesson turn without suggesting an
-    unsupported call is wrong. Preserve later return to evaluated stages.
-  Add focused regression checks; do not change bidding eligibility or agreements.
 - [ ] **Final quality checks.** Review remaining substantive full-auction concerns
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
