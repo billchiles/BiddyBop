@@ -95,9 +95,9 @@ export const OPENER_REBID_AFTER_MAJOR_1NT_TEST_DEALS: RuleTestDeal[] = [
     description: '1S-1NT-3S: 16 HCP / 18 total with six spades; medium values move the ' +
                  'major-repeat ladder from 2S to 3S.',
     practiceGuidance: [{ auctionIndex: 1, seat: 'E', text: 'East has 10 HCP and six clubs ' +
-      'headed by A-K. Some players would overcall 2C, but 12 points including length fall ' +
-      'short of this trainer\'s usual 13-point requirement for a natural two-level ' +
-      'overcall. Pass is a reasonable conservative choice for this exercise.' }],
+      'headed by A-K. Some players would overcall 2C, but this hand falls short of the ' +
+      '11-HCP minimum for a natural two-level overcall with a six-card suit. ' +
+      'Pass is a reasonable conservative choice for this exercise.' }],
     practiceAuction: ['1S', 'Pass', '1NT', 'Pass', '3S'],
     requiredSystem: { majorOneNtResponse: 'nonForcing' },
     expectedOpeningCalls: [
