@@ -1,5 +1,5 @@
 /// Natural responder-rebid refinements and selected suit-quality checks.
-import type { AppliesWhenResult, Call, CallRefinementResult, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
+import type { AppliesWhenResult, Call, CallEvidence, CallRefinementResult, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, compareSuitBids, getOpeningCallInfo, getOpeningPartnershipCalls,
@@ -326,31 +326,45 @@ export function responderAfterMajorOneNtStrongApplies (call: Call, context: Rule
   if (info === null) return { success: false, telemetryLines: ['Not a selected strong major-1NT continuation.'] };
   const f = context.handFacts;
   const length = f.lengths[info.opening];
-  let success = false;
-  switch (choice) {
-    case 'declineNt':
-      success = info.kind === 'ntInvite' && f.balanced && f.hcp >= 6 && f.hcp <= 7 &&
-        length <= 2;
-      break;
-    case 'acceptNt':
-      success = info.kind === 'ntInvite' && f.balanced && f.hcp >= 8 && f.hcp <= 12 &&
-        length <= 2;
-      break;
-    case 'gameMajorAfterNt':
-      success = info.kind === 'ntInvite' && call === `4${info.opening}` &&
-        length === 3 && f.totalPointsWShortage >= 11 && f.totalPointsWShortage <= 12;
-      break;
-    case 'declineJumpMajor':
-      success = info.kind === 'jumpRepeat' && f.hcp >= 6 && f.hcp <= 7 && length >= 2;
-      break;
-    case 'acceptJumpMajor':
-      success = info.kind === 'jumpRepeat' && call === `4${info.opening}` &&
-        f.hcp >= 8 && f.hcp <= 12 && length >= 2;
-      break;
-  }
-  return { success, telemetryLines: [
+  const ntChoice = choice === 'declineNt' || choice === 'acceptNt' ||
+    choice === 'gameMajorAfterNt';
+  const hcpMinimum = choice === 'declineNt' || choice === 'declineJumpMajor' ? 6 : 8;
+  const hcpMaximum = choice === 'declineNt' || choice === 'declineJumpMajor' ? 7 : 12;
+  const hcpCheck = { kind: 'hcp' as const, actual: f.hcp, min: hcpMinimum,
+    max: hcpMaximum, passed: f.hcp >= hcpMinimum && f.hcp <= hcpMaximum };
+  const requirements: NonNullable<CallEvidence['requirements']> =
+    choice === 'gameMajorAfterNt' ? [
+      { kind: 'suitLength', suit: info.opening, actual: length, exact: 3,
+        passed: length === 3 },
+      { kind: 'totalPoints', actual: f.totalPointsWShortage, min: 11, max: 12,
+        passed: f.totalPointsWShortage >= 11 && f.totalPointsWShortage <= 12 },
+    ] : ntChoice ? [
+      hcpCheck,
+      { kind: 'balanced', actual: f.balanced, passed: f.balanced },
+      { kind: 'suitLength', suit: info.opening, actual: length, max: 2,
+        passed: length <= 2 },
+    ] : [
+      hcpCheck,
+      { kind: 'suitLength', suit: info.opening, actual: length, min: 2,
+        passed: length >= 2 },
+    ];
+  const correctContext = (ntChoice ? info.kind === 'ntInvite' : info.kind === 'jumpRepeat');
+  const correctCall = choice === 'gameMajorAfterNt' || choice === 'acceptJumpMajor' ?
+    call === `4${info.opening}` : true;
+  const success = correctContext && correctCall && requirements.every((check) => check.passed);
+  return { success, callEvidence: {
+    requirements,
+    naturalResponderRebid: {
+      family: 'majorOneNt', decision: choice, hcp: f.hcp,
+      lengthPoints: f.totalPointsWLength, supportPoints: f.totalPointsWShortage,
+      balanced: f.balanced, openingSuit: info.opening, responseSuit: null,
+      rebidSuit: null, openingLength: length, responseLength: 0, rebidLength: 0,
+      openerRebid: info.kind, success,
+    },
+  }, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${choice} after major-1NT ${info.kind}; ` +
-    `responder ${f.hcp} HCP, ${length} ${info.opening} cards.`,
+    `responder ${f.hcp} HCP, ${length} ${info.opening} cards, ` +
+    `${f.totalPointsWShortage} total points with shortage.`,
   ] };
 }
 
