@@ -323,7 +323,7 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
     lines.push('');
     lines.push('Additional auction guidance:');
     appendRuleExplanation(lines, scopeBoundary);
-    lines.push('  The scope boundary does not recommend Pass.');
+    lines.push('  This explanation does not recommend Pass.');
   }
   lines.push('');
   lines.push('Calls supported for this hand:');
@@ -342,7 +342,7 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
   const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
   if (status.kind === 'scopeBoundary') {
     appendRuleExplanation(lines, status.rule);
-    lines.push('The auction may continue; this scope boundary does not recommend Pass.');
+    lines.push('The auction may continue; this explanation does not recommend Pass.');
   } else if (status.kind === 'noApplicableRule') {
     lines.push('The trainer has no recommendation for this hand and auction. ' +
       'That does not mean your call is wrong.');
