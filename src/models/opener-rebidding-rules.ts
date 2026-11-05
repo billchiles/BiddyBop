@@ -477,51 +477,51 @@ export const OpenerRebidRules: BidRule[] = [
     certainty: 'medium',
   },
   //// 1NT opening -- Opener after responder's takeout Double
-  // After a natural suit overcall of our 1NT, responder's takeout Double promises
-  // unbid-suit length.  It is not a penalty Double, and opener must describe a fit
-  // or a stopped NT hand rather than pass the Double.
+  // After a natural DONT 2S over our 1NT, responder's takeout Double promises
+  // four or more hearts. It is not a penalty Double; opener shows a heart fit
+  // or a stopped NT hand rather than passing the Double.
   {
     id: 'opener-rebid-fit-after-1nt-interference-double',
     kind: 'openerRebid',
-    title: 'Show a four-card unbid-suit fit after responder Doubles 1NT interference',
+    title: 'Show four-card heart support after responder Doubles DONT 2S',
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
-    calls: ['2H', '2S', '3C', '3D', '3S'],
+    calls: ['3H'],
     callRefinement: refineOneNtInterferenceDoubleFit,
     callCategory: ['natural'],
-    meaning: 'Show a four-card fit for responder’s takeout-oriented Double in an unbid suit.',
-    guidance: ['After minor interference prefer hearts, then spades; after spade interference ' +
-               'show clubs before diamonds. A raise by the opponents may force a higher level.',
-               'This reply completes the takeout Double; responder can assess a game invitation ' +
-               'or game with additional values.'],
+    meaning: 'Responder’s takeout Double promises at least four hearts. Four hearts ' +
+             'in opener’s hand establish an eight-card fit; bid 3H.',
+    guidance: ['This reply completes the takeout Double; responder can assess a game ' +
+               'invitation or game with additional values.',
+               'After an opposing raise to 3S, selecting a higher contract needs judgment.'],
     certainty: 'high',
   },
   {
     id: 'opener-rebid-2nt-after-1nt-interference-double',
     kind: 'openerRebid',
-    title: 'Show a stopped minimum/middle 1NT hand without a takeout fit',
+    title: 'Show a stopped minimum/middle 1NT hand without a heart fit',
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     calls: ['2NT'],
     callCategory: ['natural'],
     appliesWhen: oneNtInterferenceDoubleNtApplies,
-    meaning: 'No four-card fit in responder’s indicated suits; minimum or middle 1NT opening ' +
-             'with a stopper in the opposing suit.',
+    meaning: 'No four-card heart fit for responder’s Double; minimum or middle 1NT opening ' +
+             'with a spade stopper.',
     certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-1nt-interference-double',
     kind: 'openerRebid',
-    title: 'Show a stopped maximum 1NT hand without a takeout fit',
+    title: 'Show a stopped maximum 1NT hand without a heart fit',
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     calls: ['3NT'],
     callCategory: ['natural'],
     appliesWhen: oneNtInterferenceDoubleNtApplies,
-    meaning: 'Maximum 1NT values, a stopper in the opponent’s suit, and no four-card fit ' +
+    meaning: 'Maximum 1NT values, a spade stopper, and no four-card heart fit ' +
              'for responder’s takeout Double.',
     certainty: 'medium',
   },

@@ -7748,6 +7748,118 @@ function runEndingAndScopeStatusTests (): number {
   return failures;
 }
 
+/// Test the partnership promise across 1NT interference, opener's next call,
+/// and the delivered explanation. Construct hands, not new practice selections.
+function runOneNtInterferenceDoubleContinuityTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const prefix: Call[] = ['1NT', '2S', 'Double', 'Pass'];
+  const east = { S: 'KQJT96', H: 'A52', D: '86', C: '94' };
+  const south = { S: '85', H: '9763', D: 'KQJ5', C: 'AJT' };
+  const cases = [
+    { north: { S: 'A74', H: 'KJ84', D: 'A92', C: 'KQ7' },
+      call: '3H' as Call, ruleId: 'opener-rebid-fit-after-1nt-interference-double' },
+    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'KQ72' },
+      call: '3NT' as Call, ruleId: 'opener-rebid-3nt-after-1nt-interference-double' },
+    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'K872' },
+      call: '2NT' as Call, ruleId: 'opener-rebid-2nt-after-1nt-interference-double' },
+  ];
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({
+      description: 'DONT natural spades and four-heart takeout Double',
+      practiceAuction: [...prefix, test.call], north: test.north, south, east,
+    });
+    const opening = evaluateUserCall('1NT', board, [], defaultBiddingSystem);
+    const overcall = evaluateUserCall('2S', board, prefix.slice(0, 1), defaultBiddingSystem);
+    const response = evaluateUserCall('Double', board, prefix.slice(0, 2), defaultBiddingSystem);
+    const doubleEvidence = response.ruleDiagnostics.find(({ rule }) =>
+      rule.id === 'partner-of-1nt-after-interference-negative-double')
+      ?.candidates.find(({ call }) => call === 'Double')?.callEvidence?.requirements;
+    checks++;
+    if (opening.userCallMatchingRules.length === 0 ||
+        !overcall.userCallMatchingRules.some(({ id }) => id === 'overcall-dont-natural-spades') ||
+        !response.userCallMatchingRules.some(({ id }) =>
+          id === 'partner-of-1nt-after-interference-negative-double') ||
+        !doubleEvidence?.some((item) => item.kind === 'suitLength' &&
+          item.suit === 'H' && item.min === 4 && item.passed) ||
+        doubleEvidence.some((item) => item.kind === 'suitLength' && item.suit === 'C')) {
+      failures++;
+      console.error('FAIL responder Double must promise four hearts after DONT 2S.');
+    }
+    const result = evaluateUserCall(test.call, board, prefix, defaultBiddingSystem);
+    const selected = result.userCallMatchingRules.find(({ id }) => id === test.ruleId);
+    const lines = selected === undefined ? [] : getOpenerOneNtInterferenceLines(result, selected);
+    const delivered = getBidExplanationLines({
+      title: 'Opener rebid', call: test.call,
+      status: getBiddingTurnStatus(board, prefix, defaultBiddingSystem), result,
+      handFacts: getHandFacts(board.deal.N), auctionLength: prefix.length,
+      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    checks++;
+    if (selected === undefined || lines.length === 0 ||
+        !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL evaluated ${test.call} and its explanation after takeout Double.`);
+    }
+    checks++;
+    const wrongFitCall: Call = test.call === '3H' ? '3C' : '3H';
+    if (evaluateUserCall(wrongFitCall, board, prefix, defaultBiddingSystem)
+          .userCallMatchingRules.some(({ id }) =>
+            id === 'opener-rebid-fit-after-1nt-interference-double') ||
+        (test.call === '3H' && evaluateUserCall('3NT', board, prefix, defaultBiddingSystem)
+          .userCallMatchingRules.some(({ id }) =>
+            id === 'opener-rebid-3nt-after-1nt-interference-double'))) {
+      failures++;
+      console.error('FAIL unsupported strain or NT displaces the evaluated heart fit.');
+    }
+  }
+  checks++;
+  const raisedBoard = makeRuleTestBoard({
+    description: 'Opponent raises DONT spades',
+    practiceAuction: ['1NT', '2S', 'Double', '3S'],
+    north: cases[0]!.north, south, east,
+  }).board;
+  const raised: Call[] = ['1NT', '2S', 'Double', '3S'];
+  const raisedResult = evaluateUserCall('4H', raisedBoard, raised, defaultBiddingSystem);
+  if (getBiddingTurnStatus(raisedBoard, raised, defaultBiddingSystem).kind === 'supported' ||
+      getApplicableCandidateCalls(raisedResult).length > 0) {
+    failures++;
+    console.error('FAIL opposing 3S raise must remain outside selected continuations.');
+  }
+  checks++;
+  const stayman = RULE_TEST_DEAL_BUCKETS.find(({ id }) => id === 'nt-2nt')?.deals[8];
+  if (stayman === undefined) {
+    failures++;
+    console.error('FAIL missing 2NT Stayman no-fit example.');
+  } else {
+    const { board } = makeRuleTestBoard(stayman);
+    const auction: Call[] = [...stayman.practiceAuction, 'Pass'];
+    const system = { ...defaultBiddingSystem, ...stayman.requiredSystem };
+    const result = evaluateUserCall('3NT', board, auction, system);
+    const rule = result.userCallMatchingRules.find(({ id }) =>
+      id === 'responder-rebid-2nt-stayman-game-3nt');
+    const diagnostic = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
+      .find(({ call, ruleApplies }) => call === '3NT' && ruleApplies);
+    const evidence = diagnostic?.callEvidence?.conventionalResponderRebid;
+    const lines = rule === undefined ? [] : getConventionalResponderRebidLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Responder rebid', call: '3NT',
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || evidence?.family !== 'ntConvention' ||
+        evidence.fitFound || lines.length === 0 ||
+        !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL 2NT Stayman no-fit explanation and evidence delivery.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. DONT Double continuity and Stayman: ` +
+    `${checks} checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -7777,6 +7889,7 @@ const testGroups: (() => number)[] = [
   runNaturalResponderRebidTeachingTests,
   runConventionalResponderTeachingTests,
   runOpenerInterferenceTeachingTests,
+  runOneNtInterferenceDoubleContinuityTests,
   runBidExplanationDeliveryTests,
   runRecordedCallFeedbackTests,
   runQ4ConventionalOpenerEvidenceTests,
