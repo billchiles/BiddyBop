@@ -361,8 +361,11 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
                                              followingStage: BidStage | null } | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
-    lines.push('', 'Practice sequence complete.  This is not necessarily the end of the ' +
-      'real bridge auction.  Select New Deal or Test Deal to continue.');
+    lines.push('', status.kind === 'auctionComplete'
+      ? 'Practice sequence complete. The bridge auction is also complete. ' +
+        'Select New Deal or Test Deal to continue.'
+      : 'Practice sequence complete. This is not necessarily the end of the ' +
+        'real bridge auction. Select New Deal or Test Deal to continue.');
   }
   if (!practiceComplete) {
     if (practiceStep !== null && status.kind !== 'supported' &&
@@ -389,8 +392,8 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       case 'scopeBoundary':
         lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
           `${getStageLabel(status.stage)} ------------`,
-          `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
-          'this auction. The following treatment explains why:');
+          `The app cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
+          'this auction. The following explanation describes why:');
         lines.push(...getRuleExplanationLines(status.rule));
         lines.push('This does not recommend Pass or any other particular call.');
         break;
@@ -401,9 +404,9 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
           'You may choose any legal call; an unsupported call is not necessarily incorrect.');
         break;
       case 'noModeledStage':
-        lines.push('', `------------ ${getSeatLabel(seat)} to call — unmodeled turn ------------`,
-          `The trainer cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
-          'this auction. Later bids through overcaller rebids might have reliable feedback.');
+        lines.push('', `------------ ${getSeatLabel(seat)} to call — later auction ------------`,
+          `The app cannot reliably evaluate ${getSeatLabel(seat)}'s decision in ` +
+          'this auction. Some later bids may still have specific feedback.');
         break;
       case 'supported':
         break;
