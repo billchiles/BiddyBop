@@ -7599,6 +7599,81 @@ function runQ47InitialResponseEvidenceTests (): number {
   return failures;
 }
 
+/// Q4-8: distinguish game placement from artificial game-level calls using the
+/// existing, fully specified convention deals. Natural game must still discharge
+/// a game force, including when the next turn has no dedicated evaluation rule.
+function runQ48CrossStageForceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const allDeals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const cases: { name: string; auction: Call[]; before: number; after: number }[] = [
+    { name: '1NT Texas spade transfer',
+      auction: ['1NT', 'Pass', '4H', 'Pass', '4S'], before: 3, after: 5 },
+    { name: 'Jacoby 2NT artificial 3NT',
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass', '4S'], before: 6, after: 7 },
+    { name: 'splinter side-suit control',
+      auction: ['1S', 'Pass', '4D', 'Pass', '4H', 'Pass', '4S'], before: 6, after: 7 },
+    { name: 'natural 1NT overcall Texas completion',
+      auction: ['1D', '1NT', 'Pass', '4D', 'Pass', '4H'], before: 5, after: 6 },
+  ];
+  for (const test of cases) {
+    checks++;
+    const deal = allDeals.find((item) =>
+      item.practiceAuction.join(' ') === test.auction.join(' '));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4-8 missing deal for ${test.name}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const before = getUnmodeledContinuationForce(board,
+      test.auction.slice(0, test.before), system);
+    const after = getUnmodeledContinuationForce(board,
+      test.auction.slice(0, test.after), system);
+    if (before?.kind !== 'gameForce' || after !== null) {
+      failures++;
+      console.error(`FAIL Q4-8 ${test.name}: before ${before?.kind ?? '-'}, ` +
+        `after ${after?.kind ?? '-'}.`);
+    }
+  }
+  checks++;
+  const natural = allDeals.find((deal) =>
+    deal.practiceAuction.join(' ') === '1S Pass 2D Pass 2H Pass 3S');
+  if (natural === undefined) {
+    failures++;
+    console.error('FAIL Q4-8 missing 2/1 natural major continuation.');
+  } else {
+    const { board } = makeRuleTestBoard(natural);
+    const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+    const continued = [...natural.practiceAuction, 'Pass', '4S'] as Call[];
+    if (getUnmodeledContinuationForce(board, continued.slice(0, 7), system)?.kind !==
+          'gameForce' || getUnmodeledContinuationForce(board, continued, system) !== null) {
+      failures++;
+      console.error('FAIL Q4-8 natural game after unsupported continuation.');
+    }
+  }
+  checks++;
+  const completeDeal = allDeals.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H Pass Pass Pass');
+  if (completeDeal === undefined) {
+    failures++;
+    console.error('FAIL Q4-8 missing completed bridge auction.');
+  } else {
+    const { board } = makeRuleTestBoard(completeDeal);
+    if (getBiddingTurnStatus(board, completeDeal.practiceAuction,
+          defaultBiddingSystem).kind !== 'auctionComplete' ||
+        getBiddingTurnStatus(board, completeDeal.practiceAuction.slice(0, 3),
+          defaultBiddingSystem).kind === 'auctionComplete') {
+      failures++;
+      console.error('FAIL Q4-8 practice ending versus real auction completion.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q4-8 cross-stage forces and endings: ` +
+    `${checks} checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -7669,6 +7744,7 @@ const testGroups: (() => number)[] = [
   runContinuousAuctionFeedbackTests,
   runUnmodeledDirectDefenseBoundaryTests,
   runLaterStageTerminationGuidanceTests,
+  runQ48CrossStageForceTests,
   runStrongMinorArtificialSupportTests,
   runBalancingAuctionAndDealTests,
   runRuleTests,
