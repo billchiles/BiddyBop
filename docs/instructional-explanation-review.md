@@ -89,6 +89,19 @@ These corrections do not change call eligibility, partnership conventions,
 practice auctions or Report's developer-only transcript. Remaining auction-stage,
 full-auction and source-quality work belongs in `docs/bidding-roadmap.md`.
 
+## Follow-up auction-ending and scope checks (November 5, 2026)
+
+The targeted post-Q4 review found that the unsupported-continuation force tracker
+did not recognize natural 3NT game after an evaluated natural 2NT, and that
+completed auctions below an established game force dropped the violation from
+student guidance. Both distinctions now retain the relevant auction evidence
+without altering call legality. The next-turn status also distinguishes an
+auction with no applicable bidding treatment from one with tested but
+unqualified calls. New Deal no-stage headings now say "no bidding guidance
+for this turn"; a later evaluated turn may still receive feedback. Seven
+focused regression checks protect these behaviors. The coverage statistics and
+unrepresented-rule inventory live only in `docs/by-the-numbers.md`.
+
 ## Deferred or intentionally limited
 
 - No generalized penalty doubles/redoubles, Lebensohl, unconstrained later auctions, speculative game/slam judgment, or new convention families solely to close a coverage gap.
