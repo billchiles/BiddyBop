@@ -39,13 +39,11 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 ## Recorded coverage
 
-As of the C2f rule-test run, the corpus contains **615 deals**, with **1,479** positive
-call/rule assertions, **743** elimination assertions, **31** call-order assertions, and
-**1,389** recorded-practice-call checks. The agreement-compatibility meta-check runs **2,311**
-eligible deal/configuration combinations and **5,206** recorded-call checks. That run had zero
-failures. Counts reflect this recorded run, not an exhaustive measure of all implemented rules.
-In particular, guidance-only scope boundaries and deliberately unpracticed alternatives need
-not have corresponding positive practice assertions.
+For current practice-deal counts, primary test assertion totals, and rule-reach
+statistics, see [`by-the-numbers.md`](by-the-numbers.md). It is regenerated
+from the rule and practice sources with `npm run stats:bidding`; the normal
+`test:rules` command separately reports assertion results and failures.
+
 
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum

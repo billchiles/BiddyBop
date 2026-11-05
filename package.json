@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:rules": "tsc -p tsconfig.rules.json && node node_modules/.rule-tests/tests/rule-tests.js"
+    "test:rules": "tsc -p tsconfig.rules.json && node node_modules/.rule-tests/tests/rule-tests.js",
+    "stats:bidding": "tsc -p tsconfig.rules.json && node node_modules/.rule-tests/tests/stats.js"
   },
   "dependencies": {
     "react": "^19.2.6",

@@ -36,27 +36,11 @@ where applicable. The spec records the Bridge Bidding Trainer's domain-specific 
 
 ## Bidding Corpus Snapshot
 
-Rule counts are from commit `d920655` (October 28, 2026); practice-deal counts were
-rechecked against the November 2026 `master` baseline. Update these counts only when
-the corresponding source changes materially.
+The current rule declaration, practice deal, test assertion, and instructional
+reach statistics are generated in [`by-the-numbers.md`](by-the-numbers.md) by
+`npm run stats:bidding`. Unlike the earlier dated count, it distinguishes rule
+declarations from distinct rule IDs reused in more than one collection.
 
-| Metric | Count | Definition |
-| --- | ---: | --- |
-| Executable bidding rules | **594** | Declarations with a callable bidding rule kind, across the six stage-specific rule modules |
-| Scope-boundary rules | **84** | Explanatory limits; these do not recommend calls |
-| Combined bidding declarations | **678** | Executable rules plus scope boundaries, excluding non-executable `BiddingNotes` |
-| Rule declaration collections | **6** | Opening, responding, advancing, opener rebidding, overcalling/overcaller rebidding, responder rebidding |
-| Executable rule kinds | **7** | `openingBid`, `responseBid`, `advance`, `openerRebid`, `overcall`, `overcallerRebid`, `responderRebid` |
-| Practice/rule-test buckets | **70** | Entries in `RULE_TEST_DEAL_BUCKETS`; the same buckets serve the practice selector and rule tests, not two separate bucket populations |
-| Practice-deal definitions | **626** | Distinct source-defined deal records across the stage/family `*-test-deals.ts` files |
-
-The 626 counts distinct source definitions; the 70 buckets expose 627 practice-deal
-selections because some deals are deliberately reused in more than one bucket. Each
-practice deal specifies four full hands, and North is dealer. Rule totals include
-multiple meaningful alternatives, not a claim of exhaustive bidding coverage.
-Neither numerical rule representation nor custom explanation coverage is a quality
-target; explanations should be assessed for instructional value. This is a dated
-snapshot, not a value automatically recomputed at application startup.
 
 ## Rule Data Policy
 

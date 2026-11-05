@@ -2,6 +2,10 @@
 
 Initial inventory established October 28, 2026; status updated during the second-pass review. This is a source-based family inventory, not certification that every rule or rendered explanation has been pedagogically approved. It does not change the selected bidding system or require a custom explanation for every rule.
 
+Quantitative rule, practice, test and explanation-reach counts are maintained
+in [`by-the-numbers.md`](by-the-numbers.md); this file records instructional
+review findings rather than duplicate numerical snapshots.
+
 ## Purpose and acceptance standard
 
 Assess every **decision family** in the selected model, including its executable rules and nearby scope boundaries. Decide whether the existing rule meaning/guidance and shared display path are sufficient, or whether students would benefit from a specific hand-aware explanation of:

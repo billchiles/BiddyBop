@@ -20,13 +20,37 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Remaining project quality work
 
+- [ ] **Classify uncovered rules and assess practice representativeness.**
+  Use the executable rule IDs lacking a qualifying recorded call or alternative
+  in `docs/by-the-numbers.md`; classify rare conventions/slam continuations,
+  unpracticed but supported auction families, and meaningful gaps. Distinguish
+  rules merely considered in evaluator diagnostics, qualified as alternatives,
+  cited in feedback, and given substantive failed-requirement explanations.
+  Expand `tests/stats.ts` to compute these additional metrics before adding a
+  corresponding section to the statistical report. Do not set coverage quotas
+  or add student practice deals solely to increase a percentage.
+- [ ] **Coverage-guided stress testing beyond practice deals.**
+  After classifying the gaps, test representative unseen hands and agreement
+  configurations with seeded, reproducible evaluations in plausible auctions.
+  Examine bid alternatives and the final delivered instructional feedback.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
   remain unchanged, although the explanation now acknowledges the limitation.
-- [ ] **Ending and scope guidance.** Finish the focused audit of auction-stage
-  recognition, agreement-sensitive meanings, and missing or misleading judgment
-  boundaries in later or partly supported auctions.
+- [ ] **Ending and scope guidance — targeted defects identified.**
+  * A natural 3NT after an evaluated 2/1 game force must discharge that force
+    when the prior auction establishes a natural notrump game; preserve artificial
+    Jacoby 3NT, Texas transfers, and artificial control bids.
+  * An auction that legally ends below an established game force must still
+    identify the broken partnership commitment, without prohibiting Pass.
+  * Distinguish an auction for which no bidding treatment exists (e.g. responder
+    after an opposing Double of a weak-two opening) from an evaluated auction
+    with no qualifying call. Neither condition implies Pass is recommended.
+  * Replace misleading "later auction" headings with "no bidding guidance for
+    this turn." New Deal should make no promise about later turns; practice mode
+    can identify the next known recorded lesson turn without suggesting an
+    unsupported call is wrong. Preserve later return to evaluated stages.
+  Add focused regression checks; do not change bidding eligibility or agreements.
 - [ ] **Final quality checks.** Review remaining substantive full-auction concerns
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
