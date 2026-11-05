@@ -154,7 +154,7 @@ export const OpeningBidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 20, max: 21 }, shape: { balanced: true } },
     guidance: ['Do not consider a convenient minor when the hand fits the natural 2NT opening; ' +
                   '2NT describes both strength and shape more precisely.', ],
-    meaning: 'Strong balanced opening showing 20-21 points.',
+    meaning: 'Strong balanced opening showing 20–21 HCP.',
     certainty: 'high',
   },
   //

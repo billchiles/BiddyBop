@@ -192,6 +192,34 @@ export function getResponseSelectionFailureLines(result: BidEvalResult): string[
   return [];
 }
 
+/// A preferred response should explain why a genuinely qualifying alternative was set
+/// aside. The evaluator, not this explanation, records the selection decision.
+export function getResponseSelectionSupportLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!result.userCallMatchingRules.some((item) => item.id === rule.id) ||
+      result.normalizedCall === null) return [];
+  const selection = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
+    .find((candidate) => candidate.ruleApplies === false &&
+      candidate.callEvidence?.responseSelection?.preferredCall === result.normalizedCall &&
+      (candidate.callEvidence.responseSelection.reason === 'fiveFiveTransferOrder' ||
+       candidate.callEvidence.responseSelection.reason === 'staymanOverJacoby'))
+    ?.callEvidence?.responseSelection;
+  if (selection === undefined) return [];
+  if (selection.reason === 'staymanOverJacoby') {
+    return [`With five cards in one major and four in the other, Stayman explores both ` +
+      `major-suit fits before a transfer commits to one major [${rule.id}].`];
+  }
+  const continuation = result.normalizedCall === '2D'
+    ? 'After partner completes the heart transfer, 2S can invite game.'
+    : result.normalizedCall === '2H'
+      ? 'After partner completes the spade transfer, 3H is game forcing.'
+      : result.normalizedCall === '3D'
+        ? 'After partner completes the heart transfer, 3S shows the second major below 3NT.'
+        : null;
+  if (continuation === null) return [];
+  return [`With at least five cards in each major, start with ${result.normalizedCall} ` +
+    `to preserve the appropriate second-suit continuation. ${continuation} [${rule.id}].`];
+}
+
 /// A conventional response imposes an obligation only when the actual current
 /// auction has a qualifying continuation for that conventional treatment.
 export function getConventionalForcingPassFailureLines(result: BidEvalResult): string[] {
@@ -274,8 +302,15 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
       lines.push('One supported call for comparison:');
       appendRuleExplanation(lines, comparison.rule, handFacts, auctionLength);
     } else if (reasons.length > 0 && scopeBoundary === undefined) {
-      lines.push('The failed requirement does not establish a better call; ' +
-        'the app has no qualifying recommendation for this hand and auction.');
+      const weakPass = result.normalizedCall === 'Pass' && result.ruleDiagnostics.some(
+        ({ rule }) => rule.id === 'respond-to-minor-w/-pass-0-5' ||
+          rule.id === 'respond-to-major-w/-pass-0-5' ||
+          rule.id === 'respond-to-major-w/-support-pass-0-5');
+      lines.push(weakPass
+        ? 'The failed weak-Pass requirement does not establish a better bid. Pass may still ' +
+          'be reasonable after competition; this auction requires further judgment.'
+        : 'The failed requirement does not establish a better call; ' +
+          'the app has no qualifying recommendation for this hand and auction.');
     }
   } else {
     lines.push('Why this call fits:');
@@ -347,6 +382,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getNaturalAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));
+  lines.push(...getResponseSelectionSupportLines(result, rule));
   lines.push(...getStrongTwoCResponseLines(result, rule));
   lines.push(...getResponderPreemptiveAdvanceLines(result, rule));
   lines.push(...getDontAdvanceLines(result, rule));
@@ -394,10 +430,10 @@ function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: Hand
       handFacts !== undefined && handFacts.hcp < 12 && handFacts.totalPointsWLength >= 12) {
     lines.push(`  Hand value: ${handFacts.hcp} HCP + ${handFacts.lengthPoints} length ` +
       `point${handFacts.lengthPoints === 1 ? '' : 's'} = ` +
-      `${handFacts.totalPointsWLength} total points. This meets the trainer's ` +
-      '12-total-point minimum for an ordinary one-level suit opening.');
+      `${handFacts.totalPointsWLength} total points with length. This meets the ` +
+      '12-point minimum with length included for an ordinary one-level suit opening.');
     lines.push('  This is a light opening. Some players prefer at least 12 HCP and might ' +
-      'Pass; the trainer recommends opening under its length-point treatment.');
+      'Pass; the selected opening treatment counts HCP plus length points.');
     if (auctionLength !== undefined && auctionLength <= 1) {
       const twoLongest = Object.values(handFacts.lengths).sort((a, b) => b - a);
       const longest = twoLongest[0] ?? 0;
@@ -617,8 +653,8 @@ export function getPreemptOpeningSupportLine(result: BidEvalResult, rule: BidRul
   }
   return `Your ${suitName(result.normalizedCall)} suit has ${length.actual} cards and meets ` +
     `the suit-quality requirement (${PREEMPT_SUIT_QUALITY}). ` +
-    `With ${strengthValue(strength)}, your hand meets the ${strengthRange(strength)} ` +
-    `requirement [${rule.id}].`;
+    `With ${strengthValue(strength, 'length')}, your hand meets the ` +
+    `${strengthRange(strength, 'length')} requirement [${rule.id}].`;
 }
 
 /// Explain only the student's attempted preempt and only failures the evaluator actually checked.
@@ -651,8 +687,14 @@ export function getPreemptOpeningFailureLines(result: BidEvalResult): string[] {
             `your hand has ${check.actual} [${diagnostic.rule.id}].`);
         }
       } else if (check.kind === 'hcp' || check.kind === 'totalPoints') {
-        lines.push(`A ${entered} preempt requires ${strengthRange(check)}; ` +
-          `your hand has ${strengthValue(check)} [${diagnostic.rule.id}].`);
+        lines.push(`A ${entered} preempt requires ${strengthRange(check, 'length')}; ` +
+          `your hand has ${strengthValue(check, 'length')} [${diagnostic.rule.id}].`);
+        if (check.kind === 'totalPoints' && diagnostic.rule.id === 'open-weak-three' &&
+            getApplicableCandidateCalls(result).some(({ call }) =>
+              call === `1${entered[1]}`)) {
+          lines.push(`An opening of 1${entered[1]} qualifies with this hand; the ` +
+            `three-level preempt exceeds its strength limit [${diagnostic.rule.id}].`);
+        }
       }
     }
   }
@@ -683,12 +725,17 @@ function namedStopperSuit(check: Extract<Requirement, { kind: 'stopper' }>): str
   return check.suit === undefined ? "opener's suit" : suitPlural(`1${check.suit}` as Call);
 }
 
-function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>): string {
-  return `${check.actual} ${check.kind === 'hcp' ? 'HCP' : 'total points'}`;
+function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
+  return `${check.actual} ${units}`;
 }
 
-function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>): string {
-  const units = check.kind === 'hcp' ? 'HCP' : 'total points';
+function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
   if (check.min !== undefined && check.max !== undefined) {
     return `${check.min}–${check.max} ${units}`;
   }
@@ -3380,7 +3427,22 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
           .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })))
       .sort((left, right) => (right.rule.priority?.rank ?? 0) -
         (left.rule.priority?.rank ?? 0))[0];
-    if (positive === undefined) return [];
+    if (positive === undefined) {
+      const positiveSuit = result.ruleDiagnostics.find(({ rule: item }) =>
+        item.id === 'respond-to-2c-w/-positive-suit');
+      const positiveNt = result.ruleDiagnostics.find(({ rule: item }) =>
+        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
+        ?.candidates.find(({ call }) => call === '2NT');
+      const ntHcp = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'hcp');
+      const balanced = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'balanced');
+      const suitChecks = positiveSuit?.callEvidence?.strongTwoCPositiveSuit?.considered;
+      if (ntHcp === undefined || ntHcp.actual < 8 || balanced?.passed !== false ||
+          suitChecks === undefined || suitChecks.length === 0 ||
+          positiveSuit?.candidates.some((item) => item.ruleApplies) === true) return [];
+      return [`With ${ntHcp.actual} HCP but no qualifying positive suit response and ` +
+        `unbalanced distribution, 2D waiting keeps the auction open without claiming ` +
+        `a suit or natural notrump shape [${rule.id}].`];
+    }
     if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
       const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
         (item) => item.call === positive.candidate.call);
