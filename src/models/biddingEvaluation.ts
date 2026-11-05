@@ -1256,7 +1256,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.hcp !== undefined) {
     const shift = constraint.hcpRelativeToOneNtOpening
       ? oneNtResponseHcpShift(system) : 0;
-    const range = { min: constraint.hcp.min === undefined ? undefined : constraint.hcp.min - shift,
+    // Shift the one-notrump response ranges without producing impossible negative HCP limits.
+    const range = { min: constraint.hcp.min === undefined ? undefined :
+                      Math.max(0, constraint.hcp.min - shift),
                     max: constraint.hcp.max === undefined ? undefined : constraint.hcp.max - shift };
     const result = testPointRange(context.handFacts.hcp, range, 'HCP');
     telemetryLines.push(result.telemetryLine);
