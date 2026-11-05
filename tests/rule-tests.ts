@@ -14,7 +14,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
-         getResponseSelectionFailureLines, getConventionalForcingPassFailureLines,
+         getResponseSelectionFailureLines, getResponseSelectionSupportLines,
+         getConventionalForcingPassFailureLines,
          getResponderForcingPassFailureLines, getOvercallerConventionFailureLines,
          getCompetitiveResponseFailureLines, getMajorSupportFailureLines,
          getOpenerConventionalRebidFailureLines, getStrongTwoCResponseFailureLines,
@@ -7489,6 +7490,115 @@ function runQ3ForcingContinuationPassTests (): number {
   return failures;
 }
 
+/// Check actual evaluator facts and the shared explanation delivery for initial responses.
+function runQ47InitialResponseEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const selected = [
+    { needle: '9 HCP and five cards in each major', call: '2D' as Call },
+    { needle: '11 HCP and five cards in each major', call: '2H' as Call },
+  ];
+  for (const scenario of selected) {
+    checks++;
+    const deal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+      item.description.includes(scenario.needle));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4-7 missing transfer hand: ${scenario.needle}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.calls?.includes(scenario.call) === true);
+    const otherSelection = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
+      .find(({ callEvidence }) =>
+        callEvidence?.responseSelection?.reason === 'fiveFiveTransferOrder' &&
+        callEvidence.responseSelection.preferredCall === scenario.call);
+    const support = rule === undefined ? [] : getResponseSelectionSupportLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Response', call: scenario.call,
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || otherSelection === undefined || support.length === 0 ||
+        !support.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q4-7 preferred transfer feedback: ${scenario.needle}.`);
+    }
+  }
+  checks++;
+  const shifted = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+    item.description.includes('16-18: 7 HCP and four hearts qualify for Stayman'));
+  if (shifted === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing shifted 1NT Pass example.');
+  } else {
+    const board = makeRuleTestBoard(shifted).board;
+    const system = { ...defaultBiddingSystem, ...shifted.requiredSystem };
+    const result = evaluateUserCall('Pass', board, shifted.practiceAuction.slice(0, 2), system);
+    const rejected = result.ruleDiagnostics.find(({ rule }) =>
+      rule.id === 'respond-to-1nt-w/-pass-0-7-balanced')
+      ?.candidates.find(({ call }) => call === 'Pass');
+    const hcp = rejected?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    if (hcp?.kind !== 'hcp' || hcp.min !== 0 || hcp.max !== 6 || hcp.actual !== 7 ||
+        hcp.passed || result.userCallMatchingRules.length !== 0) {
+      failures++;
+      console.error('FAIL Q4-7 adjusted 1NT response HCP boundary.');
+    }
+  }
+  checks++;
+  const waiting = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
+    item.description.includes('10-HCP 4-4-4-1 responder'));
+  if (waiting === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing strong 2C waiting hand.');
+  } else {
+    const board = makeRuleTestBoard(waiting).board;
+    const auction = waiting.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...waiting.requiredSystem };
+    const result = evaluateUserCall('2D', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-to-2c-w/-2d-waiting');
+    const support = rule === undefined ? [] : getStrongTwoCResponseLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Response', call: '2D',
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || support.length === 0 ||
+        !support.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL Q4-7 strong 2C waiting evidence delivery.');
+    }
+  }
+  checks++;
+  const opening = OPENING_BID_TEST_DEALS.find((item) =>
+    item.description.includes('Seven hearts with 9 HCP'));
+  if (opening === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing opening comparison hand.');
+  } else {
+    const board = makeRuleTestBoard(opening).board;
+    const result = evaluateUserCall('3H', board, [], defaultBiddingSystem);
+    const preempt = result.ruleDiagnostics.find(({ rule }) => rule.id === 'open-weak-three')
+      ?.candidates.find(({ call }) => call === '3H');
+    const strength = preempt?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    if (strength?.kind !== 'totalPoints' || strength.actual !== 12 || strength.max !== 11 ||
+        strength.passed || !getApplicableCandidateCalls(result).some(({ call }) => call === '1H')) {
+      failures++;
+      console.error('FAIL Q4-7 strength and qualifying opening comparison.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Q4-7 initial-response evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -7522,6 +7632,7 @@ const testGroups: (() => number)[] = [
   runRecordedCallFeedbackTests,
   runQ4ConventionalOpenerEvidenceTests,
   runQ3ConventionalRejectionTests,
+  runQ47InitialResponseEvidenceTests,
   runQ3NaturalCompetitiveRejectionTests,
   runQ3ForcingContinuationPassTests,
   runQ2PositiveAlternativeDeliveryTests,
