@@ -238,7 +238,7 @@ export type BiddingTurnStatus =
   | { kind: 'scopeBoundary'; stage: BidStage; rule: BidRule }
   // A modeled stage exists, but no concrete rule or explanatory boundary qualifies.
   // Treat this as a missing rule treatment, not successful termination.
-  | { kind: 'noApplicableRule'; stage: BidStage }
+  | { kind: 'noApplicableRule'; stage: BidStage; hasAuctionTreatment: boolean }
   // No modeled bidding-rule stage exists for this physical turn.
   | { kind: 'noModeledStage' }
   ;
@@ -256,7 +256,8 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
   if (getApplicableCandidateCalls(currentRules).length > 0) return { kind: 'supported', stage };
   const boundary = currentRules.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
   if (boundary !== undefined) return { kind: 'scopeBoundary', stage, rule: boundary };
-  return { kind: 'noApplicableRule', stage };
+  return { kind: 'noApplicableRule', stage, hasAuctionTreatment: currentRules.ruleDiagnostics.some(
+    ({ rule }) => rule.kind !== 'scopeBoundary') };
 }
 
 
@@ -322,6 +323,18 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
           auction.slice(0, laterIndex), system).userCallMatchingRules;
         if (isGamePlacement(later, laterMatches)) return true;
         if (laterMatches.length !== 0) return false;
+        // A natural 3NT after our evaluated natural 2NT places game. Do not
+        // infer this from Jacoby 2NT, an artificial 3NT, or an unsupported bid.
+        if (later === '3NT') {
+          return auction.slice(0, laterIndex).some((previous, previousIndex) => {
+            if (previous !== '2NT') return false;
+            const previousSeat = getSeatForCallIndex(board.dealer, previousIndex);
+            if (previousSeat !== forceSeat && previousSeat !== partner) return false;
+            return evaluateUserCall(previous, board, auction.slice(0, previousIndex), system)
+              .userCallMatchingRules.some((rule) =>
+                rule.callCategory?.includes('natural') === true);
+          });
+        }
         // An unsupported 4M can still place an agreed natural major game.
         // Require a previously evaluated natural bid in that suit by our side;
         // never infer a contract from an unsupported artificial-looking call.
@@ -349,6 +362,14 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
     }
   }
   return oneRound;
+}
+
+/// An auction can end legally after three Passes without honoring a game force.
+/// Preserve that instructional distinction without changing call legality.
+export function getUnfulfilledGameForceAtAuctionEnd (board: Board, auction: Call[],
+                                                      system: BiddingSystem): boolean {
+  if (!auctionIsComplete(auction) || auction.length === 0) return false;
+  return getUnmodeledContinuationForce(board, auction.slice(0, -1), system)?.kind === 'gameForce';
 }
 
 //// Evaluation context and stage rule selection
