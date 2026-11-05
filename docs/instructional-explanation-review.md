@@ -69,26 +69,27 @@ The family groupings collectively cover each stage's executable declarations and
 | Bidding notes and deliberately unmodeled later auctions | BiddingNotes, scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not promote notes to executable bidding rules |
 
 
-## Pending instructional review
+## Q4-8 cross-stage review (November 5, 2026)
 
-**Q4-8 — Independent cross-stage integration review.** Challenge actual assembled feedback across decision families, especially promises and forces carried forward, reasons for preferred and rejected bids, overlap of practice guidance with specialized explanations, and exercise endings. Confirm New Deal and practice mode deliver consistent evaluated explanations and that the debugging Report preserves the same transcript. Check remaining unnatural student-facing terminology without a comprehensive cosmetic rewrite. Use evidence-based tests, not wording snapshots or browser automation.
+The stage-specific and independent cross-stage instructional-quality passes are complete.
+In Q4-8, the outstanding-force helper was corrected to distinguish actual game
+placement from artificial Texas transfers, Jacoby 3NT descriptions and control
+bids. Natural game placements, including a supported Texas completion and an
+unsupported but clearly agreed major-game continuation, still discharge the
+force. Exercise completion now distinguishes a finished bridge auction from a
+practice stopping point. A stale six-club overcall note now uses the evaluated
+11-HCP threshold, and the shared defensive Pass meaning no longer uses
+"modeled" language. Selected student-visible boundaries were also simplified.
 
-The optional DONT checkbox remains a separate deferred enhancement. Keep this inventory focused on pending instructional review, not a running log of resolved findings.
-
-## Student-facing language acceptance gate
-
-After the remaining explanation families are implemented, review student-visible
-instruction and feedback—not debugging Report metadata—for developer terminology such
-as "model", "modeled", "scope boundary", "fixture", "rule", "the trainer", and
-other internal implementation phrasing. Replace it with natural bridge teaching
-language wherever possible, without obscuring deliberate judgment limits or
-removing bracketed diagnostic rule IDs. Track the outstanding work in the roadmap.
+These corrections do not change call eligibility, partnership conventions,
+practice auctions or Report's developer-only transcript. Remaining auction-stage,
+full-auction and source-quality work belongs in `docs/bidding-roadmap.md`.
 
 ## Deferred or intentionally limited
 
 - No generalized penalty doubles/redoubles, Lebensohl, unconstrained later auctions, speculative game/slam judgment, or new convention families solely to close a coverage gap.
 - No extra practice deals solely for coverage percentages; use existing credible cases and add a focused regression case only when a meaningful distinction is fixed.
-- Keep user-facing text concise, use "app" rather than "trainer" in newly written instruction, and preserve [rule IDs]. Cosmetic terminology cleanup belongs to the final integration pass.
+- Keep user-facing text concise, use "app" rather than "trainer" in newly written instruction, and preserve [rule IDs]. Avoid development terminology in future student-facing guidance.
 - Clickable auction-call explanations and wider interface redesign remain separate future features.
 
 ## Stable implementation decisions
