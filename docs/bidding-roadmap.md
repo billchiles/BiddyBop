@@ -20,19 +20,17 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Second-pass instructional quality punch list (Q4)
 
-- [ ] **Q4 — Presentation and instructional quality gate.** Review actual
-  assembled explanations across all modeled stages for accuracy, economy,
-  duplication of hand-specific text/rule meaning/practice guidance, natural
-  student-facing bridge language, and agreement-sensitive meanings. Sample
-  recorded-call substitutions and exercise endings (including unresolved
-  forcing obligations). Retain the existing **Report button solely as a
-  developer debugging clipboard dump** of hands, auction, agreements, displayed
-  explanations and optional telemetry; do not turn it into a student report
-  or prioritize making diagnostic fields student-friendly. Verify it faithfully
-  captures the same explanation transcript. Reconcile docs and punch-list
-  statuses when completed.
+- [ ] **Q4-8 — Independent cross-stage instructional quality gate.** Sample
+  actual assembled feedback across decision families to find contradictions
+  between partnership promises, positive and rejected alternatives, practice
+  notes, and exercise endings (including outstanding forces). Check economy,
+  consistent hand valuations, and natural student-facing bridge language.
+  Confirm the **Report button remains only a developer debugging clipboard
+  dump** and faithfully captures the displayed explanation transcript,
+  including recorded-call substitutions and optional telemetry. Avoid an
+  exhaustive sentence-by-sentence wording pass.
 
-For Q4, discuss evidence and precise changes before coding. Existing
+For Q4-8, discuss evidence and precise changes before coding. Existing
 practice hands and tests are the main inputs; no new deals just for numerical
 coverage, no wholesale bidding-rule re-audit, and no browser-automation suite.
 
