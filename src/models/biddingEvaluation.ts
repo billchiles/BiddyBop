@@ -274,6 +274,18 @@ function isGameContract(call: Call): boolean {
     bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
 }
 
+/// Reaching the level of game does not necessarily place a contract there.
+/// Texas transfers, conventional 3NT strength descriptions, and control bids
+/// keep the game force alive; a completed Texas transfer places actual game.
+function isGamePlacement(call: Call, matchingRules: BidRule[]): boolean {
+  if (!isGameContract(call)) return false;
+  return matchingRules.some((rule) =>
+    rule.callCategory?.includes('natural') === true ||
+    rule.callCategory?.includes('signoff') === true ||
+    rule.id === 'opener-rebid-complete-texas-after-nt' ||
+    rule.id === 'overcaller-rebid-1nt-texas');
+}
+
 /// One-round forces require partner's next response (possibly after an opponent Pass).
 /// Game forces can persist through further partnership bids, until game is reached.
 /// After substantive opposing action we do not presume the original obligation survives
@@ -298,13 +310,32 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
     const matches = evaluateUserCall(call, board, auction.slice(0, index), system)
       .userCallMatchingRules;
     if (matches.length === 0) continue;
-    if (isGameContract(call)) continue;
+    if (isGamePlacement(call, matches)) continue;
     if (matches.some((rule) => rule.callCategory?.includes('gameForcing'))) {
-      // A later game bid by the forcing partnership satisfies the commitment.
+      // Only a qualifying natural game placement, not an artificial game-level
+      // bid, satisfies the partnership's game commitment.
       const reachedGame = subsequent.some((later, offset) => {
         const seat = getSeatForCallIndex(board.dealer, index + offset + 1);
         if (seat !== forceSeat && seat !== partner) return false;
-        return isGameContract(later);
+        const laterIndex = index + offset + 1;
+        const laterMatches = evaluateUserCall(later, board,
+          auction.slice(0, laterIndex), system).userCallMatchingRules;
+        if (isGamePlacement(later, laterMatches)) return true;
+        if (laterMatches.length !== 0) return false;
+        // An unsupported 4M can still place an agreed natural major game.
+        // Require a previously evaluated natural bid in that suit by our side;
+        // never infer a contract from an unsupported artificial-looking call.
+        const game = parseSuitBid(later);
+        if (game === null || game.level !== 4 ||
+            (game.strain !== 'H' && game.strain !== 'S')) return false;
+        return auction.slice(0, laterIndex).some((previous, previousIndex) => {
+          if (parseSuitBid(previous)?.strain !== game.strain) return false;
+          const previousSeat = getSeatForCallIndex(board.dealer, previousIndex);
+          if (previousSeat !== forceSeat && previousSeat !== partner) return false;
+          return evaluateUserCall(previous, board, auction.slice(0, previousIndex), system)
+            .userCallMatchingRules.some((rule) =>
+              rule.callCategory?.includes('natural') === true);
+        });
       });
       if (! reachedGame) return { kind: 'gameForce', lastStage: stage };
     }
