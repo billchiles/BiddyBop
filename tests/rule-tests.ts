@@ -5,7 +5,7 @@ import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
          getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, normalizeCallInput,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
@@ -7674,6 +7674,80 @@ function runQ48CrossStageForceTests (): number {
   return failures;
 }
 
+/// Verify actual auction context, not rendered sentence wording, for force endings
+/// and for the distinction between unhandled auctions and unqualified hands.
+function runEndingAndScopeStatusTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const lookup = (bucketId: string, oneBased: number) => {
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === bucketId)?.deals[oneBased - 1];
+    if (deal === undefined) throw new Error(`Missing practice deal ${bucketId} #${oneBased}.`);
+    const { board } = makeRuleTestBoard(deal);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    return { board, system, deal };
+  };
+  {
+    checks++;
+    const { board, system, deal } = lookup('responder-rebid-after-two-over-one', 6);
+    const naturalNt = [...deal.practiceAuction, 'Pass', '3NT'] as Call[];
+    if (getUnmodeledContinuationForce(board, deal.practiceAuction, system)?.kind !==
+          'gameForce' || getUnmodeledContinuationForce(board, naturalNt, system) !== null) {
+      failures++;
+      console.error('FAIL natural 3NT after 2/1 natural 2NT should reach game.');
+    }
+    checks++;
+    if (getUnfulfilledGameForceAtAuctionEnd(board,
+          [...naturalNt, 'Pass', 'Pass', 'Pass'], system)) {
+      failures++;
+      console.error('FAIL natural 3NT completed auction must honor game force.');
+    }
+  }
+  {
+    const { board, system, deal } = lookup('responder-rebid-after-two-over-one', 2);
+    checks++;
+    if (!getUnfulfilledGameForceAtAuctionEnd(board,
+          [...deal.practiceAuction, 'Pass', 'Pass', 'Pass'], system)) {
+      failures++;
+      console.error('FAIL game force ended below game must remain visible.');
+    }
+    checks++;
+    if (getUnfulfilledGameForceAtAuctionEnd(board,
+          [...deal.practiceAuction, 'Pass', '4S', 'Pass', 'Pass', 'Pass'], system)) {
+      failures++;
+      console.error('FAIL natural four-spade game must satisfy game force.');
+    }
+  }
+  {
+    checks++;
+    const { board, system } = lookup('major-jacoby-2nt', 1);
+    const artificial = ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass', 'Pass', 'Pass'] as Call[];
+    if (!getUnfulfilledGameForceAtAuctionEnd(board, artificial, system)) {
+      failures++;
+      console.error('FAIL artificial Jacoby 3NT must not satisfy game force.');
+    }
+  }
+  {
+    checks++;
+    const { board, system } = lookup('overcall-weak-two-defense', 1);
+    const status = getBiddingTurnStatus(board, ['2H', 'Double'], system);
+    if (status.kind !== 'noApplicableRule' || status.hasAuctionTreatment) {
+      failures++;
+      console.error('FAIL weak-two interference should be an untreated response auction.');
+    }
+  }
+  {
+    checks++;
+    const { board, system, deal } = lookup('opener-after-interference', 6);
+    const status = getBiddingTurnStatus(board, deal.practiceAuction, system);
+    if (status.kind !== 'noApplicableRule' || !status.hasAuctionTreatment) {
+      failures++;
+      console.error('FAIL hand with tested but unqualified calls must be distinct.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Ending and unsupported-stage guidance: ${checks} checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -7745,6 +7819,7 @@ const testGroups: (() => number)[] = [
   runUnmodeledDirectDefenseBoundaryTests,
   runLaterStageTerminationGuidanceTests,
   runQ48CrossStageForceTests,
+  runEndingAndScopeStatusTests,
   runStrongMinorArtificialSupportTests,
   runBalancingAuctionAndDealTests,
   runRuleTests,
