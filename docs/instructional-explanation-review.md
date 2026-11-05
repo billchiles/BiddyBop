@@ -115,6 +115,20 @@ claiming opener showed a major. Focused constructed-hand tests cover both
 evaluated bids and their delivered explanation lines; no student practice
 deals were added.
 
+## Coverage-guided responder invitation feedback (November 5, 2026)
+
+The constructed-hand review found that five responder rebids after a major
+opening, 1NT response, and opener's natural 2NT or invitational 3M qualified
+correctly but lacked hand-specific positive and rejected-call explanations.
+These decisions now return their evaluated HCP, major-suit length, shape, and
+when applicable total points with shortage. Shared explanations use that
+evidence to distinguish declining versus accepting the game invitation,
+including a concealed three-card major raise. The nonforcing 3m jump-repeat
+Pass title and meaning now describe declining a game invitation, including
+the original responder-major length restriction. Twenty focused checks verify
+evaluated evidence and final explanation delivery; eligibility rules and
+student practice deals were not changed.
+
 ## Deferred or intentionally limited
 
 - No generalized penalty doubles/redoubles, Lebensohl, unconstrained later auctions, speculative game/slam judgment, or new convention families solely to close a coverage gap.
