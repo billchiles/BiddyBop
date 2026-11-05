@@ -7860,6 +7860,87 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
   return failures;
 }
 
+/// Verify hand-aware invitation feedback using the same evaluated facts that
+/// determine the selected call; no recorded practice deal is added or modified.
+function runResponderInvitationExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const openerNt = { S: 'AKJ84', H: 'Q65', D: 'AQ3', C: 'K4' };
+  const openerJump = { S: 'AKJ843', H: 'Q65', D: 'K73', C: 'K' };
+  const weak = { S: 'Q5', H: 'K87', D: 'J864', C: '9732' };
+  const strong = { S: 'Q5', H: 'KJ7', D: 'J864', C: 'Q932' };
+  const concealedRaise = { S: 'Q65', H: 'KJ7', D: 'J864', C: 'A93' };
+  const cases: { name: string; north: typeof openerNt; south: typeof weak;
+    rebid: Call; call: Call; ruleId: string; applies: boolean }[] = [
+    { name: 'decline 2NT with 6 HCP', north: openerNt, south: weak,
+      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject 3NT with 6 HCP', north: openerNt, south: weak,
+      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'accept 2NT with 9 HCP', north: openerNt, south: strong,
+      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject Pass with 9 HCP', north: openerNt, south: strong,
+      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'three-card limit raise after 2NT', north: openerNt, south: concealedRaise,
+      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject 4S with two-card support', north: openerNt, south: strong,
+      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'decline 3S invitation', north: openerJump, south: weak,
+      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      applies: true },
+    { name: 'reject 4S after minimum jump invitation', north: openerJump, south: weak,
+      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      applies: false },
+    { name: 'accept 3S invitation', north: openerJump, south: strong,
+      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      applies: true },
+    { name: 'reject Pass after constructive 3S', north: openerJump, south: strong,
+      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      applies: false },
+  ];
+  for (const item of cases) {
+    const prefix: Call[] = ['1S', 'Pass', '1NT', 'Pass', item.rebid, 'Pass'];
+    const { board } = makeRuleTestBoard({ description: item.name,
+      practiceAuction: prefix, north: item.north, south: item.south });
+    const result = evaluateUserCall(item.call, board, prefix, defaultBiddingSystem);
+    const diag = result.ruleDiagnostics.find(({ rule }) => rule.id === item.ruleId);
+    const candidate = diag?.candidates.find(({ call }) => call === item.call);
+    const evidence = candidate?.callEvidence?.naturalResponderRebid;
+    const requirements = candidate?.callEvidence?.requirements;
+    const facts = getHandFacts(board.deal.S);
+    const status = getBiddingTurnStatus(board, prefix, defaultBiddingSystem);
+    const delivered = getBidExplanationLines({ title: 'Responder rebid', call: item.call,
+      status, result, handFacts: facts, auctionLength: prefix.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false });
+    checks++;
+    if (candidate?.ruleApplies !== item.applies || evidence === undefined ||
+        evidence.hcp !== facts.hcp || evidence.openingLength !== facts.lengths.S ||
+        evidence.supportPoints !== facts.totalPointsWShortage ||
+        requirements === undefined || requirements.length === 0) {
+      failures++;
+      console.error(`FAIL invitation evidence: ${item.name}.`);
+      continue;
+    }
+    const specialized = item.applies ?
+      getNaturalResponderRebidLines(result, diag!.rule, facts) :
+      getNaturalResponderRebidFailureLines(result);
+    checks++;
+    if (specialized.length === 0 || !specialized.every((line) => delivered.includes(line)) ||
+        (item.applies && requirements.some((check) => !check.passed)) ||
+        (!item.applies && requirements.every((check) => check.passed))) {
+      failures++;
+      console.error(`FAIL invitation explanation delivery: ${item.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Responder invitation evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
@@ -7920,6 +8001,7 @@ const testGroups: (() => number)[] = [
   runResponderStrongTwoNtContextTests,
   runResponderMajorOneNtContextTests,
   runResponderMajorOneNtStrongTests,
+  runResponderInvitationExplanationTests,
   runResponderMinorOneNtAndPassedHandTests,
   runResponderStandardTwoLevelContextTests,
   runResponderTwoOverOneContextTests,

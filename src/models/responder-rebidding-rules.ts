@@ -785,13 +785,14 @@ export const ResponderRebidRules: BidRule[] = [
   // points and a six-card minor.  The jump is invitational, not game forcing.
   {
     id: 'responder-rebid-pass-after-minor-jump-repeat', kind: 'responderRebid',
-    title: "Accept opener's invitational jump-repeat of a six-card minor",
+    title: "Decline game invitation and play opener's six-card minor",
     auctionContext: { stage: 'responderRebid', openerLevel: 1, openerStrain: 'minor',
                       responderCall: { kind: 'newSuit', level: 1, jump: 0, strain: 'major' } },
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorJumpRepeatApplies(call, context, 'pass'),
     meaning: "Opener's 3m is nonforcing and promises a good six-card minor.  With 6-9 HCP " +
-             'and at least two cards in that suit, responder may Pass.',
+             'and at least two cards in that suit, with no more than five cards in the ' +
+             'originally bid major, responder may Pass and decline further progress toward game.',
     guidance: ['With a particularly useful nine-point hand, game may be worth considering.'],
     certainty: 'high',
   },

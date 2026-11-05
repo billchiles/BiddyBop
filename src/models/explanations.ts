@@ -7343,6 +7343,16 @@ export function getNaturalResponderRebidLines(
             return [`Your minimum ${e.hcp}-HCP response includes a six-card minor; bidding it naturally avoids suggesting a stronger notrump hand ${id}.`];
           case 'inviteNt':
             return [`With ${e.hcp} HCP, balanced distribution, and at most two cards in opener's major, a natural 2NT invites game ${id}.`];
+          case 'declineNt':
+            return [`Opener's natural 2NT shows 18–19 HCP and invites game. Your balanced ${e.hcp}-HCP hand has ${e.openingLength} cards in opener's major, so Pass declines the invitation ${id}.`];
+          case 'acceptNt':
+            return [`Opener's natural 2NT shows 18–19 HCP. Your balanced ${e.hcp}-HCP hand and ${e.openingLength} cards in opener's major support choosing 3NT rather than a major-suit game ${id}.`];
+          case 'gameMajorAfterNt':
+            return [`Opener's natural 2NT shows 18–19 HCP. Your ${e.openingLength}-card support for ${e.openingSuit === 'H' ? 'hearts' : 'spades'} makes an eight-card fit, and ${e.supportPoints} total points with shortage qualify for major-suit game ${id}.`];
+          case 'declineJumpMajor':
+            return [`Opener's invitational jump to three of the original six-card major is not forcing. Your ${e.hcp} HCP and ${e.openingLength} cards in that major favor Pass and a partscore ${id}.`];
+          case 'acceptJumpMajor':
+            return [`Opener's jump repeat shows an invitational six-card major. Your ${e.hcp} HCP and ${e.openingLength}-card support establish an eight-card-or-longer fit and justify bidding game ${id}.`];
         }
         break;
       case 'minorOneNt':
@@ -7482,6 +7492,31 @@ export function getNaturalResponderRebidFailureLines(result: BidEvalResult): str
       }
       if (e.decision === 'gameNt' && e.hcp < 13) {
         return [`This selected 3NT placement needs at least 13 HCP; you have ${e.hcp} ${id}.`];
+      }
+      continue;
+    }
+    if (e.family === 'majorOneNt' &&
+        (e.decision === 'declineNt' || e.decision === 'acceptNt' ||
+         e.decision === 'gameMajorAfterNt' || e.decision === 'declineJumpMajor' ||
+         e.decision === 'acceptJumpMajor')) {
+      const ntChoice = e.decision === 'declineNt' || e.decision === 'acceptNt' ||
+        e.decision === 'gameMajorAfterNt';
+      if (e.openerRebid !== (ntChoice ? 'ntInvite' : 'jumpRepeat')) continue;
+      const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+      if (failed === undefined) continue;
+      if (failed.kind === 'hcp') {
+        return [`${result.normalizedCall} after opener's ${ntChoice ? '2NT' : 'three-level major'} invitation requires ${strengthRange(failed)}; you have ${failed.actual} HCP ${id}.`];
+      }
+      if (failed.kind === 'balanced') {
+        return [`${result.normalizedCall} after opener's 2NT invitation requires balanced distribution; your hand is not balanced ${id}.`];
+      }
+      if (failed.kind === 'suitLength') {
+        const needed = failed.exact !== undefined ? `exactly ${failed.exact}` :
+          failed.min !== undefined ? `at least ${failed.min}` : `at most ${failed.max}`;
+        return [`${result.normalizedCall} requires ${needed} cards in opener's ${e.openingSuit === 'H' ? 'hearts' : 'spades'}; you have ${failed.actual} ${id}.`];
+      }
+      if (failed.kind === 'totalPoints') {
+        return [`${result.normalizedCall} after opener's 2NT invitation requires 11–12 total points with shortage; you have ${failed.actual} ${id}.`];
       }
       continue;
     }
