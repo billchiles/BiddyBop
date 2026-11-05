@@ -38,7 +38,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: { hcp: { max: 17 } },
-    meaning: 'Pass when the hand does not qualify for a modeled direct overcall, takeout Double, ' +
+    meaning: 'Pass when the hand does not qualify for a direct overcall, takeout Double, ' +
              'or DONT defense.',
     guidance: ['Partner has not bid, so you are not obliged to act over an opposing opening. ' +
                'Passing with a marginal hand may also be reasonable, but vulnerability and ' +
