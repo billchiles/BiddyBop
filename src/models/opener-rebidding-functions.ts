@@ -56,12 +56,10 @@ function getOneNtInterferenceContinuation (context: RuleEvalContext):
     naturalLevel: naturalSuit === null ? null : responseBid!.level };
 }
 
-/// A takeout-oriented Double after natural DONT 2S shows the unbid minors.
-/// Show an eight-card fit with a four-card suit, choosing the cheapest fit up the line.
+/// After a natural DONT 2S, responder's takeout Double promises four hearts.
+/// Opener needs four hearts too before describing an eight-card heart fit.
 function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
-  const candidates: Suit[] = opposingSuit === 'S' ? ['C', 'D'] :
-    opposingSuit === 'H' ? ['S'] : ['H', 'S'];
-  return candidates.find((suit) => context.handFacts.lengths[suit] >= 4) ?? null;
+  return opposingSuit === 'S' && context.handFacts.lengths.H >= 4 ? 'H' : null;
 }
 
 function oneNtInterferenceEvidence(context: RuleEvalContext, system: BiddingSystem,
@@ -91,11 +89,10 @@ export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEv
   const info = getOneNtInterferenceContinuation(context);
   if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
   const fit = getOneNtDoubleFit(context, info.opposingSuit);
-  // Only the economical 3S action over a competing 3H is modeled after an
-  // opposing raise. Other raised auctions belong to the boundary treatment.
-  const bid = fit === null ? null : info.advance === 'Pass' ?
-    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) :
-    info.opposingSuit === 'H' && fit === 'S' ? '3S' : null;
+  // Over a 2S overcall and Pass, 3H is the economical heart-fit reply.
+  // An opposing raise to 3S requires further judgment rather than a forced game bid.
+  const bid = fit !== null && info.advance === 'Pass' ?
+    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) : null;
   const wanted = bid as Call | null;
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted &&
     isCallAvailableInAuction(call, context.auction)), telemetryLines: [
@@ -186,10 +183,9 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
   const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info.opposingSuit) : null;
   let success = false;
   if (info.response === 'Double') {
-    // After the opponents raise, bidding higher without a defined fit is judgment heavy.
-    success = info.advance !== 'Pass' ?
-      ! (info.opposingSuit === 'H' && fit === 'S') :
-      fit === null && ! hasBasicSuitStopper(context, info.opposingSuit);
+    // An opposing raise needs additional judgment, even with a heart fit.
+    success = info.advance !== 'Pass' ||
+      (fit === null && ! hasBasicSuitStopper(context, info.opposingSuit));
   } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
     const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
       context.handFacts.lengths[info.naturalSuit] >= 3;
