@@ -130,14 +130,11 @@ const tableRow = (label: string, value: number) => `| ${label} | **${number(valu
 const byGroup = groups.map(({ name, rules }) => {
   const working = rules.filter((rule) => rule.kind !== 'scopeBoundary');
   return `| ${name} | ${working.length} | ${rules.length - working.length} | ` +
-    `${count(recorded, working)} | ${count(reached, working)} | ${count(considered, working)} |`;
+    `${count(recorded, working)} | ${count(reached, working)} | ` +
+    `${working.filter((rule) => ! reached.has(rule.id)).length} | ` +
+    `${count(considered, working)} |`;
 });
 const unseen = [...executable.keys()].filter((id) => ! reached.has(id));
-const unseenByGroup = groups.map(({ name, rules }) => {
-  const ids = rules.filter((rule) => rule.kind !== 'scopeBoundary' &&
-    ! reached.has(rule.id)).map((rule) => rule.id);
-  return { name, ids };
-});
 const output = `# BiddyBop by the Numbers
 
 Regenerate this statistical snapshot with \`npm run stats:bidding\`. The command
@@ -220,8 +217,8 @@ Neither statistic alone establishes the instructional quality of a rule.
 
 ### By rule collection
 
-| Collection | Executable declarations | Scope boundaries | Matched recorded call | Matched recorded or alternative | Considered in diagnostics |
-|---|---:|---:|---:|---:|---:|
+| Collection | Executable declarations | Scope boundaries | Matched recorded call | Matched recorded or alternative | Unreached | Considered in diagnostics |
+|---|---:|---:|---:|---:|---:|---:|
 ${byGroup.join('\n')}
 
 **Considered in diagnostics** means that during replay of a recorded decision,
@@ -232,20 +229,32 @@ is **not** a count of qualified bids or explanations actually displayed.
 responding and advancing). The reach columns therefore overlap; their totals
 cannot be added to obtain the distinct-ID counts above.
 
-### Executable IDs not reached by a qualifying recorded call or alternative
+### Interpretation of unreached executable IDs
 
-The following are measured omissions from this practice replay, not necessarily
-missing bidding functionality. IDs shared by multiple rule collections are
-shown in each relevant row; the distinct total is ${number(unseen.length)}.
+The ${number(unseen.length)} distinct executable IDs not reached by a qualifying
+call are **not** scope-boundary declarations. A source review on 5 November 2026
+classified the 111 IDs as follows:
 
-| Collection | Unreached declarations | Rule IDs |
-|---|---:|---|
-${unseenByGroup.map(({name, ids}) => `| ${name} | ${ids.length} | ${ids.length === 0 ? 'None' : ids.map((id) => `\`${id}\``).join(', ')} |`).join('\n')}
+| Reviewed classification | Distinct IDs |
+|---|---:|
+| Specialized slam treatments that are not a practice priority | 9 |
+| Unreached choices with an exercised sibling in the same bidding family | 53 |
+| Other uncovered choices and continuations | 49 |
+| **Total** | **111** |
 
-These IDs include both unusual continuations and ordinary choices not reached
-by the present fixed practice auctions. The list alone cannot determine which
-unrepresented cases warrant more testing; it should not be treated as a target
-for generating more student practice deals.
+These categories do not reduce the **measured** total of 111 unreached rules.
+A sibling rule qualifying on a practice hand does not test the unreached
+rule's own eligibility or explanation. The categories are human-reviewed
+interpretations retained here as static text, not automatically inferred from
+rule names. Revisit them if the corpus or rule set changes materially.
+
+**Overcalling / overcaller rebids:** All 35 unreached IDs in this collection
+belong to **overcaller rebids**, not initial direct overcalls. Of these,
+25 have qualifying sibling treatments, two concern specialized slam choices,
+and eight are other uncovered decisions. This is less concerning than the raw
+35 suggests because many underlying bidding situations are exercised, but it
+is not equivalent to testing all 35 rules. No extra practice deals are needed
+merely to raise coverage counts.
 `;
 const destination = resolve('docs/by-the-numbers.md');
 writeFileSync(destination, output, 'utf8');
