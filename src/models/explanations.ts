@@ -7563,7 +7563,7 @@ export function getConventionalResponderRebidLines(result: BidEvalResult, rule: 
       const fit = e.fitFound && e.major !== null;
       if (e.decision.startsWith('stayman')) {
         return [`Stayman ${fit ? `found a major-suit fit in ${e.major === 'H' ? 'hearts' : 'spades'}` :
-          'did not find an eight-card fit in opener\'s shown major'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
+          'did not establish an eight-card major-suit fit'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
           'invite game' : 'choose game'} in ${fit ? 'the agreed major' : 'notrump'}. ${id}`];
       }
       if (e.decision === 'transferPass') {
@@ -7671,7 +7671,7 @@ export function getConventionalResponderRebidFailureLines(result: BidEvalResult)
     if (e.family === 'ntConvention' && e.decision.startsWith('stayman') && !e.fitFound &&
         (result.normalizedCall === '3H' || result.normalizedCall === '3S' ||
          result.normalizedCall === '4H' || result.normalizedCall === '4S')) {
-      return [`Stayman did not establish an eight-card fit in opener's shown major, so the selected major raise is not supported ${id}.`];
+      return [`Stayman did not establish an eight-card major-suit fit, so the selected major raise is not supported ${id}.`];
     }
     if (e.family === 'strongTwoC' && e.decision === 'passMinimumNt' && e.hcp > 2) {
       return [`Opener's balanced 2NT rebid shows 22–24 HCP. The selected Pass treatment requires at most 2 HCP; you have ${e.hcp} ${id}.`];
@@ -7698,9 +7698,9 @@ export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: Bid
   const id = `[${rule.id}]`;
   switch (e.treatment) {
     case 'doubleFit':
-      return [`Responder's Double of the natural spade overcall is takeout-oriented, not penalty. Your ${e.fitLength} ${suitPlural(`1${e.fitSuit}` as Call)} supply the requested minor fit; show it economically with ${candidate.call} ${id}.`];
+      return [`Responder's takeout Double of the natural spade overcall promises at least four hearts. Your ${e.fitLength} hearts establish an eight-card fit; show it with ${candidate.call} ${id}.`];
     case 'doubleNt':
-      return [`Responder's takeout Double found no four-card minor fit. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
+      return [`Responder's takeout Double promises at least four hearts, but you have fewer than four. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
     case 'naturalPass':
       return [`Responder's ${e.response} is natural and nonforcing. With ${e.hcp} HCP${e.responseLevel === 3 ? ` and no complete set of stoppers in ${opponents}` : ''}, Pass accepts partner's ${responseSuit} rather than inventing a game bid ${id}.`];
     case 'majorRaise':
