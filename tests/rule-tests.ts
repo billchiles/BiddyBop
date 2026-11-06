@@ -5,7 +5,8 @@ import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
          getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd, normalizeCallInput,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
+         getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
@@ -7742,6 +7743,86 @@ function runEndingAndScopeStatusTests (): number {
     if (status.kind !== 'noApplicableRule' || !status.hasAuctionTreatment) {
       failures++;
       console.error('FAIL hand with tested but unqualified calls must be distinct.');
+    }
+  }
+  // An established 2/1 game force remains historical evidence after competition,
+  // but the app must not infer whether to bid, Double, or defend.
+  {
+    const { board, system } = lookup('responder-rebid-after-two-over-one', 6);
+    const starting: Call[] = ['1S', 'Pass', '2C'];
+    checks++;
+    const source = evaluateUserCall('2C', board, starting.slice(0, 2), system);
+    if (!source.userCallMatchingRules.some((rule) =>
+        rule.callCategory?.includes('gameForcing') === true)) {
+      failures++;
+      console.error('FAIL missing evaluated 2/1 game-force source.');
+    }
+    const competed: Call[] = [...starting, '2H', 'Pass', 'Pass', 'Pass'];
+    checks++;
+    const warning = getUnfulfilledForceAtAuctionEnd(board, competed, system);
+    if (warning?.kind !== 'gameForce' || !warning.interveningCompetition ||
+        !getUnfulfilledGameForceAtAuctionEnd(board, competed, system)) {
+      failures++;
+      console.error('FAIL historical 2/1 force lost after opposing 2H.');
+    }
+    checks++;
+    if (getUnfulfilledForceAtAuctionEnd(board,
+          [...starting, '2H', 'Double', 'Pass', 'Pass', 'Pass'], system) !== null) {
+      failures++;
+      console.error('FAIL doubled competitive partscore needs judgment, not a game warning.');
+    }
+    checks++;
+    if (getUnfulfilledForceAtAuctionEnd(board,
+          [...starting, '4H', 'Pass', 'Pass', 'Pass'], system) !== null) {
+      failures++;
+      console.error('FAIL opposing game should not be labeled an unmet game force.');
+    }
+    checks++;
+    if (getUnfulfilledForceAtAuctionEnd(board,
+          [...starting, 'Pass', '4S', 'Pass', 'Pass', 'Pass'], system) !== null) {
+      failures++;
+      console.error('FAIL natural major game satisfies the prior 2/1 force.');
+    }
+    checks++;
+    if (getUnfulfilledForceAtAuctionEnd(board,
+          [...starting, '2H', 'Pass', 'Pass'], system) !== null) {
+      failures++;
+      console.error('FAIL do not report an auction-end violation before completion.');
+    }
+  }
+  // Jordan 2NT is forcing for one round, but not automatically game forcing.
+  // Its partner's Pass after an opponent Pass can end the auction legally
+  // without satisfying the partnership's commitment.
+  {
+    const jordan = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((deal) =>
+      deal.practiceAuction.join(' ') === '1D Double 2NT');
+    checks++;
+    if (jordan === undefined) {
+      failures++;
+      console.error('FAIL missing evaluated Jordan 2NT source.');
+    } else {
+      const { board } = makeRuleTestBoard(jordan);
+      const forcing = evaluateUserCall('2NT', board, ['1D', 'Double'],
+        defaultBiddingSystem).userCallMatchingRules;
+      if (!forcing.some((rule) => rule.callCategory?.includes('forcing') === true)) {
+        failures++;
+        console.error('FAIL Jordan 2NT should establish a one-round force.');
+      }
+      checks++;
+      const ended: Call[] = ['1D', 'Double', '2NT', 'Pass', 'Pass', 'Pass'];
+      const warning = getUnfulfilledForceAtAuctionEnd(board, ended, defaultBiddingSystem);
+      if (warning?.kind !== 'oneRoundForce' || warning.interveningCompetition ||
+          getUnfulfilledGameForceAtAuctionEnd(board, ended, defaultBiddingSystem)) {
+        failures++;
+        console.error('FAIL one-round Jordan force was dropped on auction completion.');
+      }
+      checks++;
+      const answered: Call[] = ['1D', 'Double', '2NT', 'Pass',
+        '3D', 'Pass', 'Pass', 'Pass'];
+      if (getUnfulfilledForceAtAuctionEnd(board, answered, defaultBiddingSystem) !== null) {
+        failures++;
+        console.error('FAIL a Jordan force already answered by opener must not warn.');
+      }
     }
   }
   console.log(`${failures} ***FAILURES***. Ending and unsupported-stage guidance: ${checks} checks.\n`);
