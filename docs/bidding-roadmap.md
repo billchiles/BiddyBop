@@ -42,9 +42,17 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
+- [ ] **Audit rule-declaration-order dependencies.**
+  The evaluator currently uses stable sorting by `priority.rank`; equal-ranked
+  rules retain their order in each stage's declaration array. Determine whether
+  any student-facing candidate order, first-supported comparison, suppressor,
+  or selected guidance depends on that incidental tie order. For genuinely
+  important preferences, consider an explicit `priority.rank` or domain selection
+  criterion rather than relying on declaration location. Preserve current behavior
+  while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
   Continue deliberate, separately tested organization passes. Next: inspect
-  other rule, type, and practice-deal files for related-code
+  type and practice-deal files for related-code
   grouping, stale or misplaced comments, unnecessary wrappers, and readability.
   Include a final spot check of shared helpers and production blank-line
   transitions in `explanations.ts`; don't chase ordering counts at the expense
