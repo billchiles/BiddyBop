@@ -99,6 +99,14 @@ when the wrapper is used once and contributes no additional logic.
 - Do not emit comments that merely restate the code.
 - Very small functions whose names completely state their purpose usually do not need comments.
 - Preserve useful existing comments during ports and focused edits.
+- When moving definitions, keep their complete introductory explanations and manually
+  authored rationale attached to the correct functions, rules, or deal groups. Check
+  that no comment was dropped, stranded, or reassigned to an unrelated declaration.
+- Within production functions, avoid unexplained blank lines. Separate meaningful
+  phases with a concise `//` comment explaining the next block, or omit the blank
+  line when no explanation is needed. Do not add ceremonial restatement comments.
+- In test functions, ordinary blank lines between cases or assertions are fine;
+  add comments for non-obvious setup or behavior, not merely to fill blank lines.
 - Avoid comments that falsely elevate one source, implementation accident, or temporary behavior into an architectural rule.
 - Avoid historical patch numbers, chat phases, and completed work-item labels in permanent comments.
 
