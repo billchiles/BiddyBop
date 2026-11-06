@@ -42,12 +42,6 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Label supplementary rule guidance in explanations.**
-  In `appendRuleExplanation` in `explanations.ts`, `rule.guidance` prints
-  immediately after `Meaning:` without an introduction, as in the
-  convenient-minor opening explanation. Add a concise, accurate separator
-  for those existing guidance lines without changing their content, rules,
-  or when they appear.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
   Continue deliberate, separately tested organization passes. Next: inspect
   other rule, type, and practice-deal files for related-code
