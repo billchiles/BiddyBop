@@ -34,21 +34,6 @@ not a historical progress log or a commitment to model every possible auction.
   without disclosing that opener actually holds only two hearts. Preserve
   decision-time knowledge and make this a wording-only cleanup, not a bidding
   eligibility or practice-auction change.
-- [ ] **Coverage-guided stress testing beyond practice deals.**
-  The November 2026 review found 111 executable rule IDs never qualifying a
-  recorded call or alternative: 9 specialized slam treatments (low practice
-  priority), 53 neighboring choices with qualifying siblings, and 49 other
-  uncovered decisions. These are not scope boundaries, and the sibling count
-  does not establish direct coverage. All 35 uncovered rules in the overcalling
-  collection concern overcaller rebids (25 siblings, 2 specialized slam cases,
-  8 others); do not prioritize blanket expansion of this family. Prefer targeted
-  checks for substantive opener-rebid omissions, competitive/conventional
-  continuations, and responder rebids after 2NT Stayman. Use seeded,
-  reproducible hands and plausible auctions to inspect both qualifying and
-  failed alternatives, agreement variants, and final student feedback.
-  No automatic bidder, new rule-family inventory, coverage quota, or extra
-  student practice deals merely to improve percentages. Add a practice deal
-  only for a genuinely useful new teaching situation.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
@@ -57,8 +42,17 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Final source and test cleanup.** Review naming, comments, organization,
-  unnecessary wrappers, and readability without expanding test infrastructure.
+- [ ] **Final source and test cleanup before the owner reviews the code.**
+  Make deliberate, separately tested organization passes rather than just tiny
+  cosmetic fixes. Next: group the later explanation helpers and correct misplaced
+  `////` headings in `explanations.ts`; improve caller-before-callee order and
+  family headings in `opener-rebidding-functions.ts`; organize `tests/rule-tests.ts`
+  with domain-based sections and descriptive names (do not require comments
+  merely because a test has a blank line); then inspect rule, type, and
+  practice-deal files for grouping, stale or misplaced comments, needless
+  wrappers, and readable flow. Keep manually written introductory rationale
+  attached when moving code. Prefer useful function comments and purposeful
+  `////` sections; no semantic bidding changes or extra test infrastructure.
 
 ## Deferred enhancements
 
