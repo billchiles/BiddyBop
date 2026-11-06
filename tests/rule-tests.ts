@@ -6121,6 +6121,44 @@ function runOpenerInterferenceTeachingTests (): number {
   return failures;
 }
 
+/// Overlapping three- and four-card major-support routes must report a rejected
+/// new-suit length once. Mention a different suit only when it actually qualifies
+/// for the game-forcing route, including the 13-support-point requirement.
+function runMajorSupportNewSuitRejectionTests (): number {
+  const north = { S: 'AT652', H: 'QJ', D: 'K65', C: 'J94' };
+  const cases = [
+    { name: 'three-card support below game-force values',
+      south: { S: 'K87', H: '9765', D: 'A8', C: 'AT82' }, alternative: false },
+    { name: 'three-card support with game-force values',
+      south: { S: 'K87', H: '9765', D: 'A8', C: 'AK82' }, alternative: true },
+    { name: 'four-card support below game-force values',
+      south: { S: 'K874', H: '9765', D: 'A8', C: 'AT8' }, alternative: false },
+    { name: 'four-card support with game-force values and minor fallback',
+      south: { S: 'K874', H: '9765', D: 'A8', C: 'AK8' }, alternative: true },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const item of cases) {
+    const { board } = makeRuleTestBoard({ description: item.name,
+      practiceAuction: ['1S', 'Pass', '2H'], north, south: item.south });
+    const auction: Call[] = ['1S', 'Pass'];
+    const result = evaluateUserCall('2H', board, auction, defaultBiddingSystem);
+    const lines = getMajorSupportFailureLines(result);
+    const alternative = getApplicableCandidateCalls(result).some(({ rule, call }) =>
+      call === '2C' && (rule.id === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' ||
+        rule.id === 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'));
+    checks++;
+    if (result.userCallMatchingRules.length > 0 || lines.length !== 1 ||
+        alternative !== item.alternative ||
+        lines[0]?.includes('(2C)') !== item.alternative) {
+      failures++;
+      console.error(`FAIL major-support rejection: ${item.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Major-support new-suit rejection: ${checks} checks.\n`);
+  return failures;
+}
+
 /// The explanation assembler must display the actual helper-generated reasons,
 /// not merely make those helpers available to an independent unit test. Tests
 /// compare current output and structured bidding evidence, never fixed English.
@@ -8053,6 +8091,7 @@ const testGroups: (() => number)[] = [
   runOpenerInterferenceTeachingTests,
   runOneNtInterferenceDoubleContinuityTests,
   runBidExplanationDeliveryTests,
+  runMajorSupportNewSuitRejectionTests,
   runRecordedCallFeedbackTests,
   runQ4ConventionalOpenerEvidenceTests,
   runQ3ConventionalRejectionTests,
