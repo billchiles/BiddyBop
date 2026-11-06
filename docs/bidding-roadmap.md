@@ -43,16 +43,16 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Make deliberate, separately tested organization passes rather than just tiny
-  cosmetic fixes. Next: group the later explanation helpers and correct misplaced
-  `////` headings in `explanations.ts`; improve caller-before-callee order and
-  family headings in `opener-rebidding-functions.ts`; organize `tests/rule-tests.ts`
-  with domain-based sections and descriptive names (do not require comments
-  merely because a test has a blank line); then inspect rule, type, and
-  practice-deal files for grouping, stale or misplaced comments, needless
-  wrappers, and readable flow. Keep manually written introductory rationale
-  attached when moving code. Prefer useful function comments and purposeful
-  `////` sections; no semantic bidding changes or extra test infrastructure.
+  Continue deliberate, separately tested organization passes. Next: improve
+  top-down function order and family headings in `opener-rebidding-functions.ts`,
+  then organize `tests/rule-tests.ts` with domain sections and descriptive
+  test names (ordinary blank lines within tests need no extra comments).
+  Then inspect other rule, type, and practice-deal files for related-code
+  grouping, stale or misplaced comments, unnecessary wrappers, and readability.
+  Include a final spot check of shared helpers and production blank-line
+  transitions in `explanations.ts`; don't chase ordering counts at the expense
+  of keeping related code together. Preserve manually written introductory
+  rationale when moving code. No semantic bidding changes or new test infrastructure.
 
 ## Deferred enhancements
 
