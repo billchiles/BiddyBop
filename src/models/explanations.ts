@@ -324,7 +324,8 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
     appendRuleExplanation(lines, scopeBoundary);
     lines.push('  This explanation does not recommend Pass.');
   }
-  lines.push('');
+  // Rule guidance already ends with a blank line; don't add a second one.
+  if (lines[lines.length - 1] !== '') lines.push('');
   lines.push('Calls supported for this hand:');
   if (candidates.length === 0) {
     lines.push('- none');
@@ -459,10 +460,13 @@ function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: Hand
         'This is a separate opening-hand guideline.');
     }
   }
-  if (rule.guidance !== undefined) {
+  if (rule.guidance !== undefined && rule.guidance.length > 0) {
+    lines.push('  ---');
+    lines.push('  General rule guidance (not specific to your hand):');
     for (const guidanceLine of rule.guidance) {
       lines.push(`  ${guidanceLine}`);
     }
+    lines.push('');
   }
 }
 
