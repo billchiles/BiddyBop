@@ -2694,6 +2694,8 @@ const COMPETITIVE_RESPONSE_RULES = [
   'respond-after-double-redouble-values',
 ];
 
+/// Explain a qualifying response after interference from recorded suit and
+/// strength promises, especially artificial Doubles, Jordan 2NT, and Redouble.
 export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!COMPETITIVE_RESPONSE_RULES.includes(rule.id)) return [];
   const candidate = competitiveResponseCandidate(result, rule.id);
@@ -2944,6 +2946,8 @@ const WEAK_TWO_RESPONSE_IDS = [
   'respond-to-weak-two-w/-new-suit-forcing',
 ];
 
+/// Explain Pass, raises, inquiries, and new suits over partner's weak two
+/// from the evaluated fit and Guideline-of-17 evidence.
 export function getWeakTwoResponseLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!WEAK_TWO_RESPONSE_IDS.includes(rule.id)) return [];
   const { entry, candidate, facts } = weakTwoResponseDiagnostic(result, rule.id);
@@ -4452,6 +4456,8 @@ export function getOvercallerStaymanRebidLines(result: BidEvalResult, rule: BidR
 ///
 const TAKEOUT_DOUBLER_REBID_PREFIX = 'overcaller-rebid-takeout-';
 
+/// Explain how the original takeout Doubler responds to partner's advance,
+/// using the hand and fit facts attached to the qualifying rebid.
 export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX) ||
       result.normalizedCall === null) return [];
@@ -4889,6 +4895,8 @@ export function getOvercallerConventionFailureLines(result: BidEvalResult): stri
     `The transfer is compulsory under the selected agreement ${id}.`];
 }
 
+/// Keep the chosen continuation after weak-two interference tied to the
+/// evaluated defense and advance, including artificial notrump inquiries.
 export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null || !rule.id.startsWith('overcaller-rebid-weak-two-'))
     return [];
@@ -5046,6 +5054,8 @@ export function getOvercallerForcingAdvancePassFailureLines(result: BidEvalResul
   return [];
 }
 
+/// Explain the selected rebid after a natural suit overcall from its evaluated
+/// strength, suit-length, support, and stopper evidence; do not reselect a call.
 export function getNaturalSuitOvercallerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
     ?.candidates.find((item) => item.call === result.normalizedCall);
@@ -5402,6 +5412,8 @@ export function getOpenerForcingRebidPassFailureLines(result: BidEvalResult): st
     `Pass does not satisfy the force ${id}.`];
 }
 
+/// Diagnose unsupported opener rebids while respecting whether responder's
+/// earlier 1NT was forcing or nonforcing under the selected agreement.
 export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   // A genuine one-round force rules out Pass even though the agreement suppresses
@@ -6626,6 +6638,8 @@ const OPENER_CONVENTIONAL_IDS = [
   'opener-rebid-notrump-after-strong-jump-shift',
 ];
 
+/// Describe opener's qualifying continuation after Jacoby 2NT, a splinter, or
+/// a strong jump shift without changing the established forcing obligation.
 export function getOpenerConventionalRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_CONVENTIONAL_IDS.includes(rule.id)) return [];
@@ -6876,6 +6890,8 @@ const OPENER_GAME_RESPONSE_IDS = [
   'opener-rebid-pass-after-major-preemptive-game-raise',
 ];
 
+/// Distinguish accepting an already-bid natural game from describing extra
+/// strength or exploring slam; a game response is not always a new force.
 export function getOpenerGameResponseRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_GAME_RESPONSE_IDS.includes(rule.id)) return [];
@@ -7682,6 +7698,8 @@ const OPENER_FORCING_COMPETITION_IDS = [
   'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
 ];
 
+/// Describe opener's rebid after a forcing response and further competition using
+/// the response's actual promise and opener's evaluated fit, shape, and values.
 export function getOpenerForcingCompetitionRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_FORCING_COMPETITION_IDS.includes(rule.id)) return [];
