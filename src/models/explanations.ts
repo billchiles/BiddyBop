@@ -92,64 +92,7 @@ export function getRuleExplanationLines(rule: BidRule, handFacts?: HandFacts,
   return lines;
 }
 
-function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
-  return [
-    ...getOpeningRequirementFailureLines(result),
-    ...getOpeningSelectionFailureLines(result),
-    ...getPreemptOpeningFailureLines(result),
-    ...getTakeoutDoubleFailureLines(result),
-    ...getBalancingDoubleFailureLines(result),
-    ...getBalancingCallFailureLines(result),
-    ...getNaturalOvercallFailureLines(result),
-    ...getWeakTwoOvercallFailureLines(result),
-    ...getDontInitialFailureLines(result),
-    ...getJumpOvercallFailureLines(result),
-    ...getMinorResponseFailureLines(result),
-    ...getMajorSupportFailureLines(result),
-    ...getMajorNoSupportFailureLines(result),
-    ...getResponderJumpShiftFailureLines(result),
-    ...getCompetitiveResponseFailureLines(result),
-    ...getWeakTwoResponseFailureLines(result),
-    ...getJumpResponseFailureLines(result),
-    ...getNaturalAdvanceFailureLines(result),
-    ...getTakeoutAdvanceFailureLines(result),
-    ...getNotrumpPartnerResponseFailureLines(result),
-    ...getResponseSelectionFailureLines(result),
-    ...getConventionalForcingPassFailureLines(result),
-    ...getStrongTwoCResponseFailureLines(result),
-    ...getDontAdvanceFailureLines(result),
-    ...getJumpAdvanceFailureLines(result),
-    ...getCompetitiveRaiseAdvanceFailureLines(result),
-    ...getCompetitiveNaturalAdvanceFailureLines(result),
-    ...getNegativeDoubleAdvanceFailureLines(result),
-    ...getNaturalSuitOvercallerRebidFailureLines(result),
-    ...getOvercallerForcingAdvancePassFailureLines(result),
-    ...getContestedSuitOvercallerRebidFailureLines(result),
-    ...getTakeoutDoublerRebidFailureLines(result),
-    ...getOneNtOvercallerRebidFailureLines(result),
-    ...getOvercallerConventionFailureLines(result),
-    ...getWeakTwoDefenseRebidFailureLines(result),
-    ...getOpenerForcingRebidPassFailureLines(result),
-    ...getOpenerOneNtRebidFailureLines(result),
-    ...getOpenerOneLevelNewSuitRebidFailureLines(result),
-    ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
-    ...getNaturalResponderRebidFailureLines(result),
-    ...getResponderForcingPassFailureLines(result),
-    ...getConventionalResponderRebidFailureLines(result),
-    ...getResponderSimpleRaiseFailureLines(result, handFacts),
-    ...getOpenerRaiseRebidFailureLines(result, handFacts),
-    ...getOpenerConventionalRebidFailureLines(result),
-    ...getOpenerGameResponseRebidFailureLines(result),
-    ...getOpenerNegativeDoubleRebidFailureLines(result, handFacts),
-    ...getOpenerForcingCompetitionRebidFailureLines(result),
-    ...getOpenerOneNtInterferenceFailureLines(result),
-    ...getOpenerJumpOvercallRebidFailureLines(result),
-    ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
-    ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
-    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
-    ...getOpenerThreeLevelGameForceRebidFailureLines(result),
-  ];
-}
+
 
 /// Explain only a call that passed its individual requirements and was then removed
 /// by an actual response-selection decision. Verify the preferred call still qualifies.
@@ -255,21 +198,77 @@ export function getConventionalForcingPassFailureLines(result: BidEvalResult): s
   return [];
 }
 
-function failureHeading(status: BiddingTurnStatus, call: Call): string {
-  if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
-  const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
-    status.kind === 'noApplicableRule' ? status.stage : null;
-  switch (stage) {
-    case 'opening': return 'Why this opening does not meet the selected requirements:';
-    case 'responding': return 'Why this response does not meet the selected requirements:';
-    case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
-    case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
-    case 'advancing': return 'Why this advance does not meet the selected requirements:';
-    case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
-    case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
-    case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
-    case null: return 'Why this call does not meet the selected requirements:';
-  }
+
+
+
+
+
+
+/// Use one explanation path for the student's supported call and any substituted recorded call.
+/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
+
+
+/// Add the actual hand valuation only where it explains a light one-level opening.  The
+/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
+
+
+function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
+  return [
+    ...getOpeningRequirementFailureLines(result),
+    ...getOpeningSelectionFailureLines(result),
+    ...getPreemptOpeningFailureLines(result),
+    ...getTakeoutDoubleFailureLines(result),
+    ...getBalancingDoubleFailureLines(result),
+    ...getBalancingCallFailureLines(result),
+    ...getNaturalOvercallFailureLines(result),
+    ...getWeakTwoOvercallFailureLines(result),
+    ...getDontInitialFailureLines(result),
+    ...getJumpOvercallFailureLines(result),
+    ...getMinorResponseFailureLines(result),
+    ...getMajorSupportFailureLines(result),
+    ...getMajorNoSupportFailureLines(result),
+    ...getResponderJumpShiftFailureLines(result),
+    ...getCompetitiveResponseFailureLines(result),
+    ...getWeakTwoResponseFailureLines(result),
+    ...getJumpResponseFailureLines(result),
+    ...getNaturalAdvanceFailureLines(result),
+    ...getTakeoutAdvanceFailureLines(result),
+    ...getNotrumpPartnerResponseFailureLines(result),
+    ...getResponseSelectionFailureLines(result),
+    ...getConventionalForcingPassFailureLines(result),
+    ...getStrongTwoCResponseFailureLines(result),
+    ...getDontAdvanceFailureLines(result),
+    ...getJumpAdvanceFailureLines(result),
+    ...getCompetitiveRaiseAdvanceFailureLines(result),
+    ...getCompetitiveNaturalAdvanceFailureLines(result),
+    ...getNegativeDoubleAdvanceFailureLines(result),
+    ...getNaturalSuitOvercallerRebidFailureLines(result),
+    ...getOvercallerForcingAdvancePassFailureLines(result),
+    ...getContestedSuitOvercallerRebidFailureLines(result),
+    ...getTakeoutDoublerRebidFailureLines(result),
+    ...getOneNtOvercallerRebidFailureLines(result),
+    ...getOvercallerConventionFailureLines(result),
+    ...getWeakTwoDefenseRebidFailureLines(result),
+    ...getOpenerForcingRebidPassFailureLines(result),
+    ...getOpenerOneNtRebidFailureLines(result),
+    ...getOpenerOneLevelNewSuitRebidFailureLines(result),
+    ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
+    ...getNaturalResponderRebidFailureLines(result),
+    ...getResponderForcingPassFailureLines(result),
+    ...getConventionalResponderRebidFailureLines(result),
+    ...getResponderSimpleRaiseFailureLines(result, handFacts),
+    ...getOpenerRaiseRebidFailureLines(result, handFacts),
+    ...getOpenerConventionalRebidFailureLines(result),
+    ...getOpenerGameResponseRebidFailureLines(result),
+    ...getOpenerNegativeDoubleRebidFailureLines(result, handFacts),
+    ...getOpenerForcingCompetitionRebidFailureLines(result),
+    ...getOpenerOneNtInterferenceFailureLines(result),
+    ...getOpenerJumpOvercallRebidFailureLines(result),
+    ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
+    ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
+    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
+    ...getOpenerThreeLevelGameForceRebidFailureLines(result),
+  ];
 }
 
 function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
@@ -337,6 +336,23 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
   return lines;
 }
 
+function failureHeading(status: BiddingTurnStatus, call: Call): string {
+  if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
+  const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
+    status.kind === 'noApplicableRule' ? status.stage : null;
+  switch (stage) {
+    case 'opening': return 'Why this opening does not meet the selected requirements:';
+    case 'responding': return 'Why this response does not meet the selected requirements:';
+    case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
+    case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
+    case 'advancing': return 'Why this advance does not meet the selected requirements:';
+    case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
+    case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
+    case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
+    case null: return 'Why this call does not meet the selected requirements:';
+  }
+}
+
 function buildUnjudgedCallExplanation(title: string, call: Call,
                                       status: BiddingTurnStatus): string[] {
   const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
@@ -356,8 +372,6 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
   return lines;
 }
 
-/// Use one explanation path for the student's supported call and any substituted recorded call.
-/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
 function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
                                       handFacts: HandFacts, auctionLength: number,
                                       includeRuleExplanation = true): void {
@@ -421,8 +435,6 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   if (includeRuleExplanation) appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 
-/// Add the actual hand valuation only where it explains a light one-level opening.  The
-/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
 function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
                                 auctionLength?: number): void {
   lines.push(`- ${rule.title} [${rule.id}]`);
@@ -513,35 +525,11 @@ export function getOpeningRequirementFailureLines(result: BidEvalResult): string
   return lines;
 }
 
-function openingRequirementCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  return diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-}
 
-function openingChecks(candidate: CandidateCallMatch | undefined): {
-  hcp: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>;
-  balanced: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'balanced' }> | undefined;
-  fiveCardMajor: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'fiveCardMajor' }> | undefined;
-} | null {
-  const evidence = candidate?.callEvidence?.requirements;
-  const hcp = evidence?.find((check) => check.kind === 'hcp');
-  if (hcp?.kind !== 'hcp') return null;
-  const balanced = evidence?.find((check) => check.kind === 'balanced');
-  const fiveCardMajor = evidence?.find((check) => check.kind === 'fiveCardMajor');
-  return {
-    hcp,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    fiveCardMajor: fiveCardMajor?.kind === 'fiveCardMajor' ? fiveCardMajor : undefined,
-  };
-}
 
-function hcpRangeText(check: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>): string {
-  if (check.min !== undefined && check.max === check.min) return `${check.min} HCP`;
-  if (check.min !== undefined && check.max !== undefined) return `${check.min}–${check.max} HCP`;
-  if (check.min !== undefined) return `at least ${check.min} HCP`;
-  if (check.max !== undefined) return `at most ${check.max} HCP`;
-  return 'the required HCP range';
-}
+
+
+
 
 /// Opening selection and natural-notrump precedence are decisions, not failed hand tests.
 /// Show the relevant decision only for the student's call, or for a competing opening.
@@ -612,24 +600,7 @@ export function getOpeningSelectionFailureLines(result: BidEvalResult): string[]
   return [];
 }
 
-function openingSelectionText(selection: NonNullable<CallEvidence['openingSelection']>): string {
-  switch (selection.reason) {
-    case 'only-major':
-      return `Open your five-card or longer major, ${selection.call}.`;
-    case 'longer-major':
-      return `With two majors of at least five cards, open the longer one: ${selection.call}.`;
-    case 'equal-majors':
-      return `With equally long five-card or longer majors, open the higher-ranking suit: ${selection.call}.`;
-    case 'longer-minor':
-      return `With no five-card major, open the longer minor: ${selection.call}.`;
-    case 'equal-four-minors':
-      return `With four cards in each minor, open ${selection.call}.`;
-    case 'equal-three-minors':
-      return `With three cards in each minor, open ${selection.call}.`;
-    case 'equal-long-minors':
-      return `With equally long minors of at least five cards, open ${selection.call}.`;
-  }
-}
+
 
 const PREEMPT_OPENING_IDS = [
   'open-weak-two', 'open-weak-three', 'open-four-level-preempt',
@@ -704,195 +675,55 @@ export function getPreemptOpeningFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
-function suitName(call: Call): string {
-  switch (call[1]) {
-    case 'C': return 'club';
-    case 'D': return 'diamond';
-    case 'H': return 'heart';
-    case 'S': return 'spade';
-    default: return 'bid';
+
+
+
+
+
+
+
+
+
+
+function openingRequirementCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  return diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+}
+
+function openingChecks(candidate: CandidateCallMatch | undefined): {
+  hcp: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>;
+  balanced: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'balanced' }> | undefined;
+  fiveCardMajor: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'fiveCardMajor' }> | undefined;
+} | null {
+  const evidence = candidate?.callEvidence?.requirements;
+  const hcp = evidence?.find((check) => check.kind === 'hcp');
+  if (hcp?.kind !== 'hcp') return null;
+  const balanced = evidence?.find((check) => check.kind === 'balanced');
+  const fiveCardMajor = evidence?.find((check) => check.kind === 'fiveCardMajor');
+  return {
+    hcp,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    fiveCardMajor: fiveCardMajor?.kind === 'fiveCardMajor' ? fiveCardMajor : undefined,
+  };
+}
+
+function openingSelectionText(selection: NonNullable<CallEvidence['openingSelection']>): string {
+  switch (selection.reason) {
+    case 'only-major':
+      return `Open your five-card or longer major, ${selection.call}.`;
+    case 'longer-major':
+      return `With two majors of at least five cards, open the longer one: ${selection.call}.`;
+    case 'equal-majors':
+      return `With equally long five-card or longer majors, open the higher-ranking suit: ${selection.call}.`;
+    case 'longer-minor':
+      return `With no five-card major, open the longer minor: ${selection.call}.`;
+    case 'equal-four-minors':
+      return `With four cards in each minor, open ${selection.call}.`;
+    case 'equal-three-minors':
+      return `With three cards in each minor, open ${selection.call}.`;
+    case 'equal-long-minors':
+      return `With equally long minors of at least five cards, open ${selection.call}.`;
   }
-}
-
-function suitPlural(call: Call): string {
-  switch (call[1]) {
-    case 'C': return 'clubs';
-    case 'D': return 'diamonds';
-    case 'H': return 'hearts';
-    case 'S': return 'spades';
-    default: return 'suit cards';
-  }
-}
-
-function namedStopperSuit(check: Extract<Requirement, { kind: 'stopper' }>): string {
-  return check.suit === undefined ? "opener's suit" : suitPlural(`1${check.suit}` as Call);
-}
-
-function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
-                       valuation: 'length' | null = null): string {
-  const units = check.kind === 'hcp' ? 'HCP' :
-    valuation === 'length' ? 'total points with length' : 'total points';
-  return `${check.actual} ${units}`;
-}
-
-function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
-                       valuation: 'length' | null = null): string {
-  const units = check.kind === 'hcp' ? 'HCP' :
-    valuation === 'length' ? 'total points with length' : 'total points';
-  if (check.min !== undefined && check.max !== undefined) {
-    return `${check.min}–${check.max} ${units}`;
-  }
-  if (check.min !== undefined) return `at least ${check.min} ${units}`;
-  if (check.max !== undefined) return `at most ${check.max} ${units}`;
-  return `the required ${units}`;
-}
-
-///
-/// Initial DONT overcalls, distinct from partner's DONT advances
-///
-
-const DONT_INITIAL_IDS = [
-  'overcall-dont-single-suit-double', 'overcall-dont-clubs-plus-higher',
-  'overcall-dont-diamonds-plus-major', 'overcall-dont-majors',
-  'overcall-dont-natural-spades',
-];
-const DONT_HONORS = '2 of top 3 honors or 3 of top 5 honors';
-const DONT_NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-                      'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen'];
-
-function dontNumber(n: number): string {
-  return DONT_NUMBERS[n] ?? String(n);
-}
-
-function dontSuit(suit: 'C' | 'D' | 'H' | 'S'): string {
-  return suitPlural(`1${suit}` as Call);
-}
-
-function dontInitialCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
-  return result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
-    ?.candidates.find(({ call }) => call === result.normalizedCall);
-}
-
-/// Use the shape and honor observations captured by the actual applicability function.
-export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule): string | null {
-  if (!DONT_INITIAL_IDS.includes(rule.id)) return null;
-  const candidate = dontInitialCandidate(result, rule.id);
-  const info = candidate?.callEvidence?.dontInitial;
-  if (candidate?.ruleApplies !== true || info === undefined) return null;
-  if (info.singleSuit !== null) {
-    const suit = info.singleSuit;
-    const evidence = `Your ${dontNumber(info.lengths[suit])} ${dontSuit(suit)} meet the ` +
-      `suit-quality requirement (${DONT_HONORS}), and you have ${info.hcp} HCP. `;
-    if (rule.id === 'overcall-dont-single-suit-double') {
-      return evidence + 'With one long non-spade suit and no second four-card suit, Double ' +
-        `describes this hand. It is artificial, not a penalty Double [${rule.id}].`;
-    }
-    if (rule.id === 'overcall-dont-natural-spades') {
-      return evidence + 'With one long spade suit and no second four-card suit, natural ' +
-        `2S describes this hand rather than the artificial Double [${rule.id}].`;
-    }
-  }
-  if (info.twoSuits !== null) {
-    const [lower, higher] = info.twoSuits;
-    const quality = info.twoSuits.find((suit) => info.qualitySuits.includes(suit));
-    if (quality === undefined) return null;
-    const meaning = rule.id === 'overcall-dont-clubs-plus-higher'
-      ? 'Bid 2C to show clubs and an unspecified higher suit.'
-      : rule.id === 'overcall-dont-diamonds-plus-major'
-      ? 'Bid 2D to show diamonds and an unspecified major.'
-      : 'Bid 2H to show both majors.';
-    return `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
-      `${dontNumber(info.lengths[higher])} ${dontSuit(higher)} meet the two-suit shape ` +
-      `requirement. The ${dontSuit(quality)} meet the suit-quality requirement ` +
-      `(${DONT_HONORS}), and your ${info.hcp} HCP satisfy the 7-HCP minimum. ` +
-      `${meaning} [${rule.id}]`;
-  }
-  return null;
-}
-
-/// Report only the rejected DONT call's own checks, and cite an alternative only if it
-/// actually survives evaluation. No separate DONT qualification algorithm lives here.
-export function getDontInitialFailureLines(result: BidEvalResult): string[] {
-  if (result.userCallMatchingRules.length !== 0 || result.normalizedCall === null) return [];
-  const entered = result.normalizedCall;
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
-    DONT_INITIAL_IDS.includes(rule.id) && rule.calls?.includes(entered) === true);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === entered);
-  const info = candidate?.callEvidence?.dontInitial;
-  if (candidate === undefined || candidate.ruleApplies || info === undefined ||
-      diagnostic === undefined) return [];
-  const lines: string[] = [];
-  if (info.hcp < 7) {
-    lines.push(`With ${info.hcp} HCP, ${entered} falls below the 7-HCP minimum ` +
-      `[${diagnostic.rule.id}].`);
-  }
-  const suits = ['C', 'D', 'H', 'S'] as const;
-  if (entered === 'Double' || entered === '2S') {
-    const long = suits.filter((suit) => info.lengths[suit] >= 6);
-    const secondFour = long.length === 1 && suits.some((suit) =>
-      suit !== long[0] && info.lengths[suit] >= 4);
-    if (entered === 'Double' && info.singleSuit === 'S') {
-      lines.push('With the DONT convention, Double promises one good long club, diamond ' +
-        `or heart suit. A one-suited spade hand uses natural 2S [${diagnostic.rule.id}].`);
-    } else if (entered === '2S' && info.lengths.S < 6) {
-      lines.push(`With the DONT convention, natural 2S requires six or more spades; ` +
-        `you have ${dontNumber(info.lengths.S)} [${diagnostic.rule.id}].`);
-    } else if (long.length === 0) {
-      lines.push(`With the DONT convention, ${entered} requires one good suit of six or ` +
-        `more cards; your longest is ${Math.max(...Object.values(info.lengths))} ` +
-        `[${diagnostic.rule.id}].`);
-    } else if (long.length === 1 && !info.qualitySuits.includes(long[0]!)) {
-      lines.push(`Your ${dontNumber(info.lengths[long[0]!])} ${dontSuit(long[0]!)} do ` +
-        `not meet the suit-quality requirement (${DONT_HONORS}) ` +
-        `[${diagnostic.rule.id}].`);
-    } else if (secondFour) {
-      lines.push(`With the DONT convention, ${entered} promises a one-suited hand. ` +
-        `You have a second suit of four or more cards [${diagnostic.rule.id}].`);
-    } else if (long.length > 1) {
-      lines.push(`With the DONT convention, ${entered} promises only one long suit; ` +
-        `you have ${long.length} suits of six or more cards [${diagnostic.rule.id}].`);
-    }
-  } else {
-    const lower = entered === '2C' ? 'C' : entered === '2D' ? 'D' : 'H';
-    const eligibleHigher = entered === '2C' ? (['D', 'H', 'S'] as const) :
-      entered === '2D' ? (['H', 'S'] as const) : (['S'] as const);
-    const higher = eligibleHigher.find((suit) => info.lengths[suit] >= 4);
-    const four = suits.filter((suit) => info.lengths[suit] >= 4);
-    const meaning = entered === '2C' ? 'clubs and a higher suit' :
-      entered === '2D' ? 'diamonds and a major' : 'both majors';
-    const opening = `With the DONT convention, ${entered} ` +
-      `${entered === '2H' ? 'promises' : 'shows'} ${meaning}, at least 5–4. `;
-    if (info.lengths[lower] < 4 || higher === undefined) {
-      const actual = entered === '2H' && info.lengths.H >= 4
-        ? `You have ${dontNumber(info.lengths.H)} hearts but only ` +
-          `${dontNumber(info.lengths.S)} spades.`
-        : `You have ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
-          `${higher === undefined ? 'no qualifying four-card higher suit' : 'a higher suit'}.`;
-      lines.push(opening + actual + ` [${diagnostic.rule.id}]`);
-    } else if (four.length !== 2) {
-      lines.push(opening + `You have ${four.length} suits of four or more cards; ` +
-        `exactly two are required [${diagnostic.rule.id}].`);
-    } else if (info.lengths[lower] + info.lengths[higher] < 9) {
-      lines.push(opening + `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} ` +
-        `and ${dontNumber(info.lengths[higher])} ${dontSuit(higher)} total only ` +
-        `${info.lengths[lower] + info.lengths[higher]} cards; nine are required ` +
-        `[${diagnostic.rule.id}].`);
-    } else if (!info.qualitySuits.includes(lower) && !info.qualitySuits.includes(higher)) {
-      lines.push(opening + `Neither suit meets the suit-quality requirement ` +
-        `(${DONT_HONORS}) [${diagnostic.rule.id}].`);
-    }
-  }
-  const alternative = result.ruleDiagnostics.find(({ rule, candidates }) =>
-    DONT_INITIAL_IDS.includes(rule.id) && rule.id !== diagnostic.rule.id &&
-    candidates.some(({ call, ruleApplies }) => ruleApplies && call !== entered));
-  const otherCall = alternative?.candidates.find(({ call, ruleApplies }) =>
-    ruleApplies && call !== entered)?.call;
-  if (alternative !== undefined && otherCall !== undefined) {
-    const name = otherCall === 'Double' ? 'the one-suited DONT Double' :
-      otherCall === '2S' ? 'natural DONT 2S' : `the ${otherCall} treatment`;
-    lines.push(`Your hand instead qualifies for ${name} [${alternative.rule.id}].`);
-  }
-  return lines;
 }
 
 ///
@@ -1109,29 +940,9 @@ const BALANCING_PASS_ID = 'balance-pass-defend';
 
 /// The refiner records each considered natural suit call, including those it removed.
 /// Qualification strength is checked separately on surviving calls.
-function balancingSuitEvidence(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const check = diagnostic?.callEvidence?.balancingSuit?.find(
-    (item) => item.call === result.normalizedCall);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
-  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
-}
 
-function balancingNtEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === BALANCING_NT_ID)
-    ?.candidates.find(({ call }) => call === '1NT');
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const balanced = checks?.find((item) => item.kind === 'balanced');
-  const stopper = checks?.find((item) => item.kind === 'stopper');
-  return {
-    candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
-  };
-}
+
+
 
 /// Give the hand-specific justification for the matched balancing treatment.
 export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1226,26 +1037,17 @@ export function getBalancingCallFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
-///
-//// Natural suit and 1NT overcall explanations
-///
-
-const NATURAL_SUIT_OVERCALL_IDS = [
-  'overcall-simple-suit-at-one-level', 'overcall-simple-suit-at-two-level',
-];
-const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
-const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
-
-function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
+function balancingSuitEvidence(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
+  const check = diagnostic?.callEvidence?.balancingSuit?.find(
     (item) => item.call === result.normalizedCall);
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { check, candidate, strength: candidate?.callEvidence?.naturalOvercallStrength };
+  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
 }
 
-function naturalOneNtOvercallEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === NATURAL_ONE_NT_OVERCALL_ID)
+function balancingNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === BALANCING_NT_ID)
     ?.candidates.find(({ call }) => call === '1NT');
   const checks = candidate?.callEvidence?.requirements;
   const hcp = checks?.find((item) => item.kind === 'hcp');
@@ -1258,6 +1060,16 @@ function naturalOneNtOvercallEvidence(result: BidEvalResult) {
     stopper: stopper?.kind === 'stopper' ? stopper : undefined,
   };
 }
+
+///
+//// Natural suit and 1NT overcall explanations
+///
+
+const NATURAL_SUIT_OVERCALL_IDS = [
+  'overcall-simple-suit-at-one-level', 'overcall-simple-suit-at-two-level',
+];
+const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
+const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
 
 /// Explain only the matching natural-overcall rule, never a different meaning of the same call.
 export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1357,8 +1169,35 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
   return [];
 }
 
+
+
+
+
+function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
+    (item) => item.call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { check, candidate, strength: candidate?.callEvidence?.naturalOvercallStrength };
+}
+
+function naturalOneNtOvercallEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === NATURAL_ONE_NT_OVERCALL_ID)
+    ?.candidates.find(({ call }) => call === '1NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return {
+    candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
+  };
+}
+
 ///
-/// Natural defenses against opposing weak-two openings
+//// Natural defenses against opposing weak-two openings
 ///
 
 const WEAK_TWO_SUIT_IDS = [
@@ -1368,31 +1207,9 @@ const WEAK_TWO_SUIT_IDS = [
 const WEAK_TWO_NT_ID = 'overcall-weak-two-natural-2nt-with-stopper';
 const WEAK_TWO_HONORS = '2 of top 3 honors or 3 of top 5 honors';
 
-function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
-  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
-    ({ call }) => call === result.normalizedCall);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const points = checks?.find((item) => item.kind === 'totalPoints');
-  return { choice, candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    points: points?.kind === 'totalPoints' ? points : undefined };
-}
 
-function weakTwoNtEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
-    ?.candidates.find(({ call }) => call === '2NT');
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const balanced = checks?.find((item) => item.kind === 'balanced');
-  const stopper = checks?.find((item) => item.kind === 'stopper');
-  return { candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
-}
+
+
 
 /// Use only rule/refiner decisions and point checks that were actually evaluated.
 export function getWeakTwoOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1484,6 +1301,186 @@ export function getWeakTwoOvercallFailureLines(result: BidEvalResult): string[] 
   return [];
 }
 
+function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const points = checks?.find((item) => item.kind === 'totalPoints');
+  return { choice, candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    points: points?.kind === 'totalPoints' ? points : undefined };
+}
+
+function weakTwoNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
+    ?.candidates.find(({ call }) => call === '2NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return { candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
+}
+
+///
+//// Initial DONT overcalls, distinct from partner's DONT advances
+///
+
+const DONT_INITIAL_IDS = [
+  'overcall-dont-single-suit-double', 'overcall-dont-clubs-plus-higher',
+  'overcall-dont-diamonds-plus-major', 'overcall-dont-majors',
+  'overcall-dont-natural-spades',
+];
+const DONT_HONORS = '2 of top 3 honors or 3 of top 5 honors';
+const DONT_NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+                      'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen'];
+
+
+
+
+
+
+
+/// Use the shape and honor observations captured by the actual applicability function.
+export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (!DONT_INITIAL_IDS.includes(rule.id)) return null;
+  const candidate = dontInitialCandidate(result, rule.id);
+  const info = candidate?.callEvidence?.dontInitial;
+  if (candidate?.ruleApplies !== true || info === undefined) return null;
+  if (info.singleSuit !== null) {
+    const suit = info.singleSuit;
+    const evidence = `Your ${dontNumber(info.lengths[suit])} ${dontSuit(suit)} meet the ` +
+      `suit-quality requirement (${DONT_HONORS}), and you have ${info.hcp} HCP. `;
+    if (rule.id === 'overcall-dont-single-suit-double') {
+      return evidence + 'With one long non-spade suit and no second four-card suit, Double ' +
+        `describes this hand. It is artificial, not a penalty Double [${rule.id}].`;
+    }
+    if (rule.id === 'overcall-dont-natural-spades') {
+      return evidence + 'With one long spade suit and no second four-card suit, natural ' +
+        `2S describes this hand rather than the artificial Double [${rule.id}].`;
+    }
+  }
+  if (info.twoSuits !== null) {
+    const [lower, higher] = info.twoSuits;
+    const quality = info.twoSuits.find((suit) => info.qualitySuits.includes(suit));
+    if (quality === undefined) return null;
+    const meaning = rule.id === 'overcall-dont-clubs-plus-higher'
+      ? 'Bid 2C to show clubs and an unspecified higher suit.'
+      : rule.id === 'overcall-dont-diamonds-plus-major'
+      ? 'Bid 2D to show diamonds and an unspecified major.'
+      : 'Bid 2H to show both majors.';
+    return `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
+      `${dontNumber(info.lengths[higher])} ${dontSuit(higher)} meet the two-suit shape ` +
+      `requirement. The ${dontSuit(quality)} meet the suit-quality requirement ` +
+      `(${DONT_HONORS}), and your ${info.hcp} HCP satisfy the 7-HCP minimum. ` +
+      `${meaning} [${rule.id}]`;
+  }
+  return null;
+}
+
+/// Report only the rejected DONT call's own checks, and cite an alternative only if it
+/// actually survives evaluation. No separate DONT qualification algorithm lives here.
+export function getDontInitialFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length !== 0 || result.normalizedCall === null) return [];
+  const entered = result.normalizedCall;
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
+    DONT_INITIAL_IDS.includes(rule.id) && rule.calls?.includes(entered) === true);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === entered);
+  const info = candidate?.callEvidence?.dontInitial;
+  if (candidate === undefined || candidate.ruleApplies || info === undefined ||
+      diagnostic === undefined) return [];
+  const lines: string[] = [];
+  if (info.hcp < 7) {
+    lines.push(`With ${info.hcp} HCP, ${entered} falls below the 7-HCP minimum ` +
+      `[${diagnostic.rule.id}].`);
+  }
+  const suits = ['C', 'D', 'H', 'S'] as const;
+  if (entered === 'Double' || entered === '2S') {
+    const long = suits.filter((suit) => info.lengths[suit] >= 6);
+    const secondFour = long.length === 1 && suits.some((suit) =>
+      suit !== long[0] && info.lengths[suit] >= 4);
+    if (entered === 'Double' && info.singleSuit === 'S') {
+      lines.push('With the DONT convention, Double promises one good long club, diamond ' +
+        `or heart suit. A one-suited spade hand uses natural 2S [${diagnostic.rule.id}].`);
+    } else if (entered === '2S' && info.lengths.S < 6) {
+      lines.push(`With the DONT convention, natural 2S requires six or more spades; ` +
+        `you have ${dontNumber(info.lengths.S)} [${diagnostic.rule.id}].`);
+    } else if (long.length === 0) {
+      lines.push(`With the DONT convention, ${entered} requires one good suit of six or ` +
+        `more cards; your longest is ${Math.max(...Object.values(info.lengths))} ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (long.length === 1 && !info.qualitySuits.includes(long[0]!)) {
+      lines.push(`Your ${dontNumber(info.lengths[long[0]!])} ${dontSuit(long[0]!)} do ` +
+        `not meet the suit-quality requirement (${DONT_HONORS}) ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (secondFour) {
+      lines.push(`With the DONT convention, ${entered} promises a one-suited hand. ` +
+        `You have a second suit of four or more cards [${diagnostic.rule.id}].`);
+    } else if (long.length > 1) {
+      lines.push(`With the DONT convention, ${entered} promises only one long suit; ` +
+        `you have ${long.length} suits of six or more cards [${diagnostic.rule.id}].`);
+    }
+  } else {
+    const lower = entered === '2C' ? 'C' : entered === '2D' ? 'D' : 'H';
+    const eligibleHigher = entered === '2C' ? (['D', 'H', 'S'] as const) :
+      entered === '2D' ? (['H', 'S'] as const) : (['S'] as const);
+    const higher = eligibleHigher.find((suit) => info.lengths[suit] >= 4);
+    const four = suits.filter((suit) => info.lengths[suit] >= 4);
+    const meaning = entered === '2C' ? 'clubs and a higher suit' :
+      entered === '2D' ? 'diamonds and a major' : 'both majors';
+    const opening = `With the DONT convention, ${entered} ` +
+      `${entered === '2H' ? 'promises' : 'shows'} ${meaning}, at least 5–4. `;
+    if (info.lengths[lower] < 4 || higher === undefined) {
+      const actual = entered === '2H' && info.lengths.H >= 4
+        ? `You have ${dontNumber(info.lengths.H)} hearts but only ` +
+          `${dontNumber(info.lengths.S)} spades.`
+        : `You have ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
+          `${higher === undefined ? 'no qualifying four-card higher suit' : 'a higher suit'}.`;
+      lines.push(opening + actual + ` [${diagnostic.rule.id}]`);
+    } else if (four.length !== 2) {
+      lines.push(opening + `You have ${four.length} suits of four or more cards; ` +
+        `exactly two are required [${diagnostic.rule.id}].`);
+    } else if (info.lengths[lower] + info.lengths[higher] < 9) {
+      lines.push(opening + `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} ` +
+        `and ${dontNumber(info.lengths[higher])} ${dontSuit(higher)} total only ` +
+        `${info.lengths[lower] + info.lengths[higher]} cards; nine are required ` +
+        `[${diagnostic.rule.id}].`);
+    } else if (!info.qualitySuits.includes(lower) && !info.qualitySuits.includes(higher)) {
+      lines.push(opening + `Neither suit meets the suit-quality requirement ` +
+        `(${DONT_HONORS}) [${diagnostic.rule.id}].`);
+    }
+  }
+  const alternative = result.ruleDiagnostics.find(({ rule, candidates }) =>
+    DONT_INITIAL_IDS.includes(rule.id) && rule.id !== diagnostic.rule.id &&
+    candidates.some(({ call, ruleApplies }) => ruleApplies && call !== entered));
+  const otherCall = alternative?.candidates.find(({ call, ruleApplies }) =>
+    ruleApplies && call !== entered)?.call;
+  if (alternative !== undefined && otherCall !== undefined) {
+    const name = otherCall === 'Double' ? 'the one-suited DONT Double' :
+      otherCall === '2S' ? 'natural DONT 2S' : `the ${otherCall} treatment`;
+    lines.push(`Your hand instead qualifies for ${name} [${alternative.rule.id}].`);
+  }
+  return lines;
+}
+
+function dontNumber(n: number): string {
+  return DONT_NUMBERS[n] ?? String(n);
+}
+
+function dontSuit(suit: 'C' | 'D' | 'H' | 'S'): string {
+  return suitPlural(`1${suit}` as Call);
+}
+
+function dontInitialCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
+  return result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+}
+
 ///
 //// Preemptive jump-overcall explanations
 ///
@@ -1495,15 +1492,6 @@ const JUMP_OVERCALL_IDS = [
 ];
 const JUMP_OVERCALL_HONORS = 'at least two of the top three honors (A/K/Q) or ' +
   'three of the top five (A/K/Q/J/10)';
-
-function jumpOvercallEvidence(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const check = diagnostic?.callEvidence?.jumpOvercallSuit?.find(
-    ({ call }) => call === result.normalizedCall);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
-  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
-}
 
 /// Explain an actual qualifying jump, not an economical natural overcall at the same level.
 export function getJumpOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1552,6 +1540,17 @@ export function getJumpOvercallFailureLines(result: BidEvalResult): string[] {
     }
   }
   return [];
+}
+
+
+
+function jumpOvercallEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.jumpOvercallSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
 }
 
 ///
@@ -1697,6 +1696,8 @@ function minorRequirement<K extends Requirement['kind']>(candidate: CandidateCal
     (item): item is Extract<Requirement, { kind: K }> => item.kind === kind);
 }
 
+
+
 function minorSuitSelectionText(
   selection: NonNullable<CallEvidence['minorResponseSelection']>, entered: Call): string {
   const preferred = selection.preferredCall;
@@ -1740,20 +1741,9 @@ const STRONG_MAJOR_IDS = [
   STRONG_MAJOR_PREEMPT_ID, STRONG_MAJOR_LIMIT_FALLBACK_ID,
 ];
 
-function majorSuitName(suit: 'H' | 'S'): string {
-  return suit === 'H' ? 'hearts' : 'spades';
-}
 
-function majorOpeningForResponse(result: BidEvalResult): '1H' | '1S' | null {
-  const check = result.ruleDiagnostics
-    .filter(({ rule }) => STRONG_MAJOR_IDS.includes(rule.id))
-    .flatMap(({ candidates }) => candidates)
-    .flatMap(({ callEvidence }) => callEvidence?.requirements ?? [])
-    .find((item) => item.kind === 'partnerSupport' &&
-      (item.suit === 'H' || item.suit === 'S'));
-  if (check?.kind !== 'partnerSupport' || check.suit === undefined) return null;
-  return check.suit === 'H' ? '1H' : '1S';
-}
+
+
 
 /// Return additional instruction only when the actual call qualified under its strong-support rule.
 function strongMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -1926,6 +1916,21 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
+function majorSuitName(suit: 'H' | 'S'): string {
+  return suit === 'H' ? 'hearts' : 'spades';
+}
+
+function majorOpeningForResponse(result: BidEvalResult): '1H' | '1S' | null {
+  const check = result.ruleDiagnostics
+    .filter(({ rule }) => STRONG_MAJOR_IDS.includes(rule.id))
+    .flatMap(({ candidates }) => candidates)
+    .flatMap(({ callEvidence }) => callEvidence?.requirements ?? [])
+    .find((item) => item.kind === 'partnerSupport' &&
+      (item.suit === 'H' || item.suit === 'S'));
+  if (check?.kind !== 'partnerSupport' || check.suit === undefined) return null;
+  return check.suit === 'H' ? '1H' : '1S';
+}
+
 ///
 //// Responses supporting partner's one-level major
 ///
@@ -2067,38 +2072,11 @@ const MAJOR_NO_SUPPORT_IDS = [
   'respond-to-major-w/o-support-1nt-standard',
 ];
 
-function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// A refiner orders legitimate two-level suit candidates without rejecting the others. Report
 /// that decision only after the evaluator confirms which candidate calls actually qualified.
-function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
-  const { diagnostic } = noSupportDiagnostic(result, ruleId);
-  const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
-  if (selection === undefined) return null;
-  const qualified = selection.orderedCalls.filter((call) =>
-    diagnostic?.candidates.some((item) => item.call === call && item.ruleApplies));
-  if (qualified.length < 2) return null;
-  const preferred = qualified[0];
-  const chosen = result.normalizedCall;
-  const preferredLength = selection.considered.find(({ call }) => call === preferred)?.length;
-  const other = chosen === preferred ? qualified[1] : chosen;
-  const otherLength = selection.considered.find(({ call }) => call === other)?.length;
-  if (preferredLength === undefined || otherLength === undefined) return null;
-  if (preferredLength > otherLength) {
-    return `Both ${preferred} and ${other} qualify. The longer new suit (${preferred}) ` +
-      `comes first; ${other} remains a supported alternative.`;
-  }
-  if (preferredLength >= 5) {
-    return `Both ${preferred} and ${other} qualify with equal length of at least five cards. ` +
-      `Bid the higher-ranking suit (${preferred}) first; ${other} remains supported.`;
-  }
-  return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
-    `Bid up the line (${preferred} first); ${other} remains supported.`;
-}
+
 
 /// Give positive explanations for actual qualifying calls, including the selected forcing
 /// obligation. Do not infer a game force from a Standard new-suit response.
@@ -2201,6 +2179,149 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
+
+function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
+  const { diagnostic } = noSupportDiagnostic(result, ruleId);
+  const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
+  if (selection === undefined) return null;
+  const qualified = selection.orderedCalls.filter((call) =>
+    diagnostic?.candidates.some((item) => item.call === call && item.ruleApplies));
+  if (qualified.length < 2) return null;
+  const preferred = qualified[0];
+  const chosen = result.normalizedCall;
+  const preferredLength = selection.considered.find(({ call }) => call === preferred)?.length;
+  const other = chosen === preferred ? qualified[1] : chosen;
+  const otherLength = selection.considered.find(({ call }) => call === other)?.length;
+  if (preferredLength === undefined || otherLength === undefined) return null;
+  if (preferredLength > otherLength) {
+    return `Both ${preferred} and ${other} qualify. The longer new suit (${preferred}) ` +
+      `comes first; ${other} remains a supported alternative.`;
+  }
+  if (preferredLength >= 5) {
+    return `Both ${preferred} and ${other} qualify with equal length of at least five cards. ` +
+      `Bid the higher-ranking suit (${preferred}) first; ${other} remains supported.`;
+  }
+  return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
+    `Bid up the line (${preferred} first); ${other} remains supported.`;
+}
+
+function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
+///
+//// Responses after a strong artificial 2C opening
+///
+/// Responses to a strong artificial 2C opening: distinguish the waiting bid from
+/// positive suit and balanced responses. Check only facts supplied by the evaluator.
+///
+export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  const waitingId = 'respond-to-2c-w/-2d-waiting';
+  if (rule.id !== waitingId && rule.id !== 'respond-to-2c-w/-positive-suit' &&
+      rule.id !== 'respond-to-2c-w/-2nt-positive-balanced') return [];
+  const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (rule.id === waitingId) {
+    const positive = result.ruleDiagnostics
+      .filter(({ rule: item }) => item.id === 'respond-to-2c-w/-positive-suit' ||
+        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
+      .flatMap(({ rule: item, candidates, callEvidence }) =>
+        candidates.filter((item) => item.ruleApplies)
+          .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })))
+      .sort((left, right) => (right.rule.priority?.rank ?? 0) -
+        (left.rule.priority?.rank ?? 0))[0];
+    if (positive === undefined) {
+      const positiveSuit = result.ruleDiagnostics.find(({ rule: item }) =>
+        item.id === 'respond-to-2c-w/-positive-suit');
+      const positiveNt = result.ruleDiagnostics.find(({ rule: item }) =>
+        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
+        ?.candidates.find(({ call }) => call === '2NT');
+      const ntHcp = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'hcp');
+      const balanced = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'balanced');
+      const suitChecks = positiveSuit?.callEvidence?.strongTwoCPositiveSuit?.considered;
+      if (ntHcp === undefined || ntHcp.actual < 8 || balanced?.passed !== false ||
+          suitChecks === undefined || suitChecks.length === 0 ||
+          positiveSuit?.candidates.some((item) => item.ruleApplies) === true) return [];
+      return [`With ${ntHcp.actual} HCP but no qualifying positive suit response and ` +
+        `unbalanced distribution, 2D waiting keeps the auction open without claiming ` +
+        `a suit or natural notrump shape [${rule.id}].`];
+    }
+    if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
+      const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
+        (item) => item.call === positive.candidate.call);
+      if (holding === undefined) return [];
+      return [`The artificial 2D waiting response is supported, but your good ${holding.length}-card ` +
+        `${suitName(positive.candidate.call)} suit also qualifies for positive ${positive.candidate.call}. ` +
+        `The positive response ranks ahead because it shows your suit and game-going values ` +
+        `immediately [${positive.rule.id}].`];
+    }
+    return [`The artificial 2D waiting response is supported, but positive 2NT also qualifies ` +
+      `with your balanced hand. The higher-priority 2NT immediately shows your ` +
+      `game-going values [${positive.rule.id}].`];
+  }
+  if (hcp === undefined) return [];
+  if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
+    const balanced = minorRequirement(candidate, 'balanced');
+    if (balanced?.passed !== true) return [];
+    return [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
+      response to the strong 2C opening. It forces the partnership to game
+      [${rule.id}].`.replace(/\s+/g, ' ')];
+  }
+  const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
+  const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
+  if (suit === undefined || suit.length < 5 || !suit.quality) return [];
+  return [`With ${hcp.actual} HCP and a good ${suit.length}-card
+    ${suitPlural(result.normalizedCall)}, ${result.normalizedCall} is a natural,
+    game-forcing positive response. The suit satisfies the honor requirement
+    (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
+    response is also available, but does not describe this suit immediately
+    [${rule.id}].`.replace(/\s+/g, ' ')];
+}
+
+export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-positive-suit');
+  const suit = diagnostic?.callEvidence?.strongTwoCPositiveSuit?.considered.find(
+    ({ call: tested }) => tested === call);
+  const id = '[respond-to-2c-w/-positive-suit]';
+  if (suit !== undefined) {
+    if (suit.length < 5) return [`A positive natural ${call} response to strong 2C
+      requires at least five ${suitPlural(call)}; you have ${suit.length}.
+      Artificial 2D remains a waiting response ${id}.`.replace(/\s+/g, ' ')];
+    if (!suit.quality) return [`Your ${suit.length}-card ${suitPlural(call)}
+      do not meet the positive-suit honor requirement (2 of top 3 honors or
+      3 of top 5 honors). You can respond with the artificial 2D waiting
+      bid instead ${id}.`.replace(/\s+/g, ' ')];
+    const hcp = diagnostic?.candidates.find(({ call: tested }) => tested === call);
+    const check = hcp === undefined ? undefined : minorRequirement(hcp, 'hcp');
+    if (check !== undefined && !check.passed) {
+      return [`A positive natural ${call} response to strong 2C requires
+        at least 8 HCP; you have ${check.actual}. The artificial 2D waiting
+        bid remains available ${id}.`.replace(/\s+/g, ' ')];
+    }
+  }
+  const twoNt = call === '2NT' ? result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
+    ?.candidates.find(({ call: tested }) => tested === call) : undefined;
+  if (twoNt === undefined || twoNt.ruleApplies) return [];
+  const strength = minorRequirement(twoNt, 'hcp');
+  if (strength !== undefined && !strength.passed) {
+    return [`The positive 2NT response to strong 2C needs at least 8 HCP;
+      you have ${strength.actual} [respond-to-2c-w/-2nt-positive-balanced].`.replace(/\s+/g, ' ')];
+  }
+  const balanced = minorRequirement(twoNt, 'balanced');
+  if (balanced !== undefined && !balanced.passed) {
+    return ['The positive 2NT response to strong 2C requires balanced distribution ' +
+      '[respond-to-2c-w/-2nt-positive-balanced].'];
+  }
+  return [];
+}
 
 ///
 //// Weak and strong responder jump shifts
@@ -2334,6 +2455,9 @@ export function getResponderJumpShiftFailureLines(result: BidEvalResult): string
   return [];
 }
 
+
+
+
 function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
   const selection = diagnostic?.callEvidence?.jumpShift;
@@ -2343,7 +2467,6 @@ function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
   const suit = selection?.considered.find(({ call }) => call === result.normalizedCall);
   return { diagnostic, selection, candidate, hcp, support, suit };
 }
-
 
 ///
 //// Advancing natural suit overcalls after responder Pass
@@ -2368,11 +2491,7 @@ const NATURAL_ADVANCE_RULES = [
   'advance-two-level-suit-overcall-three-notrump',
 ];
 
-function naturalAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// Describe why a *qualifying* alternative to Pass is available using the checks
 /// recorded by that rule. Do not infer points, fit, or suit length from auction alone.
@@ -2557,8 +2676,14 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
 }
 
 
+function naturalAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
-/// Competitive responder's first action: factual qualification, not another bidding decision.
+//// Competitive responder's first action after interference
 ///
 const COMPETITIVE_RESPONSE_RULES = [
   'respond-over-suit-negative-double',
@@ -2569,11 +2694,8 @@ const COMPETITIVE_RESPONSE_RULES = [
   'respond-after-double-redouble-values',
 ];
 
-function competitiveResponseCandidate(result: BidEvalResult, id: string) {
-  return result.ruleDiagnostics.find((entry) => entry.rule.id === id)
-    ?.candidates.find((item) => item.call === result.normalizedCall);
-}
-
+/// Explain a qualifying response after interference from recorded suit and
+/// strength promises, especially artificial Doubles, Jordan 2NT, and Redouble.
 export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!COMPETITIVE_RESPONSE_RULES.includes(rule.id)) return [];
   const candidate = competitiveResponseCandidate(result, rule.id);
@@ -2629,10 +2751,7 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
 
 /// Compare competing descriptions only when every referenced call actually
 /// qualifies for this hand. A supported alternative is not necessarily wrong.
-function qualifiedResponse(result: BidEvalResult, ruleId: string, call: Call): boolean {
-  return result.ruleDiagnostics.some(({ rule, candidates }) =>
-    rule.id === ruleId && candidates.some((item) => item.call === call && item.ruleApplies));
-}
+
 
 /// Explain selected genuine overlaps in competitive responder's first action.
 /// The bidding evaluator supplies the qualified alternatives; this adds no new rules.
@@ -2804,8 +2923,20 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
   return [];
 }
 
+
+
+function qualifiedResponse(result: BidEvalResult, ruleId: string, call: Call): boolean {
+  return result.ruleDiagnostics.some(({ rule, candidates }) =>
+    rule.id === ruleId && candidates.some((item) => item.call === call && item.ruleApplies));
+}
+
+function competitiveResponseCandidate(result: BidEvalResult, id: string) {
+  return result.ruleDiagnostics.find((entry) => entry.rule.id === id)
+    ?.candidates.find((item) => item.call === result.normalizedCall);
+}
+
 ///
-/// Responder to partner's weak two: preserve the rule's actual calculation and suit selection.
+//// Responses to a weak-two opening: strength and suit choices
 ///
 const WEAK_TWO_RESPONSE_IDS = [
   'respond-to-weak-two-w/-pass',
@@ -2815,17 +2946,8 @@ const WEAK_TWO_RESPONSE_IDS = [
   'respond-to-weak-two-w/-new-suit-forcing',
 ];
 
-function weakTwoResponseDiagnostic(result: BidEvalResult, id: string) {
-  const entry = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
-  const candidate = entry?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { entry, candidate, facts: candidate?.callEvidence?.weakTwoResponse };
-}
-
-function guidelineOf17Explanation(facts: NonNullable<CallEvidence['weakTwoResponse']>): string {
-  return `Guideline of 17 (HCP plus the number of cards you hold in opener's suit): ` +
-    `${facts.hcp} + ${facts.support} = ${facts.guideline}`;
-}
-
+/// Explain Pass, raises, inquiries, and new suits over partner's weak two
+/// from the evaluated fit and Guideline-of-17 evidence.
 export function getWeakTwoResponseLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!WEAK_TWO_RESPONSE_IDS.includes(rule.id)) return [];
   const { entry, candidate, facts } = weakTwoResponseDiagnostic(result, rule.id);
@@ -3005,6 +3127,21 @@ export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+
+
+
+
+function weakTwoResponseDiagnostic(result: BidEvalResult, id: string) {
+  const entry = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const candidate = entry?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { entry, candidate, facts: candidate?.callEvidence?.weakTwoResponse };
+}
+
+function guidelineOf17Explanation(facts: NonNullable<CallEvidence['weakTwoResponse']>): string {
+  return `Guideline of 17 (HCP plus the number of cards you hold in opener's suit): ` +
+    `${facts.hcp} + ${facts.support} = ${facts.guideline}`;
+}
+
 ///
 //// Advancing takeout Doubles after responder Pass
 ///
@@ -3020,11 +3157,7 @@ const TAKEOUT_ADVANCE_RULES = [
   'advance-weak-two-double-direct-major-game',
 ];
 
-function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// Convey the meaning of the selected treatment and its actual evaluated qualification.
 /// The refiner and hand predicate, not this function, determine which calls survive.
@@ -3206,6 +3339,12 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
 //// Natural notrump partner responses and advances
 ///
@@ -3216,17 +3355,9 @@ function notrumpPartnerDiagnostic(result: BidEvalResult, ruleId: string) {
   return { diagnostic, candidate };
 }
 
-function notrumpHcpText(check: Extract<NonNullable<CallEvidence['requirements']>[number],
-                                  { kind: 'hcp' }>): string {
-  return hcpRangeText(check);
-}
 
-function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | null {
-  if (ruleId.includes('to-hearts')) return 'hearts';
-  if (ruleId.includes('to-spades')) return 'spades';
-  if (ruleId.includes('transfer')) return null;
-  return call.endsWith('H') ? 'hearts' : call.endsWith('S') ? 'spades' : null;
-}
+
+
 
 /// The same 1NT treatments explain opening responses and advances after a natural 1NT
 /// overcall. Describe the actual selected meaning without assuming how partner reached 1NT.
@@ -3409,136 +3540,22 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
   return [];
 }
 
-///
-/// Responses to a strong artificial 2C opening: distinguish the waiting bid from
-/// positive suit and balanced responses. Check only facts supplied by the evaluator.
-///
-export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule): string[] {
-  const waitingId = 'respond-to-2c-w/-2d-waiting';
-  if (rule.id !== waitingId && rule.id !== 'respond-to-2c-w/-positive-suit' &&
-      rule.id !== 'respond-to-2c-w/-2nt-positive-balanced') return [];
-  const diagnostic = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
-  const hcp = minorRequirement(candidate, 'hcp');
-  if (rule.id === waitingId) {
-    const positive = result.ruleDiagnostics
-      .filter(({ rule: item }) => item.id === 'respond-to-2c-w/-positive-suit' ||
-        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
-      .flatMap(({ rule: item, candidates, callEvidence }) =>
-        candidates.filter((item) => item.ruleApplies)
-          .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })))
-      .sort((left, right) => (right.rule.priority?.rank ?? 0) -
-        (left.rule.priority?.rank ?? 0))[0];
-    if (positive === undefined) {
-      const positiveSuit = result.ruleDiagnostics.find(({ rule: item }) =>
-        item.id === 'respond-to-2c-w/-positive-suit');
-      const positiveNt = result.ruleDiagnostics.find(({ rule: item }) =>
-        item.id === 'respond-to-2c-w/-2nt-positive-balanced')
-        ?.candidates.find(({ call }) => call === '2NT');
-      const ntHcp = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'hcp');
-      const balanced = positiveNt === undefined ? undefined : minorRequirement(positiveNt, 'balanced');
-      const suitChecks = positiveSuit?.callEvidence?.strongTwoCPositiveSuit?.considered;
-      if (ntHcp === undefined || ntHcp.actual < 8 || balanced?.passed !== false ||
-          suitChecks === undefined || suitChecks.length === 0 ||
-          positiveSuit?.candidates.some((item) => item.ruleApplies) === true) return [];
-      return [`With ${ntHcp.actual} HCP but no qualifying positive suit response and ` +
-        `unbalanced distribution, 2D waiting keeps the auction open without claiming ` +
-        `a suit or natural notrump shape [${rule.id}].`];
-    }
-    if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
-      const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
-        (item) => item.call === positive.candidate.call);
-      if (holding === undefined) return [];
-      return [`The artificial 2D waiting response is supported, but your good ${holding.length}-card ` +
-        `${suitName(positive.candidate.call)} suit also qualifies for positive ${positive.candidate.call}. ` +
-        `The positive response ranks ahead because it shows your suit and game-going values ` +
-        `immediately [${positive.rule.id}].`];
-    }
-    return [`The artificial 2D waiting response is supported, but positive 2NT also qualifies ` +
-      `with your balanced hand. The higher-priority 2NT immediately shows your ` +
-      `game-going values [${positive.rule.id}].`];
-  }
-  if (hcp === undefined) return [];
-  if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
-    const balanced = minorRequirement(candidate, 'balanced');
-    if (balanced?.passed !== true) return [];
-    return [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
-      response to the strong 2C opening. It forces the partnership to game
-      [${rule.id}].`.replace(/\s+/g, ' ')];
-  }
-  const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
-  const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
-  if (suit === undefined || suit.length < 5 || !suit.quality) return [];
-  return [`With ${hcp.actual} HCP and a good ${suit.length}-card
-    ${suitPlural(result.normalizedCall)}, ${result.normalizedCall} is a natural,
-    game-forcing positive response. The suit satisfies the honor requirement
-    (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
-    response is also available, but does not describe this suit immediately
-    [${rule.id}].`.replace(/\s+/g, ' ')];
-}
-
-export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
-  const call = result.normalizedCall;
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) =>
-    rule.id === 'respond-to-2c-w/-positive-suit');
-  const suit = diagnostic?.callEvidence?.strongTwoCPositiveSuit?.considered.find(
-    ({ call: tested }) => tested === call);
-  const id = '[respond-to-2c-w/-positive-suit]';
-  if (suit !== undefined) {
-    if (suit.length < 5) return [`A positive natural ${call} response to strong 2C
-      requires at least five ${suitPlural(call)}; you have ${suit.length}.
-      Artificial 2D remains a waiting response ${id}.`.replace(/\s+/g, ' ')];
-    if (!suit.quality) return [`Your ${suit.length}-card ${suitPlural(call)}
-      do not meet the positive-suit honor requirement (2 of top 3 honors or
-      3 of top 5 honors). You can respond with the artificial 2D waiting
-      bid instead ${id}.`.replace(/\s+/g, ' ')];
-    const hcp = diagnostic?.candidates.find(({ call: tested }) => tested === call);
-    const check = hcp === undefined ? undefined : minorRequirement(hcp, 'hcp');
-    if (check !== undefined && !check.passed) {
-      return [`A positive natural ${call} response to strong 2C requires
-        at least 8 HCP; you have ${check.actual}. The artificial 2D waiting
-        bid remains available ${id}.`.replace(/\s+/g, ' ')];
-    }
-  }
-  const twoNt = call === '2NT' ? result.ruleDiagnostics.find(({ rule }) =>
-    rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
-    ?.candidates.find(({ call: tested }) => tested === call) : undefined;
-  if (twoNt === undefined || twoNt.ruleApplies) return [];
-  const strength = minorRequirement(twoNt, 'hcp');
-  if (strength !== undefined && !strength.passed) {
-    return [`The positive 2NT response to strong 2C needs at least 8 HCP;
-      you have ${strength.actual} [respond-to-2c-w/-2nt-positive-balanced].`.replace(/\s+/g, ' ')];
-  }
-  const balanced = minorRequirement(twoNt, 'balanced');
-  if (balanced !== undefined && !balanced.passed) {
-    return ['The positive 2NT response to strong 2C requires balanced distribution ' +
-      '[respond-to-2c-w/-2nt-positive-balanced].'];
-  }
-  return [];
-}
-
-///
-//// Limited Pass after responder's preemptive jump
-///
-
-export function getResponderPreemptiveAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
-  if (rule.id !== 'advance-after-responder-preemptive-jump-pass' ||
-      result.normalizedCall !== 'Pass') return [];
-  const candidate = notrumpPartnerDiagnostic(result, rule.id).candidate;
-  if (candidate?.ruleApplies !== true) return [];
-  const hcp = minorRequirement(candidate, 'hcp');
-  if (hcp === undefined) return [];
-  return [`Responder's preemptive jump has taken away bidding space. Partner's natural ` +
-    `overcall or takeout Double does not require you to bid. With ${hcp.actual} HCP, ` +
-    `Pass is supported by the selected treatment, although fit, playing strength, and ` +
-    `vulnerability can affect the competitive decision [${rule.id}].`];
-}
-
-
 /// The same natural-interference rules serve responses and advances. Use only their
 /// recorded checks; do not infer the unbid suits or repeat qualification decisions here.
+
+
+function notrumpHcpText(check: Extract<NonNullable<CallEvidence['requirements']>[number],
+                                  { kind: 'hcp' }>): string {
+  return hcpRangeText(check);
+}
+
+function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | null {
+  if (ruleId.includes('to-hearts')) return 'hearts';
+  if (ruleId.includes('to-spades')) return 'spades';
+  if (ruleId.includes('transfer')) return null;
+  return call.endsWith('H') ? 'hearts' : call.endsWith('S') ? 'spades' : null;
+}
+
 function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null) return [];
   const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
@@ -3593,6 +3610,24 @@ function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): st
 }
 
 ///
+//// Limited Pass after responder's preemptive jump
+///
+
+export function getResponderPreemptiveAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id !== 'advance-after-responder-preemptive-jump-pass' ||
+      result.normalizedCall !== 'Pass') return [];
+  const candidate = notrumpPartnerDiagnostic(result, rule.id).candidate;
+  if (candidate?.ruleApplies !== true) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  if (hcp === undefined) return [];
+  return [`Responder's preemptive jump has taken away bidding space. Partner's natural ` +
+    `overcall or takeout Double does not require you to bid. With ${hcp.actual} HCP, ` +
+    `Pass is supported by the selected treatment, although fit, playing strength, and ` +
+    `vulnerability can affect the competitive decision [${rule.id}].`];
+}
+
+
+///
 //// DONT and preemptive jump-overcall advances
 ///
 
@@ -3605,37 +3640,7 @@ const JUMP_ADVANCE_RULES = [
   'advance-jump-overcall-forcing-new-suit',
 ];
 
-function dontAdvanceExplanation(choice: NonNullable<CallEvidence['dontAdvance']>): string {
-  switch (choice.reason) {
-    case 'single-suit-relay':
-      return 'Partner’s DONT Double shows one long, undisclosed suit. 2♣ is an artificial ' +
-        'relay asking partner to name that suit; it does not promise clubs.';
-    case 'club-fit':
-      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With ` +
-        `${choice.clubLength} clubs, Pass accepts the known club suit.`;
-    case 'ask-higher-suit':
-      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With only ` +
-        `${choice.clubLength} clubs, 2♦ is the artificial pass-or-correct request for ` +
-        `partner's other suit; it does not promise diamonds.`;
-    case 'diamond-fit':
-      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
-        `diamonds, Pass accepts diamonds under this treatment.`;
-    case 'ask-major':
-      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
-        `diamonds and your major-suit holdings (${choice.heartLength} hearts and ` +
-        `${choice.spadeLength} spades), 2♥ asks partner to Pass with hearts or correct ` +
-        `to 2♠ with spades; 2♥ does not necessarily promise hearts.`;
-    case 'heart-preference':
-      return `Partner's DONT 2♥ shows both majors. With ${choice.heartLength} hearts and ` +
-        `${choice.spadeLength} spades, Pass prefers hearts under this treatment.`;
-    case 'spade-preference':
-      return `Partner's DONT 2♥ shows both majors. With ${choice.spadeLength} spades and ` +
-        `${choice.heartLength} hearts, 2♠ prefers spades; partner has already shown spades.`;
-    case 'natural-spades':
-      return `Partner's direct DONT 2♠ is natural, showing a one-suited spade hand. ` +
-        `Pass leaves that nonforcing contract in place.`;
-  }
-}
+
 
 /// The refiner's result, not a second DONT decision tree, establishes the action.
 export function getDontAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3659,13 +3664,7 @@ export function getDontAdvanceFailureLines(result: BidEvalResult): string[] {
     `${result.normalizedCall}. ${dontAdvanceExplanation(choice)} [${DONT_ADVANCE_ID}]`];
 }
 
-function jumpAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  const evidence = candidate?.callEvidence?.jumpAdvance ?? diagnostic?.callEvidence?.jumpAdvance;
-  const considered = evidence?.considered?.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate, evidence, considered };
-}
+
 
 /// Positive instructions use the checks and retained choices on the actual selected rule.
 export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3760,6 +3759,46 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+function dontAdvanceExplanation(choice: NonNullable<CallEvidence['dontAdvance']>): string {
+  switch (choice.reason) {
+    case 'single-suit-relay':
+      return 'Partner’s DONT Double shows one long, undisclosed suit. 2♣ is an artificial ' +
+        'relay asking partner to name that suit; it does not promise clubs.';
+    case 'club-fit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With ` +
+        `${choice.clubLength} clubs, Pass accepts the known club suit.`;
+    case 'ask-higher-suit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With only ` +
+        `${choice.clubLength} clubs, 2♦ is the artificial pass-or-correct request for ` +
+        `partner's other suit; it does not promise diamonds.`;
+    case 'diamond-fit':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds, Pass accepts diamonds under this treatment.`;
+    case 'ask-major':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds and your major-suit holdings (${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades), 2♥ asks partner to Pass with hearts or correct ` +
+        `to 2♠ with spades; 2♥ does not necessarily promise hearts.`;
+    case 'heart-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades, Pass prefers hearts under this treatment.`;
+    case 'spade-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.spadeLength} spades and ` +
+        `${choice.heartLength} hearts, 2♠ prefers spades; partner has already shown spades.`;
+    case 'natural-spades':
+      return `Partner's direct DONT 2♠ is natural, showing a one-suited spade hand. ` +
+        `Pass leaves that nonforcing contract in place.`;
+  }
+}
+
+function jumpAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  const evidence = candidate?.callEvidence?.jumpAdvance ?? diagnostic?.callEvidence?.jumpAdvance;
+  const considered = evidence?.considered?.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate, evidence, considered };
+}
+
 ///
 //// Competitive advances after responder raises opener
 ///
@@ -3771,15 +3810,9 @@ const COMPETITIVE_RAISE_PREFIXES = [
 ];
 const COMPETITIVE_NT_ID = 'advance-after-responder-action-natural-notrump';
 
-function competitiveRaiseRule(ruleId: string): boolean {
-  return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
-}
 
-function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
+
 
 /// Explain only the selected rule and facts evaluated for this particular call.
 export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3987,6 +4020,16 @@ export function getCompetitiveRaiseAdvanceFailureLines(result: BidEvalResult): s
 }
 
 
+function competitiveRaiseRule(ruleId: string): boolean {
+  return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
+}
+
+function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
 //// Competitive advances after responder bids naturally
 ///
@@ -3998,9 +4041,7 @@ const COMPETITIVE_NATURAL_PREFIXES = [
   'advance-takeout-double-after-responder-natural-action-',
 ];
 
-function competitiveNaturalRule(ruleId: string): boolean {
-  return COMPETITIVE_NATURAL_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
-}
+
 
 /// Positive messages rely on the evaluated rule, not independent hand checks.
 export function getCompetitiveNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -4138,6 +4179,10 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
   return [];
 }
 
+function competitiveNaturalRule(ruleId: string): boolean {
+  return COMPETITIVE_NATURAL_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
+}
+
 ///
 //// Competitive advances after negative Doubles and Redoubles
 ///
@@ -4145,18 +4190,9 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
 const REDOUBLED_TAKEOUT_ESCAPE_ID =
   'advance-takeout-double-after-responder-redouble-weak-suit-escape';
 
-function negativeDoubleAdvanceRule(ruleId: string): boolean {
-  return ruleId.includes('-after-negative-double-') && (
-    ruleId.startsWith('advance-suit-overcall-') ||
-    ruleId.startsWith('advance-one-level-suit-overcall-') ||
-    ruleId.startsWith('advance-two-level-suit-overcall-'));
-}
 
-function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
+
 
 /// Explain the actual qualifying treatment, not every alternative that was considered.
 export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -4420,6 +4456,8 @@ export function getOvercallerStaymanRebidLines(result: BidEvalResult, rule: BidR
 ///
 const TAKEOUT_DOUBLER_REBID_PREFIX = 'overcaller-rebid-takeout-';
 
+/// Explain how the original takeout Doubler responds to partner's advance,
+/// using the hand and fit facts attached to the qualifying rebid.
 export function getTakeoutDoublerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!rule.id.startsWith(TAKEOUT_DOUBLER_REBID_PREFIX) ||
       result.normalizedCall === null) return [];
@@ -4569,6 +4607,19 @@ export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): strin
     }
   }
   return [];
+}
+
+function negativeDoubleAdvanceRule(ruleId: string): boolean {
+  return ruleId.includes('-after-negative-double-') && (
+    ruleId.startsWith('advance-suit-overcall-') ||
+    ruleId.startsWith('advance-one-level-suit-overcall-') ||
+    ruleId.startsWith('advance-two-level-suit-overcall-'));
+}
+
+function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
 }
 
 ///
@@ -4844,6 +4895,8 @@ export function getOvercallerConventionFailureLines(result: BidEvalResult): stri
     `The transfer is compulsory under the selected agreement ${id}.`];
 }
 
+/// Keep the chosen continuation after weak-two interference tied to the
+/// evaluated defense and advance, including artificial notrump inquiries.
 export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null || !rule.id.startsWith('overcaller-rebid-weak-two-'))
     return [];
@@ -5001,6 +5054,8 @@ export function getOvercallerForcingAdvancePassFailureLines(result: BidEvalResul
   return [];
 }
 
+/// Explain the selected rebid after a natural suit overcall from its evaluated
+/// strength, suit-length, support, and stopper evidence; do not reselect a call.
 export function getNaturalSuitOvercallerRebidLines(result: BidEvalResult, rule: BidRule): string[] {
   const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
     ?.candidates.find((item) => item.call === result.normalizedCall);
@@ -5357,6 +5412,8 @@ export function getOpenerForcingRebidPassFailureLines(result: BidEvalResult): st
     `Pass does not satisfy the force ${id}.`];
 }
 
+/// Diagnose unsupported opener rebids while respecting whether responder's
+/// earlier 1NT was forcing or nonforcing under the selected agreement.
 export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   // A genuine one-round force rules out Pass even though the agreement suppresses
@@ -5618,6 +5675,8 @@ export function getOpenerOneLevelNewSuitRebidFailureLines(result: BidEvalResult)
   return [];
 }
 
+
+
 function isOpenerOneLevelNewSuitRule(id: string): boolean {
   return id.endsWith('-after-minor-one-level-new-suit') ||
     id.endsWith('-after-major-one-level-new-suit');
@@ -5627,12 +5686,7 @@ function isOpenerOneLevelNewSuitRule(id: string): boolean {
 //// Opener's first rebid after a natural two-level new-suit response
 ///
 
-function isOpenerTwoLevelNewSuitRule(id: string): boolean {
-  return id.includes('-after-minor-standard-two-level-new-suit') ||
-    id.includes('-after-major-standard-two-level-new-suit') ||
-    id.includes('-after-minor-two-over-one-new-suit') ||
-    id.includes('-after-major-two-over-one-new-suit');
-}
+
 
 /// Explain the actual qualifying bid, including its forcing implications under Standard or 2/1.
 /// Several rebids can qualify simultaneously; do not turn the recorded call into the only answer.
@@ -5857,6 +5911,13 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
 }
 
 
+function isOpenerTwoLevelNewSuitRule(id: string): boolean {
+  return id.includes('-after-minor-standard-two-level-new-suit') ||
+    id.includes('-after-major-standard-two-level-new-suit') ||
+    id.includes('-after-minor-two-over-one-new-suit') ||
+    id.includes('-after-major-two-over-one-new-suit');
+}
+
 ///
 //// Responder's rebid after opener simply raises the one-level major response
 ///
@@ -5866,29 +5927,6 @@ const SIMPLE_RAISE_REBID_IDS = [
   'responder-rebid-invite-after-simple-major-raise',
   'responder-rebid-game-after-simple-major-raise',
 ];
-
-function simpleRaiseValuation(facts: HandFacts): string {
-  const shortness = (['C', 'D', 'H', 'S'] as const)
-    .filter((suit) => facts.lengths[suit] <= 2)
-    .map((suit) => {
-      const length = facts.lengths[suit];
-      const bonus = length === 0 ? 5 : length === 1 ? 3 : 1;
-      const shape = length === 0 ? 'void' : length === 1 ? 'singleton' : 'doubleton';
-      return `${bonus} for a ${shape} in ${suitPlural(`1${suit}` as Call)}`;
-    }).join(', ');
-  return `${facts.hcp} HCP + ${facts.shortPoints} shortage points` +
-    (shortness === '' ? '' : ` (${shortness})`) +
-    ` = ${facts.totalPointsWShortage} support points.`;
-}
-
-function simpleRaisePerspective(facts: HandFacts): string {
-  const minimum = facts.totalPointsWShortage + 12;
-  const maximum = facts.totalPointsWShortage + 16;
-  return `Opener's simple raise describes 12–16 support points, suggesting ` +
-    `about ${minimum}–${maximum} combined support points. Those are not combined HCP, ` +
-    'and the usual roughly 26-point guideline for major game is not a guarantee. ' +
-    'Shortness may be less valuable when it is in opener’s original suit.';
-}
 
 /// These comments explain evaluated calls; they do not change the point-range decisions.
 export function getResponderSimpleRaiseSupportLines(
@@ -5929,6 +5967,455 @@ export function getResponderSimpleRaiseFailureLines(
   return [];
 }
 
+
+
+
+
+function simpleRaiseValuation(facts: HandFacts): string {
+  const shortness = (['C', 'D', 'H', 'S'] as const)
+    .filter((suit) => facts.lengths[suit] <= 2)
+    .map((suit) => {
+      const length = facts.lengths[suit];
+      const bonus = length === 0 ? 5 : length === 1 ? 3 : 1;
+      const shape = length === 0 ? 'void' : length === 1 ? 'singleton' : 'doubleton';
+      return `${bonus} for a ${shape} in ${suitPlural(`1${suit}` as Call)}`;
+    }).join(', ');
+  return `${facts.hcp} HCP + ${facts.shortPoints} shortage points` +
+    (shortness === '' ? '' : ` (${shortness})`) +
+    ` = ${facts.totalPointsWShortage} support points.`;
+}
+
+function simpleRaisePerspective(facts: HandFacts): string {
+  const minimum = facts.totalPointsWShortage + 12;
+  const maximum = facts.totalPointsWShortage + 16;
+  return `Opener's simple raise describes 12–16 support points, suggesting ` +
+    `about ${minimum}–${maximum} combined support points. Those are not combined HCP, ` +
+    'and the usual roughly 26-point guideline for major game is not a guarantee. ' +
+    'Shortness may be less valuable when it is in opener’s original suit.';
+}
+
+///
+//// Natural responder rebids after opener's first rebid
+///
+
+/// The rule evaluator records the decision and hand measurements.  Use those facts,
+/// rather than an independent test of bidding eligibility, for teaching text.
+export function getNaturalResponderRebidLines(
+    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
+  if (!rule.id.startsWith('responder-rebid-')) return [];
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const e = candidate.callEvidence?.naturalResponderRebid;
+  const id = `[${rule.id}]`;
+  if (e !== undefined && e.success) {
+    switch (e.family) {
+      case 'economical':
+        switch (e.decision) {
+          case 'passSecond':
+            return [`Opener's economical second suit does not promise extra strength. With ${e.lengthPoints} total points with length and ${e.rebidLength} cards in that suit, you can Pass ${id}.`];
+          case 'preferOpening':
+            return [`With ${e.lengthPoints} total points with length and ${e.openingLength} cards in opener's first suit, you can prefer opener's original suit over the second suit. This is nonforcing ${id}.`];
+          case 'repeatResponse':
+            return [`With ${e.responseLength} cards in your original suit and ${e.lengthPoints} total points with length, repeating it is a nonforcing natural signoff ${id}.`];
+          case 'inviteNt':
+            return [`Your balanced ${e.hcp}-HCP hand invites game with 2NT after opener's economical second suit; opener has not promised extra values ${id}.`];
+          case 'gameNt':
+            return [`Your balanced ${e.hcp}-HCP hand meets the game range and has the required stopper in the remaining unbid suit for 3NT ${id}.`];
+          case 'inviteOpening': case 'inviteSecond': case 'majorSecondInvite':
+            return [`Your ${e.supportPoints} shortage-adjusted support points and known fit support a nonforcing game invitation; partner may decline ${id}.`];
+          case 'majorSecondGame':
+            return [`Your ${e.supportPoints} support points and four-card fit for opener's newly shown major justify bidding game ${id}.`];
+          case 'majorSecondPartscore':
+            return [`With ${e.lengthPoints} total points with length and four-card support for opener's newly shown major, choose the economical partscore ${id}.`];
+        }
+        break;
+      case 'majorOneNt':
+        switch (e.decision) {
+          case 'passMajor':
+            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support stopping in that suit ${id}.`];
+          case 'preferMajor':
+            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support preferring that suit to the new minor.${e.forcingOneNt ? ' Under the forcing-1NT agreement, opener may have manufactured a shorter minor rather than showing a four-card suit.' : ''} ${id}`];
+          case 'passSecond':
+            return [`With ${e.hcp} HCP and ${e.rebidLength} cards in opener's second suit, you have the fit required by the selected 1NT-response agreement to Pass ${id}.`];
+          case 'inviteMajor': case 'delayedLimitRaise':
+            return [`Your ${e.supportPoints} support points show invitational strength with opener's major. This is not a game force; opener may decline ${id}.`];
+          case 'longMinor':
+            return [`Your minimum ${e.hcp}-HCP response includes a six-card minor; bidding it naturally avoids suggesting a stronger notrump hand ${id}.`];
+          case 'inviteNt':
+            return [`With ${e.hcp} HCP, balanced distribution, and at most two cards in opener's major, a natural 2NT invites game ${id}.`];
+          case 'declineNt':
+            return [`Opener's natural 2NT shows 18–19 HCP and invites game. Your balanced ${e.hcp}-HCP hand has ${e.openingLength} cards in opener's major, so Pass declines the invitation ${id}.`];
+          case 'acceptNt':
+            return [`Opener's natural 2NT shows 18–19 HCP. Your balanced ${e.hcp}-HCP hand and ${e.openingLength} cards in opener's major support choosing 3NT rather than a major-suit game ${id}.`];
+          case 'gameMajorAfterNt':
+            return [`Opener's natural 2NT shows 18–19 HCP. Your ${e.openingLength}-card support for ${e.openingSuit === 'H' ? 'hearts' : 'spades'} makes an eight-card fit, and ${e.supportPoints} total points with shortage qualify for major-suit game ${id}.`];
+          case 'declineJumpMajor':
+            return [`Opener's invitational jump to three of the original six-card major is not forcing. Your ${e.hcp} HCP and ${e.openingLength} cards in that major favor Pass and a partscore ${id}.`];
+          case 'acceptJumpMajor':
+            return [`Opener's jump repeat shows an invitational six-card major. Your ${e.hcp} HCP and ${e.openingLength}-card support establish an eight-card-or-longer fit and justify bidding game ${id}.`];
+        }
+        break;
+      case 'minorOneNt':
+        switch (e.decision) {
+          case 'passRepeat': case 'passSecond': case 'preferOpening':
+            return [`Your balanced 1NT response showed limited values. With ${e.hcp} HCP and a suitable fit, this nonforcing choice stops in opener's natural minor-suit contract ${id}.`];
+          case 'decline2Nt':
+            return [`Opener's 2NT is an invitation, not a force. Your balanced ${e.hcp}-HCP hand is at the minimum for declining ${id}.`];
+          case 'accept2Nt':
+            return [`Opener invited game with 2NT. Your balanced ${e.hcp}-HCP hand meets the selected 7–10 HCP acceptance range for 3NT ${id}.`];
+          case 'declineJump':
+            return [`Opener's six-card minor jump repeat is invitational. With ${e.hcp} HCP you may decline and Pass ${id}.`];
+          case 'passGame':
+            return [`Opener has already selected game. With ordinary ${e.hcp}-HCP responding values, Pass accepts that contract ${id}.`];
+        }
+        break;
+      case 'twoOverOne':
+        switch (e.decision) {
+          case 'forcingNt':
+            return [`Your balanced ${e.hcp}-HCP hand can describe its shape with natural 2NT without promising an unbid-suit stopper. ${e.knownMajorFit ? 'You also have three-card support for opener\'s known five-card major; that fit remains an alternative to explore.' : 'No eight-card fit with opener\'s major is known from your hand.'} The 2/1 game force remains active ${id}.`];
+          case 'gameNt':
+            return [`Your balanced ${e.hcp}-HCP hand has game values and the required unbid-suit stoppers for 3NT. ${e.knownMajorFit ? 'Three-card support for opener\'s five-card major also gives an eight-card fit worth considering.' : 'No eight-card opener-major fit is known.'} ${id}`];
+          case 'openingSlowRaise':
+            return [`Your ${e.supportPoints} support points and ${e.openingLength}-card support for opener's major qualify for a slower game-forcing raise. Instead of jumping directly to four of opener's major, it leaves room to consider controls and possible slam interest; opener must continue ${id}.`];
+          case 'openingGame': case 'secondMajorGame':
+            return [`A known major fit and ${e.supportPoints} support points permit a natural game placement. The original 2/1 game force is satisfied ${id}.`];
+          case 'repeatResponse':
+            return [`With ${e.responseLength} cards in your original response suit, repeating it describes the length while remaining game forcing under 2/1 ${id}.`];
+          case 'passReachedGame':
+            return [`Opener has already bid a natural game. The 2/1 game force is fulfilled, so Pass does not violate the agreement ${id}.`];
+        }
+        break;
+      case 'standardTwoLevel':
+        switch (e.decision) {
+          case 'repeatResponse':
+            return [`With ${e.hcp} HCP and ${e.responseLength} cards in your response suit, repeating it at the three level is nonforcing: the Standard two-level response forced opener to bid only once ${id}.`];
+          case 'passRaise':
+            return [`Opener raised your suit, and your ${e.supportPoints} support points are minimum values. Under Standard, opener has satisfied the one-round force; you may Pass this partscore ${id}.`];
+          case 'preferDiamonds':
+            return [`With ${e.hcp} HCP and ${e.openingLength} diamonds, prefer opener's repeated five-card-or-longer diamonds. This is nonforcing after the Standard one-round force has been satisfied ${id}.`];
+          case 'passNt':
+            return [`Your balanced ${e.hcp}-HCP hand is minimum opposite opener's 2NT rebid. Standard does not force game, so Pass is reasonable; with marginal game values, 3NT can also deserve consideration ${id}.`];
+          case 'gameNt':
+            return [`Your balanced ${e.hcp}-HCP hand has game values opposite opener's minimum 2NT rebid, so you can choose 3NT ${id}.`];
+          case 'majorGame':
+            return [`Opener raised your heart suit, confirming a fit. Your ${e.supportPoints} support points qualify for game rather than stopping in partscore ${id}.`];
+          case 'passGame':
+            return [`Opener has already placed the contract in 3NT. With ${e.hcp} HCP, Pass accepts the game rather than suggesting extra strength ${id}.`];
+        }
+        break;
+      case 'strongSecondSuit':
+        if (e.decision === 'gameNt') {
+          return [`Opener's ${e.forceKind === 'reverse' ? 'reverse forces you to bid again but does not by itself force game' : 'strong jump shift commits the partnership to game'}. Your balanced ${e.hcp}-HCP hand and the stopper in the unbid suit support 3NT ${id}.`];
+        }
+        return [`Opener's ${e.forceKind === 'reverse' ? 'reverse is forcing for one round' : 'strong jump shift is game forcing'}. With ${e.supportPoints} support points and a fit for the shown major, you can choose major-suit game ${id}.`];
+      case 'strongJumpShift':
+        if (e.decision === 'passGame') {
+          return [`Your original strong jump shift established a game force and showed slam interest. Opener has already reached game; with ${e.hcp} HCP and a suitable contract, Pass is allowed ${id}.`];
+        }
+        return [`Your original strong jump shift already forced game. With ${e.hcp} HCP and ${e.decision === 'gameNt' ? 'balanced distribution, you can place the contract in 3NT' : 'an established major fit, you can choose major-suit game'}. Further slam exploration requires judgment ${id}.`];
+    }
+  }
+  // The remaining ordinary 1NT/2NT cases have declarative conditions rather than
+  // a dedicated appliesWhen function; qualify them from the rule result, not guessed ranges.
+  const accepted = rule.id;
+  const chosen = result.normalizedCall;
+  const repeatedHeartCalls: Call[] = ['2NT', '3H', '3S', '3NT', '4H'];
+  const repeatedHearts = result.ruleDiagnostics.some((item) =>
+    item.rule.id === 'responder-rebid-three-hearts-after-repeated-hearts');
+  if (repeatedHearts && chosen !== null && repeatedHeartCalls.includes(chosen) &&
+      (accepted === 'responder-rebid-2nt-after-minimum-suit-repeat' ||
+       accepted === 'responder-rebid-three-hearts-after-repeated-hearts' ||
+       accepted === 'responder-rebid-three-original-suit-after-minimum-repeat' ||
+       accepted === 'responder-rebid-3nt-after-minimum-suit-repeat' ||
+       accepted === 'responder-rebid-four-hearts-after-repeated-hearts')) {
+    const supported = result.ruleDiagnostics.flatMap((item) => item.candidates)
+      .filter((item) => item.ruleApplies && item.call !== chosen)
+      .map((item) => item.call);
+    if ((chosen === '2NT' && supported.includes('3H')) ||
+        (chosen === '3H' && supported.includes('2NT'))) {
+      return [`Your balanced ${facts.hcp}-HCP hand can invite 3NT with 2NT, while ` +
+        `3H invites game in the known eight-card heart fit (opener has six or more, ` +
+        `and you have ${facts.lengths.H}). The heart fit often favors the suit invitation ${id}.`];
+    }
+    if ((chosen === '3S' && supported.includes('3H')) ||
+        (chosen === '3H' && supported.includes('3S'))) {
+      return [`With ${facts.lengths.S} spades, 3S invites game by emphasizing your ` +
+        `own long suit, while 3H invites in the known eight-card heart fit ` +
+        `(opener has six or more hearts, and you have ${facts.lengths.H}). ` +
+        `Either invitation can be reasonable ${id}.`];
+    }
+    if ((chosen === '3NT' && supported.includes('4H')) ||
+        (chosen === '4H' && supported.includes('3NT'))) {
+      return [`Your balanced ${facts.hcp}-HCP hand can choose 3NT as a legitimate ` +
+        `game, while 4H uses the known eight-card heart fit (opener has six or ` +
+        `more hearts, and you have ${facts.lengths.H}). The established major ` +
+        `fit usually makes 4H attractive, although 3NT can be reasonable ${id}.`];
+    }
+  }
+  if (accepted === 'responder-rebid-2nt-after-minimum-1nt' ||
+      accepted === 'responder-rebid-3nt-after-minimum-1nt') {
+    const invitation = accepted.includes('-2nt-');
+    const fiveCardMajor = facts.lengths.H === 5 || facts.lengths.S === 5;
+    const base = `Your balanced ${facts.hcp}-HCP hand ${invitation ? 'invites game with 2NT' : 'places game in 3NT'} opposite opener's 12–14 HCP 1NT rebid.`;
+    return [base + (fiveCardMajor ?
+      ' A five-card responder major may conceal an eight-card fit; many partnerships use New Minor Forcing to investigate three-card opener support. That convention and its follow-up auction are not included in this trainer.' : '') + ` ${id}`];
+  }
+  if (accepted === 'responder-rebid-three-major-after-strong-2nt') {
+    return [`Your five-card major is not yet known to have an eight-card fit. Showing it at the three level asks opener to choose between major game with three-card support and 3NT; this is forcing to game ${id}.`];
+  }
+  if (accepted === 'responder-rebid-four-major-after-strong-2nt') {
+    return [`With ${facts.lengths.H >= 6 ? facts.lengths.H : facts.lengths.S} cards in your major, an eight-card fit is assured opposite balanced opener; place game in the major ${id}.`];
+  }
+  return [];
+}
+
+/// Explain only the specific requirement of a tested, rejected natural rebid.
+export function getNaturalResponderRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  for (const diagnostic of result.ruleDiagnostics) {
+    if (!diagnostic.rule.id.startsWith('responder-rebid-')) continue;
+    const candidate = diagnostic.candidates.find((item) => item.call === result.normalizedCall);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const e = candidate.callEvidence?.naturalResponderRebid;
+    if (e === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (e.family === 'standardTwoLevel') {
+      if (e.hcp < 11) return [`This Standard continuation requires at least 11 HCP; you have ${e.hcp} ${id}.`];
+      if (e.decision === 'repeatResponse' && e.responseLength < 6) {
+        return [`Repeating your response suit nonforcing requires six cards; you have ${e.responseLength} ${id}.`];
+      }
+      if (e.decision === 'passNt' && !e.balanced) {
+        return [`Passing opener's minimum 2NT rebid requires balanced distribution in this selected Standard treatment ${id}.`];
+      }
+      if (e.decision === 'passNt' && e.hcp > 12) {
+        return [`Your ${e.hcp} HCP exceed the selected 11–12 HCP minimum range for passing 2NT; consider game ${id}.`];
+      }
+      if (e.decision === 'gameNt' && e.hcp < 13) {
+        return [`This selected 3NT placement needs at least 13 HCP; you have ${e.hcp} ${id}.`];
+      }
+      continue;
+    }
+    if (e.family === 'majorOneNt' &&
+        (e.decision === 'declineNt' || e.decision === 'acceptNt' ||
+         e.decision === 'gameMajorAfterNt' || e.decision === 'declineJumpMajor' ||
+         e.decision === 'acceptJumpMajor')) {
+      const ntChoice = e.decision === 'declineNt' || e.decision === 'acceptNt' ||
+        e.decision === 'gameMajorAfterNt';
+      if (e.openerRebid !== (ntChoice ? 'ntInvite' : 'jumpRepeat')) continue;
+      const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+      if (failed === undefined) continue;
+      if (failed.kind === 'hcp') {
+        return [`${result.normalizedCall} after opener's ${ntChoice ? '2NT' : 'three-level major'} invitation requires ${strengthRange(failed)}; you have ${failed.actual} HCP ${id}.`];
+      }
+      if (failed.kind === 'balanced') {
+        return [`${result.normalizedCall} after opener's 2NT invitation requires balanced distribution; your hand is not balanced ${id}.`];
+      }
+      if (failed.kind === 'suitLength') {
+        const needed = failed.exact !== undefined ? `exactly ${failed.exact}` :
+          failed.min !== undefined ? `at least ${failed.min}` : `at most ${failed.max}`;
+        return [`${result.normalizedCall} requires ${needed} cards in opener's ${e.openingSuit === 'H' ? 'hearts' : 'spades'}; you have ${failed.actual} ${id}.`];
+      }
+      if (failed.kind === 'totalPoints') {
+        return [`${result.normalizedCall} after opener's 2NT invitation requires 11–12 total points with shortage; you have ${failed.actual} ${id}.`];
+      }
+      continue;
+    }
+    if (e.family === 'strongSecondSuit') {
+      if (e.decision === 'gameNt') {
+        if (!e.balanced) return [`3NT after this strong second suit requires balanced distribution ${id}.`];
+        if (e.missingStoppers?.length) {
+          return [`3NT requires a stopper in the unbid suit; your hand lacks one in ${e.missingStoppers.join(' and ')} ${id}.`];
+        }
+      }
+      if (e.decision === 'majorGame' && e.rebidLength < 4 &&
+          (e.forceKind === 'reverse' || e.openingLength < 3)) {
+        return [`This major-suit game needs a known fit, normally four cards in opener's new major ${id}.`];
+      }
+      continue;
+    }
+    if (e.family === 'strongJumpShift') {
+      if (e.hcp < 17 || e.hcp > 18) {
+        return [`This selected game placement after your strong jump shift covers 17–18 HCP; stronger hands need additional judgment ${id}.`];
+      }
+      continue;
+    }
+    if (e.family !== 'twoOverOne' ||
+        (e.decision !== 'forcingNt' && e.decision !== 'gameNt')) continue;
+    if (!e.balanced) return [`Natural ${result.normalizedCall} in this 2/1 auction requires a balanced hand ${id}.`];
+    if (e.hcp < 13 || e.hcp > 16) {
+      return [`This selected 2/1 notrump continuation requires 13–16 HCP; you have ${e.hcp} ${id}.`];
+    }
+    if (e.decision === 'forcingNt') {
+      return [`Natural 2NT remains game forcing and does not require an unbid-suit stopper. This selected continuation also requires an appropriate opener rebid and no two-card fit after opener repeats a six-card major ${id}.`];
+    }
+    if (e.missingStoppers?.length) {
+      return [`3NT requires a stopper in each unbid suit; your hand lacks a stopper in ${e.missingStoppers.join(' and ')} [${diagnostic.rule.id}].`];
+    }
+    return [];
+  }
+  return [];
+}
+
+/// An evaluated responder Pass can break a previously established force even when
+/// the available natural rebids require further judgment.
+export function getResponderForcingPassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
+      result.responderPassForce === null || result.responderPassForce === undefined) return [];
+  if (result.responderPassForce.kind === 'gameForce') {
+    return ['The partnership remains committed to game. ' +
+      'Opener has not yet bid game, so responder cannot Pass here.'];
+  }
+  return ["Opener's preceding forcing rebid requires responder to bid again. " +
+    'Pass cannot satisfy the one-round force.'];
+}
+
+///
+//// Conventional responder rebids and major game-try decisions
+///
+
+/// Use the actual candidate evidence; the rule's ordinary meaning and guidance
+/// remain visible below this hand-specific teaching sentence.
+export function getConventionalResponderRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  const e = candidate?.callEvidence?.conventionalResponderRebid;
+  if (e === undefined || !e.success) return [];
+  const id = `[${rule.id}]`;
+  switch (e.family) {
+    case 'majorGameTry': {
+      const answer = e.decision === 'accept' ? 'accept with four' : 'decline at three';
+      if (e.helpSuit === null) {
+        return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation.${e.supportPoints === 8 ? ' With eight points both answers are judgment choices.' : ''} ${id}`];
+      }
+      return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${suitPlural(`1${e.helpSuit}` as Call)}. ${e.supportPoints === 8 ?
+        (e.usefulHelp ? 'Useful honor strength or shortness in that suit favors game.' :
+          'Without useful honors or shortness in that suit, stopping below game is reasonable.') :
+        (e.decision === 'accept' ? 'Your upper-range support values justify game.' :
+          'Your minimum support values favor partscore.')} ${id}`];
+    }
+    case 'ntConvention': {
+      const fit = e.fitFound && e.major !== null;
+      if (e.decision.startsWith('stayman')) {
+        return [`Stayman ${fit ? `found a major-suit fit in ${e.major === 'H' ? 'hearts' : 'spades'}` :
+          'did not establish an eight-card major-suit fit'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
+          'invite game' : 'choose game'} in ${fit ? 'the agreed major' : 'notrump'}. ${id}`];
+      }
+      if (e.decision === 'transferPass') {
+        return [`Opener completed the transfer to ${e.major === 'H' ? 'hearts' : 'spades'}; your ${e.majorLength}-card major and ${e.hcp} HCP favor playing there at the current level ${id}.`];
+      }
+      if (e.decision === 'transferInviteMajor') {
+        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit establishes a major fit. With ${e.hcp} HCP, invite game at the three level ${id}.`];
+      }
+      if (e.decision === 'transferGameMajor') {
+        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit and ${e.hcp} HCP support major game. Under these agreements, the natural four-level continuation is available without a Texas transfer ${id}.`];
+      }
+      return [`You have ${e.hcp} HCP, balanced distribution and exactly five cards in the transferred ${e.major === 'H' ? 'heart' : 'spade'} suit. ${e.decision === 'transferInviteNt' ?
+        '2NT invites game' : '3NT offers game'} while allowing opener to choose the major with three-card support ${id}.`];
+    }
+    case 'strongTwoC':
+      if (e.decision === 'passMinimumNt') {
+        return [`After the waiting 2D, opener's balanced 2NT rebid shows 22–24 HCP and is not forcing. With only ${e.hcp} HCP, Pass is reasonable ${id}.`];
+      }
+      if (e.decision === 'gameMinimumNt') {
+        return [`Your balanced ${e.hcp}-HCP hand has enough for 3NT opposite opener's 22–24 HCP 2NT rebid; the waiting 2D did not deny useful values ${id}.`];
+      }
+      if (e.decision === 'positiveMajorGame') {
+        return [`Your positive response showed ${e.majorLength} cards in ${e.major === 'H' ? 'hearts' : 'spades'}, and opener raised that major to establish a fit. With ${e.hcp} HCP, place the game in the agreed suit ${id}.`];
+      }
+      return [`Opener has already reached natural 3NT after strong 2C. Your ${e.hcp}-HCP hand can accept that game; stronger holdings may deserve slam investigation ${id}.`];
+    case 'majorSupport':
+      if (e.decision.startsWith('jacoby2NT')) {
+        return [`Your Jacoby 2NT established a game force and ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'}. ${e.openerRebid === '3NT' ?
+          "Opener's 3NT describes medium strength by agreement; it is not a notrump contract to Pass." :
+          e.openerRebid === `4${e.major}` ? 'Opener has already placed the contract in major game.' :
+            "Opener's descriptive rebid keeps the game force active."} ${e.decision.endsWith('returnToGame') ?
+          'Return to the agreed major with ordinary game-going values.' : 'You may Pass the agreed major game.'} ${id}`];
+      }
+      return [`Your splinter showed ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'} and established a game force. ${e.decision.endsWith('passGame') ?
+        'Opener has already bid major game, so Pass is permitted.' :
+        "Opener's continuation remains forcing; choose four of the agreed major with ordinary game-going values."} ${id}`];
+    case 'openerSplinter':
+      return [`Opener's splinter showed support for your ${e.major === 'H' ? 'heart' : 'spade'} suit and shortness in ${suitPlural(`1${e.shortSuit}` as Call)}; the short-suit bid is not natural. With ${e.supportPoints} support points, return to major game. Honors opposite opener's shortness may be less useful for slam ${id}.`];
+  }
+}
+
+/// Explain a forcing Pass only when the evaluator has actually qualified a
+/// competing conventional continuation in this auction.
+export function getConventionalResponderRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const qualified = result.ruleDiagnostics.flatMap((diagnostic) => diagnostic.candidates
+    .filter((candidate) => candidate.ruleApplies &&
+      candidate.callEvidence?.conventionalResponderRebid?.success === true));
+  if (result.normalizedCall === 'Pass') {
+    const candidate = qualified.find((item) => {
+      const family = item.callEvidence?.conventionalResponderRebid?.family;
+      return family === 'majorGameTry' || family === 'majorSupport' || family === 'openerSplinter';
+    });
+    const e = candidate?.callEvidence?.conventionalResponderRebid;
+    if (e?.family === 'majorGameTry') {
+      return [`Opener's game try requires a reply in the agreed ${e.major === 'H' ? 'heart' : 'spade'} suit. With ${e.supportPoints} support points, choose three or four of that suit [${candidate!.rule.id}].`];
+    }
+    if (e?.family === 'majorSupport') {
+      if (e.decision.startsWith('jacoby2NT') && e.openerRebid === '3NT') {
+        return [`Opener's 3NT after Jacoby 2NT is artificial medium-strength information, not a contract to Pass. The ${e.major === 'H' ? 'heart' : 'spade'} game force still applies [${candidate!.rule.id}].`];
+      }
+      return [`The ${e.decision.startsWith('jacoby2NT') ? 'Jacoby 2NT' : 'splinter'} game force is not satisfied below four of the agreed major. Opener has not signed off [${candidate!.rule.id}].`];
+    }
+    if (e?.family === 'openerSplinter') {
+      return [`Opener's splinter is a forcing description of shortness in ${suitPlural(`1${e.shortSuit}` as Call)}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
+    }
+    // An invitational or game-going convention continuation is supported by the
+    // candidate's evaluated hand, not by assuming that Pass is always wrong.
+    const ntCandidate = qualified.find((item) => {
+      const evidence = item.callEvidence?.conventionalResponderRebid;
+      return evidence?.family === 'ntConvention' && evidence.decision !== 'transferPass';
+    });
+    const nt = ntCandidate?.callEvidence?.conventionalResponderRebid;
+    if (nt !== undefined && ntCandidate !== undefined) {
+      const invitation = nt.decision.includes('Invite');
+      const level = invitation ? 'invite game' : 'bid game';
+      const id = `[${ntCandidate.rule.id}]`;
+      if (nt.decision.startsWith('stayman')) {
+        if (nt.fitFound && nt.major !== null) {
+          return [`Stayman found an eight-card ${nt.major === 'H' ? 'heart' : 'spade'} fit. With ${nt.hcp} HCP, this hand qualifies to ${level} in that major rather than Pass ${id}.`];
+        }
+        return [`Stayman did not find a major fit. With ${nt.hcp} HCP, the supported ${ntCandidate.call} continuation ${invitation ? 'invites' : 'bids'} notrump game rather than Pass ${id}.`];
+      }
+      if (nt.decision.startsWith('transfer')) {
+        if (nt.decision.endsWith('Major')) {
+          return [`The completed transfer and your ${nt.majorLength}-card ${nt.major === 'H' ? 'heart' : 'spade'} suit establish a major fit. With ${nt.hcp} HCP, ${ntCandidate.call} ${invitation ? 'invites' : 'bids'} game instead of stopping in partscore ${id}.`];
+        }
+        return [`With a balanced ${nt.hcp}-HCP hand and five ${nt.major === 'H' ? 'hearts' : 'spades'} after the transfer, ${ntCandidate.call} ${invitation ? 'invites' : 'offers'} notrump game while allowing opener to choose the major with three-card support ${id}.`];
+      }
+    }
+  }
+  // A tested near miss can be explained without inferring an unsupported rule.
+  for (const diagnostic of result.ruleDiagnostics) {
+    const candidate = diagnostic.candidates.find((item) =>
+      item.call === result.normalizedCall && !item.ruleApplies &&
+      item.callEvidence?.conventionalResponderRebid !== undefined);
+    const e = candidate?.callEvidence?.conventionalResponderRebid;
+    if (e === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (e.family === 'majorGameTry' && e.supportPoints >= 6 && e.supportPoints <= 10) {
+      return [`With ${e.supportPoints} support points, ${e.helpSuit === null ?
+        'opener\'s balanced 2NT invitation leaves judgment at eight points' :
+        `the ${suitPlural(`1${e.helpSuit}` as Call)} help-suit try ${e.usefulHelp ? 'has useful support' : 'lacks useful support'}`}. The selected guidance does not support ${result.normalizedCall} here ${id}.`];
+    }
+    if (e.family === 'ntConvention' && e.decision.startsWith('stayman') && !e.fitFound &&
+        (result.normalizedCall === '3H' || result.normalizedCall === '3S' ||
+         result.normalizedCall === '4H' || result.normalizedCall === '4S')) {
+      return [`Stayman did not establish an eight-card major-suit fit, so the selected major raise is not supported ${id}.`];
+    }
+    if (e.family === 'strongTwoC' && e.decision === 'passMinimumNt' && e.hcp > 2) {
+      return [`Opener's balanced 2NT rebid shows 22–24 HCP. The selected Pass treatment requires at most 2 HCP; you have ${e.hcp} ${id}.`];
+    }
+  }
+  return [];
+}
+
 ///
 //// Opener's rebid after responder raises the original suit
 ///
@@ -5953,16 +6440,7 @@ const OPENER_RAISE_RULE_IDS = [
   'opener-rebid-splinter-after-major-simple-raise',
 ];
 
-function openerRaiseValue(id: string, facts: HandFacts): string {
-  if (id === 'opener-rebid-2nt-game-try-after-major-simple-raise') {
-    return `${facts.hcp} HCP with balanced shape`;
-  }
-  const majorFit = id.includes('-after-major-');
-  const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
-  const label = majorFit ? 'shortage' : 'length';
-  const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
-  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
-}
+
 
 /// A matched rule supplies the meaning; these actual hand facts explain its qualification.
 export function getOpenerRaiseRebidLines(
@@ -6130,6 +6608,17 @@ export function getOpenerRaiseRebidFailureLines(
   return [];
 }
 
+function openerRaiseValue(id: string, facts: HandFacts): string {
+  if (id === 'opener-rebid-2nt-game-try-after-major-simple-raise') {
+    return `${facts.hcp} HCP with balanced shape`;
+  }
+  const majorFit = id.includes('-after-major-');
+  const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
+  const label = majorFit ? 'shortage' : 'length';
+  const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
+  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
+}
+
 ///
 //// Opener explanations after Jacoby 2NT, responder splinters, and jump shifts
 ///
@@ -6149,6 +6638,8 @@ const OPENER_CONVENTIONAL_IDS = [
   'opener-rebid-notrump-after-strong-jump-shift',
 ];
 
+/// Describe opener's qualifying continuation after Jacoby 2NT, a splinter, or
+/// a strong jump shift without changing the established forcing obligation.
 export function getOpenerConventionalRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_CONVENTIONAL_IDS.includes(rule.id)) return [];
@@ -6399,6 +6890,8 @@ const OPENER_GAME_RESPONSE_IDS = [
   'opener-rebid-pass-after-major-preemptive-game-raise',
 ];
 
+/// Distinguish accepting an already-bid natural game from describing extra
+/// strength or exploring slam; a game response is not always a new force.
 export function getOpenerGameResponseRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_GAME_RESPONSE_IDS.includes(rule.id)) return [];
@@ -7002,6 +7495,68 @@ export function getOpenerCompetitiveNaturalNtRebidFailureLines(
 }
 
 ///
+//// Opener after interference over a 1NT opening
+///
+
+/// The candidate's own qualification supplies the decision; its evidence supplies the
+/// actual stopper, fit and strength facts. Artificial DONT 2H shows *both* majors.
+export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: BidRule): string[] {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) =>
+    item.call === result.normalizedCall && item.ruleApplies);
+  if (candidate === undefined) return [];
+  const e = (candidate.callEvidence ?? diagnostic?.callEvidence)?.openerOneNtInterference;
+  if (e === undefined) return [];
+  const opponents = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+  const responseSuit = e.responseSuit === null ? '' : suitPlural(`1${e.responseSuit}` as Call);
+  const id = `[${rule.id}]`;
+  switch (e.treatment) {
+    case 'doubleFit':
+      return [`Responder's takeout Double of the natural spade overcall promises at least four hearts. Your ${e.fitLength} hearts establish an eight-card fit; show it with ${candidate.call} ${id}.`];
+    case 'doubleNt':
+      return [`Responder's takeout Double promises at least four hearts, but you have fewer than four. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
+    case 'naturalPass':
+      return [`Responder's ${e.response} is natural and nonforcing. With ${e.hcp} HCP${e.responseLevel === 3 ? ` and no complete set of stoppers in ${opponents}` : ''}, Pass accepts partner's ${responseSuit} rather than inventing a game bid ${id}.`];
+    case 'majorRaise':
+      return [`Responder's ${e.response} shows ${responseSuit} naturally. Your ${e.support}-card support and ${e.hcp} HCP permit ${candidate.call === `3${e.responseSuit}` ? 'an invitation' : 'game'} in the agreed major ${id}.`];
+    case 'naturalThreeNt':
+      return [`Responder's ${e.response} is a constructive natural ${responseSuit} bid. The opponent's ${e.opponentSuits.length === 2 ? 'DONT 2H shows both majors' : '2S shows spades'}, and your hand has stoppers in ${opponents}; with no preferred major fit, 3NT is supported ${id}.`];
+  }
+}
+
+/// A missing tested stopper or a forcing takeout Double is informative. Do not
+/// infer rejection from a call that never survived its auction-specific refiner.
+export function getOpenerOneNtInterferenceFailureLines(result: BidEvalResult): string[] {
+  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
+  const call = result.normalizedCall;
+  for (const diagnostic of result.ruleDiagnostics) {
+    const candidate = diagnostic.candidates.find((item) => item.call === call &&
+      !item.ruleApplies && item.callEvidence?.openerOneNtInterference !== undefined);
+    const e = candidate?.callEvidence?.openerOneNtInterference;
+    if (e === undefined) continue;
+    const id = `[${diagnostic.rule.id}]`;
+    if (call === '3NT' && e.missingStoppers.length > 0 &&
+        (e.treatment === 'naturalThreeNt' || e.treatment === 'doubleNt')) {
+      const promised = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+      const missing = e.missingStoppers.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
+      return [`This 3NT treatment needs stoppers in ${promised}; your hand lacks a stopper in ${missing} ${id}.`];
+    }
+    if (e.treatment === 'majorRaise' && e.support < 3) {
+      return [`Raising responder's ${e.responseSuit === null ? 'major' : suitPlural(`1${e.responseSuit}` as Call)} requires at least three-card support; you have ${e.support} ${id}.`];
+    }
+  }
+  if (call === 'Pass') {
+    const fit = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-fit-after-1nt-interference-double');
+    const e = fit?.callEvidence?.openerOneNtInterference;
+    if (e?.treatment === 'doubleFit' && e.fitSuit !== null) {
+      return [`Responder's Double is a takeout request, not penalty. You have a four-card ${suitPlural(`1${e.fitSuit}` as Call)} fit and must respond; Pass does not describe it [${fit!.rule.id}].`];
+    }
+  }
+  return [];
+}
+
+///
 //// Opener after artificial support bids in competition
 ///
 
@@ -7143,6 +7698,8 @@ const OPENER_FORCING_COMPETITION_IDS = [
   'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
 ];
 
+/// Describe opener's rebid after a forcing response and further competition using
+/// the response's actual promise and opener's evaluated fit, shape, and values.
 export function getOpenerForcingCompetitionRebidLines(
     result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
   if (!OPENER_FORCING_COMPETITION_IDS.includes(rule.id)) return [];
@@ -7294,491 +7851,6 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
 
 
 ///
-/// Natural responder rebids — first instructional batch
-///
-
-/// The rule evaluator records the decision and hand measurements.  Use those facts,
-/// rather than an independent test of bidding eligibility, for teaching text.
-export function getNaturalResponderRebidLines(
-    result: BidEvalResult, rule: BidRule, facts: HandFacts): string[] {
-  if (!rule.id.startsWith('responder-rebid-')) return [];
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  if (candidate?.ruleApplies !== true) return [];
-  const e = candidate.callEvidence?.naturalResponderRebid;
-  const id = `[${rule.id}]`;
-  if (e !== undefined && e.success) {
-    switch (e.family) {
-      case 'economical':
-        switch (e.decision) {
-          case 'passSecond':
-            return [`Opener's economical second suit does not promise extra strength. With ${e.lengthPoints} total points with length and ${e.rebidLength} cards in that suit, you can Pass ${id}.`];
-          case 'preferOpening':
-            return [`With ${e.lengthPoints} total points with length and ${e.openingLength} cards in opener's first suit, you can prefer opener's original suit over the second suit. This is nonforcing ${id}.`];
-          case 'repeatResponse':
-            return [`With ${e.responseLength} cards in your original suit and ${e.lengthPoints} total points with length, repeating it is a nonforcing natural signoff ${id}.`];
-          case 'inviteNt':
-            return [`Your balanced ${e.hcp}-HCP hand invites game with 2NT after opener's economical second suit; opener has not promised extra values ${id}.`];
-          case 'gameNt':
-            return [`Your balanced ${e.hcp}-HCP hand meets the game range and has the required stopper in the remaining unbid suit for 3NT ${id}.`];
-          case 'inviteOpening': case 'inviteSecond': case 'majorSecondInvite':
-            return [`Your ${e.supportPoints} shortage-adjusted support points and known fit support a nonforcing game invitation; partner may decline ${id}.`];
-          case 'majorSecondGame':
-            return [`Your ${e.supportPoints} support points and four-card fit for opener's newly shown major justify bidding game ${id}.`];
-          case 'majorSecondPartscore':
-            return [`With ${e.lengthPoints} total points with length and four-card support for opener's newly shown major, choose the economical partscore ${id}.`];
-        }
-        break;
-      case 'majorOneNt':
-        switch (e.decision) {
-          case 'passMajor':
-            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support stopping in that suit ${id}.`];
-          case 'preferMajor':
-            return [`After your 1NT response, ${e.hcp} HCP and ${e.openingLength} cards in opener's major support preferring that suit to the new minor.${e.forcingOneNt ? ' Under the forcing-1NT agreement, opener may have manufactured a shorter minor rather than showing a four-card suit.' : ''} ${id}`];
-          case 'passSecond':
-            return [`With ${e.hcp} HCP and ${e.rebidLength} cards in opener's second suit, you have the fit required by the selected 1NT-response agreement to Pass ${id}.`];
-          case 'inviteMajor': case 'delayedLimitRaise':
-            return [`Your ${e.supportPoints} support points show invitational strength with opener's major. This is not a game force; opener may decline ${id}.`];
-          case 'longMinor':
-            return [`Your minimum ${e.hcp}-HCP response includes a six-card minor; bidding it naturally avoids suggesting a stronger notrump hand ${id}.`];
-          case 'inviteNt':
-            return [`With ${e.hcp} HCP, balanced distribution, and at most two cards in opener's major, a natural 2NT invites game ${id}.`];
-          case 'declineNt':
-            return [`Opener's natural 2NT shows 18–19 HCP and invites game. Your balanced ${e.hcp}-HCP hand has ${e.openingLength} cards in opener's major, so Pass declines the invitation ${id}.`];
-          case 'acceptNt':
-            return [`Opener's natural 2NT shows 18–19 HCP. Your balanced ${e.hcp}-HCP hand and ${e.openingLength} cards in opener's major support choosing 3NT rather than a major-suit game ${id}.`];
-          case 'gameMajorAfterNt':
-            return [`Opener's natural 2NT shows 18–19 HCP. Your ${e.openingLength}-card support for ${e.openingSuit === 'H' ? 'hearts' : 'spades'} makes an eight-card fit, and ${e.supportPoints} total points with shortage qualify for major-suit game ${id}.`];
-          case 'declineJumpMajor':
-            return [`Opener's invitational jump to three of the original six-card major is not forcing. Your ${e.hcp} HCP and ${e.openingLength} cards in that major favor Pass and a partscore ${id}.`];
-          case 'acceptJumpMajor':
-            return [`Opener's jump repeat shows an invitational six-card major. Your ${e.hcp} HCP and ${e.openingLength}-card support establish an eight-card-or-longer fit and justify bidding game ${id}.`];
-        }
-        break;
-      case 'minorOneNt':
-        switch (e.decision) {
-          case 'passRepeat': case 'passSecond': case 'preferOpening':
-            return [`Your balanced 1NT response showed limited values. With ${e.hcp} HCP and a suitable fit, this nonforcing choice stops in opener's natural minor-suit contract ${id}.`];
-          case 'decline2Nt':
-            return [`Opener's 2NT is an invitation, not a force. Your balanced ${e.hcp}-HCP hand is at the minimum for declining ${id}.`];
-          case 'accept2Nt':
-            return [`Opener invited game with 2NT. Your balanced ${e.hcp}-HCP hand meets the selected 7–10 HCP acceptance range for 3NT ${id}.`];
-          case 'declineJump':
-            return [`Opener's six-card minor jump repeat is invitational. With ${e.hcp} HCP you may decline and Pass ${id}.`];
-          case 'passGame':
-            return [`Opener has already selected game. With ordinary ${e.hcp}-HCP responding values, Pass accepts that contract ${id}.`];
-        }
-        break;
-      case 'twoOverOne':
-        switch (e.decision) {
-          case 'forcingNt':
-            return [`Your balanced ${e.hcp}-HCP hand can describe its shape with natural 2NT without promising an unbid-suit stopper. ${e.knownMajorFit ? 'You also have three-card support for opener\'s known five-card major; that fit remains an alternative to explore.' : 'No eight-card fit with opener\'s major is known from your hand.'} The 2/1 game force remains active ${id}.`];
-          case 'gameNt':
-            return [`Your balanced ${e.hcp}-HCP hand has game values and the required unbid-suit stoppers for 3NT. ${e.knownMajorFit ? 'Three-card support for opener\'s five-card major also gives an eight-card fit worth considering.' : 'No eight-card opener-major fit is known.'} ${id}`];
-          case 'openingSlowRaise':
-            return [`Your ${e.supportPoints} support points and ${e.openingLength}-card support for opener's major qualify for a slower game-forcing raise. Instead of jumping directly to four of opener's major, it leaves room to consider controls and possible slam interest; opener must continue ${id}.`];
-          case 'openingGame': case 'secondMajorGame':
-            return [`A known major fit and ${e.supportPoints} support points permit a natural game placement. The original 2/1 game force is satisfied ${id}.`];
-          case 'repeatResponse':
-            return [`With ${e.responseLength} cards in your original response suit, repeating it describes the length while remaining game forcing under 2/1 ${id}.`];
-          case 'passReachedGame':
-            return [`Opener has already bid a natural game. The 2/1 game force is fulfilled, so Pass does not violate the agreement ${id}.`];
-        }
-        break;
-      case 'standardTwoLevel':
-        switch (e.decision) {
-          case 'repeatResponse':
-            return [`With ${e.hcp} HCP and ${e.responseLength} cards in your response suit, repeating it at the three level is nonforcing: the Standard two-level response forced opener to bid only once ${id}.`];
-          case 'passRaise':
-            return [`Opener raised your suit, and your ${e.supportPoints} support points are minimum values. Under Standard, opener has satisfied the one-round force; you may Pass this partscore ${id}.`];
-          case 'preferDiamonds':
-            return [`With ${e.hcp} HCP and ${e.openingLength} diamonds, prefer opener's repeated five-card-or-longer diamonds. This is nonforcing after the Standard one-round force has been satisfied ${id}.`];
-          case 'passNt':
-            return [`Your balanced ${e.hcp}-HCP hand is minimum opposite opener's 2NT rebid. Standard does not force game, so Pass is reasonable; with marginal game values, 3NT can also deserve consideration ${id}.`];
-          case 'gameNt':
-            return [`Your balanced ${e.hcp}-HCP hand has game values opposite opener's minimum 2NT rebid, so you can choose 3NT ${id}.`];
-          case 'majorGame':
-            return [`Opener raised your heart suit, confirming a fit. Your ${e.supportPoints} support points qualify for game rather than stopping in partscore ${id}.`];
-          case 'passGame':
-            return [`Opener has already placed the contract in 3NT. With ${e.hcp} HCP, Pass accepts the game rather than suggesting extra strength ${id}.`];
-        }
-        break;
-      case 'strongSecondSuit':
-        if (e.decision === 'gameNt') {
-          return [`Opener's ${e.forceKind === 'reverse' ? 'reverse forces you to bid again but does not by itself force game' : 'strong jump shift commits the partnership to game'}. Your balanced ${e.hcp}-HCP hand and the stopper in the unbid suit support 3NT ${id}.`];
-        }
-        return [`Opener's ${e.forceKind === 'reverse' ? 'reverse is forcing for one round' : 'strong jump shift is game forcing'}. With ${e.supportPoints} support points and a fit for the shown major, you can choose major-suit game ${id}.`];
-      case 'strongJumpShift':
-        if (e.decision === 'passGame') {
-          return [`Your original strong jump shift established a game force and showed slam interest. Opener has already reached game; with ${e.hcp} HCP and a suitable contract, Pass is allowed ${id}.`];
-        }
-        return [`Your original strong jump shift already forced game. With ${e.hcp} HCP and ${e.decision === 'gameNt' ? 'balanced distribution, you can place the contract in 3NT' : 'an established major fit, you can choose major-suit game'}. Further slam exploration requires judgment ${id}.`];
-    }
-  }
-  // The remaining ordinary 1NT/2NT cases have declarative conditions rather than
-  // a dedicated appliesWhen function; qualify them from the rule result, not guessed ranges.
-  const accepted = rule.id;
-  const chosen = result.normalizedCall;
-  const repeatedHeartCalls: Call[] = ['2NT', '3H', '3S', '3NT', '4H'];
-  const repeatedHearts = result.ruleDiagnostics.some((item) =>
-    item.rule.id === 'responder-rebid-three-hearts-after-repeated-hearts');
-  if (repeatedHearts && chosen !== null && repeatedHeartCalls.includes(chosen) &&
-      (accepted === 'responder-rebid-2nt-after-minimum-suit-repeat' ||
-       accepted === 'responder-rebid-three-hearts-after-repeated-hearts' ||
-       accepted === 'responder-rebid-three-original-suit-after-minimum-repeat' ||
-       accepted === 'responder-rebid-3nt-after-minimum-suit-repeat' ||
-       accepted === 'responder-rebid-four-hearts-after-repeated-hearts')) {
-    const supported = result.ruleDiagnostics.flatMap((item) => item.candidates)
-      .filter((item) => item.ruleApplies && item.call !== chosen)
-      .map((item) => item.call);
-    if ((chosen === '2NT' && supported.includes('3H')) ||
-        (chosen === '3H' && supported.includes('2NT'))) {
-      return [`Your balanced ${facts.hcp}-HCP hand can invite 3NT with 2NT, while ` +
-        `3H invites game in the known eight-card heart fit (opener has six or more, ` +
-        `and you have ${facts.lengths.H}). The heart fit often favors the suit invitation ${id}.`];
-    }
-    if ((chosen === '3S' && supported.includes('3H')) ||
-        (chosen === '3H' && supported.includes('3S'))) {
-      return [`With ${facts.lengths.S} spades, 3S invites game by emphasizing your ` +
-        `own long suit, while 3H invites in the known eight-card heart fit ` +
-        `(opener has six or more hearts, and you have ${facts.lengths.H}). ` +
-        `Either invitation can be reasonable ${id}.`];
-    }
-    if ((chosen === '3NT' && supported.includes('4H')) ||
-        (chosen === '4H' && supported.includes('3NT'))) {
-      return [`Your balanced ${facts.hcp}-HCP hand can choose 3NT as a legitimate ` +
-        `game, while 4H uses the known eight-card heart fit (opener has six or ` +
-        `more hearts, and you have ${facts.lengths.H}). The established major ` +
-        `fit usually makes 4H attractive, although 3NT can be reasonable ${id}.`];
-    }
-  }
-  if (accepted === 'responder-rebid-2nt-after-minimum-1nt' ||
-      accepted === 'responder-rebid-3nt-after-minimum-1nt') {
-    const invitation = accepted.includes('-2nt-');
-    const fiveCardMajor = facts.lengths.H === 5 || facts.lengths.S === 5;
-    const base = `Your balanced ${facts.hcp}-HCP hand ${invitation ? 'invites game with 2NT' : 'places game in 3NT'} opposite opener's 12–14 HCP 1NT rebid.`;
-    return [base + (fiveCardMajor ?
-      ' A five-card responder major may conceal an eight-card fit; many partnerships use New Minor Forcing to investigate three-card opener support. That convention and its follow-up auction are not included in this trainer.' : '') + ` ${id}`];
-  }
-  if (accepted === 'responder-rebid-three-major-after-strong-2nt') {
-    return [`Your five-card major is not yet known to have an eight-card fit. Showing it at the three level asks opener to choose between major game with three-card support and 3NT; this is forcing to game ${id}.`];
-  }
-  if (accepted === 'responder-rebid-four-major-after-strong-2nt') {
-    return [`With ${facts.lengths.H >= 6 ? facts.lengths.H : facts.lengths.S} cards in your major, an eight-card fit is assured opposite balanced opener; place game in the major ${id}.`];
-  }
-  return [];
-}
-
-/// Explain only the specific requirement of a tested, rejected natural rebid.
-export function getNaturalResponderRebidFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
-  for (const diagnostic of result.ruleDiagnostics) {
-    if (!diagnostic.rule.id.startsWith('responder-rebid-')) continue;
-    const candidate = diagnostic.candidates.find((item) => item.call === result.normalizedCall);
-    if (candidate === undefined || candidate.ruleApplies) continue;
-    const e = candidate.callEvidence?.naturalResponderRebid;
-    if (e === undefined) continue;
-    const id = `[${diagnostic.rule.id}]`;
-    if (e.family === 'standardTwoLevel') {
-      if (e.hcp < 11) return [`This Standard continuation requires at least 11 HCP; you have ${e.hcp} ${id}.`];
-      if (e.decision === 'repeatResponse' && e.responseLength < 6) {
-        return [`Repeating your response suit nonforcing requires six cards; you have ${e.responseLength} ${id}.`];
-      }
-      if (e.decision === 'passNt' && !e.balanced) {
-        return [`Passing opener's minimum 2NT rebid requires balanced distribution in this selected Standard treatment ${id}.`];
-      }
-      if (e.decision === 'passNt' && e.hcp > 12) {
-        return [`Your ${e.hcp} HCP exceed the selected 11–12 HCP minimum range for passing 2NT; consider game ${id}.`];
-      }
-      if (e.decision === 'gameNt' && e.hcp < 13) {
-        return [`This selected 3NT placement needs at least 13 HCP; you have ${e.hcp} ${id}.`];
-      }
-      continue;
-    }
-    if (e.family === 'majorOneNt' &&
-        (e.decision === 'declineNt' || e.decision === 'acceptNt' ||
-         e.decision === 'gameMajorAfterNt' || e.decision === 'declineJumpMajor' ||
-         e.decision === 'acceptJumpMajor')) {
-      const ntChoice = e.decision === 'declineNt' || e.decision === 'acceptNt' ||
-        e.decision === 'gameMajorAfterNt';
-      if (e.openerRebid !== (ntChoice ? 'ntInvite' : 'jumpRepeat')) continue;
-      const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
-      if (failed === undefined) continue;
-      if (failed.kind === 'hcp') {
-        return [`${result.normalizedCall} after opener's ${ntChoice ? '2NT' : 'three-level major'} invitation requires ${strengthRange(failed)}; you have ${failed.actual} HCP ${id}.`];
-      }
-      if (failed.kind === 'balanced') {
-        return [`${result.normalizedCall} after opener's 2NT invitation requires balanced distribution; your hand is not balanced ${id}.`];
-      }
-      if (failed.kind === 'suitLength') {
-        const needed = failed.exact !== undefined ? `exactly ${failed.exact}` :
-          failed.min !== undefined ? `at least ${failed.min}` : `at most ${failed.max}`;
-        return [`${result.normalizedCall} requires ${needed} cards in opener's ${e.openingSuit === 'H' ? 'hearts' : 'spades'}; you have ${failed.actual} ${id}.`];
-      }
-      if (failed.kind === 'totalPoints') {
-        return [`${result.normalizedCall} after opener's 2NT invitation requires 11–12 total points with shortage; you have ${failed.actual} ${id}.`];
-      }
-      continue;
-    }
-    if (e.family === 'strongSecondSuit') {
-      if (e.decision === 'gameNt') {
-        if (!e.balanced) return [`3NT after this strong second suit requires balanced distribution ${id}.`];
-        if (e.missingStoppers?.length) {
-          return [`3NT requires a stopper in the unbid suit; your hand lacks one in ${e.missingStoppers.join(' and ')} ${id}.`];
-        }
-      }
-      if (e.decision === 'majorGame' && e.rebidLength < 4 &&
-          (e.forceKind === 'reverse' || e.openingLength < 3)) {
-        return [`This major-suit game needs a known fit, normally four cards in opener's new major ${id}.`];
-      }
-      continue;
-    }
-    if (e.family === 'strongJumpShift') {
-      if (e.hcp < 17 || e.hcp > 18) {
-        return [`This selected game placement after your strong jump shift covers 17–18 HCP; stronger hands need additional judgment ${id}.`];
-      }
-      continue;
-    }
-    if (e.family !== 'twoOverOne' ||
-        (e.decision !== 'forcingNt' && e.decision !== 'gameNt')) continue;
-    if (!e.balanced) return [`Natural ${result.normalizedCall} in this 2/1 auction requires a balanced hand ${id}.`];
-    if (e.hcp < 13 || e.hcp > 16) {
-      return [`This selected 2/1 notrump continuation requires 13–16 HCP; you have ${e.hcp} ${id}.`];
-    }
-    if (e.decision === 'forcingNt') {
-      return [`Natural 2NT remains game forcing and does not require an unbid-suit stopper. This selected continuation also requires an appropriate opener rebid and no two-card fit after opener repeats a six-card major ${id}.`];
-    }
-    if (e.missingStoppers?.length) {
-      return [`3NT requires a stopper in each unbid suit; your hand lacks a stopper in ${e.missingStoppers.join(' and ')} [${diagnostic.rule.id}].`];
-    }
-    return [];
-  }
-  return [];
-}
-
-/// An evaluated responder Pass can break a previously established force even when
-/// the available natural rebids require further judgment.
-export function getResponderForcingPassFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
-      result.responderPassForce === null || result.responderPassForce === undefined) return [];
-  if (result.responderPassForce.kind === 'gameForce') {
-    return ['The partnership remains committed to game. ' +
-      'Opener has not yet bid game, so responder cannot Pass here.'];
-  }
-  return ["Opener's preceding forcing rebid requires responder to bid again. " +
-    'Pass cannot satisfy the one-round force.'];
-}
-
-///
-/// Conventional responder rebids and major game-try decisions
-///
-
-/// Use the actual candidate evidence; the rule's ordinary meaning and guidance
-/// remain visible below this hand-specific teaching sentence.
-export function getConventionalResponderRebidLines(result: BidEvalResult, rule: BidRule): string[] {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
-  const candidate = diagnostic?.candidates.find((item) =>
-    item.call === result.normalizedCall && item.ruleApplies);
-  const e = candidate?.callEvidence?.conventionalResponderRebid;
-  if (e === undefined || !e.success) return [];
-  const id = `[${rule.id}]`;
-  switch (e.family) {
-    case 'majorGameTry': {
-      const answer = e.decision === 'accept' ? 'accept with four' : 'decline at three';
-      if (e.helpSuit === null) {
-        return [`Your ${e.supportPoints} support points ${answer} of the agreed major. Opener's 2NT was a balanced game invitation.${e.supportPoints === 8 ? ' With eight points both answers are judgment choices.' : ''} ${id}`];
-      }
-      return [`Your ${e.supportPoints} support points ${answer} of the agreed major after opener's help-suit try in ${suitPlural(`1${e.helpSuit}` as Call)}. ${e.supportPoints === 8 ?
-        (e.usefulHelp ? 'Useful honor strength or shortness in that suit favors game.' :
-          'Without useful honors or shortness in that suit, stopping below game is reasonable.') :
-        (e.decision === 'accept' ? 'Your upper-range support values justify game.' :
-          'Your minimum support values favor partscore.')} ${id}`];
-    }
-    case 'ntConvention': {
-      const fit = e.fitFound && e.major !== null;
-      if (e.decision.startsWith('stayman')) {
-        return [`Stayman ${fit ? `found a major-suit fit in ${e.major === 'H' ? 'hearts' : 'spades'}` :
-          'did not establish an eight-card major-suit fit'}. With ${e.hcp} HCP, ${e.decision.includes('Invite') ?
-          'invite game' : 'choose game'} in ${fit ? 'the agreed major' : 'notrump'}. ${id}`];
-      }
-      if (e.decision === 'transferPass') {
-        return [`Opener completed the transfer to ${e.major === 'H' ? 'hearts' : 'spades'}; your ${e.majorLength}-card major and ${e.hcp} HCP favor playing there at the current level ${id}.`];
-      }
-      if (e.decision === 'transferInviteMajor') {
-        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit establishes a major fit. With ${e.hcp} HCP, invite game at the three level ${id}.`];
-      }
-      if (e.decision === 'transferGameMajor') {
-        return [`Your ${e.majorLength}-card ${e.major === 'H' ? 'heart' : 'spade'} suit and ${e.hcp} HCP support major game. Under these agreements, the natural four-level continuation is available without a Texas transfer ${id}.`];
-      }
-      return [`You have ${e.hcp} HCP, balanced distribution and exactly five cards in the transferred ${e.major === 'H' ? 'heart' : 'spade'} suit. ${e.decision === 'transferInviteNt' ?
-        '2NT invites game' : '3NT offers game'} while allowing opener to choose the major with three-card support ${id}.`];
-    }
-    case 'strongTwoC':
-      if (e.decision === 'passMinimumNt') {
-        return [`After the waiting 2D, opener's balanced 2NT rebid shows 22–24 HCP and is not forcing. With only ${e.hcp} HCP, Pass is reasonable ${id}.`];
-      }
-      if (e.decision === 'gameMinimumNt') {
-        return [`Your balanced ${e.hcp}-HCP hand has enough for 3NT opposite opener's 22–24 HCP 2NT rebid; the waiting 2D did not deny useful values ${id}.`];
-      }
-      if (e.decision === 'positiveMajorGame') {
-        return [`Your positive response showed ${e.majorLength} cards in ${e.major === 'H' ? 'hearts' : 'spades'}, and opener raised that major to establish a fit. With ${e.hcp} HCP, place the game in the agreed suit ${id}.`];
-      }
-      return [`Opener has already reached natural 3NT after strong 2C. Your ${e.hcp}-HCP hand can accept that game; stronger holdings may deserve slam investigation ${id}.`];
-    case 'majorSupport':
-      if (e.decision.startsWith('jacoby2NT')) {
-        return [`Your Jacoby 2NT established a game force and ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'}. ${e.openerRebid === '3NT' ?
-          "Opener's 3NT describes medium strength by agreement; it is not a notrump contract to Pass." :
-          e.openerRebid === `4${e.major}` ? 'Opener has already placed the contract in major game.' :
-            "Opener's descriptive rebid keeps the game force active."} ${e.decision.endsWith('returnToGame') ?
-          'Return to the agreed major with ordinary game-going values.' : 'You may Pass the agreed major game.'} ${id}`];
-      }
-      return [`Your splinter showed ${e.majorLength}-card support for opener's ${e.major === 'H' ? 'hearts' : 'spades'} and established a game force. ${e.decision.endsWith('passGame') ?
-        'Opener has already bid major game, so Pass is permitted.' :
-        "Opener's continuation remains forcing; choose four of the agreed major with ordinary game-going values."} ${id}`];
-    case 'openerSplinter':
-      return [`Opener's splinter showed support for your ${e.major === 'H' ? 'heart' : 'spade'} suit and shortness in ${suitPlural(`1${e.shortSuit}` as Call)}; the short-suit bid is not natural. With ${e.supportPoints} support points, return to major game. Honors opposite opener's shortness may be less useful for slam ${id}.`];
-  }
-}
-
-/// Explain a forcing Pass only when the evaluator has actually qualified a
-/// competing conventional continuation in this auction.
-export function getConventionalResponderRebidFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
-  const qualified = result.ruleDiagnostics.flatMap((diagnostic) => diagnostic.candidates
-    .filter((candidate) => candidate.ruleApplies &&
-      candidate.callEvidence?.conventionalResponderRebid?.success === true));
-  if (result.normalizedCall === 'Pass') {
-    const candidate = qualified.find((item) => {
-      const family = item.callEvidence?.conventionalResponderRebid?.family;
-      return family === 'majorGameTry' || family === 'majorSupport' || family === 'openerSplinter';
-    });
-    const e = candidate?.callEvidence?.conventionalResponderRebid;
-    if (e?.family === 'majorGameTry') {
-      return [`Opener's game try requires a reply in the agreed ${e.major === 'H' ? 'heart' : 'spade'} suit. With ${e.supportPoints} support points, choose three or four of that suit [${candidate!.rule.id}].`];
-    }
-    if (e?.family === 'majorSupport') {
-      if (e.decision.startsWith('jacoby2NT') && e.openerRebid === '3NT') {
-        return [`Opener's 3NT after Jacoby 2NT is artificial medium-strength information, not a contract to Pass. The ${e.major === 'H' ? 'heart' : 'spade'} game force still applies [${candidate!.rule.id}].`];
-      }
-      return [`The ${e.decision.startsWith('jacoby2NT') ? 'Jacoby 2NT' : 'splinter'} game force is not satisfied below four of the agreed major. Opener has not signed off [${candidate!.rule.id}].`];
-    }
-    if (e?.family === 'openerSplinter') {
-      return [`Opener's splinter is a forcing description of shortness in ${suitPlural(`1${e.shortSuit}` as Call)}, not a natural contract to Pass. The major game must still be reached [${candidate!.rule.id}].`];
-    }
-    // An invitational or game-going convention continuation is supported by the
-    // candidate's evaluated hand, not by assuming that Pass is always wrong.
-    const ntCandidate = qualified.find((item) => {
-      const evidence = item.callEvidence?.conventionalResponderRebid;
-      return evidence?.family === 'ntConvention' && evidence.decision !== 'transferPass';
-    });
-    const nt = ntCandidate?.callEvidence?.conventionalResponderRebid;
-    if (nt !== undefined && ntCandidate !== undefined) {
-      const invitation = nt.decision.includes('Invite');
-      const level = invitation ? 'invite game' : 'bid game';
-      const id = `[${ntCandidate.rule.id}]`;
-      if (nt.decision.startsWith('stayman')) {
-        if (nt.fitFound && nt.major !== null) {
-          return [`Stayman found an eight-card ${nt.major === 'H' ? 'heart' : 'spade'} fit. With ${nt.hcp} HCP, this hand qualifies to ${level} in that major rather than Pass ${id}.`];
-        }
-        return [`Stayman did not find a major fit. With ${nt.hcp} HCP, the supported ${ntCandidate.call} continuation ${invitation ? 'invites' : 'bids'} notrump game rather than Pass ${id}.`];
-      }
-      if (nt.decision.startsWith('transfer')) {
-        if (nt.decision.endsWith('Major')) {
-          return [`The completed transfer and your ${nt.majorLength}-card ${nt.major === 'H' ? 'heart' : 'spade'} suit establish a major fit. With ${nt.hcp} HCP, ${ntCandidate.call} ${invitation ? 'invites' : 'bids'} game instead of stopping in partscore ${id}.`];
-        }
-        return [`With a balanced ${nt.hcp}-HCP hand and five ${nt.major === 'H' ? 'hearts' : 'spades'} after the transfer, ${ntCandidate.call} ${invitation ? 'invites' : 'offers'} notrump game while allowing opener to choose the major with three-card support ${id}.`];
-      }
-    }
-  }
-  // A tested near miss can be explained without inferring an unsupported rule.
-  for (const diagnostic of result.ruleDiagnostics) {
-    const candidate = diagnostic.candidates.find((item) =>
-      item.call === result.normalizedCall && !item.ruleApplies &&
-      item.callEvidence?.conventionalResponderRebid !== undefined);
-    const e = candidate?.callEvidence?.conventionalResponderRebid;
-    if (e === undefined) continue;
-    const id = `[${diagnostic.rule.id}]`;
-    if (e.family === 'majorGameTry' && e.supportPoints >= 6 && e.supportPoints <= 10) {
-      return [`With ${e.supportPoints} support points, ${e.helpSuit === null ?
-        'opener\'s balanced 2NT invitation leaves judgment at eight points' :
-        `the ${suitPlural(`1${e.helpSuit}` as Call)} help-suit try ${e.usefulHelp ? 'has useful support' : 'lacks useful support'}`}. The selected guidance does not support ${result.normalizedCall} here ${id}.`];
-    }
-    if (e.family === 'ntConvention' && e.decision.startsWith('stayman') && !e.fitFound &&
-        (result.normalizedCall === '3H' || result.normalizedCall === '3S' ||
-         result.normalizedCall === '4H' || result.normalizedCall === '4S')) {
-      return [`Stayman did not establish an eight-card major-suit fit, so the selected major raise is not supported ${id}.`];
-    }
-    if (e.family === 'strongTwoC' && e.decision === 'passMinimumNt' && e.hcp > 2) {
-      return [`Opener's balanced 2NT rebid shows 22–24 HCP. The selected Pass treatment requires at most 2 HCP; you have ${e.hcp} ${id}.`];
-    }
-  }
-  return [];
-}
-
-///
-/// Selected opener continuations after interference over a 1NT opening
-///
-
-/// The candidate's own qualification supplies the decision; its evidence supplies the
-/// actual stopper, fit and strength facts. Artificial DONT 2H shows *both* majors.
-export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: BidRule): string[] {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
-  const candidate = diagnostic?.candidates.find((item) =>
-    item.call === result.normalizedCall && item.ruleApplies);
-  if (candidate === undefined) return [];
-  const e = (candidate.callEvidence ?? diagnostic?.callEvidence)?.openerOneNtInterference;
-  if (e === undefined) return [];
-  const opponents = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
-  const responseSuit = e.responseSuit === null ? '' : suitPlural(`1${e.responseSuit}` as Call);
-  const id = `[${rule.id}]`;
-  switch (e.treatment) {
-    case 'doubleFit':
-      return [`Responder's takeout Double of the natural spade overcall promises at least four hearts. Your ${e.fitLength} hearts establish an eight-card fit; show it with ${candidate.call} ${id}.`];
-    case 'doubleNt':
-      return [`Responder's takeout Double promises at least four hearts, but you have fewer than four. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
-    case 'naturalPass':
-      return [`Responder's ${e.response} is natural and nonforcing. With ${e.hcp} HCP${e.responseLevel === 3 ? ` and no complete set of stoppers in ${opponents}` : ''}, Pass accepts partner's ${responseSuit} rather than inventing a game bid ${id}.`];
-    case 'majorRaise':
-      return [`Responder's ${e.response} shows ${responseSuit} naturally. Your ${e.support}-card support and ${e.hcp} HCP permit ${candidate.call === `3${e.responseSuit}` ? 'an invitation' : 'game'} in the agreed major ${id}.`];
-    case 'naturalThreeNt':
-      return [`Responder's ${e.response} is a constructive natural ${responseSuit} bid. The opponent's ${e.opponentSuits.length === 2 ? 'DONT 2H shows both majors' : '2S shows spades'}, and your hand has stoppers in ${opponents}; with no preferred major fit, 3NT is supported ${id}.`];
-  }
-}
-
-/// A missing tested stopper or a forcing takeout Double is informative. Do not
-/// infer rejection from a call that never survived its auction-specific refiner.
-export function getOpenerOneNtInterferenceFailureLines(result: BidEvalResult): string[] {
-  if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
-  const call = result.normalizedCall;
-  for (const diagnostic of result.ruleDiagnostics) {
-    const candidate = diagnostic.candidates.find((item) => item.call === call &&
-      !item.ruleApplies && item.callEvidence?.openerOneNtInterference !== undefined);
-    const e = candidate?.callEvidence?.openerOneNtInterference;
-    if (e === undefined) continue;
-    const id = `[${diagnostic.rule.id}]`;
-    if (call === '3NT' && e.missingStoppers.length > 0 &&
-        (e.treatment === 'naturalThreeNt' || e.treatment === 'doubleNt')) {
-      const promised = e.opponentSuits.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
-      const missing = e.missingStoppers.map((suit) => suitPlural(`1${suit}` as Call)).join(' and ');
-      return [`This 3NT treatment needs stoppers in ${promised}; your hand lacks a stopper in ${missing} ${id}.`];
-    }
-    if (e.treatment === 'majorRaise' && e.support < 3) {
-      return [`Raising responder's ${e.responseSuit === null ? 'major' : suitPlural(`1${e.responseSuit}` as Call)} requires at least three-card support; you have ${e.support} ${id}.`];
-    }
-  }
-  if (call === 'Pass') {
-    const fit = result.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-fit-after-1nt-interference-double');
-    const e = fit?.callEvidence?.openerOneNtInterference;
-    if (e?.treatment === 'doubleFit' && e.fitSuit !== null) {
-      return [`Responder's Double is a takeout request, not penalty. You have a four-card ${suitPlural(`1${e.fitSuit}` as Call)} fit and must respond; Pass does not describe it [${fit!.rule.id}].`];
-    }
-  }
-  return [];
-}
-
-
-///
 //// Opener after a preemptive jump overcall and advancer Pass
 ///
 
@@ -7868,4 +7940,59 @@ export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): s
     return [`Responder's cuebid names the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)} artificially; it supports opener's ${suitPlural(`1${e.openingSuit}` as Call)}. The selected game is ${e.selectedCall}, not the opponent's suit${id}.`];
   }
   return [];
+}
+
+///
+//// Shared suit, stopper, and strength wording
+///
+
+function suitName(call: Call): string {
+  switch (call[1]) {
+    case 'C': return 'club';
+    case 'D': return 'diamond';
+    case 'H': return 'heart';
+    case 'S': return 'spade';
+    default: return 'bid';
+  }
+}
+
+function namedStopperSuit(check: Extract<Requirement, { kind: 'stopper' }>): string {
+  return check.suit === undefined ? "opener's suit" : suitPlural(`1${check.suit}` as Call);
+}
+
+function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
+  return `${check.actual} ${units}`;
+}
+
+function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
+  if (check.min !== undefined && check.max !== undefined) {
+    return `${check.min}–${check.max} ${units}`;
+  }
+  if (check.min !== undefined) return `at least ${check.min} ${units}`;
+  if (check.max !== undefined) return `at most ${check.max} ${units}`;
+  return `the required ${units}`;
+}
+
+function hcpRangeText(check: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>): string {
+  if (check.min !== undefined && check.max === check.min) return `${check.min} HCP`;
+  if (check.min !== undefined && check.max !== undefined) return `${check.min}–${check.max} HCP`;
+  if (check.min !== undefined) return `at least ${check.min} HCP`;
+  if (check.max !== undefined) return `at most ${check.max} HCP`;
+  return 'the required HCP range';
+}
+
+function suitPlural(call: Call): string {
+  switch (call[1]) {
+    case 'C': return 'clubs';
+    case 'D': return 'diamonds';
+    case 'H': return 'hearts';
+    case 'S': return 'spades';
+    default: return 'suit cards';
+  }
 }
