@@ -535,13 +535,7 @@ function openingChecks(candidate: CandidateCallMatch | undefined): {
   };
 }
 
-function hcpRangeText(check: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>): string {
-  if (check.min !== undefined && check.max === check.min) return `${check.min} HCP`;
-  if (check.min !== undefined && check.max !== undefined) return `${check.min}–${check.max} HCP`;
-  if (check.min !== undefined) return `at least ${check.min} HCP`;
-  if (check.max !== undefined) return `at most ${check.max} HCP`;
-  return 'the required HCP range';
-}
+
 
 /// Opening selection and natural-notrump precedence are decisions, not failed hand tests.
 /// Show the relevant decision only for the student's call, or for a competing opening.
@@ -704,48 +698,15 @@ export function getPreemptOpeningFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
-function suitName(call: Call): string {
-  switch (call[1]) {
-    case 'C': return 'club';
-    case 'D': return 'diamond';
-    case 'H': return 'heart';
-    case 'S': return 'spade';
-    default: return 'bid';
-  }
-}
 
-function suitPlural(call: Call): string {
-  switch (call[1]) {
-    case 'C': return 'clubs';
-    case 'D': return 'diamonds';
-    case 'H': return 'hearts';
-    case 'S': return 'spades';
-    default: return 'suit cards';
-  }
-}
 
-function namedStopperSuit(check: Extract<Requirement, { kind: 'stopper' }>): string {
-  return check.suit === undefined ? "opener's suit" : suitPlural(`1${check.suit}` as Call);
-}
 
-function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
-                       valuation: 'length' | null = null): string {
-  const units = check.kind === 'hcp' ? 'HCP' :
-    valuation === 'length' ? 'total points with length' : 'total points';
-  return `${check.actual} ${units}`;
-}
 
-function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
-                       valuation: 'length' | null = null): string {
-  const units = check.kind === 'hcp' ? 'HCP' :
-    valuation === 'length' ? 'total points with length' : 'total points';
-  if (check.min !== undefined && check.max !== undefined) {
-    return `${check.min}–${check.max} ${units}`;
-  }
-  if (check.min !== undefined) return `at least ${check.min} ${units}`;
-  if (check.max !== undefined) return `at most ${check.max} ${units}`;
-  return `the required ${units}`;
-}
+
+
+
+
+
 
 ///
 //// Takeout Double explanations
@@ -7869,4 +7830,59 @@ export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): s
     return [`Responder's cuebid names the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)} artificially; it supports opener's ${suitPlural(`1${e.openingSuit}` as Call)}. The selected game is ${e.selectedCall}, not the opponent's suit${id}.`];
   }
   return [];
+}
+
+///
+//// Shared suit, stopper, and strength wording
+///
+
+function suitName(call: Call): string {
+  switch (call[1]) {
+    case 'C': return 'club';
+    case 'D': return 'diamond';
+    case 'H': return 'heart';
+    case 'S': return 'spade';
+    default: return 'bid';
+  }
+}
+
+function namedStopperSuit(check: Extract<Requirement, { kind: 'stopper' }>): string {
+  return check.suit === undefined ? "opener's suit" : suitPlural(`1${check.suit}` as Call);
+}
+
+function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
+  return `${check.actual} ${units}`;
+}
+
+function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
+                       valuation: 'length' | null = null): string {
+  const units = check.kind === 'hcp' ? 'HCP' :
+    valuation === 'length' ? 'total points with length' : 'total points';
+  if (check.min !== undefined && check.max !== undefined) {
+    return `${check.min}–${check.max} ${units}`;
+  }
+  if (check.min !== undefined) return `at least ${check.min} ${units}`;
+  if (check.max !== undefined) return `at most ${check.max} ${units}`;
+  return `the required ${units}`;
+}
+
+function hcpRangeText(check: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>): string {
+  if (check.min !== undefined && check.max === check.min) return `${check.min} HCP`;
+  if (check.min !== undefined && check.max !== undefined) return `${check.min}–${check.max} HCP`;
+  if (check.min !== undefined) return `at least ${check.min} HCP`;
+  if (check.max !== undefined) return `at most ${check.max} HCP`;
+  return 'the required HCP range';
+}
+
+function suitPlural(call: Call): string {
+  switch (call[1]) {
+    case 'C': return 'clubs';
+    case 'D': return 'diamonds';
+    case 'H': return 'hearts';
+    case 'S': return 'spades';
+    default: return 'suit cards';
+  }
 }
