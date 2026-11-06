@@ -18,369 +18,9 @@ import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
 
 
 
-/// The first four physical calls identify the selected continuation after an opposing
-/// natural DONT 2S or a DONT 2H showing both majors. With 2H, only natural minor
-/// responses are modeled; DONT 2C/2D and unagreed doubles/cuebids are excluded.
-interface OneNtInterferenceContinuation {
-  opposingSuit: Suit;
-  response: Call;
-  advance: Call;
-  naturalSuit: Suit | null;
-  naturalLevel: number | null;
-}
-
-function getOneNtInterferenceContinuation (context: RuleEvalContext):
-    OneNtInterferenceContinuation | null {
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null || opening.call !== '1NT' ||
-      context.auction.length !== opening.index + 4) return null;
-  const overcall = parseSuitBid(context.auction[opening.index + 1] ?? 'Pass');
-  const response = context.auction[opening.index + 2];
-  const advance = context.auction[opening.index + 3];
-  if (overcall === null || overcall.level !== 2 ||
-      (overcall.strain !== 'H' && overcall.strain !== 'S') ||
-      response === undefined || advance === undefined) return null;
-  const responseBid = parseSuitBid(response);
-  const naturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
-    responseBid.strain !== overcall.strain ? responseBid.strain as Suit : null;
-  const isDontMajors = overcall.strain === 'H';
-  const responseIsSupported = (! isDontMajors && response === 'Double') ||
-    (naturalSuit !== null && (responseBid?.level === 2 || responseBid?.level === 3) &&
-     (! isDontMajors || (responseBid?.level === 3 &&
-                         (naturalSuit === 'C' || naturalSuit === 'D'))) &&
-     cheapestBidInStrainAfter(overcall, naturalSuit) === response);
-  if (! responseIsSupported) return null;
-  if (advance !== 'Pass' &&
-      ! (response === 'Double' && advance === `3${overcall.strain}`)) return null;
-  return { opposingSuit: overcall.strain as Suit, response, advance, naturalSuit,
-    naturalLevel: naturalSuit === null ? null : responseBid!.level };
-}
-
-/// After a natural DONT 2S, responder's takeout Double promises four hearts.
-/// Opener needs four hearts too before describing an eight-card heart fit.
-function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
-  return opposingSuit === 'S' && context.handFacts.lengths.H >= 4 ? 'H' : null;
-}
-
-function oneNtInterferenceEvidence(context: RuleEvalContext, system: BiddingSystem,
-    treatment: NonNullable<CallEvidence['openerOneNtInterference']>['treatment']):
-    CallEvidence | undefined {
-  const info = getOneNtInterferenceContinuation(context);
-  if (info === null) return undefined;
-  const opponentSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
-  const missingStoppers = opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit));
-  const responseSuit = info.naturalSuit;
-  const fitSuit = info.response === 'Double'
-    ? getOneNtDoubleFit(context, info.opposingSuit)
-    : responseSuit === 'H' || responseSuit === 'S' ? responseSuit : null;
-  return { openerOneNtInterference: {
-    treatment, hcp: context.handFacts.hcp,
-    minimumHcp: system.oneNtOpening === '15-17' ? 15 : 16,
-    response: info.response, opponentSuits, missingStoppers,
-    responseSuit, responseLevel: info.naturalLevel,
-    support: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
-    fitSuit, fitLength: fitSuit === null ? 0 : context.handFacts.lengths[fitSuit],
-  } };
-}
-
-export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext,
-    system: BiddingSystem):
-    CallRefinementResult {
-  const info = getOneNtInterferenceContinuation(context);
-  if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
-  const fit = getOneNtDoubleFit(context, info.opposingSuit);
-  // Over a 2S overcall and Pass, 3H is the economical heart-fit reply.
-  // An opposing raise to 3S requires further judgment rather than a forced game bid.
-  const bid = fit !== null && info.advance === 'Pass' ?
-    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) : null;
-  const wanted = bid as Call | null;
-  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted &&
-    isCallAvailableInAuction(call, context.auction)), telemetryLines: [
-      fit === null ? 'No four-card fit for responder\'s takeout Double.' :
-      `Show the available four-card ${fit} fit at ${wanted}.`,
-  ], callEvidence: oneNtInterferenceEvidence(context,
-    system, 'doubleFit') };
-}
-
-export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalContext,
-                                                   system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
-  const min = system.oneNtOpening === '15-17' ? 15 : 16;
-  const hcp = context.handFacts.hcp;
-  const fit = info === null ? null : getOneNtDoubleFit(context, info.opposingSuit);
-  const stopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit);
-  const success = info !== null && info.response === 'Double' && info.advance === 'Pass' &&
-    fit === null && stopped && ((call === '2NT' && hcp <= min + 1) ||
-                               (call === '3NT' && hcp >= min + 2));
-  return { success, telemetryLines: [
-    `${success ? 'PASS' : 'FAIL'}: no four-card takeout fit, stopper, and ` +
-    `${call === '2NT' ? 'minimum/middle' : 'maximum'} NT opening strength.`,
-  ], callEvidence: oneNtInterferenceEvidence(context, system, 'doubleNt') };
-}
-
-export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleEvalContext,
-                                                      system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
-  const min = system.oneNtOpening === '15-17' ? 15 : 16;
-  const suit = info?.naturalSuit;
-  const hcp = context.handFacts.hcp;
-  const support = suit === null || suit === undefined ? 0 : context.handFacts.lengths[suit];
-  const isTwo = info?.naturalLevel === 2;
-  const isDontMinorAtThree = info?.opposingSuit === 'H' && info.naturalLevel === 3 &&
-    (suit === 'C' || suit === 'D');
-  const bothMajorStopped = hasBasicSuitStopper(context, 'H') &&
-    hasBasicSuitStopper(context, 'S');
-  const strengthFits = (isTwo && (support <= 2 ||
-    (suit !== 'H' && suit !== 'S') || (hcp === min && support === 3))) ||
-    (isDontMinorAtThree && hcp === min && ! bothMajorStopped);
-  const success = info !== null && info.advance === 'Pass' && suit !== null &&
-    strengthFits;
-  return { success, telemetryLines: [
-    `${success ? 'PASS' : 'FAIL'}: nonforcing natural suit, ` +
-    `${hcp} HCP and ${support}-card support; Pass only where no modeled improvement fits.`,
-  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalPass') };
-}
-
-export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
-    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
-  const suit = info?.naturalSuit;
-  const min = system.oneNtOpening === '15-17' ? 15 : 16;
-  const hcp = context.handFacts.hcp;
-  const support = suit === 'H' || suit === 'S' ? context.handFacts.lengths[suit] : 0;
-  const isInviting = call === `3${suit}` && info?.naturalLevel === 2 &&
-    support >= 3 && ((hcp === min && support >= 4) || hcp === min + 1 ||
-                     (hcp === min + 2 && support === 3));
-  const isGame = call === `4${suit}` && support >= 3 &&
-    ((info?.naturalLevel === 2 && hcp === min + 2 && support >= 4) ||
-     info?.naturalLevel === 3);
-  const success = info !== null && info.advance === 'Pass' && (isInviting || isGame);
-  return { success, telemetryLines: [
-    `${success ? 'PASS' : 'FAIL'}: natural major support with ${support} trumps, ` +
-    `${hcp} HCP, and responder's ${info?.naturalLevel ?? '?'}-level action.`,
-  ], callEvidence: oneNtInterferenceEvidence(context, system, 'majorRaise') };
-}
-
-export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
-    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
-  const suit = info?.naturalSuit;
-  const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
-  const bothStopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit) &&
-    (info.opposingSuit !== 'H' || hasBasicSuitStopper(context, 'S'));
-  const success = info !== null && info.advance === 'Pass' && info.naturalLevel === 3 &&
-    ! majorFit && bothStopped;
-  return { success, telemetryLines: [
-    `${success ? 'PASS' : 'FAIL'}: constructive three-level natural response; ` +
-    'prefer 3NT when the opposing suit is stopped and no major fit is present.',
-  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalThreeNt') };
-}
-
-export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
-    _system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
-  if (info === null) return { success: false, telemetryLines: [] };
-  const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info.opposingSuit) : null;
-  let success = false;
-  if (info.response === 'Double') {
-    // An opposing raise needs additional judgment, even with a heart fit.
-    success = info.advance !== 'Pass' ||
-      (fit === null && ! hasBasicSuitStopper(context, info.opposingSuit));
-  } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
-    const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
-      context.handFacts.lengths[info.naturalSuit] >= 3;
-    // DONT 2H shows both majors: missing either stopper leaves strain judgment unresolved.
-    const requiredSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
-    success = ! majorFit && requiredSuits.some((suit) => !hasBasicSuitStopper(context, suit));
-  }
-  return { success, telemetryLines: [success ? 'No deterministic natural strain or stopper.' :
-    'A selected Pass, suit fit, or notrump description remains available.'] };
-}
-
-
 ///
 //// Opener Rebids After Notrump Openings
 ///
-
-/// Selected A8 opener continuations after a natural jump overcall and advancer Pass.
-/// The physical auction is checked here as well as in getNextBiddingRuleStage: do not infer these
-/// meanings from a compact partnership auction that hides interference.
-interface JumpOvercallContinuation {
-  opening: ParsedSuitBid;
-  overcall: ParsedSuitBid;
-  response: Call;
-  responseBid: ParsedSuitBid | null;
-  kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
-        'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
-}
-
-function getJumpOvercallContinuation (context: RuleEvalContext): JumpOvercallContinuation | null {
-  const first = getOpeningCallInfo(context.dealer, context.auction);
-  if (first === null || context.auction.length !== first.index + 4 ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
-      context.auction[first.index + 3] !== 'Pass') return null;
-  const opening = parseSuitBid(first.call);
-  const overcall = parseSuitBid(context.auction[first.index + 1] ?? 'Pass');
-  const response = context.auction[first.index + 2];
-  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
-      overcall === null || overcall.strain === 'NT' || response === undefined) return null;
-  const responseBid = parseSuitBid(response);
-  if (response === 'Double') {
-    return { opening, overcall, response, responseBid, kind: 'negativeDouble' };
-  }
-  if (responseBid === null) return null;
-  let kind: JumpOvercallContinuation['kind'];
-  if (response === '2NT') kind = 'notrumpTwo';
-  else if (response === '3NT') kind = 'notrumpThree';
-  else if (responseBid.strain === opening.strain && responseBid.level === 3) kind = 'raise';
-  else if (responseBid.strain === opening.strain && responseBid.level === 4 &&
-           (opening.strain === 'H' || opening.strain === 'S')) kind = 'majorGame';
-  else if (responseBid.strain === overcall.strain && overcall.level === 2 &&
-           (opening.strain === 'H' || opening.strain === 'S')) kind = 'supportCuebid';
-  else if (responseBid.strain !== opening.strain &&
-           responseBid.strain !== overcall.strain && responseBid.level === 2) kind = 'newSuitTwo';
-  else if (responseBid.strain !== opening.strain &&
-           responseBid.strain !== overcall.strain && responseBid.level === 3) kind = 'newSuitThree';
-  else return null;
-  return { opening, overcall, response, responseBid, kind };
-}
-
-/// Each selected family returns its descriptive bid, if one exists. A no-bid forcing
-/// decision is handled by a scopeBoundary, never by a fabricated Pass.
-function getJumpOvercallOpenerAction (context: RuleEvalContext): Call | null {
-  const info = getJumpOvercallContinuation(context);
-  if (info === null) return null;
-  const { opening, overcall, responseBid, kind } = info;
-  const openingSuit = opening.strain as Suit;
-  const hcp = context.handFacts.hcp;
-  const points = context.handFacts.totalPointsWShortage;
-  const stopper = hasBasicSuitStopper(context, overcall.strain as Suit);
-  const atMostThree = (suit: Suit): SuitBid | null => {
-    const next = cheapestBidInStrainAfter(responseBid ?? overcall, suit);
-    if (next === null) return null;
-    const bid = parseSuitBid(next);
-    return bid !== null && bid.level <= 3 && isCallAvailableInAuction(next, context.auction)
-      ? next : null;
-  };
-  if (kind === 'raise') {
-    if (points <= 15) return 'Pass';
-    if ((openingSuit === 'H' || openingSuit === 'S') && points >= 17) {
-      return `4${openingSuit}` as SuitBid;
-    }
-    return null;
-  }
-  // The existing preemptive major-game signoff already supplies Pass for this auction.
-  if (kind === 'majorGame') return null;
-  if (kind === 'notrumpThree') return hcp <= 17 ? 'Pass' : null;
-  if (kind === 'notrumpTwo') return hcp <= 13 ? 'Pass' : hcp <= 18 ? '3NT' : null;
-  if (kind === 'supportCuebid') return `4${openingSuit}` as SuitBid;
-  if (kind === 'negativeDouble') {
-    const implied = getNegativeDoubleImpliedSuits(opening, overcall);
-    const fit = implied.find((suit) => context.handFacts.lengths[suit] >= 4);
-    if (fit !== undefined) {
-      const bid = cheapestBidInStrainAfter(overcall, fit);
-      const parsed = bid === null ? null : parseSuitBid(bid);
-      if (bid === null || parsed === null || parsed.level > 4) return null;
-      return isCallAvailableInAuction(bid, context.auction) ? bid : null;
-    }
-    if (context.handFacts.lengths[openingSuit] >= 6) {
-      const repeat = atMostThree(openingSuit);
-      if (repeat !== null) return repeat;
-    }
-    return context.handFacts.balancedOrSemiBalanced && stopper && hcp >= 15 &&
-      isCallAvailableInAuction('3NT', context.auction) ? '3NT' : null;
-  }
-  if (responseBid === null || responseBid.strain === 'NT') return null;
-  const responseSuit = responseBid.strain as Suit;
-  const support = context.handFacts.lengths[responseSuit];
-  if (kind === 'newSuitThree') {
-    if ((responseSuit === 'H' || responseSuit === 'S') && support >= 3) {
-      return `4${responseSuit}` as SuitBid;
-    }
-    if (context.handFacts.balancedOrSemiBalanced && stopper &&
-        isCallAvailableInAuction('3NT', context.auction)) return '3NT';
-    if (responseSuit !== 'H' && responseSuit !== 'S' && support >= 4 &&
-        !context.handFacts.balancedOrSemiBalanced && !stopper) {
-      return `4${responseSuit}` as SuitBid;
-    }
-    return null;
-  }
-  // New suit at two is forcing for one round, but does not promise game values.
-  if (support >= 3) {
-    const raise = atMostThree(responseSuit);
-    if (raise !== null) return raise;
-  }
-  if (context.handFacts.lengths[openingSuit] >= 6) {
-    const repeat = atMostThree(openingSuit);
-    if (repeat !== null) return repeat;
-  }
-  if (context.handFacts.balanced && stopper) {
-    if (hcp >= 12 && hcp <= 14 && isCallAvailableInAuction('2NT', context.auction)) return '2NT';
-    if (hcp >= 18 && hcp <= 19 && isCallAvailableInAuction('3NT', context.auction)) return '3NT';
-  }
-  const second = SUITS.filter((suit) => suit !== openingSuit && suit !== responseSuit &&
-    suit !== overcall.strain && context.handFacts.lengths[suit] >= 4)
-    .map((suit) => ({ suit, bid: atMostThree(suit) }))
-    .filter((item) => {
-      if (item.bid === null) return false;
-      const bid = parseSuitBid(item.bid);
-      return bid !== null && (bid.level <= 2 || hcp >= 17) &&
-        (!openerRebidIsReverse(opening, responseBid, bid) || hcp >= 17);
-    })
-    .sort((a, b) => context.handFacts.lengths[b.suit] - context.handFacts.lengths[a.suit]);
-  return second[0]?.bid ?? null;
-}
-
-function jumpOvercallRebidEvidence(context: RuleEvalContext, selectedCall: Call | null):
-    CallEvidence | undefined {
-  const info = getJumpOvercallContinuation(context);
-  if (info === null) return undefined;
-  const responseSuit = info.responseBid === null || info.responseBid.strain === 'NT'
-    ? null : info.responseBid.strain as Suit;
-  const selectedBid = selectedCall === null ? null : parseSuitBid(selectedCall);
-  const selectedSuit = selectedBid === null || selectedBid.strain === 'NT'
-    ? null : selectedBid.strain as Suit;
-  return { openerJumpOvercallRebid: {
-    kind: info.kind, openingSuit: info.opening.strain as Suit,
-    opponentSuit: info.overcall.strain as Suit, responseSuit,
-    responseCall: info.response, hcp: context.handFacts.hcp,
-    supportPoints: context.handFacts.totalPointsWShortage,
-    openingLength: context.handFacts.lengths[info.opening.strain as Suit],
-    responseSupport: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
-    stopped: hasBasicSuitStopper(context, info.overcall.strain as Suit),
-    selectedCall, selectedSuit,
-    selectedLength: selectedSuit === null ? 0 : context.handFacts.lengths[selectedSuit],
-  } };
-}
-
-export function refineJumpOvercallOpenerAction (calls: Call[], context: RuleEvalContext):
-    CallRefinementResult {
-  const wanted = getJumpOvercallOpenerAction(context);
-  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
-    telemetryLines: [wanted === null
-      ? 'No selected natural opener continuation; consult the auction-specific boundary.'
-      : `Selected opener description after a jump overcall: ${wanted}.`],
-    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
-}
-
-export function jumpOvercallOpenerContinuationApplies (call: Call, context: RuleEvalContext,
-    _system: BiddingSystem): AppliesWhenResult {
-  const wanted = getJumpOvercallOpenerAction(context);
-  const success = wanted !== null && wanted === call;
-  return { success, telemetryLines: [success
-    ? `PASS: ${call} matches the selected response to partner's action over the jump overcall.`
-    : 'FAIL: this action does not match the selected continuation for the current hand.'],
-    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
-}
-
-export function jumpOvercallOpenerBoundaryApplies (context: RuleEvalContext,
-    _system: BiddingSystem): AppliesWhenResult {
-  const applies = getJumpOvercallContinuation(context) !== null;
-  return { success: applies, telemetryLines: [applies
-    ? 'PASS: selected jump-overcall auction needs guidance when no natural rebid qualifies.'
-    : 'FAIL: not the selected jump-overcall continuation.'] };
-}
-
 
 /// refineNtStaymanReply selects the reply one level above a natural 1NT or 2NT opening.
 /// Separate declarative rules decide whether opener has no four-card major, hearts, or spades.
@@ -647,627 +287,200 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 }
 
 ///
+//// Notrump Rebids After Opposing DONT Interference
+///
+
+/// The first four physical calls identify the selected continuation after an opposing
+/// natural DONT 2S or a DONT 2H showing both majors. With 2H, only natural minor
+/// responses are modeled; DONT 2C/2D and unagreed doubles/cuebids are excluded.
+interface OneNtInterferenceContinuation {
+  opposingSuit: Suit;
+  response: Call;
+  advance: Call;
+  naturalSuit: Suit | null;
+  naturalLevel: number | null;
+}
+
+export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext,
+    system: BiddingSystem):
+    CallRefinementResult {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
+  const fit = getOneNtDoubleFit(context, info.opposingSuit);
+  // Over a 2S overcall and Pass, 3H is the economical heart-fit reply.
+  // An opposing raise to 3S requires further judgment rather than a forced game bid.
+  const bid = fit !== null && info.advance === 'Pass' ?
+    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) : null;
+  const wanted = bid as Call | null;
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted &&
+    isCallAvailableInAuction(call, context.auction)), telemetryLines: [
+      fit === null ? 'No four-card fit for responder\'s takeout Double.' :
+      `Show the available four-card ${fit} fit at ${wanted}.`,
+  ], callEvidence: oneNtInterferenceEvidence(context,
+    system, 'doubleFit') };
+}
+
+export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalContext,
+                                                   system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const fit = info === null ? null : getOneNtDoubleFit(context, info.opposingSuit);
+  const stopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit);
+  const success = info !== null && info.response === 'Double' && info.advance === 'Pass' &&
+    fit === null && stopped && ((call === '2NT' && hcp <= min + 1) ||
+                               (call === '3NT' && hcp >= min + 2));
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: no four-card takeout fit, stopper, and ` +
+    `${call === '2NT' ? 'minimum/middle' : 'maximum'} NT opening strength.`,
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'doubleNt') };
+}
+
+export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleEvalContext,
+                                                      system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const suit = info?.naturalSuit;
+  const hcp = context.handFacts.hcp;
+  const support = suit === null || suit === undefined ? 0 : context.handFacts.lengths[suit];
+  const isTwo = info?.naturalLevel === 2;
+  const isDontMinorAtThree = info?.opposingSuit === 'H' && info.naturalLevel === 3 &&
+    (suit === 'C' || suit === 'D');
+  const bothMajorStopped = hasBasicSuitStopper(context, 'H') &&
+    hasBasicSuitStopper(context, 'S');
+  const strengthFits = (isTwo && (support <= 2 ||
+    (suit !== 'H' && suit !== 'S') || (hcp === min && support === 3))) ||
+    (isDontMinorAtThree && hcp === min && ! bothMajorStopped);
+  const success = info !== null && info.advance === 'Pass' && suit !== null &&
+    strengthFits;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: nonforcing natural suit, ` +
+    `${hcp} HCP and ${support}-card support; Pass only where no modeled improvement fits.`,
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalPass') };
+}
+
+export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
+    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const suit = info?.naturalSuit;
+  const min = system.oneNtOpening === '15-17' ? 15 : 16;
+  const hcp = context.handFacts.hcp;
+  const support = suit === 'H' || suit === 'S' ? context.handFacts.lengths[suit] : 0;
+  const isInviting = call === `3${suit}` && info?.naturalLevel === 2 &&
+    support >= 3 && ((hcp === min && support >= 4) || hcp === min + 1 ||
+                     (hcp === min + 2 && support === 3));
+  const isGame = call === `4${suit}` && support >= 3 &&
+    ((info?.naturalLevel === 2 && hcp === min + 2 && support >= 4) ||
+     info?.naturalLevel === 3);
+  const success = info !== null && info.advance === 'Pass' && (isInviting || isGame);
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: natural major support with ${support} trumps, ` +
+    `${hcp} HCP, and responder's ${info?.naturalLevel ?? '?'}-level action.`,
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'majorRaise') };
+}
+
+export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
+    context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  const suit = info?.naturalSuit;
+  const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
+  const bothStopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit) &&
+    (info.opposingSuit !== 'H' || hasBasicSuitStopper(context, 'S'));
+  const success = info !== null && info.advance === 'Pass' && info.naturalLevel === 3 &&
+    ! majorFit && bothStopped;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: constructive three-level natural response; ` +
+    'prefer 3NT when the opposing suit is stopped and no major fit is present.',
+  ], callEvidence: oneNtInterferenceEvidence(context, system, 'naturalThreeNt') };
+}
+
+export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null) return { success: false, telemetryLines: [] };
+  const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info.opposingSuit) : null;
+  let success = false;
+  if (info.response === 'Double') {
+    // An opposing raise needs additional judgment, even with a heart fit.
+    success = info.advance !== 'Pass' ||
+      (fit === null && ! hasBasicSuitStopper(context, info.opposingSuit));
+  } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
+    const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
+      context.handFacts.lengths[info.naturalSuit] >= 3;
+    // DONT 2H shows both majors: missing either stopper leaves strain judgment unresolved.
+    const requiredSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+    success = ! majorFit && requiredSuits.some((suit) => !hasBasicSuitStopper(context, suit));
+  }
+  return { success, telemetryLines: [success ? 'No deterministic natural strain or stopper.' :
+    'A selected Pass, suit fit, or notrump description remains available.'] };
+}
+
+
+function getOneNtInterferenceContinuation (context: RuleEvalContext):
+    OneNtInterferenceContinuation | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 4) return null;
+  const overcall = parseSuitBid(context.auction[opening.index + 1] ?? 'Pass');
+  const response = context.auction[opening.index + 2];
+  const advance = context.auction[opening.index + 3];
+  if (overcall === null || overcall.level !== 2 ||
+      (overcall.strain !== 'H' && overcall.strain !== 'S') ||
+      response === undefined || advance === undefined) return null;
+  const responseBid = parseSuitBid(response);
+  const naturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
+    responseBid.strain !== overcall.strain ? responseBid.strain as Suit : null;
+  const isDontMajors = overcall.strain === 'H';
+  const responseIsSupported = (! isDontMajors && response === 'Double') ||
+    (naturalSuit !== null && (responseBid?.level === 2 || responseBid?.level === 3) &&
+     (! isDontMajors || (responseBid?.level === 3 &&
+                         (naturalSuit === 'C' || naturalSuit === 'D'))) &&
+     cheapestBidInStrainAfter(overcall, naturalSuit) === response);
+  if (! responseIsSupported) return null;
+  if (advance !== 'Pass' &&
+      ! (response === 'Double' && advance === `3${overcall.strain}`)) return null;
+  return { opposingSuit: overcall.strain as Suit, response, advance, naturalSuit,
+    naturalLevel: naturalSuit === null ? null : responseBid!.level };
+}
+
+/// After a natural DONT 2S, responder's takeout Double promises four hearts.
+/// Opener needs four hearts too before describing an eight-card heart fit.
+function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
+  return opposingSuit === 'S' && context.handFacts.lengths.H >= 4 ? 'H' : null;
+}
+
+function oneNtInterferenceEvidence(context: RuleEvalContext, system: BiddingSystem,
+    treatment: NonNullable<CallEvidence['openerOneNtInterference']>['treatment']):
+    CallEvidence | undefined {
+  const info = getOneNtInterferenceContinuation(context);
+  if (info === null) return undefined;
+  const opponentSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+  const missingStoppers = opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit));
+  const responseSuit = info.naturalSuit;
+  const fitSuit = info.response === 'Double'
+    ? getOneNtDoubleFit(context, info.opposingSuit)
+    : responseSuit === 'H' || responseSuit === 'S' ? responseSuit : null;
+  return { openerOneNtInterference: {
+    treatment, hcp: context.handFacts.hcp,
+    minimumHcp: system.oneNtOpening === '15-17' ? 15 : 16,
+    response: info.response, opponentSuits, missingStoppers,
+    responseSuit, responseLevel: info.naturalLevel,
+    support: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
+    fitSuit, fitLength: fitSuit === null ? 0 : context.handFacts.lengths[fitSuit],
+  } };
+}
+
+///
 //// Opener Rebids After One-Level Suit Openings
 ///
 
 
-/// getOpenerNegativeDoubleInfo keeps the full competitive meaning of responder's negative Double
-/// together for opener's second turn.  The implied suits come from the opening and overcall;
-/// advancerKind records whether fourth hand Passed, supported the overcaller, described another
-/// strain, or made one of the artificial actions already modeled by the advancing rules.
-interface OpenerNegativeDoubleInfo {
-  opening: ParsedSuitBid;
-  overcall: ParsedSuitBid;
-  impliedSuits: Suit[];
-  advancerKind: AdvancerCallKind;
-}
-
-function getOpenerNegativeDoubleInfo (context: RuleEvalContext): OpenerNegativeDoubleInfo | null {
-  if (context.stage !== 'openerRebid' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
-    return null;
-  }
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null || context.auction.length !== openingInfo.index + 4 ||
-      context.auction[openingInfo.index + 2] !== 'Double') {
-    return null;
-  }
-  const opening = parseSuitBid(openingInfo.call);
-  const overcallCall = context.auction[openingInfo.index + 1];
-  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
-  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
-      overcall === null || overcall.strain === 'NT' || advancerKind === null ||
-      advancerKind === 'responsiveDouble' || advancerKind === 'other') {
-    return null;
-  }
-  return {
-    opening,
-    overcall,
-    impliedSuits: getNegativeDoubleImpliedSuits(opening, overcall),
-    advancerKind,
-  };
-}
-
-/// getOpenerNegativeDoubleFitSuits returns the implied suits in which opener actually has the
-/// four-card fit responder's Double asked opener to look for.  Prefer a longer fit; equal majors
-/// use the existing major ordering, while equal minors are presented up the line.
-function getOpenerNegativeDoubleFitSuits (
-    context: RuleEvalContext, info: OpenerNegativeDoubleInfo): Suit[] {
-  const fits = info.impliedSuits.map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
-    .filter(({ length }) => length >= 4);
-  if (fits.length > 1 && fits.every(({ suit }) => suit === 'H' || suit === 'S')) {
-    return orderMajorSuitCandidates(fits).map(({ suit }) => suit);
-  }
-  fits.sort((left, right) => right.length - left.length ||
-    STRAIN_ORDER.indexOf(left.suit) - STRAIN_ORDER.indexOf(right.suit));
-  return fits.map(({ suit }) => suit);
-}
-
-/// getCheapestAvailableSuitBidForOpener finds the lowest legal bid in a particular strain from
-/// opener's actual competitive position rather than measuring from responder's compact call.
-function getCheapestAvailableSuitBidForOpener (
-    context: RuleEvalContext, suit: Suit, maximumLevel: number): SuitBid | null {
-  for (let level = 1; level <= maximumLevel; level += 1) {
-    const call = `${level}${suit}` as SuitBid;
-    if (isCallAvailableInAuction(call, context.auction)) return call;
-  }
-  return null;
-}
-
-/// getOpenerNegativeDoubleImpliedSuitCall implements the selected strength ladder for a known
-/// implied-suit fit.  With advancer Pass, minimum opens the fit economically and medium jumps one
-/// level.  Once advancer acts, minimum/medium hands use only a still-economical bid through the
-/// three level; competition must not turn a vanished descriptive call into an automatic game.
-/// Maximum values place an implied major in game.  With an implied minor and advancer Pass, a
-/// strong jump below the four level describes the extra values without pretending five of a minor
-/// is automatic.
-function getOpenerNegativeDoubleImpliedSuitCall (
-    context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'): SuitBid | null {
-  const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null) return null;
-  for (const suit of getOpenerNegativeDoubleFitSuits(context, info)) {
-    if (strength === 'maximum') {
-      if (suit === 'H' || suit === 'S') {
-        const game = `4${suit}` as SuitBid;
-        if (isCallAvailableInAuction(game, context.auction)) return game;
-        continue;
-      }
-      if (info.advancerKind !== 'pass') continue;
-      const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 3);
-      const parsed = cheapest === null ? null : parseSuitBid(cheapest);
-      if (parsed !== null && parsed.level + 1 <= 3) {
-        return `${parsed.level + 1}${suit}` as SuitBid;
-      }
-      continue;
-    }
-
-    if (info.advancerKind !== 'pass') {
-      const competitive = getCheapestAvailableSuitBidForOpener(context, suit, 3);
-      if (competitive !== null) return competitive;
-      continue;
-    }
-
-    const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 4);
-    const parsed = cheapest === null ? null : parseSuitBid(cheapest);
-    if (parsed === null) continue;
-    if (strength === 'minimum') {
-      if (parsed.level <= 3) return cheapest;
-      continue;
-    }
-    const jumpLevel = parsed.level + 1;
-    if (jumpLevel <= 3 || ((suit === 'H' || suit === 'S') && jumpLevel === 4)) {
-      return `${jumpLevel}${suit}` as SuitBid;
-    }
-  }
-  return null;
-}
-
-export function refineOpenerNegativeDoubleImpliedSuitRebid (
-    calls: Call[], context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'):
-    CallRefinementResult {
-  const wanted = getOpenerNegativeDoubleImpliedSuitCall(context, strength);
-  return {
-    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
-    telemetryLines: wanted === null ? [
-      `No selected ${strength} implied-suit rebid is available after the negative Double.`,
-    ] : [
-      `Negative-Double implied-suit fit: ${strength} opener selects ${wanted}.`,
-    ],
-  };
-}
-
-/// getOpenerNegativeDoubleOpeningSuitCall keeps the ordinary six-card fallback only when opener
-/// lacks a four-card implied-suit fit.  Competition may move that repeat upward, but this selected
-/// treatment stops once repeating opener's suit would require the four level.
-function getOpenerNegativeDoubleOpeningSuitCall (context: RuleEvalContext): SuitBid | null {
-  const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null || getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
-      context.handFacts.lengths[info.opening.strain as Suit] < 6) {
-    return null;
-  }
-  return getCheapestAvailableSuitBidForOpener(context, info.opening.strain as Suit, 3);
-}
-
-export function refineOpenerNegativeDoubleOpeningSuitRebid (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const wanted = getOpenerNegativeDoubleOpeningSuitCall(context);
-  return {
-    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
-    telemetryLines: wanted === null
-      ? ['No selected six-card opening-suit repeat is available after the negative Double.']
-      : [`Repeat opener's six-card suit economically with ${wanted}.`],
-  };
-}
-
-/// getOpenerNegativeDoubleNtCall retains only the normal 12-14 1NT or 18-19 2NT description.
-/// Do not promote an unavailable NT level after competition.  Opener also needs stoppers in every
-/// suit the opponents have bid naturally, and NT is a fallback only without an implied-suit fit or
-/// six-card opening-suit repeat.
-function getOpenerNegativeDoubleNtCall (context: RuleEvalContext): SuitBid | null {
-  const info = getOpenerNegativeDoubleInfo(context);
-  if (info === null || ! context.handFacts.balanced ||
-      getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
-      context.handFacts.lengths[info.opening.strain as Suit] >= 6) {
-    return null;
-  }
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
-  if (! opponentSuits.every((suit) => hasBasicSuitStopper(context, suit))) return null;
-  const hcp = context.handFacts.hcp;
-  const wanted = hcp >= 12 && hcp <= 14 ? '1NT' : hcp >= 18 && hcp <= 19 ? '2NT' : null;
-  return wanted !== null && isCallAvailableInAuction(wanted, context.auction) ? wanted : null;
-}
-
-export function openerNegativeDoubleNtApplies (
-    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const wanted = getOpenerNegativeDoubleNtCall(context);
-  const success = wanted !== null && call === wanted;
-  return {
-    success,
-    telemetryLines: [success
-      ? `PASS: ${wanted} keeps the ordinary balanced range with all opponent suits stopped.`
-      : 'FAIL: no selected natural NT rebid applies after the negative Double.'],
-  };
-}
-
-/// openerNegativeDoubleCompetitionPassApplies keeps Pass as a real minimum action only after
-/// advancer intervenes and no selected fit, six-card repeat, or natural NT description survives.
-/// Responder still has another turn; this is not a conversion of the negative Double to penalty.
-export function openerNegativeDoubleCompetitionPassApplies (
-    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const info = getOpenerNegativeDoubleInfo(context);
-  const points = context.handFacts.totalPointsWShortage;
-  const noDescriptiveCall = info !== null && info.advancerKind !== 'pass' &&
-    points >= 12 && points <= 16 &&
-    getOpenerNegativeDoubleImpliedSuitCall(context, 'minimum') === null &&
-    getOpenerNegativeDoubleOpeningSuitCall(context) === null &&
-    getOpenerNegativeDoubleNtCall(context) === null;
-  return {
-    success: noDescriptiveCall,
-    telemetryLines: [noDescriptiveCall
-      ? 'PASS: advancer intervened and no selected minimum descriptive rebid remains.'
-      : 'FAIL: Pass is not the selected negative-Double continuation for this hand.'],
-  };
-}
-
-/// openerNegativeDoubleScopeBoundaryApplies marks a reviewed negative-Double continuation as a
-/// fallback boundary.  The evaluator suppresses it whenever one of the concrete fit, long-suit,
-/// NT, game, or minimum-Pass calls applies, so this reaches only the remaining judgment-heavy hand.
-export function openerNegativeDoubleScopeBoundaryApplies (
-    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const success = getOpenerNegativeDoubleInfo(context) !== null;
-  return {
-    success,
-    telemetryLines: [success
-      ? 'PASS: reviewed negative-Double auction can use a scope boundary if no bid applies.'
-      : 'FAIL: not a reviewed negative-Double opener continuation.'],
-  };
-}
-
-/// openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies identifies the medium-strength
-/// simple-raise hands for which further competition has removed the trainer's ordinary game-try
-/// structure.  These hands are strong enough to consider bidding again, but Pass versus competing
-/// depends on shape, trump texture, honor location, vulnerability, and the level already reached.
-export function openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies (
-    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  if (opening === null || opening.strain === 'NT') {
-    return { success: false, telemetryLines: ['FAIL: no one-level suit opening for this boundary.'] };
-  }
-  const majorFit = opening.strain === 'H' || opening.strain === 'S';
-  const points = majorFit
-    ? context.handFacts.totalPointsWShortage
-    : context.handFacts.totalPointsWLength;
-  const success = points >= 17 && points <= 18;
-  const label = majorFit ? 'shortage-adjusted' : 'length-adjusted';
-  return {
-    success,
-    telemetryLines: [
-      `${success ? 'PASS' : 'FAIL'}: ${points} ${label} points; boundary range is 17-18.`,
-    ],
-  };
-}
+//// Uncontested One-Level Suit Rebids
 
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
 ///
-/// getOpenerForcingResponseCompetitionInfo recognizes the reviewed continuation where responder
-/// introduced a natural forcing suit and advancer then competed naturally.  The response meaning
-/// comes from the interference family: one-level natural responses are forcing after either a suit
-/// overcall or takeout Double, while a non-jump two-level response after a suit overcall is also
-/// forcing one round and promises five or more cards.
-function getOpenerForcingResponseCompetitionInfo (context: RuleEvalContext):
-    { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
-      minimumSupport: number } | null {
-  if (context.stage !== 'openerRebid') return null;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return null;
-  const opening = parseSuitBid(openingInfo.call);
-  const overcallCall = context.auction[openingInfo.index + 1];
-  const responseCall = context.auction[openingInfo.index + 2];
-  const advanceCall = context.auction[openingInfo.index + 3];
-  const response = responseCall === undefined ? null : parseSuitBid(responseCall);
-  const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
-  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
-      response === null || response.strain === 'NT' || advance === null ||
-      response.strain === opening.strain) {
-    return null;
-  }
-  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
-  if (interference === 'suitOvercall') {
-    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-    if (overcall === null || overcall.strain === 'NT' || response.strain === overcall.strain ||
-        (response.level !== 1 && response.level !== 2) ||
-        cheapestBidInStrainAfter(overcall, response.strain) !== responseCall ||
-        (advancerKind !== 'raise' && advancerKind !== 'preemptiveRaise' &&
-         advancerKind !== 'newSuit')) {
-      return null;
-    }
-    return { opening, response, advance, minimumSupport: response.level === 2 ? 3 : 4 };
-  }
-  if (interference === 'takeoutDouble') {
-    if (response.level !== 1 || cheapestBidInStrainAfter(opening, response.strain) !== responseCall ||
-        advancerKind !== 'newSuit') {
-      return null;
-    }
-    return { opening, response, advance, minimumSupport: 4 };
-  }
-  return null;
-}
-
-/// refineOpenerForcingResponseCompetitionSupport keeps a natural raise of responder's forcing suit
-/// only through the three level.  Competition may make the old cheap raise unavailable, but moving
-/// one level higher remains descriptive when it is still below game; a forced game-level decision
-/// is left to the separate maximum rule or scope-boundary guidance.
-export function refineOpenerForcingResponseCompetitionSupport (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
-    return { calls: [], telemetryLines: ['No supported forcing-response fit is available.'] };
-  }
-  const wanted = cheapestBidInStrainAfter(info.advance, info.response.strain);
-  const parsed = wanted === null ? null : parseSuitBid(wanted);
-  if (parsed === null || parsed.level > 3) {
-    return { calls: [], telemetryLines: ['Competition has pushed the natural raise to game level.'] };
-  }
-  return {
-    calls: calls.filter((call) => call === wanted),
-    telemetryLines: [`Support responder at the cheapest available level with ${wanted}.`],
-  };
-}
-
-/// refineOpenerForcingResponseCompetitionRepeat keeps a six-card opening suit at the cheapest
-/// available level through three.  It deliberately does not promote a blocked partscore rebid into
-/// a game-level decision merely because advancer consumed bidding space.
-export function refineOpenerForcingResponseCompetitionRepeat (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null || context.handFacts.lengths[info.opening.strain as Suit] < 6) {
-    return { calls: [], telemetryLines: ['No six-card opening suit is available to repeat.'] };
-  }
-  const wanted = cheapestBidInStrainAfter(info.advance, info.opening.strain);
-  const parsed = wanted === null ? null : parseSuitBid(wanted);
-  if (parsed === null || parsed.level > 3) {
-    return { calls: [], telemetryLines: ['Competition has pushed the opening-suit rebid too high.'] };
-  }
-  return {
-    calls: calls.filter((call) => call === wanted),
-    telemetryLines: [`Repeat the six-card opening suit economically with ${wanted}.`],
-  };
-}
-
-/// refineOpenerForcingResponseCompetitionGameRaise keeps only game in responder's natural suit
-/// when opener has maximum values and the support promised by this competitive response family.
-export function refineOpenerForcingResponseCompetitionGameRaise (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
-    return { calls: [], telemetryLines: ['No maximum forcing-response fit is available.'] };
-  }
-  const targetLevel = info.response.strain === 'H' || info.response.strain === 'S' ? 4 : 5;
-  const wanted = `${targetLevel}${info.response.strain}` as SuitBid;
-  return {
-    calls: calls.filter((call) => call === wanted),
-    telemetryLines: [`Maximum opener places the supported responder suit in game at ${wanted}.`],
-  };
-}
-
-/// openerForcingResponseCompetitionNtApplies retains only the ordinary balanced notrump ranges
-/// whose original contract level is still available after advancer acts.  The evaluator's shared
-/// competitive filter separately requires stoppers in every suit the opponents bid naturally.
-export function openerForcingResponseCompetitionNtApplies (
-    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null || ! context.handFacts.balanced ||
-      context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport) {
-    return { success: false, telemetryLines: ['FAIL: no balanced forcing-response NT rebid.'] };
-  }
-  const hcp = context.handFacts.hcp;
-  let wanted: SuitBid | null = null;
-  if (hcp >= 12 && hcp <= 14) {
-    wanted = info.response.level === 1 ? '1NT' : '2NT';
-  } else if (hcp >= 18 && hcp <= 19) {
-    wanted = info.response.level === 1 ? '2NT' : '3NT';
-  }
-  const success = wanted !== null && call === wanted &&
-    isCallAvailableInAuction(wanted, context.auction);
-  return {
-    success,
-    telemetryLines: [success
-      ? `PASS: ${wanted} retains the natural balanced range after advancer competes.`
-      : 'FAIL: no available natural notrump rebid matches this strength and response level.'],
-  };
-}
-
-/// openerForcingResponseCompetitionPassApplies keeps a genuine minimum Pass only when competition
-/// has removed the selected descriptive continuations.  Responder still has another turn; this is
-/// not a claim that the original forcing response was weak or that opener would Pass without the
-/// intervening call.
-export function openerForcingResponseCompetitionPassApplies (
-    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null) {
-    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
-  }
-  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
-  const points = hasFit
-    ? context.handFacts.totalPointsWShortage
-    : context.handFacts.totalPointsWLength;
-  if (points < 12 || points > 16) {
-    return { success: false, telemetryLines: [`FAIL: minimum Pass range is 12-16; hand has ${points}.`] };
-  }
-  const clearContinuation = hasClearForcingResponseCompetitionContinuation(context, info);
-  return {
-    success: ! clearContinuation,
-    telemetryLines: [clearContinuation
-      ? 'FAIL: a selected natural descriptive continuation remains available.'
-      : 'PASS: competition removed the selected descriptive rebids; minimum opener may Pass.'],
-  };
-}
-
-/// openerForcingResponseCompetitionScopeBoundaryApplies identifies extra-value hands after a
-/// natural forcing responder suit where no concrete modeled action survives.  A concrete rule, if
-/// one applies, suppresses this explanatory fallback in the evaluator.
-export function openerForcingResponseCompetitionScopeBoundaryApplies (
-    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const info = getOpenerForcingResponseCompetitionInfo(context);
-  if (info === null) {
-    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
-  }
-  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
-  const points = hasFit
-    ? context.handFacts.totalPointsWShortage
-    : context.handFacts.totalPointsWLength;
-  const success = points >= 17;
-  return {
-    success,
-    telemetryLines: [
-      `${success ? 'PASS' : 'FAIL'}: extra-value boundary starts at 17; hand has ${points}.`,
-    ],
-  };
-}
-
-/// Pass of a weak competitive response after a takeout Double is selected for a
-/// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
-/// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
-export function openerWeakAfterDoublePassApplies(
-    _call: Call, context: RuleEvalContext, _system: BiddingSystem,
-    requireNtShape = false): AppliesWhenResult {
-  const facts = context.handFacts;
-  const ordinary = facts.hcp >= 12 && facts.hcp <= 14;
-  const light = facts.hcp < 12 && facts.totalPointsWLength >= 12;
-  const shape = !requireNtShape || facts.balancedOrSemiBalanced;
-  return { success: (ordinary || light) && shape, telemetryLines: [
-    `${ordinary || light ? 'PASS' : 'FAIL'}: opener has ${facts.hcp} HCP + ` +
-      `${facts.lengthPoints} length points = ${facts.totalPointsWLength}; ` +
-      'minimum is 12–14 HCP or a length-qualified lighter opening.',
-    `${shape ? 'PASS' : 'FAIL'}: ${requireNtShape
-      ? 'natural 1NT Pass needs balanced or semi-balanced opener shape'
-      : 'no additional shape test for this nonforcing action'}.`,
-  ] };
-}
-
-/// Strong openers after a weak, nonforcing response need fit and game judgment.
-/// The scope boundary is not a recommendation against Pass.
-export function openerWeakAfterDoubleBoundaryApplies(
-    context: RuleEvalContext, naturalOneNt = false): AppliesWhenResult {
-  const facts = context.handFacts;
-  const stronger = facts.hcp >= 15;
-  const ntShapeJudgment = naturalOneNt && !facts.balancedOrSemiBalanced;
-  return { success: stronger || ntShapeJudgment, telemetryLines: [
-    `${stronger || ntShapeJudgment ? 'PASS' : 'FAIL'}: further judgment after weak response; ` +
-      `${facts.hcp} HCP, shape ${facts.balancedOrSemiBalanced ? 'balanced/semi-balanced' : 'distributional'}.`,
-  ] };
-}
-
-/// An opening with fewer than 12 HCP may be legitimate on length-adjusted 12+ points.
-  // The natural-notrump responder ranges remain HCP ranges: do not misclassify
-  // a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.
-export function openerCompetitiveNaturalNtPassApplies(
-    context: RuleEvalContext, maximumHcp: number,
-    requireSemiBalanced = false): AppliesWhenResult {
-  const { hcp, lengthPoints, totalPointsWLength, balancedOrSemiBalanced } = context.handFacts;
-  const ordinaryMinimum = hcp >= 12 && hcp <= maximumHcp;
-  const lightOpening = hcp < 12 && totalPointsWLength >= 12;
-  const shapeOkay = !requireSemiBalanced || balancedOrSemiBalanced;
-  const success = (ordinaryMinimum || lightOpening) && shapeOkay;
-  return { success, telemetryLines: [
-    `${ordinaryMinimum || lightOpening ? 'PASS' : 'FAIL'}: natural notrump Pass accepts ` +
-      `12–${maximumHcp} HCP or a length-qualified light opening; ` +
-      `hand has ${hcp} HCP + ${lengthPoints} length points = ${totalPointsWLength} opening points.`,
-    `${shapeOkay ? 'PASS' : 'FAIL'}: ${requireSemiBalanced ? 'balanced or semi-balanced shape required' :
-       'no additional opener shape requirement'}.`,
-  ] };
-}
-
-/// A9's cuebid is advancer's artificial bid in opener's known suit after responder's
-/// nonforcing simple raise.  This is not a natural contract in opener's suit.
-function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {
-  if (context.stage !== 'openerRebid') return false;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return false;
-  const opening = parseSuitBid(openingInfo.call);
-  const response = parseSuitBid(context.auction[openingInfo.index + 2] ?? 'Pass');
-  const advance = context.auction[openingInfo.index + 3];
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
-  return opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
-    response !== null && response.strain === opening.strain && response.level === 2 &&
-    (interference === 'suitOvercall' || interference === 'takeoutDouble') &&
-    getAdvancerCallKindForOpenerRebid(context.dealer, context.auction) === 'cuebid' &&
-    cheapestBidInStrainAfter(response, opening.strain) === advance;
-}
-
-/// Only a minimum, nonforcing raise admits this defensive Pass. Passing an artificial
-/// opponent cuebid does not suggest that our partnership will play in that suit.
-export function openerSupportCuebidPassApplies (
-    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const selected = openerAfterAdvancerSupportCuebid(context);
-  const points = context.handFacts.totalPointsWShortage;
-  return { success: selected && points >= 12 && points <= 16,
-    telemetryLines: [selected
-      ? `Opener has ${points} support points after opponent's artificial support cuebid.`
-      : 'Not the selected simple-raise / artificial-advancer-cuebid auction.'] };
-}
-
-export function openerSupportCuebidGameApplies (
-    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const selected = openerAfterAdvancerSupportCuebid(context);
-  const points = context.handFacts.totalPointsWShortage;
-  const suit = opening?.strain;
-  const correctGame = suit === 'H' || suit === 'S' ? call === `4${suit}` : call === '3NT';
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
-  const stopped = opponentSuits.every((named) => hasBasicSuitStopper(context, named));
-  const success = selected && correctGame && points >= 19 &&
-    (suit === 'H' || suit === 'S' || (context.handFacts.balancedOrSemiBalanced && stopped));
-  return { success, telemetryLines: [success
-    ? 'Maximum opener can bid game after partner established a fit.'
-    : 'No selected major game or stopped minor-fit 3NT continuation.'] };
-}
-
-export function openerSupportCuebidScopeBoundaryApplies (
-    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  return { success: openerAfterAdvancerSupportCuebid(context), telemetryLines: [
-    'Artificial advancer cuebid after our simple raise: further bidding depends on fit, ' +
-    'game prospects, and defensive judgment.'] };
-}
-
-/// Responder's game-forcing three-level suit survives a further opposing raise.
-/// With 6+ cards in the opening major and 15+ length-adjusted points, game in that
-/// major is the selected natural route; this does not test the major's honor texture.
-export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
-    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderBid(context);
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  const advanceKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
-  const selected = context.stage === 'openerRebid' && openingInfo !== null &&
-    context.auction.length === openingInfo.index + 4 &&
-    getInterferenceAfterOpening(context.dealer, context.auction) === 'suitOvercall' &&
-    (advanceKind === 'raise' || advanceKind === 'preemptiveRaise') &&
-    opening !== null && (opening.strain === 'H' || opening.strain === 'S') &&
-    response !== null && response.level === 3 && response.strain !== 'NT' &&
-    response.strain !== opening.strain && call === `4${opening.strain}`;
-  const goodLongMajor = selected && opening !== null &&
-    context.handFacts.lengths[opening.strain as Suit] >= 6 &&
-    context.handFacts.totalPointsWLength >= 15;
-  return { success: goodLongMajor, telemetryLines: [goodLongMajor
-    ? 'Six-card opening major and 15+ length-adjusted points support major-suit game.'
-    : 'The selected major game needs six trumps and 15+ length-adjusted points.'] };
-}
-
-/// openerThreeLevelForcingResponseThreeNtApplies keeps a natural 3NT rebid after responder makes
-/// the selected game-forcing three-level new-suit response to a two-level overcall.  Prefer a
-/// known major fit; otherwise opener needs a balanced/semi-balanced hand and a stopper in every
-/// naturally bid opponent suit.
-export function openerThreeLevelForcingResponseThreeNtApplies (
-    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
-  const response = getResponderBid(context);
-  if (call !== '3NT' || response === null || response.level !== 3 || response.strain === 'NT') {
-    return { success: false, telemetryLines: ['FAIL: not the selected three-level forcing response.'] };
-  }
-  const majorFit = (response.strain === 'H' || response.strain === 'S') &&
-    context.handFacts.lengths[response.strain as Suit] >= 3;
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
-    context.dealer, context.auction);
-  const stopped = opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
-  const shapeOkay = context.handFacts.balancedOrSemiBalanced;
-  const success = ! majorFit && shapeOkay && stopped;
-  return {
-    success,
-    telemetryLines: [
-      `${majorFit ? 'FAIL' : 'PASS'}: prefer the known major fit when opener has three-card support.`,
-      `${shapeOkay ? 'PASS' : 'FAIL'}: 3NT needs balanced or semi-balanced shape.`,
-      `${stopped ? 'PASS' : 'FAIL'}: 3NT needs every naturally bid opponent suit stopped.`,
-    ],
-  };
-}
-
-/// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
-/// declared for this family.  It is intentionally narrower than general bridge judgment: support,
-/// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.
-function hasClearForcingResponseCompetitionContinuation (
-    context: RuleEvalContext,
-    info: { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
-            minimumSupport: number }): boolean {
-  const responseSuit = info.response.strain as Suit;
-  if (context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
-    const raise = cheapestBidInStrainAfter(info.advance, responseSuit);
-    const parsedRaise = raise === null ? null : parseSuitBid(raise);
-    if (parsedRaise !== null && parsedRaise.level <= 3) return true;
-  }
-  const openingSuit = info.opening.strain as Suit;
-  if (context.handFacts.lengths[openingSuit] >= 6) {
-    const repeat = cheapestBidInStrainAfter(info.advance, openingSuit);
-    const parsedRepeat = repeat === null ? null : parseSuitBid(repeat);
-    if (parsedRepeat !== null && parsedRepeat.level <= 3) return true;
-  }
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
-    context.dealer, context.auction);
-  for (const suit of SUITS) {
-    if (suit === openingSuit || suit === responseSuit || opponentSuits.includes(suit) ||
-        context.handFacts.lengths[suit] < 4) {
-      continue;
-    }
-    const cheapest = cheapestBidInStrainAfter(info.response, suit);
-    const candidate = cheapest === null ? null : parseSuitBid(cheapest);
-    if (cheapest !== null && candidate !== null &&
-        ! openerRebidIsReverse(info.opening, info.response, candidate) &&
-        isCallAvailableInAuction(cheapest, context.auction)) {
-      return true;
-    }
-  }
-  if (! context.handFacts.balanced || context.handFacts.hcp < 12 || context.handFacts.hcp > 14 ||
-      context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
-    return false;
-  }
-  const ntCall = (info.response.level === 1 ? '1NT' : '2NT') as SuitBid;
-  return isCallAvailableInAuction(ntCall, context.auction) &&
-    opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
-}
-
 export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
@@ -2012,6 +1225,815 @@ export function openerJacobyGoodSideSuitApplies (call: Call, context: RuleEvalCo
 }
 
 ///
+///
+//// Competitive Suit Rebids After a Negative Double
+///
+
+/// getOpenerNegativeDoubleInfo keeps the full competitive meaning of responder's negative Double
+/// together for opener's second turn.  The implied suits come from the opening and overcall;
+/// advancerKind records whether fourth hand Passed, supported the overcaller, described another
+/// strain, or made one of the artificial actions already modeled by the advancing rules.
+interface OpenerNegativeDoubleInfo {
+  opening: ParsedSuitBid;
+  overcall: ParsedSuitBid;
+  impliedSuits: Suit[];
+  advancerKind: AdvancerCallKind;
+}
+
+function getOpenerNegativeDoubleInfo (context: RuleEvalContext): OpenerNegativeDoubleInfo | null {
+  if (context.stage !== 'openerRebid' ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4 ||
+      context.auction[openingInfo.index + 2] !== 'Double') {
+    return null;
+  }
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' || advancerKind === null ||
+      advancerKind === 'responsiveDouble' || advancerKind === 'other') {
+    return null;
+  }
+  return {
+    opening,
+    overcall,
+    impliedSuits: getNegativeDoubleImpliedSuits(opening, overcall),
+    advancerKind,
+  };
+}
+
+/// getOpenerNegativeDoubleFitSuits returns the implied suits in which opener actually has the
+/// four-card fit responder's Double asked opener to look for.  Prefer a longer fit; equal majors
+/// use the existing major ordering, while equal minors are presented up the line.
+function getOpenerNegativeDoubleFitSuits (
+    context: RuleEvalContext, info: OpenerNegativeDoubleInfo): Suit[] {
+  const fits = info.impliedSuits.map((suit) => ({ suit, length: context.handFacts.lengths[suit] }))
+    .filter(({ length }) => length >= 4);
+  if (fits.length > 1 && fits.every(({ suit }) => suit === 'H' || suit === 'S')) {
+    return orderMajorSuitCandidates(fits).map(({ suit }) => suit);
+  }
+  fits.sort((left, right) => right.length - left.length ||
+    STRAIN_ORDER.indexOf(left.suit) - STRAIN_ORDER.indexOf(right.suit));
+  return fits.map(({ suit }) => suit);
+}
+
+/// getCheapestAvailableSuitBidForOpener finds the lowest legal bid in a particular strain from
+/// opener's actual competitive position rather than measuring from responder's compact call.
+function getCheapestAvailableSuitBidForOpener (
+    context: RuleEvalContext, suit: Suit, maximumLevel: number): SuitBid | null {
+  for (let level = 1; level <= maximumLevel; level += 1) {
+    const call = `${level}${suit}` as SuitBid;
+    if (isCallAvailableInAuction(call, context.auction)) return call;
+  }
+  return null;
+}
+
+/// getOpenerNegativeDoubleImpliedSuitCall implements the selected strength ladder for a known
+/// implied-suit fit.  With advancer Pass, minimum opens the fit economically and medium jumps one
+/// level.  Once advancer acts, minimum/medium hands use only a still-economical bid through the
+/// three level; competition must not turn a vanished descriptive call into an automatic game.
+/// Maximum values place an implied major in game.  With an implied minor and advancer Pass, a
+/// strong jump below the four level describes the extra values without pretending five of a minor
+/// is automatic.
+function getOpenerNegativeDoubleImpliedSuitCall (
+    context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'): SuitBid | null {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null) return null;
+  for (const suit of getOpenerNegativeDoubleFitSuits(context, info)) {
+    if (strength === 'maximum') {
+      if (suit === 'H' || suit === 'S') {
+        const game = `4${suit}` as SuitBid;
+        if (isCallAvailableInAuction(game, context.auction)) return game;
+        continue;
+      }
+      if (info.advancerKind !== 'pass') continue;
+      const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 3);
+      const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+      if (parsed !== null && parsed.level + 1 <= 3) {
+        return `${parsed.level + 1}${suit}` as SuitBid;
+      }
+      continue;
+    }
+
+    if (info.advancerKind !== 'pass') {
+      const competitive = getCheapestAvailableSuitBidForOpener(context, suit, 3);
+      if (competitive !== null) return competitive;
+      continue;
+    }
+
+    const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 4);
+    const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+    if (parsed === null) continue;
+    if (strength === 'minimum') {
+      if (parsed.level <= 3) return cheapest;
+      continue;
+    }
+    const jumpLevel = parsed.level + 1;
+    if (jumpLevel <= 3 || ((suit === 'H' || suit === 'S') && jumpLevel === 4)) {
+      return `${jumpLevel}${suit}` as SuitBid;
+    }
+  }
+  return null;
+}
+
+export function refineOpenerNegativeDoubleImpliedSuitRebid (
+    calls: Call[], context: RuleEvalContext, strength: 'minimum' | 'medium' | 'maximum'):
+    CallRefinementResult {
+  const wanted = getOpenerNegativeDoubleImpliedSuitCall(context, strength);
+  return {
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null ? [
+      `No selected ${strength} implied-suit rebid is available after the negative Double.`,
+    ] : [
+      `Negative-Double implied-suit fit: ${strength} opener selects ${wanted}.`,
+    ],
+  };
+}
+
+/// getOpenerNegativeDoubleOpeningSuitCall keeps the ordinary six-card fallback only when opener
+/// lacks a four-card implied-suit fit.  Competition may move that repeat upward, but this selected
+/// treatment stops once repeating opener's suit would require the four level.
+function getOpenerNegativeDoubleOpeningSuitCall (context: RuleEvalContext): SuitBid | null {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null || getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
+      context.handFacts.lengths[info.opening.strain as Suit] < 6) {
+    return null;
+  }
+  return getCheapestAvailableSuitBidForOpener(context, info.opening.strain as Suit, 3);
+}
+
+export function refineOpenerNegativeDoubleOpeningSuitRebid (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const wanted = getOpenerNegativeDoubleOpeningSuitCall(context);
+  return {
+    calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: wanted === null
+      ? ['No selected six-card opening-suit repeat is available after the negative Double.']
+      : [`Repeat opener's six-card suit economically with ${wanted}.`],
+  };
+}
+
+/// getOpenerNegativeDoubleNtCall retains only the normal 12-14 1NT or 18-19 2NT description.
+/// Do not promote an unavailable NT level after competition.  Opener also needs stoppers in every
+/// suit the opponents have bid naturally, and NT is a fallback only without an implied-suit fit or
+/// six-card opening-suit repeat.
+function getOpenerNegativeDoubleNtCall (context: RuleEvalContext): SuitBid | null {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null || ! context.handFacts.balanced ||
+      getOpenerNegativeDoubleFitSuits(context, info).length > 0 ||
+      context.handFacts.lengths[info.opening.strain as Suit] >= 6) {
+    return null;
+  }
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  if (! opponentSuits.every((suit) => hasBasicSuitStopper(context, suit))) return null;
+  const hcp = context.handFacts.hcp;
+  const wanted = hcp >= 12 && hcp <= 14 ? '1NT' : hcp >= 18 && hcp <= 19 ? '2NT' : null;
+  return wanted !== null && isCallAvailableInAuction(wanted, context.auction) ? wanted : null;
+}
+
+export function openerNegativeDoubleNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const wanted = getOpenerNegativeDoubleNtCall(context);
+  const success = wanted !== null && call === wanted;
+  return {
+    success,
+    telemetryLines: [success
+      ? `PASS: ${wanted} keeps the ordinary balanced range with all opponent suits stopped.`
+      : 'FAIL: no selected natural NT rebid applies after the negative Double.'],
+  };
+}
+
+/// openerNegativeDoubleCompetitionPassApplies keeps Pass as a real minimum action only after
+/// advancer intervenes and no selected fit, six-card repeat, or natural NT description survives.
+/// Responder still has another turn; this is not a conversion of the negative Double to penalty.
+export function openerNegativeDoubleCompetitionPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerNegativeDoubleInfo(context);
+  const points = context.handFacts.totalPointsWShortage;
+  const noDescriptiveCall = info !== null && info.advancerKind !== 'pass' &&
+    points >= 12 && points <= 16 &&
+    getOpenerNegativeDoubleImpliedSuitCall(context, 'minimum') === null &&
+    getOpenerNegativeDoubleOpeningSuitCall(context) === null &&
+    getOpenerNegativeDoubleNtCall(context) === null;
+  return {
+    success: noDescriptiveCall,
+    telemetryLines: [noDescriptiveCall
+      ? 'PASS: advancer intervened and no selected minimum descriptive rebid remains.'
+      : 'FAIL: Pass is not the selected negative-Double continuation for this hand.'],
+  };
+}
+
+/// openerNegativeDoubleScopeBoundaryApplies marks a reviewed negative-Double continuation as a
+/// fallback boundary.  The evaluator suppresses it whenever one of the concrete fit, long-suit,
+/// NT, game, or minimum-Pass calls applies, so this reaches only the remaining judgment-heavy hand.
+export function openerNegativeDoubleScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const success = getOpenerNegativeDoubleInfo(context) !== null;
+  return {
+    success,
+    telemetryLines: [success
+      ? 'PASS: reviewed negative-Double auction can use a scope boundary if no bid applies.'
+      : 'FAIL: not a reviewed negative-Double opener continuation.'],
+  };
+}
+
+/// openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies identifies the medium-strength
+/// simple-raise hands for which further competition has removed the trainer's ordinary game-try
+/// structure.  These hands are strong enough to consider bidding again, but Pass versus competing
+/// depends on shape, trump texture, honor location, vulnerability, and the level already reached.
+export function openerSimpleRaiseContinuedCompetitionScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  if (opening === null || opening.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: no one-level suit opening for this boundary.'] };
+  }
+  const majorFit = opening.strain === 'H' || opening.strain === 'S';
+  const points = majorFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  const success = points >= 17 && points <= 18;
+  const label = majorFit ? 'shortage-adjusted' : 'length-adjusted';
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'PASS' : 'FAIL'}: ${points} ${label} points; boundary range is 17-18.`,
+    ],
+  };
+}
+
+///
+//// Competitive Suit Rebids After a Forcing Response
+///
+
+/// getOpenerForcingResponseCompetitionInfo recognizes the reviewed continuation where responder
+/// introduced a natural forcing suit and advancer then competed naturally.  The response meaning
+/// comes from the interference family: one-level natural responses are forcing after either a suit
+/// overcall or takeout Double, while a non-jump two-level response after a suit overcall is also
+/// forcing one round and promises five or more cards.
+function getOpenerForcingResponseCompetitionInfo (context: RuleEvalContext):
+    { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
+      minimumSupport: number } | null {
+  if (context.stage !== 'openerRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return null;
+  const opening = parseSuitBid(openingInfo.call);
+  const overcallCall = context.auction[openingInfo.index + 1];
+  const responseCall = context.auction[openingInfo.index + 2];
+  const advanceCall = context.auction[openingInfo.index + 3];
+  const response = responseCall === undefined ? null : parseSuitBid(responseCall);
+  const advance = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      response === null || response.strain === 'NT' || advance === null ||
+      response.strain === opening.strain) {
+    return null;
+  }
+  const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  if (interference === 'suitOvercall') {
+    const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+    if (overcall === null || overcall.strain === 'NT' || response.strain === overcall.strain ||
+        (response.level !== 1 && response.level !== 2) ||
+        cheapestBidInStrainAfter(overcall, response.strain) !== responseCall ||
+        (advancerKind !== 'raise' && advancerKind !== 'preemptiveRaise' &&
+         advancerKind !== 'newSuit')) {
+      return null;
+    }
+    return { opening, response, advance, minimumSupport: response.level === 2 ? 3 : 4 };
+  }
+  if (interference === 'takeoutDouble') {
+    if (response.level !== 1 || cheapestBidInStrainAfter(opening, response.strain) !== responseCall ||
+        advancerKind !== 'newSuit') {
+      return null;
+    }
+    return { opening, response, advance, minimumSupport: 4 };
+  }
+  return null;
+}
+
+/// refineOpenerForcingResponseCompetitionSupport keeps a natural raise of responder's forcing suit
+/// only through the three level.  Competition may make the old cheap raise unavailable, but moving
+/// one level higher remains descriptive when it is still below game; a forced game-level decision
+/// is left to the separate maximum rule or scope-boundary guidance.
+export function refineOpenerForcingResponseCompetitionSupport (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
+    return { calls: [], telemetryLines: ['No supported forcing-response fit is available.'] };
+  }
+  const wanted = cheapestBidInStrainAfter(info.advance, info.response.strain);
+  const parsed = wanted === null ? null : parseSuitBid(wanted);
+  if (parsed === null || parsed.level > 3) {
+    return { calls: [], telemetryLines: ['Competition has pushed the natural raise to game level.'] };
+  }
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Support responder at the cheapest available level with ${wanted}.`],
+  };
+}
+
+/// refineOpenerForcingResponseCompetitionRepeat keeps a six-card opening suit at the cheapest
+/// available level through three.  It deliberately does not promote a blocked partscore rebid into
+/// a game-level decision merely because advancer consumed bidding space.
+export function refineOpenerForcingResponseCompetitionRepeat (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.opening.strain as Suit] < 6) {
+    return { calls: [], telemetryLines: ['No six-card opening suit is available to repeat.'] };
+  }
+  const wanted = cheapestBidInStrainAfter(info.advance, info.opening.strain);
+  const parsed = wanted === null ? null : parseSuitBid(wanted);
+  if (parsed === null || parsed.level > 3) {
+    return { calls: [], telemetryLines: ['Competition has pushed the opening-suit rebid too high.'] };
+  }
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Repeat the six-card opening suit economically with ${wanted}.`],
+  };
+}
+
+/// refineOpenerForcingResponseCompetitionGameRaise keeps only game in responder's natural suit
+/// when opener has maximum values and the support promised by this competitive response family.
+export function refineOpenerForcingResponseCompetitionGameRaise (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || context.handFacts.lengths[info.response.strain as Suit] < info.minimumSupport) {
+    return { calls: [], telemetryLines: ['No maximum forcing-response fit is available.'] };
+  }
+  const targetLevel = info.response.strain === 'H' || info.response.strain === 'S' ? 4 : 5;
+  const wanted = `${targetLevel}${info.response.strain}` as SuitBid;
+  return {
+    calls: calls.filter((call) => call === wanted),
+    telemetryLines: [`Maximum opener places the supported responder suit in game at ${wanted}.`],
+  };
+}
+
+/// openerForcingResponseCompetitionNtApplies retains only the ordinary balanced notrump ranges
+/// whose original contract level is still available after advancer acts.  The evaluator's shared
+/// competitive filter separately requires stoppers in every suit the opponents bid naturally.
+export function openerForcingResponseCompetitionNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null || ! context.handFacts.balanced ||
+      context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport) {
+    return { success: false, telemetryLines: ['FAIL: no balanced forcing-response NT rebid.'] };
+  }
+  const hcp = context.handFacts.hcp;
+  let wanted: SuitBid | null = null;
+  if (hcp >= 12 && hcp <= 14) {
+    wanted = info.response.level === 1 ? '1NT' : '2NT';
+  } else if (hcp >= 18 && hcp <= 19) {
+    wanted = info.response.level === 1 ? '2NT' : '3NT';
+  }
+  const success = wanted !== null && call === wanted &&
+    isCallAvailableInAuction(wanted, context.auction);
+  return {
+    success,
+    telemetryLines: [success
+      ? `PASS: ${wanted} retains the natural balanced range after advancer competes.`
+      : 'FAIL: no available natural notrump rebid matches this strength and response level.'],
+  };
+}
+
+/// openerForcingResponseCompetitionPassApplies keeps a genuine minimum Pass only when competition
+/// has removed the selected descriptive continuations.  Responder still has another turn; this is
+/// not a claim that the original forcing response was weak or that opener would Pass without the
+/// intervening call.
+export function openerForcingResponseCompetitionPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
+  }
+  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
+  const points = hasFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  if (points < 12 || points > 16) {
+    return { success: false, telemetryLines: [`FAIL: minimum Pass range is 12-16; hand has ${points}.`] };
+  }
+  const clearContinuation = hasClearForcingResponseCompetitionContinuation(context, info);
+  return {
+    success: ! clearContinuation,
+    telemetryLines: [clearContinuation
+      ? 'FAIL: a selected natural descriptive continuation remains available.'
+      : 'PASS: competition removed the selected descriptive rebids; minimum opener may Pass.'],
+  };
+}
+
+/// openerForcingResponseCompetitionScopeBoundaryApplies identifies extra-value hands after a
+/// natural forcing responder suit where no concrete modeled action survives.  A concrete rule, if
+/// one applies, suppresses this explanatory fallback in the evaluator.
+export function openerForcingResponseCompetitionScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const info = getOpenerForcingResponseCompetitionInfo(context);
+  if (info === null) {
+    return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
+  }
+  const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
+  const points = hasFit
+    ? context.handFacts.totalPointsWShortage
+    : context.handFacts.totalPointsWLength;
+  const success = points >= 17;
+  return {
+    success,
+    telemetryLines: [
+      `${success ? 'PASS' : 'FAIL'}: extra-value boundary starts at 17; hand has ${points}.`,
+    ],
+  };
+}
+
+/// Pass of a weak competitive response after a takeout Double is selected for a
+/// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
+/// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
+function hasClearForcingResponseCompetitionContinuation (
+    context: RuleEvalContext,
+    info: { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
+            minimumSupport: number }): boolean {
+  const responseSuit = info.response.strain as Suit;
+  if (context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
+    const raise = cheapestBidInStrainAfter(info.advance, responseSuit);
+    const parsedRaise = raise === null ? null : parseSuitBid(raise);
+    if (parsedRaise !== null && parsedRaise.level <= 3) return true;
+  }
+  const openingSuit = info.opening.strain as Suit;
+  if (context.handFacts.lengths[openingSuit] >= 6) {
+    const repeat = cheapestBidInStrainAfter(info.advance, openingSuit);
+    const parsedRepeat = repeat === null ? null : parseSuitBid(repeat);
+    if (parsedRepeat !== null && parsedRepeat.level <= 3) return true;
+  }
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+    context.dealer, context.auction);
+  for (const suit of SUITS) {
+    if (suit === openingSuit || suit === responseSuit || opponentSuits.includes(suit) ||
+        context.handFacts.lengths[suit] < 4) {
+      continue;
+    }
+    const cheapest = cheapestBidInStrainAfter(info.response, suit);
+    const candidate = cheapest === null ? null : parseSuitBid(cheapest);
+    if (cheapest !== null && candidate !== null &&
+        ! openerRebidIsReverse(info.opening, info.response, candidate) &&
+        isCallAvailableInAuction(cheapest, context.auction)) {
+      return true;
+    }
+  }
+  if (! context.handFacts.balanced || context.handFacts.hcp < 12 || context.handFacts.hcp > 14 ||
+      context.handFacts.lengths[responseSuit] >= info.minimumSupport) {
+    return false;
+  }
+  const ntCall = (info.response.level === 1 ? '1NT' : '2NT') as SuitBid;
+  return isCallAvailableInAuction(ntCall, context.auction) &&
+    opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+}
+
+///
+//// Other Competitive Suit Rebids
+///
+
+export function openerWeakAfterDoublePassApplies(
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem,
+    requireNtShape = false): AppliesWhenResult {
+  const facts = context.handFacts;
+  const ordinary = facts.hcp >= 12 && facts.hcp <= 14;
+  const light = facts.hcp < 12 && facts.totalPointsWLength >= 12;
+  const shape = !requireNtShape || facts.balancedOrSemiBalanced;
+  return { success: (ordinary || light) && shape, telemetryLines: [
+    `${ordinary || light ? 'PASS' : 'FAIL'}: opener has ${facts.hcp} HCP + ` +
+      `${facts.lengthPoints} length points = ${facts.totalPointsWLength}; ` +
+      'minimum is 12–14 HCP or a length-qualified lighter opening.',
+    `${shape ? 'PASS' : 'FAIL'}: ${requireNtShape
+      ? 'natural 1NT Pass needs balanced or semi-balanced opener shape'
+      : 'no additional shape test for this nonforcing action'}.`,
+  ] };
+}
+
+/// Strong openers after a weak, nonforcing response need fit and game judgment.
+/// The scope boundary is not a recommendation against Pass.
+export function openerWeakAfterDoubleBoundaryApplies(
+    context: RuleEvalContext, naturalOneNt = false): AppliesWhenResult {
+  const facts = context.handFacts;
+  const stronger = facts.hcp >= 15;
+  const ntShapeJudgment = naturalOneNt && !facts.balancedOrSemiBalanced;
+  return { success: stronger || ntShapeJudgment, telemetryLines: [
+    `${stronger || ntShapeJudgment ? 'PASS' : 'FAIL'}: further judgment after weak response; ` +
+      `${facts.hcp} HCP, shape ${facts.balancedOrSemiBalanced ? 'balanced/semi-balanced' : 'distributional'}.`,
+  ] };
+}
+
+/// An opening with fewer than 12 HCP may be legitimate on length-adjusted 12+ points.
+  // The natural-notrump responder ranges remain HCP ranges: do not misclassify
+  // a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.
+export function openerCompetitiveNaturalNtPassApplies(
+    context: RuleEvalContext, maximumHcp: number,
+    requireSemiBalanced = false): AppliesWhenResult {
+  const { hcp, lengthPoints, totalPointsWLength, balancedOrSemiBalanced } = context.handFacts;
+  const ordinaryMinimum = hcp >= 12 && hcp <= maximumHcp;
+  const lightOpening = hcp < 12 && totalPointsWLength >= 12;
+  const shapeOkay = !requireSemiBalanced || balancedOrSemiBalanced;
+  const success = (ordinaryMinimum || lightOpening) && shapeOkay;
+  return { success, telemetryLines: [
+    `${ordinaryMinimum || lightOpening ? 'PASS' : 'FAIL'}: natural notrump Pass accepts ` +
+      `12–${maximumHcp} HCP or a length-qualified light opening; ` +
+      `hand has ${hcp} HCP + ${lengthPoints} length points = ${totalPointsWLength} opening points.`,
+    `${shapeOkay ? 'PASS' : 'FAIL'}: ${requireSemiBalanced ? 'balanced or semi-balanced shape required' :
+       'no additional opener shape requirement'}.`,
+  ] };
+}
+
+/// A9's cuebid is advancer's artificial bid in opener's known suit after responder's
+/// nonforcing simple raise.  This is not a natural contract in opener's suit.
+function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {
+  if (context.stage !== 'openerRebid') return false;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null || context.auction.length !== openingInfo.index + 4) return false;
+  const opening = parseSuitBid(openingInfo.call);
+  const response = parseSuitBid(context.auction[openingInfo.index + 2] ?? 'Pass');
+  const advance = context.auction[openingInfo.index + 3];
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  return opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
+    response !== null && response.strain === opening.strain && response.level === 2 &&
+    (interference === 'suitOvercall' || interference === 'takeoutDouble') &&
+    getAdvancerCallKindForOpenerRebid(context.dealer, context.auction) === 'cuebid' &&
+    cheapestBidInStrainAfter(response, opening.strain) === advance;
+}
+
+/// Only a minimum, nonforcing raise admits this defensive Pass. Passing an artificial
+/// opponent cuebid does not suggest that our partnership will play in that suit.
+export function openerSupportCuebidPassApplies (
+    _call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const selected = openerAfterAdvancerSupportCuebid(context);
+  const points = context.handFacts.totalPointsWShortage;
+  return { success: selected && points >= 12 && points <= 16,
+    telemetryLines: [selected
+      ? `Opener has ${points} support points after opponent's artificial support cuebid.`
+      : 'Not the selected simple-raise / artificial-advancer-cuebid auction.'] };
+}
+
+export function openerSupportCuebidGameApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const selected = openerAfterAdvancerSupportCuebid(context);
+  const points = context.handFacts.totalPointsWShortage;
+  const suit = opening?.strain;
+  const correctGame = suit === 'H' || suit === 'S' ? call === `4${suit}` : call === '3NT';
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  const stopped = opponentSuits.every((named) => hasBasicSuitStopper(context, named));
+  const success = selected && correctGame && points >= 19 &&
+    (suit === 'H' || suit === 'S' || (context.handFacts.balancedOrSemiBalanced && stopped));
+  return { success, telemetryLines: [success
+    ? 'Maximum opener can bid game after partner established a fit.'
+    : 'No selected major game or stopped minor-fit 3NT continuation.'] };
+}
+
+export function openerSupportCuebidScopeBoundaryApplies (
+    context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  return { success: openerAfterAdvancerSupportCuebid(context), telemetryLines: [
+    'Artificial advancer cuebid after our simple raise: further bidding depends on fit, ' +
+    'game prospects, and defensive judgment.'] };
+}
+
+/// Responder's game-forcing three-level suit survives a further opposing raise.
+/// With 6+ cards in the opening major and 15+ length-adjusted points, game in that
+/// major is the selected natural route; this does not test the major's honor texture.
+export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const advanceKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
+  const selected = context.stage === 'openerRebid' && openingInfo !== null &&
+    context.auction.length === openingInfo.index + 4 &&
+    getInterferenceAfterOpening(context.dealer, context.auction) === 'suitOvercall' &&
+    (advanceKind === 'raise' || advanceKind === 'preemptiveRaise') &&
+    opening !== null && (opening.strain === 'H' || opening.strain === 'S') &&
+    response !== null && response.level === 3 && response.strain !== 'NT' &&
+    response.strain !== opening.strain && call === `4${opening.strain}`;
+  const goodLongMajor = selected && opening !== null &&
+    context.handFacts.lengths[opening.strain as Suit] >= 6 &&
+    context.handFacts.totalPointsWLength >= 15;
+  return { success: goodLongMajor, telemetryLines: [goodLongMajor
+    ? 'Six-card opening major and 15+ length-adjusted points support major-suit game.'
+    : 'The selected major game needs six trumps and 15+ length-adjusted points.'] };
+}
+
+/// openerThreeLevelForcingResponseThreeNtApplies keeps a natural 3NT rebid after responder makes
+/// the selected game-forcing three-level new-suit response to a two-level overcall.  Prefer a
+/// known major fit; otherwise opener needs a balanced/semi-balanced hand and a stopper in every
+/// naturally bid opponent suit.
+export function openerThreeLevelForcingResponseThreeNtApplies (
+    call: Call, context: RuleEvalContext, _system: BiddingSystem): AppliesWhenResult {
+  const response = getResponderBid(context);
+  if (call !== '3NT' || response === null || response.level !== 3 || response.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: not the selected three-level forcing response.'] };
+  }
+  const majorFit = (response.strain === 'H' || response.strain === 'S') &&
+    context.handFacts.lengths[response.strain as Suit] >= 3;
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+    context.dealer, context.auction);
+  const stopped = opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+  const shapeOkay = context.handFacts.balancedOrSemiBalanced;
+  const success = ! majorFit && shapeOkay && stopped;
+  return {
+    success,
+    telemetryLines: [
+      `${majorFit ? 'FAIL' : 'PASS'}: prefer the known major fit when opener has three-card support.`,
+      `${shapeOkay ? 'PASS' : 'FAIL'}: 3NT needs balanced or semi-balanced shape.`,
+      `${stopped ? 'PASS' : 'FAIL'}: 3NT needs every naturally bid opponent suit stopped.`,
+    ],
+  };
+}
+
+/// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
+/// declared for this family.  It is intentionally narrower than general bridge judgment: support,
+/// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.
+///
+//// Suit Rebids After a Preemptive Jump Overcall
+///
+
+/// Selected A8 opener continuations after a natural jump overcall and advancer Pass.
+/// The physical auction is checked here as well as in getNextBiddingRuleStage: do not infer these
+/// meanings from a compact partnership auction that hides interference.
+interface JumpOvercallContinuation {
+  opening: ParsedSuitBid;
+  overcall: ParsedSuitBid;
+  response: Call;
+  responseBid: ParsedSuitBid | null;
+  kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
+        'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
+}
+
+export function refineJumpOvercallOpenerAction (calls: Call[], context: RuleEvalContext):
+    CallRefinementResult {
+  const wanted = getJumpOvercallOpenerAction(context);
+  return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
+    telemetryLines: [wanted === null
+      ? 'No selected natural opener continuation; consult the auction-specific boundary.'
+      : `Selected opener description after a jump overcall: ${wanted}.`],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
+}
+
+export function jumpOvercallOpenerContinuationApplies (call: Call, context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const wanted = getJumpOvercallOpenerAction(context);
+  const success = wanted !== null && wanted === call;
+  return { success, telemetryLines: [success
+    ? `PASS: ${call} matches the selected response to partner's action over the jump overcall.`
+    : 'FAIL: this action does not match the selected continuation for the current hand.'],
+    callEvidence: jumpOvercallRebidEvidence(context, wanted) };
+}
+
+export function jumpOvercallOpenerBoundaryApplies (context: RuleEvalContext,
+    _system: BiddingSystem): AppliesWhenResult {
+  const applies = getJumpOvercallContinuation(context) !== null;
+  return { success: applies, telemetryLines: [applies
+    ? 'PASS: selected jump-overcall auction needs guidance when no natural rebid qualifies.'
+    : 'FAIL: not the selected jump-overcall continuation.'] };
+}
+
+
+function getJumpOvercallContinuation (context: RuleEvalContext): JumpOvercallContinuation | null {
+  const first = getOpeningCallInfo(context.dealer, context.auction);
+  if (first === null || context.auction.length !== first.index + 4 ||
+      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
+      context.auction[first.index + 3] !== 'Pass') return null;
+  const opening = parseSuitBid(first.call);
+  const overcall = parseSuitBid(context.auction[first.index + 1] ?? 'Pass');
+  const response = context.auction[first.index + 2];
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' || response === undefined) return null;
+  const responseBid = parseSuitBid(response);
+  if (response === 'Double') {
+    return { opening, overcall, response, responseBid, kind: 'negativeDouble' };
+  }
+  if (responseBid === null) return null;
+  let kind: JumpOvercallContinuation['kind'];
+  if (response === '2NT') kind = 'notrumpTwo';
+  else if (response === '3NT') kind = 'notrumpThree';
+  else if (responseBid.strain === opening.strain && responseBid.level === 3) kind = 'raise';
+  else if (responseBid.strain === opening.strain && responseBid.level === 4 &&
+           (opening.strain === 'H' || opening.strain === 'S')) kind = 'majorGame';
+  else if (responseBid.strain === overcall.strain && overcall.level === 2 &&
+           (opening.strain === 'H' || opening.strain === 'S')) kind = 'supportCuebid';
+  else if (responseBid.strain !== opening.strain &&
+           responseBid.strain !== overcall.strain && responseBid.level === 2) kind = 'newSuitTwo';
+  else if (responseBid.strain !== opening.strain &&
+           responseBid.strain !== overcall.strain && responseBid.level === 3) kind = 'newSuitThree';
+  else return null;
+  return { opening, overcall, response, responseBid, kind };
+}
+
+/// Each selected family returns its descriptive bid, if one exists. A no-bid forcing
+/// decision is handled by a scopeBoundary, never by a fabricated Pass.
+function getJumpOvercallOpenerAction (context: RuleEvalContext): Call | null {
+  const info = getJumpOvercallContinuation(context);
+  if (info === null) return null;
+  const { opening, overcall, responseBid, kind } = info;
+  const openingSuit = opening.strain as Suit;
+  const hcp = context.handFacts.hcp;
+  const points = context.handFacts.totalPointsWShortage;
+  const stopper = hasBasicSuitStopper(context, overcall.strain as Suit);
+  const atMostThree = (suit: Suit): SuitBid | null => {
+    const next = cheapestBidInStrainAfter(responseBid ?? overcall, suit);
+    if (next === null) return null;
+    const bid = parseSuitBid(next);
+    return bid !== null && bid.level <= 3 && isCallAvailableInAuction(next, context.auction)
+      ? next : null;
+  };
+  if (kind === 'raise') {
+    if (points <= 15) return 'Pass';
+    if ((openingSuit === 'H' || openingSuit === 'S') && points >= 17) {
+      return `4${openingSuit}` as SuitBid;
+    }
+    return null;
+  }
+  // The existing preemptive major-game signoff already supplies Pass for this auction.
+  if (kind === 'majorGame') return null;
+  if (kind === 'notrumpThree') return hcp <= 17 ? 'Pass' : null;
+  if (kind === 'notrumpTwo') return hcp <= 13 ? 'Pass' : hcp <= 18 ? '3NT' : null;
+  if (kind === 'supportCuebid') return `4${openingSuit}` as SuitBid;
+  if (kind === 'negativeDouble') {
+    const implied = getNegativeDoubleImpliedSuits(opening, overcall);
+    const fit = implied.find((suit) => context.handFacts.lengths[suit] >= 4);
+    if (fit !== undefined) {
+      const bid = cheapestBidInStrainAfter(overcall, fit);
+      const parsed = bid === null ? null : parseSuitBid(bid);
+      if (bid === null || parsed === null || parsed.level > 4) return null;
+      return isCallAvailableInAuction(bid, context.auction) ? bid : null;
+    }
+    if (context.handFacts.lengths[openingSuit] >= 6) {
+      const repeat = atMostThree(openingSuit);
+      if (repeat !== null) return repeat;
+    }
+    return context.handFacts.balancedOrSemiBalanced && stopper && hcp >= 15 &&
+      isCallAvailableInAuction('3NT', context.auction) ? '3NT' : null;
+  }
+  if (responseBid === null || responseBid.strain === 'NT') return null;
+  const responseSuit = responseBid.strain as Suit;
+  const support = context.handFacts.lengths[responseSuit];
+  if (kind === 'newSuitThree') {
+    if ((responseSuit === 'H' || responseSuit === 'S') && support >= 3) {
+      return `4${responseSuit}` as SuitBid;
+    }
+    if (context.handFacts.balancedOrSemiBalanced && stopper &&
+        isCallAvailableInAuction('3NT', context.auction)) return '3NT';
+    if (responseSuit !== 'H' && responseSuit !== 'S' && support >= 4 &&
+        !context.handFacts.balancedOrSemiBalanced && !stopper) {
+      return `4${responseSuit}` as SuitBid;
+    }
+    return null;
+  }
+  // New suit at two is forcing for one round, but does not promise game values.
+  if (support >= 3) {
+    const raise = atMostThree(responseSuit);
+    if (raise !== null) return raise;
+  }
+  if (context.handFacts.lengths[openingSuit] >= 6) {
+    const repeat = atMostThree(openingSuit);
+    if (repeat !== null) return repeat;
+  }
+  if (context.handFacts.balanced && stopper) {
+    if (hcp >= 12 && hcp <= 14 && isCallAvailableInAuction('2NT', context.auction)) return '2NT';
+    if (hcp >= 18 && hcp <= 19 && isCallAvailableInAuction('3NT', context.auction)) return '3NT';
+  }
+  const second = SUITS.filter((suit) => suit !== openingSuit && suit !== responseSuit &&
+    suit !== overcall.strain && context.handFacts.lengths[suit] >= 4)
+    .map((suit) => ({ suit, bid: atMostThree(suit) }))
+    .filter((item) => {
+      if (item.bid === null) return false;
+      const bid = parseSuitBid(item.bid);
+      return bid !== null && (bid.level <= 2 || hcp >= 17) &&
+        (!openerRebidIsReverse(opening, responseBid, bid) || hcp >= 17);
+    })
+    .sort((a, b) => context.handFacts.lengths[b.suit] - context.handFacts.lengths[a.suit]);
+  return second[0]?.bid ?? null;
+}
+
+function jumpOvercallRebidEvidence(context: RuleEvalContext, selectedCall: Call | null):
+    CallEvidence | undefined {
+  const info = getJumpOvercallContinuation(context);
+  if (info === null) return undefined;
+  const responseSuit = info.responseBid === null || info.responseBid.strain === 'NT'
+    ? null : info.responseBid.strain as Suit;
+  const selectedBid = selectedCall === null ? null : parseSuitBid(selectedCall);
+  const selectedSuit = selectedBid === null || selectedBid.strain === 'NT'
+    ? null : selectedBid.strain as Suit;
+  return { openerJumpOvercallRebid: {
+    kind: info.kind, openingSuit: info.opening.strain as Suit,
+    opponentSuit: info.overcall.strain as Suit, responseSuit,
+    responseCall: info.response, hcp: context.handFacts.hcp,
+    supportPoints: context.handFacts.totalPointsWShortage,
+    openingLength: context.handFacts.lengths[info.opening.strain as Suit],
+    responseSupport: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
+    stopped: hasBasicSuitStopper(context, info.overcall.strain as Suit),
+    selectedCall, selectedSuit,
+    selectedLength: selectedSuit === null ? 0 : context.handFacts.lengths[selectedSuit],
+  } };
+}
+
 //// Opener Rebids After a Strong Two-Club Opening
 ///
 
@@ -2056,20 +2078,6 @@ export function refineStrongTwoCUnbalancedSuitRebid (calls: Call[], context: Rul
       `Show opener's longest 5+ suit; equal lengths use the higher-ranking suit: ${best[0]!.call}.`,
     ],
   };
-}
-
-/// The positive strong-2C responses are 2H/2S, 3C/3D, or balanced 2NT. A response of
-/// 2D is waiting and retains its separate rebid treatment. Interference is excluded by the rules.
-function getStrongTwoCPositiveResponse (context: RuleEvalContext): ParsedSuitBid | null {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderBid(context);
-  if (opening?.level !== 2 || opening.strain !== 'C' || response === null) return null;
-  if ((response.level === 2 && (response.strain === 'H' || response.strain === 'S' ||
-       response.strain === 'NT')) ||
-      (response.level === 3 && (response.strain === 'C' || response.strain === 'D'))) {
-    return response;
-  }
-  return null;
 }
 
 /// Raise a positive major economically; responder has promised a five-card suit and game values.
@@ -2154,6 +2162,20 @@ export function strongTwoCPositiveScopeBoundaryApplies (context: RuleEvalContext
   return { success, telemetryLines: [success
     ? 'Positive strong-2C response: describe naturally where modeled, otherwise assess slam and strain.'
     : 'Not a positive strong-2C response.'] };
+}
+
+/// The positive strong-2C responses are 2H/2S, 3C/3D, or balanced 2NT. A response of
+/// 2D is waiting and retains its separate rebid treatment. Interference is excluded by the rules.
+function getStrongTwoCPositiveResponse (context: RuleEvalContext): ParsedSuitBid | null {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening?.level !== 2 || opening.strain !== 'C' || response === null) return null;
+  if ((response.level === 2 && (response.strain === 'H' || response.strain === 'S' ||
+       response.strain === 'NT')) ||
+      (response.level === 3 && (response.strain === 'C' || response.strain === 'D'))) {
+    return response;
+  }
+  return null;
 }
 
 ///
