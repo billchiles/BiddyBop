@@ -98,6 +98,12 @@ declarations from distinct rule IDs reused in more than one collection.
 - Higher rank means greater presentation preference. Ranking does not eliminate lower-ranked
   qualifying alternatives.
 - A missing rank is equivalent to rank `0`.
+- **Current tie behavior:** Results with equal `priority.rank` retain their order from the
+  stage's rule declaration array (stable sort). This can affect the displayed order of
+  alternatives and which supported comparison is shown first, but does not make an
+  otherwise-qualifying call ineligible. Until this is audited, preserve declaration
+  order *within each bidding stage* during organization-only changes. Whether any
+  intended bidding behavior should depend on this implicit tie order is not yet established.
 - Rank `-100` is an intentional "present last" sentinel for specialized alternatives that should
   remain visible without competing with ordinary teaching choices, such as Gerber, Blackwood, and
   optional opener-side splinters.
