@@ -93,6 +93,239 @@ const CONVENTION_CONFIGURATIONS: { name: string; settings: ConventionValues }[] 
 ];
 const CONVENTION_SETTINGS: ConventionSetting[] = ['stayman', 'jacobyTransfers', 'texasTransfers'];
 
+//// Practice-deal evaluation and shared helpers
+
+/// Run all deals, including those requiring non-default partnership agreements.
+/// Continue after individual failures so one run reports all recoverable regressions.
+function runRuleTests (): number {
+  let dealCount = 0;
+  let positiveCount = 0;
+  let eliminationCount = 0;
+  let callOrderCount = 0;
+  let recordedCallCount = 0;
+  let failureCount = 0;
+  for (const bucket of RULE_TEST_DEAL_BUCKETS) {
+    for (const [index, deal] of bucket.deals.entries()) {
+      dealCount += 1;
+      let dealAssertionCount = 0;
+      const failuresBeforeDeal = failureCount;
+      const label = `${bucket.id} #${index + 1}: ${deal.description}`;
+      const system: BiddingSystem = { ...defaultBiddingSystem, ...deal.requiredSystem };
+      try {
+        const { board } = makeRuleTestBoard(deal);
+        // Student exercises start with North dealing and retain four explicitly authored hands.
+        // Board construction also validates thirteen cards per hand and rejects duplicates.
+        if (board.dealer !== 'N' || deal.east === undefined || deal.west === undefined) {
+          failureCount += 1;
+          console.error(`FAIL practice deal requires North dealer and four fixed hands\n${label}`);
+        }
+        for (const note of deal.practiceGuidance ?? []) {
+          if (! Number.isInteger(note.auctionIndex) || note.auctionIndex < 0 ||
+              note.auctionIndex >= deal.practiceAuction.length ||
+              note.seat !== getSeatForCallIndex(board.dealer, note.auctionIndex)) {
+            failureCount += 1;
+            console.error(`FAIL practice guidance does not identify a recorded turn\n${label}`);
+          }
+        }
+        const stages = getTestedStages(deal);
+        for (const stage of stages) {
+          // An undeclared stage is normal: a response-only deal has no opener-rebid expectations.
+          if (stage.expected === undefined && stage.rejected === undefined &&
+              stage.order === undefined) {
+            continue;
+          }
+          // Explicitly empty fields indicate incomplete test data, not an intentional omission.
+          for (const [name, assertions] of [
+            ['expected', stage.expected], ['rejected', stage.rejected], ['order', stage.order],
+          ] as const) {
+            if (assertions !== undefined && assertions.length === 0) {
+              failureCount += 1;
+              console.error(`FAIL malformed ${stage.name}: ${name} is explicitly empty\n${label}`);
+            }
+          }
+          if ((stage.expected?.length ?? 0) + (stage.rejected?.length ?? 0) +
+              (stage.order?.length ?? 0) === 0) {
+            continue;
+          }
+          if (deal.practiceAuction.length <= stage.auctionLength) {
+            failureCount += 1;
+            console.error(`FAIL no recorded ${stage.name} call in practiceAuction\n${label}`);
+            continue;
+          }
+          const auction = deal.practiceAuction.slice(0, stage.auctionLength);
+          const inputCall = deal.practiceAuction[stage.auctionLength]!;
+          const context = `${label}\n  ${stage.name}: ${auction.join(' ') || '(opening)'} -> ` +
+                          `${inputCall}; system=${JSON.stringify(system)}`;
+          try {
+            const result = evaluateUserCall(inputCall, board, auction, system);
+            const candidates = getApplicableCandidateCalls(result);
+            // Practice calls must themselves qualify, even when other alternatives are expected.
+            recordedCallCount += 1;
+            if (! candidates.some((candidate) => candidate.call === inputCall)) {
+              failureCount += 1;
+              console.error(`FAIL recorded practice call ${inputCall} does not qualify\n${context}`);
+              console.error(`  Surviving: ${formatCandidates(candidates)}`);
+            }
+            for (const expected of stage.expected ?? []) {
+              if (! Array.isArray(expected.ruleIds) || expected.ruleIds.length === 0) {
+                failureCount += 1;
+                console.error(`FAIL malformed ${stage.name}: ${expected.call} has no rule IDs\n${context}`);
+                continue;
+              }
+              for (const ruleId of expected.ruleIds) {
+                positiveCount += 1;
+                dealAssertionCount += 1;
+                if (! candidates.some((c) => c.call === expected.call && c.rule.id === ruleId)) {
+                  failureCount += 1;
+                  console.error(`FAIL expected ${expected.call} under ${ruleId}\n${context}`);
+                  console.error(`  Surviving: ${formatCandidates(candidates)}`);
+                }
+              }
+            }
+            for (const call of stage.rejected ?? []) {
+              eliminationCount += 1;
+              dealAssertionCount += 1;
+              if (candidates.some((candidate) => candidate.call === call)) {
+                failureCount += 1;
+                console.error(`FAIL rejected ${call} survived\n${context}`);
+                console.error(`  Surviving: ${formatCandidates(candidates)}`);
+              }
+            }
+            for (const [before, after] of stage.order ?? []) {
+              callOrderCount += 1;
+              dealAssertionCount += 1;
+              const beforeIndex = candidates.findIndex((candidate) => candidate.call === before);
+              const afterIndex = candidates.findIndex((candidate) => candidate.call === after);
+              if (beforeIndex < 0 || afterIndex < 0 || beforeIndex >= afterIndex) {
+                failureCount += 1;
+                console.error(`FAIL call order: expected ${before} before ${after}\n${context}`);
+                console.error(`  Surviving in order: ${formatCandidates(candidates)}`);
+              }
+            }
+          } catch (error) {
+            failureCount += 1;
+            console.error(`FAIL could not evaluate ${stage.name}\n${context}\n  ${String(error)}`);
+          }
+        }
+        if (dealAssertionCount === 0 && failureCount === failuresBeforeDeal) {
+          failureCount += 1;
+          console.error(`FAIL deal has no executable expectations\n${label}`);
+        }
+      } catch (error) {
+        failureCount += 1;
+        console.error(`FAIL could not construct ${label}: ${String(error)}`);
+      }
+    }
+  }
+  console.log(`${failureCount} ***FAILURES***. Primary: ${dealCount} deals; ` +
+              `${positiveCount} positive, ${eliminationCount} elimination, ` +
+              `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks.`);
+  console.log('  Runs practice deals through the production bidding evaluator, checking');
+  console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.\n');
+  // Independently verify that practice calls also work in representative dropdown configurations.
+  const compatibilityFailures = runConventionCompatibilityChecks();
+  return failureCount + compatibilityFailures;
+}
+/// Meta-test for requiredSystem: a deal offered by the dropdown must have a valid recorded call.
+/// We re-evaluate recorded calls, not alternative/rejected/order assertions, which can vary by agreement.
+function runConventionCompatibilityChecks (): number {
+  let compatibleDeals = 0;
+  let recordedCalls = 0;
+  let failureCount = 0;
+  for (const bucket of RULE_TEST_DEAL_BUCKETS) {
+    for (const [index, deal] of bucket.deals.entries()) {
+      const label = `${bucket.id} #${index + 1}: ${deal.description}`;
+      try {
+        const { board } = makeRuleTestBoard(deal);
+        const stages = getTestedStages(deal);
+        for (const configuration of CONVENTION_CONFIGURATIONS) {
+          // Only test configurations in which this deal's requiredSystem permits it to appear.
+          if (! matchesRequiredConventions(deal.requiredSystem, configuration.settings)) {
+            continue;
+          }
+          compatibleDeals += 1;
+          const system: BiddingSystem = {
+            ...defaultBiddingSystem, ...deal.requiredSystem, ...configuration.settings,
+          };
+          for (const stage of stages) {
+            if (stage.expected === undefined && stage.rejected === undefined &&
+                stage.order === undefined) {
+              continue;
+            }
+            if (deal.practiceAuction.length <= stage.auctionLength) {
+              failureCount += 1;
+              console.error(`FAIL compatibility: missing recorded ${stage.name} call\n${label}` +
+                            `\n  configuration=${configuration.name}; system=${JSON.stringify(system)}`);
+              continue;
+            }
+            const auction = deal.practiceAuction.slice(0, stage.auctionLength);
+            const recordedCall = deal.practiceAuction[stage.auctionLength]!;
+            const context = `${label}\n  ${stage.name}: ${auction.join(' ') || '(opening)'} -> ` +
+                            `${recordedCall}; configuration=${configuration.name}; ` +
+                            `system=${JSON.stringify(system)}`;
+            try {
+              const result = evaluateUserCall(recordedCall, board, auction, system);
+              const candidates = getApplicableCandidateCalls(result);
+              recordedCalls += 1;
+              if (! candidates.some((candidate) => candidate.call === recordedCall)) {
+                failureCount += 1;
+                console.error(`FAIL compatibility: recorded ${recordedCall} does not qualify\n${context}`);
+                console.error(`  Surviving: ${formatCandidates(candidates)}`);
+              }
+            } catch (error) {
+              failureCount += 1;
+              console.error(`FAIL compatibility: could not evaluate ${stage.name}\n${context}` +
+                            `\n  ${String(error)}`);
+            }
+          }
+        }
+      } catch (error) {
+        failureCount += 1;
+        console.error(`FAIL compatibility: could not construct ${label}: ${String(error)}`);
+      }
+    }
+  }
+  console.log(`${failureCount} ***FAILURES***. Compatibility meta-check for the four ` +
+              `Stayman/Jacoby/Texas setting combinations: ` +
+              `${compatibleDeals} eligible deal/configuration runs, ` +
+              `${recordedCalls} recorded practice-call checks.`);
+  console.log('  Replays eligible practice auctions under four representative convention');
+  console.log('  configurations to ensure their recorded calls remain valid.\n');
+  console.log();
+  return failureCount;
+}
+function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
+  return [
+    { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
+      rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
+    { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
+      rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
+    { name: 'balancing', auctionLength: 3, expected: deal.expectedBalancingCalls,
+      rejected: deal.rejectedBalancingCalls, order: undefined },
+    { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
+      rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
+    { name: 'overcaller rebid', auctionLength: 5, expected: deal.expectedOvercallerRebidCalls,
+      rejected: deal.rejectedOvercallerRebidCalls, order: deal.expectedOvercallerRebidCallOrder },
+    { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
+      rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
+    { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
+      rejected: deal.rejectedOpenerRebidCalls, order: deal.expectedOpenerRebidCallOrder },
+    { name: 'responder rebid', auctionLength: 6, expected: deal.expectedResponderRebidCalls,
+      rejected: deal.rejectedResponderRebidCalls, order: undefined },
+  ];
+}
+function matchesRequiredConventions (required: Partial<BiddingSystem> | undefined,
+                                     settings: ConventionValues): boolean {
+  return required === undefined || CONVENTION_SETTINGS.every((setting) =>
+    required[setting] === undefined || required[setting] === settings[setting]);
+}
+function formatCandidates (candidates: CandidateCallMatch[]): string {
+  return candidates.map((candidate) => `${candidate.call} [${candidate.rule.id}, ` +
+    `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
+}
+
+//// Auction mechanics and opening bids
+
 /// responseJump keeps the exact jump size instead of collapsing it to a boolean.  Test zero
 /// explicitly so later code does not accidentally depend on numeric truthiness.
 function runAuctionHelperTests (): number {
@@ -130,7 +363,89 @@ function runAuctionHelperTests (): number {
   console.log('  These are fundamental calculations used throughout the bidding rules.\n');
   return failureCount;
 }
-
+/// AuctionContext fields are explicit constraints: semantic opener fields can generalize an opening,
+/// while auction remains literal and openerCalls can enumerate a small exact opening set.
+function runAuctionContextTests (): number {
+  const seedDeal = RULE_TEST_DEAL_BUCKETS[0]?.deals[0];
+  if (seedDeal === undefined) {
+    console.error('FAIL auction-context tests need at least one rule-test deal to build a board.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seedDeal);
+  const rules: BidRule[] = [
+    {
+      id: 'test-context-one-level-minor', kind: 'responseBid', title: 'test one-level minor context',
+      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-one-level-major', kind: 'responseBid', title: 'test one-level major context',
+      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-weak-two-set', kind: 'responseBid', title: 'test weak-two opening set',
+      auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-strong-two-clubs', kind: 'responseBid', title: 'test strong 2C opening',
+      auctionContext: { stage: 'responding', openerCalls: ['2C'] },
+      calls: ['Pass'], certainty: 'high',
+    },
+    {
+      id: 'test-context-literal-auction', kind: 'responseBid', title: 'test literal auction context',
+      auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
+      calls: ['Pass'], certainty: 'high',
+    },
+  ];
+  const cases: { auction: Call[]; expected: string[]; rejected: string[] }[] = [
+    { auction: ['1C', 'Pass'],
+      expected: ['test-context-one-level-minor', 'test-context-literal-auction'],
+      rejected: ['test-context-one-level-major', 'test-context-weak-two-set',
+                 'test-context-strong-two-clubs'] },
+    { auction: ['1D', 'Pass'], expected: ['test-context-one-level-minor'],
+      rejected: ['test-context-literal-auction', 'test-context-one-level-major'] },
+    { auction: ['1H', 'Pass'], expected: ['test-context-one-level-major'],
+      rejected: ['test-context-one-level-minor'] },
+    { auction: ['1S', 'Pass'], expected: ['test-context-one-level-major'],
+      rejected: ['test-context-one-level-minor'] },
+    { auction: ['2C', 'Pass'], expected: ['test-context-strong-two-clubs'],
+      rejected: ['test-context-one-level-minor', 'test-context-one-level-major',
+                 'test-context-weak-two-set', 'test-context-literal-auction'] },
+    { auction: ['2D', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-strong-two-clubs', 'test-context-one-level-minor'] },
+    { auction: ['2H', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-one-level-major'] },
+    { auction: ['2S', 'Pass'], expected: ['test-context-weak-two-set'],
+      rejected: ['test-context-one-level-major'] },
+  ];
+  let checkCount = 0;
+  let failureCount = 0;
+  for (const testCase of cases) {
+    const context = makeRuleEvalContext(board, testCase.auction);
+    const matched = new Set(evaluateRules(rules, context, defaultBiddingSystem)
+      .map((result) => result.rule.id));
+    for (const ruleId of testCase.expected) {
+      checkCount += 1;
+      if (! matched.has(ruleId)) {
+        failureCount += 1;
+        console.error(`FAIL auction context ${testCase.auction.join(' ')} should match ${ruleId}.`);
+      }
+    }
+    for (const ruleId of testCase.rejected) {
+      checkCount += 1;
+      if (matched.has(ruleId)) {
+        failureCount += 1;
+        console.error(`FAIL auction context ${testCase.auction.join(' ')} should reject ${ruleId}.`);
+      }
+    }
+  }
+  console.log(`${failureCount} ***FAILURES***. Auction context: ${checkCount} semantic/literal matching checks.`);
+  console.log('  Verifies that mock rules match the correct opening level, suit, and auction');
+  console.log('  sequence, without accidentally matching unrelated auctions.\n');
+  return failureCount;
+}
 /// Opening fallback and position tests use direct evaluator checks instead of adding extra
 /// practice deals solely to exercise all four seat positions.
 function runOpeningPositionAndPassTests (): number {
@@ -235,7 +550,6 @@ function runOpeningPositionAndPassTests (): number {
   console.log('  Tests first/second-seat Guideline of 20, opening Pass at all seats, and 1H vs 4H.\n');
   return failures;
 }
-
 /// The first instructional-explanation batch covers only basic opening requirements.
 /// Inspect the evidence actually returned by the evaluator, not a second HCP/shape evaluator.
 function runBasicOpeningExplanationTests (): number {
@@ -333,90 +647,41 @@ function runBasicOpeningExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. Basic opening evidence: ${checks} checks.\n`);
   return failures;
 }
-
-/// AuctionContext fields are explicit constraints: semantic opener fields can generalize an opening,
-/// while auction remains literal and openerCalls can enumerate a small exact opening set.
-function runAuctionContextTests (): number {
-  const seedDeal = RULE_TEST_DEAL_BUCKETS[0]?.deals[0];
-  if (seedDeal === undefined) {
-    console.error('FAIL auction-context tests need at least one rule-test deal to build a board.');
-    return 1;
-  }
-  const { board } = makeRuleTestBoard(seedDeal);
-  const rules: BidRule[] = [
-    {
-      id: 'test-context-one-level-minor', kind: 'responseBid', title: 'test one-level minor context',
-      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
-      calls: ['Pass'], certainty: 'high',
-    },
-    {
-      id: 'test-context-one-level-major', kind: 'responseBid', title: 'test one-level major context',
-      auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
-      calls: ['Pass'], certainty: 'high',
-    },
-    {
-      id: 'test-context-weak-two-set', kind: 'responseBid', title: 'test weak-two opening set',
-      auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
-      calls: ['Pass'], certainty: 'high',
-    },
-    {
-      id: 'test-context-strong-two-clubs', kind: 'responseBid', title: 'test strong 2C opening',
-      auctionContext: { stage: 'responding', openerCalls: ['2C'] },
-      calls: ['Pass'], certainty: 'high',
-    },
-    {
-      id: 'test-context-literal-auction', kind: 'responseBid', title: 'test literal auction context',
-      auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
-      calls: ['Pass'], certainty: 'high',
-    },
+/// Regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
+/// A similar hand with a five-card suit must retain the existing natural suit rebid instead.
+function runStrongTwoCFourFourFourOneBoundaryTests (): number {
+  const south = { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' };
+  const auction: Call[] = ['2C', 'Pass', '2D', 'Pass'];
+  const cases = [
+    { name: 'strong 2C waiting: 4-4-4-1 guidance',
+      north: { S: 'AKQ4', H: 'AKJ7', D: 'AQ76', C: '5' },
+      expectedBoundary: true },
+    { name: 'strong 2C waiting: five-card spade rebid unaffected',
+      north: { S: 'AKQ4T', H: 'AKJ', D: 'AQ76', C: '5' },
+      expectedBoundary: false },
   ];
-  const cases: { auction: Call[]; expected: string[]; rejected: string[] }[] = [
-    { auction: ['1C', 'Pass'],
-      expected: ['test-context-one-level-minor', 'test-context-literal-auction'],
-      rejected: ['test-context-one-level-major', 'test-context-weak-two-set',
-                 'test-context-strong-two-clubs'] },
-    { auction: ['1D', 'Pass'], expected: ['test-context-one-level-minor'],
-      rejected: ['test-context-literal-auction', 'test-context-one-level-major'] },
-    { auction: ['1H', 'Pass'], expected: ['test-context-one-level-major'],
-      rejected: ['test-context-one-level-minor'] },
-    { auction: ['1S', 'Pass'], expected: ['test-context-one-level-major'],
-      rejected: ['test-context-one-level-minor'] },
-    { auction: ['2C', 'Pass'], expected: ['test-context-strong-two-clubs'],
-      rejected: ['test-context-one-level-minor', 'test-context-one-level-major',
-                 'test-context-weak-two-set', 'test-context-literal-auction'] },
-    { auction: ['2D', 'Pass'], expected: ['test-context-weak-two-set'],
-      rejected: ['test-context-strong-two-clubs', 'test-context-one-level-minor'] },
-    { auction: ['2H', 'Pass'], expected: ['test-context-weak-two-set'],
-      rejected: ['test-context-one-level-major'] },
-    { auction: ['2S', 'Pass'], expected: ['test-context-weak-two-set'],
-      rejected: ['test-context-one-level-major'] },
-  ];
-  let checkCount = 0;
-  let failureCount = 0;
-  for (const testCase of cases) {
-    const context = makeRuleEvalContext(board, testCase.auction);
-    const matched = new Set(evaluateRules(rules, context, defaultBiddingSystem)
-      .map((result) => result.rule.id));
-    for (const ruleId of testCase.expected) {
-      checkCount += 1;
-      if (! matched.has(ruleId)) {
-        failureCount += 1;
-        console.error(`FAIL auction context ${testCase.auction.join(' ')} should match ${ruleId}.`);
-      }
-    }
-    for (const ruleId of testCase.rejected) {
-      checkCount += 1;
-      if (matched.has(ruleId)) {
-        failureCount += 1;
-        console.error(`FAIL auction context ${testCase.auction.join(' ')} should reject ${ruleId}.`);
-      }
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south, practiceAuction: auction });
+    const result = evaluateUserCall('2S', board, auction, defaultBiddingSystem);
+    const boundary = result.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-boundary-strong-2c-waiting-4441');
+    const naturalRebid = getApplicableCandidateCalls(result).some(({ call, rule }) =>
+      call === '2S' && rule.id === 'opener-rebid-longest-suit-after-2c-2d');
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (boundary !== test.expectedBoundary || naturalRebid === test.expectedBoundary ||
+        status.kind !== (test.expectedBoundary ? 'scopeBoundary' : 'supported')) {
+      failures++;
+      console.error(`FAIL R1 ${test.name}: boundary=${boundary}, 2S=${naturalRebid}, ` +
+                    `status=${status.kind}.`);
     }
   }
-  console.log(`${failureCount} ***FAILURES***. Auction context: ${checkCount} semantic/literal matching checks.`);
-  console.log('  Verifies that mock rules match the correct opening level, suit, and auction');
-  console.log('  sequence, without accidentally matching unrelated auctions.\n');
-  return failureCount;
+  console.log(`${failures} ***FAILURES***. Strong 2C 4-4-4-1 boundary: 2 focused cases.\n`);
+  return failures;
 }
+
+//// Direct defense, overcalls, and balancing
 
 /// Competitive smoke checks cover the newly shared stage and call-availability boundaries.
 /// The eight-point responder hand has a negative double and natural 1NT available when
@@ -720,6 +985,540 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// DONT checks protect the family boundary rather than duplicating every practice deal.
+/// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
+/// responder or opener competes instead of passing through the basic relay.
+function runDontBoundaryTests (): number {
+  const seed = DONT_1NT_DEFENSE_TEST_DEALS[0];
+  if (seed === undefined) {
+    console.error('FAIL DONT boundaries need a practice deal.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seed);
+  let checks = 0;
+  let failures = 0;
+
+  checks += 1;
+  if (getNextBiddingRuleStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
+      'overcallerRebid') {
+    failures += 1;
+    console.error('FAIL DONT relay should reach the overcaller-rebid stage.');
+  }
+
+  checks += 1;
+  const suitOpeningCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', board, ['1D'], defaultBiddingSystem));
+  if (suitOpeningCandidates.some(({ rule }) => rule.id.startsWith('overcall-dont-'))) {
+    failures += 1;
+    console.error('FAIL DONT direct rules leaked into a suit opening.');
+  }
+
+  const { board: weakBoard } = makeRuleTestBoard({
+    description: 'Six-card DONT suit below the app strength floor.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: '84', H: 'KJT986', D: 'Q52', C: '73' },
+    south: { S: 'T975', H: '753', D: '864', C: 'T65' },
+  });
+  checks += 1;
+  const weakCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', weakBoard, ['1NT'], defaultBiddingSystem));
+  if (weakCandidates.some(({ rule }) => rule.id === 'overcall-dont-single-suit-double')) {
+    failures += 1;
+    console.error('FAIL DONT one-suit Double survived below 7 HCP.');
+  }
+
+  const { board: fourFourBoard } = makeRuleTestBoard({
+    description: 'Four-four shape is below the modeled DONT two-suit minimum.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' },
+    south: { S: 'T975', H: '753', D: 'Q84', C: 'K65' },
+  });
+  checks += 1;
+  const fourFourCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', fourFourBoard, ['1NT'], defaultBiddingSystem));
+  if (fourFourCandidates.some(({ rule }) => rule.id === 'overcall-dont-clubs-plus-higher')) {
+    failures += 1;
+    console.error('FAIL DONT 2C survived with only 4-4 shape.');
+  }
+
+  checks += 1;
+  const interferenceCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', board, ['1NT', 'Double', '2C'], defaultBiddingSystem));
+  if (interferenceCandidates.some(({ rule }) => rule.id === 'advance-dont-pass-or-correct')) {
+    failures += 1;
+    console.error('FAIL DONT advance survived responder interference.');
+  }
+
+  checks += 1;
+  const openerCompetes = getApplicableCandidateCalls(evaluateUserCall(
+    '2H', board, ['1NT', 'Double', 'Pass', '2C', '2D'], defaultBiddingSystem));
+  if (openerCompetes.some(({ rule }) => rule.id === 'overcaller-rebid-dont-pass-or-correct')) {
+    failures += 1;
+    console.error('FAIL DONT relay correction survived opener competition.');
+  }
+
+  console.log(`${failures} ***FAILURES***. DONT boundaries: ${checks} checks.`);
+  console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
+  console.log('  shape/strength floor, and stops the pass-or-correct path after interference.\n');
+  return failures;
+}
+/// Test initial DONT instructional evidence for each supported treatment and representative
+/// near misses. Use the saved hands without changing the original practice-deal corpus.
+function runDontInitialExplanationTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = DONT_1NT_DEFENSE_TEST_DEALS;
+  for (const deal of deals) {
+    const expected = deal.expectedOvercallCalls?.[0];
+    if (expected === undefined || expected.call === 'Pass') continue;
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(expected.call, board, ['1NT'], defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) => expected.ruleIds.includes(item.id));
+    const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule?.id)
+      ?.candidates.find(({ call }) => call === expected.call);
+    const positive = rule === undefined ? null : getDontInitialSupportLine(result, rule);
+    checks += 1;
+    if (positive === null || candidate?.callEvidence?.dontInitial === undefined ||
+        getDontInitialFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL initial DONT qualifying explanation: ${deal.description}`);
+    }
+  }
+
+  const mistaken: { dealIndex: number; call: Call }[] = [
+    { dealIndex: 1, call: '2H' },
+    { dealIndex: 2, call: 'Double' },
+    { dealIndex: 4, call: '2C' },
+    { dealIndex: 5, call: '2D' },
+    { dealIndex: 6, call: 'Double' },
+  ];
+  for (const test of mistaken) {
+    const deal = deals[test.dealIndex];
+    if (deal === undefined) continue;
+    const board = makeRuleTestBoard(deal).board;
+    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const negative = getDontInitialFailureLines(result);
+    checks += 1;
+    if (result.userCallMatchingRules.length > 0 || negative.length === 0) {
+      failures += 1;
+      console.error(`FAIL initial DONT mistaken ${test.call} with ${deal.description}`);
+    }
+  }
+
+  const synthetic: { name: string; north: RuleTestDeal['north']; call: Call }[] = [
+    { name: '6 HCP but good six-card hearts', call: 'Double',
+      north: { S: '84', H: 'KQJT96', D: '852', C: '73' } },
+    { name: '4-4 two-suit shape', call: '2C',
+      north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' } },
+    { name: 'Six hearts with inadequate honor quality', call: 'Double',
+      north: { S: '84', H: '976432', D: 'AKQ', C: '73' } },
+    { name: 'Five clubs and four hearts, weak club honors', call: '2C',
+      north: { S: '84', H: 'A765', D: 'KQ', C: 'J9876' } },
+  ];
+  for (const test of synthetic) {
+    // Construct a separate, non-overlapping second hand; these are synthetic tests,
+    // not additional saved practice deals.
+    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
+      'AKQJT98765432'.split('').filter((rank) => !test.north[suit].includes(rank))
+        .slice(0, count).join('');
+    const board = makeRuleTestBoard({
+      description: test.name, dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+      north: test.north,
+      south: { S: unused('S', 4), H: unused('H', 3),
+               D: unused('D', 3), C: unused('C', 3) },
+    }).board;
+    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const lines = getDontInitialFailureLines(result);
+    checks += 1;
+    if (result.userCallMatchingRules.length !== 0 || lines.length === 0) {
+      failures += 1;
+      console.error(`FAIL DONT initial explanation boundary: ${test.name}`);
+    }
+  }
+
+  const sample = deals[1];
+  if (sample !== undefined) {
+    const board = makeRuleTestBoard(sample).board;
+    const unrelated = evaluateUserCall('2H', board, ['1D'], defaultBiddingSystem);
+    checks += 1;
+    if (getDontInitialFailureLines(unrelated).length !== 0 ||
+        unrelated.userCallMatchingRules.some((rule) =>
+          getDontInitialSupportLine(unrelated, rule) !== null)) {
+      failures += 1;
+      console.error('FAIL initial DONT explanation leaked into natural suit defense.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. DONT initial explanations: ${checks} checks.\n`);
+  return failures;
+}
+/// Protect the hand-specific explanations for natural suit and 2NT defenses to weak twos.
+/// What-if hands are separate from saved practice deals and have no duplicate cards.
+function runWeakTwoOvercallExplanationTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const expected = WEAK_TWO_DEFENSE_TEST_DEALS;
+  for (const index of [1, 2, 3, 6]) {
+    const deal = expected[index];
+    if (deal === undefined) continue;
+    const recorded = deal.expectedOvercallCalls?.[0];
+    if (recorded === undefined) continue;
+    const result = evaluateUserCall(recorded.call, makeRuleTestBoard(deal).board,
+      deal.practiceAuction.slice(0, 1), defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find(({ id }) => recorded.ruleIds.includes(id));
+    const line = rule === undefined ? null : getWeakTwoOvercallSupportLine(result, rule);
+    checks += 1;
+    if (line === null || line.length === 0 ||
+        getWeakTwoOvercallFailureLines(result).length !== 0) {
+      failures += 1;
+      console.error(`FAIL weak-two overcall positive explanation: ${deal.description}`);
+    }
+  }
+
+  const original = expected[1];
+  const weakPass = expected[0];
+  if (original !== undefined && weakPass !== undefined) {
+    const hand = makeRuleTestBoard(original).board;
+    const jump = evaluateUserCall('3H', hand, ['2D'], defaultBiddingSystem);
+    const jumpLines = getWeakTwoOvercallFailureLines(jump);
+    checks += 1;
+    const economical = evaluateUserCall('2H', hand, ['2D'], defaultBiddingSystem);
+    if (jumpLines.length === 0 || jump.userCallMatchingRules.length !== 0 ||
+        !economical.userCallMatchingRules.some(({ id }) =>
+          id === 'overcall-weak-two-natural-suit-at-two-level')) {
+      failures++;
+      console.error('FAIL weak-two jump explanation must mention qualified non-jump 2H.');
+    }
+    const missed = evaluateUserCall('2H', makeRuleTestBoard(weakPass).board,
+      ['2D'], defaultBiddingSystem);
+    checks += 1;
+    if (missed.userCallMatchingRules.length !== 0 ||
+        getWeakTwoOvercallFailureLines(missed).length === 0) {
+      failures++;
+      console.error('FAIL weak-two deficient-length explanation.');
+    }
+  }
+
+  // Construct a valid complete board without introducing practice-deal edits.
+  const build = (name: string, hand: { S: string; H: string; D: string; C: string }) => {
+    const ranks = 'AKQJT98765432';
+    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
+      [...ranks].filter((rank) => !hand[suit].includes(rank)).slice(0, count).join('');
+    return makeRuleTestBoard({
+      description: name, dealer: 'W', practiceAuction: ['2D', 'Pass'],
+      north: hand,
+      south: { S: unused('S', 4), H: unused('H', 3),
+               D: unused('D', 3), C: unused('C', 3) },
+    }).board;
+  };
+  const cases: { name: string; hand: { S: string; H: string; D: string; C: string };
+                 auction: Call[]; bid: Call }[] = [
+    { name: 'good hearts below 13 points', bid: '2H', auction: ['2D'],
+      hand: { S: 'A7', H: 'KQJ98', D: '63', C: 'T976' } },
+    { name: 'strong overcaller should double', bid: '2H', auction: ['2D'],
+      hand: { S: 'AK', H: 'AKQJT', D: 'Q7', C: 'T982' } },
+    { name: 'weak suit honors', bid: '2H', auction: ['2D'],
+      hand: { S: 'AQ', H: 'J9876', D: 'K74', C: 'T52' } },
+    { name: 'three-level suit too short', bid: '3H', auction: ['2S'],
+      hand: { S: 'A4', H: 'AKJT9', D: 'Q76', C: '982' } },
+    { name: 'natural 2NT lacks stopper', bid: '2NT', auction: ['2D'],
+      hand: { S: 'AKJ4', H: 'Q96', D: '754', C: 'AJ6' } },
+    { name: 'natural 2NT needs balanced distribution', bid: '2NT', auction: ['2D'],
+      hand: { S: 'AKJ84', H: 'Q976', D: 'A4', C: 'J7' } },
+    { name: 'natural 2NT below range', bid: '2NT', auction: ['2D'],
+      hand: { S: 'KJ84', H: 'Q96', D: 'A54', C: 'J76' } },
+  ];
+  for (const c of cases) {
+    const result = evaluateUserCall(c.bid, build(c.name, c.hand), c.auction,
+      defaultBiddingSystem);
+    const lines = getWeakTwoOvercallFailureLines(result);
+    checks++;
+    if (result.userCallMatchingRules.length !== 0 || lines.length === 0) {
+      failures++;
+      console.error(`FAIL weak-two overcall explanation: ${c.name}: ${lines.join(' ')}`);
+    }
+  }
+  const unrelated = evaluateUserCall('2H',
+    makeRuleTestBoard(expected[1]!).board, ['1S'], defaultBiddingSystem);
+  checks++;
+  if (getWeakTwoOvercallFailureLines(unrelated).length !== 0 ||
+      unrelated.userCallMatchingRules.some((rule) =>
+        getWeakTwoOvercallSupportLine(unrelated, rule) !== null)) {
+    failures++;
+    console.error('FAIL weak-two explanation leaked into one-level opening defenses.');
+  }
+  console.log(`${failures} ***FAILURES***. Weak-two direct-overcall explanations: ${checks} checks.\n`);
+  return failures;
+}
+/// C3: a missing direct-seat defense is an explicit explanatory boundary, not an
+/// automatic Pass.  The ordinary fallback Pass and actual DONT/overcall actions retain priority.
+function runUnmodeledDirectDefenseBoundaryTests (): number {
+  const weak = { S: '987', H: 'J876', D: '963', C: '854' };
+  const strongBalanced = { S: 'AK7', H: 'KQ4', D: 'AJ6', C: 'Q742' }; // 19 HCP
+  const strongDont = { S: 'AK7', H: 'KQJ987', D: 'AJ', C: 'Q4' }; // 20 HCP, six good hearts
+  const naturalOvercall = { S: 'AKQJ6', H: '84', D: 'J963', C: '85' };
+  // Construct the other seats from the unused deck, so every diagnostic case has
+  // a legal 52-card deal without asserting unrealistic prior bidding for the opponents.
+  const makeBoard = (name: string, east: typeof weak, auction: Call[], dealer: 'N' | 'W' = 'N') => {
+    const suits = ['S', 'H', 'D', 'C'] as const;
+    const remaining = suits.flatMap((suit) => [...'AKQJT98765432'].map((rank) =>
+      [suit, rank] as const).filter(([, rank]) => !east[suit].includes(rank)));
+    const toHand = (cards: typeof remaining) => {
+      const hand = { S: '', H: '', D: '', C: '' };
+      for (const [suit, rank] of cards) hand[suit] += rank;
+      return hand;
+    };
+    return makeRuleTestBoard({ description: name, dealer, practiceAuction: auction,
+      east, north: toHand(remaining.slice(0, 13)), south: toHand(remaining.slice(13, 26)) });
+  };
+  const cases: {
+    name: string;
+    auction: Call[];
+    east: typeof weak;
+    expectedStatus: ReturnType<typeof getBiddingTurnStatus>['kind'];
+    expectedBoundary?: string;
+    expectedCall?: Call;
+    expectedRule?: string;
+    dealer?: 'N' | 'W';
+  }[] = [
+    { name: 'ordinary weak direct seat', auction: ['1D'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+    { name: 'ordinary constructive action suppresses Pass', auction: ['1D'],
+      east: naturalOvercall, expectedStatus: 'supported', expectedCall: '1S',
+      expectedRule: 'overcall-simple-suit-at-one-level' },
+    { name: 'ordinary 1NT defense Pass', auction: ['1NT'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+    { name: '19 HCP balanced after opposing 1NT', auction: ['1NT'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt' },
+    { name: '20 HCP strong DONT eligible', auction: ['1NT'], east: strongDont,
+      expectedStatus: 'supported', expectedCall: 'Double',
+      expectedRule: 'overcall-dont-single-suit-double' },
+    { name: '19 HCP after 1NT with nondealer opening', auction: ['Pass', '1NT'],
+      east: strongBalanced, expectedStatus: 'scopeBoundary',
+      expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt', dealer: 'W' },
+    { name: 'strong artificial 2C defense', auction: ['2C'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2c-opening' },
+    { name: 'strong 2NT defense', auction: ['2NT'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2nt-opening' },
+    { name: 'three-level preempt 3C', auction: ['3C'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
+    { name: 'three-level preempt 3S', auction: ['3S'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
+    { name: 'high-level opening 3NT', auction: ['3NT'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 4H', auction: ['4H'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 5D', auction: ['5D'], east: strongBalanced,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'high-level opening 7NT', auction: ['7NT'], east: weak,
+      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
+    { name: 'ordinary weak-two Pass remains', auction: ['2H'], east: weak,
+      expectedStatus: 'supported', expectedCall: 'Pass',
+      expectedRule: 'overcall-pass-no-qualifying-action' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeBoard(test.name, test.east, test.auction, test.dealer ?? 'N');
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+      test.auction, defaultBiddingSystem));
+    const boundary = status.kind === 'scopeBoundary' ? status.rule.id : null;
+    const expectedAction = candidates.some(({ call, rule }) =>
+      call === test.expectedCall && rule.id === test.expectedRule);
+    const hasFallbackPass = candidates.some(({ rule }) =>
+      rule.id === 'overcall-pass-no-qualifying-action');
+    const good = status.kind === test.expectedStatus &&
+      (test.expectedBoundary === undefined
+        ? expectedAction && (test.expectedCall === 'Pass' || !hasFallbackPass)
+        : boundary === test.expectedBoundary && candidates.length === 0);
+    if (!good) {
+      failures++;
+      console.error(`FAIL C3 ${test.name}: status ${status.kind}, boundary ${boundary ?? '-'}, ` +
+        `candidates ${candidates.map(({ call, rule }) => `${call}:${rule.id}`).join(', ')}.`);
+    }
+  }
+  // A natural fourth-seat balancing decision must not be mistaken for a direct defense boundary.
+  const { board: balancingBoard } = makeBoard('C3 balancing stays separate',
+    strongBalanced, ['1H', 'Pass', 'Pass']);
+  const balancing = getBiddingTurnStatus(balancingBoard,
+    ['1H', 'Pass', 'Pass'], defaultBiddingSystem);
+  if (balancing.kind === 'scopeBoundary' &&
+      balancing.rule.id.startsWith('overcall-boundary-')) {
+    failures++;
+    console.error('FAIL C3: direct-seat defense boundary leaked into fourth-seat balancing.');
+  }
+  console.log(`${failures} ***FAILURES***. C3 omitted direct defenses: ` +
+    `${cases.length + 1} targeted checks.\n`);
+  return failures;
+}
+/// Keep fourth-seat practice honest: BOTH intervening Passes must be sound according
+/// to the current rules, not merely preloaded calls to reach the balancing lesson.
+function runBalancingAuctionAndDealTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const deal of BALANCING_TEST_DEALS) {
+    const { board } = makeRuleTestBoard(deal);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const opening = deal.practiceAuction[0]!;
+    const openingCandidates = getApplicableCandidateCalls(evaluateUserCall(opening, board,
+      [], system));
+    checks += 1;
+    if (openingCandidates[0]?.call !== opening) {
+      failures += 1;
+      console.error(`FAIL balancing deal opening ${deal.description}: ` +
+        `${formatCandidates(openingCandidates)}`);
+    }
+    for (const prefix of [[opening], [opening, 'Pass']] as Call[][]) {
+      const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+        prefix, system));
+      checks += 1;
+      if (candidates.length !== 1 || candidates[0]?.call !== 'Pass') {
+        failures += 1;
+        console.error(`FAIL balancing deal unsupported intervening Pass: ${deal.description}, ` +
+          `${prefix.join(' ')} -> ${formatCandidates(candidates)}`);
+      }
+    }
+    const decision = evaluateUserCall(deal.practiceAuction[3]!, board,
+      deal.practiceAuction.slice(0, 3), system);
+    const calls = getApplicableCandidateCalls(decision);
+    checks += 1;
+    if (getNextBiddingRuleStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
+        !calls.some(({ call }) => call === deal.practiceAuction[3]) ||
+        calls.some(({ rule }) => rule.id.startsWith('overcall-'))) {
+      failures += 1;
+      console.error(`FAIL balancing stage/direct-seat isolation: ${deal.description}, ` +
+        `${formatCandidates(calls)}`);
+    }
+  }
+  // Only an opposing one-level SUIT opening and exactly two intervening Passes qualify.
+  const seatCases: { auction: Call[]; expected: ReturnType<typeof getNextBiddingRuleStage> }[] = [
+    { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
+    { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
+    { auction: ['1H'], expected: 'overcalling' },
+    { auction: ['1H', 'Pass', '2H'], expected: null },
+    { auction: ['1NT', 'Pass', 'Pass'], expected: null },
+    { auction: ['2H', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
+    { auction: ['1H', 'Double', 'Pass'], expected: 'advancing' },
+  ];
+  for (const { auction, expected } of seatCases) {
+    checks += 1;
+    if (getNextBiddingRuleStage('W', auction) !== expected) {
+      failures += 1;
+      console.error(`FAIL balancing stage for ${auction.join(' ')}: ` +
+        `expected ${expected}, got ${getNextBiddingRuleStage('W', auction)}.`);
+    }
+  }
+  const ntDeal = BALANCING_TEST_DEALS.find((deal) => deal.practiceAuction[3] === '1NT')!;
+  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall('1NT',
+    makeRuleTestBoard(ntDeal).board, ntDeal.practiceAuction.slice(0, 3), defaultBiddingSystem));
+  checks += 1;
+  if (!ntCandidates.some(({ call }) => call === 'Pass') ||
+      !ntCandidates.some(({ call, rule }) => call === '1NT' &&
+        rule.id === 'balance-natural-1nt')) {
+    failures += 1;
+    console.error('FAIL balancing 1NT and defensive Pass should coexist on a borderline hand.');
+  }
+  console.log(`${failures} ***FAILURES***. Balancing seat and complete deal plausibility: ` +
+    `${checks} checks (including both intervening Passes in all six complete hands).\n`);
+  return failures;
+}
+/// Exercise reciprocal direct-overcall and balancing comparisons on existing recorded hands.
+/// Assert qualification and feedback delivery, not particular English wording.
+function runDirectOvercallAlternativeTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const scenarios: { name: string; description: string; selected: Call;
+    alternative: Call; ruleId: string; prefix: Call[]; seat: 'E' | 'W' }[] = [
+    { name: 'natural spades versus takeout Double',
+      description: 'Good five-card spades and 10 HCP:', selected: '1S',
+      alternative: 'Double', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'takeout Double versus natural spades',
+      description: 'Good five-card spades and 10 HCP:', selected: 'Double',
+      alternative: '1S', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'natural 1NT versus takeout Double',
+      description: '15 HCP and K83 in diamonds:', selected: '1NT',
+      alternative: 'Double', ruleId: 'overcall-natural-1nt-with-stopper',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'takeout Double versus natural 1NT',
+      description: '15 HCP and K83 in diamonds:', selected: 'Double',
+      alternative: '1NT', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'weak-two natural 2NT versus Double',
+      description: 'Balanced 15 HCP with the diamond ace:', selected: '2NT',
+      alternative: 'Double', ruleId: 'overcall-weak-two-natural-2nt-with-stopper',
+      prefix: ['2D'], seat: 'E' },
+    { name: 'weak-two Double versus natural 2NT',
+      description: 'Balanced 15 HCP with the diamond ace:', selected: 'Double',
+      alternative: '2NT', ruleId: 'overcall-weak-two-takeout-double-with-unbid-suit-support',
+      prefix: ['2D'], seat: 'E' },
+    { name: 'weak jump hearts versus natural hearts',
+      description: 'Six good hearts, 10 HCP:', selected: '2H',
+      alternative: '1H', ruleId: 'overcall-preemptive-jump-at-two-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'natural hearts versus weak jump',
+      description: 'Six good hearts, 10 HCP:', selected: '1H',
+      alternative: '2H', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1D'], seat: 'E' },
+    { name: 'four-level weak jump versus natural spades',
+      description: 'Eight good spades, fewer than 10 HCP:', selected: '4S',
+      alternative: '1S', ruleId: 'overcall-preemptive-jump-at-four-level',
+      prefix: ['1C'], seat: 'E' },
+    { name: 'natural spades versus four-level weak jump',
+      description: 'Eight good spades, fewer than 10 HCP:', selected: '1S',
+      alternative: '4S', ruleId: 'overcall-simple-suit-at-one-level',
+      prefix: ['1C'], seat: 'E' },
+    { name: 'balancing 1NT versus defensive Pass',
+      description: 'Balanced 12 HCP with spade stopper:', selected: '1NT',
+      alternative: 'Pass', ruleId: 'balance-natural-1nt',
+      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
+    { name: 'balancing defensive Pass versus 1NT',
+      description: 'Balanced 12 HCP with spade stopper:', selected: 'Pass',
+      alternative: '1NT', ruleId: 'balance-pass-defend',
+      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
+  ];
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.description.startsWith(scenario.description) &&
+      scenario.prefix.every((call, index) => item.practiceAuction[index] === call));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q2 direct/balancing practice deal missing: ${scenario.name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.selected, board, scenario.prefix, system);
+    const selectedRule = result.userCallMatchingRules.find((rule) =>
+      rule.id === scenario.ruleId);
+    const alternative = getApplicableCandidateCalls(result).some((candidate) =>
+      candidate.call === scenario.alternative && candidate.ruleApplies);
+    const handFacts = getHandFacts(board.deal[scenario.seat]);
+    const generated = selectedRule === undefined ? [] :
+      getMatchedCallExplanationLines(result, selectedRule, handFacts, scenario.prefix.length);
+    const comparison = generated.filter((line) => line.includes(scenario.alternative) &&
+      !line.startsWith('- ') && !line.startsWith('  '));
+    const delivered = getBidExplanationLines({
+      title: 'Direct and balancing calls', call: scenario.selected,
+      status: getBiddingTurnStatus(board, scenario.prefix, system), result,
+      handFacts, auctionLength: scenario.prefix.length, previewLines: [],
+      seatLabel: scenario.seat === 'E' ? 'East' : 'West', recordedUnjudged: false,
+    });
+    if (selectedRule === undefined || !alternative || comparison.length === 0 ||
+        !comparison.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q2 direct/balancing comparison or delivery: ${scenario.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Direct overcall and balancing alternatives: ${checks} checks.\n`);
+  return failures;
+}
+
+//// Responses to opening bids and competitive responses
 
 /// These opening families deliberately stop when responder faces interference.  Some ordinary
 /// calls may still be reasonable bridge, but the trainer must not imply that it models a complete
@@ -787,207 +1586,1750 @@ function runResponderInterferenceScopeBoundaryTests (): number {
   console.log('  preserving the intentionally shared weak Pass in supported one-level auctions.\n');
   return failures;
 }
-
-/// Run all deals, including those requiring non-default partnership agreements.
-/// Continue after individual failures so one run reports all recoverable regressions.
-function runRuleTests (): number {
-  let dealCount = 0;
-  let positiveCount = 0;
-  let eliminationCount = 0;
-  let callOrderCount = 0;
-  let recordedCallCount = 0;
-  let failureCount = 0;
-  for (const bucket of RULE_TEST_DEAL_BUCKETS) {
-    for (const [index, deal] of bucket.deals.entries()) {
-      dealCount += 1;
-      let dealAssertionCount = 0;
-      const failuresBeforeDeal = failureCount;
-      const label = `${bucket.id} #${index + 1}: ${deal.description}`;
-      const system: BiddingSystem = { ...defaultBiddingSystem, ...deal.requiredSystem };
-      try {
-        const { board } = makeRuleTestBoard(deal);
-        // Student exercises start with North dealing and retain four explicitly authored hands.
-        // Board construction also validates thirteen cards per hand and rejects duplicates.
-        if (board.dealer !== 'N' || deal.east === undefined || deal.west === undefined) {
-          failureCount += 1;
-          console.error(`FAIL practice deal requires North dealer and four fixed hands\n${label}`);
-        }
-        for (const note of deal.practiceGuidance ?? []) {
-          if (! Number.isInteger(note.auctionIndex) || note.auctionIndex < 0 ||
-              note.auctionIndex >= deal.practiceAuction.length ||
-              note.seat !== getSeatForCallIndex(board.dealer, note.auctionIndex)) {
-            failureCount += 1;
-            console.error(`FAIL practice guidance does not identify a recorded turn\n${label}`);
-          }
-        }
-        const stages = getTestedStages(deal);
-        for (const stage of stages) {
-          // An undeclared stage is normal: a response-only deal has no opener-rebid expectations.
-          if (stage.expected === undefined && stage.rejected === undefined &&
-              stage.order === undefined) {
-            continue;
-          }
-          // Explicitly empty fields indicate incomplete test data, not an intentional omission.
-          for (const [name, assertions] of [
-            ['expected', stage.expected], ['rejected', stage.rejected], ['order', stage.order],
-          ] as const) {
-            if (assertions !== undefined && assertions.length === 0) {
-              failureCount += 1;
-              console.error(`FAIL malformed ${stage.name}: ${name} is explicitly empty\n${label}`);
-            }
-          }
-          if ((stage.expected?.length ?? 0) + (stage.rejected?.length ?? 0) +
-              (stage.order?.length ?? 0) === 0) {
-            continue;
-          }
-          if (deal.practiceAuction.length <= stage.auctionLength) {
-            failureCount += 1;
-            console.error(`FAIL no recorded ${stage.name} call in practiceAuction\n${label}`);
-            continue;
-          }
-          const auction = deal.practiceAuction.slice(0, stage.auctionLength);
-          const inputCall = deal.practiceAuction[stage.auctionLength]!;
-          const context = `${label}\n  ${stage.name}: ${auction.join(' ') || '(opening)'} -> ` +
-                          `${inputCall}; system=${JSON.stringify(system)}`;
-          try {
-            const result = evaluateUserCall(inputCall, board, auction, system);
-            const candidates = getApplicableCandidateCalls(result);
-            // Practice calls must themselves qualify, even when other alternatives are expected.
-            recordedCallCount += 1;
-            if (! candidates.some((candidate) => candidate.call === inputCall)) {
-              failureCount += 1;
-              console.error(`FAIL recorded practice call ${inputCall} does not qualify\n${context}`);
-              console.error(`  Surviving: ${formatCandidates(candidates)}`);
-            }
-            for (const expected of stage.expected ?? []) {
-              if (! Array.isArray(expected.ruleIds) || expected.ruleIds.length === 0) {
-                failureCount += 1;
-                console.error(`FAIL malformed ${stage.name}: ${expected.call} has no rule IDs\n${context}`);
-                continue;
-              }
-              for (const ruleId of expected.ruleIds) {
-                positiveCount += 1;
-                dealAssertionCount += 1;
-                if (! candidates.some((c) => c.call === expected.call && c.rule.id === ruleId)) {
-                  failureCount += 1;
-                  console.error(`FAIL expected ${expected.call} under ${ruleId}\n${context}`);
-                  console.error(`  Surviving: ${formatCandidates(candidates)}`);
-                }
-              }
-            }
-            for (const call of stage.rejected ?? []) {
-              eliminationCount += 1;
-              dealAssertionCount += 1;
-              if (candidates.some((candidate) => candidate.call === call)) {
-                failureCount += 1;
-                console.error(`FAIL rejected ${call} survived\n${context}`);
-                console.error(`  Surviving: ${formatCandidates(candidates)}`);
-              }
-            }
-            for (const [before, after] of stage.order ?? []) {
-              callOrderCount += 1;
-              dealAssertionCount += 1;
-              const beforeIndex = candidates.findIndex((candidate) => candidate.call === before);
-              const afterIndex = candidates.findIndex((candidate) => candidate.call === after);
-              if (beforeIndex < 0 || afterIndex < 0 || beforeIndex >= afterIndex) {
-                failureCount += 1;
-                console.error(`FAIL call order: expected ${before} before ${after}\n${context}`);
-                console.error(`  Surviving in order: ${formatCandidates(candidates)}`);
-              }
-            }
-          } catch (error) {
-            failureCount += 1;
-            console.error(`FAIL could not evaluate ${stage.name}\n${context}\n  ${String(error)}`);
-          }
-        }
-        if (dealAssertionCount === 0 && failureCount === failuresBeforeDeal) {
-          failureCount += 1;
-          console.error(`FAIL deal has no executable expectations\n${label}`);
-        }
-      } catch (error) {
-        failureCount += 1;
-        console.error(`FAIL could not construct ${label}: ${String(error)}`);
+/// Guard the two semantic fixes without testing explanation wording: the nonforcing 1NT
+/// range follows Standard vs 2/1, and a passed responder cannot establish a 2/1 game force.
+function runMajorNoSupportAgreementTests (): number {
+  const opening = { S: 'AKQ96', H: 'A43', D: '972', C: '54' };
+  const base = { S: '43', H: 'KQ87', D: 'AQ65', C: '762' };
+  const hands = [
+    { hcp: 11, south: base },
+    { hcp: 12, south: { ...base, C: 'J62' } },
+    { hcp: 13, south: { ...base, D: 'AKJ5' } },
+  ];
+  const standard = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const,
+    majorOneNtResponse: 'nonForcing' as const };
+  const semiForcing = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const,
+    majorOneNtResponse: 'nonForcing' as const };
+  const forcing = { ...semiForcing, majorOneNtResponse: 'forcing' as const };
+  const supports = (call: Call, board: ReturnType<typeof makeRuleTestBoard>['board'],
+                    auction: Call[], system: BiddingSystem, ruleId: string): boolean =>
+    evaluateUserCall(call, board, auction, system).userCallMatchingRules.some((rule) =>
+      rule.id === ruleId);
+  let failures = 0;
+  let checks = 0;
+  for (const { hcp, south } of hands) {
+    const { board } = makeRuleTestBoard({ description: 'B12 strength and prior Pass.',
+      north: opening, south, practiceAuction: ['1S', 'Pass', '1NT'] });
+    const actual = makeRuleEvalContext(board, ['1S', 'Pass']).handFacts.hcp;
+    if (actual !== hcp) {
+      failures += 1;
+      console.error(`FAIL B12 fixture: wanted ${hcp} HCP, got ${actual}.`);
+    }
+    const unpassed: Call[] = ['1S', 'Pass'];
+    const passed: Call[] = ['Pass', 'Pass', '1S', 'Pass'];
+    // Use South as dealer for the passed auction: South Passed, North then opened,
+    // and South responds. This preserves the same tested responder's cards.
+    const cases = [
+      { call: '1NT' as Call, auction: unpassed, system: standard,
+        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: false },
+      { call: '1NT' as Call, auction: unpassed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: hcp <= 12 },
+      { call: '1NT' as Call, auction: unpassed, system: forcing,
+        rule: 'respond-to-major-w/o-support-1nt-twooverone', wanted: hcp <= 12 },
+      { call: '2D' as Call, auction: unpassed, system: standard,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-standard', wanted: true },
+      { call: '2D' as Call, auction: unpassed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: hcp >= 13 },
+      { call: '2D' as Call, auction: passed, system: semiForcing,
+        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: false },
+    ];
+    for (const item of cases) {
+      checks += 1;
+      const actualBoard = item.auction === passed ? { ...board, dealer: 'S' as const } : board;
+      if (supports(item.call, actualBoard, item.auction, item.system, item.rule) !== item.wanted) {
+        failures += 1;
+        console.error(`FAIL B12 ${hcp}-HCP ${item.call} after ${item.auction.join(' ')} ` +
+          `in ${item.rule}: expected ${item.wanted}.`);
       }
     }
   }
-  console.log(`${failureCount} ***FAILURES***. Primary: ${dealCount} deals; ` +
-              `${positiveCount} positive, ${eliminationCount} elimination, ` +
-              `${callOrderCount} call-order, ${recordedCallCount} recorded-call checks.`);
-  console.log('  Runs practice deals through the production bidding evaluator, checking');
-  console.log('  expected rules and calls, rejected alternatives, ranking, and auction calls.\n');
-  // Independently verify that practice calls also work in representative dropdown configurations.
-  const compatibilityFailures = runConventionCompatibilityChecks();
-  return failureCount + compatibilityFailures;
+  const { board: spadesBoard } = makeRuleTestBoard({
+    description: 'B12 show four spades rather than fallback 1NT after a heart opening.',
+    north: { S: 'A43', H: 'AKJT5', D: '972', C: '54' },
+    south: { S: 'KQ87', H: '93', D: 'AQ65', C: '762' },
+    practiceAuction: ['1H', 'Pass', '1S'],
+  });
+  const spades = ['1H', 'Pass'] as Call[];
+  checks += 2;
+  if (!supports('1S', spadesBoard, spades, forcing,
+      'respond-to-major-w/o-support-new-suit-one-level')) {
+    failures += 1;
+    console.error('FAIL B12 four-card spade response after 1H not supported.');
+  }
+  if (supports('1NT', spadesBoard, spades, forcing,
+      'respond-to-major-w/o-support-1nt-twooverone')) {
+    failures += 1;
+    console.error('FAIL B12 1NT was not suppressed by available 1S.');
+  }
+  console.log(`${failures} ***FAILURES***. Major-no-support agreements: ${checks} behavioral checks.`);
+  console.log('  Protects 11-12 HCP semi-forcing 1NT, passed-hand 2/1, and preferred 1S.\n');
+  return failures;
 }
-
-/// Meta-test for requiredSystem: a deal offered by the dropdown must have a valid recorded call.
-/// We re-evaluate recorded calls, not alternative/rejected/order assertions, which can vary by agreement.
-function runConventionCompatibilityChecks (): number {
-  let compatibleDeals = 0;
-  let recordedCalls = 0;
-  let failureCount = 0;
-  for (const bucket of RULE_TEST_DEAL_BUCKETS) {
-    for (const [index, deal] of bucket.deals.entries()) {
-      const label = `${bucket.id} #${index + 1}: ${deal.description}`;
-      try {
-        const { board } = makeRuleTestBoard(deal);
-        const stages = getTestedStages(deal);
-        for (const configuration of CONVENTION_CONFIGURATIONS) {
-          // Only test configurations in which this deal's requiredSystem permits it to appear.
-          if (! matchesRequiredConventions(deal.requiredSystem, configuration.settings)) {
-            continue;
-          }
-          compatibleDeals += 1;
-          const system: BiddingSystem = {
-            ...defaultBiddingSystem, ...deal.requiredSystem, ...configuration.settings,
-          };
-          for (const stage of stages) {
-            if (stage.expected === undefined && stage.rejected === undefined &&
-                stage.order === undefined) {
-              continue;
-            }
-            if (deal.practiceAuction.length <= stage.auctionLength) {
-              failureCount += 1;
-              console.error(`FAIL compatibility: missing recorded ${stage.name} call\n${label}` +
-                            `\n  configuration=${configuration.name}; system=${JSON.stringify(system)}`);
-              continue;
-            }
-            const auction = deal.practiceAuction.slice(0, stage.auctionLength);
-            const recordedCall = deal.practiceAuction[stage.auctionLength]!;
-            const context = `${label}\n  ${stage.name}: ${auction.join(' ') || '(opening)'} -> ` +
-                            `${recordedCall}; configuration=${configuration.name}; ` +
-                            `system=${JSON.stringify(system)}`;
-            try {
-              const result = evaluateUserCall(recordedCall, board, auction, system);
-              const candidates = getApplicableCandidateCalls(result);
-              recordedCalls += 1;
-              if (! candidates.some((candidate) => candidate.call === recordedCall)) {
-                failureCount += 1;
-                console.error(`FAIL compatibility: recorded ${recordedCall} does not qualify\n${context}`);
-                console.error(`  Surviving: ${formatCandidates(candidates)}`);
-              }
-            } catch (error) {
-              failureCount += 1;
-              console.error(`FAIL compatibility: could not evaluate ${stage.name}\n${context}` +
-                            `\n  ${String(error)}`);
-            }
-          }
-        }
-      } catch (error) {
-        failureCount += 1;
-        console.error(`FAIL compatibility: could not construct ${label}: ${String(error)}`);
+/// Overlapping three- and four-card major-support routes must report a rejected
+/// new-suit length once. Mention a different suit only when it actually qualifies
+/// for the game-forcing route, including the 13-support-point requirement.
+function runMajorSupportNewSuitRejectionTests (): number {
+  const north = { S: 'AT652', H: 'QJ', D: 'K65', C: 'J94' };
+  const cases = [
+    { name: 'three-card support below game-force values',
+      south: { S: 'K87', H: '9765', D: 'A8', C: 'AT82' }, alternative: false },
+    { name: 'three-card support with game-force values',
+      south: { S: 'K87', H: '9765', D: 'A8', C: 'AK82' }, alternative: true },
+    { name: 'four-card support below game-force values',
+      south: { S: 'K874', H: '9765', D: 'A8', C: 'AT8' }, alternative: false },
+    { name: 'four-card support with game-force values and minor fallback',
+      south: { S: 'K874', H: '9765', D: 'A8', C: 'AK8' }, alternative: true },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const item of cases) {
+    const { board } = makeRuleTestBoard({ description: item.name,
+      practiceAuction: ['1S', 'Pass', '2H'], north, south: item.south });
+    const auction: Call[] = ['1S', 'Pass'];
+    const result = evaluateUserCall('2H', board, auction, defaultBiddingSystem);
+    const lines = getMajorSupportFailureLines(result);
+    const alternative = getApplicableCandidateCalls(result).some(({ rule, call }) =>
+      call === '2C' && (rule.id === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' ||
+        rule.id === 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'));
+    checks++;
+    if (result.userCallMatchingRules.length > 0 || lines.length !== 1 ||
+        alternative !== item.alternative ||
+        lines[0]?.includes('(2C)') !== item.alternative) {
+      failures++;
+      console.error(`FAIL major-support rejection: ${item.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Major-support new-suit rejection: ${checks} checks.\n`);
+  return failures;
+}
+/// Check actual evaluator facts and the shared explanation delivery for initial responses.
+function runInitialResponseEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const selected = [
+    { needle: '9 HCP and five cards in each major', call: '2D' as Call },
+    { needle: '11 HCP and five cards in each major', call: '2H' as Call },
+  ];
+  for (const scenario of selected) {
+    checks++;
+    const deal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+      item.description.includes(scenario.needle));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4-7 missing transfer hand: ${scenario.needle}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(scenario.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.calls?.includes(scenario.call) === true);
+    const otherSelection = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
+      .find(({ callEvidence }) =>
+        callEvidence?.responseSelection?.reason === 'fiveFiveTransferOrder' &&
+        callEvidence.responseSelection.preferredCall === scenario.call);
+    const support = rule === undefined ? [] : getResponseSelectionSupportLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Response', call: scenario.call,
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || otherSelection === undefined || support.length === 0 ||
+        !support.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q4-7 preferred transfer feedback: ${scenario.needle}.`);
+    }
+  }
+  checks++;
+  const shifted = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+    item.description.includes('16-18: 7 HCP and four hearts qualify for Stayman'));
+  if (shifted === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing shifted 1NT Pass example.');
+  } else {
+    const board = makeRuleTestBoard(shifted).board;
+    const system = { ...defaultBiddingSystem, ...shifted.requiredSystem };
+    const result = evaluateUserCall('Pass', board, shifted.practiceAuction.slice(0, 2), system);
+    const rejected = result.ruleDiagnostics.find(({ rule }) =>
+      rule.id === 'respond-to-1nt-w/-pass-0-7-balanced')
+      ?.candidates.find(({ call }) => call === 'Pass');
+    const hcp = rejected?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    if (hcp?.kind !== 'hcp' || hcp.min !== 0 || hcp.max !== 6 || hcp.actual !== 7 ||
+        hcp.passed || result.userCallMatchingRules.length !== 0) {
+      failures++;
+      console.error('FAIL Q4-7 adjusted 1NT response HCP boundary.');
+    }
+  }
+  checks++;
+  const waiting = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
+    item.description.includes('10-HCP 4-4-4-1 responder'));
+  if (waiting === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing strong 2C waiting hand.');
+  } else {
+    const board = makeRuleTestBoard(waiting).board;
+    const auction = waiting.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...waiting.requiredSystem };
+    const result = evaluateUserCall('2D', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-to-2c-w/-2d-waiting');
+    const support = rule === undefined ? [] : getStrongTwoCResponseLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Response', call: '2D',
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || support.length === 0 ||
+        !support.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL Q4-7 strong 2C waiting evidence delivery.');
+    }
+  }
+  checks++;
+  const opening = OPENING_BID_TEST_DEALS.find((item) =>
+    item.description.includes('Seven hearts with 9 HCP'));
+  if (opening === undefined) {
+    failures++;
+    console.error('FAIL Q4-7 missing opening comparison hand.');
+  } else {
+    const board = makeRuleTestBoard(opening).board;
+    const result = evaluateUserCall('3H', board, [], defaultBiddingSystem);
+    const preempt = result.ruleDiagnostics.find(({ rule }) => rule.id === 'open-weak-three')
+      ?.candidates.find(({ call }) => call === '3H');
+    const strength = preempt?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    if (strength?.kind !== 'totalPoints' || strength.actual !== 12 || strength.max !== 11 ||
+        strength.passed || !getApplicableCandidateCalls(result).some(({ call }) => call === '1H')) {
+      failures++;
+      console.error('FAIL Q4-7 strength and qualifying opening comparison.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Initial-response evidence: ${checks} checks.\n`);
+  return failures;
+}
+/// Selected, meaningful convention-completion checks, not a new practice-deal bucket.
+/// Exercise the physical three-bid pattern, denomination, agreement shifts, and
+/// the important Texas distinction when a Jacoby transfer is followed by a jump.
+function runResponderNtConventionTests (): number {
+  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' }; // 15 HCP, both majors
+  const oneNtSpades = { S: 'AK72', H: 'QJ6', D: 'K974', C: 'Q5' }; // 15 HCP, spades only
+  const oneNtNoMajor = { S: 'AK7', H: 'QJ6', D: 'K974', C: 'A63' }; // 17 HCP, no major
+  const twoNt = { S: 'AKQ2', H: 'KJ65', D: 'AQ7', C: 'J5' }; // 20 HCP
+  const twoNtSpades = { S: 'AKQ2', H: 'K65', D: 'AQ73', C: 'K5' }; // 21 HCP, spades only
+  const make = (north: typeof oneNt, south: typeof oneNt) =>
+    makeRuleTestBoard({ description: 'NT convention rebid rule test',
+      north, south, practiceAuction: ['1NT'] }).board;
+  const cases: { name: string; board: ReturnType<typeof make>; auction: Call[];
+    expected: Call | null; ruleId?: string; config?: Partial<BiddingSystem>;
+    boundary?: 'stayman' | 'jacoby' }[] = [
+    { name: '1NT Stayman major invitation', board: make(oneNtSpades,
+      { S: 'J865', H: 'A43', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '3S',
+      ruleId: 'responder-rebid-1nt-stayman-invite-major' },
+    { name: '1NT Stayman major game', board: make(oneNt,
+      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2H', 'Pass'], expected: '4H',
+      ruleId: 'responder-rebid-1nt-stayman-game-major' },
+    { name: '1NT Stayman no-major invitation', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT Stayman other-major no fit', board: make(oneNtSpades,
+      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT Stayman 3NT', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-1nt-stayman-game-3nt' },
+    { name: '1NT Stayman HCP shift', board: make(oneNtNoMajor,
+      { S: 'J85', H: 'A843', D: 'Q85', C: '984' }),
+      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
+      config: { oneNtOpening: '16-18' }, ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
+    { name: '1NT weak spade transfer signoff', board: make(oneNt,
+      { S: 'J9864', H: 'T74', D: 'J85', C: '83' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: 'Pass',
+      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
+    { name: '1NT five-spade invitation', board: make(oneNt,
+      { S: 'QJ864', H: 'A74', D: 'Q85', C: '83' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '2NT',
+      ruleId: 'responder-rebid-1nt-transfer-invite-2nt' },
+    { name: '1NT six-heart invitation', board: make(oneNt,
+      { S: 'T3', H: 'AT9874', D: 'QJ5', C: 'J8' }),
+      auction: ['1NT', 'Pass', '2D', 'Pass', '2H', 'Pass'], expected: '3H',
+      ruleId: 'responder-rebid-1nt-transfer-invite-major' },
+    { name: '1NT transferred spades to 3NT', board: make(oneNt,
+      { S: 'QJ864', H: 'A74', D: 'Q85', C: 'K3' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
+    { name: '1NT six spades game without Texas', board: make(oneNt,
+      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '4S',
+      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
+    { name: '1NT six spades Texas boundary', board: make(oneNt,
+      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
+      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: null,
+      boundary: 'jacoby' },
+    { name: '2NT Stayman spade game', board: make(twoNtSpades,
+      { S: 'JT86', H: 'A843', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '4S',
+      ruleId: 'responder-rebid-2nt-stayman-game-major' },
+    { name: '2NT Stayman other-major 3NT', board: make(twoNtSpades,
+      { S: 'T86', H: 'AT84', D: 'T865', C: '64' }),
+      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-2nt-stayman-game-3nt' },
+    { name: '2NT weak heart transfer', board: make(twoNt,
+      { S: 'J86', H: 'T9874', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3D', 'Pass', '3H', 'Pass'], expected: 'Pass',
+      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
+    { name: '2NT five-spade transfer to 3NT', board: make(twoNt,
+      { S: 'JT986', H: 'A84', D: 'T85', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '3NT',
+      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
+    { name: '2NT six-spade game without Texas', board: make(twoNt,
+      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '4S',
+      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
+    { name: '2NT six-spade Texas boundary', board: make(twoNt,
+      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
+      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: null,
+      boundary: 'jacoby' },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const system = { ...defaultBiddingSystem, ...test.config };
+    const result = evaluateUserCall(test.expected ?? 'Pass', test.board, test.auction, system);
+    const calls = getApplicableCandidateCalls(result);
+    const chosen = test.expected === null ? null : calls.find(({ call, rule }) =>
+      call === test.expected && rule.id === test.ruleId);
+    const wrongMajor = calls.some(({ call }) =>
+      (call === '3H' || call === '3S' || call === '4H' || call === '4S') &&
+      (test.expected === null || call !== test.expected));
+    const boundaryId = test.boundary === 'stayman'
+      ? 'responder-rebid-boundary-after-nt-stayman'
+      : 'responder-rebid-boundary-after-nt-transfer';
+    const hasBoundary = result.applicableRules.some(({ id }) => id === boundaryId);
+    if ((test.expected !== null && chosen === undefined) || wrongMajor ||
+        (test.expected === null && (calls.length > 0 || !hasBoundary))) {
+      failures += 1;
+      console.error(`FAIL NT convention ${test.name}: candidates ${formatCandidates(calls)}, ` +
+                    `boundary ${hasBoundary}.`);
+    }
+  }
+  // Convention-off variants must not silently reinterpret a natural responder call.
+  const offBoard = make(oneNt, { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' });
+  for (const [auction, config, forbidden] of [
+    [['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], { stayman: false }, 'stayman'],
+    [['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], { jacobyTransfers: false }, 'transfer'],
+  ] as const) {
+    const result = evaluateUserCall('Pass', offBoard, [...auction],
+      { ...defaultBiddingSystem, ...config });
+    if (getApplicableCandidateCalls(result).some(({ rule }) => rule.id.includes('nt-' + forbidden)) ||
+        result.applicableRules.some(({ id }) => id.includes('nt-' + forbidden))) {
+      failures += 1;
+      console.error(`FAIL ${forbidden} rules available with convention off.`);
+    }
+  }
+  // A natural one-level-suit opener's 1NT rebid is not a completed transfer or Stayman.
+  const unrelated = evaluateUserCall('Pass', offBoard,
+    ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass'], defaultBiddingSystem);
+  if (getApplicableCandidateCalls(unrelated).some(({ rule }) =>
+      rule.id.startsWith('responder-rebid-nt-transfer') || rule.id.includes('nt-stayman'))) {
+    failures += 1;
+    console.error('FAIL NT convention rules leaked into a natural suit-opening sequence.');
+  }
+  console.log(`${failures} ***FAILURES***. Responder NT conventions: ${cases.length} ` +
+              'representative continuations, two convention-off guards, and one stage guard.\n');
+  return failures;
+}
+/// Hand-level checks for a small number of significant conventional continuations.
+/// These verify forcing boundaries and real contract placement without creating
+/// artificial four-hand practice deals simply to exercise the evaluator.
+function runResponderStrongAndSupportConventionTests (): number {
+  type Test = { name: string; north: Record<'S' | 'H' | 'D' | 'C', string>;
+    south: Record<'S' | 'H' | 'D' | 'C', string>; auction: Call[];
+    expectedCall?: Call; expectedRule?: string; boundary?: string;
+    config?: Partial<BiddingSystem>; forbidden?: string[] };
+  const strong = { S: 'AKQ4', H: 'KJ3', D: 'AQ2', C: 'K87' }; // 22 balanced HCP
+  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' };
+  const minS = { S: 'AKT74', H: 'QJ3', D: 'A52', C: '98' }; // 14 HCP
+  const minH = { S: 'QJ3', H: 'AKT74', D: 'A52', C: '98' }; // 14 HCP
+  const gameS = { S: 'AKT74', H: 'KJ3', D: '852', C: 'Q8' }; // 13 HCP
+  const gameH = { S: 'KJ3', H: 'AKT74', D: '852', C: 'Q8' }; // 13 HCP
+  const fitS = { S: 'QJ86', H: 'A74', D: 'K6', C: 'K532' }; // 14 support points
+  const fitH = { S: 'A74', H: 'QJ86', D: 'K6', C: 'K532' }; // 14 support points
+  const splS = { S: 'QJ86', H: 'Q74', D: 'AK963', C: '3' }; // 15 support points
+  const splH = { S: '2', H: 'QJ86', D: 'A9634', C: 'K74' }; // 13 support points
+  const cases: Test[] = [
+    { name: '2C waiting to 2NT: weak Pass', north: strong,
+      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-waiting-pass-2nt' },
+    { name: '2C waiting to 2NT: 3NT game', north: strong,
+      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: '3NT',
+      expectedRule: 'responder-rebid-strong-2c-waiting-game-3nt' },
+    { name: '2C waiting to 2NT: borderline 3 HCP guidance', north: strong,
+      south: { S: 'T865', H: 'T76', D: 'K43', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass', '3NT'] },
+    { name: '2C waiting to 3NT: Pass reached game', north: strong,
+      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-waiting-pass-3nt' },
+    { name: '2C waiting to 2H: forcing boundary', north: strong,
+      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
+      auction: ['2C', 'Pass', '2D', 'Pass', '2H', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
+    { name: '2C positive heart and raise: major game', north: strong,
+      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
+      auction: ['2C', 'Pass', '2H', 'Pass', '3H', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
+    { name: '2C positive spade and raise: major game', north: strong,
+      south: { S: 'JT987', H: 'A8', D: 'K73', C: 'T64' },
+      auction: ['2C', 'Pass', '2S', 'Pass', '3S', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
+    { name: '2C balanced positive and 3NT: Pass', north: strong,
+      south: { S: 'JT65', H: 'A76', D: 'K43', C: 'T62' },
+      auction: ['2C', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-strong-2c-positive-pass-3nt' },
+    { name: '2C positive suit to 2NT: game force boundary', north: strong,
+      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
+      auction: ['2C', 'Pass', '2H', 'Pass', '2NT', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
+    { name: '1S Jacoby 2NT medium 3NT: 4S not Pass', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game', forbidden: ['Pass', '3NT'] },
+    { name: '1H Jacoby 2NT medium 3NT: 4H', north: minH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
+    { name: '1S Jacoby 2NT to 4S: Pass', north: gameS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
+    { name: '1H Jacoby 2NT to 4H: Pass', north: gameH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
+    { name: '1S Jacoby 2NT side-suit show: 4S', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3H', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
+    { name: '1H Jacoby 2NT side-suit above 4H: boundary', north: minH, south: fitH,
+      auction: ['1H', 'Pass', '2NT', 'Pass', '4S', 'Pass'],
+      boundary: 'responder-rebid-boundary-after-jacoby-2nt', forbidden: ['4H', 'Pass'] },
+    { name: 'Jacoby 2NT agreement off: no Jacoby rules', north: minS, south: fitS,
+      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'],
+      config: { majorGameForceWithSupport: 'newSuitThenRaise' },
+      forbidden: ['4S', 'Pass', '3NT'] },
+    { name: '1S splinter to 4S: Pass', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-splinter-pass-major-game' },
+    { name: '1H splinter to 4H: Pass', north: gameH, south: splH,
+      auction: ['1H', 'Pass', '3S', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
+      expectedRule: 'responder-rebid-splinter-pass-major-game' },
+    { name: '1S splinter to 4D control: 4S', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4D', 'Pass'], expectedCall: '4S',
+      expectedRule: 'responder-rebid-splinter-major-game' },
+    { name: '1H splinter to 4C control: 4H', north: gameH, south: splH,
+      auction: ['1H', 'Pass', '3S', 'Pass', '4C', 'Pass'], expectedCall: '4H',
+      expectedRule: 'responder-rebid-splinter-major-game' },
+    { name: 'splinter agreement off: no splinter rules', north: gameS, south: splS,
+      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'],
+      config: { splinters: false }, forbidden: ['Pass'] },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    const result = evaluateUserCall(test.expectedCall ?? 'Pass', board, test.auction,
+      { ...defaultBiddingSystem, ...(test.name.includes('Jacoby 2NT') ?
+        { majorGameForceWithSupport: 'jacoby2NT' as const } : {}), ...test.config });
+    const calls = getApplicableCandidateCalls(result);
+    const matched = test.expectedCall !== undefined && calls.some(({ call, rule }) =>
+      call === test.expectedCall && rule.id === test.expectedRule);
+    const boundary = test.boundary !== undefined && result.applicableRules.some(({ id }) =>
+      id === test.boundary);
+    checks++;
+    if (test.expectedCall !== undefined ? !matched : test.boundary !== undefined && !boundary) {
+      failures++;
+      console.error(`FAIL ${test.name}: expected ${test.expectedRule ?? test.boundary}; ` +
+                    `candidates ${formatCandidates(calls)}; boundaries ${result.applicableRules.filter(({kind})=>kind==='scopeBoundary').map(({id})=>id).join(',')}`);
+    }
+    for (const forbidden of test.forbidden ?? []) {
+      checks++;
+      if (calls.some(({ call }) => call === forbidden)) {
+        failures++;
+        console.error(`FAIL ${test.name}: forbidden ${forbidden}, candidates ${formatCandidates(calls)}`);
+      }
+    }
+    if (test.config?.majorGameForceWithSupport === 'newSuitThenRaise' ||
+        test.config?.splinters === false) {
+      checks++;
+      if (result.applicableRules.some(({ id }) =>
+        (test.config?.splinters === false ? id.includes('-splinter-') : id.includes('-jacoby-2nt-')))) {
+        failures++;
+        console.error(`FAIL ${test.name}: convention rules active with agreement off.`);
       }
     }
   }
-  console.log(`${failureCount} ***FAILURES***. Compatibility meta-check for the four ` +
-              `Stayman/Jacoby/Texas setting combinations: ` +
-              `${compatibleDeals} eligible deal/configuration runs, ` +
-              `${recordedCalls} recorded practice-call checks.`);
-  console.log('  Replays eligible practice auctions under four representative convention');
-  console.log('  configurations to ensure their recorded calls remain valid.\n');
-  console.log();
-  return failureCount;
+  // These are explanatory boundaries only; never present an invented ace reply or Pass.
+  const slamCases: { name: string; opener: Call; response: Call; boundary?: string }[] = [
+    { name: 'Gerber over 1NT', opener: '1NT', response: '4C',
+      boundary: 'opener-rebid-boundary-after-direct-gerber' },
+    { name: 'Gerber over 2NT', opener: '2NT', response: '4C',
+      boundary: 'opener-rebid-boundary-after-direct-gerber' },
+    { name: 'Blackwood after 1H', opener: '1H', response: '4NT',
+      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
+    { name: 'Blackwood after 1D', opener: '1D', response: '4NT',
+      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
+    { name: 'Quantitative NT is not Gerber or Blackwood', opener: '1NT', response: '4NT' },
+  ];
+  for (const test of slamCases) {
+    const { board } = makeRuleTestBoard({ description: test.name,
+      north: oneNt, south: { S: 'QJ86', H: 'A74', D: 'A53', C: 'K42' }, practiceAuction: [test.opener] });
+    const auction = [test.opener, 'Pass', test.response, 'Pass'] as Call[];
+    const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
+    const calls = getApplicableCandidateCalls(result);
+    const boundaries = result.applicableRules.filter(({ kind }) => kind === 'scopeBoundary');
+    checks++;
+    if ((test.boundary !== undefined && calls.length > 0) || (test.boundary !== undefined
+        ? !boundaries.some(({ id }) => id === test.boundary)
+        : boundaries.some(({ id }) => id.includes('gerber') || id.includes('blackwood')))) {
+      failures++;
+      console.error(`FAIL ${test.name}: candidates ${formatCandidates(calls)}, ` +
+                    `boundaries ${boundaries.map(({ id }) => id).join(', ')}`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Strong 2C, Jacoby 2NT, splinters and slam boundaries: ` +
+              `${checks} focused checks.\n`);
+  return failures;
 }
+/// Check qualified competitive alternatives, including reciprocal directions,
+/// from the evaluator through the same explanation assembly used by the panel.
+function runCompetitiveResponseAlternativesTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const scenarios: {
+    deal: RuleTestDeal;
+    chosen: Call;
+    selectedRule: string;
+    alternatives: { call: Call; ruleId: string }[];
+  }[] = [];
+  const naturalMajors = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1C 1D 1H');
+  if (naturalMajors !== undefined) {
+    const alternative = [
+      { call: 'Double' as Call, ruleId: 'respond-over-suit-negative-double' },
+      { call: '1H' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
+      { call: '1S' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
+    ];
+    for (const selected of alternative) scenarios.push({
+      deal: naturalMajors, chosen: selected.call, selectedRule: selected.ruleId,
+      alternatives: alternative.filter((item) => item.call !== selected.call),
+    });
+  }
+  const afterDouble = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H Double Redouble' &&
+    deal.expectedResponseCalls?.some((item) => item.call === '1S'));
+  if (afterDouble !== undefined) {
+    scenarios.push({ deal: afterDouble, chosen: '1S',
+      selectedRule: 'respond-after-double-new-suit-one-level',
+      alternatives: [{ call: 'Redouble', ruleId: 'respond-after-double-redouble-values' }] });
+    scenarios.push({ deal: afterDouble, chosen: 'Redouble',
+      selectedRule: 'respond-after-double-redouble-values',
+      alternatives: [{ call: '1S', ruleId: 'respond-after-double-new-suit-one-level' }] });
+  }
+  const jump = RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H 2S 3C' &&
+    deal.expectedResponseCalls?.length === 3);
+  if (jump !== undefined) {
+    const options = [
+      { call: '3C' as Call, ruleId: 'respond-over-jump-new-suit-three-level' },
+      { call: '3S' as Call, ruleId: 'respond-over-jump-support-cuebid-major' },
+      { call: '4H' as Call, ruleId: 'respond-over-jump-major-game-constructive' },
+    ];
+    for (const selected of options) scenarios.push({
+      deal: jump, chosen: selected.call, selectedRule: selected.ruleId,
+      alternatives: options.filter((item) => item.call !== selected.call),
+    });
+  }
+  checks++;
+  if (scenarios.length !== 8) {
+    failures++;
+    console.error('FAIL competitive alternatives did not find the three existing hands.');
+  }
+  for (const scenario of scenarios) {
+    checks++;
+    const { deal, chosen, alternatives } = scenario;
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(chosen, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === scenario.selectedRule);
+    const qualified = getApplicableCandidateCalls(result);
+    const allSupported = alternatives.every((item) =>
+      qualified.some((candidate) => candidate.call === item.call &&
+        candidate.rule.id === item.ruleId && candidate.ruleApplies));
+    const generated = rule === undefined ? [] : getCompetitiveResponseAlternativeLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Competitive response', call: chosen,
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || !allSupported || generated.length === 0 ||
+        !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL competitive comparison not qualified or delivered for ${deal.practiceAuction.join(' ')} as ${chosen}.`);
+    }
+  }
+  // A negative Double by itself is not grounds to mention an unavailable
+  // one-level natural response. Only real evaluated overlaps yield comparisons.
+  const noOverlap = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1D 1S Double');
+  checks++;
+  if (noOverlap === undefined) {
+    failures++;
+    console.error('FAIL negative-Double no-overlap fixture missing.');
+  } else {
+    const board = makeRuleTestBoard(noOverlap).board;
+    const auction: Call[] = ['1D', '1S'];
+    const result = evaluateUserCall('Double', board, auction, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-over-suit-negative-double');
+    if (rule === undefined || getCompetitiveResponseAlternativeLines(result, rule).length !== 0) {
+      failures++;
+      console.error('FAIL negative-Double comparison invented a natural one-level alternative.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Competitive response alternatives: ${checks} checks.\n`);
+  return failures;
+}
+/// Shared 1NT-interference rules must recognize both bidding roles without re-enabling the
+/// uncontested convention rules or expanding beyond the supported two-level interference.
+function runOneNtInterferencePartnerBoundaryTests (): number {
+  const responseDeal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.at(-1);
+  const advanceDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS.at(-1);
+  if (responseDeal === undefined || advanceDeal === undefined) {
+    console.error('FAIL 1NT-interference boundaries require the new shared-rule fixtures.');
+    return 1;
+  }
+  let checks = 0;
+  let failures = 0;
+
+  const { board: responseBoard } = makeRuleTestBoard(responseDeal);
+  const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], defaultBiddingSystem);
+  const responseCandidates = getApplicableCandidateCalls(responseResult);
+  checks += 1;
+  if (responseCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-natural-suit-two-level')) {
+    failures += 1;
+    console.error('FAIL natural 2S response leaked into artificial DONT 2H showing both majors.');
+  }
+  // DONT 2H shows both majors, so neither 2S nor a natural-heart takeout
+  // Double may inherit the rules for a one-suited natural 2H overcall.
+  const doubleAfterDont = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (doubleAfterDont.some(({ rule }) =>
+      rule.id === 'partner-of-1nt-after-interference-negative-double')) {
+    failures += 1;
+    console.error('FAIL natural-heart takeout Double was admitted over artificial DONT 2H.');
+  }
+  const naturalMinorAfterDont = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (! naturalMinorAfterDont.some(({ rule }) =>
+      rule.id === 'respond-after-dont-majors-natural-minor')) {
+    failures += 1;
+    console.error('FAIL natural 3D was lost over DONT 2H showing both majors.');
+  }
+  const { board: noSpadeStopperBoard } = makeRuleTestBoard({
+    ...responseDeal, east: undefined, west: undefined,
+    south: { S: 'T94', H: 'JT98', D: 'K98', C: 'KJ7' },
+  });
+  const noSpadeStopperCalls = getApplicableCandidateCalls(evaluateUserCall(
+    '2NT', noSpadeStopperBoard, ['1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (noSpadeStopperCalls.some(({ rule }) => rule.id === 'respond-after-dont-majors-2nt')) {
+    failures += 1;
+    console.error('FAIL natural 2NT over DONT 2H without stoppers in both majors.');
+  }
+  checks += 1;
+  if (responseResult.ruleDiagnostics.some((result) =>
+      result.rule.auctionContext?.partnerNaturalOneNt === true)) {
+    failures += 1;
+    console.error('FAIL uncontested Stayman/transfer rules remained active after 1NT-(2H).');
+  }
+
+  // These boundary hands are independent of the practice deal's explicitly constructed East.
+  // Preserve their original North/West setting when testing alternate South holdings.
+  const boundaryDeal = {
+    ...advanceDeal,
+    dealer: 'W' as const,
+    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
+    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
+    east: undefined,
+  };
+  const { board: advanceBoard } = makeRuleTestBoard({
+    ...boundaryDeal,
+    south: { S: 'Q85', H: 'T72', D: 'A83', C: 'Q542' },
+  });
+  const noStopperCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('2NT', advanceBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (noStopperCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-2nt')) {
+    failures += 1;
+    console.error('FAIL natural 2NT survived without a stopper in the interference suit.');
+  }
+
+  const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], defaultBiddingSystem);
+  checks += 1;
+  if (unsupportedResult.ruleDiagnostics.some((result) =>
+      result.rule.auctionContext?.partnerNaturalOneNtAfterSuitInterference === true)) {
+    failures += 1;
+    console.error('FAIL shared 1NT-interference rules leaked into three-level interference.');
+  }
+
+  const { board: doubleBoard } = makeRuleTestBoard({
+    ...boundaryDeal,
+    south: { S: 'QJ85', H: 'T72', D: 'A32', C: 'Q43' },
+  });
+  const doubleCandidates = getApplicableCandidateCalls(
+    evaluateUserCall('Double', doubleBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+  checks += 1;
+  if (! doubleCandidates.some((candidate) =>
+      candidate.rule.id === 'partner-of-1nt-after-interference-negative-double')) {
+    failures += 1;
+    console.error('FAIL negative Double did not work in the advancer 1NT-overcall context.');
+  }
+
+  console.log(`${failures} ***FAILURES***. 1NT-interference partner boundaries: ${checks} checks.`);
+  console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
+  console.log('  enforcement, negative Double, and the current two-level interference boundary.\n');
+  return failures;
+}
+/// Natural 1NT interference explanations must use the evaluated strength, shape,
+/// suit quality, stopper, and requested suits without changing the shared bidding rules.
+function runOneNtInterferenceExplanationTests (): number {
+  let failures = 0;
+  const prefix = 'partner-of-1nt-after-interference-';
+  // These focused hands test the current decision, not the preceding players' calls.
+  // The other fixed hand keeps all boards legal without defining another practice deal.
+  const make = (north: { S: string; H: string; D: string; C: string }) =>
+    makeRuleTestBoard({ description: 'Natural 1NT interference explanation', dealer: 'E', north,
+      south: { S: '654', H: '654', D: '654', C: '6543' },
+      practiceAuction: ['1D', '1NT', '2H'] }).board;
+  const invitation = { S: 'QJ87', H: 'K98', D: 'J92', C: 'Q92' };
+  const seven = { S: 'QJ87', H: 'K98', D: 'J92', C: 'T92' };
+  const cases: {
+    name: string; hand: typeof invitation; call: Call; suffix: string;
+    auction?: Call[]; range?: '15-17' | '16-18';
+    failed?: 'hcp' | 'balanced' | 'suitLength' | 'topThreeHonors' | 'stopper';
+    requestedSuits?: string[];
+  }[] = [
+    { name: 'weak Pass', hand: seven, call: 'Pass', suffix: 'pass' },
+    { name: 'natural invitation', hand: invitation, call: '2NT', suffix: '2nt' },
+    { name: 'natural game', hand: { S: 'KQ98', H: 'K98', D: 'A92', C: 'QJ2' },
+      call: '3NT', suffix: '3nt' },
+    { name: 'nonforcing natural suit', hand: { S: 'KQJ87', H: 'T98', D: 'A92', C: 'J2' },
+      call: '2S', suffix: 'natural-suit-two-level' },
+    { name: 'natural suit at three', hand: { S: 'J8', H: 'T98', D: 'A92', C: 'AKQJ2' },
+      call: '3C', suffix: 'natural-suit-three-level' },
+    { name: 'takeout Double requests spades', hand: { S: 'QJ87', H: 'T98', D: 'A92', C: 'KJ2' },
+      call: 'Double', suffix: 'negative-double', requestedSuits: ['S'] },
+    { name: 'takeout Double requests both majors',
+      hand: { S: 'QJ87', H: 'KJ98', D: 'T92', C: 'Q2' },
+      call: 'Double', suffix: 'negative-double', auction: ['1D', '1NT', '2C'],
+      requestedSuits: ['S', 'H'] },
+    { name: 'takeout Double requests both minors',
+      hand: { S: 'T9', H: 'J98', D: 'AQ92', C: 'KJ82' },
+      call: 'Double', suffix: 'negative-double', auction: ['1H', '1NT', '2S'],
+      requestedSuits: ['D', 'C'] },
+    { name: 'invitation needs a stopper', hand: { S: 'QJ87', H: 'T98', D: 'K92', C: 'QJ2' },
+      call: '2NT', suffix: '2nt', failed: 'stopper' },
+    { name: 'invitation needs balanced shape', hand: { S: 'QJ872', H: 'K9', D: 'J9', C: 'QT82' },
+      call: '2NT', suffix: '2nt', failed: 'balanced' },
+    { name: 'natural suit needs five cards', hand: { S: 'KQJ8', H: 'T98', D: 'A92', C: 'J92' },
+      call: '2S', suffix: 'natural-suit-two-level', failed: 'suitLength' },
+    { name: 'natural suit needs two of A/K/Q', hand: { S: 'KJ987', H: 'T98', D: 'A92', C: 'Q2' },
+      call: '2S', suffix: 'natural-suit-two-level', failed: 'topThreeHonors' },
+    { name: 'takeout Double needs four spades', hand: { S: 'QJ8', H: 'T987', D: 'A92', C: 'KJ2' },
+      call: 'Double', suffix: 'negative-double', failed: 'suitLength' },
+    { name: 'seven HCP does not invite under 15-17', hand: seven,
+      call: '2NT', suffix: '2nt', failed: 'hcp' },
+    { name: 'seven HCP invites under 16-18', hand: seven,
+      call: '2NT', suffix: '2nt', range: '16-18' },
+    { name: 'seven HCP exceeds weak Pass under 16-18', hand: seven,
+      call: 'Pass', suffix: 'pass', range: '16-18', failed: 'hcp' },
+  ];
+  for (const test of cases) {
+    const board = make(test.hand);
+    const system = { ...defaultBiddingSystem, oneNtOpening: test.range ?? '15-17' };
+    const result = evaluateUserCall(test.call, board, test.auction ?? ['1D', '1NT', '2H'], system);
+    const id = prefix + test.suffix;
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
+      ?.candidates.find((item) => item.call === test.call);
+    const requirements = candidate?.callEvidence?.requirements ?? [];
+    const rule = result.userCallMatchingRules.find((item) => item.id === id);
+    const positive = rule === undefined ? [] : getNotrumpPartnerResponseLines(result, rule);
+    const negative = getNotrumpPartnerResponseFailureLines(result);
+    const requested = requirements.flatMap((item) => item.kind === 'suitLength' ? [item.suit] : []);
+    if (candidate?.ruleApplies !== (test.failed === undefined) ||
+        (test.failed === undefined
+          ? positive.length === 0 || !positive.some((line) => line.includes(`[${id}]`)) ||
+            negative.length !== 0
+          : !requirements.some((item) => item.kind === test.failed && !item.passed) ||
+            negative.length === 0 || !negative.some((line) => line.includes(`[${id}]`))) ||
+        (test.requestedSuits !== undefined && requested.join(',') !== test.requestedSuits.join(','))) {
+      failures += 1;
+      console.error(`FAIL natural 1NT interference explanation: ${test.name}.`);
+    }
+  }
+  // The shared response path receives the same instruction after a natural DONT 2S,
+  // while artificial DONT 2H and higher interference must not inherit these explanations.
+  const responseBoard = { ...make(invitation), dealer: 'S' as const };
+  const response = evaluateUserCall('2NT', responseBoard, ['1NT', '2S'], defaultBiddingSystem);
+  const responseRule = response.userCallMatchingRules.find((rule) => rule.id === prefix + '2nt');
+  if (responseRule === undefined || getNotrumpPartnerResponseLines(response, responseRule).length === 0) {
+    failures += 1;
+    console.error('FAIL shared natural 1NT interference response explanation.');
+  }
+  for (const auction of [['1NT', '2H'], ['1NT', '3S']] as Call[][]) {
+    const result = evaluateUserCall('2NT', responseBoard, auction, defaultBiddingSystem);
+    if (getNotrumpPartnerResponseFailureLines(result).length !== 0 ||
+        result.applicableRules.some((rule) => getNotrumpPartnerResponseLines(result, rule).length > 0)) {
+      failures += 1;
+      console.error(`FAIL natural interference explanation leaked into ${auction.join(' ')}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Natural 1NT interference explanations: ${cases.length + 3} checks.\n`);
+  return failures;
+}
+/// Test the partnership promise across 1NT interference, opener's next call,
+/// and the delivered explanation. Construct hands, not new practice selections.
+function runOneNtInterferenceDoubleContinuityTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const prefix: Call[] = ['1NT', '2S', 'Double', 'Pass'];
+  const east = { S: 'KQJT96', H: 'A52', D: '86', C: '94' };
+  const south = { S: '85', H: '9763', D: 'KQJ5', C: 'AJT' };
+  const cases = [
+    { north: { S: 'A74', H: 'KJ84', D: 'A92', C: 'KQ7' },
+      call: '3H' as Call, ruleId: 'opener-rebid-fit-after-1nt-interference-double' },
+    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'KQ72' },
+      call: '3NT' as Call, ruleId: 'opener-rebid-3nt-after-1nt-interference-double' },
+    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'K872' },
+      call: '2NT' as Call, ruleId: 'opener-rebid-2nt-after-1nt-interference-double' },
+  ];
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({
+      description: 'DONT natural spades and four-heart takeout Double',
+      practiceAuction: [...prefix, test.call], north: test.north, south, east,
+    });
+    const opening = evaluateUserCall('1NT', board, [], defaultBiddingSystem);
+    const overcall = evaluateUserCall('2S', board, prefix.slice(0, 1), defaultBiddingSystem);
+    const response = evaluateUserCall('Double', board, prefix.slice(0, 2), defaultBiddingSystem);
+    const doubleEvidence = response.ruleDiagnostics.find(({ rule }) =>
+      rule.id === 'partner-of-1nt-after-interference-negative-double')
+      ?.candidates.find(({ call }) => call === 'Double')?.callEvidence?.requirements;
+    checks++;
+    if (opening.userCallMatchingRules.length === 0 ||
+        !overcall.userCallMatchingRules.some(({ id }) => id === 'overcall-dont-natural-spades') ||
+        !response.userCallMatchingRules.some(({ id }) =>
+          id === 'partner-of-1nt-after-interference-negative-double') ||
+        !doubleEvidence?.some((item) => item.kind === 'suitLength' &&
+          item.suit === 'H' && item.min === 4 && item.passed) ||
+        doubleEvidence.some((item) => item.kind === 'suitLength' && item.suit === 'C')) {
+      failures++;
+      console.error('FAIL responder Double must promise four hearts after DONT 2S.');
+    }
+    const result = evaluateUserCall(test.call, board, prefix, defaultBiddingSystem);
+    const selected = result.userCallMatchingRules.find(({ id }) => id === test.ruleId);
+    const lines = selected === undefined ? [] : getOpenerOneNtInterferenceLines(result, selected);
+    const delivered = getBidExplanationLines({
+      title: 'Opener rebid', call: test.call,
+      status: getBiddingTurnStatus(board, prefix, defaultBiddingSystem), result,
+      handFacts: getHandFacts(board.deal.N), auctionLength: prefix.length,
+      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    checks++;
+    if (selected === undefined || lines.length === 0 ||
+        !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL evaluated ${test.call} and its explanation after takeout Double.`);
+    }
+    checks++;
+    const wrongFitCall: Call = test.call === '3H' ? '3C' : '3H';
+    if (evaluateUserCall(wrongFitCall, board, prefix, defaultBiddingSystem)
+          .userCallMatchingRules.some(({ id }) =>
+            id === 'opener-rebid-fit-after-1nt-interference-double') ||
+        (test.call === '3H' && evaluateUserCall('3NT', board, prefix, defaultBiddingSystem)
+          .userCallMatchingRules.some(({ id }) =>
+            id === 'opener-rebid-3nt-after-1nt-interference-double'))) {
+      failures++;
+      console.error('FAIL unsupported strain or NT displaces the evaluated heart fit.');
+    }
+  }
+  checks++;
+  const raisedBoard = makeRuleTestBoard({
+    description: 'Opponent raises DONT spades',
+    practiceAuction: ['1NT', '2S', 'Double', '3S'],
+    north: cases[0]!.north, south, east,
+  }).board;
+  const raised: Call[] = ['1NT', '2S', 'Double', '3S'];
+  const raisedResult = evaluateUserCall('4H', raisedBoard, raised, defaultBiddingSystem);
+  if (getBiddingTurnStatus(raisedBoard, raised, defaultBiddingSystem).kind === 'supported' ||
+      getApplicableCandidateCalls(raisedResult).length > 0) {
+    failures++;
+    console.error('FAIL opposing 3S raise must remain outside selected continuations.');
+  }
+  checks++;
+  const stayman = RULE_TEST_DEAL_BUCKETS.find(({ id }) => id === 'nt-2nt')?.deals[8];
+  if (stayman === undefined) {
+    failures++;
+    console.error('FAIL missing 2NT Stayman no-fit example.');
+  } else {
+    const { board } = makeRuleTestBoard(stayman);
+    const auction: Call[] = [...stayman.practiceAuction, 'Pass'];
+    const system = { ...defaultBiddingSystem, ...stayman.requiredSystem };
+    const result = evaluateUserCall('3NT', board, auction, system);
+    const rule = result.userCallMatchingRules.find(({ id }) =>
+      id === 'responder-rebid-2nt-stayman-game-3nt');
+    const diagnostic = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
+      .find(({ call, ruleApplies }) => call === '3NT' && ruleApplies);
+    const evidence = diagnostic?.callEvidence?.conventionalResponderRebid;
+    const lines = rule === undefined ? [] : getConventionalResponderRebidLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Responder rebid', call: '3NT',
+      status: getBiddingTurnStatus(board, auction, system), result,
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || evidence?.family !== 'ntConvention' ||
+        evidence.fitFound || lines.length === 0 ||
+        !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL 2NT Stayman no-fit explanation and evidence delivery.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. DONT Double continuity and Stayman: ` +
+    `${checks} checks.\n`);
+  return failures;
+}
+
+//// Advancing after overcalls and Doubles
+
+/// This first advancer family must not leak into interfering or higher-level auctions.
+/// The stopper boundary tests the hand rather than merely omitting an NT expectation.
+function runAdvancingBoundaryTests (): number {
+  const deal = ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS[4];
+  if (deal === undefined) {
+    console.error('FAIL advancing boundaries require the 1NT advance fixture.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(deal);
+  const excluded: Call[][] = [
+    ['1D', '1S', '2S'], // An artificial responder cuebid is not a natural advance context.
+    ['1D', '2H', 'Pass'], // A preemptive jump overcall.
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const auction of excluded) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
+    if (candidates.length !== 0) {
+      failures += 1;
+      console.error(`FAIL advancing rules leaked into ${auction.join(' ')}: ` +
+                    formatCandidates(candidates));
+    }
+  }
+  // The ordinary two-level family must stay inactive after an unsupported responder action
+  // or a jump overcall.
+  for (const auction of [
+    ['1D', '2C', '3D'], ['1D', '3C', 'Pass'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
+    if (candidates.length !== 0) {
+      failures += 1;
+      console.error(`FAIL two-level advancing rules leaked into ${auction.join(' ')}: ` +
+                    formatCandidates(candidates));
+    }
+  }
+  // Reuse the opener and overcaller holdings in separately constructed West-dealt tests.
+  const twoLevelNtDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[2];
+  if (twoLevelNtDeal === undefined) {
+    failures += 1;
+    console.error('FAIL advancing boundaries require the two-level 2NT fixture.');
+  } else {
+    const { board: noTwoLevelStopperBoard } = makeRuleTestBoard({
+      description: twoLevelNtDeal.description, dealer: 'W',
+      practiceAuction: twoLevelNtDeal.practiceAuction,
+      north: twoLevelNtDeal.east!,
+      west: twoLevelNtDeal.north,
+      // East receives the remaining cards after this constructed South holding.
+      south: { S: 'JT98', H: 'KQJ', D: 'T983', C: 'A4' }, // 11 HCP; no diamond stopper.
+    });
+    checks += 1;
+    const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
+      '2NT', noTwoLevelStopperBoard, ['1D', '2C', 'Pass'], defaultBiddingSystem));
+    if (ntCandidates.some(({ call }) => call === '2NT')) {
+      failures += 1;
+      console.error('FAIL advancing 2NT requires a stopper in opener’s suit.');
+    }
+  }
+  const threeLevelDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[7];
+  if (threeLevelDeal === undefined) {
+    failures += 1;
+    console.error('FAIL advancing boundaries require the 3D fixture.');
+  } else {
+    const { board: insufficientHcpBoard } = makeRuleTestBoard({
+      description: threeLevelDeal.description, dealer: 'W',
+      practiceAuction: threeLevelDeal.practiceAuction,
+      north: threeLevelDeal.east!,
+      west: threeLevelDeal.north,
+      // East receives the remaining cards after this constructed South holding.
+      south: { S: 'T9', H: 'T7', D: 'AJT54', C: 'KQJ9' }, // 11 HCP, despite good diamonds.
+    });
+    checks += 1;
+    const newSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+      '3D', insufficientHcpBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
+    if (newSuitCandidates.some(({ call }) => call === '3D')) {
+      failures += 1;
+      console.error('FAIL three-level new-suit advance requires at least 12 HCP.');
+    }
+  }
+  // Holding 12 HCP is not sufficient if an economical three-level new suit lacks quality.
+  const { board: weakSuitBoard } = makeRuleTestBoard({
+    description: '3D suit-quality rejection after a genuine 2H overcall.',
+    dealer: 'W', practiceAuction: ['1S', '2H', 'Pass', '3D'],
+    west: { S: 'KQJ74', H: 'K82', D: 'A93', C: '65' },
+    north: { S: '3', H: 'AQJT96', D: 'K86', C: 'Q72' },
+    south: { S: 'AT', H: '75', D: 'T7542', C: 'AKJ9' },
+  });
+  checks += 1;
+  const weakSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', weakSuitBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
+  if (weakSuitCandidates.some(({ call }) => call === '3D')) {
+    failures += 1;
+    console.error('FAIL three-level new-suit advance requires concentrated suit honors.');
+  }
+  const { board: noStopperBoard } = makeRuleTestBoard({
+    description: deal.description, dealer: 'W',
+    practiceAuction: deal.practiceAuction,
+    north: deal.east!,
+    west: deal.north,
+    // East receives the remaining cards after this constructed South holding.
+    south: { ...deal.west!, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
+  });
+  checks += 1;
+  const candidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', noStopperBoard, ['1D', '1S', 'Pass'], defaultBiddingSystem));
+  if (candidates.some((candidate) => candidate.call === '1NT')) {
+    failures += 1;
+    console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
+  }
+  console.log(`${failures} ***FAILURES***. Advancing boundaries: ${checks} checks.`);
+  console.log('  Prevents ordinary suit-overcall advances from appearing in unsupported');
+  console.log('  auctions; checks stoppers, suit quality, and strength requirements.\n');
+  return failures;
+}
+/// Guard takeout-double advances against unsupported auctions and check suit-length
+/// fallback behavior independently from the representative practice deals.
+function runTakeoutAdvanceBoundaryTests (): number {
+  const zeroDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[1];
+  const jumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[3];
+  const notrumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[6];
+  if (zeroDeal === undefined || jumpDeal === undefined || notrumpDeal === undefined) {
+    console.error('FAIL takeout-double boundaries require saved advancing fixtures.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(zeroDeal);
+  let checks = 0;
+  let failures = 0;
+  for (const auction of [
+    ['1NT', 'Double', 'Pass'], // No agreed takeout-double meaning over natural 1NT.
+    ['3D', 'Double', 'Pass'], // Three-level preempt defenses are intentionally omitted.
+    ['1D', '1S', 'Pass'], // A suit overcall is not a takeout double.
+    ['1D', 'Pass', 'Pass'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.startsWith('advance-takeout-double-'))) {
+      failures += 1;
+      console.error(`FAIL takeout advances leaked into ${auction.join(' ')}.`);
+    }
+  }
+  // Zero HCP and no four-card unbid suit must allow a three-card suit.
+  checks += 1;
+  const rescue = getApplicableCandidateCalls(evaluateUserCall(
+    '1H', board, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (! rescue.some(({ call, rule }) => call === '1H' &&
+      rule.id === 'advance-takeout-double-minimum-suit')) {
+    failures += 1;
+    console.error('FAIL takeout double needs a weak three-card suit escape.');
+  }
+  // In contrast, a three-card unbid suit is not offered if a four-card option exists.
+  const { board: fourCardBoard } = makeRuleTestBoard({
+    description: jumpDeal.description, dealer: 'W',
+    practiceAuction: jumpDeal.practiceAuction,
+    north: jumpDeal.east!,
+    west: jumpDeal.north,
+    // East receives the remaining cards after this constructed South holding.
+    south: { S: 'QJ5', H: '762', D: 'T95', C: 'JT42' }, // 4 points and four clubs.
+  });
+  checks += 1;
+  const fourCardChoices = getApplicableCandidateCalls(evaluateUserCall(
+    '1H', fourCardBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (fourCardChoices.some(({ call, rule }) => call === '1H' &&
+      rule.id === 'advance-takeout-double-minimum-suit')) {
+    failures += 1;
+    console.error('FAIL three-card fallback activated when another unbid suit has four cards.');
+  }
+  const { board: notrumpBoard } = makeRuleTestBoard({
+    description: notrumpDeal.description, dealer: 'W',
+    practiceAuction: notrumpDeal.practiceAuction,
+    north: notrumpDeal.east!,
+    west: notrumpDeal.north,
+    // East receives the remaining cards after this constructed South holding.
+    south: { S: 'QJ5', H: 'T762', D: '83', C: 'AJ42' }, // 8 HCP, balanced, no D stopper.
+  });
+  checks += 1;
+  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '1NT', notrumpBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
+  if (ntCandidates.some(({ call }) => call === '1NT')) {
+    failures += 1;
+    console.error('FAIL takeout double 1NT needs a stopper.');
+  }
+  console.log(`${failures} ***FAILURES***. Takeout advancing boundaries: ${checks} checks.`);
+  console.log('  Checks takeout-double auction eligibility, the exceptional three-card');
+  console.log('  suit response, and stopper requirements for notrump advances.\n');
+  return failures;
+}
+/// Check that shared 1NT declarations respect actual bidding roles and both range settings.
+function runSharedOneNtAdvanceBoundaryTests (): number {
+  const seed = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[1];
+  if (seed === undefined) {
+    console.error('FAIL natural 1NT advancing boundaries need a practice deal.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(seed);
+  let checks = 0;
+  let failures = 0;
+  const cases: { auction: Call[]; shouldMatch: boolean }[] = [
+    { auction: ['1D', '1NT', 'Pass'], shouldMatch: true },
+    { auction: ['1D', '1NT', '2D'], shouldMatch: false },
+    { auction: ['1NT', 'Double', 'Pass'], shouldMatch: false },
+    { auction: ['2D', '2NT', 'Pass'], shouldMatch: false },
+    { auction: ['1D', 'Double', 'Pass'], shouldMatch: false },
+    { auction: ['1D', '1S', 'Pass'], shouldMatch: false },
+    { auction: ['1D', 'Pass'], shouldMatch: false },
+    { auction: ['Pass', '1D', '1NT', 'Pass'], shouldMatch: true },
+  ];
+  for (const testCase of cases) {
+    checks += 1;
+    const results = evaluateUserCall('2NT', board, testCase.auction, defaultBiddingSystem);
+    const contextMatches = results.ruleDiagnostics.some(({ rule }) =>
+      rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
+    if (contextMatches !== testCase.shouldMatch) {
+      failures += 1;
+      console.error(`FAIL shared 1NT context for ${testCase.auction.join(' ')}.`);
+    }
+  }
+  // The same rule IDs and setting-dependent HCP ranges apply after an opening and an overcall.
+  const sevenPointDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[8];
+  if (sevenPointDeal === undefined) {
+    return failures + 1;
+  }
+  const { board: sevenPointBoard } = makeRuleTestBoard(sevenPointDeal);
+  for (const range of ['15-17', '16-18'] as const) {
+    const system = { ...defaultBiddingSystem, oneNtOpening: range };
+    checks += 1;
+    const bids = getApplicableCandidateCalls(evaluateUserCall(
+      '2NT', sevenPointBoard, ['1D', '1NT', 'Pass'], system));
+    const invites = bids.some(({ call, rule }) =>
+      call === '2NT' && rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
+    if (invites !== (range === '16-18')) {
+      failures += 1;
+      console.error(`FAIL 1NT advance invitation under ${range} agreement.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Shared 1NT advancing boundaries: ${checks} checks.`);
+  console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
+  console.log('  respect partnership range settings, and exclude unrelated auctions.\n');
+  return failures;
+}
+/// Responder-raise advances apply only to a simple raise of opener's suit.  These checks
+/// also keep responsive Double behind an obvious fit or a five-card natural suit.
+function runResponderRaiseAdvanceBoundaryTests (): number {
+  const overcallDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[6];
+  const twoLevelDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[11];
+  const takeoutDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS[3];
+  if (overcallDoubleDeal === undefined || twoLevelDoubleDeal === undefined ||
+      takeoutDoubleDeal === undefined) {
+    console.error('FAIL responder-raise advancing boundaries need responsive-double fixtures.');
+    return 1;
+  }
+  const { board: overcallBoard } = makeRuleTestBoard(overcallDoubleDeal);
+  const { board: twoLevelBoard } = makeRuleTestBoard(twoLevelDoubleDeal);
+  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDoubleDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '1NT'],
+    ['1D', '1S', '2C'],
+    ['1D', '1S', '3D'],
+    ['1D', '2H', '2D'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', overcallBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-one-level-suit-overcall-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL overcall responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1S', '2H', 'Pass'],
+    ['1S', '2H', '3S'],
+    ['1S', '3H', '3S'],
+    ['1S', '1H', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', twoLevelBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-two-level-suit-overcall-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL two-level responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '1NT'],
+    ['1H', 'Double', '2C'],
+    ['1H', 'Double', '3H'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Double', takeoutBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) =>
+      rule.id.startsWith('advance-takeout-double-after-responder-raise-'))) {
+      failures += 1;
+      console.error(`FAIL takeout responder-raise rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  const fitBoard = makeRuleTestBoard({
+    description: 'Responsive Double is suppressed by three-card support.',
+    dealer: 'W', practiceAuction: ['1D', '1S', '2D', 'Double'],
+    north: overcallDoubleDeal.east!,
+    south: { S: 'T95', H: 'KQJT', D: 'KT9', C: 'JT7' },
+  }).board;
+  checks += 1;
+  const fitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', fitBoard, ['1D', '1S', '2D'], defaultBiddingSystem));
+  if (fitCandidates.some(({ rule }) =>
+    rule.id === 'advance-one-level-suit-overcall-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double survived with three-card support for partner.');
+  }
+
+  const longSuitBoard = makeRuleTestBoard({
+    description: 'Responsive Double is suppressed by a five-card natural suit.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
+    north: takeoutDoubleDeal.east!,
+    south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
+  }).board;
+  checks += 1;
+  const longSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', longSuitBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
+  if (longSuitCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double survived with a clear five-card natural suit.');
+  }
+
+  const { board: lowTwoLevelDoubleBoard } = makeRuleTestBoard({
+    description: 'Higher-level responsive Double needs nine length points.',
+    dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Double'],
+    west: twoLevelDoubleDeal.north,
+    north: twoLevelDoubleDeal.east!,
+    east: { S: '852', H: '43', D: 'JT2', C: 'AKJT4' },
+    south: { S: 'T96', H: 'T7', D: 'A754', C: 'Q983' },
+  });
+  checks += 1;
+  const lowTwoLevelDoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', lowTwoLevelDoubleBoard, ['1S', '2H', '2S'], defaultBiddingSystem));
+  if (lowTwoLevelDoubleCandidates.some(({ rule }) =>
+    rule.id === 'advance-two-level-suit-overcall-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL higher-level responsive Double survived below nine length points.');
+  }
+
+  const strongBoard = makeRuleTestBoard({
+    description: 'Responsive Double gives way to the strong-hand cuebid.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
+    north: takeoutDoubleDeal.east!,
+    south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
+  }).board;
+  checks += 1;
+  const strongCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', strongBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
+  if (strongCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
+    failures += 1;
+    console.error('FAIL responsive Double exceeded the modeled 11-point maximum.');
+  }
+
+  console.log(`${failures} ***FAILURES***. Responder-raise advancing boundaries: ${checks} checks.`);
+  console.log('  Restricts the new rules to simple raises and keeps responsive Double behind');
+  console.log('  a clear fit, a five-card natural suit, or the modeled strong-hand cuebid.\n');
+  return failures;
+}
+/// Natural responder actions after a suit overcall or takeout double have their own
+/// advancing family.  Keep those rules out of Pass, raise, artificial, and jump-response auctions.
+function runResponderNaturalActionAdvanceBoundaryTests (): number {
+  const overcallDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS[0];
+  const takeoutDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS[0];
+  if (overcallDeal === undefined || takeoutDeal === undefined) {
+    console.error('FAIL responder-action advancing boundaries need saved practice fixtures.');
+    return 1;
+  }
+  const { board: overcallBoard } = makeRuleTestBoard(overcallDeal);
+  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '2D'],
+    ['1D', '1S', '2S'],
+    ['1D', '1S', 'Double'],
+    ['1H', '2D', '2NT'],
+    ['1D', '2H', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', overcallBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
+      failures += 1;
+      console.error(`FAIL suit-overcall responder-action rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '2H'],
+    ['1H', 'Double', 'Redouble'],
+    ['1H', 'Double', '2S'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', takeoutBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
+      failures += 1;
+      console.error(`FAIL takeout responder-action rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  checks += 1;
+  const responderSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2S', takeoutBoard, ['1H', 'Double', '1S'], defaultBiddingSystem));
+  if (responderSuitCandidates.some(({ rule }) =>
+    rule.id.includes('responder-natural-action-new-suit'))) {
+    failures += 1;
+    console.error('FAIL advancer treated responder’s newly bid suit as a natural new suit.');
+  }
+
+  checks += 1;
+  const doubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Double', overcallBoard, ['1D', '1S', '1NT'], defaultBiddingSystem));
+  if (doubleCandidates.some(({ call, rule }) =>
+    call === 'Double' && rule.id.includes('responder-natural-action'))) {
+    failures += 1;
+    console.error('FAIL natural responder-action family introduced an unagreed Double.');
+  }
+
+  console.log(`${failures} ***FAILURES***. Responder-action advancing boundaries: ${checks} checks.`);
+  console.log('  Limits these advances to natural new-suit or 1NT responses and keeps');
+  console.log('  artificial responder calls, jumps, and unrelated actions outside this family.\n');
+  return failures;
+}
+/// A natural 1NT advance cannot suppress Pass after responder has already bid 1NT.
+/// The rule predicate must use real auction legality, not just HCP, shape and stoppers.
+function runNaturalActionPassLegalityTests (): number {
+  const responder = { S: '76', H: 'K984', D: 'Q75', C: 'A643' };
+  const cases: { name: string; auction: Call[]; north: typeof responder; passRule: string }[] = [
+    {
+      name: 'natural overcall followed by responder 1NT',
+      auction: ['1D', '1S', '1NT'],
+      north: { S: 'AKQJ9', H: '72', D: '83', C: 'KJT2' },
+      passRule: 'advance-suit-overcall-after-responder-natural-action-pass',
+    },
+    {
+      name: 'takeout Double followed by responder 1NT',
+      auction: ['1H', 'Double', '1NT'],
+      north: { S: 'AKQJ', H: '7', D: '8326', C: 'KJT9' },
+      passRule: 'advance-takeout-double-after-responder-natural-action-pass',
+    },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const { board } = makeRuleTestBoard({
+      description: `Natural responder action / legal Pass: ${testCase.name}.`,
+      dealer: 'W', practiceAuction: [...testCase.auction, 'Pass'],
+      north: testCase.north, south: responder,
+    });
+    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
+    const supported = getApplicableCandidateCalls(result);
+    if (!supported.some((item) => item.call === 'Pass' && item.rule.id === testCase.passRule)) {
+      failures += 1;
+      console.error(`FAIL ${testCase.name}: legal Pass was rejected because of a phantom 1NT.`);
+    }
+    if (supported.some((item) => item.call === '1NT')) {
+      failures += 1;
+      console.error(`FAIL ${testCase.name}: 1NT was offered after responder already bid 1NT.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. B19 responder-1NT Pass legality: ` +
+    `${cases.length * 2} checks.`);
+  console.log('  An illegal natural 1NT advance cannot remove a valid Pass.\n');
+  return failures;
+}
+/// Artificial responder actions have deliberately narrow advancing meanings.  Negative-Double
+/// rules must not leak into other responder actions, and a Redoubled takeout Double supports only
+/// the weak economical escape modeled here.
+function runResponderArtificialActionAdvanceBoundaryTests (): number {
+  const negativeDoubleDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[5];
+  const takeoutRedoubleDeal = ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS[0];
+  if (negativeDoubleDeal === undefined || takeoutRedoubleDeal === undefined) {
+    console.error('FAIL artificial-action advancing boundaries need saved practice fixtures.');
+    return 1;
+  }
+  const { board: negativeDoubleBoard } = makeRuleTestBoard(negativeDoubleDeal);
+  const { board: takeoutRedoubleBoard } = makeRuleTestBoard(takeoutRedoubleDeal);
+  let checks = 0;
+  let failures = 0;
+
+  for (const auction of [
+    ['1D', '1S', 'Pass'],
+    ['1D', '1S', '2D'],
+    ['1D', '1S', '1NT'],
+    ['1D', '1S', '2C'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Redouble', negativeDoubleBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('after-negative-double'))) {
+      failures += 1;
+      console.error(`FAIL negative-Double advancing rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  const sideSuitDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[4];
+  if (sideSuitDeal === undefined) {
+    console.error('FAIL negative-Double boundaries need the side-suit fixture.');
+    return failures + 1;
+  }
+  const { board: sideSuitBoard } = makeRuleTestBoard(sideSuitDeal);
+  checks += 1;
+  const impliedSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2H', sideSuitBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
+  if (impliedSuitCandidates.some(({ call, rule }) => call === '2H' &&
+      rule.id === 'advance-suit-overcall-after-negative-double-new-suit-two-level')) {
+    failures += 1;
+    console.error('FAIL negative-Double side-suit rule admitted the major implied by Double.');
+  }
+
+  const weakRedoubleBoard = makeRuleTestBoard({
+    description: 'Strength Redouble boundary at nine HCP.',
+    dealer: 'W', practiceAuction: ['1D', '1S', 'Double', 'Redouble'],
+    west: { S: 'KJ53', H: 'Q4', D: 'AQT3', C: 'Q97' },
+    north: { S: 'AT9764', H: '32', D: '64', C: 'K85' },
+    east: { S: 'Q', H: 'AT8765', D: '', C: 'AT6432' },
+    south: { S: '82', H: 'KJ9', D: 'KJ98752', C: 'J' },
+  }).board;
+  checks += 1;
+  const weakRedoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    'Redouble', weakRedoubleBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
+  if (weakRedoubleCandidates.some(({ rule }) =>
+    rule.id === 'advance-suit-overcall-after-negative-double-redouble-values')) {
+    failures += 1;
+    console.error('FAIL strength-showing Redouble admitted fewer than 10 HCP.');
+  }
+
+  for (const auction of [
+    ['1H', 'Double', 'Pass'],
+    ['1H', 'Double', '2H'],
+    ['1H', 'Double', '1NT'],
+  ] as Call[][]) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      '2C', takeoutRedoubleBoard, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.includes('responder-redouble'))) {
+      failures += 1;
+      console.error(`FAIL takeout-Redouble escape leaked into ${auction.join(' ')}.`);
+    }
+  }
+
+  checks += 1;
+  const jumpCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3C', takeoutRedoubleBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
+  if (jumpCandidates.some(({ call, rule }) =>
+    call === '3C' && rule.id.includes('responder-redouble'))) {
+    failures += 1;
+    console.error('FAIL Redoubled takeout escape admitted an invitational or preemptive jump.');
+  }
+
+  const strongEscapeBoard = makeRuleTestBoard({
+    description: 'Redoubled takeout escape boundary above eight length points.',
+    dealer: 'W', practiceAuction: ['1H', 'Double', 'Redouble', '2C'],
+    west: { S: 'J', H: 'K98642', D: 'Q52', C: 'A74' },
+    north: { S: 'AQ53', H: 'T3', D: 'KJ93', C: 'Q63' },
+    east: { S: 'KT86', H: '', D: 'AT8764', C: 'K98' },
+    south: { S: '9742', H: 'AQJ75', D: '', C: 'JT52' },
+  }).board;
+  checks += 1;
+  const strongEscapeCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '2C', strongEscapeBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
+  if (strongEscapeCandidates.some(({ rule }) =>
+    rule.id === 'advance-takeout-double-after-responder-redouble-weak-suit-escape')) {
+    failures += 1;
+    console.error('FAIL weak Redouble escape exceeded the modeled eight-point maximum.');
+  }
+
+  console.log(`${failures} ***FAILURES***. Artificial responder-action advancing boundaries: ${checks} checks.`);
+  console.log('  Keeps strength-showing Redouble and weak takeout-Double escapes in their');
+  console.log('  exact auctions, excluding implied suits, jumps, and stronger runout decisions.\n');
+  return failures;
+}
+/// Jump-overcall advances must require a real jump and responder's Pass. The
+/// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
+function runJumpOvercallAdvanceBoundaryTests (): number {
+  const weakJump = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS[0];
+  const strongNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[3] === '3D');
+  if (weakJump === undefined || strongNewSuit === undefined) {
+    console.error('FAIL jump-overcall advances require saved practice fixtures.');
+    return 1;
+  }
+  const { board } = makeRuleTestBoard(weakJump);
+  let checks = 0;
+  let failures = 0;
+  const unsupportedAuctions: Call[][] = [
+    ['1D', '1H', 'Pass'], // Natural one-level overcall, not a jump.
+    ['1S', '2H', 'Pass'], // Natural non-jump two-level overcall.
+    ['1D', '2H', '2S'],   // Opponents' responder did not pass.
+    ['1NT', '2H', 'Pass'], // Defense to 1NT is not yet supported.
+    ['2D', '3H', 'Pass'], // Two-level opening is outside this family.
+  ];
+  for (const auction of unsupportedAuctions) {
+    checks += 1;
+    const candidates = getApplicableCandidateCalls(evaluateUserCall(
+      'Pass', board, auction, defaultBiddingSystem));
+    if (candidates.some(({ rule }) => rule.id.startsWith('advance-jump-overcall-') ||
+        rule.id.startsWith('advance-two-level-jump-overcall-') ||
+        rule.id.startsWith('advance-three-level-jump-overcall-'))) {
+      failures += 1;
+      console.error(`FAIL weak-jump advancing rules leaked into ${auction.join(' ')}.`);
+    }
+  }
+  // 2NT inquiries and five-level raises are intentionally unsupported here.
+  for (const call of ['2NT', '5H'] as Call[]) {
+    checks += 1;
+    const bids = getApplicableCandidateCalls(evaluateUserCall(
+      call, board, ['1D', '2H', 'Pass'], defaultBiddingSystem));
+    if (bids.some(({ call: candidateCall }) => candidateCall === call)) {
+      failures += 1;
+      console.error(`FAIL jump overcall unexpectedly admits ${call}.`);
+    }
+  }
+  const weakSuitBoard = makeRuleTestBoard({
+    description: strongNewSuit.description, dealer: 'W',
+    practiceAuction: strongNewSuit.practiceAuction,
+    north: strongNewSuit.east!,
+    west: strongNewSuit.north,
+    south: { S: 'T8', H: 'QJ8', D: 'JT976', C: 'AKQ' },
+  }).board;
+  checks += 1;
+  const qualityCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3D', weakSuitBoard, ['1H', '2S', 'Pass'], defaultBiddingSystem));
+  if (qualityCandidates.some(({ call, rule }) =>
+    call === '3D' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+    failures += 1;
+    console.error('FAIL jump-overcall new suit needs concentrated honor quality.');
+  }
+  const clubNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
+    deal.practiceAuction[3] === '3C')!;
+  const weakHandBoard = makeRuleTestBoard({
+    description: clubNewSuit.description, dealer: 'W',
+    practiceAuction: clubNewSuit.practiceAuction,
+    north: clubNewSuit.east!,
+    west: clubNewSuit.north,
+    south: { S: 'QJ6', H: 'T8', D: '932', C: 'AKJ76' }, // Good clubs, but only 11 HCP.
+  }).board;
+  checks += 1;
+  const strengthCandidates = getApplicableCandidateCalls(evaluateUserCall(
+    '3C', weakHandBoard, ['1D', '2H', 'Pass'], defaultBiddingSystem));
+  if (strengthCandidates.some(({ call, rule }) =>
+    call === '3C' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+    failures += 1;
+    console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
+  }
+  console.log(`${failures} ***FAILURES***. Jump-overcall advancing boundaries: ${checks} checks.`);
+  console.log('  Checks genuine jump overcalls, unsupported auctions and calls, and');
+  console.log('  the strength and suit quality required for forcing new-suit advances.\n');
+  return failures;
+}
+/// An economical forcing new-suit advance after a preemptive jump overcall
+/// requires one overcaller reply.  Test both levels, suit-fit quality, and leakage
+/// into nearby non-jump or competitively interrupted auction contexts.
+function runJumpOvercallForcingAdvanceRebidTests (): number {
+  const repeatId = 'overcaller-rebid-jump-new-suit-repeat';
+  const supportId = 'overcaller-rebid-jump-new-suit-support';
+  const boundaryId = 'overcaller-rebid-jump-new-suit-boundary';
+  type HandShape = { S: string; H: string; D: string; C: string };
+  const cases: { name: string; auction: Call[]; north: HandShape; south: HandShape;
+    call?: Call; id?: string; boundary?: boolean }[] = [
+    {
+      name: '2H over 1D; three low clubs need 3H return, not 4C',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+      call: '3H', id: repeatId,
+    },
+    {
+      name: '2H over 1D; a three-card spade raise at three',
+      auction: ['1D', '2H', 'Pass', '2S', 'Pass'],
+      north: { S: 'K82', H: 'KQJ976', D: '65', C: '74' },
+      south: { S: 'AQJ76', H: 'T5', D: 'A84', C: 'K63' },
+      call: '3S', id: supportId,
+    },
+    {
+      name: '2H over 1D; Kxx permits four-level support',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'T8', H: 'KQJ976', D: '65', C: 'K95' },
+      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AQJ62' },
+      call: '4C', id: supportId,
+    },
+    {
+      name: '2H over 1D; four small clubs provide playing strength for four',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: '8', H: 'KQJ976', D: '65', C: 'T952' },
+      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AKQJ6' },
+      call: '4C', id: supportId,
+    },
+    {
+      name: '3C over 1D; return to seven-card clubs at four',
+      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
+      north: { S: 'T4', H: '86', D: '52', C: 'KQJT976' },
+      south: { S: 'A963', H: 'AKQJ9', D: 'K83', C: 'A' },
+      call: '4C', id: repeatId,
+    },
+    {
+      name: '3C over 1D; three-card Axx hearts permit 4H',
+      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
+      north: { S: '4', H: 'A86', D: '52', C: 'KQT9876' },
+      south: { S: 'K963', H: 'KQJT9', D: 'K83', C: 'A' },
+      call: '4H', id: supportId,
+    },
+    {
+      name: '2H over 1D; too few hearts for the described preempt',
+      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'AQ8', H: 'KQJ97', D: '65', C: 'T95' },
+      south: { S: 'T64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+      boundary: true,
+    },
+    {
+      name: 'not a jump: 2H over 1S',
+      auction: ['1S', '2H', 'Pass', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'responder interfered instead of passing',
+      auction: ['1D', '2H', '2S', '3C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'advancer jumped beyond the economical new suit',
+      auction: ['1D', '2H', 'Pass', '4C', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'advancer cuebid opener suit rather than a natural new suit',
+      auction: ['1D', '2H', 'Pass', '3D', 'Pass'],
+      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
+      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
+    },
+    {
+      name: 'four-level jump overcall not included in this family',
+      auction: ['1C', '4S', 'Pass', '5D', 'Pass'],
+      north: { S: 'KQJT9876', H: '86', D: '52', C: '4' },
+      south: { S: 'A', H: 'AKQJ9', D: 'KQJ98', C: 'A7' },
+    },
+  ];
+  let failures = 0;
+  for (const test of cases) {
+    const { board } = makeRuleTestBoard({ description: test.name, dealer: 'W',
+      practiceAuction: test.auction, north: test.north, south: test.south });
+    // The positive rebid examples must begin with an advance supported by the
+    // original forcing-new-suit rule, not merely a syntactically plausible auction.
+    if (test.call !== undefined) {
+      const firstAdvance = test.auction[3];
+      const advance = getApplicableCandidateCalls(evaluateUserCall(firstAdvance, board,
+        test.auction.slice(0, 3), defaultBiddingSystem));
+      if (!advance.some(({ call, rule }) => call === firstAdvance &&
+          rule.id === 'advance-jump-overcall-forcing-new-suit')) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: forcing new-suit advance did not qualify.`);
+      }
+    }
+    const result = evaluateUserCall(test.call ?? 'Pass', board, test.auction, defaultBiddingSystem);
+    const matches = getApplicableCandidateCalls(result).filter(({ rule }) =>
+      rule.id === repeatId || rule.id === supportId);
+    const boundary = result.applicableRules.some(({ id }) => id === boundaryId);
+    const correct = test.call === undefined ? matches.length === 0 :
+      matches.length === 1 && matches[0]?.call === test.call && matches[0]?.rule.id === test.id;
+    if (!correct || boundary !== (test.boundary === true)) {
+      failures += 1;
+      console.error(`FAIL B4 ${test.name}: expected ${test.call ?? '-'} (${test.id ?? '-'}), ` +
+        `got ${formatCandidates(matches)}, boundary ${boundary}.`);
+    }
+    if (test.call !== undefined || test.boundary) {
+      const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+      const kind = test.boundary ? 'scopeBoundary' : 'supported';
+      if (status.kind !== kind) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: expected status ${kind}, got ${status.kind}.`);
+      }
+      if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
+        failures += 1;
+        console.error(`FAIL B4 ${test.name}: Pass cannot satisfy advancer's force.`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. B4 jump overcaller forcing-advance replies: ` +
+              `${cases.length} constructed-hand and auction-context checks.\n`);
+  return failures;
+}
+
+//// Opener rebids and follow-ups
 
 /// Competitive opener-rebid boundaries protect the deliberately selected advancer-Pass families.
 /// Meaning-preserving natural calls may reuse opted-in descriptive rules, while repurposed calls
@@ -1766,1291 +4108,712 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   console.log('  responder meanings and advancer competition outside this selected family.\n');
   return failures;
 }
-
-/// This first advancer family must not leak into interfering or higher-level auctions.
-/// The stopper boundary tests the hand rather than merely omitting an NT expectation.
-function runAdvancingBoundaryTests (): number {
-  const deal = ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS[4];
-  if (deal === undefined) {
-    console.error('FAIL advancing boundaries require the 1NT advance fixture.');
-    return 1;
-  }
-  const { board } = makeRuleTestBoard(deal);
-  const excluded: Call[][] = [
-    ['1D', '1S', '2S'], // An artificial responder cuebid is not a natural advance context.
-    ['1D', '2H', 'Pass'], // A preemptive jump overcall.
-  ];
-  let checks = 0;
+/// Regression: a major opener stronger than the old 21-support-point ceiling must still
+/// be able to bid game, with a short-suit splinter available only under that agreement.
+function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
+  const auction: Call[] = ['1H', 'Pass', '2H', 'Pass'];
+  const { board } = makeRuleTestBoard({
+    description: '19 HCP, 23 support points after a simple heart raise',
+    practiceAuction: auction,
+    north: { S: '2', H: 'AKQ87', D: 'K3', C: 'AQJ64' },
+    south: { S: 'KJ94', H: 'T62', D: 'Q876', C: 'K8' },
+  });
   let failures = 0;
-  for (const auction of excluded) {
-    checks += 1;
+  for (const splinters of [false, true]) {
+    const system = { ...defaultBiddingSystem, splinters };
     const candidates = getApplicableCandidateCalls(
-      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
-    if (candidates.length !== 0) {
-      failures += 1;
-      console.error(`FAIL advancing rules leaked into ${auction.join(' ')}: ` +
-                    formatCandidates(candidates));
+      evaluateUserCall('4H', board, auction, system));
+    const game = candidates.some(({ call, rule }) =>
+      call === '4H' && rule.id === 'opener-rebid-game-raise-after-major-simple-raise');
+    const splinter = candidates.some(({ call, rule }) =>
+      call === '3S' && rule.id === 'opener-rebid-splinter-after-major-simple-raise');
+    if (!game || splinter !== splinters) {
+      failures++;
+      console.error(`FAIL R2 high-strength major raise (splinters=${splinters}): ` +
+        `game=${game}, 3S splinter=${splinter}.`);
     }
   }
-  // The ordinary two-level family must stay inactive after an unsupported responder action
-  // or a jump overcall.
-  for (const auction of [
-    ['1D', '2C', '3D'], ['1D', '3C', 'Pass'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(
-      evaluateUserCall('Pass', board, auction, defaultBiddingSystem));
-    if (candidates.length !== 0) {
-      failures += 1;
-      console.error(`FAIL two-level advancing rules leaked into ${auction.join(' ')}: ` +
-                    formatCandidates(candidates));
-    }
-  }
-  // Reuse the opener and overcaller holdings in separately constructed West-dealt tests.
-  const twoLevelNtDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[2];
-  if (twoLevelNtDeal === undefined) {
-    failures += 1;
-    console.error('FAIL advancing boundaries require the two-level 2NT fixture.');
-  } else {
-    const { board: noTwoLevelStopperBoard } = makeRuleTestBoard({
-      description: twoLevelNtDeal.description, dealer: 'W',
-      practiceAuction: twoLevelNtDeal.practiceAuction,
-      north: twoLevelNtDeal.east!,
-      west: twoLevelNtDeal.north,
-      // East receives the remaining cards after this constructed South holding.
-      south: { S: 'JT98', H: 'KQJ', D: 'T983', C: 'A4' }, // 11 HCP; no diamond stopper.
-    });
-    checks += 1;
-    const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
-      '2NT', noTwoLevelStopperBoard, ['1D', '2C', 'Pass'], defaultBiddingSystem));
-    if (ntCandidates.some(({ call }) => call === '2NT')) {
-      failures += 1;
-      console.error('FAIL advancing 2NT requires a stopper in opener’s suit.');
-    }
-  }
-  const threeLevelDeal = ADVANCER_AFTER_TWO_LEVEL_SUIT_OVERCALL_TEST_DEALS[7];
-  if (threeLevelDeal === undefined) {
-    failures += 1;
-    console.error('FAIL advancing boundaries require the 3D fixture.');
-  } else {
-    const { board: insufficientHcpBoard } = makeRuleTestBoard({
-      description: threeLevelDeal.description, dealer: 'W',
-      practiceAuction: threeLevelDeal.practiceAuction,
-      north: threeLevelDeal.east!,
-      west: threeLevelDeal.north,
-      // East receives the remaining cards after this constructed South holding.
-      south: { S: 'T9', H: 'T7', D: 'AJT54', C: 'KQJ9' }, // 11 HCP, despite good diamonds.
-    });
-    checks += 1;
-    const newSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-      '3D', insufficientHcpBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
-    if (newSuitCandidates.some(({ call }) => call === '3D')) {
-      failures += 1;
-      console.error('FAIL three-level new-suit advance requires at least 12 HCP.');
-    }
-  }
-  // Holding 12 HCP is not sufficient if an economical three-level new suit lacks quality.
-  const { board: weakSuitBoard } = makeRuleTestBoard({
-    description: '3D suit-quality rejection after a genuine 2H overcall.',
-    dealer: 'W', practiceAuction: ['1S', '2H', 'Pass', '3D'],
-    west: { S: 'KQJ74', H: 'K82', D: 'A93', C: '65' },
-    north: { S: '3', H: 'AQJT96', D: 'K86', C: 'Q72' },
-    south: { S: 'AT', H: '75', D: 'T7542', C: 'AKJ9' },
-  });
-  checks += 1;
-  const weakSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '3D', weakSuitBoard, ['1S', '2H', 'Pass'], defaultBiddingSystem));
-  if (weakSuitCandidates.some(({ call }) => call === '3D')) {
-    failures += 1;
-    console.error('FAIL three-level new-suit advance requires concentrated suit honors.');
-  }
-  const { board: noStopperBoard } = makeRuleTestBoard({
-    description: deal.description, dealer: 'W',
-    practiceAuction: deal.practiceAuction,
-    north: deal.east!,
-    west: deal.north,
-    // East receives the remaining cards after this constructed South holding.
-    south: { ...deal.west!, D: 'T953' }, // Swap K for T: 8 HCP and no diamond stopper.
-  });
-  checks += 1;
-  const candidates = getApplicableCandidateCalls(evaluateUserCall(
-    '1NT', noStopperBoard, ['1D', '1S', 'Pass'], defaultBiddingSystem));
-  if (candidates.some((candidate) => candidate.call === '1NT')) {
-    failures += 1;
-    console.error('FAIL advancing 1NT requires a stopper in opener’s suit.');
-  }
-  console.log(`${failures} ***FAILURES***. Advancing boundaries: ${checks} checks.`);
-  console.log('  Prevents ordinary suit-overcall advances from appearing in unsupported');
-  console.log('  auctions; checks stoppers, suit quality, and strength requirements.\n');
+  console.log(`${failures} ***FAILURES***. Strong opener after simple major raise: ` +
+              '2 agreement contexts on one boundary hand.\n');
   return failures;
 }
-
-/// Guard takeout-double advances against unsupported auctions and check suit-length
-/// fallback behavior independently from the representative practice deals.
-function runTakeoutAdvanceBoundaryTests (): number {
-  const zeroDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[1];
-  const jumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[3];
-  const notrumpDeal = ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS[6];
-  if (zeroDeal === undefined || jumpDeal === undefined || notrumpDeal === undefined) {
-    console.error('FAIL takeout-double boundaries require saved advancing fixtures.');
-    return 1;
-  }
-  const { board } = makeRuleTestBoard(zeroDeal);
-  let checks = 0;
-  let failures = 0;
-  for (const auction of [
-    ['1NT', 'Double', 'Pass'], // No agreed takeout-double meaning over natural 1NT.
-    ['3D', 'Double', 'Pass'], // Three-level preempt defenses are intentionally omitted.
-    ['1D', '1S', 'Pass'], // A suit overcall is not a takeout double.
-    ['1D', 'Pass', 'Pass'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Pass', board, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.startsWith('advance-takeout-double-'))) {
-      failures += 1;
-      console.error(`FAIL takeout advances leaked into ${auction.join(' ')}.`);
-    }
-  }
-  // Zero HCP and no four-card unbid suit must allow a three-card suit.
-  checks += 1;
-  const rescue = getApplicableCandidateCalls(evaluateUserCall(
-    '1H', board, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
-  if (! rescue.some(({ call, rule }) => call === '1H' &&
-      rule.id === 'advance-takeout-double-minimum-suit')) {
-    failures += 1;
-    console.error('FAIL takeout double needs a weak three-card suit escape.');
-  }
-  // In contrast, a three-card unbid suit is not offered if a four-card option exists.
-  const { board: fourCardBoard } = makeRuleTestBoard({
-    description: jumpDeal.description, dealer: 'W',
-    practiceAuction: jumpDeal.practiceAuction,
-    north: jumpDeal.east!,
-    west: jumpDeal.north,
-    // East receives the remaining cards after this constructed South holding.
-    south: { S: 'QJ5', H: '762', D: 'T95', C: 'JT42' }, // 4 points and four clubs.
-  });
-  checks += 1;
-  const fourCardChoices = getApplicableCandidateCalls(evaluateUserCall(
-    '1H', fourCardBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
-  if (fourCardChoices.some(({ call, rule }) => call === '1H' &&
-      rule.id === 'advance-takeout-double-minimum-suit')) {
-    failures += 1;
-    console.error('FAIL three-card fallback activated when another unbid suit has four cards.');
-  }
-  const { board: notrumpBoard } = makeRuleTestBoard({
-    description: notrumpDeal.description, dealer: 'W',
-    practiceAuction: notrumpDeal.practiceAuction,
-    north: notrumpDeal.east!,
-    west: notrumpDeal.north,
-    // East receives the remaining cards after this constructed South holding.
-    south: { S: 'QJ5', H: 'T762', D: '83', C: 'AJ42' }, // 8 HCP, balanced, no D stopper.
-  });
-  checks += 1;
-  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '1NT', notrumpBoard, ['1D', 'Double', 'Pass'], defaultBiddingSystem));
-  if (ntCandidates.some(({ call }) => call === '1NT')) {
-    failures += 1;
-    console.error('FAIL takeout double 1NT needs a stopper.');
-  }
-  console.log(`${failures} ***FAILURES***. Takeout advancing boundaries: ${checks} checks.`);
-  console.log('  Checks takeout-double auction eligibility, the exceptional three-card');
-  console.log('  suit response, and stopper requirements for notrump advances.\n');
-  return failures;
-}
-
-/// Check that shared 1NT declarations respect actual bidding roles and both range settings.
-function runSharedOneNtAdvanceBoundaryTests (): number {
-  const seed = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[1];
-  if (seed === undefined) {
-    console.error('FAIL natural 1NT advancing boundaries need a practice deal.');
-    return 1;
-  }
-  const { board } = makeRuleTestBoard(seed);
-  let checks = 0;
-  let failures = 0;
-  const cases: { auction: Call[]; shouldMatch: boolean }[] = [
-    { auction: ['1D', '1NT', 'Pass'], shouldMatch: true },
-    { auction: ['1D', '1NT', '2D'], shouldMatch: false },
-    { auction: ['1NT', 'Double', 'Pass'], shouldMatch: false },
-    { auction: ['2D', '2NT', 'Pass'], shouldMatch: false },
-    { auction: ['1D', 'Double', 'Pass'], shouldMatch: false },
-    { auction: ['1D', '1S', 'Pass'], shouldMatch: false },
-    { auction: ['1D', 'Pass'], shouldMatch: false },
-    { auction: ['Pass', '1D', '1NT', 'Pass'], shouldMatch: true },
-  ];
-  for (const testCase of cases) {
-    checks += 1;
-    const results = evaluateUserCall('2NT', board, testCase.auction, defaultBiddingSystem);
-    const contextMatches = results.ruleDiagnostics.some(({ rule }) =>
-      rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
-    if (contextMatches !== testCase.shouldMatch) {
-      failures += 1;
-      console.error(`FAIL shared 1NT context for ${testCase.auction.join(' ')}.`);
-    }
-  }
-  // The same rule IDs and setting-dependent HCP ranges apply after an opening and an overcall.
-  const sevenPointDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS[8];
-  if (sevenPointDeal === undefined) {
-    return failures + 1;
-  }
-  const { board: sevenPointBoard } = makeRuleTestBoard(sevenPointDeal);
-  for (const range of ['15-17', '16-18'] as const) {
-    const system = { ...defaultBiddingSystem, oneNtOpening: range };
-    checks += 1;
-    const bids = getApplicableCandidateCalls(evaluateUserCall(
-      '2NT', sevenPointBoard, ['1D', '1NT', 'Pass'], system));
-    const invites = bids.some(({ call, rule }) =>
-      call === '2NT' && rule.id === 'respond-to-1nt-w/-2nt-8-9-invitational');
-    if (invites !== (range === '16-18')) {
-      failures += 1;
-      console.error(`FAIL 1NT advance invitation under ${range} agreement.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Shared 1NT advancing boundaries: ${checks} checks.`);
-  console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
-  console.log('  respect partnership range settings, and exclude unrelated auctions.\n');
-  return failures;
-}
-
-/// Responder-raise advances apply only to a simple raise of opener's suit.  These checks
-/// also keep responsive Double behind an obvious fit or a five-card natural suit.
-function runResponderRaiseAdvanceBoundaryTests (): number {
-  const overcallDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[6];
-  const twoLevelDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_OVERCALL_TEST_DEALS[11];
-  const takeoutDoubleDeal = ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS[3];
-  if (overcallDoubleDeal === undefined || twoLevelDoubleDeal === undefined ||
-      takeoutDoubleDeal === undefined) {
-    console.error('FAIL responder-raise advancing boundaries need responsive-double fixtures.');
-    return 1;
-  }
-  const { board: overcallBoard } = makeRuleTestBoard(overcallDoubleDeal);
-  const { board: twoLevelBoard } = makeRuleTestBoard(twoLevelDoubleDeal);
-  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDoubleDeal);
-  let checks = 0;
-  let failures = 0;
-
-  for (const auction of [
-    ['1D', '1S', 'Pass'],
-    ['1D', '1S', '1NT'],
-    ['1D', '1S', '2C'],
-    ['1D', '1S', '3D'],
-    ['1D', '2H', '2D'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Double', overcallBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) =>
-      rule.id.startsWith('advance-one-level-suit-overcall-after-responder-raise-'))) {
-      failures += 1;
-      console.error(`FAIL overcall responder-raise rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  for (const auction of [
-    ['1S', '2H', 'Pass'],
-    ['1S', '2H', '3S'],
-    ['1S', '3H', '3S'],
-    ['1S', '1H', '2S'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Double', twoLevelBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) =>
-      rule.id.startsWith('advance-two-level-suit-overcall-after-responder-raise-'))) {
-      failures += 1;
-      console.error(`FAIL two-level responder-raise rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  for (const auction of [
-    ['1H', 'Double', 'Pass'],
-    ['1H', 'Double', '1NT'],
-    ['1H', 'Double', '2C'],
-    ['1H', 'Double', '3H'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Double', takeoutBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) =>
-      rule.id.startsWith('advance-takeout-double-after-responder-raise-'))) {
-      failures += 1;
-      console.error(`FAIL takeout responder-raise rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  const fitBoard = makeRuleTestBoard({
-    description: 'Responsive Double is suppressed by three-card support.',
-    dealer: 'W', practiceAuction: ['1D', '1S', '2D', 'Double'],
-    north: overcallDoubleDeal.east!,
-    south: { S: 'T95', H: 'KQJT', D: 'KT9', C: 'JT7' },
-  }).board;
-  checks += 1;
-  const fitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', fitBoard, ['1D', '1S', '2D'], defaultBiddingSystem));
-  if (fitCandidates.some(({ rule }) =>
-    rule.id === 'advance-one-level-suit-overcall-after-responder-raise-responsive-double')) {
-    failures += 1;
-    console.error('FAIL responsive Double survived with three-card support for partner.');
-  }
-
-  const longSuitBoard = makeRuleTestBoard({
-    description: 'Responsive Double is suppressed by a five-card natural suit.',
-    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
-    north: takeoutDoubleDeal.east!,
-    south: { S: 'QJT65', H: 'QJ', D: 'AT9', C: 'T83' },
-  }).board;
-  checks += 1;
-  const longSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', longSuitBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
-  if (longSuitCandidates.some(({ rule }) =>
-    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
-    failures += 1;
-    console.error('FAIL responsive Double survived with a clear five-card natural suit.');
-  }
-
-  const { board: lowTwoLevelDoubleBoard } = makeRuleTestBoard({
-    description: 'Higher-level responsive Double needs nine length points.',
-    dealer: 'W', practiceAuction: ['1S', '2H', '2S', 'Double'],
-    west: twoLevelDoubleDeal.north,
-    north: twoLevelDoubleDeal.east!,
-    east: { S: '852', H: '43', D: 'JT2', C: 'AKJT4' },
-    south: { S: 'T96', H: 'T7', D: 'A754', C: 'Q983' },
-  });
-  checks += 1;
-  const lowTwoLevelDoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', lowTwoLevelDoubleBoard, ['1S', '2H', '2S'], defaultBiddingSystem));
-  if (lowTwoLevelDoubleCandidates.some(({ rule }) =>
-    rule.id === 'advance-two-level-suit-overcall-after-responder-raise-responsive-double')) {
-    failures += 1;
-    console.error('FAIL higher-level responsive Double survived below nine length points.');
-  }
-
-  const strongBoard = makeRuleTestBoard({
-    description: 'Responsive Double gives way to the strong-hand cuebid.',
-    dealer: 'W', practiceAuction: ['1H', 'Double', '2H', 'Double'],
-    north: takeoutDoubleDeal.east!,
-    south: { S: 'QJT6', H: 'QJ', D: 'AT9', C: 'QT83' },
-  }).board;
-  checks += 1;
-  const strongCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', strongBoard, ['1H', 'Double', '2H'], defaultBiddingSystem));
-  if (strongCandidates.some(({ rule }) =>
-    rule.id === 'advance-takeout-double-after-responder-raise-responsive-double')) {
-    failures += 1;
-    console.error('FAIL responsive Double exceeded the modeled 11-point maximum.');
-  }
-
-  console.log(`${failures} ***FAILURES***. Responder-raise advancing boundaries: ${checks} checks.`);
-  console.log('  Restricts the new rules to simple raises and keeps responsive Double behind');
-  console.log('  a clear fit, a five-card natural suit, or the modeled strong-hand cuebid.\n');
-  return failures;
-}
-
-/// Natural responder actions after a suit overcall or takeout double have their own
-/// advancing family.  Keep those rules out of Pass, raise, artificial, and jump-response auctions.
-function runResponderNaturalActionAdvanceBoundaryTests (): number {
-  const overcallDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_OVERCALL_TEST_DEALS[0];
-  const takeoutDeal = ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS[0];
-  if (overcallDeal === undefined || takeoutDeal === undefined) {
-    console.error('FAIL responder-action advancing boundaries need saved practice fixtures.');
-    return 1;
-  }
-  const { board: overcallBoard } = makeRuleTestBoard(overcallDeal);
-  const { board: takeoutBoard } = makeRuleTestBoard(takeoutDeal);
-  let checks = 0;
-  let failures = 0;
-
-  for (const auction of [
-    ['1D', '1S', 'Pass'],
-    ['1D', '1S', '2D'],
-    ['1D', '1S', '2S'],
-    ['1D', '1S', 'Double'],
-    ['1H', '2D', '2NT'],
-    ['1D', '2H', '2S'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Pass', overcallBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
-      failures += 1;
-      console.error(`FAIL suit-overcall responder-action rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  for (const auction of [
-    ['1H', 'Double', 'Pass'],
-    ['1H', 'Double', '2H'],
-    ['1H', 'Double', 'Redouble'],
-    ['1H', 'Double', '2S'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Pass', takeoutBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.includes('responder-natural-action'))) {
-      failures += 1;
-      console.error(`FAIL takeout responder-action rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  checks += 1;
-  const responderSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2S', takeoutBoard, ['1H', 'Double', '1S'], defaultBiddingSystem));
-  if (responderSuitCandidates.some(({ rule }) =>
-    rule.id.includes('responder-natural-action-new-suit'))) {
-    failures += 1;
-    console.error('FAIL advancer treated responder’s newly bid suit as a natural new suit.');
-  }
-
-  checks += 1;
-  const doubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', overcallBoard, ['1D', '1S', '1NT'], defaultBiddingSystem));
-  if (doubleCandidates.some(({ call, rule }) =>
-    call === 'Double' && rule.id.includes('responder-natural-action'))) {
-    failures += 1;
-    console.error('FAIL natural responder-action family introduced an unagreed Double.');
-  }
-
-  console.log(`${failures} ***FAILURES***. Responder-action advancing boundaries: ${checks} checks.`);
-  console.log('  Limits these advances to natural new-suit or 1NT responses and keeps');
-  console.log('  artificial responder calls, jumps, and unrelated actions outside this family.\n');
-  return failures;
-}
-
-/// A natural 1NT advance cannot suppress Pass after responder has already bid 1NT.
-/// The rule predicate must use real auction legality, not just HCP, shape and stoppers.
-function runNaturalActionPassLegalityTests (): number {
-  const responder = { S: '76', H: 'K984', D: 'Q75', C: 'A643' };
-  const cases: { name: string; auction: Call[]; north: typeof responder; passRule: string }[] = [
-    {
-      name: 'natural overcall followed by responder 1NT',
-      auction: ['1D', '1S', '1NT'],
-      north: { S: 'AKQJ9', H: '72', D: '83', C: 'KJT2' },
-      passRule: 'advance-suit-overcall-after-responder-natural-action-pass',
-    },
-    {
-      name: 'takeout Double followed by responder 1NT',
-      auction: ['1H', 'Double', '1NT'],
-      north: { S: 'AKQJ', H: '7', D: '8326', C: 'KJT9' },
-      passRule: 'advance-takeout-double-after-responder-natural-action-pass',
-    },
+/// Regression: opener normally Passes a nonforcing raise of the original weak preempt.
+/// Reuse the existing response fixtures, and guard against leaking into a forcing 2NT inquiry.
+function runOpenerPassAfterPreemptRaiseTests (): number {
+  const cases: { auction: Call[]; label: string }[] = [
+    { auction: ['2S', 'Pass', '3S'], label: 'weak-two three-level raise' },
+    { auction: ['3S', 'Pass', '4S'], label: 'three-level preempt raised to four' },
   ];
   let failures = 0;
-  for (const testCase of cases) {
-    const { board } = makeRuleTestBoard({
-      description: `Natural responder action / legal Pass: ${testCase.name}.`,
-      dealer: 'W', practiceAuction: [...testCase.auction, 'Pass'],
-      north: testCase.north, south: responder,
-    });
-    const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
-    const supported = getApplicableCandidateCalls(result);
-    if (!supported.some((item) => item.call === 'Pass' && item.rule.id === testCase.passRule)) {
-      failures += 1;
-      console.error(`FAIL ${testCase.name}: legal Pass was rejected because of a phantom 1NT.`);
-    }
-    if (supported.some((item) => item.call === '1NT')) {
-      failures += 1;
-      console.error(`FAIL ${testCase.name}: 1NT was offered after responder already bid 1NT.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. B19 responder-1NT Pass legality: ` +
-    `${cases.length * 2} checks.`);
-  console.log('  An illegal natural 1NT advance cannot remove a valid Pass.\n');
-  return failures;
-}
-
-/// Artificial responder actions have deliberately narrow advancing meanings.  Negative-Double
-/// rules must not leak into other responder actions, and a Redoubled takeout Double supports only
-/// the weak economical escape modeled here.
-function runResponderArtificialActionAdvanceBoundaryTests (): number {
-  const negativeDoubleDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[5];
-  const takeoutRedoubleDeal = ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS[0];
-  if (negativeDoubleDeal === undefined || takeoutRedoubleDeal === undefined) {
-    console.error('FAIL artificial-action advancing boundaries need saved practice fixtures.');
-    return 1;
-  }
-  const { board: negativeDoubleBoard } = makeRuleTestBoard(negativeDoubleDeal);
-  const { board: takeoutRedoubleBoard } = makeRuleTestBoard(takeoutRedoubleDeal);
-  let checks = 0;
-  let failures = 0;
-
-  for (const auction of [
-    ['1D', '1S', 'Pass'],
-    ['1D', '1S', '2D'],
-    ['1D', '1S', '1NT'],
-    ['1D', '1S', '2C'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Redouble', negativeDoubleBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.includes('after-negative-double'))) {
-      failures += 1;
-      console.error(`FAIL negative-Double advancing rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  const sideSuitDeal = ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS[4];
-  if (sideSuitDeal === undefined) {
-    console.error('FAIL negative-Double boundaries need the side-suit fixture.');
-    return failures + 1;
-  }
-  const { board: sideSuitBoard } = makeRuleTestBoard(sideSuitDeal);
-  checks += 1;
-  const impliedSuitCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2H', sideSuitBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
-  if (impliedSuitCandidates.some(({ call, rule }) => call === '2H' &&
-      rule.id === 'advance-suit-overcall-after-negative-double-new-suit-two-level')) {
-    failures += 1;
-    console.error('FAIL negative-Double side-suit rule admitted the major implied by Double.');
-  }
-
-  const weakRedoubleBoard = makeRuleTestBoard({
-    description: 'Strength Redouble boundary at nine HCP.',
-    dealer: 'W', practiceAuction: ['1D', '1S', 'Double', 'Redouble'],
-    west: { S: 'KJ53', H: 'Q4', D: 'AQT3', C: 'Q97' },
-    north: { S: 'AT9764', H: '32', D: '64', C: 'K85' },
-    east: { S: 'Q', H: 'AT8765', D: '', C: 'AT6432' },
-    south: { S: '82', H: 'KJ9', D: 'KJ98752', C: 'J' },
-  }).board;
-  checks += 1;
-  const weakRedoubleCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Redouble', weakRedoubleBoard, ['1D', '1S', 'Double'], defaultBiddingSystem));
-  if (weakRedoubleCandidates.some(({ rule }) =>
-    rule.id === 'advance-suit-overcall-after-negative-double-redouble-values')) {
-    failures += 1;
-    console.error('FAIL strength-showing Redouble admitted fewer than 10 HCP.');
-  }
-
-  for (const auction of [
-    ['1H', 'Double', 'Pass'],
-    ['1H', 'Double', '2H'],
-    ['1H', 'Double', '1NT'],
-  ] as Call[][]) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      '2C', takeoutRedoubleBoard, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.includes('responder-redouble'))) {
-      failures += 1;
-      console.error(`FAIL takeout-Redouble escape leaked into ${auction.join(' ')}.`);
-    }
-  }
-
-  checks += 1;
-  const jumpCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '3C', takeoutRedoubleBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
-  if (jumpCandidates.some(({ call, rule }) =>
-    call === '3C' && rule.id.includes('responder-redouble'))) {
-    failures += 1;
-    console.error('FAIL Redoubled takeout escape admitted an invitational or preemptive jump.');
-  }
-
-  const strongEscapeBoard = makeRuleTestBoard({
-    description: 'Redoubled takeout escape boundary above eight length points.',
-    dealer: 'W', practiceAuction: ['1H', 'Double', 'Redouble', '2C'],
-    west: { S: 'J', H: 'K98642', D: 'Q52', C: 'A74' },
-    north: { S: 'AQ53', H: 'T3', D: 'KJ93', C: 'Q63' },
-    east: { S: 'KT86', H: '', D: 'AT8764', C: 'K98' },
-    south: { S: '9742', H: 'AQJ75', D: '', C: 'JT52' },
-  }).board;
-  checks += 1;
-  const strongEscapeCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2C', strongEscapeBoard, ['1H', 'Double', 'Redouble'], defaultBiddingSystem));
-  if (strongEscapeCandidates.some(({ rule }) =>
-    rule.id === 'advance-takeout-double-after-responder-redouble-weak-suit-escape')) {
-    failures += 1;
-    console.error('FAIL weak Redouble escape exceeded the modeled eight-point maximum.');
-  }
-
-  console.log(`${failures} ***FAILURES***. Artificial responder-action advancing boundaries: ${checks} checks.`);
-  console.log('  Keeps strength-showing Redouble and weak takeout-Double escapes in their');
-  console.log('  exact auctions, excluding implied suits, jumps, and stronger runout decisions.\n');
-  return failures;
-}
-
-/// Shared 1NT-interference rules must recognize both bidding roles without re-enabling the
-/// uncontested convention rules or expanding beyond the supported two-level interference.
-function runOneNtInterferencePartnerBoundaryTests (): number {
-  const responseDeal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.at(-1);
-  const advanceDeal = ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS.at(-1);
-  if (responseDeal === undefined || advanceDeal === undefined) {
-    console.error('FAIL 1NT-interference boundaries require the new shared-rule fixtures.');
-    return 1;
-  }
-  let checks = 0;
-  let failures = 0;
-
-  const { board: responseBoard } = makeRuleTestBoard(responseDeal);
-  const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], defaultBiddingSystem);
-  const responseCandidates = getApplicableCandidateCalls(responseResult);
-  checks += 1;
-  if (responseCandidates.some((candidate) =>
-      candidate.rule.id === 'partner-of-1nt-after-interference-natural-suit-two-level')) {
-    failures += 1;
-    console.error('FAIL natural 2S response leaked into artificial DONT 2H showing both majors.');
-  }
-  // DONT 2H shows both majors, so neither 2S nor a natural-heart takeout
-  // Double may inherit the rules for a one-suited natural 2H overcall.
-  const doubleAfterDont = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
-  checks += 1;
-  if (doubleAfterDont.some(({ rule }) =>
-      rule.id === 'partner-of-1nt-after-interference-negative-double')) {
-    failures += 1;
-    console.error('FAIL natural-heart takeout Double was admitted over artificial DONT 2H.');
-  }
-  const naturalMinorAfterDont = getApplicableCandidateCalls(evaluateUserCall(
-    '3D', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
-  checks += 1;
-  if (! naturalMinorAfterDont.some(({ rule }) =>
-      rule.id === 'respond-after-dont-majors-natural-minor')) {
-    failures += 1;
-    console.error('FAIL natural 3D was lost over DONT 2H showing both majors.');
-  }
-  const { board: noSpadeStopperBoard } = makeRuleTestBoard({
-    ...responseDeal, east: undefined, west: undefined,
-    south: { S: 'T94', H: 'JT98', D: 'K98', C: 'KJ7' },
-  });
-  const noSpadeStopperCalls = getApplicableCandidateCalls(evaluateUserCall(
-    '2NT', noSpadeStopperBoard, ['1NT', '2H'], defaultBiddingSystem));
-  checks += 1;
-  if (noSpadeStopperCalls.some(({ rule }) => rule.id === 'respond-after-dont-majors-2nt')) {
-    failures += 1;
-    console.error('FAIL natural 2NT over DONT 2H without stoppers in both majors.');
-  }
-  checks += 1;
-  if (responseResult.ruleDiagnostics.some((result) =>
-      result.rule.auctionContext?.partnerNaturalOneNt === true)) {
-    failures += 1;
-    console.error('FAIL uncontested Stayman/transfer rules remained active after 1NT-(2H).');
-  }
-
-  // These boundary hands are independent of the practice deal's explicitly constructed East.
-  // Preserve their original North/West setting when testing alternate South holdings.
-  const boundaryDeal = {
-    ...advanceDeal,
-    dealer: 'W' as const,
-    west: { S: 'K72', H: 'A43', D: 'QJ974', C: 'K8' },
-    north: { S: 'A96', H: 'KJ8', D: 'K65', C: 'AT76' },
-    east: undefined,
-  };
-  const { board: advanceBoard } = makeRuleTestBoard({
-    ...boundaryDeal,
-    south: { S: 'Q85', H: 'T72', D: 'A83', C: 'Q542' },
-  });
-  const noStopperCandidates = getApplicableCandidateCalls(
-    evaluateUserCall('2NT', advanceBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
-  checks += 1;
-  if (noStopperCandidates.some((candidate) =>
-      candidate.rule.id === 'partner-of-1nt-after-interference-2nt')) {
-    failures += 1;
-    console.error('FAIL natural 2NT survived without a stopper in the interference suit.');
-  }
-
-  const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], defaultBiddingSystem);
-  checks += 1;
-  if (unsupportedResult.ruleDiagnostics.some((result) =>
-      result.rule.auctionContext?.partnerNaturalOneNtAfterSuitInterference === true)) {
-    failures += 1;
-    console.error('FAIL shared 1NT-interference rules leaked into three-level interference.');
-  }
-
-  const { board: doubleBoard } = makeRuleTestBoard({
-    ...boundaryDeal,
-    south: { S: 'QJ85', H: 'T72', D: 'A32', C: 'Q43' },
-  });
-  const doubleCandidates = getApplicableCandidateCalls(
-    evaluateUserCall('Double', doubleBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
-  checks += 1;
-  if (! doubleCandidates.some((candidate) =>
-      candidate.rule.id === 'partner-of-1nt-after-interference-negative-double')) {
-    failures += 1;
-    console.error('FAIL negative Double did not work in the advancer 1NT-overcall context.');
-  }
-
-  console.log(`${failures} ***FAILURES***. 1NT-interference partner boundaries: ${checks} checks.`);
-  console.log('  Verifies shared responder/advancer context, convention shutoff, stopper');
-  console.log('  enforcement, negative Double, and the current two-level interference boundary.\n');
-  return failures;
-}
-
-/// Natural 1NT interference explanations must use the evaluated strength, shape,
-/// suit quality, stopper, and requested suits without changing the shared bidding rules.
-function runOneNtInterferenceExplanationTests (): number {
-  let failures = 0;
-  const prefix = 'partner-of-1nt-after-interference-';
-  // These focused hands test the current decision, not the preceding players' calls.
-  // The other fixed hand keeps all boards legal without defining another practice deal.
-  const make = (north: { S: string; H: string; D: string; C: string }) =>
-    makeRuleTestBoard({ description: 'Natural 1NT interference explanation', dealer: 'E', north,
-      south: { S: '654', H: '654', D: '654', C: '6543' },
-      practiceAuction: ['1D', '1NT', '2H'] }).board;
-  const invitation = { S: 'QJ87', H: 'K98', D: 'J92', C: 'Q92' };
-  const seven = { S: 'QJ87', H: 'K98', D: 'J92', C: 'T92' };
-  const cases: {
-    name: string; hand: typeof invitation; call: Call; suffix: string;
-    auction?: Call[]; range?: '15-17' | '16-18';
-    failed?: 'hcp' | 'balanced' | 'suitLength' | 'topThreeHonors' | 'stopper';
-    requestedSuits?: string[];
-  }[] = [
-    { name: 'weak Pass', hand: seven, call: 'Pass', suffix: 'pass' },
-    { name: 'natural invitation', hand: invitation, call: '2NT', suffix: '2nt' },
-    { name: 'natural game', hand: { S: 'KQ98', H: 'K98', D: 'A92', C: 'QJ2' },
-      call: '3NT', suffix: '3nt' },
-    { name: 'nonforcing natural suit', hand: { S: 'KQJ87', H: 'T98', D: 'A92', C: 'J2' },
-      call: '2S', suffix: 'natural-suit-two-level' },
-    { name: 'natural suit at three', hand: { S: 'J8', H: 'T98', D: 'A92', C: 'AKQJ2' },
-      call: '3C', suffix: 'natural-suit-three-level' },
-    { name: 'takeout Double requests spades', hand: { S: 'QJ87', H: 'T98', D: 'A92', C: 'KJ2' },
-      call: 'Double', suffix: 'negative-double', requestedSuits: ['S'] },
-    { name: 'takeout Double requests both majors',
-      hand: { S: 'QJ87', H: 'KJ98', D: 'T92', C: 'Q2' },
-      call: 'Double', suffix: 'negative-double', auction: ['1D', '1NT', '2C'],
-      requestedSuits: ['S', 'H'] },
-    { name: 'takeout Double requests both minors',
-      hand: { S: 'T9', H: 'J98', D: 'AQ92', C: 'KJ82' },
-      call: 'Double', suffix: 'negative-double', auction: ['1H', '1NT', '2S'],
-      requestedSuits: ['D', 'C'] },
-    { name: 'invitation needs a stopper', hand: { S: 'QJ87', H: 'T98', D: 'K92', C: 'QJ2' },
-      call: '2NT', suffix: '2nt', failed: 'stopper' },
-    { name: 'invitation needs balanced shape', hand: { S: 'QJ872', H: 'K9', D: 'J9', C: 'QT82' },
-      call: '2NT', suffix: '2nt', failed: 'balanced' },
-    { name: 'natural suit needs five cards', hand: { S: 'KQJ8', H: 'T98', D: 'A92', C: 'J92' },
-      call: '2S', suffix: 'natural-suit-two-level', failed: 'suitLength' },
-    { name: 'natural suit needs two of A/K/Q', hand: { S: 'KJ987', H: 'T98', D: 'A92', C: 'Q2' },
-      call: '2S', suffix: 'natural-suit-two-level', failed: 'topThreeHonors' },
-    { name: 'takeout Double needs four spades', hand: { S: 'QJ8', H: 'T987', D: 'A92', C: 'KJ2' },
-      call: 'Double', suffix: 'negative-double', failed: 'suitLength' },
-    { name: 'seven HCP does not invite under 15-17', hand: seven,
-      call: '2NT', suffix: '2nt', failed: 'hcp' },
-    { name: 'seven HCP invites under 16-18', hand: seven,
-      call: '2NT', suffix: '2nt', range: '16-18' },
-    { name: 'seven HCP exceeds weak Pass under 16-18', hand: seven,
-      call: 'Pass', suffix: 'pass', range: '16-18', failed: 'hcp' },
-  ];
   for (const test of cases) {
-    const board = make(test.hand);
-    const system = { ...defaultBiddingSystem, oneNtOpening: test.range ?? '15-17' };
-    const result = evaluateUserCall(test.call, board, test.auction ?? ['1D', '1NT', '2H'], system);
-    const id = prefix + test.suffix;
-    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
-      ?.candidates.find((item) => item.call === test.call);
-    const requirements = candidate?.callEvidence?.requirements ?? [];
-    const rule = result.userCallMatchingRules.find((item) => item.id === id);
-    const positive = rule === undefined ? [] : getNotrumpPartnerResponseLines(result, rule);
-    const negative = getNotrumpPartnerResponseFailureLines(result);
-    const requested = requirements.flatMap((item) => item.kind === 'suitLength' ? [item.suit] : []);
-    if (candidate?.ruleApplies !== (test.failed === undefined) ||
-        (test.failed === undefined
-          ? positive.length === 0 || !positive.some((line) => line.includes(`[${id}]`)) ||
-            negative.length !== 0
-          : !requirements.some((item) => item.kind === test.failed && !item.passed) ||
-            negative.length === 0 || !negative.some((line) => line.includes(`[${id}]`))) ||
-        (test.requestedSuits !== undefined && requested.join(',') !== test.requestedSuits.join(','))) {
-      failures += 1;
-      console.error(`FAIL natural 1NT interference explanation: ${test.name}.`);
+    const deal = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((candidate) =>
+      candidate.practiceAuction.join(' ') === test.auction.join(' '));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL R3: no recorded fixture for ${test.label}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction: Call[] = [...test.auction, 'Pass'];
+    const pass = getApplicableCandidateCalls(
+      evaluateUserCall('Pass', board, auction, defaultBiddingSystem)).some(({ call, rule }) =>
+      call === 'Pass' && rule.id === 'opener-rebid-pass-after-preempt-raise');
+    if (!pass) {
+      failures++;
+      console.error(`FAIL R3: opener Pass not supported after ${test.label}.`);
+    }
+    if (test.auction[0] === '2S') {
+      const inquiry: Call[] = ['2S', 'Pass', '2NT', 'Pass'];
+      const falsePass = getApplicableCandidateCalls(
+        evaluateUserCall('Pass', board, inquiry, defaultBiddingSystem)).some(({ rule }) =>
+        rule.id === 'opener-rebid-pass-after-preempt-raise');
+      if (falsePass) {
+        failures++;
+        console.error('FAIL R3: Pass rule leaked into forcing weak-two 2NT inquiry.');
+      }
     }
   }
-  // The shared response path receives the same instruction after a natural DONT 2S,
-  // while artificial DONT 2H and higher interference must not inherit these explanations.
-  const responseBoard = { ...make(invitation), dealer: 'S' as const };
-  const response = evaluateUserCall('2NT', responseBoard, ['1NT', '2S'], defaultBiddingSystem);
-  const responseRule = response.userCallMatchingRules.find((rule) => rule.id === prefix + '2nt');
-  if (responseRule === undefined || getNotrumpPartnerResponseLines(response, responseRule).length === 0) {
-    failures += 1;
-    console.error('FAIL shared natural 1NT interference response explanation.');
-  }
-  for (const auction of [['1NT', '2H'], ['1NT', '3S']] as Call[][]) {
-    const result = evaluateUserCall('2NT', responseBoard, auction, defaultBiddingSystem);
-    if (getNotrumpPartnerResponseFailureLines(result).length !== 0 ||
-        result.applicableRules.some((rule) => getNotrumpPartnerResponseLines(result, rule).length > 0)) {
-      failures += 1;
-      console.error(`FAIL natural interference explanation leaked into ${auction.join(' ')}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Natural 1NT interference explanations: ${cases.length + 3} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Opener after preempt raise: 2 focused fixtures.\n`);
   return failures;
 }
-
-/// Jump-overcall advances must require a real jump and responder's Pass. The
-/// boundary fixtures separately exercise suit quality and the 12-HCP new-suit minimum.
-function runJumpOvercallAdvanceBoundaryTests (): number {
-  const weakJump = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS[0];
-  const strongNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
-    deal.practiceAuction[3] === '3D');
-  if (weakJump === undefined || strongNewSuit === undefined) {
-    console.error('FAIL jump-overcall advances require saved practice fixtures.');
-    return 1;
-  }
-  const { board } = makeRuleTestBoard(weakJump);
-  let checks = 0;
-  let failures = 0;
-  const unsupportedAuctions: Call[][] = [
-    ['1D', '1H', 'Pass'], // Natural one-level overcall, not a jump.
-    ['1S', '2H', 'Pass'], // Natural non-jump two-level overcall.
-    ['1D', '2H', '2S'],   // Opponents' responder did not pass.
-    ['1NT', '2H', 'Pass'], // Defense to 1NT is not yet supported.
-    ['2D', '3H', 'Pass'], // Two-level opening is outside this family.
-  ];
-  for (const auction of unsupportedAuctions) {
-    checks += 1;
-    const candidates = getApplicableCandidateCalls(evaluateUserCall(
-      'Pass', board, auction, defaultBiddingSystem));
-    if (candidates.some(({ rule }) => rule.id.startsWith('advance-jump-overcall-') ||
-        rule.id.startsWith('advance-two-level-jump-overcall-') ||
-        rule.id.startsWith('advance-three-level-jump-overcall-'))) {
-      failures += 1;
-      console.error(`FAIL weak-jump advancing rules leaked into ${auction.join(' ')}.`);
-    }
-  }
-  // 2NT inquiries and five-level raises are intentionally unsupported here.
-  for (const call of ['2NT', '5H'] as Call[]) {
-    checks += 1;
-    const bids = getApplicableCandidateCalls(evaluateUserCall(
-      call, board, ['1D', '2H', 'Pass'], defaultBiddingSystem));
-    if (bids.some(({ call: candidateCall }) => candidateCall === call)) {
-      failures += 1;
-      console.error(`FAIL jump overcall unexpectedly admits ${call}.`);
-    }
-  }
-  const weakSuitBoard = makeRuleTestBoard({
-    description: strongNewSuit.description, dealer: 'W',
-    practiceAuction: strongNewSuit.practiceAuction,
-    north: strongNewSuit.east!,
-    west: strongNewSuit.north,
-    south: { S: 'T8', H: 'QJ8', D: 'JT976', C: 'AKQ' },
-  }).board;
-  checks += 1;
-  const qualityCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '3D', weakSuitBoard, ['1H', '2S', 'Pass'], defaultBiddingSystem));
-  if (qualityCandidates.some(({ call, rule }) =>
-    call === '3D' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
-    failures += 1;
-    console.error('FAIL jump-overcall new suit needs concentrated honor quality.');
-  }
-  const clubNewSuit = ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
-    deal.practiceAuction[3] === '3C')!;
-  const weakHandBoard = makeRuleTestBoard({
-    description: clubNewSuit.description, dealer: 'W',
-    practiceAuction: clubNewSuit.practiceAuction,
-    north: clubNewSuit.east!,
-    west: clubNewSuit.north,
-    south: { S: 'QJ6', H: 'T8', D: '932', C: 'AKJ76' }, // Good clubs, but only 11 HCP.
-  }).board;
-  checks += 1;
-  const strengthCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '3C', weakHandBoard, ['1D', '2H', 'Pass'], defaultBiddingSystem));
-  if (strengthCandidates.some(({ call, rule }) =>
-    call === '3C' && rule.id === 'advance-jump-overcall-forcing-new-suit')) {
-    failures += 1;
-    console.error('FAIL jump-overcall new suit requires at least 12 HCP.');
-  }
-  console.log(`${failures} ***FAILURES***. Jump-overcall advancing boundaries: ${checks} checks.`);
-  console.log('  Checks genuine jump overcalls, unsupported auctions and calls, and');
-  console.log('  the strength and suit quality required for forcing new-suit advances.\n');
-  return failures;
-}
-
-/// An economical forcing new-suit advance after a preemptive jump overcall
-/// requires one overcaller reply.  Test both levels, suit-fit quality, and leakage
-/// into nearby non-jump or competitively interrupted auction contexts.
-function runJumpOvercallForcingAdvanceRebidTests (): number {
-  const repeatId = 'overcaller-rebid-jump-new-suit-repeat';
-  const supportId = 'overcaller-rebid-jump-new-suit-support';
-  const boundaryId = 'overcaller-rebid-jump-new-suit-boundary';
+/// Turn status is derived independently of recorded practice length; an unjudged intervening
+/// call is not mistaken for the end of modeled bidding.
+/// Stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
+/// require a truthful boundary rather than an invented 3NT/minor game.  Confirm that the
+/// underlying response was itself a qualifying artificial support bid, and that a minimum
+/// opener still has the existing concrete 3m continuation.
+function runStrongMinorArtificialSupportTests (): number {
   type HandShape = { S: string; H: string; D: string; C: string };
+  const minD: HandShape = { S: 'K72', H: 'A43', D: 'ATJ74', C: '83' }; // 13 support points
+  const middleD: HandShape = { S: 'K72', H: 'A43', D: 'AQT74', C: '83' }; // 14 support points
+  const extraD: HandShape = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' }; // 15 support points
+  const minC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'ATJ74' };
+  const middleC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQT74' };
+  const extraC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' };
+  const southD: HandShape = { S: 'T98', H: 'QJ5', D: 'K986', C: 'AKT' };
+  const southC: HandShape = { S: 'AJ8', H: 'KJ5', D: '96', C: 'K9865' };
   const cases: { name: string; auction: Call[]; north: HandShape; south: HandShape;
-    call?: Call; id?: string; boundary?: boolean }[] = [
-    {
-      name: '2H over 1D; three low clubs need 3H return, not 4C',
-      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
-      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
-      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-      call: '3H', id: repeatId,
-    },
-    {
-      name: '2H over 1D; a three-card spade raise at three',
-      auction: ['1D', '2H', 'Pass', '2S', 'Pass'],
-      north: { S: 'K82', H: 'KQJ976', D: '65', C: '74' },
-      south: { S: 'AQJ76', H: 'T5', D: 'A84', C: 'K63' },
-      call: '3S', id: supportId,
-    },
-    {
-      name: '2H over 1D; Kxx permits four-level support',
-      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
-      north: { S: 'T8', H: 'KQJ976', D: '65', C: 'K95' },
-      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AQJ62' },
-      call: '4C', id: supportId,
-    },
-    {
-      name: '2H over 1D; four small clubs provide playing strength for four',
-      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
-      north: { S: '8', H: 'KQJ976', D: '65', C: 'T952' },
-      south: { S: 'AQ6', H: 'T5', D: 'A84', C: 'AKQJ6' },
-      call: '4C', id: supportId,
-    },
-    {
-      name: '3C over 1D; return to seven-card clubs at four',
-      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
-      north: { S: 'T4', H: '86', D: '52', C: 'KQJT976' },
-      south: { S: 'A963', H: 'AKQJ9', D: 'K83', C: 'A' },
-      call: '4C', id: repeatId,
-    },
-    {
-      name: '3C over 1D; three-card Axx hearts permit 4H',
-      auction: ['1D', '3C', 'Pass', '3H', 'Pass'],
-      north: { S: '4', H: 'A86', D: '52', C: 'KQT9876' },
-      south: { S: 'K963', H: 'KQJT9', D: 'K83', C: 'A' },
-      call: '4H', id: supportId,
-    },
-    {
-      name: '2H over 1D; too few hearts for the described preempt',
-      auction: ['1D', '2H', 'Pass', '3C', 'Pass'],
-      north: { S: 'AQ8', H: 'KQJ97', D: '65', C: 'T95' },
-      south: { S: 'T64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-      boundary: true,
-    },
-    {
-      name: 'not a jump: 2H over 1S',
-      auction: ['1S', '2H', 'Pass', '3C', 'Pass'],
-      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
-      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-    },
-    {
-      name: 'responder interfered instead of passing',
-      auction: ['1D', '2H', '2S', '3C', 'Pass'],
-      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
-      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-    },
-    {
-      name: 'advancer jumped beyond the economical new suit',
-      auction: ['1D', '2H', 'Pass', '4C', 'Pass'],
-      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
-      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-    },
-    {
-      name: 'advancer cuebid opener suit rather than a natural new suit',
-      auction: ['1D', '2H', 'Pass', '3D', 'Pass'],
-      north: { S: 'A8', H: 'KQJ976', D: '65', C: 'T95' },
-      south: { S: 'Q64', H: 'T5', D: 'T98', C: 'AKQJ2' },
-    },
-    {
-      name: 'four-level jump overcall not included in this family',
-      auction: ['1C', '4S', 'Pass', '5D', 'Pass'],
-      north: { S: 'KQJT9876', H: '86', D: '52', C: '4' },
-      south: { S: 'A', H: 'AKQJ9', D: 'KQJ98', C: 'A7' },
-    },
+    firstResponse: Call; responseRuleId: string; minCall?: Call; expectedBoundary?: string }[] = [
+    { name: 'Jordan diamond minimum rebids 3D', auction: ['1D', 'Double', '2NT', 'Pass'],
+      north: minD, south: southD, firstResponse: '2NT',
+      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3D' },
+    { name: 'Jordan diamond extras stop with scope guidance',
+      auction: ['1D', 'Double', '2NT', 'Pass'], north: extraD, south: southD,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
+    { name: 'Jordan diamond 14-point hand still rebids 3D',
+      auction: ['1D', 'Double', '2NT', 'Pass'], north: middleD, south: southD,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      minCall: '3D' },
+    { name: 'Jordan club minimum rebids 3C', auction: ['1C', 'Double', '2NT', 'Pass'],
+      north: minC, south: southC, firstResponse: '2NT',
+      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3C' },
+    { name: 'Jordan club extras stop with scope guidance',
+      auction: ['1C', 'Double', '2NT', 'Pass'], north: extraC, south: southC,
+      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
+    { name: 'Cuebid diamond minimum rebids 3D', auction: ['1D', '1H', '2H', 'Pass'],
+      north: minD, south: southD, firstResponse: '2H',
+      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3D' },
+    { name: 'Cuebid diamond extras retain existing scope guidance',
+      auction: ['1D', '1H', '2H', 'Pass'], north: extraD, south: southD,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid diamond 14-point hand reaches boundary',
+      auction: ['1D', '1H', '2H', 'Pass'], north: middleD, south: southD,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid club minimum rebids 3C', auction: ['1C', '1H', '2H', 'Pass'],
+      north: minC, south: southC, firstResponse: '2H',
+      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3C' },
+    { name: 'Cuebid club 14-point hand reaches boundary',
+      auction: ['1C', '1H', '2H', 'Pass'], north: middleC, south: southC,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
+    { name: 'Cuebid club extras retain existing scope guidance',
+      auction: ['1C', '1H', '2H', 'Pass'], north: extraC, south: southC,
+      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
+      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
   ];
   let failures = 0;
   for (const test of cases) {
-    const { board } = makeRuleTestBoard({ description: test.name, dealer: 'W',
-      practiceAuction: test.auction, north: test.north, south: test.south });
-    // The positive rebid examples must begin with an advance supported by the
-    // original forcing-new-suit rule, not merely a syntactically plausible auction.
-    if (test.call !== undefined) {
-      const firstAdvance = test.auction[3];
-      const advance = getApplicableCandidateCalls(evaluateUserCall(firstAdvance, board,
-        test.auction.slice(0, 3), defaultBiddingSystem));
-      if (!advance.some(({ call, rule }) => call === firstAdvance &&
-          rule.id === 'advance-jump-overcall-forcing-new-suit')) {
-        failures += 1;
-        console.error(`FAIL B4 ${test.name}: forcing new-suit advance did not qualify.`);
-      }
-    }
-    const result = evaluateUserCall(test.call ?? 'Pass', board, test.auction, defaultBiddingSystem);
-    const matches = getApplicableCandidateCalls(result).filter(({ rule }) =>
-      rule.id === repeatId || rule.id === supportId);
-    const boundary = result.applicableRules.some(({ id }) => id === boundaryId);
-    const correct = test.call === undefined ? matches.length === 0 :
-      matches.length === 1 && matches[0]?.call === test.call && matches[0]?.rule.id === test.id;
-    if (!correct || boundary !== (test.boundary === true)) {
-      failures += 1;
-      console.error(`FAIL B4 ${test.name}: expected ${test.call ?? '-'} (${test.id ?? '-'}), ` +
-        `got ${formatCandidates(matches)}, boundary ${boundary}.`);
-    }
-    if (test.call !== undefined || test.boundary) {
-      const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
-      const kind = test.boundary ? 'scopeBoundary' : 'supported';
-      if (status.kind !== kind) {
-        failures += 1;
-        console.error(`FAIL B4 ${test.name}: expected status ${kind}, got ${status.kind}.`);
-      }
-      if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
-        failures += 1;
-        console.error(`FAIL B4 ${test.name}: Pass cannot satisfy advancer's force.`);
-      }
-    }
-  }
-  console.log(`${failures} ***FAILURES***. B4 jump overcaller forcing-advance replies: ` +
-              `${cases.length} constructed-hand and auction-context checks.\n`);
-  return failures;
-}
-
-/// Test initial DONT instructional evidence for each supported treatment and representative
-/// near misses. Use the saved hands without changing the original practice-deal corpus.
-function runDontInitialExplanationTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const deals = DONT_1NT_DEFENSE_TEST_DEALS;
-  for (const deal of deals) {
-    const expected = deal.expectedOvercallCalls?.[0];
-    if (expected === undefined || expected.call === 'Pass') continue;
-    const board = makeRuleTestBoard(deal).board;
-    const result = evaluateUserCall(expected.call, board, ['1NT'], defaultBiddingSystem);
-    const rule = result.userCallMatchingRules.find((item) => expected.ruleIds.includes(item.id));
-    const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule?.id)
-      ?.candidates.find(({ call }) => call === expected.call);
-    const positive = rule === undefined ? null : getDontInitialSupportLine(result, rule);
-    checks += 1;
-    if (positive === null || candidate?.callEvidence?.dontInitial === undefined ||
-        getDontInitialFailureLines(result).length !== 0) {
-      failures += 1;
-      console.error(`FAIL initial DONT qualifying explanation: ${deal.description}`);
-    }
-  }
-
-  const mistaken: { dealIndex: number; call: Call }[] = [
-    { dealIndex: 1, call: '2H' },
-    { dealIndex: 2, call: 'Double' },
-    { dealIndex: 4, call: '2C' },
-    { dealIndex: 5, call: '2D' },
-    { dealIndex: 6, call: 'Double' },
-  ];
-  for (const test of mistaken) {
-    const deal = deals[test.dealIndex];
-    if (deal === undefined) continue;
-    const board = makeRuleTestBoard(deal).board;
-    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
-    const negative = getDontInitialFailureLines(result);
-    checks += 1;
-    if (result.userCallMatchingRules.length > 0 || negative.length === 0) {
-      failures += 1;
-      console.error(`FAIL initial DONT mistaken ${test.call} with ${deal.description}`);
-    }
-  }
-
-  const synthetic: { name: string; north: RuleTestDeal['north']; call: Call }[] = [
-    { name: '6 HCP but good six-card hearts', call: 'Double',
-      north: { S: '84', H: 'KQJT96', D: '852', C: '73' } },
-    { name: '4-4 two-suit shape', call: '2C',
-      north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' } },
-    { name: 'Six hearts with inadequate honor quality', call: 'Double',
-      north: { S: '84', H: '976432', D: 'AKQ', C: '73' } },
-    { name: 'Five clubs and four hearts, weak club honors', call: '2C',
-      north: { S: '84', H: 'A765', D: 'KQ', C: 'J9876' } },
-  ];
-  for (const test of synthetic) {
-    // Construct a separate, non-overlapping second hand; these are synthetic tests,
-    // not additional saved practice deals.
-    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
-      'AKQJT98765432'.split('').filter((rank) => !test.north[suit].includes(rank))
-        .slice(0, count).join('');
-    const board = makeRuleTestBoard({
-      description: test.name, dealer: 'W', practiceAuction: ['1NT', 'Pass'],
-      north: test.north,
-      south: { S: unused('S', 4), H: unused('H', 3),
-               D: unused('D', 3), C: unused('C', 3) },
-    }).board;
-    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
-    const lines = getDontInitialFailureLines(result);
-    checks += 1;
-    if (result.userCallMatchingRules.length !== 0 || lines.length === 0) {
-      failures += 1;
-      console.error(`FAIL DONT initial explanation boundary: ${test.name}`);
-    }
-  }
-
-  const sample = deals[1];
-  if (sample !== undefined) {
-    const board = makeRuleTestBoard(sample).board;
-    const unrelated = evaluateUserCall('2H', board, ['1D'], defaultBiddingSystem);
-    checks += 1;
-    if (getDontInitialFailureLines(unrelated).length !== 0 ||
-        unrelated.userCallMatchingRules.some((rule) =>
-          getDontInitialSupportLine(unrelated, rule) !== null)) {
-      failures += 1;
-      console.error('FAIL initial DONT explanation leaked into natural suit defense.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. DONT initial explanations: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Protect the hand-specific explanations for natural suit and 2NT defenses to weak twos.
-/// What-if hands are separate from saved practice deals and have no duplicate cards.
-function runWeakTwoOvercallExplanationTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const expected = WEAK_TWO_DEFENSE_TEST_DEALS;
-  for (const index of [1, 2, 3, 6]) {
-    const deal = expected[index];
-    if (deal === undefined) continue;
-    const recorded = deal.expectedOvercallCalls?.[0];
-    if (recorded === undefined) continue;
-    const result = evaluateUserCall(recorded.call, makeRuleTestBoard(deal).board,
-      deal.practiceAuction.slice(0, 1), defaultBiddingSystem);
-    const rule = result.userCallMatchingRules.find(({ id }) => recorded.ruleIds.includes(id));
-    const line = rule === undefined ? null : getWeakTwoOvercallSupportLine(result, rule);
-    checks += 1;
-    if (line === null || line.length === 0 ||
-        getWeakTwoOvercallFailureLines(result).length !== 0) {
-      failures += 1;
-      console.error(`FAIL weak-two overcall positive explanation: ${deal.description}`);
-    }
-  }
-
-  const original = expected[1];
-  const weakPass = expected[0];
-  if (original !== undefined && weakPass !== undefined) {
-    const hand = makeRuleTestBoard(original).board;
-    const jump = evaluateUserCall('3H', hand, ['2D'], defaultBiddingSystem);
-    const jumpLines = getWeakTwoOvercallFailureLines(jump);
-    checks += 1;
-    const economical = evaluateUserCall('2H', hand, ['2D'], defaultBiddingSystem);
-    if (jumpLines.length === 0 || jump.userCallMatchingRules.length !== 0 ||
-        !economical.userCallMatchingRules.some(({ id }) =>
-          id === 'overcall-weak-two-natural-suit-at-two-level')) {
+    const { board } = makeRuleTestBoard({ description: test.name, practiceAuction: test.auction,
+      north: test.north, south: test.south });
+    const response = getApplicableCandidateCalls(evaluateUserCall(test.firstResponse, board,
+      test.auction.slice(0, 2), defaultBiddingSystem));
+    if (!response.some(({ rule, call }) => call === test.firstResponse &&
+        rule.id === test.responseRuleId)) {
       failures++;
-      console.error('FAIL weak-two jump explanation must mention qualified non-jump 2H.');
+      console.error(`FAIL B5 ${test.name}: responder's artificial support bid did not qualify.`);
     }
-    const missed = evaluateUserCall('2H', makeRuleTestBoard(weakPass).board,
-      ['2D'], defaultBiddingSystem);
-    checks += 1;
-    if (missed.userCallMatchingRules.length !== 0 ||
-        getWeakTwoOvercallFailureLines(missed).length === 0) {
-      failures++;
-      console.error('FAIL weak-two deficient-length explanation.');
-    }
-  }
-
-  // Construct a valid complete board without introducing practice-deal edits.
-  const build = (name: string, hand: { S: string; H: string; D: string; C: string }) => {
-    const ranks = 'AKQJT98765432';
-    const unused = (suit: 'S' | 'H' | 'D' | 'C', count: number): string =>
-      [...ranks].filter((rank) => !hand[suit].includes(rank)).slice(0, count).join('');
-    return makeRuleTestBoard({
-      description: name, dealer: 'W', practiceAuction: ['2D', 'Pass'],
-      north: hand,
-      south: { S: unused('S', 4), H: unused('H', 3),
-               D: unused('D', 3), C: unused('C', 3) },
-    }).board;
-  };
-  const cases: { name: string; hand: { S: string; H: string; D: string; C: string };
-                 auction: Call[]; bid: Call }[] = [
-    { name: 'good hearts below 13 points', bid: '2H', auction: ['2D'],
-      hand: { S: 'A7', H: 'KQJ98', D: '63', C: 'T976' } },
-    { name: 'strong overcaller should double', bid: '2H', auction: ['2D'],
-      hand: { S: 'AK', H: 'AKQJT', D: 'Q7', C: 'T982' } },
-    { name: 'weak suit honors', bid: '2H', auction: ['2D'],
-      hand: { S: 'AQ', H: 'J9876', D: 'K74', C: 'T52' } },
-    { name: 'three-level suit too short', bid: '3H', auction: ['2S'],
-      hand: { S: 'A4', H: 'AKJT9', D: 'Q76', C: '982' } },
-    { name: 'natural 2NT lacks stopper', bid: '2NT', auction: ['2D'],
-      hand: { S: 'AKJ4', H: 'Q96', D: '754', C: 'AJ6' } },
-    { name: 'natural 2NT needs balanced distribution', bid: '2NT', auction: ['2D'],
-      hand: { S: 'AKJ84', H: 'Q976', D: 'A4', C: 'J7' } },
-    { name: 'natural 2NT below range', bid: '2NT', auction: ['2D'],
-      hand: { S: 'KJ84', H: 'Q96', D: 'A54', C: 'J76' } },
-  ];
-  for (const c of cases) {
-    const result = evaluateUserCall(c.bid, build(c.name, c.hand), c.auction,
+    const result = evaluateUserCall(test.minCall ?? 'Pass', board, test.auction,
       defaultBiddingSystem);
-    const lines = getWeakTwoOvercallFailureLines(result);
-    checks++;
-    if (result.userCallMatchingRules.length !== 0 || lines.length === 0) {
+    const options = getApplicableCandidateCalls(result);
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    if (test.minCall !== undefined) {
+      const ruleId = test.firstResponse === '2NT'
+        ? 'opener-rebid-three-of-suit-after-jordan-2nt-minimum'
+        : 'opener-rebid-three-of-suit-after-support-cuebid-minimum';
+      if (!options.some(({ call, rule }) => call === test.minCall && rule.id === ruleId) ||
+          status.kind !== 'supported') {
+        failures++;
+        console.error(`FAIL B5 ${test.name}: expected ${test.minCall} and supported status, ` +
+          `got ${formatCandidates(options)} / ${status.kind}.`);
+      }
+    } else if (status.kind !== 'scopeBoundary' ||
+               status.rule.id !== test.expectedBoundary || options.length > 0) {
       failures++;
-      console.error(`FAIL weak-two overcall explanation: ${c.name}: ${lines.join(' ')}`);
+      console.error(`FAIL B5 ${test.name}: expected boundary ${test.expectedBoundary}, got ` +
+        `${status.kind}, ${status.kind === 'scopeBoundary' ? status.rule.id : '-'}, ` +
+        `${formatCandidates(options)}.`);
     }
   }
-  const unrelated = evaluateUserCall('2H',
-    makeRuleTestBoard(expected[1]!).board, ['1S'], defaultBiddingSystem);
-  checks++;
-  if (getWeakTwoOvercallFailureLines(unrelated).length !== 0 ||
-      unrelated.userCallMatchingRules.some((rule) =>
-        getWeakTwoOvercallSupportLine(unrelated, rule) !== null)) {
+  // Similar-looking auctions must not pick up the artificial minor support boundary.
+  const { board: nonJordanBoard } = makeRuleTestBoard({
+    description: 'Natural 2NT is not Jordan without a takeout Double',
+    practiceAuction: ['1D', 'Pass', '2NT', 'Pass'], north: extraD, south: southD,
+  });
+  const notJordan = evaluateUserCall('Pass', nonJordanBoard,
+    ['1D', 'Pass', '2NT', 'Pass'], defaultBiddingSystem);
+  if (notJordan.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
     failures++;
-    console.error('FAIL weak-two explanation leaked into one-level opening defenses.');
+    console.error('FAIL B5: uncontested 2NT acquired the artificial Jordan boundary.');
   }
-  console.log(`${failures} ***FAILURES***. Weak-two direct-overcall explanations: ${checks} checks.\n`);
+  const { board: majorBoard } = makeRuleTestBoard({
+    description: 'Jordan major game still has concrete rebid',
+    practiceAuction: ['1H', 'Double', '2NT', 'Pass'],
+    north: { S: 'K72', H: 'AKQ96', D: 'Q53', C: '54' },
+    south: { S: 'T98', H: 'J75', D: 'K986', C: 'AKT' },
+  });
+  const majorResult = evaluateUserCall('4H', majorBoard,
+    ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem);
+  if (majorResult.applicableRules.some(({ id }) =>
+      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
+    failures++;
+    console.error('FAIL B5: major-suit Jordan acquired minor-suit scope boundary.');
+  }
+  console.log(`${failures} ***FAILURES***. B5 strong minor artificial-support continuations: ` +
+              `${cases.length + 2} targeted checks.\n`);
   return failures;
 }
-
-/// DONT checks protect the family boundary rather than duplicating every practice deal.
-/// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
-/// responder or opener competes instead of passing through the basic relay.
-function runDontBoundaryTests (): number {
-  const seed = DONT_1NT_DEFENSE_TEST_DEALS[0];
-  if (seed === undefined) {
-    console.error('FAIL DONT boundaries need a practice deal.');
-    return 1;
+/// Validate evaluated point evidence and delivery on existing natural opener-rebid hands.
+/// The teaching uses the same candidate requirements for both successful and rejected bids.
+function runNaturalOpenerRebidEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const cases: { auction: string; ruleId: string; call: Call; points: number }[] = [
+    { auction: '1C Pass 1H Pass 2H',
+      ruleId: 'opener-rebid-simple-raise-after-minor-one-level-new-suit',
+      call: '2H', points: 12 },
+    { auction: '1C Pass 1H Pass 3H',
+      ruleId: 'opener-rebid-jump-raise-after-minor-one-level-new-suit',
+      call: '3H', points: 17 },
+    { auction: '1C Pass 1H Pass 4H',
+      ruleId: 'opener-rebid-game-raise-after-minor-one-level-new-suit',
+      call: '4H', points: 19 },
+    { auction: '1C Pass 1H Pass 2D',
+      ruleId: 'opener-rebid-reverse-after-minor-one-level-new-suit',
+      call: '2D', points: 18 },
+  ];
+  for (const testCase of cases) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === testCase.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL natural opener-rebid deal missing: ${testCase.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(testCase.call, board, auction, system);
+    const candidate = getApplicableCandidateCalls(result).find((item) =>
+      item.call === testCase.call && item.rule.id === testCase.ruleId);
+    const points = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const hand = getHandFacts(board.deal.N);
+    const usesShortage = testCase.ruleId.includes('-raise-');
+    const actual = usesShortage ? hand.totalPointsWShortage : hand.totalPointsWLength;
+    const lines = candidate === undefined ? [] :
+      getOpenerOneLevelNewSuitRebidLines(result, candidate.rule);
+    const delivered = candidate === undefined ? [] :
+      getMatchedCallExplanationLines(result, candidate.rule, hand, auction.length);
+    if (points?.kind !== 'totalPoints' || !points.passed ||
+        points.actual !== testCase.points || actual !== points.actual ||
+        lines.length === 0 || !lines.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL natural opener-rebid evaluated evidence or feedback: ${testCase.auction}.`);
+    }
   }
-  const { board } = makeRuleTestBoard(seed);
+
+  // The minimum hand has enough heart support but fails the actual strength test
+  // for 3H; its rejection must reach the student without inventing a different bid.
+  const minimum = deals.find((item) =>
+    item.practiceAuction.join(' ') === '1C Pass 1H Pass 2H');
+  checks++;
+  if (minimum === undefined) {
+    failures++;
+    console.error('FAIL natural opener minimum support hand missing.');
+  } else {
+    const board = makeRuleTestBoard(minimum).board;
+    const auction = minimum.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...minimum.requiredSystem };
+    const rejected = evaluateUserCall('3H', board, auction, system);
+    const candidate = rejected.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-jump-raise-after-minor-one-level-new-suit')
+      ?.candidates.find((item) => item.call === '3H');
+    const pointCheck = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const hand = getHandFacts(board.deal.N);
+    const reasons = getOpenerOneLevelNewSuitRebidFailureLines(rejected);
+    const delivered = getBidExplanationLines({
+      title: 'North bids 3H', call: '3H',
+      status: getBiddingTurnStatus(board, auction, system), result: rejected,
+      handFacts: hand, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (rejected.userCallMatchingRules.length > 0 || pointCheck?.kind !== 'totalPoints' ||
+        pointCheck.passed || pointCheck.actual !== hand.totalPointsWShortage ||
+        pointCheck.min !== 17 || pointCheck.max !== 18 ||
+        reasons.length === 0 || !reasons.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error('FAIL rejected opener jump raise lost tested shortage-point evidence.');
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Natural opener rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
+/// Check reciprocal rebid explanations on existing hands through evaluator and feedback.
+/// No exact English is asserted; only qualification, generated teaching and delivery.
+function runRebidAlternativeFeedbackTests (): number {
   let checks = 0;
   let failures = 0;
-
-  checks += 1;
-  if (getNextBiddingRuleStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
-      'overcallerRebid') {
-    failures += 1;
-    console.error('FAIL DONT relay should reach the overcaller-rebid stage.');
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const scenarios: { name: string; auction: string; system: Partial<BiddingSystem>;
+    selected: Call; alternative: Call; stage: 'oneLevel' | 'twoLevel' | 'responder' }[] = [
+    { name: 'diamond repeat versus clubs', auction: '1D Pass 1H Pass 2C',
+      system: {}, selected: '2D', alternative: '2C', stage: 'oneLevel' },
+    { name: 'clubs versus diamond repeat', auction: '1D Pass 1H Pass 2C',
+      system: {}, selected: '2C', alternative: '2D', stage: 'oneLevel' },
+    { name: 'heart repeat versus diamonds', auction: '1H Pass 1S Pass 2D',
+      system: {}, selected: '2H', alternative: '2D', stage: 'oneLevel' },
+    { name: 'diamonds versus heart repeat', auction: '1H Pass 1S Pass 2D',
+      system: {}, selected: '2D', alternative: '2H', stage: 'oneLevel' },
+    { name: 'Standard spades versus heart fit', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'standard' },
+      selected: '2S', alternative: '3H', stage: 'twoLevel' },
+    { name: 'Standard heart fit versus spades', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'standard' },
+      selected: '3H', alternative: '2S', stage: 'twoLevel' },
+    { name: '2/1 spades versus heart fit', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '2S', alternative: '3H', stage: 'twoLevel' },
+    { name: '2/1 heart fit versus spades', auction: '1S Pass 2H Pass 3H',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '3H', alternative: '2S', stage: 'twoLevel' },
+    { name: '2/1 notrump versus club fit', auction: '1D Pass 2C Pass 2NT',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '2NT', alternative: '3C', stage: 'twoLevel' },
+    { name: '2/1 club fit versus notrump', auction: '1D Pass 2C Pass 2NT',
+      system: { twoLevelNewSuitResponse: 'twoOverOne' },
+      selected: '3C', alternative: '2NT', stage: 'twoLevel' },
+    { name: 'heart invitation versus 2NT', auction: '1H Pass 1S Pass 2H Pass 2NT',
+      system: {}, selected: '3H', alternative: '2NT', stage: 'responder' },
+    { name: '2NT versus heart invitation', auction: '1H Pass 1S Pass 2H Pass 2NT',
+      system: {}, selected: '2NT', alternative: '3H', stage: 'responder' },
+    { name: 'spade invitation versus hearts', auction: '1H Pass 1S Pass 2H Pass 3S',
+      system: {}, selected: '3S', alternative: '3H', stage: 'responder' },
+    { name: 'heart invitation versus spades', auction: '1H Pass 1S Pass 2H Pass 3S',
+      system: {}, selected: '3H', alternative: '3S', stage: 'responder' },
+    { name: 'notrump game versus heart game', auction: '1H Pass 1S Pass 2H Pass 3NT',
+      system: {}, selected: '3NT', alternative: '4H', stage: 'responder' },
+    { name: 'heart game versus notrump game', auction: '1H Pass 1S Pass 2H Pass 3NT',
+      system: {}, selected: '4H', alternative: '3NT', stage: 'responder' },
+  ];
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction &&
+      Object.entries(scenario.system).every(([key, value]) =>
+        item.requiredSystem?.[key as keyof BiddingSystem] === value));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q2 rebid practice deal missing: ${scenario.name}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const prefix = deal.practiceAuction.slice(0, scenario.stage === 'responder' ? 6 : 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...scenario.system };
+    const result = evaluateUserCall(scenario.selected, board, prefix, system);
+    const qualifiedAlternative = getApplicableCandidateCalls(result).some((item) =>
+      item.call === scenario.alternative && item.ruleApplies);
+    const matched = result.userCallMatchingRules.find((item) =>
+      scenario.stage === 'responder' ? item.id.startsWith('responder-rebid-') :
+      scenario.stage === 'oneLevel' ? item.id.includes('-one-level-new-suit') :
+        item.id.includes('-standard-two-level-new-suit') ||
+        item.id.includes('-two-over-one-new-suit'));
+    const handFacts = getHandFacts(board.deal[scenario.stage === 'responder' ? 'S' : 'N']);
+    const generated = matched === undefined ? [] :
+      scenario.stage === 'responder' ? getNaturalResponderRebidLines(result, matched, handFacts) :
+      scenario.stage === 'oneLevel' ? getOpenerOneLevelNewSuitRebidLines(result, matched) :
+        getOpenerTwoLevelNewSuitRebidLines(result, matched);
+    const delivered = getBidExplanationLines({
+      title: 'Rebid', call: scenario.selected,
+      status: getBiddingTurnStatus(board, prefix, system), result, handFacts,
+      auctionLength: prefix.length, previewLines: [],
+      seatLabel: scenario.stage === 'responder' ? 'South' : 'North',
+      recordedUnjudged: false,
+    });
+    if (!qualifiedAlternative || matched === undefined || generated.length === 0 ||
+        !generated.some((line) => line.includes(scenario.alternative)) ||
+        !generated.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL Q2 rebid comparison or delivery: ${scenario.name}.`);
+    }
   }
-
-  checks += 1;
-  const suitOpeningCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', board, ['1D'], defaultBiddingSystem));
-  if (suitOpeningCandidates.some(({ rule }) => rule.id.startsWith('overcall-dont-'))) {
-    failures += 1;
-    console.error('FAIL DONT direct rules leaked into a suit opening.');
+  // The matching major game is not invented for a responder who lacks game values.
+  const minimum = deals.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H Pass 1S Pass 2H Pass 2S');
+  checks++;
+  if (minimum === undefined) {
+    failures++;
+    console.error('FAIL Q2 missing minimum responder practice hand.');
+  } else {
+    const board = makeRuleTestBoard(minimum).board;
+    const prefix: Call[] = ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'];
+    const result = evaluateUserCall('2S', board, prefix, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'responder-rebid-two-original-suit-after-minimum-repeat');
+    if (rule === undefined || getApplicableCandidateCalls(result).some((item) =>
+        item.call === '4H' && item.ruleApplies) ||
+        getNaturalResponderRebidLines(result, rule, getHandFacts(board.deal.S))
+          .some((line) => line.includes('4H'))) {
+      failures++;
+      console.error('FAIL Q2 invented a game alternative for minimum responder.');
+    }
   }
-
-  const { board: weakBoard } = makeRuleTestBoard({
-    description: 'Six-card DONT suit below the app strength floor.',
-    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
-    north: { S: '84', H: 'KJT986', D: 'Q52', C: '73' },
-    south: { S: 'T975', H: '753', D: '864', C: 'T65' },
-  });
-  checks += 1;
-  const weakCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', weakBoard, ['1NT'], defaultBiddingSystem));
-  if (weakCandidates.some(({ rule }) => rule.id === 'overcall-dont-single-suit-double')) {
-    failures += 1;
-    console.error('FAIL DONT one-suit Double survived below 7 HCP.');
-  }
-
-  const { board: fourFourBoard } = makeRuleTestBoard({
-    description: 'Four-four shape is below the modeled DONT two-suit minimum.',
-    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
-    north: { S: '82', H: 'KQJ9', D: '752', C: 'AT98' },
-    south: { S: 'T975', H: '753', D: 'Q84', C: 'K65' },
-  });
-  checks += 1;
-  const fourFourCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2C', fourFourBoard, ['1NT'], defaultBiddingSystem));
-  if (fourFourCandidates.some(({ rule }) => rule.id === 'overcall-dont-clubs-plus-higher')) {
-    failures += 1;
-    console.error('FAIL DONT 2C survived with only 4-4 shape.');
-  }
-
-  checks += 1;
-  const interferenceCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2C', board, ['1NT', 'Double', '2C'], defaultBiddingSystem));
-  if (interferenceCandidates.some(({ rule }) => rule.id === 'advance-dont-pass-or-correct')) {
-    failures += 1;
-    console.error('FAIL DONT advance survived responder interference.');
-  }
-
-  checks += 1;
-  const openerCompetes = getApplicableCandidateCalls(evaluateUserCall(
-    '2H', board, ['1NT', 'Double', 'Pass', '2C', '2D'], defaultBiddingSystem));
-  if (openerCompetes.some(({ rule }) => rule.id === 'overcaller-rebid-dont-pass-or-correct')) {
-    failures += 1;
-    console.error('FAIL DONT relay correction survived opener competition.');
-  }
-
-  console.log(`${failures} ***FAILURES***. DONT boundaries: ${checks} checks.`);
-  console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
-  console.log('  shape/strength floor, and stops the pass-or-correct path after interference.\n');
+  console.log(`${failures} ***FAILURES***. Rebid alternatives: ${checks} checks.\n`);
   return failures;
 }
+/// Conventional opener explanations must use the evaluated facts and reach the student.
+/// No wording assertions: verify actual rule qualifications, evidence and feedback delivery.
+function runConventionalOpenerEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  const scenarios: { auction: string; call: Call; family: 'positiveForce' |
+    'jacobyShortness' | 'jacobySideSuit' | 'splinterLow' | 'splinterCheapest' |
+    'strongTwoCLongSuit' | 'strongTwoCNt' | 'weakJumpShift' }[] = [
+    { auction: '1S Pass 2NT Pass 3D', call: '3C', family: 'jacobyShortness' },
+    { auction: '1S Pass 2NT Pass 3NT', call: '4D', family: 'jacobySideSuit' },
+    { auction: '1H Pass 3S Pass 4H', call: '4D', family: 'splinterLow' },
+    { auction: '1S Pass 4C Pass 4D', call: '4H', family: 'splinterCheapest' },
+    { auction: '2C Pass 2H Pass 3H', call: 'Pass', family: 'positiveForce' },
+    { auction: '2C Pass 3C Pass 3NT', call: 'Pass', family: 'positiveForce' },
+    { auction: '2C Pass 2D Pass 3C', call: '3C', family: 'strongTwoCLongSuit' },
+    { auction: '2C Pass 2D Pass 3NT', call: '3NT', family: 'strongTwoCNt' },
+    { auction: '1C Pass 2H Pass Pass', call: 'Pass', family: 'weakJumpShift' },
+  ];
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4 conventional deal not found: ${scenario.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluated = evaluateUserCall(scenario.call, board, auction, system);
+    const hand = getHandFacts(board.deal.N);
+    const status = getBiddingTurnStatus(board, auction, system);
+    const delivered = getBidExplanationLines({
+      title: 'North bids ' + scenario.call, call: scenario.call,
+      status, result: evaluated, handFacts: hand, auctionLength: auction.length,
+      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    const reasons = scenario.family === 'positiveForce' ?
+      getOpenerForcingRebidPassFailureLines(evaluated) :
+      getOpenerConventionalRebidFailureLines(evaluated);
+    const available = getApplicableCandidateCalls(evaluated);
+    const jacoby = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-shortness-after-major-jacoby-2nt');
+    const side = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-side-suit-after-major-jacoby-2nt');
+    const control = evaluated.ruleDiagnostics.find((item) =>
+      item.rule.id === 'opener-rebid-control-after-major-splinter')
+      ?.callEvidence?.openerSplinterControl;
+    let valid = false;
+    switch (scenario.family) {
+      case 'positiveForce':
+        valid = evaluated.userCallMatchingRules.length === 0 &&
+          available.some((item) => item.rule.id.includes('-after-2c')) &&
+          reasons.length > 0;
+        break;
+      case 'jacobyShortness': {
+        const attempted = jacoby?.candidates.find((item) => item.call === scenario.call);
+        valid = attempted?.ruleApplies === false &&
+          attempted.callEvidence?.openerConventionalRebid?.bidSuitLength === 4 &&
+          available.some((item) => item.call === '3D') && reasons.length > 0;
+        break;
+      }
+      case 'jacobySideSuit': {
+        const attempted = side?.candidates.find((item) => item.call === scenario.call);
+        const facts = attempted?.callEvidence?.openerJacobySideSuit;
+        valid = attempted?.ruleApplies === false && facts?.length === 3 &&
+          facts.topFourHonors === 1 && reasons.length > 0;
+        break;
+      }
+      case 'splinterLow':
+        valid = control?.workingHcp === 12 && control.wastedHcp === 6 &&
+          control.cheapestCall === null && reasons.length > 0 &&
+          available.some((item) => item.call === '4H');
+        break;
+      case 'splinterCheapest':
+        valid = control?.workingHcp === 15 && control.cheapestCall === '4D' &&
+          control.qualifyingControls.includes('4H') && reasons.length > 0 &&
+          available.some((item) => item.call === '4S');
+        break;
+      case 'strongTwoCLongSuit':
+      case 'strongTwoCNt': {
+        const rule = evaluated.userCallMatchingRules.find((item) =>
+          item.id.endsWith('-after-2c-2d'));
+        const matched = rule === undefined ? [] :
+          getMatchedCallExplanationLines(evaluated, rule, hand, auction.length);
+        valid = rule !== undefined && matched.length > 0 &&
+          matched.every((line) => delivered.includes(line));
+        break;
+      }
+      case 'weakJumpShift':
+        valid = evaluated.userCallMatchingRules.some((rule) =>
+          rule.id === 'opener-rebid-pass-after-weak-jump-shift') &&
+          getOpenerForcingRebidPassFailureLines(evaluated).length === 0;
+        break;
+    }
+    if (!valid || (reasons.length > 0 &&
+        !reasons.every((line) => delivered.includes(line)))) {
+      failures++;
+      console.error(`FAIL Q4 conventional opener evidence or delivery: ${scenario.auction} / ${scenario.call}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Conventional opener evidence: ${checks} checks.\n`);
+  return failures;
+}
+/// Verify the remaining opener interference teaching without changing any bid thresholds.
+function runOpenerInterferenceTeachingTests (): number {
+  let failures = 0;
+  let checks = 0;
+  // A DONT 2H shows both majors, so a heart stopper alone is not enough.
+  const { board } = makeRuleTestBoard({
+    description: 'DONT two-major stopper: hearts stopped but spades unstopped',
+    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    north: { S: 'T74', H: 'AK4', D: 'AQ7', C: 'K983' },
+    south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
+  });
+  const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
+  const failed = evaluateUserCall('3NT', board, auction, defaultBiddingSystem);
+  const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+  checks++;
+  if (failed.userCallMatchingRules.some(({ id }) =>
+        id === 'opener-rebid-3nt-after-1nt-interference-natural-suit') ||
+      status.kind !== 'scopeBoundary' ||
+      (status.kind === 'scopeBoundary' &&
+        status.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') ||
+      !getOpenerOneNtInterferenceFailureLines(failed).some((line) =>
+        line.includes('spades'))) {
+    failures++;
+    console.error('FAIL DONT two-major stopper gap and judgment boundary.');
+  }
+  const goodNt = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1NT 2H 3C Pass 3NT');
+  checks++;
+  if (goodNt === undefined) {
+    failures++;
+    console.error('FAIL no existing DONT natural 3C to 3NT practice example.');
+  } else {
+    const accepted = evaluateUserCall('3NT', makeRuleTestBoard(goodNt).board,
+      goodNt.practiceAuction.slice(0, 4), defaultBiddingSystem);
+    const rule = accepted.userCallMatchingRules.find(({ id }) =>
+      id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
+    if (rule === undefined ||
+        !getOpenerOneNtInterferenceLines(accepted, rule).some((line) =>
+          line.includes('hearts and spades'))) {
+      failures++;
+      console.error('FAIL qualifying DONT continuation lacks two-major explanation.');
+    }
+  }
+  const auctions: { sequence: string; ruleId: string; rejected?: Call }[] = [
+    { sequence: '1H 2S 3H Pass Pass',
+      ruleId: 'opener-rebid-after-jump-overcall-nonforcing-pass' },
+    { sequence: '1C 2D 2S Pass 3S',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
+    { sequence: '1H 2S 3S Pass 4H',
+      ruleId: 'opener-rebid-after-jump-overcall-major-game', rejected: 'Pass' },
+    { sequence: '1H 2S 3C Pass 3NT',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-nt', rejected: 'Pass' },
+    { sequence: '1S 3H Double Pass 3S',
+      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
+  ];
+  for (const test of auctions) {
+    const deal = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === test.sequence);
+    checks++;
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing jump-overcall practice ${test.sequence}.`);
+      continue;
+    }
+    const { board: jumpBoard } = makeRuleTestBoard(deal);
+    const prefix = deal.practiceAuction.slice(0, 4);
+    const call = deal.practiceAuction[4]!;
+    const accepted = evaluateUserCall(call, jumpBoard, prefix, defaultBiddingSystem);
+    const rule = accepted.userCallMatchingRules.find(({ id }) => id === test.ruleId);
+    if (rule === undefined || getOpenerJumpOvercallRebidLines(accepted, rule).length === 0) {
+      failures++;
+      console.error(`FAIL jump-overcall explanation ${test.sequence}.`);
+    }
+    if (test.rejected !== undefined) {
+      const rejection = evaluateUserCall(test.rejected, jumpBoard, prefix, defaultBiddingSystem);
+      checks++;
+      if (rejection.userCallMatchingRules.length > 0 ||
+          getOpenerJumpOvercallRebidFailureLines(rejection).length === 0) {
+        failures++;
+        console.error(`FAIL forcing rejection after ${test.sequence}.`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Opener interference teaching: ${checks} checks.\n`);
+  return failures;
+}
+/// Cross-family rebid edge treatments: protect the new general meanings rather than
+/// constructing a large set of one-off practice deals.
+function runMixedRebidRegressionTests (): number {
+  let failures = 0;
+  const supports = (board: ReturnType<typeof makeRuleTestBoard>['board'],
+                    auction: Call[], call: Call, ruleId: string,
+                    system: BiddingSystem = defaultBiddingSystem) =>
+    getApplicableCandidateCalls(evaluateUserCall(call, board, auction, system))
+      .some(({ call: candidate, rule }) => candidate === call && rule.id === ruleId);
+
+  // A forcing 1NT over a 5-4-2-2 heart opener needs the general two-card club
+  // fallback, not a reverse to spades or a false six-card heart repeat.
+  const { board: heartBoard } = makeRuleTestBoard({
+    description: 'Third audit: forcing 1NT manufactured two-card club rebid',
+    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
+    south: { S: '83', H: 'Q5', D: 'T92', C: 'AK9748' },
+    practiceAuction: ['1H', 'Pass', '1NT', 'Pass'],
+  });
+  const forcing = { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' as const };
+  const nonForcing = { ...defaultBiddingSystem, majorOneNtResponse: 'nonForcing' as const };
+  const majorNtAuction: Call[] = ['1H', 'Pass', '1NT', 'Pass'];
+  if (! supports(heartBoard, majorNtAuction, '2C',
+                 'opener-rebid-minor-fallback-after-major-1nt-forcing', forcing) ||
+      supports(heartBoard, majorNtAuction, '2C',
+               'opener-rebid-minor-fallback-after-major-1nt-forcing', nonForcing) ||
+      getApplicableCandidateCalls(evaluateUserCall('Pass', heartBoard, majorNtAuction, forcing))
+        .some(({ call }) => call === 'Pass')) {
+    failures++;
+    console.error('FAIL third audit: forcing 1NT two-club fallback and agreement isolation.');
+  }
+  const clubRebidAuction: Call[] = [...majorNtAuction, '2C', 'Pass'];
+  const { board: fiveClubBoard } = makeRuleTestBoard({
+    description: 'Third audit: five clubs do not guarantee a fit with two-card 2C',
+    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
+    south: { S: '843', H: 'Q5', D: 'T92', C: 'AK974' },
+    practiceAuction: clubRebidAuction,
+  });
+  if (! supports(heartBoard, clubRebidAuction, 'Pass',
+                 'responder-rebid-pass-second-suit-after-major-1nt', forcing) ||
+      supports(fiveClubBoard, clubRebidAuction, 'Pass',
+               'responder-rebid-pass-second-suit-after-major-1nt', forcing)) {
+    failures++;
+    console.error('FAIL third audit: six versus five clubs after forcing-1NT manufactured 2C.');
+  }
+
+  // Strong six-card minor: preserve the forcing obligation and explain judgment;
+  // do not expand a 17-18-point invitational jump repeat to cover 21 HCP.
+  const strongMinorAuction: Call[] = ['1C', 'Pass', '1H', 'Pass'];
+  const { board: strongMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: exceptional strong six-card minor without a descriptive rebid',
+    north: { S: '42', H: 'AK', D: 'A76', C: 'AKQJ98' },
+    south: { S: 'QJ87', H: 'Q987', D: 'K42', C: 'T5' },
+    practiceAuction: strongMinorAuction,
+  });
+  const strongStatus = getBiddingTurnStatus(strongMinorBoard, strongMinorAuction,
+    defaultBiddingSystem);
+  if (strongStatus.kind !== 'scopeBoundary' ||
+      strongStatus.rule.id !== 'opener-rebid-boundary-exceptional-strong-minor-after-one-level-new-suit' ||
+      supports(strongMinorBoard, strongMinorAuction, '3C',
+               'opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit')) {
+    failures++;
+    console.error('FAIL third audit: exceptional strong-minor guidance versus invitational 3C.');
+  }
+
+  // Eleven HCP plus one club-length point does not open a balanced convenient
+  // minor; a 12-HCP balanced hand and an 11-HCP distributional club hand still do.
+  const south = { S: 'K876', H: 'AQ82', D: 'AT6', C: 'Q6' };
+  const openingCases = [
+    { north: { S: '32', H: 'J95', D: 'Q84', C: 'AKJ87' }, expectsClub: false },
+    { north: { S: '32', H: 'J95', D: 'K84', C: 'AKJ87' }, expectsClub: true },
+    { north: { S: 'Q3', H: 'J976', D: '2', C: 'AKJ985' }, expectsClub: true },
+  ];
+  for (const testCase of openingCases) {
+    const { board } = makeRuleTestBoard({ description: 'Third audit: marginal club opening',
+      north: testCase.north, south, practiceAuction: [] });
+    if (supports(board, [], '1C', 'open-convenient-minor') !== testCase.expectsClub) {
+      failures++;
+      console.error(`FAIL third audit: marginal convenient minor (expected ${testCase.expectsClub}).`);
+    }
+  }
+
+  // The five-card minor repeat must be a last resort after a one-round force;
+  // preserve the ordinary six-card rule and do not promise six on a fallback.
+  const minorAuction: Call[] = ['1C', 'Pass', '1S', 'Pass'];
+  const { board: awkwardMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: awkward five-card club minimum',
+    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
+    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
+    practiceAuction: minorAuction,
+  });
+  const { board: sixMinorBoard } = makeRuleTestBoard({
+    description: 'Third audit: ordinary six-card club minimum',
+    north: { S: 'KJ2', H: 'KQ7', D: '4', C: 'KJ9628' },
+    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
+    practiceAuction: minorAuction,
+  });
+  if (! supports(awkwardMinorBoard, minorAuction, '2C',
+                 'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
+      supports(sixMinorBoard, minorAuction, '2C',
+               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
+      ! supports(sixMinorBoard, minorAuction, '2C',
+                  'opener-rebid-repeat-minor-after-minor-one-level-new-suit') ||
+      supports(awkwardMinorBoard, ['1C', 'Pass', '1H', 'Pass'], '2C',
+               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit')) {
+    failures++;
+    console.error('FAIL third audit: five-card minor fallback displaces a better rebid.');
+  }
+  const { board: twoClubBoard } = makeRuleTestBoard({
+    description: 'Third audit: two clubs do not establish fit with five-card minor repeat',
+    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
+    south: { S: 'A9876', H: '43', D: 'QJ72', C: 'T7' },
+    practiceAuction: [...minorAuction, '2C', 'Pass'],
+  });
+  const repeatedAuction: Call[] = [...minorAuction, '2C', 'Pass'];
+  if (! supports(awkwardMinorBoard, repeatedAuction, 'Pass',
+                 'responder-rebid-pass-after-minimum-suit-repeat') ||
+      supports(twoClubBoard, repeatedAuction, 'Pass',
+               'responder-rebid-pass-after-minimum-suit-repeat')) {
+    failures++;
+    console.error('FAIL third audit: support length after possible five-card minor repeat.');
+  }
+  console.log(`${failures} ***FAILURES***. Mixed rebid regressions: forcing 1NT, strong minor guidance, ` +
+              'marginal openings, and five-card minor repeats.\n');
+  return failures;
+}
+
+//// Responder rebids and convention continuations
 
 /// Guard against future auction-matching changes leaking the natural 1NT responder-rebid rules
 /// into minor responses, suit rebids, or artificial Stayman continuations.
@@ -3083,7 +4846,6 @@ function runResponderRebidContextTests (): number {
   console.log('  opener suit rebids, and artificial Stayman auctions.\n');
   return failures;
 }
-
 /// Ensure a student's different call follows the recorded lesson, not a divergent auction,
 /// while matching calls need no correction and practice completion waits for the final call.
 /// A natural raise must match responder's original one-level major, not merely be a bid at
@@ -3145,7 +4907,6 @@ function runResponderMajorRaiseContextTests (): number {
   console.log('  keeps slam-oriented hands out of automatic game or Pass recommendations.\n');
   return failures;
 }
-
 /// A minimum repeated opening suit may follow a one-level natural new-suit response,
 /// but not 1NT, a two-level forcing response, a new opener suit, or a jump rebid.
 /// The original heart/spade example must still retain its ranked invitational alternatives.
@@ -3190,7 +4951,6 @@ function runResponderRepeatedSuitContextTests (): number {
   console.log('  without admitting forcing responses, other rebids, or opponent interference.\n');
   return failures;
 }
-
 /// The same economical second-suit treatment must work for more than one printed auction,
 /// but never after a reverse, jump, forcing response, suit repetition, or active interference.
 function runResponderSecondSuitContextTests (): number {
@@ -3225,7 +4985,6 @@ function runResponderSecondSuitContextTests (): number {
   console.log('  jumps, forcing responses, repeated suits, and opponent competition.\n');
   return failures;
 }
-
 /// Strong opener second suits must remain separate from ordinary economical actions. A reverse
 /// requires a response without promising game; a strong natural jump shift forces game.
 function runResponderStrongSecondSuitContextTests (): number {
@@ -3298,7 +5057,6 @@ function runResponderStrongSecondSuitContextTests (): number {
   console.log('  excludes unrelated auctions, and never invents a Pass after either force.\n');
   return failures;
 }
-
 /// Strong 2NT continuations belong only after a natural one-level new-suit response.
 /// A different initial response or active interference must not inherit these natural
 /// signoffs; exceptional responder strength needs guidance rather than an automatic game.
@@ -3347,7 +5105,6 @@ function runResponderStrongTwoNtContextTests (): number {
   console.log('  response, excludes interference, and avoids automatic slam-interest signoffs.\n');
   return failures;
 }
-
 /// The new major-1NT family must not leak into unrelated responder rebids, and
 /// forcing 1NT must not turn a three-card minor fallback into a guaranteed fit.
 function runResponderMajorOneNtContextTests (): number {
@@ -3437,7 +5194,6 @@ function runResponderMajorOneNtContextTests (): number {
   console.log('  protects the fallback-minor length promise and both limit-raise routes.\n');
   return failures;
 }
-
 /// The minor-1NT rebids must stay out of other response families and forcing auctions.
 /// Previously passed responder 1NT is nonforcing even with forcing-1NT configured.
 /// Keep opener's stronger rebids after a major-opening 1NT response distinct from
@@ -3523,7 +5279,6 @@ function runResponderMajorOneNtStrongTests (): number {
   console.log('  Tests 2NT and six-card-major invitations, concealed fit, reverse/jump-shift obligations.\n');
   return failures;
 }
-
 function runResponderMinorOneNtAndPassedHandTests (): number {
   let failures = 0;
   const seed = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === 'responder-rebid-after-minor-1nt')
@@ -3585,7 +5340,6 @@ function runResponderMinorOneNtAndPassedHandTests (): number {
   console.log('  responder and does not manufacture a minor after the passed-hand response.\n');
   return failures;
 }
-
 /// These checks protect the Standard/2-over-1 distinction on an identical printed auction:
 /// Standard may stop after opener answers the one-round force, while 2/1 may not.
 function runResponderStandardTwoLevelContextTests (): number {
@@ -3652,7 +5406,6 @@ function runResponderStandardTwoLevelContextTests (): number {
   console.log('  Also excludes minimum signoffs immediately after an opener reverse.\n');
   return failures;
 }
-
 /// 2/1 continuations must retain the game force, but the same natural auction in
 /// Standard may have completed a one-round force. The support check also distinguishes
 /// three-card heart support from an insufficient three-card minor fit.
@@ -3776,458 +5529,6 @@ function runResponderTwoOverOneContextTests (): number {
   console.log('  Preserves game forcing below game, allows natural game Pass, and protects agreements.\n');
   return failures;
 }
-
-function runPracticeContinuationTests (): number {
-  const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
-  const prefix = recorded.slice(0, 6);
-  let failures = 0;
-  if (getRecordedPracticeCorrection(prefix, 'Pass', recorded) !== '2NT') failures += 1;
-  if (getRecordedPracticeCorrection(prefix, '2NT', recorded) !== null) failures += 1;
-  if (getRecordedPracticeCorrection(['1C', '1S'], 'Pass', recorded) !== null) failures += 1;
-  if (getRecordedPracticeCorrection([], 'Double', recorded) !== null) failures += 1;
-  if (isPracticeSequenceComplete(prefix, recorded) ||
-      ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
-  // A practice exercise progresses exactly one recorded call for each entered legal
-  // action, including opponent Passes, regardless of which seat is the dealer.
-  const allSeatRecorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT'];
-  const allSeatEntered: Call[] = ['1D', '2C', '2H', 'Pass', '2NT'];
-  const allSeatOrder = ['W', 'N', 'E', 'S', 'W'];
-  const progressed: Call[] = [];
-  for (let index = 0; index < allSeatRecorded.length; index += 1) {
-    const entered = allSeatEntered[index]!;
-    const expected = allSeatRecorded[index]!;
-    if (getNextSeat('W', progressed) !== allSeatOrder[index] ||
-        ! isCallAvailableInAuction(entered, progressed) ||
-        isPracticeSequenceComplete(progressed, allSeatRecorded)) {
-      failures += 1;
-      break;
-    }
-    progressed.push(getRecordedPracticeCorrection(progressed, entered, allSeatRecorded) ?? entered);
-    if (progressed[index] !== expected) {
-      failures += 1;
-      break;
-    }
-  }
-  if (! isPracticeSequenceComplete(progressed, allSeatRecorded)) failures += 1;
-  // Active lessons obey the very same agreement requirements as the bucket selector.
-  // Changing the setting can clear an incompatible exercise instead of allowing it
-  // to continue with recorded bids that no longer match its convention.
-  const stayman = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals)
-    .find((deal) => deal.requiredSystem?.stayman === true);
-  const noStayman = { ...defaultBiddingSystem, stayman: false };
-  if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||
-      isPracticeDealCompatible(stayman, noStayman) ||
-      getRulesBucketTestDeals('all', noStayman).includes(stayman)) failures += 1;
-  console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 12 checks.`);
-  console.log('  Preserves the recorded exercise after a different bid, but never corrects');
-  console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
-  return failures;
-}
-
-function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
-  return [
-    { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
-      rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
-    { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
-      rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
-    { name: 'balancing', auctionLength: 3, expected: deal.expectedBalancingCalls,
-      rejected: deal.rejectedBalancingCalls, order: undefined },
-    { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
-      rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
-    { name: 'overcaller rebid', auctionLength: 5, expected: deal.expectedOvercallerRebidCalls,
-      rejected: deal.rejectedOvercallerRebidCalls, order: deal.expectedOvercallerRebidCallOrder },
-    { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
-      rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
-    { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
-      rejected: deal.rejectedOpenerRebidCalls, order: deal.expectedOpenerRebidCallOrder },
-    { name: 'responder rebid', auctionLength: 6, expected: deal.expectedResponderRebidCalls,
-      rejected: deal.rejectedResponderRebidCalls, order: undefined },
-  ];
-}
-
-function matchesRequiredConventions (required: Partial<BiddingSystem> | undefined,
-                                     settings: ConventionValues): boolean {
-  return required === undefined || CONVENTION_SETTINGS.every((setting) =>
-    required[setting] === undefined || required[setting] === settings[setting]);
-}
-
-function formatCandidates (candidates: CandidateCallMatch[]): string {
-  return candidates.map((candidate) => `${candidate.call} [${candidate.rule.id}, ` +
-    `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
-}
-
-/// Selected, meaningful convention-completion checks, not a new practice-deal bucket.
-/// Exercise the physical three-bid pattern, denomination, agreement shifts, and
-/// the important Texas distinction when a Jacoby transfer is followed by a jump.
-function runResponderNtConventionTests (): number {
-  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' }; // 15 HCP, both majors
-  const oneNtSpades = { S: 'AK72', H: 'QJ6', D: 'K974', C: 'Q5' }; // 15 HCP, spades only
-  const oneNtNoMajor = { S: 'AK7', H: 'QJ6', D: 'K974', C: 'A63' }; // 17 HCP, no major
-  const twoNt = { S: 'AKQ2', H: 'KJ65', D: 'AQ7', C: 'J5' }; // 20 HCP
-  const twoNtSpades = { S: 'AKQ2', H: 'K65', D: 'AQ73', C: 'K5' }; // 21 HCP, spades only
-  const make = (north: typeof oneNt, south: typeof oneNt) =>
-    makeRuleTestBoard({ description: 'NT convention rebid rule test',
-      north, south, practiceAuction: ['1NT'] }).board;
-  const cases: { name: string; board: ReturnType<typeof make>; auction: Call[];
-    expected: Call | null; ruleId?: string; config?: Partial<BiddingSystem>;
-    boundary?: 'stayman' | 'jacoby' }[] = [
-    { name: '1NT Stayman major invitation', board: make(oneNtSpades,
-      { S: 'J865', H: 'A43', D: 'Q85', C: 'J84' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '3S',
-      ruleId: 'responder-rebid-1nt-stayman-invite-major' },
-    { name: '1NT Stayman major game', board: make(oneNt,
-      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2H', 'Pass'], expected: '4H',
-      ruleId: 'responder-rebid-1nt-stayman-game-major' },
-    { name: '1NT Stayman no-major invitation', board: make(oneNtNoMajor,
-      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
-      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
-    { name: '1NT Stayman other-major no fit', board: make(oneNtSpades,
-      { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2S', 'Pass'], expected: '2NT',
-      ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
-    { name: '1NT Stayman 3NT', board: make(oneNtNoMajor,
-      { S: 'J85', H: 'AT43', D: 'Q85', C: 'KJ4' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '3NT',
-      ruleId: 'responder-rebid-1nt-stayman-game-3nt' },
-    { name: '1NT Stayman HCP shift', board: make(oneNtNoMajor,
-      { S: 'J85', H: 'A843', D: 'Q85', C: '984' }),
-      auction: ['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], expected: '2NT',
-      config: { oneNtOpening: '16-18' }, ruleId: 'responder-rebid-1nt-stayman-invite-2nt' },
-    { name: '1NT weak spade transfer signoff', board: make(oneNt,
-      { S: 'J9864', H: 'T74', D: 'J85', C: '83' }),
-      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: 'Pass',
-      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
-    { name: '1NT five-spade invitation', board: make(oneNt,
-      { S: 'QJ864', H: 'A74', D: 'Q85', C: '83' }),
-      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '2NT',
-      ruleId: 'responder-rebid-1nt-transfer-invite-2nt' },
-    { name: '1NT six-heart invitation', board: make(oneNt,
-      { S: 'T3', H: 'AT9874', D: 'QJ5', C: 'J8' }),
-      auction: ['1NT', 'Pass', '2D', 'Pass', '2H', 'Pass'], expected: '3H',
-      ruleId: 'responder-rebid-1nt-transfer-invite-major' },
-    { name: '1NT transferred spades to 3NT', board: make(oneNt,
-      { S: 'QJ864', H: 'A74', D: 'Q85', C: 'K3' }),
-      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '3NT',
-      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
-    { name: '1NT six spades game without Texas', board: make(oneNt,
-      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
-      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: '4S',
-      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
-    { name: '1NT six spades Texas boundary', board: make(oneNt,
-      { S: 'QJT986', H: 'A43', D: 'Q8', C: 'K8' }),
-      auction: ['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], expected: null,
-      boundary: 'jacoby' },
-    { name: '2NT Stayman spade game', board: make(twoNtSpades,
-      { S: 'JT86', H: 'A843', D: 'T85', C: '64' }),
-      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '4S',
-      ruleId: 'responder-rebid-2nt-stayman-game-major' },
-    { name: '2NT Stayman other-major 3NT', board: make(twoNtSpades,
-      { S: 'T86', H: 'AT84', D: 'T865', C: '64' }),
-      auction: ['2NT', 'Pass', '3C', 'Pass', '3S', 'Pass'], expected: '3NT',
-      ruleId: 'responder-rebid-2nt-stayman-game-3nt' },
-    { name: '2NT weak heart transfer', board: make(twoNt,
-      { S: 'J86', H: 'T9874', D: 'T85', C: '64' }),
-      auction: ['2NT', 'Pass', '3D', 'Pass', '3H', 'Pass'], expected: 'Pass',
-      ruleId: 'responder-rebid-nt-transfer-pass-weak' },
-    { name: '2NT five-spade transfer to 3NT', board: make(twoNt,
-      { S: 'JT986', H: 'A84', D: 'T85', C: '64' }),
-      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '3NT',
-      ruleId: 'responder-rebid-nt-transfer-game-3nt' },
-    { name: '2NT six-spade game without Texas', board: make(twoNt,
-      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
-      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: '4S',
-      config: { texasTransfers: false }, ruleId: 'responder-rebid-nt-transfer-game-major-no-texas' },
-    { name: '2NT six-spade Texas boundary', board: make(twoNt,
-      { S: 'JT9864', H: 'A84', D: 'T8', C: '64' }),
-      auction: ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'], expected: null,
-      boundary: 'jacoby' },
-  ];
-  let failures = 0;
-  for (const test of cases) {
-    const system = { ...defaultBiddingSystem, ...test.config };
-    const result = evaluateUserCall(test.expected ?? 'Pass', test.board, test.auction, system);
-    const calls = getApplicableCandidateCalls(result);
-    const chosen = test.expected === null ? null : calls.find(({ call, rule }) =>
-      call === test.expected && rule.id === test.ruleId);
-    const wrongMajor = calls.some(({ call }) =>
-      (call === '3H' || call === '3S' || call === '4H' || call === '4S') &&
-      (test.expected === null || call !== test.expected));
-    const boundaryId = test.boundary === 'stayman'
-      ? 'responder-rebid-boundary-after-nt-stayman'
-      : 'responder-rebid-boundary-after-nt-transfer';
-    const hasBoundary = result.applicableRules.some(({ id }) => id === boundaryId);
-    if ((test.expected !== null && chosen === undefined) || wrongMajor ||
-        (test.expected === null && (calls.length > 0 || !hasBoundary))) {
-      failures += 1;
-      console.error(`FAIL NT convention ${test.name}: candidates ${formatCandidates(calls)}, ` +
-                    `boundary ${hasBoundary}.`);
-    }
-  }
-  // Convention-off variants must not silently reinterpret a natural responder call.
-  const offBoard = make(oneNt, { S: 'J85', H: 'A843', D: 'Q85', C: 'J84' });
-  for (const [auction, config, forbidden] of [
-    [['1NT', 'Pass', '2C', 'Pass', '2D', 'Pass'], { stayman: false }, 'stayman'],
-    [['1NT', 'Pass', '2H', 'Pass', '2S', 'Pass'], { jacobyTransfers: false }, 'transfer'],
-  ] as const) {
-    const result = evaluateUserCall('Pass', offBoard, [...auction],
-      { ...defaultBiddingSystem, ...config });
-    if (getApplicableCandidateCalls(result).some(({ rule }) => rule.id.includes('nt-' + forbidden)) ||
-        result.applicableRules.some(({ id }) => id.includes('nt-' + forbidden))) {
-      failures += 1;
-      console.error(`FAIL ${forbidden} rules available with convention off.`);
-    }
-  }
-  // A natural one-level-suit opener's 1NT rebid is not a completed transfer or Stayman.
-  const unrelated = evaluateUserCall('Pass', offBoard,
-    ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass'], defaultBiddingSystem);
-  if (getApplicableCandidateCalls(unrelated).some(({ rule }) =>
-      rule.id.startsWith('responder-rebid-nt-transfer') || rule.id.includes('nt-stayman'))) {
-    failures += 1;
-    console.error('FAIL NT convention rules leaked into a natural suit-opening sequence.');
-  }
-  console.log(`${failures} ***FAILURES***. Responder NT conventions: ${cases.length} ` +
-              'representative continuations, two convention-off guards, and one stage guard.\n');
-  return failures;
-}
-
-
-/// Hand-level checks for a small number of significant conventional continuations.
-/// These verify forcing boundaries and real contract placement without creating
-/// artificial four-hand practice deals simply to exercise the evaluator.
-function runResponderStrongAndSupportConventionTests (): number {
-  type Test = { name: string; north: Record<'S' | 'H' | 'D' | 'C', string>;
-    south: Record<'S' | 'H' | 'D' | 'C', string>; auction: Call[];
-    expectedCall?: Call; expectedRule?: string; boundary?: string;
-    config?: Partial<BiddingSystem>; forbidden?: string[] };
-  const strong = { S: 'AKQ4', H: 'KJ3', D: 'AQ2', C: 'K87' }; // 22 balanced HCP
-  const oneNt = { S: 'AK72', H: 'QJ65', D: 'K97', C: 'Q5' };
-  const minS = { S: 'AKT74', H: 'QJ3', D: 'A52', C: '98' }; // 14 HCP
-  const minH = { S: 'QJ3', H: 'AKT74', D: 'A52', C: '98' }; // 14 HCP
-  const gameS = { S: 'AKT74', H: 'KJ3', D: '852', C: 'Q8' }; // 13 HCP
-  const gameH = { S: 'KJ3', H: 'AKT74', D: '852', C: 'Q8' }; // 13 HCP
-  const fitS = { S: 'QJ86', H: 'A74', D: 'K6', C: 'K532' }; // 14 support points
-  const fitH = { S: 'A74', H: 'QJ86', D: 'K6', C: 'K532' }; // 14 support points
-  const splS = { S: 'QJ86', H: 'Q74', D: 'AK963', C: '3' }; // 15 support points
-  const splH = { S: '2', H: 'QJ86', D: 'A9634', C: 'K74' }; // 13 support points
-  const cases: Test[] = [
-    { name: '2C waiting to 2NT: weak Pass', north: strong,
-      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
-      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-strong-2c-waiting-pass-2nt' },
-    { name: '2C waiting to 2NT: 3NT game', north: strong,
-      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
-      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'], expectedCall: '3NT',
-      expectedRule: 'responder-rebid-strong-2c-waiting-game-3nt' },
-    { name: '2C waiting to 2NT: borderline 3 HCP guidance', north: strong,
-      south: { S: 'T865', H: 'T76', D: 'K43', C: 'T62' },
-      auction: ['2C', 'Pass', '2D', 'Pass', '2NT', 'Pass'],
-      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass', '3NT'] },
-    { name: '2C waiting to 3NT: Pass reached game', north: strong,
-      south: { S: 'J865', H: 'A76', D: '843', C: 'T62' },
-      auction: ['2C', 'Pass', '2D', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-strong-2c-waiting-pass-3nt' },
-    { name: '2C waiting to 2H: forcing boundary', north: strong,
-      south: { S: 'T865', H: '976', D: '843', C: 'T62' },
-      auction: ['2C', 'Pass', '2D', 'Pass', '2H', 'Pass'],
-      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
-    { name: '2C positive heart and raise: major game', north: strong,
-      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
-      auction: ['2C', 'Pass', '2H', 'Pass', '3H', 'Pass'], expectedCall: '4H',
-      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
-    { name: '2C positive spade and raise: major game', north: strong,
-      south: { S: 'JT987', H: 'A8', D: 'K73', C: 'T64' },
-      auction: ['2C', 'Pass', '2S', 'Pass', '3S', 'Pass'], expectedCall: '4S',
-      expectedRule: 'responder-rebid-strong-2c-positive-major-game' },
-    { name: '2C balanced positive and 3NT: Pass', north: strong,
-      south: { S: 'JT65', H: 'A76', D: 'K43', C: 'T62' },
-      auction: ['2C', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-strong-2c-positive-pass-3nt' },
-    { name: '2C positive suit to 2NT: game force boundary', north: strong,
-      south: { S: 'J8', H: 'AQ987', D: 'J73', C: 'T64' },
-      auction: ['2C', 'Pass', '2H', 'Pass', '2NT', 'Pass'],
-      boundary: 'responder-rebid-boundary-after-strong-2c', forbidden: ['Pass'] },
-    { name: '1S Jacoby 2NT medium 3NT: 4S not Pass', north: minS, south: fitS,
-      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4S',
-      expectedRule: 'responder-rebid-jacoby-2nt-major-game', forbidden: ['Pass', '3NT'] },
-    { name: '1H Jacoby 2NT medium 3NT: 4H', north: minH, south: fitH,
-      auction: ['1H', 'Pass', '2NT', 'Pass', '3NT', 'Pass'], expectedCall: '4H',
-      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
-    { name: '1S Jacoby 2NT to 4S: Pass', north: gameS, south: fitS,
-      auction: ['1S', 'Pass', '2NT', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
-    { name: '1H Jacoby 2NT to 4H: Pass', north: gameH, south: fitH,
-      auction: ['1H', 'Pass', '2NT', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-jacoby-2nt-pass-major-game' },
-    { name: '1S Jacoby 2NT side-suit show: 4S', north: minS, south: fitS,
-      auction: ['1S', 'Pass', '2NT', 'Pass', '3H', 'Pass'], expectedCall: '4S',
-      expectedRule: 'responder-rebid-jacoby-2nt-major-game' },
-    { name: '1H Jacoby 2NT side-suit above 4H: boundary', north: minH, south: fitH,
-      auction: ['1H', 'Pass', '2NT', 'Pass', '4S', 'Pass'],
-      boundary: 'responder-rebid-boundary-after-jacoby-2nt', forbidden: ['4H', 'Pass'] },
-    { name: 'Jacoby 2NT agreement off: no Jacoby rules', north: minS, south: fitS,
-      auction: ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass'],
-      config: { majorGameForceWithSupport: 'newSuitThenRaise' },
-      forbidden: ['4S', 'Pass', '3NT'] },
-    { name: '1S splinter to 4S: Pass', north: gameS, south: splS,
-      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-splinter-pass-major-game' },
-    { name: '1H splinter to 4H: Pass', north: gameH, south: splH,
-      auction: ['1H', 'Pass', '3S', 'Pass', '4H', 'Pass'], expectedCall: 'Pass',
-      expectedRule: 'responder-rebid-splinter-pass-major-game' },
-    { name: '1S splinter to 4D control: 4S', north: gameS, south: splS,
-      auction: ['1S', 'Pass', '4C', 'Pass', '4D', 'Pass'], expectedCall: '4S',
-      expectedRule: 'responder-rebid-splinter-major-game' },
-    { name: '1H splinter to 4C control: 4H', north: gameH, south: splH,
-      auction: ['1H', 'Pass', '3S', 'Pass', '4C', 'Pass'], expectedCall: '4H',
-      expectedRule: 'responder-rebid-splinter-major-game' },
-    { name: 'splinter agreement off: no splinter rules', north: gameS, south: splS,
-      auction: ['1S', 'Pass', '4C', 'Pass', '4S', 'Pass'],
-      config: { splinters: false }, forbidden: ['Pass'] },
-  ];
-  let failures = 0;
-  let checks = 0;
-  for (const test of cases) {
-    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
-      south: test.south, practiceAuction: test.auction });
-    const result = evaluateUserCall(test.expectedCall ?? 'Pass', board, test.auction,
-      { ...defaultBiddingSystem, ...(test.name.includes('Jacoby 2NT') ?
-        { majorGameForceWithSupport: 'jacoby2NT' as const } : {}), ...test.config });
-    const calls = getApplicableCandidateCalls(result);
-    const matched = test.expectedCall !== undefined && calls.some(({ call, rule }) =>
-      call === test.expectedCall && rule.id === test.expectedRule);
-    const boundary = test.boundary !== undefined && result.applicableRules.some(({ id }) =>
-      id === test.boundary);
-    checks++;
-    if (test.expectedCall !== undefined ? !matched : test.boundary !== undefined && !boundary) {
-      failures++;
-      console.error(`FAIL ${test.name}: expected ${test.expectedRule ?? test.boundary}; ` +
-                    `candidates ${formatCandidates(calls)}; boundaries ${result.applicableRules.filter(({kind})=>kind==='scopeBoundary').map(({id})=>id).join(',')}`);
-    }
-    for (const forbidden of test.forbidden ?? []) {
-      checks++;
-      if (calls.some(({ call }) => call === forbidden)) {
-        failures++;
-        console.error(`FAIL ${test.name}: forbidden ${forbidden}, candidates ${formatCandidates(calls)}`);
-      }
-    }
-    if (test.config?.majorGameForceWithSupport === 'newSuitThenRaise' ||
-        test.config?.splinters === false) {
-      checks++;
-      if (result.applicableRules.some(({ id }) =>
-        (test.config?.splinters === false ? id.includes('-splinter-') : id.includes('-jacoby-2nt-')))) {
-        failures++;
-        console.error(`FAIL ${test.name}: convention rules active with agreement off.`);
-      }
-    }
-  }
-  // These are explanatory boundaries only; never present an invented ace reply or Pass.
-  const slamCases: { name: string; opener: Call; response: Call; boundary?: string }[] = [
-    { name: 'Gerber over 1NT', opener: '1NT', response: '4C',
-      boundary: 'opener-rebid-boundary-after-direct-gerber' },
-    { name: 'Gerber over 2NT', opener: '2NT', response: '4C',
-      boundary: 'opener-rebid-boundary-after-direct-gerber' },
-    { name: 'Blackwood after 1H', opener: '1H', response: '4NT',
-      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
-    { name: 'Blackwood after 1D', opener: '1D', response: '4NT',
-      boundary: 'opener-rebid-boundary-after-direct-blackwood' },
-    { name: 'Quantitative NT is not Gerber or Blackwood', opener: '1NT', response: '4NT' },
-  ];
-  for (const test of slamCases) {
-    const { board } = makeRuleTestBoard({ description: test.name,
-      north: oneNt, south: { S: 'QJ86', H: 'A74', D: 'A53', C: 'K42' }, practiceAuction: [test.opener] });
-    const auction = [test.opener, 'Pass', test.response, 'Pass'] as Call[];
-    const result = evaluateUserCall('Pass', board, auction, defaultBiddingSystem);
-    const calls = getApplicableCandidateCalls(result);
-    const boundaries = result.applicableRules.filter(({ kind }) => kind === 'scopeBoundary');
-    checks++;
-    if ((test.boundary !== undefined && calls.length > 0) || (test.boundary !== undefined
-        ? !boundaries.some(({ id }) => id === test.boundary)
-        : boundaries.some(({ id }) => id.includes('gerber') || id.includes('blackwood')))) {
-      failures++;
-      console.error(`FAIL ${test.name}: candidates ${formatCandidates(calls)}, ` +
-                    `boundaries ${boundaries.map(({ id }) => id).join(', ')}`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Strong 2C, Jacoby 2NT, splinters and slam boundaries: ` +
-              `${checks} focused checks.\n`);
-  return failures;
-}
-
-/// Keep fourth-seat practice honest: BOTH intervening Passes must be sound according
-/// to the current rules, not merely preloaded calls to reach the balancing lesson.
-function runBalancingAuctionAndDealTests (): number {
-  let failures = 0;
-  let checks = 0;
-  for (const deal of BALANCING_TEST_DEALS) {
-    const { board } = makeRuleTestBoard(deal);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const opening = deal.practiceAuction[0]!;
-    const openingCandidates = getApplicableCandidateCalls(evaluateUserCall(opening, board,
-      [], system));
-    checks += 1;
-    if (openingCandidates[0]?.call !== opening) {
-      failures += 1;
-      console.error(`FAIL balancing deal opening ${deal.description}: ` +
-        `${formatCandidates(openingCandidates)}`);
-    }
-    for (const prefix of [[opening], [opening, 'Pass']] as Call[][]) {
-      const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
-        prefix, system));
-      checks += 1;
-      if (candidates.length !== 1 || candidates[0]?.call !== 'Pass') {
-        failures += 1;
-        console.error(`FAIL balancing deal unsupported intervening Pass: ${deal.description}, ` +
-          `${prefix.join(' ')} -> ${formatCandidates(candidates)}`);
-      }
-    }
-    const decision = evaluateUserCall(deal.practiceAuction[3]!, board,
-      deal.practiceAuction.slice(0, 3), system);
-    const calls = getApplicableCandidateCalls(decision);
-    checks += 1;
-    if (getNextBiddingRuleStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
-        !calls.some(({ call }) => call === deal.practiceAuction[3]) ||
-        calls.some(({ rule }) => rule.id.startsWith('overcall-'))) {
-      failures += 1;
-      console.error(`FAIL balancing stage/direct-seat isolation: ${deal.description}, ` +
-        `${formatCandidates(calls)}`);
-    }
-  }
-  // Only an opposing one-level SUIT opening and exactly two intervening Passes qualify.
-  const seatCases: { auction: Call[]; expected: ReturnType<typeof getNextBiddingRuleStage> }[] = [
-    { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
-    { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
-    { auction: ['1H'], expected: 'overcalling' },
-    { auction: ['1H', 'Pass', '2H'], expected: null },
-    { auction: ['1NT', 'Pass', 'Pass'], expected: null },
-    { auction: ['2H', 'Pass', 'Pass'], expected: null },
-    { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
-    { auction: ['1H', 'Double', 'Pass'], expected: 'advancing' },
-  ];
-  for (const { auction, expected } of seatCases) {
-    checks += 1;
-    if (getNextBiddingRuleStage('W', auction) !== expected) {
-      failures += 1;
-      console.error(`FAIL balancing stage for ${auction.join(' ')}: ` +
-        `expected ${expected}, got ${getNextBiddingRuleStage('W', auction)}.`);
-    }
-  }
-  const ntDeal = BALANCING_TEST_DEALS.find((deal) => deal.practiceAuction[3] === '1NT')!;
-  const ntCandidates = getApplicableCandidateCalls(evaluateUserCall('1NT',
-    makeRuleTestBoard(ntDeal).board, ntDeal.practiceAuction.slice(0, 3), defaultBiddingSystem));
-  checks += 1;
-  if (!ntCandidates.some(({ call }) => call === 'Pass') ||
-      !ntCandidates.some(({ call, rule }) => call === '1NT' &&
-        rule.id === 'balance-natural-1nt')) {
-    failures += 1;
-    console.error('FAIL balancing 1NT and defensive Pass should coexist on a borderline hand.');
-  }
-  console.log(`${failures} ***FAILURES***. Balancing seat and complete deal plausibility: ` +
-    `${checks} checks (including both intervening Passes in all six complete hands).\n`);
-  return failures;
-}
-
 /// After responder's simple major raise, answer opener's natural help-suit or balanced
 /// game try.  Check the actual context and alternative bids, not just a recorded practice call.
 function runResponderAfterMajorGameTryTests (): number {
@@ -4307,7 +5608,6 @@ function runResponderAfterMajorGameTryTests (): number {
     `${cases.length} targeted auction/hand checks.\n`);
   return failures;
 }
-
 /// Opener's optional splinter shows a fit and forces to game.  Responder must
 /// distinguish it from an ordinary jump shift and from responder's *own* earlier
 /// splinter.  Check both 1m/1M–1new-suit and 1M–2M auctions, including the minor fit.
@@ -4381,7 +5681,6 @@ function runResponderAfterOpenerSplinterTests (): number {
               `${cases.length} targeted auction/hand checks.\n`);
   return failures;
 }
-
 /// Responder's original classic strong jump shift (17+ HCP) is game forcing.
 /// Distinguish it from opener's strong second suit, permit Pass only at game,
 /// and leave uncertain strain or exceptional slam values at an explicit boundary.
@@ -4478,673 +5777,6 @@ function runResponderAfterStrongJumpShiftTests (): number {
               `${cases.length} constructed auction/hand checks.\n`);
   return failures;
 }
-
-/// Turn status is derived independently of recorded practice length; an unjudged intervening
-/// call is not mistaken for the end of modeled bidding.
-/// Stronger minor-opening hands after artificial Jordan 2NT or a support cuebid
-/// require a truthful boundary rather than an invented 3NT/minor game.  Confirm that the
-/// underlying response was itself a qualifying artificial support bid, and that a minimum
-/// opener still has the existing concrete 3m continuation.
-function runStrongMinorArtificialSupportTests (): number {
-  type HandShape = { S: string; H: string; D: string; C: string };
-  const minD: HandShape = { S: 'K72', H: 'A43', D: 'ATJ74', C: '83' }; // 13 support points
-  const middleD: HandShape = { S: 'K72', H: 'A43', D: 'AQT74', C: '83' }; // 14 support points
-  const extraD: HandShape = { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' }; // 15 support points
-  const minC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'ATJ74' };
-  const middleC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQT74' };
-  const extraC: HandShape = { S: 'K72', H: 'A43', D: '83', C: 'AQJ74' };
-  const southD: HandShape = { S: 'T98', H: 'QJ5', D: 'K986', C: 'AKT' };
-  const southC: HandShape = { S: 'AJ8', H: 'KJ5', D: '96', C: 'K9865' };
-  const cases: { name: string; auction: Call[]; north: HandShape; south: HandShape;
-    firstResponse: Call; responseRuleId: string; minCall?: Call; expectedBoundary?: string }[] = [
-    { name: 'Jordan diamond minimum rebids 3D', auction: ['1D', 'Double', '2NT', 'Pass'],
-      north: minD, south: southD, firstResponse: '2NT',
-      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3D' },
-    { name: 'Jordan diamond extras stop with scope guidance',
-      auction: ['1D', 'Double', '2NT', 'Pass'], north: extraD, south: southD,
-      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
-    { name: 'Jordan diamond 14-point hand still rebids 3D',
-      auction: ['1D', 'Double', '2NT', 'Pass'], north: middleD, south: southD,
-      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
-      minCall: '3D' },
-    { name: 'Jordan club minimum rebids 3C', auction: ['1C', 'Double', '2NT', 'Pass'],
-      north: minC, south: southC, firstResponse: '2NT',
-      responseRuleId: 'respond-after-double-jordan-2nt-support', minCall: '3C' },
-    { name: 'Jordan club extras stop with scope guidance',
-      auction: ['1C', 'Double', '2NT', 'Pass'], north: extraC, south: southC,
-      firstResponse: '2NT', responseRuleId: 'respond-after-double-jordan-2nt-support',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras' },
-    { name: 'Cuebid diamond minimum rebids 3D', auction: ['1D', '1H', '2H', 'Pass'],
-      north: minD, south: southD, firstResponse: '2H',
-      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3D' },
-    { name: 'Cuebid diamond extras retain existing scope guidance',
-      auction: ['1D', '1H', '2H', 'Pass'], north: extraD, south: southD,
-      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
-    { name: 'Cuebid diamond 14-point hand reaches boundary',
-      auction: ['1D', '1H', '2H', 'Pass'], north: middleD, south: southD,
-      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
-    { name: 'Cuebid club minimum rebids 3C', auction: ['1C', '1H', '2H', 'Pass'],
-      north: minC, south: southC, firstResponse: '2H',
-      responseRuleId: 'respond-over-suit-support-cuebid', minCall: '3C' },
-    { name: 'Cuebid club 14-point hand reaches boundary',
-      auction: ['1C', '1H', '2H', 'Pass'], north: middleC, south: southC,
-      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
-    { name: 'Cuebid club extras retain existing scope guidance',
-      auction: ['1C', '1H', '2H', 'Pass'], north: extraC, south: southC,
-      firstResponse: '2H', responseRuleId: 'respond-over-suit-support-cuebid',
-      expectedBoundary: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras' },
-  ];
-  let failures = 0;
-  for (const test of cases) {
-    const { board } = makeRuleTestBoard({ description: test.name, practiceAuction: test.auction,
-      north: test.north, south: test.south });
-    const response = getApplicableCandidateCalls(evaluateUserCall(test.firstResponse, board,
-      test.auction.slice(0, 2), defaultBiddingSystem));
-    if (!response.some(({ rule, call }) => call === test.firstResponse &&
-        rule.id === test.responseRuleId)) {
-      failures++;
-      console.error(`FAIL B5 ${test.name}: responder's artificial support bid did not qualify.`);
-    }
-    const result = evaluateUserCall(test.minCall ?? 'Pass', board, test.auction,
-      defaultBiddingSystem);
-    const options = getApplicableCandidateCalls(result);
-    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
-    if (test.minCall !== undefined) {
-      const ruleId = test.firstResponse === '2NT'
-        ? 'opener-rebid-three-of-suit-after-jordan-2nt-minimum'
-        : 'opener-rebid-three-of-suit-after-support-cuebid-minimum';
-      if (!options.some(({ call, rule }) => call === test.minCall && rule.id === ruleId) ||
-          status.kind !== 'supported') {
-        failures++;
-        console.error(`FAIL B5 ${test.name}: expected ${test.minCall} and supported status, ` +
-          `got ${formatCandidates(options)} / ${status.kind}.`);
-      }
-    } else if (status.kind !== 'scopeBoundary' ||
-               status.rule.id !== test.expectedBoundary || options.length > 0) {
-      failures++;
-      console.error(`FAIL B5 ${test.name}: expected boundary ${test.expectedBoundary}, got ` +
-        `${status.kind}, ${status.kind === 'scopeBoundary' ? status.rule.id : '-'}, ` +
-        `${formatCandidates(options)}.`);
-    }
-  }
-  // Similar-looking auctions must not pick up the artificial minor support boundary.
-  const { board: nonJordanBoard } = makeRuleTestBoard({
-    description: 'Natural 2NT is not Jordan without a takeout Double',
-    practiceAuction: ['1D', 'Pass', '2NT', 'Pass'], north: extraD, south: southD,
-  });
-  const notJordan = evaluateUserCall('Pass', nonJordanBoard,
-    ['1D', 'Pass', '2NT', 'Pass'], defaultBiddingSystem);
-  if (notJordan.applicableRules.some(({ id }) =>
-      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
-    failures++;
-    console.error('FAIL B5: uncontested 2NT acquired the artificial Jordan boundary.');
-  }
-  const { board: majorBoard } = makeRuleTestBoard({
-    description: 'Jordan major game still has concrete rebid',
-    practiceAuction: ['1H', 'Double', '2NT', 'Pass'],
-    north: { S: 'K72', H: 'AKQ96', D: 'Q53', C: '54' },
-    south: { S: 'T98', H: 'J75', D: 'K986', C: 'AKT' },
-  });
-  const majorResult = evaluateUserCall('4H', majorBoard,
-    ['1H', 'Double', '2NT', 'Pass'], defaultBiddingSystem);
-  if (majorResult.applicableRules.some(({ id }) =>
-      id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
-    failures++;
-    console.error('FAIL B5: major-suit Jordan acquired minor-suit scope boundary.');
-  }
-  console.log(`${failures} ***FAILURES***. B5 strong minor artificial-support continuations: ` +
-              `${cases.length + 2} targeted checks.\n`);
-  return failures;
-}
-
-/// Slam-control replies require explicit stopping guidance, while an accepted
-/// forcing responder rebid (or balancing Double) must not appear to end real bidding.
-/// Check the preceding actual call against the production evaluator before inferring a force.
-function runLaterStageTerminationGuidanceTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const ntCases = [
-    { name: '1NT-3H slam try followed by 3S control',
-      auction: ['1NT', 'Pass', '3H', 'Pass', '3S', 'Pass'] as Call[],
-      north: { S: 'KQ4', H: 'A74', D: 'A96', C: 'KJ82' },
-      south: { S: 'AJ6', H: 'KQJT96', D: 'KQ5', C: '7' } },
-    { name: '1NT-3S slam try followed by 4C control',
-      auction: ['1NT', 'Pass', '3S', 'Pass', '4C', 'Pass'] as Call[],
-      north: { S: 'A64', H: 'KJ7', D: 'A96', C: 'KQ82' },
-      south: { S: 'KQJT95', H: 'AQ4', D: 'KJ5', C: '7' } },
-  ];
-  const boundaryId = 'responder-rebid-boundary-after-1nt-direct-major-slam-control';
-  for (const test of ntCases) {
-    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
-      south: test.south, practiceAuction: test.auction });
-    checks++;
-    const response = test.auction[2]!;
-    const openerControl = test.auction[4]!;
-    const responderMatches = evaluateUserCall(response, board,
-      test.auction.slice(0, 2), defaultBiddingSystem).userCallMatchingRules;
-    const openerMatches = evaluateUserCall(openerControl, board,
-      test.auction.slice(0, 4), defaultBiddingSystem).userCallMatchingRules;
-    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
-    if (! responderMatches.some(({ id }) => id === 'respond-to-1nt-w/-3h-3s-slam-interest') ||
-        ! openerMatches.some(({ id }) =>
-          id === 'opener-rebid-control-after-1nt-direct-3-major-slam-interest') ||
-        status.kind !== 'scopeBoundary' ||
-        (status.kind === 'scopeBoundary' && status.rule.id !== boundaryId)) {
-      failures++;
-      console.error(`FAIL B6 ${test.name}: response ${responderMatches.map(r=>r.id)}, ` +
-        `control ${openerMatches.map(r=>r.id)}, status ${status.kind}.`);
-    }
-    checks++;
-    const noTransfer = { ...defaultBiddingSystem, jacobyTransfers: false };
-    if (getBiddingTurnStatus(board, test.auction, noTransfer).kind === 'scopeBoundary' &&
-        evaluateUserCall('Pass', board, test.auction, noTransfer).applicableRules
-          .some(({ id }) => id === boundaryId)) {
-      failures++;
-      console.error(`FAIL B6 ${test.name}: direct slam-control boundary leaked with Jacoby off.`);
-    }
-  }
-  const { board: ntBoard } = makeRuleTestBoard({ description: 'B6 unrelated NT rebid',
-    north: ntCases[0]!.north, south: ntCases[0]!.south,
-    practiceAuction: ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'] });
-  for (const auction of [
-    ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'],
-    ['1NT', 'Pass', '3H', 'Double', '3S', 'Pass'],
-    ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'],
-  ] as Call[][]) {
-    checks++;
-    if (evaluateUserCall('Pass', ntBoard, auction, defaultBiddingSystem).applicableRules
-      .some(({ id }) => id === boundaryId)) {
-      failures++;
-      console.error(`FAIL B6 scope boundary leaked after ${auction.join(' ')}.`);
-    }
-  }
-  const forceCases = [
-    { name: '2/1 slow major raise game force',
-      auction: ['1S','Pass','2D','Pass','2H','Pass','3S'] as Call[],
-      north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
-      south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
-      system: { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const },
-      expected: 'gameForce' as const },
-    { name: 'five-card responder major after strong 2NT',
-      auction: ['1C','Pass','1H','Pass','2NT','Pass','3H'] as Call[],
-      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
-      south: { S: 'T65', H: 'KQJ98', D: 'QT4', C: '54' },
-      system: defaultBiddingSystem, expected: 'gameForce' as const },
-    { name: 'nonforcing game signoff must not carry game force',
-      auction: ['1C','Pass','1H','Pass','2NT','Pass','3NT'] as Call[],
-      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
-      south: { S: 'T65', H: 'KQ98', D: 'QT4', C: '654' },
-      system: defaultBiddingSystem, expected: null },
-  ];
-  for (const test of forceCases) {
-    checks++;
-    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
-      south: test.south, practiceAuction: test.auction });
-    const last = test.auction[test.auction.length - 1]!;
-    const previous = test.auction.slice(0,-1);
-    const matches = evaluateUserCall(last, board, previous, test.system).userCallMatchingRules;
-    const status = getBiddingTurnStatus(board, test.auction, test.system);
-    const obligation = getUnmodeledContinuationForce(board, test.auction, test.system);
-    if (matches.length === 0 || status.kind !== 'noModeledStage' ||
-        (obligation?.kind ?? null) !== test.expected) {
-      failures++;
-      console.error(`FAIL B7 ${test.name}: matches ${matches.map(r=>r.id)}, ` +
-        `status ${status.kind}, obligation ${obligation?.kind ?? '-'} expected ${test.expected}.`);
-    }
-  }
-  // Cover forcing endpoints from each partnership role, not only responder's rebid.
-  // Each auction is taken from an existing fully specified practice fixture.
-  const endpointExamples: { auction: Call[]; stage: string; kind: string }[] = [
-    { auction: ['1D', 'Pass', '1NT', 'Pass', '2H'],
-      stage: 'openerRebid', kind: 'oneRoundForce' },
-    { auction: ['1D', 'Pass', '1NT', 'Pass', '3C'],
-      stage: 'openerRebid', kind: 'gameForce' },
-    { auction: ['1D', '1S', '2D', '3D', 'Pass'],
-      stage: 'advancing', kind: 'oneRoundForce' },
-    { auction: ['1H', 'Double'],
-      stage: 'overcalling', kind: 'oneRoundForce' },
-    { auction: ['1S', 'Pass', '2H'],
-      stage: 'responding', kind: 'oneRoundForce' },
-  ];
-  const allDeals = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
-  for (const test of endpointExamples) {
-    checks++;
-    const example = allDeals.find((deal) =>
-      deal.practiceAuction.join(' ') === test.auction.join(' '));
-    if (example === undefined) {
-      failures++;
-      console.error(`FAIL forcing endpoint fixture absent: ${test.auction.join(' ')}.`);
-      continue;
-    }
-    const { board } = makeRuleTestBoard(example);
-    const force = getUnmodeledContinuationForce(board, test.auction,
-      { ...defaultBiddingSystem, ...example.requiredSystem });
-    if (force?.kind !== test.kind || force.lastStage !== test.stage) {
-      failures++;
-      console.error(`FAIL forcing ${test.auction.join(' ')}: ` +
-        `${force?.lastStage ?? '-'} ${force?.kind ?? '-'} versus ${test.stage} ${test.kind}.`);
-    }
-  }
-  // The 2/1 game force persists through opener's nonforcing descriptive rebid, but
-  // not after the partnership has reached game or the opponents have intervened.
-  const original = forceCases[0]!;
-  const { board: gameBoard } = makeRuleTestBoard({ description: 'Persistent 2/1 force',
-    north: original.north, south: original.south, practiceAuction: original.auction });
-  const gameSystem = original.system;
-  const prefixes: { auction: Call[]; expected: string | null }[] = [
-    { auction: ['1S','Pass','2D','Pass','2H'], expected: 'gameForce' },
-    { auction: ['1S','Pass','2D','Pass','2H','Pass'], expected: 'gameForce' },
-    { auction: ['1S','Pass','2D','Pass','2H','Double'], expected: null },
-    { auction: ['1S','Pass','2D','Pass','2H','Pass','4S'], expected: null },
-  ];
-  for (const test of prefixes) {
-    checks++;
-    const kind = getUnmodeledContinuationForce(gameBoard, test.auction, gameSystem)?.kind ?? null;
-    if (kind !== test.expected) {
-      failures++;
-      console.error(`FAIL continuing 2/1 game force after ${test.auction.join(' ')}: ` +
-        `${kind ?? '-'}, expected ${test.expected ?? '-'}.`);
-    }
-  }
-  const balancing = BALANCING_TEST_DEALS.find((deal) =>
-    deal.expectedBalancingCalls?.some((expected) => expected.ruleIds.includes('balance-takeout-double')))!;
-  const { board: balancingBoard } = makeRuleTestBoard(balancing);
-  checks++;
-  const balancingForce = getUnmodeledContinuationForce(balancingBoard,
-    balancing.practiceAuction, defaultBiddingSystem);
-  if (balancingForce?.kind !== 'oneRoundForce' || balancingForce.lastStage !== 'balancing') {
-    failures++;
-    console.error(`FAIL B7 balancing Double: ${JSON.stringify(balancingForce)}.`);
-  }
-  console.log(`${failures} ***FAILURES***. B6/B7 further-slam and forcing-endpoint checks: ` +
-    `${checks} targeted cases.\n`);
-  return failures;
-}
-
-/// C3: a missing direct-seat defense is an explicit explanatory boundary, not an
-/// automatic Pass.  The ordinary fallback Pass and actual DONT/overcall actions retain priority.
-function runUnmodeledDirectDefenseBoundaryTests (): number {
-  const weak = { S: '987', H: 'J876', D: '963', C: '854' };
-  const strongBalanced = { S: 'AK7', H: 'KQ4', D: 'AJ6', C: 'Q742' }; // 19 HCP
-  const strongDont = { S: 'AK7', H: 'KQJ987', D: 'AJ', C: 'Q4' }; // 20 HCP, six good hearts
-  const naturalOvercall = { S: 'AKQJ6', H: '84', D: 'J963', C: '85' };
-  // Construct the other seats from the unused deck, so every diagnostic case has
-  // a legal 52-card deal without asserting unrealistic prior bidding for the opponents.
-  const makeBoard = (name: string, east: typeof weak, auction: Call[], dealer: 'N' | 'W' = 'N') => {
-    const suits = ['S', 'H', 'D', 'C'] as const;
-    const remaining = suits.flatMap((suit) => [...'AKQJT98765432'].map((rank) =>
-      [suit, rank] as const).filter(([, rank]) => !east[suit].includes(rank)));
-    const toHand = (cards: typeof remaining) => {
-      const hand = { S: '', H: '', D: '', C: '' };
-      for (const [suit, rank] of cards) hand[suit] += rank;
-      return hand;
-    };
-    return makeRuleTestBoard({ description: name, dealer, practiceAuction: auction,
-      east, north: toHand(remaining.slice(0, 13)), south: toHand(remaining.slice(13, 26)) });
-  };
-  const cases: {
-    name: string;
-    auction: Call[];
-    east: typeof weak;
-    expectedStatus: ReturnType<typeof getBiddingTurnStatus>['kind'];
-    expectedBoundary?: string;
-    expectedCall?: Call;
-    expectedRule?: string;
-    dealer?: 'N' | 'W';
-  }[] = [
-    { name: 'ordinary weak direct seat', auction: ['1D'], east: weak,
-      expectedStatus: 'supported', expectedCall: 'Pass',
-      expectedRule: 'overcall-pass-no-qualifying-action' },
-    { name: 'ordinary constructive action suppresses Pass', auction: ['1D'],
-      east: naturalOvercall, expectedStatus: 'supported', expectedCall: '1S',
-      expectedRule: 'overcall-simple-suit-at-one-level' },
-    { name: 'ordinary 1NT defense Pass', auction: ['1NT'], east: weak,
-      expectedStatus: 'supported', expectedCall: 'Pass',
-      expectedRule: 'overcall-pass-no-qualifying-action' },
-    { name: '19 HCP balanced after opposing 1NT', auction: ['1NT'], east: strongBalanced,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt' },
-    { name: '20 HCP strong DONT eligible', auction: ['1NT'], east: strongDont,
-      expectedStatus: 'supported', expectedCall: 'Double',
-      expectedRule: 'overcall-dont-single-suit-double' },
-    { name: '19 HCP after 1NT with nondealer opening', auction: ['Pass', '1NT'],
-      east: strongBalanced, expectedStatus: 'scopeBoundary',
-      expectedBoundary: 'overcall-boundary-strong-hand-vs-1nt', dealer: 'W' },
-    { name: 'strong artificial 2C defense', auction: ['2C'], east: weak,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2c-opening' },
-    { name: 'strong 2NT defense', auction: ['2NT'], east: strongBalanced,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-strong-2nt-opening' },
-    { name: 'three-level preempt 3C', auction: ['3C'], east: weak,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
-    { name: 'three-level preempt 3S', auction: ['3S'], east: strongBalanced,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-three-level-preempt' },
-    { name: 'high-level opening 3NT', auction: ['3NT'], east: weak,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
-    { name: 'high-level opening 4H', auction: ['4H'], east: weak,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
-    { name: 'high-level opening 5D', auction: ['5D'], east: strongBalanced,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
-    { name: 'high-level opening 7NT', auction: ['7NT'], east: weak,
-      expectedStatus: 'scopeBoundary', expectedBoundary: 'overcall-boundary-very-high-opening' },
-    { name: 'ordinary weak-two Pass remains', auction: ['2H'], east: weak,
-      expectedStatus: 'supported', expectedCall: 'Pass',
-      expectedRule: 'overcall-pass-no-qualifying-action' },
-  ];
-  let failures = 0;
-  for (const test of cases) {
-    const { board } = makeBoard(test.name, test.east, test.auction, test.dealer ?? 'N');
-    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
-    const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
-      test.auction, defaultBiddingSystem));
-    const boundary = status.kind === 'scopeBoundary' ? status.rule.id : null;
-    const expectedAction = candidates.some(({ call, rule }) =>
-      call === test.expectedCall && rule.id === test.expectedRule);
-    const hasFallbackPass = candidates.some(({ rule }) =>
-      rule.id === 'overcall-pass-no-qualifying-action');
-    const good = status.kind === test.expectedStatus &&
-      (test.expectedBoundary === undefined
-        ? expectedAction && (test.expectedCall === 'Pass' || !hasFallbackPass)
-        : boundary === test.expectedBoundary && candidates.length === 0);
-    if (!good) {
-      failures++;
-      console.error(`FAIL C3 ${test.name}: status ${status.kind}, boundary ${boundary ?? '-'}, ` +
-        `candidates ${candidates.map(({ call, rule }) => `${call}:${rule.id}`).join(', ')}.`);
-    }
-  }
-  // A natural fourth-seat balancing decision must not be mistaken for a direct defense boundary.
-  const { board: balancingBoard } = makeBoard('C3 balancing stays separate',
-    strongBalanced, ['1H', 'Pass', 'Pass']);
-  const balancing = getBiddingTurnStatus(balancingBoard,
-    ['1H', 'Pass', 'Pass'], defaultBiddingSystem);
-  if (balancing.kind === 'scopeBoundary' &&
-      balancing.rule.id.startsWith('overcall-boundary-')) {
-    failures++;
-    console.error('FAIL C3: direct-seat defense boundary leaked into fourth-seat balancing.');
-  }
-  console.log(`${failures} ***FAILURES***. C3 omitted direct defenses: ` +
-    `${cases.length + 1} targeted checks.\n`);
-  return failures;
-}
-
-function runBiddingTurnStatusTests (): number {
-  const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
-    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
-    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
-    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] });
-  let failures = 0;
-  const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
-    { auction: [], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S'], kind: 'noModeledStage' },
-    { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
-  ];
-  for (const { auction, kind } of examples) {
-    const actual = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-    if (actual.kind !== kind) {
-      failures += 1;
-      console.error(`FAIL coverage ${auction.join(' ')} expected ${kind}, got ${actual.kind}.`);
-    }
-  }
-  const { board: boundaryBoard } = makeRuleTestBoard({
-    description: 'Scope boundary at opener return after takeout Double',
-    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
-    south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
-    practiceAuction: ['1H', 'Double', 'Pass', 'Pass'] });
-  // These have no modeled rule stage; auction entry no longer needs an intervening-turn exception.
-  // Any legal call may be recorded, and stage selection uses the resulting actual auction.
-  const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
-    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noModeledStage' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'noModeledStage' },
-    { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
-    { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },
-  ];
-  for (const { auction, kind } of intervening) {
-    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-    if (status.kind !== kind) {
-      failures += 1;
-      console.error(`FAIL unjudged turn ${auction.join(' ')}: expected ${kind}, got ${status.kind}.`);
-    }
-  }
-  const boundary = getBiddingTurnStatus(boundaryBoard,
-    ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
-  if (boundary.kind !== 'scopeBoundary' ||
-      boundary.rule.id !== 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') {
-    failures += 1;
-    console.error(`FAIL existing scope boundary was not recognized: ${boundary.kind}.`);
-  }
-  console.log(`${failures} ***FAILURES***. Bidding-turn statuses: ${examples.length + intervening.length + 1} checks.\n`);
-  return failures;
-}
-
-
-/// Regression for the former premature-termination bug: unsupported turns and explicit
-/// boundaries do not prevent a legal physical auction from reaching later modeled decisions.
-/// These check the evaluator/state path and mechanical auction legality; BidPanel is separately
-/// responsible for disabling entry only when the auction or recorded practice is complete.
-function runContinuousAuctionFeedbackTests (): number {
-  const { board } = makeRuleTestBoard({
-    description: 'Unjudged intermediate call progression',
-    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
-    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
-    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'],
-  });
-  const sequences: { name: string; calls: Call[] }[] = [
-    { name: 'DONT Double asking sequence', calls: ['1NT', 'Double', 'Pass', '2C', 'Pass', '2H'] },
-    { name: 'DONT two-suited sequence', calls: ['1NT', '2C', 'Pass', '2D', 'Pass', '2H'] },
-    { name: 'strong 2NT Stayman', calls: ['2NT', 'Pass', '3C', 'Pass', '3S'] },
-    { name: 'strong 2C waiting', calls: ['2C', 'Pass', '2D', 'Pass', '2H'] },
-    { name: 'weak two natural defense', calls: ['2D', '2H', 'Pass', 'Pass'] },
-    { name: 'competitive opener rebid', calls: ['1NT', '2H', 'Double', 'Pass', '2S'] },
-    { name: 'unexpected fourth-seat competition', calls: ['1S', 'Pass', '2S', '3D', 'Pass'] },
-    { name: 'uncontested raiser game try', calls: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] },
-    { name: 'boundary does not end auction', calls: ['2NT', 'Pass', '3C', 'Pass', '3H', 'Pass', 'Pass', 'Pass'] },
-  ];
-  let failures = 0;
-  let checked = 0;
-  for (const test of sequences) {
-    const auction: Call[] = [];
-    for (const call of test.calls) {
-      const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-      checked++;
-      if (status.kind === 'auctionComplete' || !isCallAvailableInAuction(call, auction)) {
-        failures++;
-        console.error(`FAIL continuous ${test.name}: ${call} unavailable after ${auction.join(' ')}.`);
-        break;
-      }
-      auction.push(call);
-    }
-    if (test.name === 'boundary does not end auction' && !auctionIsComplete(auction)) {
-      failures++;
-      console.error('FAIL continuous: legal Passes did not complete the auction.');
-    }
-  }
-  // Use the actual DONT and 2NT-Stayman fixture hands to verify feedback resumes after
-  // intervening Passes, including a turn with no rule and one with an explicit scope boundary.
-  const dontDeal = DONT_1NT_DEFENSE_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1NT Double Pass 2C Pass 2H');
-  const ntDeal = RESPONSE_AFTER_2NT_OPENING_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '2NT Pass 3C');
-  const expected: { deal: RuleTestDeal | undefined; stages: ReturnType<typeof getBiddingTurnStatus>['kind'][] }[] = [
-    { deal: dontDeal,
-      stages: ['supported', 'supported', 'noApplicableRule', 'supported',
-        'noModeledStage', 'supported'] },
-    { deal: ntDeal, stages: ['supported', 'scopeBoundary', 'supported'] },
-  ];
-  for (const test of expected) {
-    if (test.deal === undefined) { failures++; continue; }
-    const { board: fixtureBoard } = makeRuleTestBoard(test.deal);
-    const auction: Call[] = [];
-    for (const kind of test.stages) {
-      const status = getBiddingTurnStatus(fixtureBoard, auction, defaultBiddingSystem);
-      checked++;
-      if (status.kind !== kind) {
-        failures++;
-        console.error(`FAIL continuous fixture ${test.deal.description}: ` +
-          `${auction.join(' ')} expected ${kind}, got ${status.kind}.`);
-      }
-      const call = test.deal.practiceAuction[auction.length];
-      if (call === undefined || !isCallAvailableInAuction(call, auction)) {
-        failures++;
-        console.error(`FAIL continuous fixture: call ${call} illegal after ${auction.join(' ')}.`);
-        break;
-      }
-      auction.push(call);
-    }
-  }
-  // Non-dealer opening and a scope boundary retain their status but cannot block Pass.
-  for (const auction of [['Pass', '1S', 'Pass', '2S'], ['2NT'], ['1NT', 'Double']] as Call[][]) {
-    checked++;
-    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-    if (status.kind === 'auctionComplete' || !isCallAvailableInAuction('Pass', auction)) {
-      failures++;
-      console.error(`FAIL continuous: Pass blocked after ${auction.join(' ')}.`);
-    }
-  }
-  // Continuing freely does not waive ordinary bridge legality or the 7NT maximum.
-  for (const { input, auction } of [
-    { input: '20H', auction: [] as Call[] },
-    { input: '120NT', auction: [] as Call[] },
-    { input: '1C', auction: ['1S'] as Call[] },
-    { input: 'Double', auction: [] as Call[] },
-  ]) {
-    checked++;
-    const call = normalizeCallInput(input);
-    if (call !== null && isCallAvailableInAuction(call, auction)) {
-      failures++;
-      console.error(`FAIL continuous: illegal input ${input} accepted after ${auction.join(' ')}.`);
-    }
-  }
-  // Forcing source should still be identified with one opponent Pass after it, but not after
-  // another call has been made by the forced bidder.
-  const forceAuction: Call[] = ['1S','Pass','2D','Pass','2H','Pass','3S'];
-  const { board: forcingBoard } = makeRuleTestBoard({
-    description: 'Forcing rebid across opponent Pass',
-    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
-    south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
-    practiceAuction: forceAuction,
-  });
-  const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
-  const forceNow = getUnmodeledContinuationForce(forcingBoard, forceAuction, system);
-  const forceAfterPass = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass'], system);
-  const forceAfterReply = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass', '4S'], system);
-  checked += 3;
-  if (forceNow?.kind !== 'gameForce' || forceAfterPass?.kind !== 'gameForce' ||
-      forceAfterReply !== null) {
-    failures++;
-    console.error(`FAIL continuous forcing: ${forceNow?.kind}, ${forceAfterPass?.kind}, ${forceAfterReply?.kind}.`);
-  }
-  console.log(`${failures} ***FAILURES***. Continuous legal auctions: ${checked} checks.\n`);
-  return failures;
-}
-
-/// Regression: an optional 2D waiting response must not strand a strong 4-4-4-1 opener.
-/// A similar hand with a five-card suit must retain the existing natural suit rebid instead.
-function runStrongTwoCFourFourFourOneBoundaryTests (): number {
-  const south = { S: '976', H: 'QT9', D: 'KJT98', C: 'K6' };
-  const auction: Call[] = ['2C', 'Pass', '2D', 'Pass'];
-  const cases = [
-    { name: 'strong 2C waiting: 4-4-4-1 guidance',
-      north: { S: 'AKQ4', H: 'AKJ7', D: 'AQ76', C: '5' },
-      expectedBoundary: true },
-    { name: 'strong 2C waiting: five-card spade rebid unaffected',
-      north: { S: 'AKQ4T', H: 'AKJ', D: 'AQ76', C: '5' },
-      expectedBoundary: false },
-  ];
-  let failures = 0;
-  for (const test of cases) {
-    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
-      south, practiceAuction: auction });
-    const result = evaluateUserCall('2S', board, auction, defaultBiddingSystem);
-    const boundary = result.applicableRules.some(({ id }) =>
-      id === 'opener-rebid-boundary-strong-2c-waiting-4441');
-    const naturalRebid = getApplicableCandidateCalls(result).some(({ call, rule }) =>
-      call === '2S' && rule.id === 'opener-rebid-longest-suit-after-2c-2d');
-    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-    if (boundary !== test.expectedBoundary || naturalRebid === test.expectedBoundary ||
-        status.kind !== (test.expectedBoundary ? 'scopeBoundary' : 'supported')) {
-      failures++;
-      console.error(`FAIL R1 ${test.name}: boundary=${boundary}, 2S=${naturalRebid}, ` +
-                    `status=${status.kind}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Strong 2C 4-4-4-1 boundary: 2 focused cases.\n`);
-  return failures;
-}
-
-/// Regression: a major opener stronger than the old 21-support-point ceiling must still
-/// be able to bid game, with a short-suit splinter available only under that agreement.
-function runStrongOpenerAfterMajorSimpleRaiseTests (): number {
-  const auction: Call[] = ['1H', 'Pass', '2H', 'Pass'];
-  const { board } = makeRuleTestBoard({
-    description: '19 HCP, 23 support points after a simple heart raise',
-    practiceAuction: auction,
-    north: { S: '2', H: 'AKQ87', D: 'K3', C: 'AQJ64' },
-    south: { S: 'KJ94', H: 'T62', D: 'Q876', C: 'K8' },
-  });
-  let failures = 0;
-  for (const splinters of [false, true]) {
-    const system = { ...defaultBiddingSystem, splinters };
-    const candidates = getApplicableCandidateCalls(
-      evaluateUserCall('4H', board, auction, system));
-    const game = candidates.some(({ call, rule }) =>
-      call === '4H' && rule.id === 'opener-rebid-game-raise-after-major-simple-raise');
-    const splinter = candidates.some(({ call, rule }) =>
-      call === '3S' && rule.id === 'opener-rebid-splinter-after-major-simple-raise');
-    if (!game || splinter !== splinters) {
-      failures++;
-      console.error(`FAIL R2 high-strength major raise (splinters=${splinters}): ` +
-        `game=${game}, 3S splinter=${splinter}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Strong opener after simple major raise: ` +
-              '2 agreement contexts on one boundary hand.\n');
-  return failures;
-}
-
-/// Regression: opener normally Passes a nonforcing raise of the original weak preempt.
-/// Reuse the existing response fixtures, and guard against leaking into a forcing 2NT inquiry.
-function runOpenerPassAfterPreemptRaiseTests (): number {
-  const cases: { auction: Call[]; label: string }[] = [
-    { auction: ['2S', 'Pass', '3S'], label: 'weak-two three-level raise' },
-    { auction: ['3S', 'Pass', '4S'], label: 'three-level preempt raised to four' },
-  ];
-  let failures = 0;
-  for (const test of cases) {
-    const deal = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((candidate) =>
-      candidate.practiceAuction.join(' ') === test.auction.join(' '));
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL R3: no recorded fixture for ${test.label}.`);
-      continue;
-    }
-    const { board } = makeRuleTestBoard(deal);
-    const auction: Call[] = [...test.auction, 'Pass'];
-    const pass = getApplicableCandidateCalls(
-      evaluateUserCall('Pass', board, auction, defaultBiddingSystem)).some(({ call, rule }) =>
-      call === 'Pass' && rule.id === 'opener-rebid-pass-after-preempt-raise');
-    if (!pass) {
-      failures++;
-      console.error(`FAIL R3: opener Pass not supported after ${test.label}.`);
-    }
-    if (test.auction[0] === '2S') {
-      const inquiry: Call[] = ['2S', 'Pass', '2NT', 'Pass'];
-      const falsePass = getApplicableCandidateCalls(
-        evaluateUserCall('Pass', board, inquiry, defaultBiddingSystem)).some(({ rule }) =>
-        rule.id === 'opener-rebid-pass-after-preempt-raise');
-      if (falsePass) {
-        failures++;
-        console.error('FAIL R3: Pass rule leaked into forcing weak-two 2NT inquiry.');
-      }
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Opener after preempt raise: 2 focused fixtures.\n`);
-  return failures;
-}
-
 /// Regression: a nonforcing 3m jump repeat after 1m–1M needs a minimum signoff,
 /// a carefully stopped 3NT option, and judgment guidance without leaking into other rebids.
 function runResponderAfterMinorJumpRepeatTests (): number {
@@ -5207,214 +5839,275 @@ function runResponderAfterMinorJumpRepeatTests (): number {
   console.log(`${failures} ***FAILURES***. Responder after minor jump repeat: four distinct regression conditions.\n`);
   return failures;
 }
-
-
-/// Third-audit edge treatments: protect the new general meanings rather than
-/// constructing a large set of one-off practice deals.
-function runThirdAuditRebidTests (): number {
-  let failures = 0;
-  const supports = (board: ReturnType<typeof makeRuleTestBoard>['board'],
-                    auction: Call[], call: Call, ruleId: string,
-                    system: BiddingSystem = defaultBiddingSystem) =>
-    getApplicableCandidateCalls(evaluateUserCall(call, board, auction, system))
-      .some(({ call: candidate, rule }) => candidate === call && rule.id === ruleId);
-
-  // A forcing 1NT over a 5-4-2-2 heart opener needs the general two-card club
-  // fallback, not a reverse to spades or a false six-card heart repeat.
-  const { board: heartBoard } = makeRuleTestBoard({
-    description: 'Third audit: forcing 1NT manufactured two-card club rebid',
-    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
-    south: { S: '83', H: 'Q5', D: 'T92', C: 'AK9748' },
-    practiceAuction: ['1H', 'Pass', '1NT', 'Pass'],
-  });
-  const forcing = { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' as const };
-  const nonForcing = { ...defaultBiddingSystem, majorOneNtResponse: 'nonForcing' as const };
-  const majorNtAuction: Call[] = ['1H', 'Pass', '1NT', 'Pass'];
-  if (! supports(heartBoard, majorNtAuction, '2C',
-                 'opener-rebid-minor-fallback-after-major-1nt-forcing', forcing) ||
-      supports(heartBoard, majorNtAuction, '2C',
-               'opener-rebid-minor-fallback-after-major-1nt-forcing', nonForcing) ||
-      getApplicableCandidateCalls(evaluateUserCall('Pass', heartBoard, majorNtAuction, forcing))
-        .some(({ call }) => call === 'Pass')) {
-    failures++;
-    console.error('FAIL third audit: forcing 1NT two-club fallback and agreement isolation.');
-  }
-  const clubRebidAuction: Call[] = [...majorNtAuction, '2C', 'Pass'];
-  const { board: fiveClubBoard } = makeRuleTestBoard({
-    description: 'Third audit: five clubs do not guarantee a fit with two-card 2C',
-    north: { S: 'QJ76', H: 'AK982', D: '43', C: 'J5' },
-    south: { S: '843', H: 'Q5', D: 'T92', C: 'AK974' },
-    practiceAuction: clubRebidAuction,
-  });
-  if (! supports(heartBoard, clubRebidAuction, 'Pass',
-                 'responder-rebid-pass-second-suit-after-major-1nt', forcing) ||
-      supports(fiveClubBoard, clubRebidAuction, 'Pass',
-               'responder-rebid-pass-second-suit-after-major-1nt', forcing)) {
-    failures++;
-    console.error('FAIL third audit: six versus five clubs after forcing-1NT manufactured 2C.');
-  }
-
-  // Strong six-card minor: preserve the forcing obligation and explain judgment;
-  // do not expand a 17-18-point invitational jump repeat to cover 21 HCP.
-  const strongMinorAuction: Call[] = ['1C', 'Pass', '1H', 'Pass'];
-  const { board: strongMinorBoard } = makeRuleTestBoard({
-    description: 'Third audit: exceptional strong six-card minor without a descriptive rebid',
-    north: { S: '42', H: 'AK', D: 'A76', C: 'AKQJ98' },
-    south: { S: 'QJ87', H: 'Q987', D: 'K42', C: 'T5' },
-    practiceAuction: strongMinorAuction,
-  });
-  const strongStatus = getBiddingTurnStatus(strongMinorBoard, strongMinorAuction,
-    defaultBiddingSystem);
-  if (strongStatus.kind !== 'scopeBoundary' ||
-      strongStatus.rule.id !== 'opener-rebid-boundary-exceptional-strong-minor-after-one-level-new-suit' ||
-      supports(strongMinorBoard, strongMinorAuction, '3C',
-               'opener-rebid-jump-repeat-minor-after-minor-one-level-new-suit')) {
-    failures++;
-    console.error('FAIL third audit: exceptional strong-minor guidance versus invitational 3C.');
-  }
-
-  // Eleven HCP plus one club-length point does not open a balanced convenient
-  // minor; a 12-HCP balanced hand and an 11-HCP distributional club hand still do.
-  const south = { S: 'K876', H: 'AQ82', D: 'AT6', C: 'Q6' };
-  const openingCases = [
-    { north: { S: '32', H: 'J95', D: 'Q84', C: 'AKJ87' }, expectsClub: false },
-    { north: { S: '32', H: 'J95', D: 'K84', C: 'AKJ87' }, expectsClub: true },
-    { north: { S: 'Q3', H: 'J976', D: '2', C: 'AKJ985' }, expectsClub: true },
-  ];
-  for (const testCase of openingCases) {
-    const { board } = makeRuleTestBoard({ description: 'Third audit: marginal club opening',
-      north: testCase.north, south, practiceAuction: [] });
-    if (supports(board, [], '1C', 'open-convenient-minor') !== testCase.expectsClub) {
-      failures++;
-      console.error(`FAIL third audit: marginal convenient minor (expected ${testCase.expectsClub}).`);
-    }
-  }
-
-  // The five-card minor repeat must be a last resort after a one-round force;
-  // preserve the ordinary six-card rule and do not promise six on a fallback.
-  const minorAuction: Call[] = ['1C', 'Pass', '1S', 'Pass'];
-  const { board: awkwardMinorBoard } = makeRuleTestBoard({
-    description: 'Third audit: awkward five-card club minimum',
-    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
-    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
-    practiceAuction: minorAuction,
-  });
-  const { board: sixMinorBoard } = makeRuleTestBoard({
-    description: 'Third audit: ordinary six-card club minimum',
-    north: { S: 'KJ2', H: 'KQ7', D: '4', C: 'KJ9628' },
-    south: { S: 'A9876', H: '43', D: 'QJ2', C: 'T75' },
-    practiceAuction: minorAuction,
-  });
-  if (! supports(awkwardMinorBoard, minorAuction, '2C',
-                 'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
-      supports(sixMinorBoard, minorAuction, '2C',
-               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit') ||
-      ! supports(sixMinorBoard, minorAuction, '2C',
-                  'opener-rebid-repeat-minor-after-minor-one-level-new-suit') ||
-      supports(awkwardMinorBoard, ['1C', 'Pass', '1H', 'Pass'], '2C',
-               'opener-rebid-five-card-minor-fallback-after-minor-one-level-new-suit')) {
-    failures++;
-    console.error('FAIL third audit: five-card minor fallback displaces a better rebid.');
-  }
-  const { board: twoClubBoard } = makeRuleTestBoard({
-    description: 'Third audit: two clubs do not establish fit with five-card minor repeat',
-    north: { S: 'KJ2', H: 'KQ76', D: '4', C: 'KJ962' },
-    south: { S: 'A9876', H: '43', D: 'QJ72', C: 'T7' },
-    practiceAuction: [...minorAuction, '2C', 'Pass'],
-  });
-  const repeatedAuction: Call[] = [...minorAuction, '2C', 'Pass'];
-  if (! supports(awkwardMinorBoard, repeatedAuction, 'Pass',
-                 'responder-rebid-pass-after-minimum-suit-repeat') ||
-      supports(twoClubBoard, repeatedAuction, 'Pass',
-               'responder-rebid-pass-after-minimum-suit-repeat')) {
-    failures++;
-    console.error('FAIL third audit: support length after possible five-card minor repeat.');
-  }
-  console.log(`${failures} ***FAILURES***. Third audit: forcing 1NT, strong minor guidance, ` +
-              'marginal openings, and five-card minor repeats.\n');
-  return failures;
-}
-
-
-/// Guard the two semantic fixes without testing explanation wording: the nonforcing 1NT
-/// range follows Standard vs 2/1, and a passed responder cannot establish a 2/1 game force.
-function runMajorNoSupportAgreementTests (): number {
-  const opening = { S: 'AKQ96', H: 'A43', D: '972', C: '54' };
-  const base = { S: '43', H: 'KQ87', D: 'AQ65', C: '762' };
-  const hands = [
-    { hcp: 11, south: base },
-    { hcp: 12, south: { ...base, C: 'J62' } },
-    { hcp: 13, south: { ...base, D: 'AKJ5' } },
-  ];
-  const standard = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const,
-    majorOneNtResponse: 'nonForcing' as const };
-  const semiForcing = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const,
-    majorOneNtResponse: 'nonForcing' as const };
-  const forcing = { ...semiForcing, majorOneNtResponse: 'forcing' as const };
-  const supports = (call: Call, board: ReturnType<typeof makeRuleTestBoard>['board'],
-                    auction: Call[], system: BiddingSystem, ruleId: string): boolean =>
-    evaluateUserCall(call, board, auction, system).userCallMatchingRules.some((rule) =>
-      rule.id === ruleId);
+/// Ensure the 2/1 forcing 2NT treatment does not invent an unbid-suit stopper
+/// requirement, while 3NT retains that requirement. These are synthetic what-if
+/// hands; no stored practice deal is changed.
+function runNaturalResponderRebidTeachingTests (): number {
   let failures = 0;
   let checks = 0;
-  for (const { hcp, south } of hands) {
-    const { board } = makeRuleTestBoard({ description: 'B12 strength and prior Pass.',
-      north: opening, south, practiceAuction: ['1S', 'Pass', '1NT'] });
-    const actual = makeRuleEvalContext(board, ['1S', 'Pass']).handFacts.hcp;
-    if (actual !== hcp) {
-      failures += 1;
-      console.error(`FAIL B12 fixture: wanted ${hcp} HCP, got ${actual}.`);
-    }
-    const unpassed: Call[] = ['1S', 'Pass'];
-    const passed: Call[] = ['Pass', 'Pass', '1S', 'Pass'];
-    // Use South as dealer for the passed auction: South Passed, North then opened,
-    // and South responds. This preserves the same tested responder's cards.
-    const cases = [
-      { call: '1NT' as Call, auction: unpassed, system: standard,
-        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: false },
-      { call: '1NT' as Call, auction: unpassed, system: semiForcing,
-        rule: 'respond-to-major-w/o-support-1nt-standard', wanted: hcp <= 12 },
-      { call: '1NT' as Call, auction: unpassed, system: forcing,
-        rule: 'respond-to-major-w/o-support-1nt-twooverone', wanted: hcp <= 12 },
-      { call: '2D' as Call, auction: unpassed, system: standard,
-        rule: 'respond-to-major-w/o-support-new-suit-two-level-standard', wanted: true },
-      { call: '2D' as Call, auction: unpassed, system: semiForcing,
-        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: hcp >= 13 },
-      { call: '2D' as Call, auction: passed, system: semiForcing,
-        rule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', wanted: false },
-    ];
-    for (const item of cases) {
-      checks += 1;
-      const actualBoard = item.auction === passed ? { ...board, dealer: 'S' as const } : board;
-      if (supports(item.call, actualBoard, item.auction, item.system, item.rule) !== item.wanted) {
-        failures += 1;
-        console.error(`FAIL B12 ${hcp}-HCP ${item.call} after ${item.auction.join(' ')} ` +
-          `in ${item.rule}: expected ${item.wanted}.`);
-      }
-    }
+  const system: BiddingSystem = { ...defaultBiddingSystem,
+    twoLevelNewSuitResponse: 'twoOverOne' };
+  const board = makeRuleTestBoard({
+    description: 'Balanced 2/1 responder with 14 HCP but no heart stopper',
+    dealer: 'N', practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass', '2NT'],
+    north: { S: 'AKJ74', H: 'Q64', D: 'QJ93', C: '2' },
+    south: { S: '83', H: 'J85', D: 'K65', C: 'AKQJ9' },
+  }).board;
+  const auction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass'];
+  const invite = evaluateUserCall('2NT', board, auction, system);
+  const rule = invite.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-two-over-one-forcing-2nt');
+  checks++;
+  if (rule === undefined || getNaturalResponderRebidLines(invite, rule,
+      getHandFacts(board.deal.S)).length === 0 ||
+      getNaturalResponderRebidFailureLines(invite).length > 0) {
+    failures++;
+    console.error('FAIL 2/1 forcing 2NT should not require an unbid-suit stopper.');
   }
-  const { board: spadesBoard } = makeRuleTestBoard({
-    description: 'B12 show four spades rather than fallback 1NT after a heart opening.',
-    north: { S: 'A43', H: 'AKJT5', D: '972', C: '54' },
-    south: { S: 'KQ87', H: '93', D: 'AQ65', C: '762' },
-    practiceAuction: ['1H', 'Pass', '1S'],
-  });
-  const spades = ['1H', 'Pass'] as Call[];
-  checks += 2;
-  if (!supports('1S', spadesBoard, spades, forcing,
-      'respond-to-major-w/o-support-new-suit-one-level')) {
-    failures += 1;
-    console.error('FAIL B12 four-card spade response after 1H not supported.');
+  const threeNt = evaluateUserCall('3NT', board, auction, system);
+  const reason = getNaturalResponderRebidFailureLines(threeNt);
+  checks++;
+  if (threeNt.userCallMatchingRules.some(({ id }) =>
+        id === 'responder-rebid-two-over-one-game-3nt') || reason.length === 0) {
+    failures++;
+    console.error('FAIL 2/1 3NT should still require the missing heart stopper.');
   }
-  if (supports('1NT', spadesBoard, spades, forcing,
-      'respond-to-major-w/o-support-1nt-twooverone')) {
-    failures += 1;
-    console.error('FAIL B12 1NT was not suppressed by available 1S.');
+  const checkback = makeRuleTestBoard({
+    description: 'Five-card heart major after opener rebids natural 1NT',
+    dealer: 'N', practiceAuction: ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'],
+    north: { S: 'A94', H: 'Q76', D: 'QJ84', C: 'Q83' },
+    south: { S: 'Q73', H: 'KJ984', D: 'K65', C: 'K2' },
+  }).board;
+  const afterOneNt: Call[] = ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass'];
+  const result = evaluateUserCall('2NT', checkback, afterOneNt, defaultBiddingSystem);
+  const natural = result.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-2nt-after-minimum-1nt');
+  checks++;
+  if (natural === undefined || !getNaturalResponderRebidLines(result, natural,
+      getHandFacts(checkback.deal.S)).some((line) => line.includes('New Minor Forcing'))) {
+    failures++;
+    console.error('FAIL missing explanatory New Minor Forcing alternative after a five-card major.');
   }
-  console.log(`${failures} ***FAILURES***. Major-no-support agreements: ${checks} behavioral checks.`);
-  console.log('  Protects 11-12 HCP semi-forcing 1NT, passed-hand 2/1, and preferred 1S.\n');
+  // A Standard club repeat stops after one round, unlike the identical 2/1 auction.
+  const standardDeal = makeRuleTestBoard({
+    description: 'Standard six-card club repeat', dealer: 'N',
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass', '3C'],
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+  }).board;
+  const standardAuction: Call[] = ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass'];
+  const standardResult = evaluateUserCall('3C', standardDeal, standardAuction,
+    { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' });
+  const standardRule = standardResult.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-standard-two-level-repeat-response');
+  checks++;
+  if (standardRule === undefined || !getNaturalResponderRebidLines(standardResult, standardRule,
+      getHandFacts(standardDeal.deal.S)).some((line) => line.includes('nonforcing'))) {
+    failures++;
+    console.error('FAIL Standard three-level club repeat should explain its nonforcing meaning.');
+  }
+  const forcingDeal = makeRuleTestBoard({
+    description: '2/1 six-card club repeat', dealer: 'N',
+    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass', '3C'],
+    north: { S: 'AKQ986', H: 'K74', D: 'Q5', C: 'T2' },
+    south: { S: '4', H: 'AQ5', D: 'K32', C: 'KQJ987' },
+  }).board;
+  const forcingAuction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass'];
+  const standardAsTwoOverOne = evaluateUserCall('3C', forcingDeal, forcingAuction, system);
+  const twoOverOneRule = standardAsTwoOverOne.userCallMatchingRules.find(({ id }) =>
+    id === 'responder-rebid-two-over-one-repeat-long-suit');
+  checks++;
+  if (twoOverOneRule === undefined || !getNaturalResponderRebidLines(standardAsTwoOverOne,
+      twoOverOneRule, getHandFacts(forcingDeal.deal.S)).some((line) =>
+        line.includes('game forcing'))) {
+    failures++;
+    console.error('FAIL 2/1 six-card repeat should retain and explain game force.');
+  }
+  // A previously passed responder cannot retrospectively establish a 2/1 game force.
+  const passedAuction: Call[] = [
+    'Pass', 'Pass', 'Pass', '1D', 'Pass', '2C', 'Pass', '2D', 'Pass',
+  ];
+  const previouslyPassed = makeRuleTestBoard({
+    description: 'Responder passed before the opening', dealer: 'E',
+    practiceAuction: [...passedAuction, '3C'],
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+  }).board;
+  const passedResult = evaluateUserCall('3C', previouslyPassed, passedAuction, system);
+  checks++;
+  if (passedResult.userCallMatchingRules.some(({ id }) =>
+      id === 'responder-rebid-two-over-one-repeat-long-suit') ||
+      passedResult.applicableRules.some(({ id }) => id === 'responder-rebid-boundary-after-two-over-one')) {
+    failures++;
+    console.error('FAIL a previously passed responder was treated as establishing a 2/1 game force.');
+  }
+  console.log(`${failures} ***FAILURES***. Natural responder rebid teaching: ${checks} checks.\n`);
   return failures;
 }
+/// Check moved practice exercises and selected evidence through the production evaluator.
+function runConventionalResponderTeachingTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const cases = [
+    { bucket: 'responder-rebid-after-nt-conventions', auction: '1NT Pass 2H Pass 2S Pass Pass' },
+    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '2C Pass 2D Pass 2NT Pass Pass' },
+    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '1H Pass 2NT Pass 4H Pass Pass' },
+    { bucket: 'responder-rebid-after-major-game-try', auction: '1S Pass 2S Pass 2NT Pass 3S' },
+    { bucket: 'responder-rebid-after-splinters', auction: '1S Pass 4D Pass 4H Pass 4S' },
+    { bucket: 'responder-rebid-after-splinters', auction: '1C Pass 1H Pass 4D Pass 4H' },
+  ];
+  for (const test of cases) {
+    const buckets = RULE_TEST_DEAL_BUCKETS.filter((bucket) =>
+      bucket.deals.some((deal) => deal.practiceAuction.join(' ') === test.auction));
+    checks++;
+    if (buckets.length !== 1 || buckets[0]?.id !== test.bucket) {
+      failures++;
+      console.error(`FAIL R3 moved practice auction bucket: ${test.auction}, ` +
+        `found ${buckets.map((bucket) => bucket.id).join(', ')}.`);
+    }
+    const deal = buckets[0]?.deals.find((item) =>
+      item.practiceAuction.join(' ') === test.auction);
+    if (deal === undefined) continue;
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 6);
+    const call = deal.practiceAuction[6]!;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluation = evaluateUserCall(call, board, auction, system);
+    const rule = evaluation.userCallMatchingRules.find(({ id }) =>
+      deal.expectedResponderRebidCalls?.some((expected) =>
+        expected.call === call && expected.ruleIds.includes(id)));
+    checks++;
+    if (rule === undefined || getConventionalResponderRebidLines(evaluation, rule).length === 0) {
+      failures++;
+      console.error(`FAIL R3 accepted responder decision lacks teaching evidence: ${test.auction}.`);
+    }
+  }
+  const jacoby = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((deal) =>
+    deal.practiceAuction.join(' ') === '1S Pass 2NT Pass 3NT Pass 4S');
+  if (jacoby !== undefined) {
+    const rejection = evaluateUserCall('Pass', makeRuleTestBoard(jacoby).board,
+      jacoby.practiceAuction.slice(0, 6),
+      { ...defaultBiddingSystem, ...jacoby.requiredSystem });
+    checks++;
+    if (rejection.userCallMatchingRules.length > 0 ||
+        getConventionalResponderRebidFailureLines(rejection).length === 0) {
+      failures++;
+      console.error('FAIL R3 Jacoby artificial 3NT Pass should receive forcing guidance.');
+    }
+  }
+  // A rejected Pass after a completed convention is explained only when a
+  // stronger continuation actually qualified. An ordinary weak transfer Pass remains valid.
+  const responderPassCases: { auction: string; shouldQualify: boolean }[] = [
+    { auction: '1NT Pass 2C Pass 2H Pass 3H', shouldQualify: false },
+    { auction: '1NT Pass 2D Pass 2H Pass 2NT', shouldQualify: false },
+    { auction: '1NT Pass 2H Pass 2S Pass Pass', shouldQualify: true },
+  ];
+  for (const testCase of responderPassCases) {
+    const deal = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((item) =>
+      item.practiceAuction.join(' ') === testCase.auction);
+    checks++;
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing responder convention practice ${testCase.auction}.`);
+      continue;
+    }
+    const auction = deal.practiceAuction.slice(0, 6);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const evaluated = evaluateUserCall('Pass', makeRuleTestBoard(deal).board, auction, system);
+    const passQualifies = evaluated.userCallMatchingRules.length > 0;
+    const feedback = getConventionalResponderRebidFailureLines(evaluated);
+    checks++;
+    if (passQualifies !== testCase.shouldQualify ||
+        (testCase.shouldQualify ? feedback.length > 0 : feedback.length === 0)) {
+      failures++;
+      console.error(`FAIL unsupported convention Pass teaching for ${testCase.auction}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Conventional responder teaching: ${checks} checks.\n`);
+  return failures;
+}
+/// Verify hand-aware invitation feedback using the same evaluated facts that
+/// determine the selected call; no recorded practice deal is added or modified.
+function runResponderInvitationExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const openerNt = { S: 'AKJ84', H: 'Q65', D: 'AQ3', C: 'K4' };
+  const openerJump = { S: 'AKJ843', H: 'Q65', D: 'K73', C: 'K' };
+  const weak = { S: 'Q5', H: 'K87', D: 'J864', C: '9732' };
+  const strong = { S: 'Q5', H: 'KJ7', D: 'J864', C: 'Q932' };
+  const concealedRaise = { S: 'Q65', H: 'KJ7', D: 'J864', C: 'A93' };
+  const cases: { name: string; north: typeof openerNt; south: typeof weak;
+    rebid: Call; call: Call; ruleId: string; applies: boolean }[] = [
+    { name: 'decline 2NT with 6 HCP', north: openerNt, south: weak,
+      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject 3NT with 6 HCP', north: openerNt, south: weak,
+      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'accept 2NT with 9 HCP', north: openerNt, south: strong,
+      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject Pass with 9 HCP', north: openerNt, south: strong,
+      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'three-card limit raise after 2NT', north: openerNt, south: concealedRaise,
+      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+      applies: true },
+    { name: 'reject 4S with two-card support', north: openerNt, south: strong,
+      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
+      applies: false },
+    { name: 'decline 3S invitation', north: openerJump, south: weak,
+      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      applies: true },
+    { name: 'reject 4S after minimum jump invitation', north: openerJump, south: weak,
+      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      applies: false },
+    { name: 'accept 3S invitation', north: openerJump, south: strong,
+      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
+      applies: true },
+    { name: 'reject Pass after constructive 3S', north: openerJump, south: strong,
+      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
+      applies: false },
+  ];
+  for (const item of cases) {
+    const prefix: Call[] = ['1S', 'Pass', '1NT', 'Pass', item.rebid, 'Pass'];
+    const { board } = makeRuleTestBoard({ description: item.name,
+      practiceAuction: prefix, north: item.north, south: item.south });
+    const result = evaluateUserCall(item.call, board, prefix, defaultBiddingSystem);
+    const diag = result.ruleDiagnostics.find(({ rule }) => rule.id === item.ruleId);
+    const candidate = diag?.candidates.find(({ call }) => call === item.call);
+    const evidence = candidate?.callEvidence?.naturalResponderRebid;
+    const requirements = candidate?.callEvidence?.requirements;
+    const facts = getHandFacts(board.deal.S);
+    const status = getBiddingTurnStatus(board, prefix, defaultBiddingSystem);
+    const delivered = getBidExplanationLines({ title: 'Responder rebid', call: item.call,
+      status, result, handFacts: facts, auctionLength: prefix.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false });
+    checks++;
+    if (candidate?.ruleApplies !== item.applies || evidence === undefined ||
+        evidence.hcp !== facts.hcp || evidence.openingLength !== facts.lengths.S ||
+        evidence.supportPoints !== facts.totalPointsWShortage ||
+        requirements === undefined || requirements.length === 0) {
+      failures++;
+      console.error(`FAIL invitation evidence: ${item.name}.`);
+      continue;
+    }
+    const specialized = item.applies ?
+      getNaturalResponderRebidLines(result, diag!.rule, facts) :
+      getNaturalResponderRebidFailureLines(result);
+    checks++;
+    if (specialized.length === 0 || !specialized.every((line) => delivered.includes(line)) ||
+        (item.applies && requirements.some((check) => !check.passed)) ||
+        (!item.applies && requirements.every((check) => check.passed))) {
+      failures++;
+      console.error(`FAIL invitation explanation delivery: ${item.name}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Responder invitation evidence: ${checks} checks.\n`);
+  return failures;
+}
+
+//// Overcaller and takeout Doubler rebids
 
 /// Protect hand-specific natural overcaller-rebid explanations without freezing their prose.
 /// Check that the existing recorded cases produce evidence for the matching decision, and
@@ -5521,7 +6214,6 @@ function runNaturalSuitOvercallerRebidExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. Natural suit overcaller-rebid explanations: ${checks} checks.\n`);
   return failures;
 }
-
 /// Verify the actual maximum-raise distinction without freezing any explanation wording.
 function runTakeoutDoublerRebidExplanationTests (): number {
   let failures = 0;
@@ -5560,9 +6252,8 @@ function runTakeoutDoublerRebidExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. Takeout-Doubler rebid teaching: ${checks} checks.\n`);
   return failures;
 }
-
-/// Validate Q4 overcaller teaching from real evaluated evidence, not English wording.
-function runQ4OvercallerRebidQualityTests (): number {
+/// Validate overcaller-rebid teaching from real evaluated evidence, not English wording.
+function runOvercallerRebidEvidenceTests (): number {
   let failures = 0;
   let checks = 0;
   const strongAuctions = [
@@ -5669,7 +6360,7 @@ function runQ4OvercallerRebidQualityTests (): number {
     failures++;
     console.error('FAIL insufficient Stayman practice coverage.');
   }
-  console.log(`${failures} ***FAILURES***. Q4 overcaller rebid explanations: ${checks} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Overcaller rebid evidence: ${checks} checks.\n`);
   return failures;
 }
 /// Verify the selected competitive overcaller rebids and their explanations,
@@ -5763,7 +6454,6 @@ function runContestedSuitOvercallerRebidExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. Competitive overcaller rebid teaching: ${checks} checks.\n`);
   return failures;
 }
-
 /// Verify the revised 1NT-overcaller Pass and weak-two five-card major game
 /// alongside selected existing practice-deal rebid explanation families.
 function runOneNtAndWeakTwoRebidExplanationTests (): number {
@@ -5845,319 +6535,7 @@ function runOneNtAndWeakTwoRebidExplanationTests (): number {
   return failures;
 }
 
-/// Ensure the 2/1 forcing 2NT treatment does not invent an unbid-suit stopper
-/// requirement, while 3NT retains that requirement. These are synthetic what-if
-/// hands; no stored practice deal is changed.
-function runNaturalResponderRebidTeachingTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const system: BiddingSystem = { ...defaultBiddingSystem,
-    twoLevelNewSuitResponse: 'twoOverOne' };
-  const board = makeRuleTestBoard({
-    description: 'Balanced 2/1 responder with 14 HCP but no heart stopper',
-    dealer: 'N', practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass', '2NT'],
-    north: { S: 'AKJ74', H: 'Q64', D: 'QJ93', C: '2' },
-    south: { S: '83', H: 'J85', D: 'K65', C: 'AKQJ9' },
-  }).board;
-  const auction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2D', 'Pass'];
-  const invite = evaluateUserCall('2NT', board, auction, system);
-  const rule = invite.userCallMatchingRules.find(({ id }) =>
-    id === 'responder-rebid-two-over-one-forcing-2nt');
-  checks++;
-  if (rule === undefined || getNaturalResponderRebidLines(invite, rule,
-      getHandFacts(board.deal.S)).length === 0 ||
-      getNaturalResponderRebidFailureLines(invite).length > 0) {
-    failures++;
-    console.error('FAIL 2/1 forcing 2NT should not require an unbid-suit stopper.');
-  }
-  const threeNt = evaluateUserCall('3NT', board, auction, system);
-  const reason = getNaturalResponderRebidFailureLines(threeNt);
-  checks++;
-  if (threeNt.userCallMatchingRules.some(({ id }) =>
-        id === 'responder-rebid-two-over-one-game-3nt') || reason.length === 0) {
-    failures++;
-    console.error('FAIL 2/1 3NT should still require the missing heart stopper.');
-  }
-  const checkback = makeRuleTestBoard({
-    description: 'Five-card heart major after opener rebids natural 1NT',
-    dealer: 'N', practiceAuction: ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'],
-    north: { S: 'A94', H: 'Q76', D: 'QJ84', C: 'Q83' },
-    south: { S: 'Q73', H: 'KJ984', D: 'K65', C: 'K2' },
-  }).board;
-  const afterOneNt: Call[] = ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass'];
-  const result = evaluateUserCall('2NT', checkback, afterOneNt, defaultBiddingSystem);
-  const natural = result.userCallMatchingRules.find(({ id }) =>
-    id === 'responder-rebid-2nt-after-minimum-1nt');
-  checks++;
-  if (natural === undefined || !getNaturalResponderRebidLines(result, natural,
-      getHandFacts(checkback.deal.S)).some((line) => line.includes('New Minor Forcing'))) {
-    failures++;
-    console.error('FAIL missing explanatory New Minor Forcing alternative after a five-card major.');
-  }
-  // A Standard club repeat stops after one round, unlike the identical 2/1 auction.
-  const standardDeal = makeRuleTestBoard({
-    description: 'Standard six-card club repeat', dealer: 'N',
-    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass', '3C'],
-    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
-    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
-  }).board;
-  const standardAuction: Call[] = ['1D', 'Pass', '2C', 'Pass', '2D', 'Pass'];
-  const standardResult = evaluateUserCall('3C', standardDeal, standardAuction,
-    { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' });
-  const standardRule = standardResult.userCallMatchingRules.find(({ id }) =>
-    id === 'responder-rebid-standard-two-level-repeat-response');
-  checks++;
-  if (standardRule === undefined || !getNaturalResponderRebidLines(standardResult, standardRule,
-      getHandFacts(standardDeal.deal.S)).some((line) => line.includes('nonforcing'))) {
-    failures++;
-    console.error('FAIL Standard three-level club repeat should explain its nonforcing meaning.');
-  }
-  const forcingDeal = makeRuleTestBoard({
-    description: '2/1 six-card club repeat', dealer: 'N',
-    practiceAuction: ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass', '3C'],
-    north: { S: 'AKQ986', H: 'K74', D: 'Q5', C: 'T2' },
-    south: { S: '4', H: 'AQ5', D: 'K32', C: 'KQJ987' },
-  }).board;
-  const forcingAuction: Call[] = ['1S', 'Pass', '2C', 'Pass', '2S', 'Pass'];
-  const standardAsTwoOverOne = evaluateUserCall('3C', forcingDeal, forcingAuction, system);
-  const twoOverOneRule = standardAsTwoOverOne.userCallMatchingRules.find(({ id }) =>
-    id === 'responder-rebid-two-over-one-repeat-long-suit');
-  checks++;
-  if (twoOverOneRule === undefined || !getNaturalResponderRebidLines(standardAsTwoOverOne,
-      twoOverOneRule, getHandFacts(forcingDeal.deal.S)).some((line) =>
-        line.includes('game forcing'))) {
-    failures++;
-    console.error('FAIL 2/1 six-card repeat should retain and explain game force.');
-  }
-  // A previously passed responder cannot retrospectively establish a 2/1 game force.
-  const passedAuction: Call[] = [
-    'Pass', 'Pass', 'Pass', '1D', 'Pass', '2C', 'Pass', '2D', 'Pass',
-  ];
-  const previouslyPassed = makeRuleTestBoard({
-    description: 'Responder passed before the opening', dealer: 'E',
-    practiceAuction: [...passedAuction, '3C'],
-    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
-    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
-  }).board;
-  const passedResult = evaluateUserCall('3C', previouslyPassed, passedAuction, system);
-  checks++;
-  if (passedResult.userCallMatchingRules.some(({ id }) =>
-      id === 'responder-rebid-two-over-one-repeat-long-suit') ||
-      passedResult.applicableRules.some(({ id }) => id === 'responder-rebid-boundary-after-two-over-one')) {
-    failures++;
-    console.error('FAIL a previously passed responder was treated as establishing a 2/1 game force.');
-  }
-  console.log(`${failures} ***FAILURES***. Natural responder rebid teaching: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Check moved practice exercises and selected evidence through the production evaluator.
-function runConventionalResponderTeachingTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const cases = [
-    { bucket: 'responder-rebid-after-nt-conventions', auction: '1NT Pass 2H Pass 2S Pass Pass' },
-    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '2C Pass 2D Pass 2NT Pass Pass' },
-    { bucket: 'responder-rebid-after-strong-2c-and-jacoby-2nt', auction: '1H Pass 2NT Pass 4H Pass Pass' },
-    { bucket: 'responder-rebid-after-major-game-try', auction: '1S Pass 2S Pass 2NT Pass 3S' },
-    { bucket: 'responder-rebid-after-splinters', auction: '1S Pass 4D Pass 4H Pass 4S' },
-    { bucket: 'responder-rebid-after-splinters', auction: '1C Pass 1H Pass 4D Pass 4H' },
-  ];
-  for (const test of cases) {
-    const buckets = RULE_TEST_DEAL_BUCKETS.filter((bucket) =>
-      bucket.deals.some((deal) => deal.practiceAuction.join(' ') === test.auction));
-    checks++;
-    if (buckets.length !== 1 || buckets[0]?.id !== test.bucket) {
-      failures++;
-      console.error(`FAIL R3 moved practice auction bucket: ${test.auction}, ` +
-        `found ${buckets.map((bucket) => bucket.id).join(', ')}.`);
-    }
-    const deal = buckets[0]?.deals.find((item) =>
-      item.practiceAuction.join(' ') === test.auction);
-    if (deal === undefined) continue;
-    const { board } = makeRuleTestBoard(deal);
-    const auction = deal.practiceAuction.slice(0, 6);
-    const call = deal.practiceAuction[6]!;
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const evaluation = evaluateUserCall(call, board, auction, system);
-    const rule = evaluation.userCallMatchingRules.find(({ id }) =>
-      deal.expectedResponderRebidCalls?.some((expected) =>
-        expected.call === call && expected.ruleIds.includes(id)));
-    checks++;
-    if (rule === undefined || getConventionalResponderRebidLines(evaluation, rule).length === 0) {
-      failures++;
-      console.error(`FAIL R3 accepted responder decision lacks teaching evidence: ${test.auction}.`);
-    }
-  }
-  const jacoby = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((deal) =>
-    deal.practiceAuction.join(' ') === '1S Pass 2NT Pass 3NT Pass 4S');
-  if (jacoby !== undefined) {
-    const rejection = evaluateUserCall('Pass', makeRuleTestBoard(jacoby).board,
-      jacoby.practiceAuction.slice(0, 6),
-      { ...defaultBiddingSystem, ...jacoby.requiredSystem });
-    checks++;
-    if (rejection.userCallMatchingRules.length > 0 ||
-        getConventionalResponderRebidFailureLines(rejection).length === 0) {
-      failures++;
-      console.error('FAIL R3 Jacoby artificial 3NT Pass should receive forcing guidance.');
-    }
-  }
-  // A rejected Pass after a completed convention is explained only when a
-  // stronger continuation actually qualified. An ordinary weak transfer Pass remains valid.
-  const responderPassCases: { auction: string; shouldQualify: boolean }[] = [
-    { auction: '1NT Pass 2C Pass 2H Pass 3H', shouldQualify: false },
-    { auction: '1NT Pass 2D Pass 2H Pass 2NT', shouldQualify: false },
-    { auction: '1NT Pass 2H Pass 2S Pass Pass', shouldQualify: true },
-  ];
-  for (const testCase of responderPassCases) {
-    const deal = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((item) =>
-      item.practiceAuction.join(' ') === testCase.auction);
-    checks++;
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL missing responder convention practice ${testCase.auction}.`);
-      continue;
-    }
-    const auction = deal.practiceAuction.slice(0, 6);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const evaluated = evaluateUserCall('Pass', makeRuleTestBoard(deal).board, auction, system);
-    const passQualifies = evaluated.userCallMatchingRules.length > 0;
-    const feedback = getConventionalResponderRebidFailureLines(evaluated);
-    checks++;
-    if (passQualifies !== testCase.shouldQualify ||
-        (testCase.shouldQualify ? feedback.length > 0 : feedback.length === 0)) {
-      failures++;
-      console.error(`FAIL unsupported convention Pass teaching for ${testCase.auction}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Conventional responder teaching: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Verify the remaining opener interference teaching without changing any bid thresholds.
-function runOpenerInterferenceTeachingTests (): number {
-  let failures = 0;
-  let checks = 0;
-  // A DONT 2H shows both majors, so a heart stopper alone is not enough.
-  const { board } = makeRuleTestBoard({
-    description: 'DONT two-major stopper: hearts stopped but spades unstopped',
-    practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
-    north: { S: 'T74', H: 'AK4', D: 'AQ7', C: 'K983' },
-    south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
-  });
-  const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
-  const failed = evaluateUserCall('3NT', board, auction, defaultBiddingSystem);
-  const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
-  checks++;
-  if (failed.userCallMatchingRules.some(({ id }) =>
-        id === 'opener-rebid-3nt-after-1nt-interference-natural-suit') ||
-      status.kind !== 'scopeBoundary' ||
-      (status.kind === 'scopeBoundary' &&
-        status.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') ||
-      !getOpenerOneNtInterferenceFailureLines(failed).some((line) =>
-        line.includes('spades'))) {
-    failures++;
-    console.error('FAIL DONT two-major stopper gap and judgment boundary.');
-  }
-  const goodNt = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1NT 2H 3C Pass 3NT');
-  checks++;
-  if (goodNt === undefined) {
-    failures++;
-    console.error('FAIL no existing DONT natural 3C to 3NT practice example.');
-  } else {
-    const accepted = evaluateUserCall('3NT', makeRuleTestBoard(goodNt).board,
-      goodNt.practiceAuction.slice(0, 4), defaultBiddingSystem);
-    const rule = accepted.userCallMatchingRules.find(({ id }) =>
-      id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
-    if (rule === undefined ||
-        !getOpenerOneNtInterferenceLines(accepted, rule).some((line) =>
-          line.includes('hearts and spades'))) {
-      failures++;
-      console.error('FAIL qualifying DONT continuation lacks two-major explanation.');
-    }
-  }
-  const auctions: { sequence: string; ruleId: string; rejected?: Call }[] = [
-    { sequence: '1H 2S 3H Pass Pass',
-      ruleId: 'opener-rebid-after-jump-overcall-nonforcing-pass' },
-    { sequence: '1C 2D 2S Pass 3S',
-      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
-    { sequence: '1H 2S 3S Pass 4H',
-      ruleId: 'opener-rebid-after-jump-overcall-major-game', rejected: 'Pass' },
-    { sequence: '1H 2S 3C Pass 3NT',
-      ruleId: 'opener-rebid-after-jump-overcall-natural-nt', rejected: 'Pass' },
-    { sequence: '1S 3H Double Pass 3S',
-      ruleId: 'opener-rebid-after-jump-overcall-natural-suit', rejected: 'Pass' },
-  ];
-  for (const test of auctions) {
-    const deal = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((item) =>
-      item.practiceAuction.join(' ') === test.sequence);
-    checks++;
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL missing jump-overcall practice ${test.sequence}.`);
-      continue;
-    }
-    const { board: jumpBoard } = makeRuleTestBoard(deal);
-    const prefix = deal.practiceAuction.slice(0, 4);
-    const call = deal.practiceAuction[4]!;
-    const accepted = evaluateUserCall(call, jumpBoard, prefix, defaultBiddingSystem);
-    const rule = accepted.userCallMatchingRules.find(({ id }) => id === test.ruleId);
-    if (rule === undefined || getOpenerJumpOvercallRebidLines(accepted, rule).length === 0) {
-      failures++;
-      console.error(`FAIL jump-overcall explanation ${test.sequence}.`);
-    }
-    if (test.rejected !== undefined) {
-      const rejection = evaluateUserCall(test.rejected, jumpBoard, prefix, defaultBiddingSystem);
-      checks++;
-      if (rejection.userCallMatchingRules.length > 0 ||
-          getOpenerJumpOvercallRebidFailureLines(rejection).length === 0) {
-        failures++;
-        console.error(`FAIL forcing rejection after ${test.sequence}.`);
-      }
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Opener interference teaching: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Overlapping three- and four-card major-support routes must report a rejected
-/// new-suit length once. Mention a different suit only when it actually qualifies
-/// for the game-forcing route, including the 13-support-point requirement.
-function runMajorSupportNewSuitRejectionTests (): number {
-  const north = { S: 'AT652', H: 'QJ', D: 'K65', C: 'J94' };
-  const cases = [
-    { name: 'three-card support below game-force values',
-      south: { S: 'K87', H: '9765', D: 'A8', C: 'AT82' }, alternative: false },
-    { name: 'three-card support with game-force values',
-      south: { S: 'K87', H: '9765', D: 'A8', C: 'AK82' }, alternative: true },
-    { name: 'four-card support below game-force values',
-      south: { S: 'K874', H: '9765', D: 'A8', C: 'AT8' }, alternative: false },
-    { name: 'four-card support with game-force values and minor fallback',
-      south: { S: 'K874', H: '9765', D: 'A8', C: 'AK8' }, alternative: true },
-  ];
-  let failures = 0;
-  let checks = 0;
-  for (const item of cases) {
-    const { board } = makeRuleTestBoard({ description: item.name,
-      practiceAuction: ['1S', 'Pass', '2H'], north, south: item.south });
-    const auction: Call[] = ['1S', 'Pass'];
-    const result = evaluateUserCall('2H', board, auction, defaultBiddingSystem);
-    const lines = getMajorSupportFailureLines(result);
-    const alternative = getApplicableCandidateCalls(result).some(({ rule, call }) =>
-      call === '2C' && (rule.id === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' ||
-        rule.id === 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise'));
-    checks++;
-    if (result.userCallMatchingRules.length > 0 || lines.length !== 1 ||
-        alternative !== item.alternative ||
-        lines[0]?.includes('(2C)') !== item.alternative) {
-      failures++;
-      console.error(`FAIL major-support rejection: ${item.name}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Major-support new-suit rejection: ${checks} checks.\n`);
-  return failures;
-}
+//// Explanation delivery and rejection evidence
 
 /// The explanation assembler must display the actual helper-generated reasons,
 /// not merely make those helpers available to an independent unit test. Tests
@@ -6256,7 +6634,6 @@ function runBidExplanationDeliveryTests (): number {
   console.log(`${failures} ***FAILURES***. Explanation delivery: ${checks} checks.\n`);
   return failures;
 }
-
 /// A practice substitution must not repeat an already displayed rule's generic
 /// guidance, but must retain hand-specific evidence and all other supported rules.
 function runRecordedCallFeedbackTests (): number {
@@ -6330,10 +6707,9 @@ function runRecordedCallFeedbackTests (): number {
   console.log(`${failures} ***FAILURES***. Recorded-call feedback: ${checks} checks.\n`);
   return failures;
 }
-
 /// A less-preferred bid is still legitimate; the explanation should acknowledge
 /// the higher-priority *qualifying* choice. Use generated lines, not English snapshots.
-function runQ2PositiveAlternativeDeliveryTests (): number {
+function runPositiveAlternativeDeliveryTests (): number {
   let checks = 0;
   let failures = 0;
   const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
@@ -6422,214 +6798,12 @@ function runQ2PositiveAlternativeDeliveryTests (): number {
       console.error('FAIL Q2 unqualified jump shift was presented as a supported alternative.');
     }
   }
-  console.log(`${failures} ***FAILURES***. Q2 reciprocal positive alternatives: ${checks} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Positive bidding alternatives: ${checks} checks.\n`);
   return failures;
 }
-
-/// Validate evaluated point evidence and delivery on existing natural opener-rebid hands.
-/// The teaching uses the same candidate requirements for both successful and rejected bids.
-function runNaturalOpenerRebidEvidenceTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
-  const cases: { auction: string; ruleId: string; call: Call; points: number }[] = [
-    { auction: '1C Pass 1H Pass 2H',
-      ruleId: 'opener-rebid-simple-raise-after-minor-one-level-new-suit',
-      call: '2H', points: 12 },
-    { auction: '1C Pass 1H Pass 3H',
-      ruleId: 'opener-rebid-jump-raise-after-minor-one-level-new-suit',
-      call: '3H', points: 17 },
-    { auction: '1C Pass 1H Pass 4H',
-      ruleId: 'opener-rebid-game-raise-after-minor-one-level-new-suit',
-      call: '4H', points: 19 },
-    { auction: '1C Pass 1H Pass 2D',
-      ruleId: 'opener-rebid-reverse-after-minor-one-level-new-suit',
-      call: '2D', points: 18 },
-  ];
-  for (const testCase of cases) {
-    checks++;
-    const deal = deals.find((item) => item.practiceAuction.join(' ') === testCase.auction);
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL natural opener-rebid deal missing: ${testCase.auction}.`);
-      continue;
-    }
-    const board = makeRuleTestBoard(deal).board;
-    const auction = deal.practiceAuction.slice(0, 4);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const result = evaluateUserCall(testCase.call, board, auction, system);
-    const candidate = getApplicableCandidateCalls(result).find((item) =>
-      item.call === testCase.call && item.rule.id === testCase.ruleId);
-    const points = candidate?.callEvidence?.requirements?.find((item) =>
-      item.kind === 'totalPoints');
-    const hand = getHandFacts(board.deal.N);
-    const usesShortage = testCase.ruleId.includes('-raise-');
-    const actual = usesShortage ? hand.totalPointsWShortage : hand.totalPointsWLength;
-    const lines = candidate === undefined ? [] :
-      getOpenerOneLevelNewSuitRebidLines(result, candidate.rule);
-    const delivered = candidate === undefined ? [] :
-      getMatchedCallExplanationLines(result, candidate.rule, hand, auction.length);
-    if (points?.kind !== 'totalPoints' || !points.passed ||
-        points.actual !== testCase.points || actual !== points.actual ||
-        lines.length === 0 || !lines.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL natural opener-rebid evaluated evidence or feedback: ${testCase.auction}.`);
-    }
-  }
-
-  // The minimum hand has enough heart support but fails the actual strength test
-  // for 3H; its rejection must reach the student without inventing a different bid.
-  const minimum = deals.find((item) =>
-    item.practiceAuction.join(' ') === '1C Pass 1H Pass 2H');
-  checks++;
-  if (minimum === undefined) {
-    failures++;
-    console.error('FAIL natural opener minimum support hand missing.');
-  } else {
-    const board = makeRuleTestBoard(minimum).board;
-    const auction = minimum.practiceAuction.slice(0, 4);
-    const system = { ...defaultBiddingSystem, ...minimum.requiredSystem };
-    const rejected = evaluateUserCall('3H', board, auction, system);
-    const candidate = rejected.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-jump-raise-after-minor-one-level-new-suit')
-      ?.candidates.find((item) => item.call === '3H');
-    const pointCheck = candidate?.callEvidence?.requirements?.find((item) =>
-      item.kind === 'totalPoints');
-    const hand = getHandFacts(board.deal.N);
-    const reasons = getOpenerOneLevelNewSuitRebidFailureLines(rejected);
-    const delivered = getBidExplanationLines({
-      title: 'North bids 3H', call: '3H',
-      status: getBiddingTurnStatus(board, auction, system), result: rejected,
-      handFacts: hand, auctionLength: auction.length, previewLines: [],
-      seatLabel: 'North', recordedUnjudged: false,
-    });
-    if (rejected.userCallMatchingRules.length > 0 || pointCheck?.kind !== 'totalPoints' ||
-        pointCheck.passed || pointCheck.actual !== hand.totalPointsWShortage ||
-        pointCheck.min !== 17 || pointCheck.max !== 18 ||
-        reasons.length === 0 || !reasons.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error('FAIL rejected opener jump raise lost tested shortage-point evidence.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Natural opener rebid explanations: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Check reciprocal rebid explanations on existing hands through evaluator and feedback.
-/// No exact English is asserted; only qualification, generated teaching and delivery.
-function runQ2RebidAlternativesTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
-  const scenarios: { name: string; auction: string; system: Partial<BiddingSystem>;
-    selected: Call; alternative: Call; stage: 'oneLevel' | 'twoLevel' | 'responder' }[] = [
-    { name: 'diamond repeat versus clubs', auction: '1D Pass 1H Pass 2C',
-      system: {}, selected: '2D', alternative: '2C', stage: 'oneLevel' },
-    { name: 'clubs versus diamond repeat', auction: '1D Pass 1H Pass 2C',
-      system: {}, selected: '2C', alternative: '2D', stage: 'oneLevel' },
-    { name: 'heart repeat versus diamonds', auction: '1H Pass 1S Pass 2D',
-      system: {}, selected: '2H', alternative: '2D', stage: 'oneLevel' },
-    { name: 'diamonds versus heart repeat', auction: '1H Pass 1S Pass 2D',
-      system: {}, selected: '2D', alternative: '2H', stage: 'oneLevel' },
-    { name: 'Standard spades versus heart fit', auction: '1S Pass 2H Pass 3H',
-      system: { twoLevelNewSuitResponse: 'standard' },
-      selected: '2S', alternative: '3H', stage: 'twoLevel' },
-    { name: 'Standard heart fit versus spades', auction: '1S Pass 2H Pass 3H',
-      system: { twoLevelNewSuitResponse: 'standard' },
-      selected: '3H', alternative: '2S', stage: 'twoLevel' },
-    { name: '2/1 spades versus heart fit', auction: '1S Pass 2H Pass 3H',
-      system: { twoLevelNewSuitResponse: 'twoOverOne' },
-      selected: '2S', alternative: '3H', stage: 'twoLevel' },
-    { name: '2/1 heart fit versus spades', auction: '1S Pass 2H Pass 3H',
-      system: { twoLevelNewSuitResponse: 'twoOverOne' },
-      selected: '3H', alternative: '2S', stage: 'twoLevel' },
-    { name: '2/1 notrump versus club fit', auction: '1D Pass 2C Pass 2NT',
-      system: { twoLevelNewSuitResponse: 'twoOverOne' },
-      selected: '2NT', alternative: '3C', stage: 'twoLevel' },
-    { name: '2/1 club fit versus notrump', auction: '1D Pass 2C Pass 2NT',
-      system: { twoLevelNewSuitResponse: 'twoOverOne' },
-      selected: '3C', alternative: '2NT', stage: 'twoLevel' },
-    { name: 'heart invitation versus 2NT', auction: '1H Pass 1S Pass 2H Pass 2NT',
-      system: {}, selected: '3H', alternative: '2NT', stage: 'responder' },
-    { name: '2NT versus heart invitation', auction: '1H Pass 1S Pass 2H Pass 2NT',
-      system: {}, selected: '2NT', alternative: '3H', stage: 'responder' },
-    { name: 'spade invitation versus hearts', auction: '1H Pass 1S Pass 2H Pass 3S',
-      system: {}, selected: '3S', alternative: '3H', stage: 'responder' },
-    { name: 'heart invitation versus spades', auction: '1H Pass 1S Pass 2H Pass 3S',
-      system: {}, selected: '3H', alternative: '3S', stage: 'responder' },
-    { name: 'notrump game versus heart game', auction: '1H Pass 1S Pass 2H Pass 3NT',
-      system: {}, selected: '3NT', alternative: '4H', stage: 'responder' },
-    { name: 'heart game versus notrump game', auction: '1H Pass 1S Pass 2H Pass 3NT',
-      system: {}, selected: '4H', alternative: '3NT', stage: 'responder' },
-  ];
-  for (const scenario of scenarios) {
-    checks++;
-    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction &&
-      Object.entries(scenario.system).every(([key, value]) =>
-        item.requiredSystem?.[key as keyof BiddingSystem] === value));
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL Q2 rebid practice deal missing: ${scenario.name}.`);
-      continue;
-    }
-    const board = makeRuleTestBoard(deal).board;
-    const prefix = deal.practiceAuction.slice(0, scenario.stage === 'responder' ? 6 : 4);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...scenario.system };
-    const result = evaluateUserCall(scenario.selected, board, prefix, system);
-    const qualifiedAlternative = getApplicableCandidateCalls(result).some((item) =>
-      item.call === scenario.alternative && item.ruleApplies);
-    const matched = result.userCallMatchingRules.find((item) =>
-      scenario.stage === 'responder' ? item.id.startsWith('responder-rebid-') :
-      scenario.stage === 'oneLevel' ? item.id.includes('-one-level-new-suit') :
-        item.id.includes('-standard-two-level-new-suit') ||
-        item.id.includes('-two-over-one-new-suit'));
-    const handFacts = getHandFacts(board.deal[scenario.stage === 'responder' ? 'S' : 'N']);
-    const generated = matched === undefined ? [] :
-      scenario.stage === 'responder' ? getNaturalResponderRebidLines(result, matched, handFacts) :
-      scenario.stage === 'oneLevel' ? getOpenerOneLevelNewSuitRebidLines(result, matched) :
-        getOpenerTwoLevelNewSuitRebidLines(result, matched);
-    const delivered = getBidExplanationLines({
-      title: 'Rebid', call: scenario.selected,
-      status: getBiddingTurnStatus(board, prefix, system), result, handFacts,
-      auctionLength: prefix.length, previewLines: [],
-      seatLabel: scenario.stage === 'responder' ? 'South' : 'North',
-      recordedUnjudged: false,
-    });
-    if (!qualifiedAlternative || matched === undefined || generated.length === 0 ||
-        !generated.some((line) => line.includes(scenario.alternative)) ||
-        !generated.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL Q2 rebid comparison or delivery: ${scenario.name}.`);
-    }
-  }
-  // The matching major game is not invented for a responder who lacks game values.
-  const minimum = deals.find((deal) =>
-    deal.practiceAuction.join(' ') === '1H Pass 1S Pass 2H Pass 2S');
-  checks++;
-  if (minimum === undefined) {
-    failures++;
-    console.error('FAIL Q2 missing minimum responder practice hand.');
-  } else {
-    const board = makeRuleTestBoard(minimum).board;
-    const prefix: Call[] = ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'];
-    const result = evaluateUserCall('2S', board, prefix, defaultBiddingSystem);
-    const rule = result.userCallMatchingRules.find((item) =>
-      item.id === 'responder-rebid-two-original-suit-after-minimum-repeat');
-    if (rule === undefined || getApplicableCandidateCalls(result).some((item) =>
-        item.call === '4H' && item.ruleApplies) ||
-        getNaturalResponderRebidLines(result, rule, getHandFacts(board.deal.S))
-          .some((line) => line.includes('4H'))) {
-      failures++;
-      console.error('FAIL Q2 invented a game alternative for minimum responder.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Q2 rebid positive alternatives: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Q4 competitive explanations: verify hand-specific promises and reciprocal alternatives.
+/// Competitive explanations: verify hand-specific promises and reciprocal alternatives.
 /// Use existing deals and inspect evaluated evidence plus assembled feedback, not prose snapshots.
-function runQ4CompetitiveExplanationTests (): number {
+function runCompetitiveBidExplanationTests (): number {
   let failures = 0;
   let checks = 0;
   const doubleHands: { auction: string; promised: string[] }[] = [
@@ -6732,314 +6906,12 @@ function runQ4CompetitiveExplanationTests (): number {
       console.error('FAIL Jordan total-points-with-shortage evidence mismatch.');
     }
   }
-  console.log(`${failures} ***FAILURES***. Q4 competitive teaching: ${checks} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Competitive bidding explanations: ${checks} checks.\n`);
   return failures;
 }
-/// Check qualified competitive alternatives, including reciprocal directions,
-/// from the evaluator through the same explanation assembly used by the panel.
-function runCompetitiveResponseAlternativesTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const scenarios: {
-    deal: RuleTestDeal;
-    chosen: Call;
-    selectedRule: string;
-    alternatives: { call: Call; ruleId: string }[];
-  }[] = [];
-  const naturalMajors = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1C 1D 1H');
-  if (naturalMajors !== undefined) {
-    const alternative = [
-      { call: 'Double' as Call, ruleId: 'respond-over-suit-negative-double' },
-      { call: '1H' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
-      { call: '1S' as Call, ruleId: 'respond-over-suit-new-suit-one-level' },
-    ];
-    for (const selected of alternative) scenarios.push({
-      deal: naturalMajors, chosen: selected.call, selectedRule: selected.ruleId,
-      alternatives: alternative.filter((item) => item.call !== selected.call),
-    });
-  }
-  const afterDouble = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1H Double Redouble' &&
-    deal.expectedResponseCalls?.some((item) => item.call === '1S'));
-  if (afterDouble !== undefined) {
-    scenarios.push({ deal: afterDouble, chosen: '1S',
-      selectedRule: 'respond-after-double-new-suit-one-level',
-      alternatives: [{ call: 'Redouble', ruleId: 'respond-after-double-redouble-values' }] });
-    scenarios.push({ deal: afterDouble, chosen: 'Redouble',
-      selectedRule: 'respond-after-double-redouble-values',
-      alternatives: [{ call: '1S', ruleId: 'respond-after-double-new-suit-one-level' }] });
-  }
-  const jump = RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1H 2S 3C' &&
-    deal.expectedResponseCalls?.length === 3);
-  if (jump !== undefined) {
-    const options = [
-      { call: '3C' as Call, ruleId: 'respond-over-jump-new-suit-three-level' },
-      { call: '3S' as Call, ruleId: 'respond-over-jump-support-cuebid-major' },
-      { call: '4H' as Call, ruleId: 'respond-over-jump-major-game-constructive' },
-    ];
-    for (const selected of options) scenarios.push({
-      deal: jump, chosen: selected.call, selectedRule: selected.ruleId,
-      alternatives: options.filter((item) => item.call !== selected.call),
-    });
-  }
-  checks++;
-  if (scenarios.length !== 8) {
-    failures++;
-    console.error('FAIL competitive alternatives did not find the three existing hands.');
-  }
-  for (const scenario of scenarios) {
-    checks++;
-    const { deal, chosen, alternatives } = scenario;
-    const board = makeRuleTestBoard(deal).board;
-    const auction = deal.practiceAuction.slice(0, 2);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const result = evaluateUserCall(chosen, board, auction, system);
-    const rule = result.userCallMatchingRules.find((item) => item.id === scenario.selectedRule);
-    const qualified = getApplicableCandidateCalls(result);
-    const allSupported = alternatives.every((item) =>
-      qualified.some((candidate) => candidate.call === item.call &&
-        candidate.rule.id === item.ruleId && candidate.ruleApplies));
-    const generated = rule === undefined ? [] : getCompetitiveResponseAlternativeLines(result, rule);
-    const delivered = getBidExplanationLines({
-      title: 'Competitive response', call: chosen,
-      status: getBiddingTurnStatus(board, auction, system), result,
-      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
-      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
-    });
-    if (rule === undefined || !allSupported || generated.length === 0 ||
-        !generated.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL competitive comparison not qualified or delivered for ${deal.practiceAuction.join(' ')} as ${chosen}.`);
-    }
-  }
-  // A negative Double by itself is not grounds to mention an unavailable
-  // one-level natural response. Only real evaluated overlaps yield comparisons.
-  const noOverlap = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((deal) =>
-    deal.practiceAuction.join(' ') === '1D 1S Double');
-  checks++;
-  if (noOverlap === undefined) {
-    failures++;
-    console.error('FAIL negative-Double no-overlap fixture missing.');
-  } else {
-    const board = makeRuleTestBoard(noOverlap).board;
-    const auction: Call[] = ['1D', '1S'];
-    const result = evaluateUserCall('Double', board, auction, defaultBiddingSystem);
-    const rule = result.userCallMatchingRules.find((item) =>
-      item.id === 'respond-over-suit-negative-double');
-    if (rule === undefined || getCompetitiveResponseAlternativeLines(result, rule).length !== 0) {
-      failures++;
-      console.error('FAIL negative-Double comparison invented a natural one-level alternative.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Competitive response alternatives: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Exercise the remaining reciprocal Q2 comparisons on existing recorded hands.
-/// Assert qualification and feedback delivery, not particular English wording.
-function runQ2DirectOvercallAlternativesTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const scenarios: { name: string; description: string; selected: Call;
-    alternative: Call; ruleId: string; prefix: Call[]; seat: 'E' | 'W' }[] = [
-    { name: 'natural spades versus takeout Double',
-      description: 'Good five-card spades and 10 HCP:', selected: '1S',
-      alternative: 'Double', ruleId: 'overcall-simple-suit-at-one-level',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'takeout Double versus natural spades',
-      description: 'Good five-card spades and 10 HCP:', selected: 'Double',
-      alternative: '1S', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'natural 1NT versus takeout Double',
-      description: '15 HCP and K83 in diamonds:', selected: '1NT',
-      alternative: 'Double', ruleId: 'overcall-natural-1nt-with-stopper',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'takeout Double versus natural 1NT',
-      description: '15 HCP and K83 in diamonds:', selected: 'Double',
-      alternative: '1NT', ruleId: 'overcall-takeout-double-with-unbid-suit-support',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'weak-two natural 2NT versus Double',
-      description: 'Balanced 15 HCP with the diamond ace:', selected: '2NT',
-      alternative: 'Double', ruleId: 'overcall-weak-two-natural-2nt-with-stopper',
-      prefix: ['2D'], seat: 'E' },
-    { name: 'weak-two Double versus natural 2NT',
-      description: 'Balanced 15 HCP with the diamond ace:', selected: 'Double',
-      alternative: '2NT', ruleId: 'overcall-weak-two-takeout-double-with-unbid-suit-support',
-      prefix: ['2D'], seat: 'E' },
-    { name: 'weak jump hearts versus natural hearts',
-      description: 'Six good hearts, 10 HCP:', selected: '2H',
-      alternative: '1H', ruleId: 'overcall-preemptive-jump-at-two-level',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'natural hearts versus weak jump',
-      description: 'Six good hearts, 10 HCP:', selected: '1H',
-      alternative: '2H', ruleId: 'overcall-simple-suit-at-one-level',
-      prefix: ['1D'], seat: 'E' },
-    { name: 'four-level weak jump versus natural spades',
-      description: 'Eight good spades, fewer than 10 HCP:', selected: '4S',
-      alternative: '1S', ruleId: 'overcall-preemptive-jump-at-four-level',
-      prefix: ['1C'], seat: 'E' },
-    { name: 'natural spades versus four-level weak jump',
-      description: 'Eight good spades, fewer than 10 HCP:', selected: '1S',
-      alternative: '4S', ruleId: 'overcall-simple-suit-at-one-level',
-      prefix: ['1C'], seat: 'E' },
-    { name: 'balancing 1NT versus defensive Pass',
-      description: 'Balanced 12 HCP with spade stopper:', selected: '1NT',
-      alternative: 'Pass', ruleId: 'balance-natural-1nt',
-      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
-    { name: 'balancing defensive Pass versus 1NT',
-      description: 'Balanced 12 HCP with spade stopper:', selected: 'Pass',
-      alternative: '1NT', ruleId: 'balance-pass-defend',
-      prefix: ['1S', 'Pass', 'Pass'], seat: 'W' },
-  ];
-  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
-  for (const scenario of scenarios) {
-    checks++;
-    const deal = deals.find((item) => item.description.startsWith(scenario.description) &&
-      scenario.prefix.every((call, index) => item.practiceAuction[index] === call));
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL Q2 direct/balancing practice deal missing: ${scenario.name}.`);
-      continue;
-    }
-    const board = makeRuleTestBoard(deal).board;
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const result = evaluateUserCall(scenario.selected, board, scenario.prefix, system);
-    const selectedRule = result.userCallMatchingRules.find((rule) =>
-      rule.id === scenario.ruleId);
-    const alternative = getApplicableCandidateCalls(result).some((candidate) =>
-      candidate.call === scenario.alternative && candidate.ruleApplies);
-    const handFacts = getHandFacts(board.deal[scenario.seat]);
-    const generated = selectedRule === undefined ? [] :
-      getMatchedCallExplanationLines(result, selectedRule, handFacts, scenario.prefix.length);
-    const comparison = generated.filter((line) => line.includes(scenario.alternative) &&
-      !line.startsWith('- ') && !line.startsWith('  '));
-    const delivered = getBidExplanationLines({
-      title: 'Direct and balancing calls', call: scenario.selected,
-      status: getBiddingTurnStatus(board, scenario.prefix, system), result,
-      handFacts, auctionLength: scenario.prefix.length, previewLines: [],
-      seatLabel: scenario.seat === 'E' ? 'East' : 'West', recordedUnjudged: false,
-    });
-    if (selectedRule === undefined || !alternative || comparison.length === 0 ||
-        !comparison.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL Q2 direct/balancing comparison or delivery: ${scenario.name}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Q2 direct/balancing alternatives: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Q4: conventional opener explanations must use the evaluated facts and reach the student.
-/// No wording assertions: verify actual rule qualifications, evidence and feedback delivery.
-function runQ4ConventionalOpenerEvidenceTests (): number {
-  let checks = 0;
-  let failures = 0;
-  const deals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
-  const scenarios: { auction: string; call: Call; family: 'positiveForce' |
-    'jacobyShortness' | 'jacobySideSuit' | 'splinterLow' | 'splinterCheapest' |
-    'strongTwoCLongSuit' | 'strongTwoCNt' | 'weakJumpShift' }[] = [
-    { auction: '1S Pass 2NT Pass 3D', call: '3C', family: 'jacobyShortness' },
-    { auction: '1S Pass 2NT Pass 3NT', call: '4D', family: 'jacobySideSuit' },
-    { auction: '1H Pass 3S Pass 4H', call: '4D', family: 'splinterLow' },
-    { auction: '1S Pass 4C Pass 4D', call: '4H', family: 'splinterCheapest' },
-    { auction: '2C Pass 2H Pass 3H', call: 'Pass', family: 'positiveForce' },
-    { auction: '2C Pass 3C Pass 3NT', call: 'Pass', family: 'positiveForce' },
-    { auction: '2C Pass 2D Pass 3C', call: '3C', family: 'strongTwoCLongSuit' },
-    { auction: '2C Pass 2D Pass 3NT', call: '3NT', family: 'strongTwoCNt' },
-    { auction: '1C Pass 2H Pass Pass', call: 'Pass', family: 'weakJumpShift' },
-  ];
-  for (const scenario of scenarios) {
-    checks++;
-    const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction);
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL Q4 conventional deal not found: ${scenario.auction}.`);
-      continue;
-    }
-    const board = makeRuleTestBoard(deal).board;
-    const auction = deal.practiceAuction.slice(0, 4);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const evaluated = evaluateUserCall(scenario.call, board, auction, system);
-    const hand = getHandFacts(board.deal.N);
-    const status = getBiddingTurnStatus(board, auction, system);
-    const delivered = getBidExplanationLines({
-      title: 'North bids ' + scenario.call, call: scenario.call,
-      status, result: evaluated, handFacts: hand, auctionLength: auction.length,
-      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
-    });
-    const reasons = scenario.family === 'positiveForce' ?
-      getOpenerForcingRebidPassFailureLines(evaluated) :
-      getOpenerConventionalRebidFailureLines(evaluated);
-    const available = getApplicableCandidateCalls(evaluated);
-    const jacoby = evaluated.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-shortness-after-major-jacoby-2nt');
-    const side = evaluated.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-side-suit-after-major-jacoby-2nt');
-    const control = evaluated.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-control-after-major-splinter')
-      ?.callEvidence?.openerSplinterControl;
-    let valid = false;
-    switch (scenario.family) {
-      case 'positiveForce':
-        valid = evaluated.userCallMatchingRules.length === 0 &&
-          available.some((item) => item.rule.id.includes('-after-2c')) &&
-          reasons.length > 0;
-        break;
-      case 'jacobyShortness': {
-        const attempted = jacoby?.candidates.find((item) => item.call === scenario.call);
-        valid = attempted?.ruleApplies === false &&
-          attempted.callEvidence?.openerConventionalRebid?.bidSuitLength === 4 &&
-          available.some((item) => item.call === '3D') && reasons.length > 0;
-        break;
-      }
-      case 'jacobySideSuit': {
-        const attempted = side?.candidates.find((item) => item.call === scenario.call);
-        const facts = attempted?.callEvidence?.openerJacobySideSuit;
-        valid = attempted?.ruleApplies === false && facts?.length === 3 &&
-          facts.topFourHonors === 1 && reasons.length > 0;
-        break;
-      }
-      case 'splinterLow':
-        valid = control?.workingHcp === 12 && control.wastedHcp === 6 &&
-          control.cheapestCall === null && reasons.length > 0 &&
-          available.some((item) => item.call === '4H');
-        break;
-      case 'splinterCheapest':
-        valid = control?.workingHcp === 15 && control.cheapestCall === '4D' &&
-          control.qualifyingControls.includes('4H') && reasons.length > 0 &&
-          available.some((item) => item.call === '4S');
-        break;
-      case 'strongTwoCLongSuit':
-      case 'strongTwoCNt': {
-        const rule = evaluated.userCallMatchingRules.find((item) =>
-          item.id.endsWith('-after-2c-2d'));
-        const matched = rule === undefined ? [] :
-          getMatchedCallExplanationLines(evaluated, rule, hand, auction.length);
-        valid = rule !== undefined && matched.length > 0 &&
-          matched.every((line) => delivered.includes(line));
-        break;
-      }
-      case 'weakJumpShift':
-        valid = evaluated.userCallMatchingRules.some((rule) =>
-          rule.id === 'opener-rebid-pass-after-weak-jump-shift') &&
-          getOpenerForcingRebidPassFailureLines(evaluated).length === 0;
-        break;
-    }
-    if (!valid || (reasons.length > 0 &&
-        !reasons.every((line) => delivered.includes(line)))) {
-      failures++;
-      console.error(`FAIL Q4 conventional opener evidence or delivery: ${scenario.auction} / ${scenario.call}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Q4 conventional opener evidence: ${checks} checks.\n`);
-  return failures;
-}
-
 /// Confirm rejected calls retain actual selection or tested-failure evidence,
 /// and that these generated explanations reach the ordinary displayed feedback.
-function runQ3ConventionalRejectionTests (): number {
+function runConventionalRejectionFeedbackTests (): number {
   let failures = 0;
   let checks = 0;
   const ntResponses = [
@@ -7183,13 +7055,12 @@ function runQ3ConventionalRejectionTests (): number {
       console.error('FAIL Q3 treated a natural notrump signoff as forcing.');
     }
   }
-  console.log(`${failures} ***FAILURES***. Q3 convention and forcing rejection: ${checks} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Conventional and forcing rejection: ${checks} checks.\n`);
   return failures;
 }
-
-/// Verify Q3 near-miss reasons against existing practice hands, with the same
+/// Verify near-miss reasons against existing practice hands, with the same
 /// evaluated feedback assembly used for normal student input.
-function runQ3NaturalCompetitiveRejectionTests (): number {
+function runNaturalCompetitiveRejectionFeedbackTests (): number {
   let failures = 0;
   let checks = 0;
   const all = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
@@ -7381,16 +7252,394 @@ function runQ3NaturalCompetitiveRejectionTests (): number {
       failures++; console.error(`FAIL Q3 Jacoby rebid ${scenario.match}.`);
     }
   }
-  console.log(`${failures} ***FAILURES***. Q3 natural and competitive rejections: ${checks} checks.\n`);
+  console.log(`${failures} ***FAILURES***. Natural and competitive rejections: ${checks} checks.\n`);
   return failures;
 }
 
-/// Continue running independent test groups after an unexpected exception. Individual
-/// assertion failures are already counted within their groups; preserve those counts.
-/// Q3 closeout: use recorded auction positions to verify a forcing obligation,
+//// Auction continuation, forcing, and scope boundaries
+
+function runPracticeContinuationTests (): number {
+  const recorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'];
+  const prefix = recorded.slice(0, 6);
+  let failures = 0;
+  if (getRecordedPracticeCorrection(prefix, 'Pass', recorded) !== '2NT') failures += 1;
+  if (getRecordedPracticeCorrection(prefix, '2NT', recorded) !== null) failures += 1;
+  if (getRecordedPracticeCorrection(['1C', '1S'], 'Pass', recorded) !== null) failures += 1;
+  if (getRecordedPracticeCorrection([], 'Double', recorded) !== null) failures += 1;
+  if (isPracticeSequenceComplete(prefix, recorded) ||
+      ! isPracticeSequenceComplete(recorded, recorded)) failures += 1;
+  // A practice exercise progresses exactly one recorded call for each entered legal
+  // action, including opponent Passes, regardless of which seat is the dealer.
+  const allSeatRecorded: Call[] = ['1C', 'Pass', '1H', 'Pass', '1NT'];
+  const allSeatEntered: Call[] = ['1D', '2C', '2H', 'Pass', '2NT'];
+  const allSeatOrder = ['W', 'N', 'E', 'S', 'W'];
+  const progressed: Call[] = [];
+  for (let index = 0; index < allSeatRecorded.length; index += 1) {
+    const entered = allSeatEntered[index]!;
+    const expected = allSeatRecorded[index]!;
+    if (getNextSeat('W', progressed) !== allSeatOrder[index] ||
+        ! isCallAvailableInAuction(entered, progressed) ||
+        isPracticeSequenceComplete(progressed, allSeatRecorded)) {
+      failures += 1;
+      break;
+    }
+    progressed.push(getRecordedPracticeCorrection(progressed, entered, allSeatRecorded) ?? entered);
+    if (progressed[index] !== expected) {
+      failures += 1;
+      break;
+    }
+  }
+  if (! isPracticeSequenceComplete(progressed, allSeatRecorded)) failures += 1;
+  // Active lessons obey the very same agreement requirements as the bucket selector.
+  // Changing the setting can clear an incompatible exercise instead of allowing it
+  // to continue with recorded bids that no longer match its convention.
+  const stayman = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals)
+    .find((deal) => deal.requiredSystem?.stayman === true);
+  const noStayman = { ...defaultBiddingSystem, stayman: false };
+  if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||
+      isPracticeDealCompatible(stayman, noStayman) ||
+      getRulesBucketTestDeals('all', noStayman).includes(stayman)) failures += 1;
+  console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 12 checks.`);
+  console.log('  Preserves the recorded exercise after a different bid, but never corrects');
+  console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
+  return failures;
+}
+/// Slam-control replies require explicit stopping guidance, while an accepted
+/// forcing responder rebid (or balancing Double) must not appear to end real bidding.
+/// Check the preceding actual call against the production evaluator before inferring a force.
+function runLaterStageTerminationGuidanceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const ntCases = [
+    { name: '1NT-3H slam try followed by 3S control',
+      auction: ['1NT', 'Pass', '3H', 'Pass', '3S', 'Pass'] as Call[],
+      north: { S: 'KQ4', H: 'A74', D: 'A96', C: 'KJ82' },
+      south: { S: 'AJ6', H: 'KQJT96', D: 'KQ5', C: '7' } },
+    { name: '1NT-3S slam try followed by 4C control',
+      auction: ['1NT', 'Pass', '3S', 'Pass', '4C', 'Pass'] as Call[],
+      north: { S: 'A64', H: 'KJ7', D: 'A96', C: 'KQ82' },
+      south: { S: 'KQJT95', H: 'AQ4', D: 'KJ5', C: '7' } },
+  ];
+  const boundaryId = 'responder-rebid-boundary-after-1nt-direct-major-slam-control';
+  for (const test of ntCases) {
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    checks++;
+    const response = test.auction[2]!;
+    const openerControl = test.auction[4]!;
+    const responderMatches = evaluateUserCall(response, board,
+      test.auction.slice(0, 2), defaultBiddingSystem).userCallMatchingRules;
+    const openerMatches = evaluateUserCall(openerControl, board,
+      test.auction.slice(0, 4), defaultBiddingSystem).userCallMatchingRules;
+    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    if (! responderMatches.some(({ id }) => id === 'respond-to-1nt-w/-3h-3s-slam-interest') ||
+        ! openerMatches.some(({ id }) =>
+          id === 'opener-rebid-control-after-1nt-direct-3-major-slam-interest') ||
+        status.kind !== 'scopeBoundary' ||
+        (status.kind === 'scopeBoundary' && status.rule.id !== boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 ${test.name}: response ${responderMatches.map(r=>r.id)}, ` +
+        `control ${openerMatches.map(r=>r.id)}, status ${status.kind}.`);
+    }
+    checks++;
+    const noTransfer = { ...defaultBiddingSystem, jacobyTransfers: false };
+    if (getBiddingTurnStatus(board, test.auction, noTransfer).kind === 'scopeBoundary' &&
+        evaluateUserCall('Pass', board, test.auction, noTransfer).applicableRules
+          .some(({ id }) => id === boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 ${test.name}: direct slam-control boundary leaked with Jacoby off.`);
+    }
+  }
+  const { board: ntBoard } = makeRuleTestBoard({ description: 'B6 unrelated NT rebid',
+    north: ntCases[0]!.north, south: ntCases[0]!.south,
+    practiceAuction: ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'] });
+  for (const auction of [
+    ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'],
+    ['1NT', 'Pass', '3H', 'Double', '3S', 'Pass'],
+    ['2NT', 'Pass', '3H', 'Pass', '3S', 'Pass'],
+  ] as Call[][]) {
+    checks++;
+    if (evaluateUserCall('Pass', ntBoard, auction, defaultBiddingSystem).applicableRules
+      .some(({ id }) => id === boundaryId)) {
+      failures++;
+      console.error(`FAIL B6 scope boundary leaked after ${auction.join(' ')}.`);
+    }
+  }
+  const forceCases = [
+    { name: '2/1 slow major raise game force',
+      auction: ['1S','Pass','2D','Pass','2H','Pass','3S'] as Call[],
+      north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+      south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
+      system: { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const },
+      expected: 'gameForce' as const },
+    { name: 'five-card responder major after strong 2NT',
+      auction: ['1C','Pass','1H','Pass','2NT','Pass','3H'] as Call[],
+      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
+      south: { S: 'T65', H: 'KQJ98', D: 'QT4', C: '54' },
+      system: defaultBiddingSystem, expected: 'gameForce' as const },
+    { name: 'nonforcing game signoff must not carry game force',
+      auction: ['1C','Pass','1H','Pass','2NT','Pass','3NT'] as Call[],
+      north: { S: 'KQ4', H: 'A73', D: 'KJ7', C: 'AQ82' },
+      south: { S: 'T65', H: 'KQ98', D: 'QT4', C: '654' },
+      system: defaultBiddingSystem, expected: null },
+  ];
+  for (const test of forceCases) {
+    checks++;
+    const { board } = makeRuleTestBoard({ description: test.name, north: test.north,
+      south: test.south, practiceAuction: test.auction });
+    const last = test.auction[test.auction.length - 1]!;
+    const previous = test.auction.slice(0,-1);
+    const matches = evaluateUserCall(last, board, previous, test.system).userCallMatchingRules;
+    const status = getBiddingTurnStatus(board, test.auction, test.system);
+    const obligation = getUnmodeledContinuationForce(board, test.auction, test.system);
+    if (matches.length === 0 || status.kind !== 'noModeledStage' ||
+        (obligation?.kind ?? null) !== test.expected) {
+      failures++;
+      console.error(`FAIL B7 ${test.name}: matches ${matches.map(r=>r.id)}, ` +
+        `status ${status.kind}, obligation ${obligation?.kind ?? '-'} expected ${test.expected}.`);
+    }
+  }
+  // Cover forcing endpoints from each partnership role, not only responder's rebid.
+  // Each auction is taken from an existing fully specified practice fixture.
+  const endpointExamples: { auction: Call[]; stage: string; kind: string }[] = [
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '2H'],
+      stage: 'openerRebid', kind: 'oneRoundForce' },
+    { auction: ['1D', 'Pass', '1NT', 'Pass', '3C'],
+      stage: 'openerRebid', kind: 'gameForce' },
+    { auction: ['1D', '1S', '2D', '3D', 'Pass'],
+      stage: 'advancing', kind: 'oneRoundForce' },
+    { auction: ['1H', 'Double'],
+      stage: 'overcalling', kind: 'oneRoundForce' },
+    { auction: ['1S', 'Pass', '2H'],
+      stage: 'responding', kind: 'oneRoundForce' },
+  ];
+  const allDeals = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
+  for (const test of endpointExamples) {
+    checks++;
+    const example = allDeals.find((deal) =>
+      deal.practiceAuction.join(' ') === test.auction.join(' '));
+    if (example === undefined) {
+      failures++;
+      console.error(`FAIL forcing endpoint fixture absent: ${test.auction.join(' ')}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(example);
+    const force = getUnmodeledContinuationForce(board, test.auction,
+      { ...defaultBiddingSystem, ...example.requiredSystem });
+    if (force?.kind !== test.kind || force.lastStage !== test.stage) {
+      failures++;
+      console.error(`FAIL forcing ${test.auction.join(' ')}: ` +
+        `${force?.lastStage ?? '-'} ${force?.kind ?? '-'} versus ${test.stage} ${test.kind}.`);
+    }
+  }
+  // The 2/1 game force persists through opener's nonforcing descriptive rebid, but
+  // not after the partnership has reached game or the opponents have intervened.
+  const original = forceCases[0]!;
+  const { board: gameBoard } = makeRuleTestBoard({ description: 'Persistent 2/1 force',
+    north: original.north, south: original.south, practiceAuction: original.auction });
+  const gameSystem = original.system;
+  const prefixes: { auction: Call[]; expected: string | null }[] = [
+    { auction: ['1S','Pass','2D','Pass','2H'], expected: 'gameForce' },
+    { auction: ['1S','Pass','2D','Pass','2H','Pass'], expected: 'gameForce' },
+    { auction: ['1S','Pass','2D','Pass','2H','Double'], expected: null },
+    { auction: ['1S','Pass','2D','Pass','2H','Pass','4S'], expected: null },
+  ];
+  for (const test of prefixes) {
+    checks++;
+    const kind = getUnmodeledContinuationForce(gameBoard, test.auction, gameSystem)?.kind ?? null;
+    if (kind !== test.expected) {
+      failures++;
+      console.error(`FAIL continuing 2/1 game force after ${test.auction.join(' ')}: ` +
+        `${kind ?? '-'}, expected ${test.expected ?? '-'}.`);
+    }
+  }
+  const balancing = BALANCING_TEST_DEALS.find((deal) =>
+    deal.expectedBalancingCalls?.some((expected) => expected.ruleIds.includes('balance-takeout-double')))!;
+  const { board: balancingBoard } = makeRuleTestBoard(balancing);
+  checks++;
+  const balancingForce = getUnmodeledContinuationForce(balancingBoard,
+    balancing.practiceAuction, defaultBiddingSystem);
+  if (balancingForce?.kind !== 'oneRoundForce' || balancingForce.lastStage !== 'balancing') {
+    failures++;
+    console.error(`FAIL B7 balancing Double: ${JSON.stringify(balancingForce)}.`);
+  }
+  console.log(`${failures} ***FAILURES***. B6/B7 further-slam and forcing-endpoint checks: ` +
+    `${checks} targeted cases.\n`);
+  return failures;
+}
+function runBiddingTurnStatusTests (): number {
+  const { board } = makeRuleTestBoard({ description: 'Bidding-turn status smoke checks',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] });
+  let failures = 0;
+  const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
+    { auction: [], kind: 'supported' },
+    { auction: ['1S', 'Pass', '2S'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
+  ];
+  for (const { auction, kind } of examples) {
+    const actual = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (actual.kind !== kind) {
+      failures += 1;
+      console.error(`FAIL coverage ${auction.join(' ')} expected ${kind}, got ${actual.kind}.`);
+    }
+  }
+  const { board: boundaryBoard } = makeRuleTestBoard({
+    description: 'Scope boundary at opener return after takeout Double',
+    north: { S: 'K72', H: 'AKT96', D: 'Q53', C: '54' },
+    south: { S: 'T98', H: 'QJ5', D: 'A96', C: '9732' },
+    practiceAuction: ['1H', 'Double', 'Pass', 'Pass'] });
+  // These have no modeled rule stage; auction entry no longer needs an intervening-turn exception.
+  // Any legal call may be recorded, and stage selection uses the resulting actual auction.
+  const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
+    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },
+  ];
+  for (const { auction, kind } of intervening) {
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (status.kind !== kind) {
+      failures += 1;
+      console.error(`FAIL unjudged turn ${auction.join(' ')}: expected ${kind}, got ${status.kind}.`);
+    }
+  }
+  const boundary = getBiddingTurnStatus(boundaryBoard,
+    ['1H', 'Double', 'Pass', 'Pass'], defaultBiddingSystem);
+  if (boundary.kind !== 'scopeBoundary' ||
+      boundary.rule.id !== 'opener-rebid-scope-boundary-after-takeout-double-pass-pass') {
+    failures += 1;
+    console.error(`FAIL existing scope boundary was not recognized: ${boundary.kind}.`);
+  }
+  console.log(`${failures} ***FAILURES***. Bidding-turn statuses: ${examples.length + intervening.length + 1} checks.\n`);
+  return failures;
+}
+/// Regression for the former premature-termination bug: unsupported turns and explicit
+/// boundaries do not prevent a legal physical auction from reaching later modeled decisions.
+/// These check the evaluator/state path and mechanical auction legality; BidPanel is separately
+/// responsible for disabling entry only when the auction or recorded practice is complete.
+function runContinuousAuctionFeedbackTests (): number {
+  const { board } = makeRuleTestBoard({
+    description: 'Unjudged intermediate call progression',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'K63', H: 'Q85', D: 'J64', C: 'T942' },
+    practiceAuction: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'],
+  });
+  const sequences: { name: string; calls: Call[] }[] = [
+    { name: 'DONT Double asking sequence', calls: ['1NT', 'Double', 'Pass', '2C', 'Pass', '2H'] },
+    { name: 'DONT two-suited sequence', calls: ['1NT', '2C', 'Pass', '2D', 'Pass', '2H'] },
+    { name: 'strong 2NT Stayman', calls: ['2NT', 'Pass', '3C', 'Pass', '3S'] },
+    { name: 'strong 2C waiting', calls: ['2C', 'Pass', '2D', 'Pass', '2H'] },
+    { name: 'weak two natural defense', calls: ['2D', '2H', 'Pass', 'Pass'] },
+    { name: 'competitive opener rebid', calls: ['1NT', '2H', 'Double', 'Pass', '2S'] },
+    { name: 'unexpected fourth-seat competition', calls: ['1S', 'Pass', '2S', '3D', 'Pass'] },
+    { name: 'uncontested raiser game try', calls: ['1S', 'Pass', '2S', 'Pass', '3D', 'Pass'] },
+    { name: 'boundary does not end auction', calls: ['2NT', 'Pass', '3C', 'Pass', '3H', 'Pass', 'Pass', 'Pass'] },
+  ];
+  let failures = 0;
+  let checked = 0;
+  for (const test of sequences) {
+    const auction: Call[] = [];
+    for (const call of test.calls) {
+      const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+      checked++;
+      if (status.kind === 'auctionComplete' || !isCallAvailableInAuction(call, auction)) {
+        failures++;
+        console.error(`FAIL continuous ${test.name}: ${call} unavailable after ${auction.join(' ')}.`);
+        break;
+      }
+      auction.push(call);
+    }
+    if (test.name === 'boundary does not end auction' && !auctionIsComplete(auction)) {
+      failures++;
+      console.error('FAIL continuous: legal Passes did not complete the auction.');
+    }
+  }
+  // Use the actual DONT and 2NT-Stayman fixture hands to verify feedback resumes after
+  // intervening Passes, including a turn with no rule and one with an explicit scope boundary.
+  const dontDeal = DONT_1NT_DEFENSE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1NT Double Pass 2C Pass 2H');
+  const ntDeal = RESPONSE_AFTER_2NT_OPENING_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '2NT Pass 3C');
+  const expected: { deal: RuleTestDeal | undefined; stages: ReturnType<typeof getBiddingTurnStatus>['kind'][] }[] = [
+    { deal: dontDeal,
+      stages: ['supported', 'supported', 'noApplicableRule', 'supported',
+        'noModeledStage', 'supported'] },
+    { deal: ntDeal, stages: ['supported', 'scopeBoundary', 'supported'] },
+  ];
+  for (const test of expected) {
+    if (test.deal === undefined) { failures++; continue; }
+    const { board: fixtureBoard } = makeRuleTestBoard(test.deal);
+    const auction: Call[] = [];
+    for (const kind of test.stages) {
+      const status = getBiddingTurnStatus(fixtureBoard, auction, defaultBiddingSystem);
+      checked++;
+      if (status.kind !== kind) {
+        failures++;
+        console.error(`FAIL continuous fixture ${test.deal.description}: ` +
+          `${auction.join(' ')} expected ${kind}, got ${status.kind}.`);
+      }
+      const call = test.deal.practiceAuction[auction.length];
+      if (call === undefined || !isCallAvailableInAuction(call, auction)) {
+        failures++;
+        console.error(`FAIL continuous fixture: call ${call} illegal after ${auction.join(' ')}.`);
+        break;
+      }
+      auction.push(call);
+    }
+  }
+  // Non-dealer opening and a scope boundary retain their status but cannot block Pass.
+  for (const auction of [['Pass', '1S', 'Pass', '2S'], ['2NT'], ['1NT', 'Double']] as Call[][]) {
+    checked++;
+    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    if (status.kind === 'auctionComplete' || !isCallAvailableInAuction('Pass', auction)) {
+      failures++;
+      console.error(`FAIL continuous: Pass blocked after ${auction.join(' ')}.`);
+    }
+  }
+  // Continuing freely does not waive ordinary bridge legality or the 7NT maximum.
+  for (const { input, auction } of [
+    { input: '20H', auction: [] as Call[] },
+    { input: '120NT', auction: [] as Call[] },
+    { input: '1C', auction: ['1S'] as Call[] },
+    { input: 'Double', auction: [] as Call[] },
+  ]) {
+    checked++;
+    const call = normalizeCallInput(input);
+    if (call !== null && isCallAvailableInAuction(call, auction)) {
+      failures++;
+      console.error(`FAIL continuous: illegal input ${input} accepted after ${auction.join(' ')}.`);
+    }
+  }
+  // Forcing source should still be identified with one opponent Pass after it, but not after
+  // another call has been made by the forced bidder.
+  const forceAuction: Call[] = ['1S','Pass','2D','Pass','2H','Pass','3S'];
+  const { board: forcingBoard } = makeRuleTestBoard({
+    description: 'Forcing rebid across opponent Pass',
+    north: { S: 'AQJ85', H: 'K74', D: 'A72', C: 'K8' },
+    south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
+    practiceAuction: forceAuction,
+  });
+  const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+  const forceNow = getUnmodeledContinuationForce(forcingBoard, forceAuction, system);
+  const forceAfterPass = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass'], system);
+  const forceAfterReply = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass', '4S'], system);
+  checked += 3;
+  if (forceNow?.kind !== 'gameForce' || forceAfterPass?.kind !== 'gameForce' ||
+      forceAfterReply !== null) {
+    failures++;
+    console.error(`FAIL continuous forcing: ${forceNow?.kind}, ${forceAfterPass?.kind}, ${forceAfterReply?.kind}.`);
+  }
+  console.log(`${failures} ***FAILURES***. Continuous legal auctions: ${checked} checks.\n`);
+  return failures;
+}
+/// Use recorded auction positions to verify a forcing obligation,
 /// the hand's actual supported continuation, and delivery of the rejected-Pass reason.
 /// Ordinary nonforcing advances, raises, and defensive Passes must not be flagged.
-function runQ3ForcingContinuationPassTests (): number {
+function runForcingContinuationPassTests (): number {
   let failures = 0;
   let checks = 0;
   const all = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
@@ -7524,124 +7773,14 @@ function runQ3ForcingContinuationPassTests (): number {
       console.error('FAIL Q3 invented a forced reply at judgment boundary.');
     }
   }
-  console.log(`${failures} ***FAILURES***. Q3 forcing continuation closeout: ` +
+  console.log(`${failures} ***FAILURES***. Forcing continuation Pass: ` +
     `${checks} recorded-position checks.\n`);
   return failures;
 }
-
-/// Check actual evaluator facts and the shared explanation delivery for initial responses.
-function runQ47InitialResponseEvidenceTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const selected = [
-    { needle: '9 HCP and five cards in each major', call: '2D' as Call },
-    { needle: '11 HCP and five cards in each major', call: '2H' as Call },
-  ];
-  for (const scenario of selected) {
-    checks++;
-    const deal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
-      item.description.includes(scenario.needle));
-    if (deal === undefined) {
-      failures++;
-      console.error(`FAIL Q4-7 missing transfer hand: ${scenario.needle}.`);
-      continue;
-    }
-    const board = makeRuleTestBoard(deal).board;
-    const auction = deal.practiceAuction.slice(0, 2);
-    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const result = evaluateUserCall(scenario.call, board, auction, system);
-    const rule = result.userCallMatchingRules.find((item) =>
-      item.calls?.includes(scenario.call) === true);
-    const otherSelection = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
-      .find(({ callEvidence }) =>
-        callEvidence?.responseSelection?.reason === 'fiveFiveTransferOrder' &&
-        callEvidence.responseSelection.preferredCall === scenario.call);
-    const support = rule === undefined ? [] : getResponseSelectionSupportLines(result, rule);
-    const delivered = getBidExplanationLines({
-      title: 'Response', call: scenario.call,
-      status: getBiddingTurnStatus(board, auction, system), result,
-      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
-      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
-    });
-    if (rule === undefined || otherSelection === undefined || support.length === 0 ||
-        !support.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL Q4-7 preferred transfer feedback: ${scenario.needle}.`);
-    }
-  }
-  checks++;
-  const shifted = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
-    item.description.includes('16-18: 7 HCP and four hearts qualify for Stayman'));
-  if (shifted === undefined) {
-    failures++;
-    console.error('FAIL Q4-7 missing shifted 1NT Pass example.');
-  } else {
-    const board = makeRuleTestBoard(shifted).board;
-    const system = { ...defaultBiddingSystem, ...shifted.requiredSystem };
-    const result = evaluateUserCall('Pass', board, shifted.practiceAuction.slice(0, 2), system);
-    const rejected = result.ruleDiagnostics.find(({ rule }) =>
-      rule.id === 'respond-to-1nt-w/-pass-0-7-balanced')
-      ?.candidates.find(({ call }) => call === 'Pass');
-    const hcp = rejected?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
-    if (hcp?.kind !== 'hcp' || hcp.min !== 0 || hcp.max !== 6 || hcp.actual !== 7 ||
-        hcp.passed || result.userCallMatchingRules.length !== 0) {
-      failures++;
-      console.error('FAIL Q4-7 adjusted 1NT response HCP boundary.');
-    }
-  }
-  checks++;
-  const waiting = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
-    item.description.includes('10-HCP 4-4-4-1 responder'));
-  if (waiting === undefined) {
-    failures++;
-    console.error('FAIL Q4-7 missing strong 2C waiting hand.');
-  } else {
-    const board = makeRuleTestBoard(waiting).board;
-    const auction = waiting.practiceAuction.slice(0, 2);
-    const system = { ...defaultBiddingSystem, ...waiting.requiredSystem };
-    const result = evaluateUserCall('2D', board, auction, system);
-    const rule = result.userCallMatchingRules.find((item) =>
-      item.id === 'respond-to-2c-w/-2d-waiting');
-    const support = rule === undefined ? [] : getStrongTwoCResponseLines(result, rule);
-    const delivered = getBidExplanationLines({
-      title: 'Response', call: '2D',
-      status: getBiddingTurnStatus(board, auction, system), result,
-      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
-      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
-    });
-    if (rule === undefined || support.length === 0 ||
-        !support.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error('FAIL Q4-7 strong 2C waiting evidence delivery.');
-    }
-  }
-  checks++;
-  const opening = OPENING_BID_TEST_DEALS.find((item) =>
-    item.description.includes('Seven hearts with 9 HCP'));
-  if (opening === undefined) {
-    failures++;
-    console.error('FAIL Q4-7 missing opening comparison hand.');
-  } else {
-    const board = makeRuleTestBoard(opening).board;
-    const result = evaluateUserCall('3H', board, [], defaultBiddingSystem);
-    const preempt = result.ruleDiagnostics.find(({ rule }) => rule.id === 'open-weak-three')
-      ?.candidates.find(({ call }) => call === '3H');
-    const strength = preempt?.callEvidence?.requirements?.find((item) =>
-      item.kind === 'totalPoints');
-    if (strength?.kind !== 'totalPoints' || strength.actual !== 12 || strength.max !== 11 ||
-        strength.passed || !getApplicableCandidateCalls(result).some(({ call }) => call === '1H')) {
-      failures++;
-      console.error('FAIL Q4-7 strength and qualifying opening comparison.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Q4-7 initial-response evidence: ${checks} checks.\n`);
-  return failures;
-}
-
-/// Q4-8: distinguish game placement from artificial game-level calls using the
+/// Distinguish game placement from artificial game-level calls using the
 /// existing, fully specified convention deals. Natural game must still discharge
 /// a game force, including when the next turn has no dedicated evaluation rule.
-function runQ48CrossStageForceTests (): number {
+function runCrossStageForceTests (): number {
   let failures = 0;
   let checks = 0;
   const allDeals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
@@ -7708,11 +7847,10 @@ function runQ48CrossStageForceTests (): number {
       console.error('FAIL Q4-8 practice ending versus real auction completion.');
     }
   }
-  console.log(`${failures} ***FAILURES***. Q4-8 cross-stage forces and endings: ` +
+  console.log(`${failures} ***FAILURES***. Cross-stage forces and endings: ` +
     `${checks} checks.\n`);
   return failures;
 }
-
 /// Verify actual auction context, not rendered sentence wording, for force endings
 /// and for the distinction between unhandled auctions and unqualified hands.
 function runEndingAndScopeStatusTests (): number {
@@ -7867,203 +8005,13 @@ function runEndingAndScopeStatusTests (): number {
   return failures;
 }
 
-/// Test the partnership promise across 1NT interference, opener's next call,
-/// and the delivered explanation. Construct hands, not new practice selections.
-function runOneNtInterferenceDoubleContinuityTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const prefix: Call[] = ['1NT', '2S', 'Double', 'Pass'];
-  const east = { S: 'KQJT96', H: 'A52', D: '86', C: '94' };
-  const south = { S: '85', H: '9763', D: 'KQJ5', C: 'AJT' };
-  const cases = [
-    { north: { S: 'A74', H: 'KJ84', D: 'A92', C: 'KQ7' },
-      call: '3H' as Call, ruleId: 'opener-rebid-fit-after-1nt-interference-double' },
-    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'KQ72' },
-      call: '3NT' as Call, ruleId: 'opener-rebid-3nt-after-1nt-interference-double' },
-    { north: { S: 'A74', H: 'KJ8', D: 'A92', C: 'K872' },
-      call: '2NT' as Call, ruleId: 'opener-rebid-2nt-after-1nt-interference-double' },
-  ];
-  for (const test of cases) {
-    const { board } = makeRuleTestBoard({
-      description: 'DONT natural spades and four-heart takeout Double',
-      practiceAuction: [...prefix, test.call], north: test.north, south, east,
-    });
-    const opening = evaluateUserCall('1NT', board, [], defaultBiddingSystem);
-    const overcall = evaluateUserCall('2S', board, prefix.slice(0, 1), defaultBiddingSystem);
-    const response = evaluateUserCall('Double', board, prefix.slice(0, 2), defaultBiddingSystem);
-    const doubleEvidence = response.ruleDiagnostics.find(({ rule }) =>
-      rule.id === 'partner-of-1nt-after-interference-negative-double')
-      ?.candidates.find(({ call }) => call === 'Double')?.callEvidence?.requirements;
-    checks++;
-    if (opening.userCallMatchingRules.length === 0 ||
-        !overcall.userCallMatchingRules.some(({ id }) => id === 'overcall-dont-natural-spades') ||
-        !response.userCallMatchingRules.some(({ id }) =>
-          id === 'partner-of-1nt-after-interference-negative-double') ||
-        !doubleEvidence?.some((item) => item.kind === 'suitLength' &&
-          item.suit === 'H' && item.min === 4 && item.passed) ||
-        doubleEvidence.some((item) => item.kind === 'suitLength' && item.suit === 'C')) {
-      failures++;
-      console.error('FAIL responder Double must promise four hearts after DONT 2S.');
-    }
-    const result = evaluateUserCall(test.call, board, prefix, defaultBiddingSystem);
-    const selected = result.userCallMatchingRules.find(({ id }) => id === test.ruleId);
-    const lines = selected === undefined ? [] : getOpenerOneNtInterferenceLines(result, selected);
-    const delivered = getBidExplanationLines({
-      title: 'Opener rebid', call: test.call,
-      status: getBiddingTurnStatus(board, prefix, defaultBiddingSystem), result,
-      handFacts: getHandFacts(board.deal.N), auctionLength: prefix.length,
-      previewLines: [], seatLabel: 'North', recordedUnjudged: false,
-    });
-    checks++;
-    if (selected === undefined || lines.length === 0 ||
-        !lines.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error(`FAIL evaluated ${test.call} and its explanation after takeout Double.`);
-    }
-    checks++;
-    const wrongFitCall: Call = test.call === '3H' ? '3C' : '3H';
-    if (evaluateUserCall(wrongFitCall, board, prefix, defaultBiddingSystem)
-          .userCallMatchingRules.some(({ id }) =>
-            id === 'opener-rebid-fit-after-1nt-interference-double') ||
-        (test.call === '3H' && evaluateUserCall('3NT', board, prefix, defaultBiddingSystem)
-          .userCallMatchingRules.some(({ id }) =>
-            id === 'opener-rebid-3nt-after-1nt-interference-double'))) {
-      failures++;
-      console.error('FAIL unsupported strain or NT displaces the evaluated heart fit.');
-    }
-  }
-  checks++;
-  const raisedBoard = makeRuleTestBoard({
-    description: 'Opponent raises DONT spades',
-    practiceAuction: ['1NT', '2S', 'Double', '3S'],
-    north: cases[0]!.north, south, east,
-  }).board;
-  const raised: Call[] = ['1NT', '2S', 'Double', '3S'];
-  const raisedResult = evaluateUserCall('4H', raisedBoard, raised, defaultBiddingSystem);
-  if (getBiddingTurnStatus(raisedBoard, raised, defaultBiddingSystem).kind === 'supported' ||
-      getApplicableCandidateCalls(raisedResult).length > 0) {
-    failures++;
-    console.error('FAIL opposing 3S raise must remain outside selected continuations.');
-  }
-  checks++;
-  const stayman = RULE_TEST_DEAL_BUCKETS.find(({ id }) => id === 'nt-2nt')?.deals[8];
-  if (stayman === undefined) {
-    failures++;
-    console.error('FAIL missing 2NT Stayman no-fit example.');
-  } else {
-    const { board } = makeRuleTestBoard(stayman);
-    const auction: Call[] = [...stayman.practiceAuction, 'Pass'];
-    const system = { ...defaultBiddingSystem, ...stayman.requiredSystem };
-    const result = evaluateUserCall('3NT', board, auction, system);
-    const rule = result.userCallMatchingRules.find(({ id }) =>
-      id === 'responder-rebid-2nt-stayman-game-3nt');
-    const diagnostic = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
-      .find(({ call, ruleApplies }) => call === '3NT' && ruleApplies);
-    const evidence = diagnostic?.callEvidence?.conventionalResponderRebid;
-    const lines = rule === undefined ? [] : getConventionalResponderRebidLines(result, rule);
-    const delivered = getBidExplanationLines({
-      title: 'Responder rebid', call: '3NT',
-      status: getBiddingTurnStatus(board, auction, system), result,
-      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
-      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
-    });
-    if (rule === undefined || evidence?.family !== 'ntConvention' ||
-        evidence.fitFound || lines.length === 0 ||
-        !lines.every((line) => delivered.includes(line))) {
-      failures++;
-      console.error('FAIL 2NT Stayman no-fit explanation and evidence delivery.');
-    }
-  }
-  console.log(`${failures} ***FAILURES***. DONT Double continuity and Stayman: ` +
-    `${checks} checks.\n`);
-  return failures;
-}
-
-/// Verify hand-aware invitation feedback using the same evaluated facts that
-/// determine the selected call; no recorded practice deal is added or modified.
-function runResponderInvitationExplanationTests (): number {
-  let failures = 0;
-  let checks = 0;
-  const openerNt = { S: 'AKJ84', H: 'Q65', D: 'AQ3', C: 'K4' };
-  const openerJump = { S: 'AKJ843', H: 'Q65', D: 'K73', C: 'K' };
-  const weak = { S: 'Q5', H: 'K87', D: 'J864', C: '9732' };
-  const strong = { S: 'Q5', H: 'KJ7', D: 'J864', C: 'Q932' };
-  const concealedRaise = { S: 'Q65', H: 'KJ7', D: 'J864', C: 'A93' };
-  const cases: { name: string; north: typeof openerNt; south: typeof weak;
-    rebid: Call; call: Call; ruleId: string; applies: boolean }[] = [
-    { name: 'decline 2NT with 6 HCP', north: openerNt, south: weak,
-      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
-      applies: true },
-    { name: 'reject 3NT with 6 HCP', north: openerNt, south: weak,
-      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
-      applies: false },
-    { name: 'accept 2NT with 9 HCP', north: openerNt, south: strong,
-      rebid: '2NT', call: '3NT', ruleId: 'responder-rebid-3nt-after-major-1nt-2nt-invite',
-      applies: true },
-    { name: 'reject Pass with 9 HCP', north: openerNt, south: strong,
-      rebid: '2NT', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-2nt-invite',
-      applies: false },
-    { name: 'three-card limit raise after 2NT', north: openerNt, south: concealedRaise,
-      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
-      applies: true },
-    { name: 'reject 4S with two-card support', north: openerNt, south: strong,
-      rebid: '2NT', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-2nt-invite',
-      applies: false },
-    { name: 'decline 3S invitation', north: openerJump, south: weak,
-      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
-      applies: true },
-    { name: 'reject 4S after minimum jump invitation', north: openerJump, south: weak,
-      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
-      applies: false },
-    { name: 'accept 3S invitation', north: openerJump, south: strong,
-      rebid: '3S', call: '4S', ruleId: 'responder-rebid-major-game-after-major-1nt-jump-repeat',
-      applies: true },
-    { name: 'reject Pass after constructive 3S', north: openerJump, south: strong,
-      rebid: '3S', call: 'Pass', ruleId: 'responder-rebid-pass-after-major-1nt-jump-repeat',
-      applies: false },
-  ];
-  for (const item of cases) {
-    const prefix: Call[] = ['1S', 'Pass', '1NT', 'Pass', item.rebid, 'Pass'];
-    const { board } = makeRuleTestBoard({ description: item.name,
-      practiceAuction: prefix, north: item.north, south: item.south });
-    const result = evaluateUserCall(item.call, board, prefix, defaultBiddingSystem);
-    const diag = result.ruleDiagnostics.find(({ rule }) => rule.id === item.ruleId);
-    const candidate = diag?.candidates.find(({ call }) => call === item.call);
-    const evidence = candidate?.callEvidence?.naturalResponderRebid;
-    const requirements = candidate?.callEvidence?.requirements;
-    const facts = getHandFacts(board.deal.S);
-    const status = getBiddingTurnStatus(board, prefix, defaultBiddingSystem);
-    const delivered = getBidExplanationLines({ title: 'Responder rebid', call: item.call,
-      status, result, handFacts: facts, auctionLength: prefix.length,
-      previewLines: [], seatLabel: 'South', recordedUnjudged: false });
-    checks++;
-    if (candidate?.ruleApplies !== item.applies || evidence === undefined ||
-        evidence.hcp !== facts.hcp || evidence.openingLength !== facts.lengths.S ||
-        evidence.supportPoints !== facts.totalPointsWShortage ||
-        requirements === undefined || requirements.length === 0) {
-      failures++;
-      console.error(`FAIL invitation evidence: ${item.name}.`);
-      continue;
-    }
-    const specialized = item.applies ?
-      getNaturalResponderRebidLines(result, diag!.rule, facts) :
-      getNaturalResponderRebidFailureLines(result);
-    checks++;
-    if (specialized.length === 0 || !specialized.every((line) => delivered.includes(line)) ||
-        (item.applies && requirements.some((check) => !check.passed)) ||
-        (!item.applies && requirements.every((check) => check.passed))) {
-      failures++;
-      console.error(`FAIL invitation explanation delivery: ${item.name}.`);
-    }
-  }
-  console.log(`${failures} ***FAILURES***. Responder invitation evidence: ${checks} checks.\n`);
-  return failures;
-}
-
+//// Test execution
+/// Continue running independent test groups after an unexpected exception. Individual
+/// assertion failures are already counted within their groups; preserve those counts.
 const testGroups: (() => number)[] = [
   runMajorNoSupportAgreementTests,
   runBasicOpeningExplanationTests,
-  runThirdAuditRebidTests,
+  runMixedRebidRegressionTests,
   runResponderAfterMinorJumpRepeatTests,
   runOpenerPassAfterPreemptRaiseTests,
   runStrongOpenerAfterMajorSimpleRaiseTests,
@@ -8093,20 +8041,20 @@ const testGroups: (() => number)[] = [
   runBidExplanationDeliveryTests,
   runMajorSupportNewSuitRejectionTests,
   runRecordedCallFeedbackTests,
-  runQ4ConventionalOpenerEvidenceTests,
-  runQ3ConventionalRejectionTests,
-  runQ47InitialResponseEvidenceTests,
-  runQ3NaturalCompetitiveRejectionTests,
-  runQ3ForcingContinuationPassTests,
-  runQ2PositiveAlternativeDeliveryTests,
+  runConventionalOpenerEvidenceTests,
+  runConventionalRejectionFeedbackTests,
+  runInitialResponseEvidenceTests,
+  runNaturalCompetitiveRejectionFeedbackTests,
+  runForcingContinuationPassTests,
+  runPositiveAlternativeDeliveryTests,
   runNaturalOpenerRebidEvidenceTests,
-  runQ2RebidAlternativesTests,
-  runQ2DirectOvercallAlternativesTests,
+  runRebidAlternativeFeedbackTests,
+  runDirectOvercallAlternativeTests,
   runCompetitiveResponseAlternativesTests,
-  runQ4CompetitiveExplanationTests,
+  runCompetitiveBidExplanationTests,
   runContestedSuitOvercallerRebidExplanationTests,
   runTakeoutDoublerRebidExplanationTests,
-  runQ4OvercallerRebidQualityTests,
+  runOvercallerRebidEvidenceTests,
   runOneNtAndWeakTwoRebidExplanationTests,
   runJumpOvercallAdvanceBoundaryTests,
   runJumpOvercallForcingAdvanceRebidTests,
@@ -8133,7 +8081,7 @@ const testGroups: (() => number)[] = [
   runContinuousAuctionFeedbackTests,
   runUnmodeledDirectDefenseBoundaryTests,
   runLaterStageTerminationGuidanceTests,
-  runQ48CrossStageForceTests,
+  runCrossStageForceTests,
   runEndingAndScopeStatusTests,
   runStrongMinorArtificialSupportTests,
   runBalancingAuctionAndDealTests,
