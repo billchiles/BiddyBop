@@ -1829,6 +1829,9 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
   const entered = result.normalizedCall;
   const lines: string[] = [];
   const opener = majorOpeningForResponse(result);
+  // The three-card and four-card game-force rules can reject the same new-suit length.
+  // Report that one hand fact once; leave other rule-specific failures independent.
+  let reportedNewSuitLengthFailure = false;
   if (entered === '2NT' && opener !== null &&
       result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_NEW_SUIT_IDS[1]) &&
       !result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_JACOBY_ID)) {
@@ -1883,15 +1886,21 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
       const route = diagnostic.callEvidence?.majorGameForceNewSuit;
       const considered = route?.considered.find(({ call }) => call === entered);
       if (considered !== undefined && !route?.retainedCalls.includes(entered)) {
-        if (considered.length < considered.requiredLength) {
-          const alternative = route?.retainedCalls.join(' or ');
-          const otherRoute = alternative === undefined || alternative === '' ? '' :
+        if (considered.length < considered.requiredLength && !reportedNewSuitLengthFailure) {
+          // The refiner may retain a suit even when this hand fails the 13-point game force.
+          // Name alternatives only if the complete bidding evaluation qualified them.
+          const alternatives = [...new Set(getApplicableCandidateCalls(result)
+            .filter(({ rule }) => STRONG_MAJOR_NEW_SUIT_IDS.includes(rule.id))
+            .map(({ call }) => call))].filter((call) => call !== entered);
+          const alternative = alternatives.join(' or ');
+          const otherRoute = alternative === '' ? '' :
             route?.reason === 'three-card-minor-fallback'
               ? ` The exceptional three-card-minor response (${alternative}) is offered ` +
                 `for judgment, not guaranteed as the best choice.`
               : ` A normally qualifying new-suit response (${alternative}) is available instead.`;
           lines.push(`${entered} normally needs at least ${considered.requiredLength} cards in ` +
             `the new suit; you have ${considered.length}.${otherRoute} [${ruleId}].`);
+          reportedNewSuitLengthFailure = true;
         }
         continue;
       }
