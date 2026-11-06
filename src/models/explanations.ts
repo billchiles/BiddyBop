@@ -92,64 +92,7 @@ export function getRuleExplanationLines(rule: BidRule, handFacts?: HandFacts,
   return lines;
 }
 
-function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
-  return [
-    ...getOpeningRequirementFailureLines(result),
-    ...getOpeningSelectionFailureLines(result),
-    ...getPreemptOpeningFailureLines(result),
-    ...getTakeoutDoubleFailureLines(result),
-    ...getBalancingDoubleFailureLines(result),
-    ...getBalancingCallFailureLines(result),
-    ...getNaturalOvercallFailureLines(result),
-    ...getWeakTwoOvercallFailureLines(result),
-    ...getDontInitialFailureLines(result),
-    ...getJumpOvercallFailureLines(result),
-    ...getMinorResponseFailureLines(result),
-    ...getMajorSupportFailureLines(result),
-    ...getMajorNoSupportFailureLines(result),
-    ...getResponderJumpShiftFailureLines(result),
-    ...getCompetitiveResponseFailureLines(result),
-    ...getWeakTwoResponseFailureLines(result),
-    ...getJumpResponseFailureLines(result),
-    ...getNaturalAdvanceFailureLines(result),
-    ...getTakeoutAdvanceFailureLines(result),
-    ...getNotrumpPartnerResponseFailureLines(result),
-    ...getResponseSelectionFailureLines(result),
-    ...getConventionalForcingPassFailureLines(result),
-    ...getStrongTwoCResponseFailureLines(result),
-    ...getDontAdvanceFailureLines(result),
-    ...getJumpAdvanceFailureLines(result),
-    ...getCompetitiveRaiseAdvanceFailureLines(result),
-    ...getCompetitiveNaturalAdvanceFailureLines(result),
-    ...getNegativeDoubleAdvanceFailureLines(result),
-    ...getNaturalSuitOvercallerRebidFailureLines(result),
-    ...getOvercallerForcingAdvancePassFailureLines(result),
-    ...getContestedSuitOvercallerRebidFailureLines(result),
-    ...getTakeoutDoublerRebidFailureLines(result),
-    ...getOneNtOvercallerRebidFailureLines(result),
-    ...getOvercallerConventionFailureLines(result),
-    ...getWeakTwoDefenseRebidFailureLines(result),
-    ...getOpenerForcingRebidPassFailureLines(result),
-    ...getOpenerOneNtRebidFailureLines(result),
-    ...getOpenerOneLevelNewSuitRebidFailureLines(result),
-    ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
-    ...getNaturalResponderRebidFailureLines(result),
-    ...getResponderForcingPassFailureLines(result),
-    ...getConventionalResponderRebidFailureLines(result),
-    ...getResponderSimpleRaiseFailureLines(result, handFacts),
-    ...getOpenerRaiseRebidFailureLines(result, handFacts),
-    ...getOpenerConventionalRebidFailureLines(result),
-    ...getOpenerGameResponseRebidFailureLines(result),
-    ...getOpenerNegativeDoubleRebidFailureLines(result, handFacts),
-    ...getOpenerForcingCompetitionRebidFailureLines(result),
-    ...getOpenerOneNtInterferenceFailureLines(result),
-    ...getOpenerJumpOvercallRebidFailureLines(result),
-    ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
-    ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
-    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
-    ...getOpenerThreeLevelGameForceRebidFailureLines(result),
-  ];
-}
+
 
 /// Explain only a call that passed its individual requirements and was then removed
 /// by an actual response-selection decision. Verify the preferred call still qualifies.
@@ -255,21 +198,77 @@ export function getConventionalForcingPassFailureLines(result: BidEvalResult): s
   return [];
 }
 
-function failureHeading(status: BiddingTurnStatus, call: Call): string {
-  if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
-  const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
-    status.kind === 'noApplicableRule' ? status.stage : null;
-  switch (stage) {
-    case 'opening': return 'Why this opening does not meet the selected requirements:';
-    case 'responding': return 'Why this response does not meet the selected requirements:';
-    case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
-    case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
-    case 'advancing': return 'Why this advance does not meet the selected requirements:';
-    case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
-    case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
-    case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
-    case null: return 'Why this call does not meet the selected requirements:';
-  }
+
+
+
+
+
+
+/// Use one explanation path for the student's supported call and any substituted recorded call.
+/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
+
+
+/// Add the actual hand valuation only where it explains a light one-level opening.  The
+/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
+
+
+function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
+  return [
+    ...getOpeningRequirementFailureLines(result),
+    ...getOpeningSelectionFailureLines(result),
+    ...getPreemptOpeningFailureLines(result),
+    ...getTakeoutDoubleFailureLines(result),
+    ...getBalancingDoubleFailureLines(result),
+    ...getBalancingCallFailureLines(result),
+    ...getNaturalOvercallFailureLines(result),
+    ...getWeakTwoOvercallFailureLines(result),
+    ...getDontInitialFailureLines(result),
+    ...getJumpOvercallFailureLines(result),
+    ...getMinorResponseFailureLines(result),
+    ...getMajorSupportFailureLines(result),
+    ...getMajorNoSupportFailureLines(result),
+    ...getResponderJumpShiftFailureLines(result),
+    ...getCompetitiveResponseFailureLines(result),
+    ...getWeakTwoResponseFailureLines(result),
+    ...getJumpResponseFailureLines(result),
+    ...getNaturalAdvanceFailureLines(result),
+    ...getTakeoutAdvanceFailureLines(result),
+    ...getNotrumpPartnerResponseFailureLines(result),
+    ...getResponseSelectionFailureLines(result),
+    ...getConventionalForcingPassFailureLines(result),
+    ...getStrongTwoCResponseFailureLines(result),
+    ...getDontAdvanceFailureLines(result),
+    ...getJumpAdvanceFailureLines(result),
+    ...getCompetitiveRaiseAdvanceFailureLines(result),
+    ...getCompetitiveNaturalAdvanceFailureLines(result),
+    ...getNegativeDoubleAdvanceFailureLines(result),
+    ...getNaturalSuitOvercallerRebidFailureLines(result),
+    ...getOvercallerForcingAdvancePassFailureLines(result),
+    ...getContestedSuitOvercallerRebidFailureLines(result),
+    ...getTakeoutDoublerRebidFailureLines(result),
+    ...getOneNtOvercallerRebidFailureLines(result),
+    ...getOvercallerConventionFailureLines(result),
+    ...getWeakTwoDefenseRebidFailureLines(result),
+    ...getOpenerForcingRebidPassFailureLines(result),
+    ...getOpenerOneNtRebidFailureLines(result),
+    ...getOpenerOneLevelNewSuitRebidFailureLines(result),
+    ...getOpenerTwoLevelNewSuitRebidFailureLines(result),
+    ...getNaturalResponderRebidFailureLines(result),
+    ...getResponderForcingPassFailureLines(result),
+    ...getConventionalResponderRebidFailureLines(result),
+    ...getResponderSimpleRaiseFailureLines(result, handFacts),
+    ...getOpenerRaiseRebidFailureLines(result, handFacts),
+    ...getOpenerConventionalRebidFailureLines(result),
+    ...getOpenerGameResponseRebidFailureLines(result),
+    ...getOpenerNegativeDoubleRebidFailureLines(result, handFacts),
+    ...getOpenerForcingCompetitionRebidFailureLines(result),
+    ...getOpenerOneNtInterferenceFailureLines(result),
+    ...getOpenerJumpOvercallRebidFailureLines(result),
+    ...getOpenerArtificialSupportRebidFailureLines(result, handFacts),
+    ...getOpenerCompetitiveNaturalNtRebidFailureLines(result, handFacts),
+    ...getOpenerWeakCompetitiveRebidFailureLines(result, handFacts),
+    ...getOpenerThreeLevelGameForceRebidFailureLines(result),
+  ];
 }
 
 function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
@@ -337,6 +336,23 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
   return lines;
 }
 
+function failureHeading(status: BiddingTurnStatus, call: Call): string {
+  if (call === 'Double') return 'Why this Double does not meet the selected requirements:';
+  const stage = status.kind === 'supported' || status.kind === 'scopeBoundary' ||
+    status.kind === 'noApplicableRule' ? status.stage : null;
+  switch (stage) {
+    case 'opening': return 'Why this opening does not meet the selected requirements:';
+    case 'responding': return 'Why this response does not meet the selected requirements:';
+    case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
+    case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
+    case 'advancing': return 'Why this advance does not meet the selected requirements:';
+    case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
+    case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
+    case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
+    case null: return 'Why this call does not meet the selected requirements:';
+  }
+}
+
 function buildUnjudgedCallExplanation(title: string, call: Call,
                                       status: BiddingTurnStatus): string[] {
   const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
@@ -356,8 +372,6 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
   return lines;
 }
 
-/// Use one explanation path for the student's supported call and any substituted recorded call.
-/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
 function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
                                       handFacts: HandFacts, auctionLength: number,
                                       includeRuleExplanation = true): void {
@@ -421,8 +435,6 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   if (includeRuleExplanation) appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 
-/// Add the actual hand valuation only where it explains a light one-level opening.  The
-/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
 function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
                                 auctionLength?: number): void {
   lines.push(`- ${rule.title} [${rule.id}]`);
@@ -513,27 +525,9 @@ export function getOpeningRequirementFailureLines(result: BidEvalResult): string
   return lines;
 }
 
-function openingRequirementCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  return diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-}
 
-function openingChecks(candidate: CandidateCallMatch | undefined): {
-  hcp: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>;
-  balanced: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'balanced' }> | undefined;
-  fiveCardMajor: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'fiveCardMajor' }> | undefined;
-} | null {
-  const evidence = candidate?.callEvidence?.requirements;
-  const hcp = evidence?.find((check) => check.kind === 'hcp');
-  if (hcp?.kind !== 'hcp') return null;
-  const balanced = evidence?.find((check) => check.kind === 'balanced');
-  const fiveCardMajor = evidence?.find((check) => check.kind === 'fiveCardMajor');
-  return {
-    hcp,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    fiveCardMajor: fiveCardMajor?.kind === 'fiveCardMajor' ? fiveCardMajor : undefined,
-  };
-}
+
+
 
 
 
@@ -606,24 +600,7 @@ export function getOpeningSelectionFailureLines(result: BidEvalResult): string[]
   return [];
 }
 
-function openingSelectionText(selection: NonNullable<CallEvidence['openingSelection']>): string {
-  switch (selection.reason) {
-    case 'only-major':
-      return `Open your five-card or longer major, ${selection.call}.`;
-    case 'longer-major':
-      return `With two majors of at least five cards, open the longer one: ${selection.call}.`;
-    case 'equal-majors':
-      return `With equally long five-card or longer majors, open the higher-ranking suit: ${selection.call}.`;
-    case 'longer-minor':
-      return `With no five-card major, open the longer minor: ${selection.call}.`;
-    case 'equal-four-minors':
-      return `With four cards in each minor, open ${selection.call}.`;
-    case 'equal-three-minors':
-      return `With three cards in each minor, open ${selection.call}.`;
-    case 'equal-long-minors':
-      return `With equally long minors of at least five cards, open ${selection.call}.`;
-  }
-}
+
 
 const PREEMPT_OPENING_IDS = [
   'open-weak-two', 'open-weak-three', 'open-four-level-preempt',
@@ -707,6 +684,47 @@ export function getPreemptOpeningFailureLines(result: BidEvalResult): string[] {
 
 
 
+
+function openingRequirementCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  return diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+}
+
+function openingChecks(candidate: CandidateCallMatch | undefined): {
+  hcp: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'hcp' }>;
+  balanced: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'balanced' }> | undefined;
+  fiveCardMajor: Extract<NonNullable<CallEvidence['requirements']>[number], { kind: 'fiveCardMajor' }> | undefined;
+} | null {
+  const evidence = candidate?.callEvidence?.requirements;
+  const hcp = evidence?.find((check) => check.kind === 'hcp');
+  if (hcp?.kind !== 'hcp') return null;
+  const balanced = evidence?.find((check) => check.kind === 'balanced');
+  const fiveCardMajor = evidence?.find((check) => check.kind === 'fiveCardMajor');
+  return {
+    hcp,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    fiveCardMajor: fiveCardMajor?.kind === 'fiveCardMajor' ? fiveCardMajor : undefined,
+  };
+}
+
+function openingSelectionText(selection: NonNullable<CallEvidence['openingSelection']>): string {
+  switch (selection.reason) {
+    case 'only-major':
+      return `Open your five-card or longer major, ${selection.call}.`;
+    case 'longer-major':
+      return `With two majors of at least five cards, open the longer one: ${selection.call}.`;
+    case 'equal-majors':
+      return `With equally long five-card or longer majors, open the higher-ranking suit: ${selection.call}.`;
+    case 'longer-minor':
+      return `With no five-card major, open the longer minor: ${selection.call}.`;
+    case 'equal-four-minors':
+      return `With four cards in each minor, open ${selection.call}.`;
+    case 'equal-three-minors':
+      return `With three cards in each minor, open ${selection.call}.`;
+    case 'equal-long-minors':
+      return `With equally long minors of at least five cards, open ${selection.call}.`;
+  }
+}
 
 ///
 //// Takeout Double explanations
@@ -922,29 +940,9 @@ const BALANCING_PASS_ID = 'balance-pass-defend';
 
 /// The refiner records each considered natural suit call, including those it removed.
 /// Qualification strength is checked separately on surviving calls.
-function balancingSuitEvidence(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const check = diagnostic?.callEvidence?.balancingSuit?.find(
-    (item) => item.call === result.normalizedCall);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
-  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
-}
 
-function balancingNtEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === BALANCING_NT_ID)
-    ?.candidates.find(({ call }) => call === '1NT');
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const balanced = checks?.find((item) => item.kind === 'balanced');
-  const stopper = checks?.find((item) => item.kind === 'stopper');
-  return {
-    candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
-  };
-}
+
+
 
 /// Give the hand-specific justification for the matched balancing treatment.
 export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1037,6 +1035,30 @@ export function getBalancingCallFailureLines(result: BidEvalResult): string[] {
     return lines;
   }
   return [];
+}
+
+function balancingSuitEvidence(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const check = diagnostic?.callEvidence?.balancingSuit?.find(
+    (item) => item.call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  return { check, candidate, hcp: hcp?.kind === 'hcp' ? hcp : undefined };
+}
+
+function balancingNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === BALANCING_NT_ID)
+    ?.candidates.find(({ call }) => call === '1NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return {
+    candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined,
+  };
 }
 
 ///
@@ -1147,6 +1169,10 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
   return [];
 }
 
+
+
+
+
 function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
   const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
@@ -1181,31 +1207,9 @@ const WEAK_TWO_SUIT_IDS = [
 const WEAK_TWO_NT_ID = 'overcall-weak-two-natural-2nt-with-stopper';
 const WEAK_TWO_HONORS = '2 of top 3 honors or 3 of top 5 honors';
 
-function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
-  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
-    ({ call }) => call === result.normalizedCall);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const points = checks?.find((item) => item.kind === 'totalPoints');
-  return { choice, candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    points: points?.kind === 'totalPoints' ? points : undefined };
-}
 
-function weakTwoNtEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
-    ?.candidates.find(({ call }) => call === '2NT');
-  const checks = candidate?.callEvidence?.requirements;
-  const hcp = checks?.find((item) => item.kind === 'hcp');
-  const balanced = checks?.find((item) => item.kind === 'balanced');
-  const stopper = checks?.find((item) => item.kind === 'stopper');
-  return { candidate,
-    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
-    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
-    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
-}
+
+
 
 /// Use only rule/refiner decisions and point checks that were actually evaluated.
 export function getWeakTwoOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1297,6 +1301,32 @@ export function getWeakTwoOvercallFailureLines(result: BidEvalResult): string[] 
   return [];
 }
 
+function weakTwoSuitEvidence(result: BidEvalResult, id: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
+  const choice = diagnostic?.callEvidence?.weakTwoSuit?.find(
+    ({ call }) => call === result.normalizedCall);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const points = checks?.find((item) => item.kind === 'totalPoints');
+  return { choice, candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    points: points?.kind === 'totalPoints' ? points : undefined };
+}
+
+function weakTwoNtEvidence(result: BidEvalResult) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === WEAK_TWO_NT_ID)
+    ?.candidates.find(({ call }) => call === '2NT');
+  const checks = candidate?.callEvidence?.requirements;
+  const hcp = checks?.find((item) => item.kind === 'hcp');
+  const balanced = checks?.find((item) => item.kind === 'balanced');
+  const stopper = checks?.find((item) => item.kind === 'stopper');
+  return { candidate,
+    hcp: hcp?.kind === 'hcp' ? hcp : undefined,
+    balanced: balanced?.kind === 'balanced' ? balanced : undefined,
+    stopper: stopper?.kind === 'stopper' ? stopper : undefined };
+}
+
 ///
 //// Initial DONT overcalls, distinct from partner's DONT advances
 ///
@@ -1310,18 +1340,11 @@ const DONT_HONORS = '2 of top 3 honors or 3 of top 5 honors';
 const DONT_NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
                       'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen'];
 
-function dontNumber(n: number): string {
-  return DONT_NUMBERS[n] ?? String(n);
-}
 
-function dontSuit(suit: 'C' | 'D' | 'H' | 'S'): string {
-  return suitPlural(`1${suit}` as Call);
-}
 
-function dontInitialCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
-  return result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
-    ?.candidates.find(({ call }) => call === result.normalizedCall);
-}
+
+
+
 
 /// Use the shape and honor observations captured by the actual applicability function.
 export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule): string | null {
@@ -1445,6 +1468,19 @@ export function getDontInitialFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
+function dontNumber(n: number): string {
+  return DONT_NUMBERS[n] ?? String(n);
+}
+
+function dontSuit(suit: 'C' | 'D' | 'H' | 'S'): string {
+  return suitPlural(`1${suit}` as Call);
+}
+
+function dontInitialCandidate(result: BidEvalResult, ruleId: string): CandidateCallMatch | undefined {
+  return result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
+    ?.candidates.find(({ call }) => call === result.normalizedCall);
+}
+
 ///
 //// Preemptive jump-overcall explanations
 ///
@@ -1505,6 +1541,8 @@ export function getJumpOvercallFailureLines(result: BidEvalResult): string[] {
   }
   return [];
 }
+
+
 
 function jumpOvercallEvidence(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
@@ -1658,6 +1696,8 @@ function minorRequirement<K extends Requirement['kind']>(candidate: CandidateCal
     (item): item is Extract<Requirement, { kind: K }> => item.kind === kind);
 }
 
+
+
 function minorSuitSelectionText(
   selection: NonNullable<CallEvidence['minorResponseSelection']>, entered: Call): string {
   const preferred = selection.preferredCall;
@@ -1701,20 +1741,9 @@ const STRONG_MAJOR_IDS = [
   STRONG_MAJOR_PREEMPT_ID, STRONG_MAJOR_LIMIT_FALLBACK_ID,
 ];
 
-function majorSuitName(suit: 'H' | 'S'): string {
-  return suit === 'H' ? 'hearts' : 'spades';
-}
 
-function majorOpeningForResponse(result: BidEvalResult): '1H' | '1S' | null {
-  const check = result.ruleDiagnostics
-    .filter(({ rule }) => STRONG_MAJOR_IDS.includes(rule.id))
-    .flatMap(({ candidates }) => candidates)
-    .flatMap(({ callEvidence }) => callEvidence?.requirements ?? [])
-    .find((item) => item.kind === 'partnerSupport' &&
-      (item.suit === 'H' || item.suit === 'S'));
-  if (check?.kind !== 'partnerSupport' || check.suit === undefined) return null;
-  return check.suit === 'H' ? '1H' : '1S';
-}
+
+
 
 /// Return additional instruction only when the actual call qualified under its strong-support rule.
 function strongMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -1887,6 +1916,21 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
+function majorSuitName(suit: 'H' | 'S'): string {
+  return suit === 'H' ? 'hearts' : 'spades';
+}
+
+function majorOpeningForResponse(result: BidEvalResult): '1H' | '1S' | null {
+  const check = result.ruleDiagnostics
+    .filter(({ rule }) => STRONG_MAJOR_IDS.includes(rule.id))
+    .flatMap(({ candidates }) => candidates)
+    .flatMap(({ callEvidence }) => callEvidence?.requirements ?? [])
+    .find((item) => item.kind === 'partnerSupport' &&
+      (item.suit === 'H' || item.suit === 'S'));
+  if (check?.kind !== 'partnerSupport' || check.suit === undefined) return null;
+  return check.suit === 'H' ? '1H' : '1S';
+}
+
 ///
 //// Responses supporting partner's one-level major
 ///
@@ -2028,38 +2072,11 @@ const MAJOR_NO_SUPPORT_IDS = [
   'respond-to-major-w/o-support-1nt-standard',
 ];
 
-function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// A refiner orders legitimate two-level suit candidates without rejecting the others. Report
 /// that decision only after the evaluator confirms which candidate calls actually qualified.
-function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
-  const { diagnostic } = noSupportDiagnostic(result, ruleId);
-  const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
-  if (selection === undefined) return null;
-  const qualified = selection.orderedCalls.filter((call) =>
-    diagnostic?.candidates.some((item) => item.call === call && item.ruleApplies));
-  if (qualified.length < 2) return null;
-  const preferred = qualified[0];
-  const chosen = result.normalizedCall;
-  const preferredLength = selection.considered.find(({ call }) => call === preferred)?.length;
-  const other = chosen === preferred ? qualified[1] : chosen;
-  const otherLength = selection.considered.find(({ call }) => call === other)?.length;
-  if (preferredLength === undefined || otherLength === undefined) return null;
-  if (preferredLength > otherLength) {
-    return `Both ${preferred} and ${other} qualify. The longer new suit (${preferred}) ` +
-      `comes first; ${other} remains a supported alternative.`;
-  }
-  if (preferredLength >= 5) {
-    return `Both ${preferred} and ${other} qualify with equal length of at least five cards. ` +
-      `Bid the higher-ranking suit (${preferred}) first; ${other} remains supported.`;
-  }
-  return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
-    `Bid up the line (${preferred} first); ${other} remains supported.`;
-}
+
 
 /// Give positive explanations for actual qualifying calls, including the selected forcing
 /// obligation. Do not infer a game force from a Standard new-suit response.
@@ -2162,6 +2179,37 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
   return lines;
 }
 
+
+function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
+  const { diagnostic } = noSupportDiagnostic(result, ruleId);
+  const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
+  if (selection === undefined) return null;
+  const qualified = selection.orderedCalls.filter((call) =>
+    diagnostic?.candidates.some((item) => item.call === call && item.ruleApplies));
+  if (qualified.length < 2) return null;
+  const preferred = qualified[0];
+  const chosen = result.normalizedCall;
+  const preferredLength = selection.considered.find(({ call }) => call === preferred)?.length;
+  const other = chosen === preferred ? qualified[1] : chosen;
+  const otherLength = selection.considered.find(({ call }) => call === other)?.length;
+  if (preferredLength === undefined || otherLength === undefined) return null;
+  if (preferredLength > otherLength) {
+    return `Both ${preferred} and ${other} qualify. The longer new suit (${preferred}) ` +
+      `comes first; ${other} remains a supported alternative.`;
+  }
+  if (preferredLength >= 5) {
+    return `Both ${preferred} and ${other} qualify with equal length of at least five cards. ` +
+      `Bid the higher-ranking suit (${preferred}) first; ${other} remains supported.`;
+  }
+  return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
+    `Bid up the line (${preferred} first); ${other} remains supported.`;
+}
+
+function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
 
 ///
 //// Responses after a strong artificial 2C opening
@@ -2407,6 +2455,9 @@ export function getResponderJumpShiftFailureLines(result: BidEvalResult): string
   return [];
 }
 
+
+
+
 function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
   const selection = diagnostic?.callEvidence?.jumpShift;
@@ -2416,7 +2467,6 @@ function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
   const suit = selection?.considered.find(({ call }) => call === result.normalizedCall);
   return { diagnostic, selection, candidate, hcp, support, suit };
 }
-
 
 ///
 //// Advancing natural suit overcalls after responder Pass
@@ -2441,11 +2491,7 @@ const NATURAL_ADVANCE_RULES = [
   'advance-two-level-suit-overcall-three-notrump',
 ];
 
-function naturalAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// Describe why a *qualifying* alternative to Pass is available using the checks
 /// recorded by that rule. Do not infer points, fit, or suit length from auction alone.
@@ -2630,6 +2676,12 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
 }
 
 
+function naturalAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
 //// Competitive responder's first action after interference
 ///
@@ -2697,10 +2749,7 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
 
 /// Compare competing descriptions only when every referenced call actually
 /// qualifies for this hand. A supported alternative is not necessarily wrong.
-function qualifiedResponse(result: BidEvalResult, ruleId: string, call: Call): boolean {
-  return result.ruleDiagnostics.some(({ rule, candidates }) =>
-    rule.id === ruleId && candidates.some((item) => item.call === call && item.ruleApplies));
-}
+
 
 /// Explain selected genuine overlaps in competitive responder's first action.
 /// The bidding evaluator supplies the qualified alternatives; this adds no new rules.
@@ -2870,6 +2919,13 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
     }
   }
   return [];
+}
+
+
+
+function qualifiedResponse(result: BidEvalResult, ruleId: string, call: Call): boolean {
+  return result.ruleDiagnostics.some(({ rule, candidates }) =>
+    rule.id === ruleId && candidates.some((item) => item.call === call && item.ruleApplies));
 }
 
 function competitiveResponseCandidate(result: BidEvalResult, id: string) {
@@ -3067,6 +3123,10 @@ export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+
+
+
+
 function weakTwoResponseDiagnostic(result: BidEvalResult, id: string) {
   const entry = result.ruleDiagnostics.find(({ rule }) => rule.id === id);
   const candidate = entry?.candidates.find(({ call }) => call === result.normalizedCall);
@@ -3093,11 +3153,7 @@ const TAKEOUT_ADVANCE_RULES = [
   'advance-weak-two-double-direct-major-game',
 ];
 
-function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
 
 /// Convey the meaning of the selected treatment and its actual evaluated qualification.
 /// The refiner and hand predicate, not this function, determine which calls survive.
@@ -3279,6 +3335,12 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
 //// Natural notrump partner responses and advances
 ///
@@ -3289,17 +3351,9 @@ function notrumpPartnerDiagnostic(result: BidEvalResult, ruleId: string) {
   return { diagnostic, candidate };
 }
 
-function notrumpHcpText(check: Extract<NonNullable<CallEvidence['requirements']>[number],
-                                  { kind: 'hcp' }>): string {
-  return hcpRangeText(check);
-}
 
-function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | null {
-  if (ruleId.includes('to-hearts')) return 'hearts';
-  if (ruleId.includes('to-spades')) return 'spades';
-  if (ruleId.includes('transfer')) return null;
-  return call.endsWith('H') ? 'hearts' : call.endsWith('S') ? 'spades' : null;
-}
+
+
 
 /// The same 1NT treatments explain opening responses and advances after a natural 1NT
 /// overcall. Describe the actual selected meaning without assuming how partner reached 1NT.
@@ -3484,6 +3538,20 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
 
 /// The same natural-interference rules serve responses and advances. Use only their
 /// recorded checks; do not infer the unbid suits or repeat qualification decisions here.
+
+
+function notrumpHcpText(check: Extract<NonNullable<CallEvidence['requirements']>[number],
+                                  { kind: 'hcp' }>): string {
+  return hcpRangeText(check);
+}
+
+function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | null {
+  if (ruleId.includes('to-hearts')) return 'hearts';
+  if (ruleId.includes('to-spades')) return 'spades';
+  if (ruleId.includes('transfer')) return null;
+  return call.endsWith('H') ? 'hearts' : call.endsWith('S') ? 'spades' : null;
+}
+
 function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null) return [];
   const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
@@ -3568,37 +3636,7 @@ const JUMP_ADVANCE_RULES = [
   'advance-jump-overcall-forcing-new-suit',
 ];
 
-function dontAdvanceExplanation(choice: NonNullable<CallEvidence['dontAdvance']>): string {
-  switch (choice.reason) {
-    case 'single-suit-relay':
-      return 'Partner’s DONT Double shows one long, undisclosed suit. 2♣ is an artificial ' +
-        'relay asking partner to name that suit; it does not promise clubs.';
-    case 'club-fit':
-      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With ` +
-        `${choice.clubLength} clubs, Pass accepts the known club suit.`;
-    case 'ask-higher-suit':
-      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With only ` +
-        `${choice.clubLength} clubs, 2♦ is the artificial pass-or-correct request for ` +
-        `partner's other suit; it does not promise diamonds.`;
-    case 'diamond-fit':
-      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
-        `diamonds, Pass accepts diamonds under this treatment.`;
-    case 'ask-major':
-      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
-        `diamonds and your major-suit holdings (${choice.heartLength} hearts and ` +
-        `${choice.spadeLength} spades), 2♥ asks partner to Pass with hearts or correct ` +
-        `to 2♠ with spades; 2♥ does not necessarily promise hearts.`;
-    case 'heart-preference':
-      return `Partner's DONT 2♥ shows both majors. With ${choice.heartLength} hearts and ` +
-        `${choice.spadeLength} spades, Pass prefers hearts under this treatment.`;
-    case 'spade-preference':
-      return `Partner's DONT 2♥ shows both majors. With ${choice.spadeLength} spades and ` +
-        `${choice.heartLength} hearts, 2♠ prefers spades; partner has already shown spades.`;
-    case 'natural-spades':
-      return `Partner's direct DONT 2♠ is natural, showing a one-suited spade hand. ` +
-        `Pass leaves that nonforcing contract in place.`;
-  }
-}
+
 
 /// The refiner's result, not a second DONT decision tree, establishes the action.
 export function getDontAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3622,13 +3660,7 @@ export function getDontAdvanceFailureLines(result: BidEvalResult): string[] {
     `${result.normalizedCall}. ${dontAdvanceExplanation(choice)} [${DONT_ADVANCE_ID}]`];
 }
 
-function jumpAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  const evidence = candidate?.callEvidence?.jumpAdvance ?? diagnostic?.callEvidence?.jumpAdvance;
-  const considered = evidence?.considered?.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate, evidence, considered };
-}
+
 
 /// Positive instructions use the checks and retained choices on the actual selected rule.
 export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3723,6 +3755,46 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
+function dontAdvanceExplanation(choice: NonNullable<CallEvidence['dontAdvance']>): string {
+  switch (choice.reason) {
+    case 'single-suit-relay':
+      return 'Partner’s DONT Double shows one long, undisclosed suit. 2♣ is an artificial ' +
+        'relay asking partner to name that suit; it does not promise clubs.';
+    case 'club-fit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With ` +
+        `${choice.clubLength} clubs, Pass accepts the known club suit.`;
+    case 'ask-higher-suit':
+      return `Partner's DONT 2♣ shows clubs and a higher-ranking suit. With only ` +
+        `${choice.clubLength} clubs, 2♦ is the artificial pass-or-correct request for ` +
+        `partner's other suit; it does not promise diamonds.`;
+    case 'diamond-fit':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds, Pass accepts diamonds under this treatment.`;
+    case 'ask-major':
+      return `Partner's DONT 2♦ shows diamonds and a major. With ${choice.diamondLength} ` +
+        `diamonds and your major-suit holdings (${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades), 2♥ asks partner to Pass with hearts or correct ` +
+        `to 2♠ with spades; 2♥ does not necessarily promise hearts.`;
+    case 'heart-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.heartLength} hearts and ` +
+        `${choice.spadeLength} spades, Pass prefers hearts under this treatment.`;
+    case 'spade-preference':
+      return `Partner's DONT 2♥ shows both majors. With ${choice.spadeLength} spades and ` +
+        `${choice.heartLength} hearts, 2♠ prefers spades; partner has already shown spades.`;
+    case 'natural-spades':
+      return `Partner's direct DONT 2♠ is natural, showing a one-suited spade hand. ` +
+        `Pass leaves that nonforcing contract in place.`;
+  }
+}
+
+function jumpAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  const evidence = candidate?.callEvidence?.jumpAdvance ?? diagnostic?.callEvidence?.jumpAdvance;
+  const considered = evidence?.considered?.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate, evidence, considered };
+}
+
 ///
 //// Competitive advances after responder raises opener
 ///
@@ -3734,15 +3806,9 @@ const COMPETITIVE_RAISE_PREFIXES = [
 ];
 const COMPETITIVE_NT_ID = 'advance-after-responder-action-natural-notrump';
 
-function competitiveRaiseRule(ruleId: string): boolean {
-  return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
-}
 
-function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
+
 
 /// Explain only the selected rule and facts evaluated for this particular call.
 export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -3950,6 +4016,16 @@ export function getCompetitiveRaiseAdvanceFailureLines(result: BidEvalResult): s
 }
 
 
+function competitiveRaiseRule(ruleId: string): boolean {
+  return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
+}
+
+function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
+}
+
 ///
 //// Competitive advances after responder bids naturally
 ///
@@ -3961,9 +4037,7 @@ const COMPETITIVE_NATURAL_PREFIXES = [
   'advance-takeout-double-after-responder-natural-action-',
 ];
 
-function competitiveNaturalRule(ruleId: string): boolean {
-  return COMPETITIVE_NATURAL_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
-}
+
 
 /// Positive messages rely on the evaluated rule, not independent hand checks.
 export function getCompetitiveNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -4101,6 +4175,10 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
   return [];
 }
 
+function competitiveNaturalRule(ruleId: string): boolean {
+  return COMPETITIVE_NATURAL_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
+}
+
 ///
 //// Competitive advances after negative Doubles and Redoubles
 ///
@@ -4108,18 +4186,9 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
 const REDOUBLED_TAKEOUT_ESCAPE_ID =
   'advance-takeout-double-after-responder-redouble-weak-suit-escape';
 
-function negativeDoubleAdvanceRule(ruleId: string): boolean {
-  return ruleId.includes('-after-negative-double-') && (
-    ruleId.startsWith('advance-suit-overcall-') ||
-    ruleId.startsWith('advance-one-level-suit-overcall-') ||
-    ruleId.startsWith('advance-two-level-suit-overcall-'));
-}
 
-function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
+
+
 
 /// Explain the actual qualifying treatment, not every alternative that was considered.
 export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
@@ -4532,6 +4601,19 @@ export function getTakeoutDoublerRebidFailureLines(result: BidEvalResult): strin
     }
   }
   return [];
+}
+
+function negativeDoubleAdvanceRule(ruleId: string): boolean {
+  return ruleId.includes('-after-negative-double-') && (
+    ruleId.startsWith('advance-suit-overcall-') ||
+    ruleId.startsWith('advance-one-level-suit-overcall-') ||
+    ruleId.startsWith('advance-two-level-suit-overcall-'));
+}
+
+function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
+  return { diagnostic, candidate };
 }
 
 ///
@@ -5581,6 +5663,8 @@ export function getOpenerOneLevelNewSuitRebidFailureLines(result: BidEvalResult)
   return [];
 }
 
+
+
 function isOpenerOneLevelNewSuitRule(id: string): boolean {
   return id.endsWith('-after-minor-one-level-new-suit') ||
     id.endsWith('-after-major-one-level-new-suit');
@@ -5590,12 +5674,7 @@ function isOpenerOneLevelNewSuitRule(id: string): boolean {
 //// Opener's first rebid after a natural two-level new-suit response
 ///
 
-function isOpenerTwoLevelNewSuitRule(id: string): boolean {
-  return id.includes('-after-minor-standard-two-level-new-suit') ||
-    id.includes('-after-major-standard-two-level-new-suit') ||
-    id.includes('-after-minor-two-over-one-new-suit') ||
-    id.includes('-after-major-two-over-one-new-suit');
-}
+
 
 /// Explain the actual qualifying bid, including its forcing implications under Standard or 2/1.
 /// Several rebids can qualify simultaneously; do not turn the recorded call into the only answer.
@@ -5820,6 +5899,13 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
 }
 
 
+function isOpenerTwoLevelNewSuitRule(id: string): boolean {
+  return id.includes('-after-minor-standard-two-level-new-suit') ||
+    id.includes('-after-major-standard-two-level-new-suit') ||
+    id.includes('-after-minor-two-over-one-new-suit') ||
+    id.includes('-after-major-two-over-one-new-suit');
+}
+
 ///
 //// Responder's rebid after opener simply raises the one-level major response
 ///
@@ -5868,6 +5954,10 @@ export function getResponderSimpleRaiseFailureLines(
   }
   return [];
 }
+
+
+
+
 
 function simpleRaiseValuation(facts: HandFacts): string {
   const shortness = (['C', 'D', 'H', 'S'] as const)
@@ -6338,16 +6428,7 @@ const OPENER_RAISE_RULE_IDS = [
   'opener-rebid-splinter-after-major-simple-raise',
 ];
 
-function openerRaiseValue(id: string, facts: HandFacts): string {
-  if (id === 'opener-rebid-2nt-game-try-after-major-simple-raise') {
-    return `${facts.hcp} HCP with balanced shape`;
-  }
-  const majorFit = id.includes('-after-major-');
-  const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
-  const label = majorFit ? 'shortage' : 'length';
-  const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
-  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
-}
+
 
 /// A matched rule supplies the meaning; these actual hand facts explain its qualification.
 export function getOpenerRaiseRebidLines(
@@ -6513,6 +6594,17 @@ export function getOpenerRaiseRebidFailureLines(
     }
   }
   return [];
+}
+
+function openerRaiseValue(id: string, facts: HandFacts): string {
+  if (id === 'opener-rebid-2nt-game-try-after-major-simple-raise') {
+    return `${facts.hcp} HCP with balanced shape`;
+  }
+  const majorFit = id.includes('-after-major-');
+  const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
+  const label = majorFit ? 'shortage' : 'length';
+  const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
+  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
 }
 
 ///
