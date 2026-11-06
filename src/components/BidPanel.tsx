@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, getUnmodeledContinuationForce,
-         getUnfulfilledGameForceAtAuctionEnd, normalizeCallInput,
-         type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce } from '../models/biddingEvaluation';
+         getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
+         type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce,
+         type UnfulfilledAuctionForce } from '../models/biddingEvaluation';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
@@ -48,8 +49,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   const biddingTurnStatus = useMemo(() => getBiddingTurnStatus(board, auction, biddingSystem),
     [board, auction, biddingSystem]);
   const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
-  const violatedGameForce = useMemo(() => auctionComplete &&
-    getUnfulfilledGameForceAtAuctionEnd(board, auction, biddingSystem),
+  const unfulfilledAuctionForce = useMemo(() => auctionComplete ?
+    getUnfulfilledForceAtAuctionEnd(board, auction, biddingSystem) : null,
     [board, auction, biddingSystem, auctionComplete]);
   const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'auctionComplete' ||
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
@@ -69,7 +70,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   };
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
-    biddingTurnStatus, practiceComplete, outstandingForce, practiceStep, violatedGameForce);
+    biddingTurnStatus, practiceComplete, outstandingForce, practiceStep, unfulfilledAuctionForce);
   const displayedExplanation = [...explanationLines, ...turnGuidance,
     ...(reportNotice === null ? [] : ['', reportNotice.text])];
   // Scroll to the last *reviewed* call, not a preview of the next seat's turn.
@@ -363,7 +364,7 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
                              outstandingForce: UnmodeledContinuationForce | null,
                              practiceStep: { recordedCall: Call; followingSeat: Seat | null;
                                              followingStage: BidStage | null } | null,
-                             violatedGameForce: boolean): string[] {
+                             unfulfilledAuctionForce: UnfulfilledAuctionForce | null): string[] {
   const lines: string[] = [];
   if (practiceComplete) {
     lines.push('', status.kind === 'auctionComplete'
@@ -421,10 +422,20 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       }
     }
   }
-  if (violatedGameForce) {
-    lines.push('The auction has ended below game even though a game-forcing bid ' +
-      'committed the partnership to reach game. The final Passes ended the auction ' +
-      'legally but did not honor that bidding agreement.');
+  if (unfulfilledAuctionForce?.kind === 'gameForce') {
+    lines.push(unfulfilledAuctionForce.interveningCompetition
+      ? 'An earlier game-forcing bid established a partnership commitment before ' +
+        'the opponents competed. The auction ended in an undoubled partscore ' +
+        'without our side bidding game. Whether to bid, Double, or Pass after ' +
+        'interference requires further judgment; review how the partnership ' +
+        'should handle its earlier game force.'
+      : 'The auction has ended below game even though a game-forcing bid ' +
+        'committed the partnership to reach game. The final Passes ended the ' +
+        'auction legally but did not honor that bidding agreement.');
+  } else if (unfulfilledAuctionForce?.kind === 'oneRoundForce') {
+    lines.push('An earlier forcing bid required partner to act for one round, ' +
+      'but partner Passed and the auction ended. The Pass was legal, but it ' +
+      'did not fulfill the partnership\'s one-round forcing agreement.');
   }
   // Completion ends the *lesson*, not the partnership commitment. Never invent
   // an unmodeled third bid or imply that a forcing call authorizes partner to Pass.

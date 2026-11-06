@@ -129,6 +129,24 @@ the original responder-major length restriction. Twenty focused checks verify
 evaluated evidence and final explanation delivery; eligibility rules and
 student practice deals were not changed.
 
+## Cross-stage forcing commitments at auction completion (November 5, 2026)
+
+The next-turn force tracker remains conservative when opponents intervene:
+the app does not prescribe competitive bids, Doubles, or forcing Passes outside
+the selected rules. At auction completion, however, an earlier evaluated game
+force is retained as historical partnership evidence. When the opponents are
+left in an undoubled partscore without our partnership reaching game, the
+explanation invites review of that commitment rather than declaring one
+particular competitive call correct. Opponent game contracts and doubled
+competitive contracts do not trigger this speculative warning.
+
+The completed-auction guidance also recognizes when partner Passed after an
+evaluated one-round forcing bid, such as Jordan 2NT, and the other three players
+Passed to end the auction. An answered one-round force, a natural game, and
+incomplete auctions do not receive these messages. The auction remains legally
+complete and no bidding rule, partnership convention, or student practice deal
+was changed. Targeted rule tests cover the two warnings and their boundaries.
+
 ## Deferred or intentionally limited
 
 - No generalized penalty doubles/redoubles, Lebensohl, unconstrained later auctions, speculative game/slam judgment, or new convention families solely to close a coverage gap.

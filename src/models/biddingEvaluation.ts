@@ -289,10 +289,12 @@ function isGamePlacement(call: Call, matchingRules: BidRule[]): boolean {
 
 /// One-round forces require partner's next response (possibly after an opponent Pass).
 /// Game forces can persist through further partnership bids, until game is reached.
-/// After substantive opposing action we do not presume the original obligation survives
-/// unchanged: the trainer must not turn uncertain competitive judgment into a rule.
+/// After substantive opposing action, next-turn guidance does not presume the
+/// obligation survives unchanged. Auction-end feedback can separately review
+/// an earlier evaluated game force without prescribing a competitive call.
 export function getUnmodeledContinuationForce (board: Board, auction: Call[],
-                                              system: BiddingSystem): UnmodeledContinuationForce | null {
+                                              system: BiddingSystem,
+                                              includeOpposingCompetition = false): UnmodeledContinuationForce | null {
   if (auction.length === 0 || auctionIsComplete(auction)) return null;
   const lastIndex = auction.length - 1;
   let oneRound: UnmodeledContinuationForce | null = null;
@@ -305,7 +307,7 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
     const opponentActed = subsequent.some((later, offset) => later !== 'Pass' &&
       getSeatForCallIndex(board.dealer, index + offset + 1) !== forceSeat &&
       getSeatForCallIndex(board.dealer, index + offset + 1) !== partner);
-    if (opponentActed) continue;
+    if (opponentActed && !includeOpposingCompetition) continue;
     const stage = getNextBiddingRuleStage(board.dealer, auction.slice(0, index));
     if (stage === null) continue;
     const matches = evaluateUserCall(call, board, auction.slice(0, index), system)
@@ -364,12 +366,59 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
   return oneRound;
 }
 
-/// An auction can end legally after three Passes without honoring a game force.
-/// Preserve that instructional distinction without changing call legality.
+/// Completed auctions can leave a previously evaluated force unanswered.
+/// Competition may require judgment; this information never grades or blocks
+/// a legal competitive Pass, Double, or bid.
+export type UnfulfilledAuctionForce =
+  | { kind: 'gameForce'; interveningCompetition: boolean }
+  | { kind: 'oneRoundForce'; interveningCompetition: false };
+
+/// Keep the existing game-force predicate available to callers and regression tests.
 export function getUnfulfilledGameForceAtAuctionEnd (board: Board, auction: Call[],
                                                       system: BiddingSystem): boolean {
-  if (!auctionIsComplete(auction) || auction.length === 0) return false;
-  return getUnmodeledContinuationForce(board, auction.slice(0, -1), system)?.kind === 'gameForce';
+  return getUnfulfilledForceAtAuctionEnd(board, auction, system)?.kind === 'gameForce';
+}
+
+/// Review only verifiable forcing commitments when the legal auction is over.
+/// Do not infer a required bid after interference or treat a doubled competing
+/// contract as evidence that the partnership should have bid higher.
+export function getUnfulfilledForceAtAuctionEnd (board: Board, auction: Call[],
+                                                  system: BiddingSystem): UnfulfilledAuctionForce | null {
+  if (!auctionIsComplete(auction) || auction.length < 4) return null;
+  const lastCallIndex = auction.findLastIndex((call) => call !== 'Pass');
+  if (lastCallIndex < 0) return null;
+
+  const beforeLastPass = auction.slice(0, -1);
+  if (getUnmodeledContinuationForce(board, beforeLastPass, system)?.kind === 'gameForce') {
+    return { kind: 'gameForce', interveningCompetition: false };
+  }
+
+  // Opponent interference suspends a recommendation, not the historical
+  // game-forcing promise. Warn conservatively only when the final contract
+  // is an undoubled partscore, rather than guessing about competitive games
+  // or whether defending a doubled contract was preferable.
+  if (getUnmodeledContinuationForce(board, beforeLastPass, system, true)?.kind === 'gameForce') {
+    const lastBidIndex = auction.findLastIndex((call) => parseSuitBid(call) !== null);
+    if (lastBidIndex >= 0 && lastCallIndex === lastBidIndex &&
+        !isGameContract(auction[lastBidIndex]!)) {
+      return { kind: 'gameForce', interveningCompetition: true };
+    }
+    return null;
+  }
+
+  // A one-round forcing bid followed by three Passes was unanswered by
+  // partner. Do not treat a takeout Double left in for penalties as a broken
+  // forcing bid; opponent competition after a force requires separate judgment.
+  if (lastCallIndex !== auction.length - 4) return null;
+  const lastCall = auction[lastCallIndex];
+  if (lastCall === undefined || parseSuitBid(lastCall) === null) return null;
+  const matches = evaluateUserCall(lastCall, board, auction.slice(0, lastCallIndex), system)
+    .userCallMatchingRules;
+  if (matches.some((rule) => rule.callCategory?.includes('forcing') === true &&
+        rule.callCategory?.includes('gameForcing') !== true)) {
+    return { kind: 'oneRoundForce', interveningCompetition: false };
+  }
+  return null;
 }
 
 //// Evaluation context and stage rule selection
