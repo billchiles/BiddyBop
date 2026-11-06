@@ -25,6 +25,7 @@ import {
 
 
 export const OvercallRules: BidRule[] = [
+  //// Direct overcalls and scope boundaries
   // Passing is normal when no modeled competitive action qualifies. The evaluator suppresses
   // this fallback when a natural overcall, takeout Double, preempt, or DONT action applies.
   // Limit the ordinary treatment to 17 HCP; strong hands without a modeled defense remain
@@ -115,6 +116,293 @@ export const OvercallRules: BidRule[] = [
                'and other partnership methods require judgment outside the app’s treatment.'],
     certainty: 'high',
   },
+  //
+  //// DONT against a strong 1NT
+  // Compact DONT defense to an opposing strong 1NT.  Shape and suit quality carry more weight
+  // than raw HCP; the app uses 7 HCP as a conservative floor because vulnerability is unmodeled.
+  {
+    id: 'overcall-dont-single-suit-double',
+    kind: 'overcall',
+    title: 'Use DONT Double with one long non-spade suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: dontSingleSuitDoubleApplies,
+    meaning: 'DONT Double shows one good 6+ card club, diamond, or heart suit and asks partner ' +
+             'to relay to 2C.',
+    guidance: ['This is not a penalty Double. Partner normally bids 2C; the DONT bidder then ' +
+               'passes with clubs or names the long suit.',
+               'A one-suited spade hand uses direct 2S in this compact treatment.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-clubs-plus-higher',
+    kind: 'overcall',
+    title: 'Use DONT 2C with clubs and a higher suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2C'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2C shows clubs plus exactly one higher suit, normally at least 5-4.',
+    guidance: ['Partner may pass with a club fit; otherwise 2D asks for the higher suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-diamonds-plus-major',
+    kind: 'overcall',
+    title: 'Use DONT 2D with diamonds and a major',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2D'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2D shows diamonds plus exactly one major, normally at least 5-4.',
+    guidance: ['Partner may pass with a diamond fit; otherwise 2H asks partner to pass or ' +
+               'correct to 2S.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-majors',
+    kind: 'overcall',
+    title: 'Use DONT 2H with hearts and spades',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2H'],
+    callCategory: ['conventional'],
+    appliesWhen: dontTwoSuitOvercallApplies,
+    meaning: 'DONT 2H shows both majors, normally at least 5-4.',
+    guidance: ['Partner passes with a heart preference or bids 2S with a spade preference.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-dont-natural-spades',
+    kind: 'overcall',
+    title: 'Use natural DONT 2S with one long spade suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    calls: ['2S'],
+    callCategory: ['natural'],
+    appliesWhen: dontSpadeOvercallApplies,
+    meaning: 'Natural DONT 2S shows one good 6+ card spade suit.',
+    guidance: ['Full DONT treatments often distinguish a stronger spade hand by doubling first; ' +
+               'that strength split is intentionally omitted here.'],
+    certainty: 'high',
+  },
+  //
+  // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
+  // Weak-two defenses follow these one-level overcalls; their selected later rebids are below.
+  {
+    id: 'overcall-simple-suit-at-one-level',
+    kind: 'overcall',
+    title: 'Make a natural one-level suit overcall',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['1D', '1H', '1S'],
+    callRefinement: refineSimpleSuitOvercall,
+    callCategory: ['natural'],
+    appliesWhen: naturalOneLevelSuitOvercallApplies,
+    meaning: 'A non-jump one-level overcall: normally 8–17 HCP and a good five-card suit ' +
+             'or any six-card-or-longer suit. A particularly strong suit can justify 7 HCP.',
+    guidance: ['With 7 HCP, the trainer requires at least two of A/K/Q and the 10 in a ' +
+               'five-card-or-longer suit; vulnerability is not modeled.',
+               'With 18+ HCP and a strong suit-oriented hand, begin with a takeout Double. ' +
+               'A balanced 18-HCP hand with an opener-suit stopper may instead qualify for 1NT.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-simple-suit-at-two-level',
+    kind: 'overcall',
+    title: 'Make a natural two-level suit overcall',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refineSimpleSuitOvercall,
+    callCategory: ['natural'],
+    appliesWhen: naturalTwoLevelSuitOvercallApplies,
+    meaning: 'A non-jump two-level overcall: normally 12–17 HCP and a good five-card-or-longer ' +
+             'suit. Longer good suits permit a lower HCP minimum (11 with six, 10 with seven, ' +
+             '9 with eight or more).',
+    guidance: ['A jump overcall is preemptive and uses a separate weak-jump treatment.',
+               'This is a sounder action than a one-level overcall; vulnerability is not modeled.'],
+    certainty: 'high',
+  },
+  // Natural 1NT overcalls are balanced 15-18 HCP with a stopper in opener's suit.
+  {
+    id: 'overcall-natural-1nt-with-stopper',
+    kind: 'overcall',
+    title: 'Overcall 1NT with a balanced 15-18 HCP hand and a stopper',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['1NT'],
+    callCategory: ['natural'],
+    priority: { rank: 20, note: 'A balanced hand with a stopper is well described by 1NT.' },
+    appliesWhen: naturalNotrumpOvercallApplies, // 15-18 HCP balanced with an opening-suit stopper
+    meaning: "Natural 1NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
+    guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
+    certainty: 'high',
+  },
+  //
+  // Preemptive jump overcalls are distinct from economical suit overcalls: honor quality is
+  // required, with exactly six, seven, or eight cards at the corresponding level.
+  {
+    id: 'overcall-preemptive-jump-at-two-level',
+    kind: 'overcall',
+    title: 'Make a weak two-level jump overcall with a good six-card suit',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['2C', '2D', '2H', '2S'],
+    callRefinement: refinePreemptiveJumpOvercall,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 15 },
+    appliesWhen: { hcp: { min: 5, max: 11 } },
+    meaning: 'Preemptive jump to the two level: 5-11 HCP with a good six-card suit.',
+    guidance: ['This must be a jump over the cheapest natural overcall in that suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-preemptive-jump-at-three-level',
+    kind: 'overcall',
+    title: 'Make a weak three-level jump overcall with a good seven-card suit',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refinePreemptiveJumpOvercall,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 15 },
+    appliesWhen: { hcp: { max: 9 } },
+    meaning: 'Preemptive jump to the three level: fewer than 10 HCP with a good seven-card suit.',
+    guidance: ['The source treats intermediate jump strains as partnership agreement; ' +
+               'this app uses only natural jump overcalls in a new suit.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-preemptive-jump-at-four-level',
+    kind: 'overcall',
+    title: 'Make a weak four-level jump overcall with a good eight-card suit',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['4C', '4D', '4H', '4S'],
+    callRefinement: refinePreemptiveJumpOvercall,
+    callCategory: ['natural', 'signoff'],
+    priority: { rank: 15 },
+    appliesWhen: { hcp: { max: 9 } },
+    meaning: 'Preemptive jump to the four level: fewer than 10 HCP with a good eight-card suit.',
+    guidance: ['This is separate from rare four- and five-level opening preempts.'],
+    certainty: 'high',
+  },
+  //
+  // Ordinary takeout doubles promise a tolerable fit in each unbid suit; a high-card-strength
+  // exception permits doubling first with any distribution and showing the hand on the next turn.
+  {
+    id: 'overcall-takeout-double-with-unbid-suit-support',
+    kind: 'overcall',
+    title: 'Make a takeout double with support for the unbid suits',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ shortage points, 3+ in all unbid suits
+    meaning: 'Takeout double with opening values and at least three cards in each unbid suit; ' +
+             'asks partner to choose another suit rather than defending opener’s suit.',
+    guidance: ['Prefer four-card support in the unbid suits. The Double does not promise a ' +
+               'specific length or shortness in opener’s suit.',
+               'An 18+ HCP hand may double without this distribution, then describe its strength ' +
+               'or suit on the next turn.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-takeout-double-strong-hand',
+    kind: 'overcall',
+    title: 'Begin with a takeout double on a very strong hand',
+    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: { hcp: { min: 18 } },
+    meaning: 'An 18+ HCP takeout double can precede a later natural suit or notrump bid ' +
+             'without promising support for all unbid suits.',
+    guidance: ['Exceptionally powerful distributional hands with fewer than 18 HCP require ' +
+               'judgment; the app does not estimate playing tricks for this exception.',
+               'General penalty decisions are not modeled; selected natural doubler rebids are modeled.'],
+    certainty: 'high',
+  },
+  //
+  // Direct defenses to opposing weak 2D/2H/2S openings. They reuse the existing
+  // takeout-Double shape treatment, followed by selected advances and natural rebids.
+  {
+    id: 'overcall-weak-two-natural-suit-at-two-level',
+    kind: 'overcall',
+    title: 'Make a natural two-level suit overcall of a weak two',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: refineWeakTwoSuitOvercall,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 13, valuation: 'length' }, hcp: { max: 17 } },
+    meaning: 'Natural two-level overcall of a weak two: 13+ points with length, up to 17 HCP, ' +
+             'and a good 5+ card suit.',
+    guidance: ['With 18+ HCP, begin with a takeout double and describe the hand later.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-weak-two-natural-suit-at-three-level',
+    kind: 'overcall',
+    title: 'Make a natural three-level suit overcall of a weak two',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: refineWeakTwoSuitOvercall,
+    callCategory: ['natural'],
+    appliesWhen: { totalPoints: { min: 15, valuation: 'length' }, hcp: { max: 17 } },
+    meaning: 'Natural three-level overcall of a weak two: 15+ points with length, up to 17 HCP, ' +
+             'and a good 6+ card suit.',
+    guidance: ['Higher-level natural competition needs more shape and strength; the app does not ' +
+               'model jump-overcall treatments over weak twos.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-weak-two-takeout-double-with-unbid-suit-support',
+    kind: 'overcall',
+    title: 'Make a takeout double of a weak two with support for the unbid suits',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: ordinaryTakeoutDoubleApplies,
+    meaning: 'Takeout double with 13+ shortage points and at least three cards in each unbid suit; ' +
+             'asks partner to choose an unbid suit.',
+    guidance: ['This uses the same basic takeout-double shape as over a one-level suit opening. ' +
+               'Prefer four-card support in the unbid suits when possible; no particular ' +
+               'shortness in opener’s suit is promised.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-weak-two-takeout-double-strong-hand',
+    kind: 'overcall',
+    title: 'Begin with a takeout double of a weak two on a very strong hand',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
+    calls: ['Double'],
+    callCategory: ['conventional', 'forcing'],
+    appliesWhen: { hcp: { min: 18 } },
+    meaning: 'An 18+ HCP takeout double can precede a later natural suit or notrump bid without ' +
+             'promising support for all unbid suits.',
+    guidance: ['The strong-hand exception is the same one used over a one-level suit opening; ' +
+               'Later rebids distinguish this strong Double from an ordinary takeout Double.'],
+    certainty: 'high',
+  },
+  //
+  {
+    id: 'overcall-weak-two-natural-2nt-with-stopper',
+    kind: 'overcall',
+    title: 'Overcall a weak two with natural 2NT and a stopper',
+    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
+    calls: ['2NT'],
+    callCategory: ['natural'],
+    priority: { rank: 20, note: 'A balanced hand with a stopper is well described by 2NT.' },
+    appliesWhen: naturalNotrumpOvercallApplies,
+    meaning: "Natural 2NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
+    guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
+    certainty: 'high',
+  },
+  //
+  //// Overcaller rebids
   //
   //// Natural 1NT overcall -- Stayman and compulsory transfers
   // Advancer uses the same responses as after a natural 1NT opening. Further competition
@@ -1259,77 +1547,8 @@ export const OvercallRules: BidRule[] = [
              'other constructive continuations need judgment.',
     certainty: 'high',
   },
-  // Compact DONT defense to an opposing strong 1NT.  Shape and suit quality carry more weight
-  // than raw HCP; the app uses 7 HCP as a conservative floor because vulnerability is unmodeled.
-  {
-    id: 'overcall-dont-single-suit-double',
-    kind: 'overcall',
-    title: 'Use DONT Double with one long non-spade suit',
-    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
-    calls: ['Double'],
-    callCategory: ['conventional', 'forcing'],
-    appliesWhen: dontSingleSuitDoubleApplies,
-    meaning: 'DONT Double shows one good 6+ card club, diamond, or heart suit and asks partner ' +
-             'to relay to 2C.',
-    guidance: ['This is not a penalty Double. Partner normally bids 2C; the DONT bidder then ' +
-               'passes with clubs or names the long suit.',
-               'A one-suited spade hand uses direct 2S in this compact treatment.'],
-    certainty: 'high',
-  },
   //
-  {
-    id: 'overcall-dont-clubs-plus-higher',
-    kind: 'overcall',
-    title: 'Use DONT 2C with clubs and a higher suit',
-    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
-    calls: ['2C'],
-    callCategory: ['conventional'],
-    appliesWhen: dontTwoSuitOvercallApplies,
-    meaning: 'DONT 2C shows clubs plus exactly one higher suit, normally at least 5-4.',
-    guidance: ['Partner may pass with a club fit; otherwise 2D asks for the higher suit.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-dont-diamonds-plus-major',
-    kind: 'overcall',
-    title: 'Use DONT 2D with diamonds and a major',
-    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
-    calls: ['2D'],
-    callCategory: ['conventional'],
-    appliesWhen: dontTwoSuitOvercallApplies,
-    meaning: 'DONT 2D shows diamonds plus exactly one major, normally at least 5-4.',
-    guidance: ['Partner may pass with a diamond fit; otherwise 2H asks partner to pass or ' +
-               'correct to 2S.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-dont-majors',
-    kind: 'overcall',
-    title: 'Use DONT 2H with hearts and spades',
-    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
-    calls: ['2H'],
-    callCategory: ['conventional'],
-    appliesWhen: dontTwoSuitOvercallApplies,
-    meaning: 'DONT 2H shows both majors, normally at least 5-4.',
-    guidance: ['Partner passes with a heart preference or bids 2S with a spade preference.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-dont-natural-spades',
-    kind: 'overcall',
-    title: 'Use natural DONT 2S with one long spade suit',
-    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
-    calls: ['2S'],
-    callCategory: ['natural'],
-    appliesWhen: dontSpadeOvercallApplies,
-    meaning: 'Natural DONT 2S shows one good 6+ card spade suit.',
-    guidance: ['Full DONT treatments often distinguish a stronger spade hand by doubling first; ' +
-               'that strength split is intentionally omitted here.'],
-    certainty: 'high',
-  },
+  //// DONT overcaller continuations
   // Basic DONT relay corrections are the first modeled overcaller rebids.  They apply only when
   // responder and opener both pass after the DONT action and advancer makes the expected relay.
   {
@@ -1639,218 +1858,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Pass may be reasonable after a nonforcing advance, but a forcing call from ' +
                'partner changes the obligation. Further competition and penalty decisions ' +
                'require partnership judgment not modeled here.'],
-    certainty: 'high',
-  },
-  //
-  // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
-  // Weak-two defenses are defined separately below; their selected later rebids are above.
-  {
-    id: 'overcall-simple-suit-at-one-level',
-    kind: 'overcall',
-    title: 'Make a natural one-level suit overcall',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['1D', '1H', '1S'],
-    callRefinement: refineSimpleSuitOvercall,
-    callCategory: ['natural'],
-    appliesWhen: naturalOneLevelSuitOvercallApplies,
-    meaning: 'A non-jump one-level overcall: normally 8–17 HCP and a good five-card suit ' +
-             'or any six-card-or-longer suit. A particularly strong suit can justify 7 HCP.',
-    guidance: ['With 7 HCP, the trainer requires at least two of A/K/Q and the 10 in a ' +
-               'five-card-or-longer suit; vulnerability is not modeled.',
-               'With 18+ HCP and a strong suit-oriented hand, begin with a takeout Double. ' +
-               'A balanced 18-HCP hand with an opener-suit stopper may instead qualify for 1NT.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-simple-suit-at-two-level',
-    kind: 'overcall',
-    title: 'Make a natural two-level suit overcall',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['2C', '2D', '2H', '2S'],
-    callRefinement: refineSimpleSuitOvercall,
-    callCategory: ['natural'],
-    appliesWhen: naturalTwoLevelSuitOvercallApplies,
-    meaning: 'A non-jump two-level overcall: normally 12–17 HCP and a good five-card-or-longer ' +
-             'suit. Longer good suits permit a lower HCP minimum (11 with six, 10 with seven, ' +
-             '9 with eight or more).',
-    guidance: ['A jump overcall is preemptive and uses a separate weak-jump treatment.',
-               'This is a sounder action than a one-level overcall; vulnerability is not modeled.'],
-    certainty: 'high',
-  },
-  // Natural 1NT overcalls are balanced 15-18 HCP with a stopper in opener's suit.
-  {
-    id: 'overcall-natural-1nt-with-stopper',
-    kind: 'overcall',
-    title: 'Overcall 1NT with a balanced 15-18 HCP hand and a stopper',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['1NT'],
-    callCategory: ['natural'],
-    priority: { rank: 20, note: 'A balanced hand with a stopper is well described by 1NT.' },
-    appliesWhen: naturalNotrumpOvercallApplies, // 15-18 HCP balanced with an opening-suit stopper
-    meaning: "Natural 1NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
-    guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
-    certainty: 'high',
-  },
-  //
-  // Preemptive jump overcalls are distinct from economical suit overcalls: honor quality is
-  // required, with exactly six, seven, or eight cards at the corresponding level.
-  {
-    id: 'overcall-preemptive-jump-at-two-level',
-    kind: 'overcall',
-    title: 'Make a weak two-level jump overcall with a good six-card suit',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['2C', '2D', '2H', '2S'],
-    callRefinement: refinePreemptiveJumpOvercall,
-    callCategory: ['natural', 'signoff'],
-    priority: { rank: 15 },
-    appliesWhen: { hcp: { min: 5, max: 11 } },
-    meaning: 'Preemptive jump to the two level: 5-11 HCP with a good six-card suit.',
-    guidance: ['This must be a jump over the cheapest natural overcall in that suit.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-preemptive-jump-at-three-level',
-    kind: 'overcall',
-    title: 'Make a weak three-level jump overcall with a good seven-card suit',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['3C', '3D', '3H', '3S'],
-    callRefinement: refinePreemptiveJumpOvercall,
-    callCategory: ['natural', 'signoff'],
-    priority: { rank: 15 },
-    appliesWhen: { hcp: { max: 9 } },
-    meaning: 'Preemptive jump to the three level: fewer than 10 HCP with a good seven-card suit.',
-    guidance: ['The source treats intermediate jump strains as partnership agreement; ' +
-               'this app uses only natural jump overcalls in a new suit.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-preemptive-jump-at-four-level',
-    kind: 'overcall',
-    title: 'Make a weak four-level jump overcall with a good eight-card suit',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['4C', '4D', '4H', '4S'],
-    callRefinement: refinePreemptiveJumpOvercall,
-    callCategory: ['natural', 'signoff'],
-    priority: { rank: 15 },
-    appliesWhen: { hcp: { max: 9 } },
-    meaning: 'Preemptive jump to the four level: fewer than 10 HCP with a good eight-card suit.',
-    guidance: ['This is separate from rare four- and five-level opening preempts.'],
-    certainty: 'high',
-  },
-  //
-  // Ordinary takeout doubles promise a tolerable fit in each unbid suit; a high-card-strength
-  // exception permits doubling first with any distribution and showing the hand on the next turn.
-  {
-    id: 'overcall-takeout-double-with-unbid-suit-support',
-    kind: 'overcall',
-    title: 'Make a takeout double with support for the unbid suits',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['Double'],
-    callCategory: ['conventional', 'forcing'],
-    appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ shortage points, 3+ in all unbid suits
-    meaning: 'Takeout double with opening values and at least three cards in each unbid suit; ' +
-             'asks partner to choose another suit rather than defending opener’s suit.',
-    guidance: ['Prefer four-card support in the unbid suits. The Double does not promise a ' +
-               'specific length or shortness in opener’s suit.',
-               'An 18+ HCP hand may double without this distribution, then describe its strength ' +
-               'or suit on the next turn.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-takeout-double-strong-hand',
-    kind: 'overcall',
-    title: 'Begin with a takeout double on a very strong hand',
-    auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
-    calls: ['Double'],
-    callCategory: ['conventional', 'forcing'],
-    appliesWhen: { hcp: { min: 18 } },
-    meaning: 'An 18+ HCP takeout double can precede a later natural suit or notrump bid ' +
-             'without promising support for all unbid suits.',
-    guidance: ['Exceptionally powerful distributional hands with fewer than 18 HCP require ' +
-               'judgment; the app does not estimate playing tricks for this exception.',
-               'General penalty decisions are not modeled; selected natural doubler rebids are modeled.'],
-    certainty: 'high',
-  },
-  //
-  // Direct defenses to opposing weak 2D/2H/2S openings. They reuse the existing
-  // takeout-Double shape treatment, followed by selected advances and natural rebids.
-  {
-    id: 'overcall-weak-two-natural-suit-at-two-level',
-    kind: 'overcall',
-    title: 'Make a natural two-level suit overcall of a weak two',
-    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
-    calls: ['2D', '2H', '2S'],
-    callRefinement: refineWeakTwoSuitOvercall,
-    callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 13, valuation: 'length' }, hcp: { max: 17 } },
-    meaning: 'Natural two-level overcall of a weak two: 13+ points with length, up to 17 HCP, ' +
-             'and a good 5+ card suit.',
-    guidance: ['With 18+ HCP, begin with a takeout double and describe the hand later.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-weak-two-natural-suit-at-three-level',
-    kind: 'overcall',
-    title: 'Make a natural three-level suit overcall of a weak two',
-    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
-    calls: ['3C', '3D', '3H', '3S'],
-    callRefinement: refineWeakTwoSuitOvercall,
-    callCategory: ['natural'],
-    appliesWhen: { totalPoints: { min: 15, valuation: 'length' }, hcp: { max: 17 } },
-    meaning: 'Natural three-level overcall of a weak two: 15+ points with length, up to 17 HCP, ' +
-             'and a good 6+ card suit.',
-    guidance: ['Higher-level natural competition needs more shape and strength; the app does not ' +
-               'model jump-overcall treatments over weak twos.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-weak-two-takeout-double-with-unbid-suit-support',
-    kind: 'overcall',
-    title: 'Make a takeout double of a weak two with support for the unbid suits',
-    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
-    calls: ['Double'],
-    callCategory: ['conventional', 'forcing'],
-    appliesWhen: ordinaryTakeoutDoubleApplies,
-    meaning: 'Takeout double with 13+ shortage points and at least three cards in each unbid suit; ' +
-             'asks partner to choose an unbid suit.',
-    guidance: ['This uses the same basic takeout-double shape as over a one-level suit opening. ' +
-               'Prefer four-card support in the unbid suits when possible; no particular ' +
-               'shortness in opener’s suit is promised.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-weak-two-takeout-double-strong-hand',
-    kind: 'overcall',
-    title: 'Begin with a takeout double of a weak two on a very strong hand',
-    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
-    calls: ['Double'],
-    callCategory: ['conventional', 'forcing'],
-    appliesWhen: { hcp: { min: 18 } },
-    meaning: 'An 18+ HCP takeout double can precede a later natural suit or notrump bid without ' +
-             'promising support for all unbid suits.',
-    guidance: ['The strong-hand exception is the same one used over a one-level suit opening; ' +
-               'Later rebids distinguish this strong Double from an ordinary takeout Double.'],
-    certainty: 'high',
-  },
-  //
-  {
-    id: 'overcall-weak-two-natural-2nt-with-stopper',
-    kind: 'overcall',
-    title: 'Overcall a weak two with natural 2NT and a stopper',
-    auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
-    calls: ['2NT'],
-    callCategory: ['natural'],
-    priority: { rank: 20, note: 'A balanced hand with a stopper is well described by 2NT.' },
-    appliesWhen: naturalNotrumpOvercallApplies,
-    meaning: "Natural 2NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
-    guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
     certainty: 'high',
   },
   //
