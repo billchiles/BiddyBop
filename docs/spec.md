@@ -6,6 +6,38 @@ Build a TypeScript and React bridge bidding trainer focused on guided practice, 
 
 The app should help the user practice bidding decisions using structured convention data from various books that are mostly standard American plus some modern bidding.
 
+## Bidding-System Basis and Teaching References
+
+BiddyBop teaches a practical blend of SAYC-based Standard American bidding and widely
+used modern treatments. Its teaching references include the ACBL SAYC booklet and
+materials by Larry Cohen, Audrey Grant, and Karen Walker; it does not implement any
+one author's complete system. `BiddingSystem` records the configurable partnership
+agreements. `biddingBaseline` summarizes some fixed assumptions, not a complete SAYC
+specification or an exhaustive catalogue of the app's rules.
+
+- **SAYC foundation:** five-card majors, convenient minors, a default 15–17 HCP 1NT
+  opening, a strong artificial 2C opening, and natural one-round-forcing new-suit responses.
+- **Established modern treatments:** 11–12 HCP invitational `1m–2NT` and 13–15 HCP
+  natural `1m–3NT` responses, plus optional splinters, Texas transfers, and other
+  explicitly selected conventions. These are not necessarily in the ACBL SAYC booklet.
+- **Partnership choices:** direct major game-forcing support defaults to a new suit
+  followed by a raise, while Jacoby 2NT is selectable under
+  `majorGameForceWithSupport`. Conventional DONT defense to a strong opposing 1NT
+  is currently fixed on; 2/1 game forcing is optional.
+- **Fixed teaching thresholds:** a weak-two opening currently requires exactly six
+  cards and 5–10 HCP; strong artificial 2C requires 22+ HCP without a playing-trick
+  exception; three-level preempts use an explicit seven-card and point cutoff.
+  These boundaries are executable simplifications, not universal limits of sound
+  bridge bidding. The weak-two 10-versus-11-HCP maximum warrants a separate review.
+- **Scope limits:** inverted minors, comprehensive slam-convention responses, and
+  many later judgment-heavy competitive continuations are deliberately not taught.
+  Omitted coverage is not a claim that those bids are unsound or nonstandard.
+
+When guidance and fixed thresholds differ from general bridge practice, explanations
+should distinguish the app's chosen treatment from broader partnership judgment.
+Do not create additional SAYC-versus-modern settings or classification properties
+merely to document these differences.
+
 ## Rules of Engagement
 
 - Use suit letters in code, rule declarations, and documentation: C, D, H, S, NT.
