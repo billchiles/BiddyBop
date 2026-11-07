@@ -236,7 +236,7 @@ function isPracticeOpeningHand (hand: Hand): boolean {
     return true;
   }
 
-  if (facts.hcp >= 5 && facts.hcp <= 10 &&
+  if (facts.hcp >= 5 && facts.hcp <= 11 &&
       ((facts.lengths.D === 6 && hasPreemptSuitQuality(hand, 'D')) ||
        (facts.lengths.H === 6 && hasPreemptSuitQuality(hand, 'H')) ||
        (facts.lengths.S === 6 && hasPreemptSuitQuality(hand, 'S')))) {

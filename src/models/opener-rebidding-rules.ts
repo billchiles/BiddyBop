@@ -671,10 +671,10 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['3D', '3H', '3S'],
     callRefinement: (calls, context) => refineOpenerOpeningSuitToLevel(calls, context, 3),
     callCategory: ['natural'],
-    appliesWhen: weakTwoRepeatAfterInquiryApplies, // 5-7 minimum or max with no feature/solid suit
+    appliesWhen: weakTwoRepeatAfterInquiryApplies, // 5-8 minimum or max with no feature/solid suit
     meaning: 'Minimum weak two; or a maximum without another modeled descriptive message.',
-    guidance: ['A 5-7 minimum rebids the opening suit at the three level.',
-               'For an 8-10 maximum, a side ace/king or solid-suit 3NT message takes precedence; ' +
+    guidance: ['A 5-8 minimum rebids the opening suit at the three level.',
+               'For a 9-11 maximum, a side ace/king or solid-suit 3NT message takes precedence; ' +
                  'repeating the suit is the conservative fallback when neither applies.'],
     certainty: 'high',
   },
@@ -688,7 +688,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineWeakTwoFeatureRebid, // choose the cheapest side A/K feature
     callCategory: ['conventional'],
     appliesWhen: weakTwoFeatureAfterInquiryApplies,
-    meaning: 'An 8-10 HCP maximum with a side ace or king; the side-suit bid shows that feature.',
+    meaning: 'A 9-11 HCP maximum with a side ace or king; the side-suit bid shows that feature.',
     certainty: 'high',
   },
   {

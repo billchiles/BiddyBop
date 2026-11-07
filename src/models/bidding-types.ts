@@ -121,7 +121,7 @@ export const biddingBaseline = {
   strong2CMinHcp: 22,
   weakTwos: true,
   weakTwoSuitLength: 6,
-  weakTwoHcpRange: { min: 5, max: 10 },
+  weakTwoHcpRange: { min: 5, max: 11 },
   weakThrees: true,
   weakThreeSuitLength: 7,
   // Three-level preempts stay below ordinary one-level opening values in this treatment.

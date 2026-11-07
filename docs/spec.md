@@ -25,10 +25,10 @@ specification or an exhaustive catalogue of the app's rules.
   `majorGameForceWithSupport`. Conventional DONT defense to a strong opposing 1NT
   is currently fixed on; 2/1 game forcing is optional.
 - **Fixed teaching thresholds:** a weak-two opening currently requires exactly six
-  cards and 5–10 HCP; strong artificial 2C requires 22+ HCP without a playing-trick
+  cards and 5–11 HCP; strong artificial 2C requires 22+ HCP without a playing-trick
   exception; three-level preempts use an explicit seven-card and point cutoff.
   These boundaries are executable simplifications, not universal limits of sound
-  bridge bidding. The weak-two 10-versus-11-HCP maximum warrants a separate review.
+  bridge bidding.
 - **Scope limits:** inverted minors, comprehensive slam-convention responses, and
   many later judgment-heavy competitive continuations are deliberately not taught.
   Omitted coverage is not a claim that those bids are unsound or nonstandard.
@@ -470,14 +470,16 @@ tests only when executable qualification or integration could regress.
   when opener has already bid an appropriate game.  Stronger hands, uncertain strain choices,
   minor-fit decisions, and slam exploration receive explicit scope guidance.  The original
   jump shift remains game forcing: Pass below game is never a modeled continuation.
-- Weak `2D`/`2H`/`2S` openings use 5-10 HCP, exactly six cards, and a good suit: at least two
+- Weak `2D`/`2H`/`2S` openings use 5-11 HCP, exactly six cards, and a good suit: at least two
   of A/K/Q or at least three of A/K/Q/J/T.  Three-level preempts use exactly seven cards, the
   same good-suit test, and stay below ordinary one-level opening values.  Vulnerability and
-  playing-trick estimates remain guidance rather than executable board state.
+  playing-trick estimates remain guidance rather than executable board state. At 11 HCP,
+  an ordinary one-level opening may also qualify and is presented ahead of the weak two;
+  evaluate the more descriptive opening rather than preempting automatically.
 - After a weak two, raises are non-forcing while `2NT` and natural new suits are forcing.  The
   Guideline of 17 (responder HCP plus cards in opener's suit) is a rough executable trigger for
-  game investigation, not a playing-trick calculator.  After `2NT`, a 5-7 minimum repeats the
-  preempt suit; an 8-10 maximum shows a side ace/king feature; AKQJ in the six-card opening suit
+  game investigation, not a playing-trick calculator.  After `2NT`, a 5-8 minimum repeats the
+  preempt suit; a 9-11 maximum shows a side ace/king feature; AKQJ in the six-card opening suit
   is the app's conservative executable approximation for the special solid-suit `3NT` message.
 - After responder raises a weak-two preempt to three or four of the opening suit, or a
   three-level preempt to four of the opening suit, opener ordinarily Passes.  Those
