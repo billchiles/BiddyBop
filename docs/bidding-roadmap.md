@@ -44,11 +44,12 @@ not a historical progress log or a commitment to model every possible auction.
   while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
   Continue deliberate, separately tested organization passes. Next: inspect
-  shared helpers, related-code grouping, stale comments, unnecessary wrappers,
-  and production blank-line transitions in `explanations.ts`. Don't chase
-  ordering counts at the expense of keeping related code together. Preserve
-  manually written introductory rationale when moving code. No semantic
-  bidding changes or new test infrastructure.
+  the responder-function nullability contracts, abandoned guards, and unused
+  wrappers, while preserving documented call-site invariants. Then audit
+  remaining rule-declaration-order dependencies. Keep intentional spacing
+  between related definitions and preserve manually written introductory
+  rationale when moving code. Avoid unrelated bidding changes or new test
+  infrastructure.
 
 ## Deferred enhancements
 
