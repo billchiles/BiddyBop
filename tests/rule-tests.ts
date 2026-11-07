@@ -7293,7 +7293,8 @@ function runPracticeContinuationTests (): number {
   // Active lessons obey the very same agreement requirements as the bucket selector.
   // Changing the setting can clear an incompatible exercise instead of allowing it
   // to continue with recorded bids that no longer match its convention.
-  const stayman = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals)
+  // Find a Stayman exercise compatible with the defaults, independent of bucket order.
+  const stayman = getRulesBucketTestDeals('all', defaultBiddingSystem)
     .find((deal) => deal.requiredSystem?.stayman === true);
   const noStayman = { ...defaultBiddingSystem, stayman: false };
   if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||

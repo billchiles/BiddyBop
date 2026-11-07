@@ -26,14 +26,6 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Remaining project quality work
 
-- [ ] **Keep practice explanations within the bidder's available information.**
-  In `responder-rebidding-convention-test-deals.ts`, 1NT–2D–2H–3NT
-  (responder-rebid-after-nt-conventions, case 6), revise the South 3NT
-  `practiceGuidance` note. Explain that a five-card heart transfer and balanced
-  game strength offer opener the choice of 3NT or 4H with three-card support,
-  without disclosing that opener actually holds only two hearts. Preserve
-  decision-time knowledge and make this a wording-only cleanup, not a bidding
-  eligibility or practice-auction change.
 - [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
   In particular, Pass versus game after a simple major raise may depend on whether
   responder's shortness is in opener's original suit; the current point thresholds
@@ -51,9 +43,9 @@ not a historical progress log or a commitment to model every possible auction.
   criterion rather than relying on declaration location. Preserve current behavior
   while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Next: inspect
-  practice-deal files for related-code
-  grouping, stale or misplaced comments, unnecessary wrappers, and readability.
+  Continue deliberate, separately tested organization passes. Next: add
+  meaningful section headings to the remaining practice-deal files where useful,
+  then inspect related-code grouping, stale comments, and unnecessary wrappers.
   Include a final spot check of shared helpers and production blank-line
   transitions in `explanations.ts`; don't chase ordering counts at the expense
   of keeping related code together. Preserve manually written introductory

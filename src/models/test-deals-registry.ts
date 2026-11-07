@@ -76,46 +76,65 @@ import { OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS }
   from './opener-rebidding-after-interference-test-deals';
 
 export interface RuleTestDeal {
+  // Practice auction, hands, and guidance
   description: string;
   // Actual auction (including opponent passes) for manual practice.
   practiceAuction: Call[];
+  north: Record<Suit, string>;
+  south: Record<Suit, string>;
+  // Competitive practice may fix either or both opposing hands when the setup needs them.
+  // The authored practice corpus fixes all four hands with North dealing; independent
+  // evaluator tests may omit opposing hands or the dealer.
+  dealer?: Seat;
+  west?: Record<Suit, string>;
+  east?: Record<Suit, string>;
   // Sparse, chronologically ordered notes, revealed after the matching recorded call.
   // auctionIndex is zero-based in practiceAuction (including Passes); seat disambiguates
   // repeated turns by the same player. Notes do not change bidding eligibility.
   practiceGuidance?: { auctionIndex: number; seat: Seat; text: string }[];
-  // Competitive practice may fix either or both opposing hands when the setup needs them.
-  dealer?: Seat;
-  west?: Record<Suit, string>;
-  east?: Record<Suit, string>;
+
+  // Required partnership agreements
+  requiredSystem?: Partial<BiddingSystem>;
+
+  // Each expected call/rule pair is an assertion of what we should see.
+  // Rejected calls must be absent from the final candidate list; they need not have been generated.
+  // Call-order pairs require both calls to survive, with the first appearing before the second.
+  // Opening expectations
+  expectedOpeningCalls?: RuleTestExpectedCall[];
+  rejectedOpeningCalls?: Call[];
+  expectedOpeningCallOrder?: [Call, Call][];
+
+  // Response expectations
+  expectedResponseCalls?: RuleTestExpectedCall[];
+  rejectedResponseCalls?: Call[];
+  expectedResponseCallOrder?: [Call, Call][];
+
+  // Opener-rebid expectations
+  expectedOpenerRebidCalls?: RuleTestExpectedCall[];
+  rejectedOpenerRebidCalls?: Call[];
+  expectedOpenerRebidCallOrder?: [Call, Call][];
+
+  // Responder-rebid expectations
+  expectedResponderRebidCalls?: RuleTestExpectedCall[];
+  rejectedResponderRebidCalls?: Call[];
+
+  // Direct overcalling and balancing expectations
   // Explicitly recorded overcall expectations use the call at auction index 1.
   expectedOvercallCalls?: RuleTestExpectedCall[];
-  expectedBalancingCalls?: RuleTestExpectedCall[];
-  rejectedBalancingCalls?: Call[];
   rejectedOvercallCalls?: Call[];
   expectedOvercallCallOrder?: [Call, Call][];
+  expectedBalancingCalls?: RuleTestExpectedCall[];
+  rejectedBalancingCalls?: Call[];
+
+  // Advancing expectations
   expectedAdvanceCalls?: RuleTestExpectedCall[];
   rejectedAdvanceCalls?: Call[];
   expectedAdvanceCallOrder?: [Call, Call][];
+
+  // Overcaller-rebid expectations
   expectedOvercallerRebidCalls?: RuleTestExpectedCall[];
   rejectedOvercallerRebidCalls?: Call[];
   expectedOvercallerRebidCallOrder?: [Call, Call][];
-  // Each expected call/rule pair is an assertion of what we should see.
-  requiredSystem?: Partial<BiddingSystem>;
-  expectedOpeningCalls?: RuleTestExpectedCall[];
-  expectedResponseCalls?: RuleTestExpectedCall[];
-  expectedResponderRebidCalls?: RuleTestExpectedCall[];
-  rejectedResponderRebidCalls?: Call[];
-  expectedOpenerRebidCalls?: RuleTestExpectedCall[];
-  // These calls must be absent from the final candidate list; they need not have been generated.
-  rejectedOpeningCalls?: Call[];
-  rejectedResponseCalls?: Call[];
-  rejectedOpenerRebidCalls?: Call[];
-  // Each pair requires both calls to survive, with the first appearing before the second.
-  expectedOpeningCallOrder?: [Call, Call][];
-  expectedResponseCallOrder?: [Call, Call][];
-  expectedOpenerRebidCallOrder?: [Call, Call][];
-  north: Record<Suit, string>;
-  south: Record<Suit, string>;
 }
 
 export interface RuleTestExpectedCall {
@@ -187,58 +206,37 @@ export {
   OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
 };
 
-/// Bucket order is the display order, within and across groups. Keep the ordinary opener-rebid
-/// exercises first so the selector begins with useful connected bidding practice. The 'all'
-/// selection concatenates compatible deals in this same order.
+/// Bucket order controls the Practice dropdown and the 'all' selection. Present opening,
+/// responding, opener rebids, responder rebids, overcalling, then advancing in that order.
+/// Preserve the order of buckets within each group; 'all' concatenates compatible deals
+/// in the same order. Each authored deal array belongs in one bucket.
 export const RULE_TEST_DEAL_BUCKETS = [
-  { id: 'responder-rebid-after-nt-conventions', group: 'Responder Rebids (7 bids)',
-    label: 'After Stayman and Jacoby transfers',
-    deals: RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS },
-  { id: 'responder-rebid-after-strong-2c-and-jacoby-2nt', group: 'Responder Rebids (7 bids)',
-    label: 'After strong 2C and Jacoby 2NT',
-    deals: RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS },
-  { id: 'responder-rebid-after-splinters', group: 'Responder Rebids (7 bids)',
-    label: 'After splinters and control bids',
-    deals: RESPONDER_AFTER_SPLINTERS_TEST_DEALS },
-  { id: 'responder-rebid-after-major-game-try', group: 'Responder Rebids (7 bids)',
-    label: 'After opener makes a major game try',
-    deals: RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS },
-  { id: 'responder-rebid-after-two-over-one', group: 'Responder Rebids (7 bids)',
-    label: 'After a 2/1 game-forcing new suit',
-    deals: RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS },
-  { id: 'responder-rebid-after-standard-two-level', group: 'Responder Rebids (7 bids)',
-    label: 'After a Standard two-level new suit',
-    deals: RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS },
-  { id: 'responder-rebid-after-major-1nt', group: 'Responder Rebids (7 bids)',
-    label: 'After responding 1NT to a major',
-    deals: RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS },
-  { id: 'responder-rebid-after-1nt', group: 'Responder Rebids (7 bids)',
-    label: 'After opener rebids 1NT',
-    deals: RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS },
-  { id: 'responder-rebid-after-major-raise', group: 'Responder Rebids (7 bids)',
-    label: 'After opener raises major',
-    deals: RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS },
-  { id: 'responder-rebid-after-repeated-hearts', group: 'Responder Rebids (7 bids)',
-    label: 'After opener repeats hearts',
-    deals: RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS },
-  { id: 'responder-rebid-after-repeated-minor', group: 'Responder Rebids (7 bids)',
-    label: 'After opener repeats a minor',
-    deals: RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS,
-         RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS,
-         RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS },
-  { id: 'responder-rebid-after-economical-second-suit', group: 'Responder Rebids (7 bids)',
-    label: 'After opener shows a second suit',
-    deals: RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS },
-  { id: 'responder-rebid-after-strong-second-suit', group: 'Responder Rebids (7 bids)',
-    label: 'After a reverse or strong jump shift',
-    deals: RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS },
-  { id: 'responder-rebid-after-strong-2nt', group: 'Responder Rebids (7 bids)',
-    label: 'After opener rebids a strong 2NT',
-    deals: RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS },
-  { id: 'responder-rebid-after-minor-1nt', group: 'Responder Rebids (7 bids)',
-    label: 'After responding 1NT to a minor',
-    deals: RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS,
-         RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS },
+  { id: 'opening-bids', group: 'Opening', label: 'Opening selection',
+    deals: OPENING_BID_TEST_DEALS },
+  { id: 'response-after-suit-overcall', group: 'Responding',
+    label: 'After natural suit overcall',
+    deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },
+  { id: 'response-after-takeout-double', group: 'Responding',
+    label: 'After takeout double',
+    deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS },
+  { id: 'response-after-1nt-overcall', group: 'Responding',
+    label: 'After natural 1NT overcall',
+    deals: RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS },
+  { id: 'response-after-jump-overcall', group: 'Responding',
+    label: 'After preemptive jump overcall',
+    deals: RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS },
+  { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
+    deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
+  { id: 'response-major-opening', group: 'Responding', label: 'Major opening',
+    deals: RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS },
+  { id: 'response-1nt-opening', group: 'Responding', label: '1NT opening',
+    deals: RESPONSE_AFTER_1NT_OPENING_TEST_DEALS },
+  { id: 'response-2nt-opening', group: 'Responding', label: '2NT opening',
+    deals: RESPONSE_AFTER_2NT_OPENING_TEST_DEALS },
+  { id: 'response-strong-2c', group: 'Responding', label: 'Strong 2C',
+    deals: RESPONSE_TO_STRONG_2C_TEST_DEALS },
+  { id: 'response-weak-preempt', group: 'Responding', label: 'Weak preempts',
+    deals: RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS },
   { id: 'minor-1nt', group: 'Opener Rebids (5 bids)', label: 'Minor - 1NT response',
     deals: OPENER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'opener-after-interference', group: 'Opener Rebids (5 bids)',
@@ -284,32 +282,51 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: OPENER_REBID_AFTER_MAJOR_LIMIT_RAISE_TEST_DEALS },
   { id: 'major-game-response', group: 'Opener Rebids (5 bids)', label: 'Major - game response',
     deals: OPENER_REBID_AFTER_MAJOR_GAME_RESPONSE_TEST_DEALS },
-  { id: 'opening-bids', group: 'Opening', label: 'Opening selection',
-    deals: OPENING_BID_TEST_DEALS },
-  { id: 'response-after-suit-overcall', group: 'Responding',
-    label: 'After natural suit overcall',
-    deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS },
-  { id: 'response-after-takeout-double', group: 'Responding',
-    label: 'After takeout double',
-    deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS },
-  { id: 'response-after-1nt-overcall', group: 'Responding',
-    label: 'After natural 1NT overcall',
-    deals: RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS },
-  { id: 'response-after-jump-overcall', group: 'Responding',
-    label: 'After preemptive jump overcall',
-    deals: RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS },
-  { id: 'response-minor-opening', group: 'Responding', label: 'Minor opening',
-    deals: RESPONSE_AFTER_MINOR_OPENING_TEST_DEALS },
-  { id: 'response-major-opening', group: 'Responding', label: 'Major opening',
-    deals: RESPONSE_AFTER_MAJOR_OPENING_TEST_DEALS },
-  { id: 'response-1nt-opening', group: 'Responding', label: '1NT opening',
-    deals: RESPONSE_AFTER_1NT_OPENING_TEST_DEALS },
-  { id: 'response-2nt-opening', group: 'Responding', label: '2NT opening',
-    deals: RESPONSE_AFTER_2NT_OPENING_TEST_DEALS },
-  { id: 'response-strong-2c', group: 'Responding', label: 'Strong 2C',
-    deals: RESPONSE_TO_STRONG_2C_TEST_DEALS },
-  { id: 'response-weak-preempt', group: 'Responding', label: 'Weak preempts',
-    deals: RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS },
+  { id: 'responder-rebid-after-nt-conventions', group: 'Responder Rebids (7 bids)',
+    label: 'After Stayman and Jacoby transfers',
+    deals: RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS },
+  { id: 'responder-rebid-after-strong-2c-and-jacoby-2nt', group: 'Responder Rebids (7 bids)',
+    label: 'After strong 2C and Jacoby 2NT',
+    deals: RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS },
+  { id: 'responder-rebid-after-splinters', group: 'Responder Rebids (7 bids)',
+    label: 'After splinters and control bids',
+    deals: RESPONDER_AFTER_SPLINTERS_TEST_DEALS },
+  { id: 'responder-rebid-after-major-game-try', group: 'Responder Rebids (7 bids)',
+    label: 'After opener makes a major game try',
+    deals: RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS },
+  { id: 'responder-rebid-after-two-over-one', group: 'Responder Rebids (7 bids)',
+    label: 'After a 2/1 game-forcing new suit',
+    deals: RESPONDER_REBID_AFTER_TWO_OVER_ONE_TEST_DEALS },
+  { id: 'responder-rebid-after-standard-two-level', group: 'Responder Rebids (7 bids)',
+    label: 'After a Standard two-level new suit',
+    deals: RESPONDER_REBID_AFTER_STANDARD_TWO_LEVEL_TEST_DEALS },
+  { id: 'responder-rebid-after-major-1nt', group: 'Responder Rebids (7 bids)',
+    label: 'After responding 1NT to a major',
+    deals: RESPONDER_REBID_AFTER_MAJOR_1NT_TEST_DEALS },
+  { id: 'responder-rebid-after-1nt', group: 'Responder Rebids (7 bids)',
+    label: 'After opener rebids 1NT',
+    deals: RESPONDER_REBID_AFTER_MINIMUM_1NT_TEST_DEALS },
+  { id: 'responder-rebid-after-major-raise', group: 'Responder Rebids (7 bids)',
+    label: 'After opener raises major',
+    deals: RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS },
+  { id: 'responder-rebid-after-repeated-hearts', group: 'Responder Rebids (7 bids)',
+    label: 'After opener repeats hearts',
+    deals: RESPONDER_REBID_AFTER_REPEATED_HEARTS_TEST_DEALS },
+  { id: 'responder-rebid-after-repeated-minor', group: 'Responder Rebids (7 bids)',
+    label: 'After opener repeats a minor',
+    deals: RESPONDER_REBID_AFTER_REPEATED_MINOR_TEST_DEALS },
+  { id: 'responder-rebid-after-economical-second-suit', group: 'Responder Rebids (7 bids)',
+    label: 'After opener shows a second suit',
+    deals: RESPONDER_REBID_AFTER_ECONOMICAL_SECOND_SUIT_TEST_DEALS },
+  { id: 'responder-rebid-after-strong-second-suit', group: 'Responder Rebids (7 bids)',
+    label: 'After a reverse or strong jump shift',
+    deals: RESPONDER_REBID_AFTER_STRONG_SECOND_SUIT_TEST_DEALS },
+  { id: 'responder-rebid-after-strong-2nt', group: 'Responder Rebids (7 bids)',
+    label: 'After opener rebids a strong 2NT',
+    deals: RESPONDER_REBID_AFTER_STRONG_2NT_TEST_DEALS },
+  { id: 'responder-rebid-after-minor-1nt', group: 'Responder Rebids (7 bids)',
+    label: 'After responding 1NT to a minor',
+    deals: RESPONDER_REBID_AFTER_MINOR_1NT_TEST_DEALS },
   { id: 'overcall-dont-1nt', group: 'Overcalling', label: 'DONT over strong 1NT',
     deals: DONT_1NT_DEFENSE_TEST_DEALS },
   { id: 'fourth-seat-balancing', group: 'Overcalling', label: 'Fourth-seat balancing', deals: BALANCING_TEST_DEALS },
