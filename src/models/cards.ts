@@ -111,7 +111,6 @@ function getHcpBySuit (hand: Hand): Record<Suit, number> {
 
 export function getCardsForSuit (hand: Hand, suit: Suit): Card[] {
   return hand.cards.filter((card) => card.suit === suit);
-    //.sort((a, b) => ranks.indexOf(a.rank) - ranks.indexOf(b.rank));
 }
 
 ///
@@ -139,10 +138,6 @@ export interface BoardWTelemetry {
   telemetryLines: string[];
 }
 
-/// maxDealAttempts is probably silly and will be removed eventually, but for now, let's make sure
-/// openable hands come along within a couple of deals.
-const maxDealAttempts = 100;
-
 export interface GenerateBoardOptions {
   dealer: Seat;
   requireDealerOpening?: boolean;
@@ -158,7 +153,9 @@ export function generateBoard (options: GenerateBoardOptions): BoardWTelemetry {
 
   // Include the common ways the current opening rules can produce an opening so weak preempts and
   // Rule-of-20 hands appear in random practice deals.
-  for (let attemptIndex = 1; attemptIndex <= maxDealAttempts; attemptIndex += 1) {
+  let attemptIndex = 0;
+  while (true) {
+    attemptIndex += 1;
     let deal = dealRandomHands();
     const firstOpenableSeat = SEATS.find((seat) => isPracticeOpeningHand(deal[seat]));
     if (firstOpenableSeat !== undefined) {
@@ -173,11 +170,7 @@ export function generateBoard (options: GenerateBoardOptions): BoardWTelemetry {
       }
       return { board: { deal, dealer: options.dealer }, telemetryLines };
     }
-  } // for
-  const fallbackDeal = dealRandomHands();
-  telemetryLines.push(
-    `No practice-opening hand found after ${maxDealAttempts} attempts; using final random deal.`);
-  return { board: { deal: fallbackDeal, dealer: options.dealer }, telemetryLines };
+  }
 }
 
 /// Build a deterministic rule-practice board without changing the active bidding system.  The
