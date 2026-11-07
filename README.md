@@ -1,8 +1,17 @@
 # Bridge Bidding Trainer
 
-This is a practice app for learning and reinforcing contract bridge bidding.
-It focuses on common bidding decisions that the app can reliably teach through bidding guidelines
-and partnership agreements.  For example, the app supports several agreements and conventions options, such as Stayman, Jacoby, splinters, 2/1, jump shifts meaning, etc., but it doesn't use inverted minors or stopper-showing side-suit continuations since those treatments require various partnership agreements and more judgment-dependent follow-up bidding.  The app is broad enough for solid bidding practice while remaining clear about where the rules stop and bridge judgment begins. 
+BiddyBop is a practice app for learning and practicing contract bridge bidding.
+It teaches a practical blend of SAYC-based Standard American bidding and widely used modern
+treatments (such as splinters and invitational 2NT responses to minor openings), with a small
+number of fixed teaching simplifications (such as requiring exactly six cards for weak-two
+openings). It is neither strict SAYC (for example, it uses DONT against opposing strong 1NT
+openings) nor a complete modern 2/1 system (2/1 game forcing is optional, and inverted minor
+raises are not taught).
+
+The bidding approach draws on the ACBL SAYC booklet and teaching materials by Larry Cohen,
+Audrey Grant, and Karen Walker, without attempting to reproduce any one of their complete
+systems. BiddyBop focuses on common bidding decisions it can explain reliably and makes clear
+where partnership agreements or bridge judgment matter more than fixed rules.
 
 ![BiddyBop application screenshot](src/assets/biddybop-screenshot-beta.png)
 
