@@ -550,6 +550,95 @@ function runOpeningPositionAndPassTests (): number {
   console.log('  Tests first/second-seat Guideline of 20, opening Pass at all seats, and 1H vs 4H.\n');
   return failures;
 }
+/// Guard both weak-two strength boundaries and all three forcing-2NT inquiry rebid routes.
+/// Same-suit card swaps retain valid 52-card deals without adding practice exercises.
+function runWeakTwoOpeningRangeTests (): number {
+  const feature = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((deal) =>
+    deal.expectedOpenerRebidCalls?.some(({ ruleIds }) =>
+      ruleIds.includes('opener-rebid-feature-after-weak-two-2nt-inquiry')));
+  const solid = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((deal) =>
+    deal.expectedOpenerRebidCalls?.some(({ ruleIds }) =>
+      ruleIds.includes('opener-rebid-3nt-after-weak-two-2nt-inquiry')));
+  if (feature === undefined || feature.west === undefined ||
+      solid === undefined || solid.west === undefined) {
+    console.error('FAIL missing fixed weak-two feature or solid-suit reference deal.');
+    return 1;
+  }
+  const cases: { name: string; deal: RuleTestDeal; hcp: number; opening: Call;
+    rebid: Call | null; rebidRule: string | null; oneLevelPreferred: boolean }[] = [
+    {
+      name: '8-HCP minimum with a side king',
+      deal: { ...feature, north: { ...feature.north, S: 'KQT987' },
+        west: { ...feature.west, S: 'J52' } },
+      hcp: 8, opening: '2S', rebid: '3S',
+      rebidRule: 'opener-rebid-repeat-after-weak-two-2nt-inquiry', oneLevelPreferred: false,
+    },
+    {
+      name: '11-HCP maximum with a side king',
+      deal: { ...feature, north: { ...feature.north, C: 'KQ' },
+        south: { ...feature.south, C: 'J852' } },
+      hcp: 11, opening: '2S', rebid: '3C',
+      rebidRule: 'opener-rebid-feature-after-weak-two-2nt-inquiry', oneLevelPreferred: true,
+    },
+    {
+      name: '11-HCP maximum without a side feature or solid suit',
+      deal: { ...feature, north: { ...feature.north, S: 'AKQ987', C: 'Q5' },
+        south: { ...feature.south, S: 'J3', C: 'KJ82' } },
+      hcp: 11, opening: '2S', rebid: '3S',
+      rebidRule: 'opener-rebid-repeat-after-weak-two-2nt-inquiry', oneLevelPreferred: true,
+    },
+    {
+      name: '11-HCP maximum with a solid diamond suit',
+      deal: { ...solid, north: { ...solid.north, S: 'J42' },
+        west: { ...solid.west, S: 'T896' } },
+      hcp: 11, opening: '2D', rebid: '3NT',
+      rebidRule: 'opener-rebid-3nt-after-weak-two-2nt-inquiry', oneLevelPreferred: true,
+    },
+    {
+      name: '12-HCP hand is too strong for a weak two',
+      deal: { ...feature, north: { ...feature.north, S: 'AKQ987' },
+        south: { ...feature.south, S: 'J3' } },
+      hcp: 12, opening: '2S', rebid: null, rebidRule: null, oneLevelPreferred: true,
+    },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const item of cases) {
+    const { board } = makeRuleTestBoard(item.deal);
+    const northHcp = getHandFacts(board.deal.N).hcp;
+    const choices = getApplicableCandidateCalls(
+      evaluateUserCall(item.opening, board, [], defaultBiddingSystem));
+    const preempt = choices.find(({ call, rule }) =>
+      call === item.opening && rule.id === 'open-weak-two');
+    const oneLevelCall = `1${item.opening[1]}` as Call;
+    const oneLevelIndex = choices.findIndex(({ call }) => call === oneLevelCall);
+    const twoLevelIndex = choices.findIndex(({ call }) => call === item.opening);
+    checks += 1;
+    if (northHcp !== item.hcp || (preempt !== undefined) !== (item.hcp <= 11) ||
+        (oneLevelIndex >= 0) !== item.oneLevelPreferred ||
+        (item.oneLevelPreferred && item.hcp <= 11 && oneLevelIndex >= twoLevelIndex)) {
+      failures += 1;
+      console.error(`FAIL weak-two opening boundary: ${item.name}; candidates: ${formatCandidates(choices)}.`);
+    }
+    if (item.rebid === null || item.rebidRule === null) continue;
+    const auction: Call[] = [item.opening, 'Pass', '2NT', 'Pass'];
+    const continuations = getApplicableCandidateCalls(
+      evaluateUserCall(item.rebid, board, auction, defaultBiddingSystem));
+    const inquiryChoices = continuations.filter(({ rule }) =>
+      rule.id === 'opener-rebid-repeat-after-weak-two-2nt-inquiry' ||
+      rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry' ||
+      rule.id === 'opener-rebid-3nt-after-weak-two-2nt-inquiry');
+    checks += 1;
+    if (inquiryChoices.length !== 1 || inquiryChoices[0]?.call !== item.rebid ||
+        inquiryChoices[0].rule.id !== item.rebidRule) {
+      failures += 1;
+      console.error(`FAIL weak-two 2NT inquiry boundary: ${item.name}; ` +
+        `candidates: ${formatCandidates(inquiryChoices)}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Weak-two opening and 2NT inquiry boundaries: ${checks} checks.\\n`);
+  return failures;
+}
 /// The first instructional-explanation batch covers only basic opening requirements.
 /// Inspect the evidence actually returned by the evaluator, not a second HCP/shape evaluator.
 function runBasicOpeningExplanationTests (): number {
@@ -8021,6 +8110,7 @@ const testGroups: (() => number)[] = [
   runAuctionHelperTests,
   runResponderNtConventionTests,
   runOpeningPositionAndPassTests,
+  runWeakTwoOpeningRangeTests,
   runAuctionContextTests,
   runCompetitionBoundaryTests,
   runResponderInterferenceScopeBoundaryTests,
