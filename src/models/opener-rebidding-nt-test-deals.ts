@@ -11,6 +11,7 @@
 import type { RuleTestDeal } from './test-deals-registry';
 
 
+//// Opener continuations after a 1NT opening
 export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
   {
     description: '1NT, 15-17 opener: 10-HCP balanced responder bids 3NT directly rather than inviting.',
@@ -577,6 +578,7 @@ export const OPENER_REBID_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Opener continuations after a 2NT opening
 /// The corresponding immediate opener continuations after a natural 20-21 2NT opening.
 export const OPENER_REBID_AFTER_2NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
   {

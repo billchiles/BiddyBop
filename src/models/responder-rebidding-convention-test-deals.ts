@@ -3,6 +3,7 @@
 /// convention-introduction deals without forcing mechanical repetitions.
 import type { RuleTestDeal } from './test-deals-registry';
 
+//// Responder after Stayman and Jacoby transfers
 export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'After 1NT-2C-2H, nine HCP with four hearts invite at 3H; opener is minimum and may decline.',
@@ -94,6 +95,7 @@ export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responder after a major game try
 export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'After 1H-2H-2S, six support points without spade help decline by returning to 3H.',
@@ -139,6 +141,7 @@ export const RESPONDER_AFTER_MAJOR_GAME_TRY_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responder after strong 2C and Jacoby 2NT
 /// Continue established artificial sequences to responder's actual contract decision.
 /// These complement, rather than replace, the shorter response/opener-rebid examples.
 export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[] = [
@@ -206,6 +209,7 @@ export const RESPONDER_AFTER_STRONG_2C_AND_JACOBY_2NT_TEST_DEALS: RuleTestDeal[]
   },
 ];
 
+//// Responder after splinters
 /// Selected responder game decisions after a splinter by either partner.
 export const RESPONDER_AFTER_SPLINTERS_TEST_DEALS: RuleTestDeal[] = [
   {

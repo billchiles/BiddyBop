@@ -43,13 +43,12 @@ not a historical progress log or a commitment to model every possible auction.
   criterion rather than relying on declaration location. Preserve current behavior
   while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Next: add
-  meaningful section headings to the remaining practice-deal files where useful,
-  then inspect related-code grouping, stale comments, and unnecessary wrappers.
-  Include a final spot check of shared helpers and production blank-line
-  transitions in `explanations.ts`; don't chase ordering counts at the expense
-  of keeping related code together. Preserve manually written introductory
-  rationale when moving code. No semantic bidding changes or new test infrastructure.
+  Continue deliberate, separately tested organization passes. Next: inspect
+  shared helpers, related-code grouping, stale comments, unnecessary wrappers,
+  and production blank-line transitions in `explanations.ts`. Don't chase
+  ordering counts at the expense of keeping related code together. Preserve
+  manually written introductory rationale when moving code. No semantic
+  bidding changes or new test infrastructure.
 
 ## Deferred enhancements
 

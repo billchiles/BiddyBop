@@ -5,6 +5,7 @@
 ///
 import type { RuleTestDeal } from './test-deals-registry';
 
+//// Responding after a natural suit overcall
 /// Responder after a opponent non-jump natural suit overcall.  North opens, East overcalls,
 /// and South practices the response.  All three hands are fixed so the overcall is plausible.
 ///
@@ -107,6 +108,7 @@ export const RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responding after a takeout Double
 /// Responder to an opponent's takeout double of partner's one-level suit opening.
 /// The double is backed by East's actual holding; no penalty scoring is exercised.
 ///
@@ -231,6 +233,7 @@ export const RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responding after a natural 1NT overcall
 /// Responder after a natural opposing 1NT overcall: two-level new suits are weak and nonforcing,
 /// ordinary simple raises remain available, and jump raises are preemptive rather than invitational.
 ///
@@ -298,6 +301,7 @@ export const RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Responding after a preemptive jump overcall
 /// Responder after two- and three-level preemptive jump overcalls.  Positive and negative
 /// expectations distinguish cheapest raises, new suits, stoppers, support cuebids, and Doubles.
 ///
