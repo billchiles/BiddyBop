@@ -1647,9 +1647,9 @@ export function openerForcingResponseCompetitionScopeBoundaryApplies (
   };
 }
 
-/// Pass of a weak competitive response after a takeout Double is selected for a
-/// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
-/// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
+/// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
+/// declared for this family.  It is intentionally narrower than general bridge judgment: support,
+/// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.
 function hasClearForcingResponseCompetitionContinuation (
     context: RuleEvalContext,
     info: { opening: ParsedSuitBid; response: ParsedSuitBid; advance: ParsedSuitBid;
@@ -1694,6 +1694,9 @@ function hasClearForcingResponseCompetitionContinuation (
 //// Other Competitive Suit Rebids
 ///
 
+/// Pass of a weak competitive response after a takeout Double is selected for a
+/// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
+/// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
 export function openerWeakAfterDoublePassApplies(
     _call: Call, context: RuleEvalContext, _system: BiddingSystem,
     requireNtShape = false): AppliesWhenResult {
@@ -1725,8 +1728,8 @@ export function openerWeakAfterDoubleBoundaryApplies(
 }
 
 /// An opening with fewer than 12 HCP may be legitimate on length-adjusted 12+ points.
-  // The natural-notrump responder ranges remain HCP ranges: do not misclassify
-  // a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.
+/// The natural-notrump responder ranges remain HCP ranges: do not misclassify
+/// a light but length-qualified opener as a slam-strength hand after 2NT or 3NT.
 export function openerCompetitiveNaturalNtPassApplies(
     context: RuleEvalContext, maximumHcp: number,
     requireSemiBalanced = false): AppliesWhenResult {
@@ -1744,7 +1747,7 @@ export function openerCompetitiveNaturalNtPassApplies(
   ] };
 }
 
-/// A9's cuebid is advancer's artificial bid in opener's known suit after responder's
+/// Advancer's cuebid is an artificial bid in opener's known suit after responder's
 /// nonforcing simple raise.  This is not a natural contract in opener's suit.
 function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {
   if (context.stage !== 'openerRebid') return false;
@@ -1847,14 +1850,11 @@ export function openerThreeLevelForcingResponseThreeNtApplies (
   };
 }
 
-/// hasClearForcingResponseCompetitionContinuation mirrors only the concrete minimum continuations
-/// declared for this family.  It is intentionally narrower than general bridge judgment: support,
-/// a six-card opening suit, an unchanged economical second suit, or a natural balanced NT rebid.
 ///
 //// Suit Rebids After a Preemptive Jump Overcall
 ///
 
-/// Selected A8 opener continuations after a natural jump overcall and advancer Pass.
+/// Selected opener continuations after a natural jump overcall and advancer Pass.
 /// The physical auction is checked here as well as in getNextBiddingRuleStage: do not infer these
 /// meanings from a compact partnership auction that hides interference.
 interface JumpOvercallContinuation {
