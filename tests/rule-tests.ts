@@ -1795,6 +1795,52 @@ function runMajorSupportNewSuitRejectionTests (): number {
 function runInitialResponseEvidenceTests (): number {
   let failures = 0;
   let checks = 0;
+  // An unbalanced weak hand can Pass partner's 1NT when no preferred response qualifies.
+  // Use the actual four-hand report example to guard against reintroducing a shape requirement.
+  const { board: weakOneNtBoard } = makeRuleTestBoard({
+    description: 'Four-HCP 4-4-1-4 responder may Pass natural 1NT.',
+    practiceAuction: ['1NT', 'Pass', 'Pass'],
+    north: { S: 'AKT3', H: 'J82', D: 'T2', C: 'AQJ9' },
+    east: { S: 'Q642', H: 'QT', D: 'AQJ3', C: '854' },
+    south: { S: 'J985', H: '9654', D: '7', C: 'K763' },
+    west: { S: '7', H: 'AK73', D: 'K98654', C: 'T2' },
+  });
+  const weakAuction: Call[] = ['1NT', 'Pass'];
+  const weakPassResult = evaluateUserCall('Pass', weakOneNtBoard, weakAuction,
+    defaultBiddingSystem);
+  const weakPassCalls = getApplicableCandidateCalls(weakPassResult);
+  checks++;
+  if (getHandFacts(weakOneNtBoard.deal.S).hcp !== 4 ||
+      getBiddingTurnStatus(weakOneNtBoard, weakAuction, defaultBiddingSystem).kind !== 'supported' ||
+      !weakPassResult.userCallMatchingRules.some((rule) => rule.id === 'respond-to-1nt-w/-pass-0-7-weak') ||
+      weakPassCalls.length !== 1 || weakPassCalls[0]?.call !== 'Pass') {
+    failures++;
+    console.error('FAIL Q4-7 weak unbalanced 1NT response should support Pass.');
+  }
+  // Expanding Pass eligibility must not hide weak five-card-major transfers or natural signoffs.
+  for (const example of [
+    { needle: '6 HCP and five cards in each major', preferredCall: '2D' as Call },
+    { needle: 'without Stayman or transfers, 2 HCP and five spades',
+      preferredCall: '2S' as Call },
+  ]) {
+    checks++;
+    const deal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((item) =>
+      item.description.includes(example.needle));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL Q4-7 missing weak 1NT suit-response hand: ${example.needle}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const choices = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
+      deal.practiceAuction.slice(0, 2), system));
+    if (!choices.some(({ call }) => call === example.preferredCall) ||
+        choices.some(({ call }) => call === 'Pass')) {
+      failures++;
+      console.error(`FAIL Q4-7 weak 1NT Pass displaced ${example.preferredCall}.`);
+    }
+  }
   const selected = [
     { needle: '9 HCP and five cards in each major', call: '2D' as Call },
     { needle: '11 HCP and five cards in each major', call: '2H' as Call },
@@ -1842,7 +1888,7 @@ function runInitialResponseEvidenceTests (): number {
     const system = { ...defaultBiddingSystem, ...shifted.requiredSystem };
     const result = evaluateUserCall('Pass', board, shifted.practiceAuction.slice(0, 2), system);
     const rejected = result.ruleDiagnostics.find(({ rule }) =>
-      rule.id === 'respond-to-1nt-w/-pass-0-7-balanced')
+      rule.id === 'respond-to-1nt-w/-pass-0-7-weak')
       ?.candidates.find(({ call }) => call === 'Pass');
     const hcp = rejected?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
     if (hcp?.kind !== 'hcp' || hcp.min !== 0 || hcp.max !== 6 || hcp.actual !== 7 ||
