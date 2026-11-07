@@ -407,10 +407,12 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
         lines.push('', `------------ ${getSeatLabel(seat)} to call — ` +
           `${getStageLabel(status.stage)} ------------`,
           status.hasAuctionTreatment
-            ? 'No supported bid qualifies for this hand and auction. Further judgment is ' +
-              'needed; this does not recommend Pass.'
+            ? 'No supported bid qualifies for this hand and auction. The absence of an ' +
+              'applicable rule does not mean you should Pass, but it also does not mean ' +
+              'Pass is wrong.'
             : 'The app does not teach bids in this auction context. You may enter any legal ' +
-              'call; this does not recommend Pass.');
+              'call. The absence of an applicable rule does not mean you should Pass, ' +
+              'but it also does not mean Pass is wrong.');
         break;
       case 'noModeledStage':
         lines.push('', `------------ ${getSeatLabel(seat)} to call — no bidding guidance for this turn ------------`,
