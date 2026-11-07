@@ -375,7 +375,7 @@ export interface RuleEvalContext {
 }
 
 ///
-//// Call Explanation Types
+//// Bidding Evaluation and Explanation Evidence
 ///
 
 /// Chosen natural suit-overcaller replies after advancer's first uncontested action.
@@ -386,6 +386,7 @@ export type NaturalSuitRebidTreatment = 'raise-pass' | 'raise-invite' | 'raise-g
 /// Optional evaluation evidence used to explain a particular call. Add fields as rule
 /// families need them; not every rule is required to produce evidence.
 export interface CallEvidence {
+  // Shared evaluation evidence
   requirements?: (
     | { kind: 'hcp'; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'balanced'; actual: boolean; passed: boolean }
@@ -404,6 +405,9 @@ export interface CallEvidence {
     | { kind: 'noFourCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'responderPreviouslyPassed'; actual: boolean; required: boolean; passed: boolean }
   )[];
+  suppressedBy?: Call;
+
+  // Opening bids
   openingSelection?: {
     call: Call;
     reason: 'only-major' | 'longer-major' | 'equal-majors' | 'longer-minor' |
@@ -415,18 +419,12 @@ export interface CallEvidence {
     balanced: boolean;
     hasFiveCardMajor: boolean;
   };
-  suppressedBy?: Call;
-  // A candidate passed its hand checks but a specific response treatment took precedence.
-  responseSelection?: {
-    preferredCall: Call;
-    reason: 'staymanOverJacoby' | 'fiveFiveTransferOrder' | 'majorSlamOverJacoby' |
-      'majorGameOverJacoby' | 'suitBeforeNaturalNt';
-  };
   preemptSuitQuality?: { call: Call; passed: boolean }[];
-  balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
-  balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
+
+  // Direct overcalls, defense, and balancing
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
+  jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
   weakTwoSuit?: {
     call: Call;
     length: number;
@@ -436,10 +434,56 @@ export interface CallEvidence {
     isCheapest: boolean;
     passed: boolean;
   }[];
-  jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
-  // Actual tested facts for responder's competitive Double or artificial support action.
-  // Facts checked when responding to partner's weak-two opening. A rejected
-  // new suit can be absent from candidates, so keep the refiner's checks separately.
+  balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
+  balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
+  dontInitial?: {
+    hcp: number;
+    lengths: Record<Suit, number>;
+    // Quality has already been evaluated with the shared honor test, for suits of 5+ cards.
+    qualitySuits: Suit[];
+    singleSuit: Suit | null;
+    twoSuits: [Suit, Suit] | null;
+  };
+
+  // Responses to opening bids and interference
+  // A candidate passed its hand checks but a specific response treatment took precedence.
+  responseSelection?: {
+    preferredCall: Call;
+    reason: 'staymanOverJacoby' | 'fiveFiveTransferOrder' | 'majorSlamOverJacoby' |
+      'majorGameOverJacoby' | 'suitBeforeNaturalNt';
+  };
+  minorResponseSelection?: {
+    preferredCall: Call | null;
+    retainedCalls: Call[];
+    considered: { call: Call; length: number }[];
+    reason: 'no-four-card-suit' | 'major-first' | 'equal-four-majors' |
+      'equal-long-majors' | 'longer-major' | 'longest-suit';
+    longerDiamondAlternative: boolean;
+  };
+  majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
+  majorGameForceNewSuit?: {
+    reason: 'normal' | 'three-card-minor-fallback' | 'unavailable';
+    considered: { call: Call; length: number; requiredLength: number }[];
+    retainedCalls: Call[];
+  };
+  longMajorLimitFallback?: {
+    reason: 'shortness' | 'new-suit-available' | 'qualified';
+    alternativeCalls: Call[];
+    alternativeIsRareThreeCardMinor?: boolean;
+  };
+  majorNoSupportNewSuit?: {
+    orderedCalls: Call[];
+    considered: { call: Call; length: number }[];
+  };
+  jumpShift?: {
+    treatment: JumpShiftAgreement;
+    hcp: number;
+    considered: { call: Call; length: number; suitHcp: number }[];
+    selectedCall: Call | null;
+    ordinaryCall?: Call;
+    reason: 'qualified' | 'no-long-suit' | 'two-long-suits' | 'insufficient-suit-hcp';
+    longNewSuits: Suit[];
+  };
   strongTwoCPositiveSuit?: {
     considered: { call: Call; length: number; quality: boolean }[];
   };
@@ -449,6 +493,8 @@ export interface CallEvidence {
     support: number;
     guideline: number;
   };
+  // Facts checked when responding to partner's weak-two opening. A rejected
+  // new suit can be absent from candidates, so keep the refiner's checks separately.
   weakTwoNewSuit?: {
     considered: { call: Call; length: number; quality: boolean; economical: boolean }[];
     selected: Call | null;
@@ -466,6 +512,7 @@ export interface CallEvidence {
   competitiveNewSuit?: {
     considered: { call: Call; suit: Suit; length: number; minimum: number }[];
   };
+  // Actual tested facts for responder's competitive Double or artificial support action.
   competitiveResponse?: {
     hcp: number;
     minHcp?: number;
@@ -476,29 +523,8 @@ export interface CallEvidence {
     minPartnerSupport?: number;
     unbidSuits?: { suit: Suit; length: number; min: number; exact?: number }[];
   };
-  dontInitial?: {
-    hcp: number;
-    lengths: Record<Suit, number>;
-    // Quality has already been evaluated with the shared honor test, for suits of 5+ cards.
-    qualitySuits: Suit[];
-    singleSuit: Suit | null;
-    twoSuits: [Suit, Suit] | null;
-  };
-  majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
-  majorGameForceNewSuit?: {
-    reason: 'normal' | 'three-card-minor-fallback' | 'unavailable';
-    considered: { call: Call; length: number; requiredLength: number }[];
-    retainedCalls: Call[];
-  };
-  longMajorLimitFallback?: {
-    reason: 'shortness' | 'new-suit-available' | 'qualified';
-    alternativeCalls: Call[];
-    alternativeIsRareThreeCardMinor?: boolean;
-  };
-  majorNoSupportNewSuit?: {
-    orderedCalls: Call[];
-    considered: { call: Call; length: number }[];
-  };
+
+  // Advancing after overcalls and Doubles
   takeoutSuitSelection?: {
     jump: 0 | 1;
     openingLevel: number;
@@ -508,311 +534,6 @@ export interface CallEvidence {
   };
   takeoutMajorGame?: {
     considered: { call: Call; length: number; eligible: boolean }[];
-  };
-  // First rebid after a one-level suit opening and a 1NT response. The evaluator
-  // records auction and hand facts; rule-specific tested thresholds remain in requirements.
-  openerOneNtRebid?: {
-    openingSuit: Suit;
-    openingLength: number;
-    rebidSuit: Suit | null;
-    rebidLength: number;
-    hcp: number;
-    totalPoints: number;
-    lengthPoints: number;
-    balanced: boolean;
-    balancedOrSemiBalanced: boolean;
-    previouslyPassed: boolean;
-    forcingOneNt: boolean;
-  };
-  // Observations for opener's first rebid after Jacoby 2NT, a splinter, or a jump shift.
-  // Eligibility remains exclusively with the corresponding bidding rule and refiner.
-  openerConventionalRebid?: {
-    openingSuit: Suit;
-    shortSuits: Suit[];
-    responseSuit: Suit | null;
-    bidSuit: Suit | null;
-    bidSuitLength: number;
-    responseSupport: number;
-    topFourHonors: number;
-    splinterWastedHcp: number;
-    splinterWorkingHcp: number;
-    sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
-  };
-  // A rejected Jacoby side-suit rebid has these actually tested length/quality facts.
-  openerJacobySideSuit?: {
-    suit: Suit;
-    length: number;
-    topFourHonors: number;
-  };
-  // Splinter-control selection facts survive the refiner even when it selects no call.
-  openerSplinterControl?: {
-    splinterSuit: Suit;
-    wastedHcp: number;
-    workingHcp: number;
-    requiredWorkingHcp: number;
-    cheapestCall: Call | null;
-    qualifyingControls: Call[];
-  };
-  // Opener's facts after responder's natural game-forcing three-level new suit.
-  // The evaluated rules still decide fit, shape, stopper tests and call legality.
-  openerThreeLevelGameForceRebid?: {
-    openingSuit: Suit;
-    openingLength: number;
-    responderSuit: Suit;
-    responseSupport: number;
-    advancerCall: Call;
-    opponentSuits: Suit[];
-    unstoppedSuits: Suit[];
-  };
-  // Auction facts for the selected minimum Passes after weak competitive responses.
-  openerWeakCompetitiveRebid?: {
-    openingSuit: Suit;
-    responseCall: Call;
-    responseSuit: Suit | null;
-  };
-  // Auction facts for opener's natural notrump-response continuations after a suit overcall.
-  // The rule declarations, not these facts, decide which call qualifies.
-  openerCompetitiveNaturalNtRebid?: {
-    openingSuit: Suit;
-    openingLength: number;
-    opponentSuit: Suit;
-    responseCall: Call;
-    currentContract: Call;
-  };
-  // Facts retained from the selected opener continuation after 1NT interference.
-  // The applicability checks, not these observations, decide whether the call qualifies.
-  openerOneNtInterference?: {
-    treatment: 'doubleFit' | 'doubleNt' | 'naturalPass' | 'majorRaise' | 'naturalThreeNt';
-    hcp: number;
-    minimumHcp: number;
-    response: Call;
-    opponentSuits: Suit[];
-    missingStoppers: Suit[];
-    responseSuit: Suit | null;
-    responseLevel: number | null;
-    support: number;
-    fitSuit: Suit | null;
-    fitLength: number;
-  };
-  // The A8 refiner selects one descriptive opener call. Preserve its selected
-  // action and the evaluated auction facts even when it removes another call.
-  openerJumpOvercallRebid?: {
-    kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
-      'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
-    openingSuit: Suit;
-    opponentSuit: Suit;
-    responseSuit: Suit | null;
-    responseCall: Call;
-    hcp: number;
-    supportPoints: number;
-    openingLength: number;
-    responseSupport: number;
-    stopped: boolean;
-    selectedCall: Call | null;
-    selectedSuit: Suit | null;
-    selectedLength: number;
-  };
-  // Auction observations used to explain opener's response to artificial support bids.
-  // Call eligibility and point ranges remain defined by the bidding rules.
-  openerArtificialSupportRebid?: {
-    openingSuit: Suit;
-    openingLength: number;
-    responderCall: Call;
-    advancerCall: Call | null;
-  };
-  // Observations for opener's rebid after a competitive forcing new-suit response.
-  // Rule declarations and refiners remain the authority for qualification.
-  openerCompetitiveForcingRebid?: {
-    openingSuit: Suit;
-    responseSuit: Suit;
-    responseLevel: number;
-    responseMinLength: number;
-    openingLength: number;
-    responseSupport: number;
-    requiredSupport: number;
-    rebidSuit: Suit | null;
-    rebidLength: number;
-    afterAdvancerAction: boolean;
-  };
-  openerTwoLevelNewSuitRebid?: {
-    agreement: 'standard' | 'twoOverOne';
-    openingSuit: Suit;
-    responseSuit: Suit;
-    rebidSuit: Suit | null;
-    openingLength: number;
-    responseSupport: number;
-    rebidLength: number;
-    hcp: number;
-    lengthPoints: number;
-    shortagePoints: number;
-    totalLengthPoints: number;
-    totalShortagePoints: number;
-    balanced: boolean;
-    balancedOrSemiBalanced: boolean;
-  };
-  openerFiveCardMajorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
-  openerOneNtFallback?: 'three-card-minor' | 'two-card-club';
-  // First rebid after an uncontested, forcing one-level new-suit response.
-  // The tested point and shape thresholds remain in requirements.
-  openerOneLevelNewSuitRebid?: {
-    openingSuit: Suit;
-    responseSuit: Suit;
-    rebidSuit: Suit | null;
-    openingLength: number;
-    responseSupport: number;
-    rebidLength: number;
-    hcp: number;
-    lengthPoints: number;
-    shortagePoints: number;
-    totalLengthPoints: number;
-    totalShortagePoints: number;
-    balanced: boolean;
-  };
-  openerFiveCardMinorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
-  openerMinorOneNtSecondSuitAvailable?: boolean;
-  // The Stayman refiner evaluated both major lengths before selecting its reply.
-  overcallerStaymanReply?: {
-    heartsLength: number;
-    spadesLength: number;
-    selectedReply: Call;
-  };
-  ntOvercallerRebid?: {
-    kind: 'interfered' | 'invitation' | 'minor' | 'major';
-    treatment: string;
-    advance: Call | null | undefined;
-    hcp: number;
-    cutoff?: number;
-    invitation?: '2NT' | '4NT';
-    minor?: Suit;
-    topHonor?: boolean;
-    major?: Suit;
-    support?: number;
-    originalSuit?: Suit;
-    responderSuit?: Suit;
-  };
-  weakTwoDefenseRebid?: {
-    defense: 'Double' | 'suit';
-    action: string;
-    advanceKind: string;
-    openingSuit: Suit;
-    advanceSuit: Suit | null;
-    overcallSuit?: Suit;
-    hcp: number;
-    supportPoints: number;
-    support: number;
-    ownLength: number;
-    ordinary: boolean;
-    strong: boolean;
-    balanced: boolean;
-    stopped: boolean;
-    rejection?: 'strength' | 'length' | 'support' | 'shape' | 'stopper';
-  };
-  takeoutDoublerRebid?: {
-    treatment: string;
-    advanceKind: string;
-    openingSuit: Suit;
-    partnerSuit: Suit | null;
-    hcp: number;
-    supportPoints: number;
-    support: number;
-    ordinary: boolean;
-    strong: boolean;
-    balanced: boolean;
-    stopped: boolean;
-    chosenFit: Suit | null;
-    chosenFitLength: number;
-    bidSuitLength: number;
-    rejection?: 'strength' | 'support' | 'shape' | 'stopper' | 'forcing';
-  };
-  contestedSuitOvercallerRebid?: {
-    treatment: string;
-    responderKind: 'raise' | 'natural' | 'negativeDouble';
-    advanceKind: string;
-    overcallSuit: Suit;
-    overcallLevel: 1 | 2;
-    openingSuit: Suit;
-    responderSuit: Suit | null;
-    advanceSuit: Suit | null;
-    hcp: number;
-    overcallLength: number;
-    support: number;
-    balanced: boolean;
-    stopped: boolean;
-    stoppedSuits: { suit: Suit; stopped: boolean }[];
-    secondSuit: Suit | null;
-    secondSuitLength: number;
-    preferredResponsiveCall: Call | null;
-    selectedSuitLength: number;
-    minHcp?: number;
-    maxHcp?: number;
-    minOvercallLength?: number;
-    minSupport?: number;
-    minSecondSuitLength?: number;
-    rejection?: 'strength' | 'support' | 'length' | 'balanced' | 'stopper' |
-      'preferFit' | 'preferRepeat' | 'upLine';
-  };
-  naturalResponderRebid?: {
-    family: 'economical' | 'majorOneNt' | 'minorOneNt' | 'twoOverOne' |
-      'standardTwoLevel' | 'strongSecondSuit' | 'strongJumpShift';
-    decision: string;
-    hcp: number;
-    lengthPoints: number;
-    supportPoints: number;
-    balanced: boolean;
-    openingSuit: Suit;
-    responseSuit: Suit | null;
-    rebidSuit: Suit | null;
-    openingLength: number;
-    responseLength: number;
-    rebidLength: number;
-    missingStoppers?: Suit[];
-    // A previously shown five-card major may have a known fit even if the selected
-    // notrump continuation does not treat that fit as overriding.
-    knownMajorFit?: boolean;
-    forceKind?: 'reverse' | 'jumpShift';
-    // Responder's selected 1NT response created an actual one-round force.
-    forcingOneNt?: boolean;
-    openerRebid?: string;
-    success: boolean;
-  };
-  conventionalResponderRebid?: {
-    family: 'ntConvention' | 'majorGameTry' | 'strongTwoC' | 'majorSupport' | 'openerSplinter';
-    decision: string;
-    hcp: number;
-    supportPoints: number;
-    balanced: boolean;
-    opening: Call | null;
-    openerRebid: Call | null;
-    major: Suit | null;
-    majorLength: number;
-    shortSuit: Suit | null;
-    helpSuit: Suit | null;
-    usefulHelp: boolean;
-    fitFound: boolean;
-    success: boolean;
-  };
-  naturalSuitOvercallerRebid?: {
-    treatment: NaturalSuitRebidTreatment;
-    advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
-      'nonforcingNewSuit' | 'forcingNewSuit' | 'oneNt' | 'twoNt' | 'threeNt';
-    overcallSuit: Suit;
-    overcallLevel: 1 | 2;
-    openingSuit: Suit;
-    advanceSuit: Suit | null;
-    hcp: number;
-    overcallLength: number;
-    support: number;
-    balanced: boolean;
-    openerStopper: boolean;
-    secondSuit: Suit | null;
-    secondSuitLength: number;
-    minHcp?: number;
-    maxHcp?: number;
-    minOvercallLength?: number;
-    minSupport?: number;
-    minSecondSuitLength?: number;
-    rejection?: 'strength' | 'overcallLength' | 'support' | 'preferSupport' |
-      'preferRepeat' | 'balanced' | 'stopper' | 'secondSuitLength' | 'forcingPass';
   };
   advancePass?: {
     level: 1 | 2;
@@ -907,22 +628,316 @@ export interface CallEvidence {
     considered: { call: Call; length: number; cheapest: Call | null; eligible: boolean }[];
     retainedCalls: Call[];
   };
-  jumpShift?: {
-    treatment: JumpShiftAgreement;
+
+  // Opener rebids
+  // First rebid after a one-level suit opening and a 1NT response. The evaluator
+  // records auction and hand facts; rule-specific tested thresholds remain in requirements.
+  openerOneNtRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    rebidSuit: Suit | null;
+    rebidLength: number;
     hcp: number;
-    considered: { call: Call; length: number; suitHcp: number }[];
-    selectedCall: Call | null;
-    ordinaryCall?: Call;
-    reason: 'qualified' | 'no-long-suit' | 'two-long-suits' | 'insufficient-suit-hcp';
-    longNewSuits: Suit[];
+    totalPoints: number;
+    lengthPoints: number;
+    balanced: boolean;
+    balancedOrSemiBalanced: boolean;
+    previouslyPassed: boolean;
+    forcingOneNt: boolean;
   };
-  minorResponseSelection?: {
-    preferredCall: Call | null;
-    retainedCalls: Call[];
-    considered: { call: Call; length: number }[];
-    reason: 'no-four-card-suit' | 'major-first' | 'equal-four-majors' |
-      'equal-long-majors' | 'longer-major' | 'longest-suit';
-    longerDiamondAlternative: boolean;
+  // First rebid after an uncontested, forcing one-level new-suit response.
+  // The tested point and shape thresholds remain in requirements.
+  openerOneLevelNewSuitRebid?: {
+    openingSuit: Suit;
+    responseSuit: Suit;
+    rebidSuit: Suit | null;
+    openingLength: number;
+    responseSupport: number;
+    rebidLength: number;
+    hcp: number;
+    lengthPoints: number;
+    shortagePoints: number;
+    totalLengthPoints: number;
+    totalShortagePoints: number;
+    balanced: boolean;
+  };
+  openerTwoLevelNewSuitRebid?: {
+    agreement: 'standard' | 'twoOverOne';
+    openingSuit: Suit;
+    responseSuit: Suit;
+    rebidSuit: Suit | null;
+    openingLength: number;
+    responseSupport: number;
+    rebidLength: number;
+    hcp: number;
+    lengthPoints: number;
+    shortagePoints: number;
+    totalLengthPoints: number;
+    totalShortagePoints: number;
+    balanced: boolean;
+    balancedOrSemiBalanced: boolean;
+  };
+  openerFiveCardMajorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
+  openerFiveCardMinorFallback?: 'eligible' | 'support-or-notrump' | 'economical-second-suit';
+  openerOneNtFallback?: 'three-card-minor' | 'two-card-club';
+  openerMinorOneNtSecondSuitAvailable?: boolean;
+  // Observations for opener's first rebid after Jacoby 2NT, a splinter, or a jump shift.
+  // Eligibility remains exclusively with the corresponding bidding rule and refiner.
+  openerConventionalRebid?: {
+    openingSuit: Suit;
+    shortSuits: Suit[];
+    responseSuit: Suit | null;
+    bidSuit: Suit | null;
+    bidSuitLength: number;
+    responseSupport: number;
+    topFourHonors: number;
+    splinterWastedHcp: number;
+    splinterWorkingHcp: number;
+    sideControl: 'ace' | 'king' | 'singleton' | 'void' | null;
+  };
+  // A rejected Jacoby side-suit rebid has these actually tested length/quality facts.
+  openerJacobySideSuit?: {
+    suit: Suit;
+    length: number;
+    topFourHonors: number;
+  };
+  // Splinter-control selection facts survive the refiner even when it selects no call.
+  openerSplinterControl?: {
+    splinterSuit: Suit;
+    wastedHcp: number;
+    workingHcp: number;
+    requiredWorkingHcp: number;
+    cheapestCall: Call | null;
+    qualifyingControls: Call[];
+  };
+  // Opener's facts after responder's natural game-forcing three-level new suit.
+  // The evaluated rules still decide fit, shape, stopper tests and call legality.
+  openerThreeLevelGameForceRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    responderSuit: Suit;
+    responseSupport: number;
+    advancerCall: Call;
+    opponentSuits: Suit[];
+    unstoppedSuits: Suit[];
+  };
+  // Auction facts for the selected minimum Passes after weak competitive responses.
+  openerWeakCompetitiveRebid?: {
+    openingSuit: Suit;
+    responseCall: Call;
+    responseSuit: Suit | null;
+  };
+  // Auction facts for opener's natural notrump-response continuations after a suit overcall.
+  // The rule declarations, not these facts, decide which call qualifies.
+  openerCompetitiveNaturalNtRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    opponentSuit: Suit;
+    responseCall: Call;
+    currentContract: Call;
+  };
+  // Facts retained from the selected opener continuation after 1NT interference.
+  // The applicability checks, not these observations, decide whether the call qualifies.
+  openerOneNtInterference?: {
+    treatment: 'doubleFit' | 'doubleNt' | 'naturalPass' | 'majorRaise' | 'naturalThreeNt';
+    hcp: number;
+    minimumHcp: number;
+    response: Call;
+    opponentSuits: Suit[];
+    missingStoppers: Suit[];
+    responseSuit: Suit | null;
+    responseLevel: number | null;
+    support: number;
+    fitSuit: Suit | null;
+    fitLength: number;
+  };
+  // After an opposing preemptive jump overcall, opener selects a descriptive
+  // continuation; retain its evaluated facts even when another call is removed.
+  openerJumpOvercallRebid?: {
+    kind: 'raise' | 'newSuitTwo' | 'newSuitThree' | 'negativeDouble' |
+      'supportCuebid' | 'notrumpTwo' | 'notrumpThree' | 'majorGame';
+    openingSuit: Suit;
+    opponentSuit: Suit;
+    responseSuit: Suit | null;
+    responseCall: Call;
+    hcp: number;
+    supportPoints: number;
+    openingLength: number;
+    responseSupport: number;
+    stopped: boolean;
+    selectedCall: Call | null;
+    selectedSuit: Suit | null;
+    selectedLength: number;
+  };
+  // Auction observations used to explain opener's response to artificial support bids.
+  // Call eligibility and point ranges remain defined by the bidding rules.
+  openerArtificialSupportRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    responderCall: Call;
+    advancerCall: Call | null;
+  };
+  // Observations for opener's rebid after a competitive forcing new-suit response.
+  // Rule declarations and refiners remain the authority for qualification.
+  openerCompetitiveForcingRebid?: {
+    openingSuit: Suit;
+    responseSuit: Suit;
+    responseLevel: number;
+    responseMinLength: number;
+    openingLength: number;
+    responseSupport: number;
+    requiredSupport: number;
+    rebidSuit: Suit | null;
+    rebidLength: number;
+    afterAdvancerAction: boolean;
+  };
+
+  // Responder rebids
+  naturalResponderRebid?: {
+    family: 'economical' | 'majorOneNt' | 'minorOneNt' | 'twoOverOne' |
+      'standardTwoLevel' | 'strongSecondSuit' | 'strongJumpShift';
+    decision: string;
+    hcp: number;
+    lengthPoints: number;
+    supportPoints: number;
+    balanced: boolean;
+    openingSuit: Suit;
+    responseSuit: Suit | null;
+    rebidSuit: Suit | null;
+    openingLength: number;
+    responseLength: number;
+    rebidLength: number;
+    missingStoppers?: Suit[];
+    // A previously shown five-card major may have a known fit even if the selected
+    // notrump continuation does not treat that fit as overriding.
+    knownMajorFit?: boolean;
+    forceKind?: 'reverse' | 'jumpShift';
+    // Responder's selected 1NT response created an actual one-round force.
+    forcingOneNt?: boolean;
+    openerRebid?: string;
+    success: boolean;
+  };
+  conventionalResponderRebid?: {
+    family: 'ntConvention' | 'majorGameTry' | 'strongTwoC' | 'majorSupport' | 'openerSplinter';
+    decision: string;
+    hcp: number;
+    supportPoints: number;
+    balanced: boolean;
+    opening: Call | null;
+    openerRebid: Call | null;
+    major: Suit | null;
+    majorLength: number;
+    shortSuit: Suit | null;
+    helpSuit: Suit | null;
+    usefulHelp: boolean;
+    fitFound: boolean;
+    success: boolean;
+  };
+
+  // Overcaller and takeout Doubler rebids
+  // The Stayman refiner evaluated both major lengths before selecting its reply.
+  overcallerStaymanReply?: {
+    heartsLength: number;
+    spadesLength: number;
+    selectedReply: Call;
+  };
+  ntOvercallerRebid?: {
+    kind: 'interfered' | 'invitation' | 'minor' | 'major';
+    treatment: string;
+    advance: Call | null | undefined;
+    hcp: number;
+    cutoff?: number;
+    invitation?: '2NT' | '4NT';
+    minor?: Suit;
+    topHonor?: boolean;
+    major?: Suit;
+    support?: number;
+    originalSuit?: Suit;
+    responderSuit?: Suit;
+  };
+  naturalSuitOvercallerRebid?: {
+    treatment: NaturalSuitRebidTreatment;
+    advanceKind: 'simpleRaise' | 'weakJumpRaise' | 'supportCuebid' |
+      'nonforcingNewSuit' | 'forcingNewSuit' | 'oneNt' | 'twoNt' | 'threeNt';
+    overcallSuit: Suit;
+    overcallLevel: 1 | 2;
+    openingSuit: Suit;
+    advanceSuit: Suit | null;
+    hcp: number;
+    overcallLength: number;
+    support: number;
+    balanced: boolean;
+    openerStopper: boolean;
+    secondSuit: Suit | null;
+    secondSuitLength: number;
+    minHcp?: number;
+    maxHcp?: number;
+    minOvercallLength?: number;
+    minSupport?: number;
+    minSecondSuitLength?: number;
+    rejection?: 'strength' | 'overcallLength' | 'support' | 'preferSupport' |
+      'preferRepeat' | 'balanced' | 'stopper' | 'secondSuitLength' | 'forcingPass';
+  };
+  contestedSuitOvercallerRebid?: {
+    treatment: string;
+    responderKind: 'raise' | 'natural' | 'negativeDouble';
+    advanceKind: string;
+    overcallSuit: Suit;
+    overcallLevel: 1 | 2;
+    openingSuit: Suit;
+    responderSuit: Suit | null;
+    advanceSuit: Suit | null;
+    hcp: number;
+    overcallLength: number;
+    support: number;
+    balanced: boolean;
+    stopped: boolean;
+    stoppedSuits: { suit: Suit; stopped: boolean }[];
+    secondSuit: Suit | null;
+    secondSuitLength: number;
+    preferredResponsiveCall: Call | null;
+    selectedSuitLength: number;
+    minHcp?: number;
+    maxHcp?: number;
+    minOvercallLength?: number;
+    minSupport?: number;
+    minSecondSuitLength?: number;
+    rejection?: 'strength' | 'support' | 'length' | 'balanced' | 'stopper' |
+      'preferFit' | 'preferRepeat' | 'upLine';
+  };
+  weakTwoDefenseRebid?: {
+    defense: 'Double' | 'suit';
+    action: string;
+    advanceKind: string;
+    openingSuit: Suit;
+    advanceSuit: Suit | null;
+    overcallSuit?: Suit;
+    hcp: number;
+    supportPoints: number;
+    support: number;
+    ownLength: number;
+    ordinary: boolean;
+    strong: boolean;
+    balanced: boolean;
+    stopped: boolean;
+    rejection?: 'strength' | 'length' | 'support' | 'shape' | 'stopper';
+  };
+  takeoutDoublerRebid?: {
+    treatment: string;
+    advanceKind: string;
+    openingSuit: Suit;
+    partnerSuit: Suit | null;
+    hcp: number;
+    supportPoints: number;
+    support: number;
+    ordinary: boolean;
+    strong: boolean;
+    balanced: boolean;
+    stopped: boolean;
+    chosenFit: Suit | null;
+    chosenFitLength: number;
+    bidSuitLength: number;
+    rejection?: 'strength' | 'support' | 'shape' | 'stopper' | 'forcing';
   };
 }
 
