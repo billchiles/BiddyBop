@@ -185,8 +185,11 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['natural'],
-    appliesWhen: { hcp: { min: 5, max: 10 }, suitLengths: [{ exact: 6 }] },
+    appliesWhen: { hcp: { min: 5, max: 11 }, suitLengths: [{ exact: 6 }] },
     guidance: ['A good suit has at least two of A/K/Q or at least three of A/K/Q/J/T.',
+               'At 11 HCP, a natural one-level opening may also qualify and can describe the ' +
+                 'hand better, especially with a second four-card major. The weak two is ' +
+                 'not automatic at the top of its range.',
                'Think in playing tricks as well as HCP: roughly five playing tricks is a useful ' +
                  'non-vulnerable target; vulnerable preempts should generally be sounder.',
                'Going down vulnerable can give the opponents enough penalty points that the ' +
