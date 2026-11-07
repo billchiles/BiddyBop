@@ -2213,8 +2213,8 @@ export function refineWeakTwoFeatureRebid (calls: Call[], context: RuleEvalConte
   };
 }
 
-/// weakTwoRepeatAfterInquiryApplies rebids the opening suit after 2NT with a 5-7 minimum, or as the
-/// conservative fallback for an 8-10 maximum with neither a side A/K feature nor a solid suit.
+/// weakTwoRepeatAfterInquiryApplies rebids the opening suit after 2NT with a 5-8 minimum, or as the
+/// conservative fallback for a 9-11 maximum with neither a side A/K feature nor a solid suit.
 export function weakTwoRepeatAfterInquiryApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const opening = getWeakTwoOpeningBid(context);
@@ -2222,20 +2222,20 @@ export function weakTwoRepeatAfterInquiryApplies (_call: Call, context: RuleEval
     return { success: false, telemetryLines: ['FAIL: Weak-two repeat needs a weak-two opening.'] };
   }
   const suit = opening.strain as Suit;
-  const minimum = context.handFacts.hcp >= 5 && context.handFacts.hcp <= 7;
-  const maximum = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10;
+  const minimum = context.handFacts.hcp >= 5 && context.handFacts.hcp <= 8;
+  const maximum = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11;
   const solid = hasSolidWeakTwoSuit(context.hand, suit);
   const hasFeature = hasSideAceOrKing(context, suit);
   const maximumFallback = maximum && ! solid && ! hasFeature;
   const success = minimum || maximumFallback;
   return { success, telemetryLines: [
-    `${success ? 'APPLIES' : 'FAIL'}: repeat the preempt with a 5-7 minimum or an 8-10 ` +
+    `${success ? 'APPLIES' : 'FAIL'}: repeat the preempt with a 5-8 minimum or a 9-11 ` +
       `maximum lacking both a side A/K feature and the solid-suit 3NT message; HCP=` +
       `${context.handFacts.hcp}, side feature=${hasFeature}, solid=${solid}.`,
   ] };
 }
 
-/// weakTwoFeatureAfterInquiryApplies uses an 8-10 maximum with a side ace or king after 2NT.
+/// weakTwoFeatureAfterInquiryApplies uses a 9-11 maximum with a side ace or king after 2NT.
 export function weakTwoFeatureAfterInquiryApplies (_call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const opening = getWeakTwoOpeningBid(context);
@@ -2243,12 +2243,12 @@ export function weakTwoFeatureAfterInquiryApplies (_call: Call, context: RuleEva
     return { success: false, telemetryLines: ['FAIL: Feature rebid needs a weak-two opening.'] };
   }
   const suit = opening.strain as Suit;
-  const maximum = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10;
+  const maximum = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11;
   const solid = hasSolidWeakTwoSuit(context.hand, suit);
   const hasFeature = hasSideAceOrKing(context, suit);
   const success = maximum && ! solid && hasFeature;
   return { success, telemetryLines: [
-    `${success ? 'APPLIES' : 'FAIL'}: feature rebid needs 8-10 HCP, a side ace or king, and ` +
+    `${success ? 'APPLIES' : 'FAIL'}: feature rebid needs 9-11 HCP, a side ace or king, and ` +
       `no solid-suit 3NT message; HCP=${context.handFacts.hcp}, side feature=${hasFeature}, ` +
       `solid=${solid}.`,
   ] };
@@ -2264,9 +2264,9 @@ export function weakTwoSolidThreeNtApplies (_call: Call, context: RuleEvalContex
   }
   const suit = opening.strain as Suit;
   const solid = hasSolidWeakTwoSuit(context.hand, suit);
-  const success = context.handFacts.hcp >= 8 && context.handFacts.hcp <= 10 && solid;
+  const success = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11 && solid;
   return { success, telemetryLines: [
-    `${success ? 'APPLIES' : 'FAIL'}: 3NT after the inquiry needs an 8-10 HCP maximum and ` +
+    `${success ? 'APPLIES' : 'FAIL'}: 3NT after the inquiry needs a 9-11 HCP maximum and ` +
       `AKQJ in the six-card ${suit} suit; HCP=${context.handFacts.hcp}, solid=${solid}.`,
   ] };
 }
