@@ -5,6 +5,7 @@
 ///
 import type { RuleTestDeal } from './test-deals-registry';
 
+//// Direct natural suit overcalls
 /// Next seat natural overcalls: North opens, East overcalls.  With dealer North the recorded call
 /// at index 1 is East's actual call; West's hand stays visible for subsequent experiments.
 ///
@@ -93,6 +94,7 @@ export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Direct takeout Doubles
 /// Next seat takeout doubles: North opens and East chooses the informational double.
 /// Ordinary takeout doubles support every unbid suit; the strong exception does not require shape.
 ///
@@ -127,6 +129,7 @@ export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Direct natural 1NT overcalls
 /// Natural 1NT overcalls: the hand is balanced and has a stopper in opener's suit.
 ///
 export const NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
@@ -156,6 +159,7 @@ export const NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Preemptive jump overcalls
 /// Preemptive jump overcalls use the source's six-/seven-/eight-card suit requirements.
 /// Non-jump suits are left to the existing simple-overcall treatment.
 ///
@@ -210,6 +214,7 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Direct defenses to weak-two openings
 /// Direct defenses to opposing weak 2D/2H/2S openings.  This first batch stops after the
 /// overcaller's action; advancer continuations are modeled separately.
 ///
@@ -300,6 +305,7 @@ export const WEAK_TWO_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Advances and continuations after a 2NT weak-two defense
 /// Systems-on advances after a natural 2NT overcall of a weak two.  These deals cover the
 /// ordinary game route plus Stayman, Jacoby, and Texas mechanics without adding slam continuations.
 ///
@@ -419,6 +425,7 @@ export const WEAK_TWO_2NT_CONTINUATION_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Selected weak-two defense rebids
 /// Selected weak-two defense rebids with complete real hands and partnership promises.
 /// The test group intentionally contrasts nonforcing signoffs with forcing advances.
 export const WEAK_TWO_REBID_TEST_DEALS: RuleTestDeal[] = [
@@ -587,6 +594,7 @@ export const WEAK_TWO_REBID_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Natural 1NT overcaller rebids
 /// Selected natural 1NT overcaller rebids. Advancer uses the shared 1NT response system;
 /// these examples complete the immediate convention or natural invitation without extending
 /// into advancer's second bid or general competitive slam exploration.
@@ -731,6 +739,7 @@ export const NATURAL_1NT_OVERCALL_REBID_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// DONT defense to a strong 1NT
 /// Compact DONT against an opposing strong 1NT.  These deals practice the direct convention,
 /// advancer's basic pass-or-correct action, and the selected overcaller correction when needed.
 /// Responder interference, 2NT game inquiries, and balancing-seat DONT remain outside this family.
