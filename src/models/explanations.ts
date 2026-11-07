@@ -365,7 +365,8 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
       ? 'No supported bid qualifies for this hand and auction. This does not mean ' +
         'your call is wrong.'
       : 'The app does not evaluate bids in this auction context. Your call has not ' +
-        'been judged, and this does not recommend Pass.');
+        'been judged. The absence of an applicable rule does not mean you should Pass, ' +
+        'but it also does not mean Pass is wrong.');
   } else {
     lines.push('This part of the auction is not covered by the trainer. ' +
       'You may continue bidding, and later calls may be evaluated.');
