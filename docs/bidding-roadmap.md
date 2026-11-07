@@ -34,21 +34,12 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Finish rule-declaration-order audit.**
-  Rule declaration order must not determine bidding semantics. Explicit ranks are
-  meaningful preferences; equal-ranked and unranked candidates do not imply a
-  preference from their listing order. Continue reviewing remaining uses of first
-  qualifying candidates and rank in specialized explanations and suppressors.
-  Make domain selection criteria explicit where they matter, without changing
-  bidding eligibility as part of source cleanup.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Next: review
-  other specialized first-candidate and ranked-rule selections, confirming where
-  a unique rule/call is guaranteed and where a tie needs explicit treatment.
-  Keep intentional spacing
-  between related definitions and preserve manually written introductory
-  rationale when moving code. Avoid unrelated bidding changes or new test
-  infrastructure.
+  Continue deliberate, separately tested organization passes. Review remaining
+  source readability and test organization with the rule-order audit completed.
+  Keep intentional spacing between related definitions and preserve manually
+  written introductory rationale when moving code. Avoid unrelated bidding
+  changes or new test infrastructure.
 
 ## Deferred enhancements
 
