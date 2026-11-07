@@ -12,6 +12,9 @@ import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningB
 ///
 //// Responses to One-Level Suit Openings
 ///
+/// These opening-suit refiners are selected by rules requiring an opening bid from
+/// responder's partner. Stage selection and each rule's auction-context checks establish
+/// that precondition; the non-null assertions below rely on it.
 
 /// refineRaisePartnerSuitBy1 returns a simple raise one level above opening in the same suit.  Resolve the
 /// 2H/2S or 2C/2D declaration to the one call matching the actual opening.
@@ -19,9 +22,6 @@ import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningB
 export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
-  // if (opening === null) {
-  //   return { calls: [], telemetryLines: ['No opening bid is available for a simple raise.'] };
-  // }
   return refineRaiseToLevel(calls, context, opening.level + 1);
 }
 
@@ -31,9 +31,6 @@ export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalConte
 export function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
-  // if (opening === null) {
-  //   return { calls: [], telemetryLines: ['No opening bid is available for a limit raise.'] };
-  // }
   return refineRaiseToLevel(calls, context, opening.level + 2);
 }
 
@@ -43,9 +40,6 @@ export function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvalConte
 export function refineRaiseToLevel (calls: Call[], context: RuleEvalContext,
                              targetLevel: number): CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
-  // if (opening === null || opening.strain === 'NT') {
-  //   return { calls: [], telemetryLines: ['No suit opening is available to raise.'] };
-  // }
   const wantedCall = `${targetLevel}${opening.strain}` as SuitBid;
   const refined = calls.filter((call) => call === wantedCall);
   return {calls: refined,
@@ -189,8 +183,7 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
 export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context);
-  // Most refiners don't need this check, and technically this function shouldn't, but it is used
-  // enough places, let's be defensive.
+  // If the partner opening is unavailable, no new-suit response can be selected.
   if (opening === null) {
     return { calls: [], telemetryLines: ['No opening bid is available for a new-suit response.'] };
   }
@@ -362,13 +355,6 @@ export function refineLongMajorSupportLimitRaiseFallback (
 }
 
 //// Jump shifts and economical suit-bid selection
-/// refineJumpNewSuit chooses a jump to a new suit that is the cheapest legal bid in each suit.
-/// This is a one liner so that it can be used in rule declaration to satisfy refineCandidates.
-///
-export function refineJumpNewSuit (calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  return refineNewSuitByExtraLevels(calls, context, 1, 'single-jump');
-}
-
 /// refineWeakJumpShift chooses one weak single-jump suit: six cards or longer, longest first, and
 /// the higher-ranking suit when equally long.  Equal long suits are rare, but choosing one keeps
 /// the practice recommendation deterministic.
@@ -476,13 +462,9 @@ export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalCont
                                             extraLevels: number, label: string) :
       CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
-  // if (opening === null) {
-  //   return {calls: [],
-  //           telemetryLines: [`No opening bid is available for a ${label} new-suit response.`]};
-  // }
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
-    // Probably excessively defensive, but make sure NT is not in candidates list
+    // Only suit bids can qualify as a jump shift or splinter.
     if (candidate === null || candidate.strain === 'NT') {
       return false;
     }
@@ -491,19 +473,13 @@ export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalCont
       return false;
     }
     const cheapestParsed = parseSuitBid(cheapest);
-    if (cheapestParsed === null) { // almost certainly excessively defensive
+    if (cheapestParsed === null) {
       return false;
     }
     return candidate.level === cheapestParsed.level + extraLevels;
   });
   return {calls: refined,
           telemetryLines:[`Keep only ${label} new-suit calls over the actual opening.`]};
-}
-
-/// standardMajorTwoLevelNewSuitApplies applies the Standard 11+ HCP threshold.
-export function standardMajorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContext):
-    AppliesWhenResult {
-  return majorTwoLevelNewSuitApplies(call, context, 11, 'Standard');
 }
 
 //// Minor raises and strong minor support
