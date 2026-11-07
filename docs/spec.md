@@ -138,6 +138,9 @@ declarations from distinct rule IDs reused in more than one collection.
   Suppressors may reference stable rule IDs for a narrow, documented relationship.
   Any necessary **processing** order among suppressors must be explicit in the evaluator,
   not depend on the locations of the corresponding rule declarations.
+- Candidate-call array order also conveys no preference. When multiple calls qualify
+  at the same rank, explanations must acknowledge the alternatives rather than
+  promoting whichever candidate happens to occur first.
 - Rank `-100` is an intentional "present last" sentinel for specialized alternatives that should
   remain visible without competing with ordinary teaching choices, such as Gerber, Blackwood, and
   optional opener-side splinters.

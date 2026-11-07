@@ -292,8 +292,8 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
     if (comparisonRules.length > 0) {
       lines.push('');
       lines.push(comparisonRules.length === 1
-        ? 'One supported call for comparison:'
-        : 'Equally ranked supported calls for comparison (no preference implied by order):');
+        ? 'Supported bidding guidance for comparison:'
+        : 'Equally ranked supported bidding guidance for comparison (no preference implied by order):');
       for (const rule of comparisonRules) {
         appendRuleExplanation(lines, rule, handFacts, auctionLength);
       }
@@ -2259,15 +2259,13 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
   if (candidate?.ruleApplies !== true || result.normalizedCall === null) return [];
   const hcp = minorRequirement(candidate, 'hcp');
   if (rule.id === waitingId) {
-    const positive = result.ruleDiagnostics
+    const positives = result.ruleDiagnostics
       .filter(({ rule: item }) => item.id === 'respond-to-2c-w/-positive-suit' ||
         item.id === 'respond-to-2c-w/-2nt-positive-balanced')
       .flatMap(({ rule: item, candidates, callEvidence }) =>
         candidates.filter((item) => item.ruleApplies)
-          .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })))
-      .sort((left, right) => (right.rule.priority?.rank ?? 0) -
-        (left.rule.priority?.rank ?? 0))[0];
-    if (positive === undefined) {
+          .map((candidate) => ({ rule: item, candidate, evidence: callEvidence })));
+    if (positives.length === 0) {
       const positiveSuit = result.ruleDiagnostics.find(({ rule: item }) =>
         item.id === 'respond-to-2c-w/-positive-suit');
       const positiveNt = result.ruleDiagnostics.find(({ rule: item }) =>
@@ -2283,18 +2281,33 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
         `unbalanced distribution, 2D waiting keeps the auction open without claiming ` +
         `a suit or natural notrump shape [${rule.id}].`];
     }
-    if (positive.rule.id === 'respond-to-2c-w/-positive-suit') {
-      const holding = positive.evidence?.strongTwoCPositiveSuit?.considered.find(
-        (item) => item.call === positive.candidate.call);
-      if (holding === undefined) return [];
-      return [`The artificial 2D waiting response is supported, but your good ${holding.length}-card ` +
-        `${suitName(positive.candidate.call)} suit also qualifies for positive ${positive.candidate.call}. ` +
-        `The positive response ranks ahead because it shows your suit and game-going values ` +
-        `immediately [${positive.rule.id}].`];
+    // Several positive suits can qualify at the same rank. Cite them all; the
+    // candidate-call order is not a bidding preference.
+    const highestRank = Math.max(...positives.map(({ rule: item }) => item.priority?.rank ?? 0));
+    const preferred = positives.filter(({ rule: item }) =>
+      (item.priority?.rank ?? 0) === highestRank);
+    const positiveSuits = preferred.filter(({ rule: item }) =>
+      item.id === 'respond-to-2c-w/-positive-suit').flatMap(({ candidate: item, evidence }) => {
+        const holding = evidence?.strongTwoCPositiveSuit?.considered.find(
+          ({ call }) => call === item.call);
+        return holding === undefined ? [] :
+          [`${item.call} (${holding.length}-card ${suitName(item.call)} suit)`];
+      });
+    if (positiveSuits.length > 0) {
+      const alternatives = positiveSuits.length > 1
+        ? ' Choose between these suits using their lengths, quality, and judgment; ' +
+          'their listing order does not imply a preference.' : '';
+      return [`The artificial 2D waiting response is supported, but ${positiveSuits.join(' and ')} ` +
+        `${positiveSuits.length === 1 ? 'also qualifies as a positive response' :
+          'also qualify as positive responses'}. Positive suit responses rank ahead because ` +
+        `they show good suits and game-going values immediately.${alternatives} ` +
+        `[respond-to-2c-w/-positive-suit].`];
     }
+    if (!preferred.some(({ rule: item }) =>
+      item.id === 'respond-to-2c-w/-2nt-positive-balanced')) return [];
     return [`The artificial 2D waiting response is supported, but positive 2NT also qualifies ` +
       `with your balanced hand. The higher-priority 2NT immediately shows your ` +
-      `game-going values [${positive.rule.id}].`];
+      `game-going values [respond-to-2c-w/-2nt-positive-balanced].`];
   }
   if (hcp === undefined) return [];
   if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
@@ -2307,12 +2320,18 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
   const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
   const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
   if (suit === undefined || suit.length < 5 || !suit.quality) return [];
+  const otherPositiveSuits = diagnostic?.candidates.filter(({ call, ruleApplies }) =>
+    ruleApplies && call !== result.normalizedCall).map(({ call }) => call) ?? [];
+  const alternatives = otherPositiveSuits.length > 0
+    ? ` Other positive suit responses also qualify (${otherPositiveSuits.join(', ')}). ` +
+      'Choose among these suits using length, quality, and judgment; their ' +
+      'listing order does not imply a preference.' : '';
   return [`With ${hcp.actual} HCP and a good ${suit.length}-card
-    ${suitPlural(result.normalizedCall)}, ${result.normalizedCall} is a natural,
+    ${suitName(result.normalizedCall)} suit, ${result.normalizedCall} is a natural,
     game-forcing positive response. The suit satisfies the honor requirement
     (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
-    response is also available, but does not describe this suit immediately
-    [${rule.id}].`.replace(/\s+/g, ' ')];
+    response is also available, but does not describe this suit immediately.
+    ${alternatives} [${rule.id}].`.replace(/\s+/g, ' ')];
 }
 
 export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
