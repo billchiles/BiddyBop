@@ -121,7 +121,8 @@ export function getApplicableCandidateCalls (result: CurrentContextRules): Candi
 ///      and hand-specific appliesWhen requirements, and retain diagnostics for every candidate.
 ///   6. Apply cross-rule suppressions (convenient minors, Pass/NT fallbacks, conventions,
 ///      major responses, and scope boundaries) to reconcile overlapping rules.
-///   7. Order the results by priority.rank for presentation, without dropping lower-ranked bids.
+///   7. Present results in descending priority.rank (a meaningful bidding preference),
+///      without dropping lower-ranked bids or preferring any equal-ranked alternative.
 ///
 /// Returns applicableRules and ruleDiagnostics plus a human-readable trace. Neither auction
 /// nor UI state changes. evaluateUserCall uses the same selection to assess student input;
@@ -160,7 +161,8 @@ export function getRulesForCurrentContext (board: Board, auction: Call[],
     ruleDiagnostics = maybeSuppressOneFiveOrMoreMajorTransfer(ruleDiagnostics, context, system);
     ruleDiagnostics = maybeSuppressJacobyForDirectMajorSlam(ruleDiagnostics);
     ruleDiagnostics = maybeSuppressJacobyForMajorGame(ruleDiagnostics); // jacoby vs major game (and texas)
-    // Order matters for this last call; declarations make the previous suppressors mutually clean.
+    // Apply fallback suppression last, after the other suppressors settle the supported suit
+    // responses. This processing dependency is independent of rule declaration order.
     ruleDiagnostics = maybeSuppressNtResponseFallback(ruleDiagnostics); // fallback pass or NT
   }
   // Suppress 1NT when one of a major is better.
@@ -170,8 +172,8 @@ export function getRulesForCurrentContext (board: Board, auction: Call[],
       'respond-over-1nt-pass-no-constructive-action');
   }
   ruleDiagnostics = maybeSuppressScopeBoundaryWhenBidApplies(ruleDiagnostics);
-  // Higher rank means greater preference among qualifying rules.  Ranking changes presentation
-  // order only; it does not eliminate lower-ranked qualifying rules.
+  // Rank expresses a bidding preference, even though it only changes the displayed ordering.
+  // Equal-ranked and unranked rules do not acquire a preference from declaration order.
   ruleDiagnostics.sort((left, right) =>
     (right.rule.priority?.rank ?? 0) - (left.rule.priority?.rank ?? 0));
 
@@ -830,10 +832,10 @@ function maybeSuppressPassWithoutOtherAction (ruleDiagnostics: RuleEvalResult[],
   const passResult = ruleDiagnostics.find((result) =>
     result.rule.id === passRuleId && result.ruleApplies);
   if (passResult === undefined) return ruleDiagnostics;
-  const competingCall = ruleDiagnostics.flatMap((result) => result.candidates)
-    .find((candidate) => candidate.ruleApplies && candidate.call !== 'Pass');
-  if (competingCall === undefined) return ruleDiagnostics;
-  const suppressionLine = `SUPPRESSED: ${competingCall.call} qualifies instead of fallback Pass.`;
+  const constructiveCallApplies = ruleDiagnostics.some((result) =>
+    result.candidates.some((candidate) => candidate.ruleApplies && candidate.call !== 'Pass'));
+  if (!constructiveCallApplies) return ruleDiagnostics;
+  const suppressionLine = 'SUPPRESSED: a constructive call qualifies instead of fallback Pass.';
   for (const candidate of passResult.candidates) {
     if (candidate.ruleApplies) {
       candidate.ruleApplies = false;
@@ -1050,13 +1052,10 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleDiagnostics: RuleEvalResult[
   if (majorSlamResult === undefined) {
     return ruleDiagnostics;
   }
-  // found game forcing direct major
+  // The preceding result check guarantees this direct slam candidate qualifies.
   const majorSlamCandidate = majorSlamResult.candidates.find((candidate) =>
-    candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S'));
-  // if (majorSlamCandidate === undefined) {
-  //   return ruleDiagnostics;
-  // }
-  // we know we have a direct slam candidate, so see if there's a jacoby to suppress
+    candidate.ruleApplies && (candidate.call === '3H' || candidate.call === '3S'))!;
+  // Suppress the competing ordinary Jacoby transfer.
   for (const result of ruleDiagnostics) {
     const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
                              result.rule.agreement.value && 
@@ -1066,11 +1065,11 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleDiagnostics: RuleEvalResult[
     }
     // got the jacoby rule
     const suppressionLine =
-      `SUPPRESSED: ${majorSlamCandidate!.call} is the preferred direct major slam-interest ` +
+      `SUPPRESSED: ${majorSlamCandidate.call} is the preferred direct major slam-interest ` +
       'response, so do not use the ordinary Jacoby transfer.';
     for (const candidate of result.candidates) {
       if (candidate.ruleApplies) {
-        suppressForResponseSelection(candidate, 'majorSlamOverJacoby', majorSlamCandidate!.call);
+        suppressForResponseSelection(candidate, 'majorSlamOverJacoby', majorSlamCandidate.call);
         candidate.telemetryLines.push(suppressionLine);
       }
     }
@@ -1094,19 +1093,21 @@ function maybeSuppressJacobyForDirectMajorSlam (ruleDiagnostics: RuleEvalResult[
 ///
 function maybeSuppressJacobyForMajorGame (ruleDiagnostics: RuleEvalResult[]):
     RuleEvalResult[] {
-  // do any results specify a texas transfer result ...  if texas is true, and one applies, then
-  // suppress jacoby, and if texas is off for an applicable rule, and a natural 4M applies, then
-  // suppress jacoby
+  // The Texas-on and Texas-off rules are alternative direct major-game routes.
+  // Match these specific rules, not unrelated declarations that may use the same agreement.
   const majorGameResult = ruleDiagnostics.find((result) =>
-    result.ruleApplies && result.rule.agreement?.setting === 'texasTransfers'); //&&
-    // result.rule.agreement.value && result.rule.callCategory?.includes('conventional'));
+    result.ruleApplies && (
+      result.rule.id === 'respond-to-1nt-w/-4h-4s-natural-game' ||
+      result.rule.id === 'respond-to-1nt-w/-texas-transfer-to-hearts' ||
+      result.rule.id === 'respond-to-1nt-w/-texas-transfer-to-spades' ||
+      result.rule.id === 'respond-to-2nt-w/-4h-4s-natural-game' ||
+      result.rule.id === 'respond-to-2nt-w/-texas-transfer-to-hearts' ||
+      result.rule.id === 'respond-to-2nt-w/-texas-transfer-to-spades'));
   if (majorGameResult === undefined) {
     return ruleDiagnostics;
   }
+  // ruleApplies guarantees at least one candidate qualified.
   const majorGameCandidate = majorGameResult.candidates.find((candidate) => candidate.ruleApplies)!;
-  // if (majorGameCandidate === undefined) {
-  //   return ruleDiagnostics;
-  // }
   // We have the system's direct major-game route, so see if a competing Jacoby transfer applies.
   for (const result of ruleDiagnostics) {
     const isJacobyTransfer = result.rule.agreement?.setting === 'jacobyTransfers' &&
@@ -1124,7 +1125,7 @@ function maybeSuppressJacobyForMajorGame (ruleDiagnostics: RuleEvalResult[]):
         candidate.telemetryLines.push(suppressionLine);
       }
     }
-    // update rule defensively based on any candidates still apply
+    // Keep the rule-level match consistent with surviving candidates.
     result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     result.telemetryLines.push(`  ${suppressionLine}`);
   }
@@ -1161,20 +1162,21 @@ function maybeSuppressJacobyForMajorGame (ruleDiagnostics: RuleEvalResult[]):
 ///
 function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
     RuleEvalResult[] {
-  // Find the first applicable suit-response treatment controlled by Stayman, Jacoby, or Texas.
-  // This also includes the natural 3C/3D meanings recovered when Stayman/Jacoby are disabled.
-  const suitActionResult = ruleDiagnostics.find((result) => {
-    if (! result.ruleApplies) {
-      return false;
-    }
+  // Collect all qualifying suit responses controlled by Stayman, Jacoby, or Texas,
+  // including natural 3C/3D treatments when those conventions are disabled. No one
+  // response becomes preferred just because its rule is declared first.
+  const suitCalls = [...new Set(ruleDiagnostics.flatMap((result) => {
     const setting = result.rule.agreement?.setting;
-    return setting === 'stayman' || setting === 'jacobyTransfers' || setting === 'texasTransfers';
-  });
-  if (suitActionResult === undefined) {
+    if (!result.ruleApplies || (setting !== 'stayman' &&
+        setting !== 'jacobyTransfers' && setting !== 'texasTransfers')) return [];
+    return result.candidates.filter((candidate) => candidate.ruleApplies &&
+      isContractBid(candidate.call) && getStrainFromSuitBid(candidate.call) !== 'NT')
+      .map((candidate) => candidate.call);
+  }))];
+  if (suitCalls.length === 0) {
     return ruleDiagnostics;
   }
-  const suitCandidate = suitActionResult.candidates.find((candidate) => candidate.ruleApplies)!;
-  // A preferred suit action makes Pass or a direct notrump response only a fallback.
+  // A qualifying suit action makes Pass or a direct notrump response only a fallback.
   for (const result of ruleDiagnostics) {
     let suppressed = false;
     for (const candidate of result.candidates) {
@@ -1184,14 +1186,16 @@ function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
         continue;
       }
       const suppressionLine =
-        `SUPPRESSED: ${suitCandidate.call} is a preferred suit response, ` +
-        `so do not use direct ${candidate.call}.`;
-      suppressForResponseSelection(candidate, 'suitBeforeNaturalNt', suitCandidate.call);
+        `SUPPRESSED: qualifying suit responses (${suitCalls.join(', ')}) take precedence ` +
+        `over direct ${candidate.call}.`;
+      candidate.callEvidence = { ...candidate.callEvidence,
+        responseSelection: { reason: 'suitBeforeNaturalNt', preferredCalls: suitCalls } };
+      candidate.ruleApplies = false;
       candidate.telemetryLines.push(suppressionLine);
       result.telemetryLines.push(`  ${suppressionLine}`);
       suppressed = true;
     }
-    // if we suppressed anything, the rule applies only if it has surviving calls after supporession
+    // Keep the rule-level qualification consistent with its surviving candidates.
     if (suppressed) {
       result.ruleApplies = result.candidates.some((candidate) => candidate.ruleApplies);
     }
@@ -1202,7 +1206,8 @@ function maybeSuppressNtResponseFallback (ruleDiagnostics: RuleEvalResult[]) :
 /// Preserve the actual convention or suit-response selection before disqualifying a
 /// previously valid candidate; a failed hand test must never get this evidence.
 function suppressForResponseSelection (candidate: CandidateCallMatch,
-    reason: NonNullable<CallEvidence['responseSelection']>['reason'], preferredCall: Call): void {
+    reason: Exclude<NonNullable<CallEvidence['responseSelection']>['reason'],
+      'suitBeforeNaturalNt'>, preferredCall: Call): void {
   if (!candidate.ruleApplies) return;
   candidate.callEvidence = { ...candidate.callEvidence,
     responseSelection: { reason, preferredCall } };

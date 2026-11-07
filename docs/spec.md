@@ -126,16 +126,18 @@ declarations from distinct rule IDs reused in more than one collection.
 - Suppressors may remove otherwise-valid candidates when another bidding treatment has precedence.
 - After candidate suppression, preserve this invariant:
   `result.ruleApplies === result.candidates.some(candidate => candidate.ruleApplies)`.
-- Finally sort results by `priority.rank` for presentation.
-- Higher rank means greater presentation preference. Ranking does not eliminate lower-ranked
-  qualifying alternatives.
-- A missing rank is equivalent to rank `0`.
-- **Current tie behavior:** Results with equal `priority.rank` retain their order from the
-  stage's rule declaration array (stable sort). This can affect the displayed order of
-  alternatives and which supported comparison is shown first, but does not make an
-  otherwise-qualifying call ineligible. Until this is audited, preserve declaration
-  order *within each bidding stage* during organization-only changes. Whether any
-  intended bidding behavior should depend on this implicit tie order is not yet established.
+- Sort evaluated rules by descending `priority.rank` when presenting qualified calls.
+  Higher rank represents a meaningful preference, even though it does not suppress
+  lower-ranked qualifying alternatives. Rank `0` is the default for an unranked rule.
+- Rules with the same declared rank, and multiple rules with no declared rank, are
+  alternatives without an implied preference among them. Their listing order is not
+  a bidding recommendation; choosing among them may require additional judgment.
+- Rule declaration order is **not** part of the bidding system. Never use its accidental
+  position to decide applicability, suppression, or which call is preferred. Express
+  intended preferences with `priority.rank` or hand/auction-specific selection logic.
+  Suppressors may reference stable rule IDs for a narrow, documented relationship.
+  Any necessary **processing** order among suppressors must be explicit in the evaluator,
+  not depend on the locations of the corresponding rule declarations.
 - Rank `-100` is an intentional "present last" sentinel for specialized alternatives that should
   remain visible without competing with ordinary teaching choices, such as Gerber, Blackwood, and
   optional opener-side splinters.
@@ -204,10 +206,13 @@ the same useful explanation, without duplicating feedback for a correctly entere
 recorded call. Preserve rule IDs in square brackets for diagnostics alongside readable
 bridge terminology.
 
-Candidate order is for presentation, not proof that the first qualifying call is
-uniquely best. When several calls qualify, introduce a selected comparison as one
-supported possibility and retain the other supported alternatives. A rejected call's
-failed requirement does not establish a better call when no candidate qualifies.
+Candidate order within a priority group is for display, not a preference or proof
+that the first qualifying call is best. When several calls qualify at the same rank
+(or without ranks), say their order does not imply preference; selecting between them
+may require judgment. For a rejected call, show the supported rule or rules at the
+highest priority as comparisons, including all tied highest-priority alternatives;
+do not arbitrarily promote one tied rule because it was declared first. A rejected
+call's failed requirement does not establish a better call when no candidate qualifies.
 An unjudged recorded practice continuation maintains the exercise's auction; it is
 not an evaluated endorsement of that call.
 

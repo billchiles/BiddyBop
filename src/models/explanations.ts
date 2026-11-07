@@ -66,8 +66,9 @@ export function getRecordedCallExplanationLines(enteredResult: BidEvalResult | n
           explainedRuleIds.add(rule.id);
         }
       } else {
-        const comparison = getApplicableCandidateCalls(enteredResult)[0];
-        if (comparison !== undefined) explainedRuleIds.add(comparison.rule.id);
+        for (const rule of getTopPriorityComparisonRules(enteredResult)) {
+          explainedRuleIds.add(rule.id);
+        }
       }
     }
     const lines = ['Reason for the recorded call:'];
@@ -104,11 +105,13 @@ export function getResponseSelectionFailureLines(result: BidEvalResult): string[
       item.call === result.normalizedCall && !item.ruleApplies &&
       item.callEvidence?.responseSelection !== undefined);
     const selection = candidate?.callEvidence?.responseSelection;
-    if (selection === undefined || !supported.some((item) => item.call === selection.preferredCall)) {
-      continue;
-    }
+    if (selection === undefined) continue;
+    const preferredCalls = selection.reason === 'suitBeforeNaturalNt'
+      ? selection.preferredCalls : [selection.preferredCall];
+    if (!preferredCalls.every((call) => supported.some((item) => item.call === call))) continue;
     const id = `[${diagnostic.rule.id}]`;
-    const preferredRule = supported.find((item) => item.call === selection.preferredCall)?.rule;
+    const preferredRule = selection.reason === 'suitBeforeNaturalNt' ? undefined :
+      supported.find((item) => item.call === selection.preferredCall)?.rule;
     switch (selection.reason) {
       case 'staymanOverJacoby':
         return [`Your Jacoby transfer has enough cards in its major, but with five cards in ` +
@@ -128,8 +131,10 @@ export function getResponseSelectionFailureLines(result: BidEvalResult): string[
           `hand, ${preferredRule?.agreement?.setting === 'texasTransfers' &&
             preferredRule.agreement.value === true ? 'using Texas' : 'bidding game naturally'} ${id}.`];
       case 'suitBeforeNaturalNt':
-        return [`${selection.preferredCall} is the qualifying suit-response route that ` +
-          `takes precedence over direct ${result.normalizedCall} in this auction ${id}.`];
+        return [`${selection.preferredCalls.join(' or ')} ${selection.preferredCalls.length === 1 ?
+          'is a qualifying suit response that takes' :
+          'are qualifying suit responses that take'} precedence over direct ` +
+          `${result.normalizedCall} in this auction ${id}.`];
     }
   }
   return [];
@@ -141,11 +146,12 @@ export function getResponseSelectionSupportLines(result: BidEvalResult, rule: Bi
   if (!result.userCallMatchingRules.some((item) => item.id === rule.id) ||
       result.normalizedCall === null) return [];
   const selection = result.ruleDiagnostics.flatMap(({ candidates }) => candidates)
-    .find((candidate) => candidate.ruleApplies === false &&
-      candidate.callEvidence?.responseSelection?.preferredCall === result.normalizedCall &&
-      (candidate.callEvidence.responseSelection.reason === 'fiveFiveTransferOrder' ||
-       candidate.callEvidence.responseSelection.reason === 'staymanOverJacoby'))
-    ?.callEvidence?.responseSelection;
+    .find((candidate) => {
+      const choice = candidate.callEvidence?.responseSelection;
+      return candidate.ruleApplies === false && choice !== undefined &&
+        (choice.reason === 'fiveFiveTransferOrder' || choice.reason === 'staymanOverJacoby') &&
+        choice.preferredCall === result.normalizedCall;
+    })?.callEvidence?.responseSelection;
   if (selection === undefined) return [];
   if (selection.reason === 'staymanOverJacoby') {
     return [`With five cards in one major and four in the other, Stayman explores both ` +
@@ -282,11 +288,15 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
       lines.push('This call does not match a recommendation for this hand and auction. ' +
         'It is not necessarily a wrong bridge call.');
     }
-    const comparison = candidates[0];
-    if (comparison !== undefined) {
+    const comparisonRules = getTopPriorityComparisonRules(result);
+    if (comparisonRules.length > 0) {
       lines.push('');
-      lines.push('One supported call for comparison:');
-      appendRuleExplanation(lines, comparison.rule, handFacts, auctionLength);
+      lines.push(comparisonRules.length === 1
+        ? 'One supported call for comparison:'
+        : 'Equally ranked supported calls for comparison (no preference implied by order):');
+      for (const rule of comparisonRules) {
+        appendRuleExplanation(lines, rule, handFacts, auctionLength);
+      }
     } else if (reasons.length > 0 && scopeBoundary === undefined) {
       const weakPass = result.normalizedCall === 'Pass' && result.ruleDiagnostics.some(
         ({ rule }) => rule.id === 'respond-to-minor-w/-pass-0-5' ||
@@ -320,8 +330,32 @@ function buildEvaluatedExplanationLines(title: string, result: BidEvalResult,
     for (const candidate of candidates) {
       lines.push(`- ${candidate.call}: ${candidate.rule.title} [${candidate.rule.id}]`);
     }
+    const tiedAlternatives = candidates.some((candidate, index) =>
+      candidates.slice(index + 1).some((other) =>
+        candidate.call !== other.call &&
+        (candidate.rule.priority?.rank ?? 0) === (other.rule.priority?.rank ?? 0)));
+    if (tiedAlternatives) {
+      lines.push('Calls with the same priority, including unranked alternatives, are not ' +
+        'listed in preference order. Choosing between them may require judgment.');
+    }
   }
   return lines;
+}
+
+/// Comparison feedback explains every rule at the highest supported priority, rather than
+/// arbitrarily selecting whichever equal-ranked rule happens to be declared first.
+function getTopPriorityComparisonRules(result: BidEvalResult): BidRule[] {
+  const candidates = getApplicableCandidateCalls(result);
+  if (candidates.length === 0) return [];
+  const highestRank = Math.max(...candidates.map((item) => item.rule.priority?.rank ?? 0));
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    if ((candidate.rule.priority?.rank ?? 0) !== highestRank || seen.has(candidate.rule.id)) {
+      return false;
+    }
+    seen.add(candidate.rule.id);
+    return true;
+  }).map((candidate) => candidate.rule);
 }
 
 function failureHeading(status: BiddingTurnStatus, call: Call): string {
