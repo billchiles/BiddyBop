@@ -43,11 +43,10 @@ not a historical progress log or a commitment to model every possible auction.
   criterion rather than relying on declaration location. Preserve current behavior
   while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Next: inspect
-  the responder-function nullability contracts, abandoned guards, and unused
-  wrappers, while preserving documented call-site invariants. Then audit
-  remaining rule-declaration-order dependencies. Keep intentional spacing
-  between related definitions and preserve manually written introductory
+  Continue deliberate, separately tested organization passes. Next: audit
+  rule-declaration-order and candidate-selection dependencies, including
+  commented-out candidate guards in the Jacoby suppressors. Keep intentional
+  spacing between related definitions and preserve manually written introductory
   rationale when moving code. Avoid unrelated bidding changes or new test
   infrastructure.
 
