@@ -67,7 +67,7 @@ export const RESPONDER_AFTER_NT_CONVENTIONS_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q83', H: 'QT975', D: 'Q53', C: 'KQ' },
     east: { S: 'K765', H: '862', D: 'T8', C: 'J852' },
     west: { S: 'J9', H: 'J43', D: 'A9762', C: 'AT3' },
-    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'Responder has five hearts, not six, and balanced game-going values. Offer 3NT rather than insist on hearts; opener will choose hearts with three-card support. On this board opener has only two hearts, but responder cannot know that yet.' }],
+    practiceGuidance: [{ auctionIndex: 6, seat: 'S', text: 'With five hearts and balanced game-going values, offer 3NT rather than insist on hearts. Opener can Pass 3NT or choose 4H with three-card heart support.' }],
     expectedResponderRebidCalls: [{ call: '3NT', ruleIds: ['responder-rebid-nt-transfer-game-3nt'] }],
   },
   {
