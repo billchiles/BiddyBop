@@ -8,6 +8,7 @@
 /// suppressors in biddingEvaluation.ts then remove fallback calls when a preferred suit route
 /// applies.  With the standard 15-17 range, the main routing is:
 ///   weak + 5+ major                -> Jacoby transfer, or natural 2M with transfers off
+///   weak without a preferred suit route -> Pass regardless of balanced shape
 ///   8-9 + four-card major          -> Stayman when enabled
 ///   8-9 otherwise                  -> 2NT invitation; a good six-card minor may be descriptive
 ///   5-4 / 6-4 majors               -> Stayman first when strength permits
@@ -28,16 +29,17 @@ import { parseSuitBid } from './auction';
 export const NaturalOneNtPartnerCallRules: BidRule[] = [
   //
   {
-    id: 'respond-to-1nt-w/-pass-0-7-balanced',
-    // Pass after partner bids 1NT with a weak balanced hand.
+    id: 'respond-to-1nt-w/-pass-0-7-weak',
+    // Pass with a weak hand when no qualifying suit response takes precedence.
     kind: 'responseBid',
-    title: 'Pass 1NT with 0-7 balanced',
+    title: 'Pass natural 1NT with weak values',
     auctionContext: { partnerNaturalOneNt: true },
     calls: ['Pass'],
     callCategory: ['signoff'],
-    appliesWhen: { hcp: { min: 0, max: 7 }, hcpRelativeToOneNtOpening: true,
-                   shape: { balanced: true } },
-    guidance: ['15-17: 0-7 HCP; 16-18: 0-6 HCP.'],
+    appliesWhen: { hcp: { min: 0, max: 7 }, hcpRelativeToOneNtOpening: true },
+    guidance: ['15-17: 0-7 HCP; 16-18: 0-6 HCP.',
+               'Balanced shape is not required to Pass. With a weak five-card-or-longer major, ' +
+               'a qualifying transfer or natural signoff takes precedence.'],
     meaning: 'Sign off in 1NT; partner is expected to leave the contract there ' +
              'if there is no interference.',
     certainty: 'high',
