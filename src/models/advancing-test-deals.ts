@@ -551,7 +551,7 @@ export const ADVANCER_AFTER_NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     west: { S: 'Q843', H: 'T72', D: 'T83', C: 'J94' },
     south: { S: 'JT5', H: 'Q965', D: 'A2', C: 'Q532' },
     expectedOvercallCalls: [{ call: '1NT', ruleIds: ['overcall-natural-1nt-with-stopper'] }],
-    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-balanced'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-weak'] }],
     rejectedAdvanceCalls: ['2NT', '3NT'],
   },
   {

@@ -417,7 +417,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
     ],
     expectedResponseCalls: [
-      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-balanced'] },
+      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-weak'] },
     ],
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AQ93', H: 'AK4', D: '842', C: 'A72' },
@@ -582,7 +582,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '1NT', ruleIds: ['open-1nt-balanced-16-18'] },
     ],
     expectedResponseCalls: [
-      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-balanced'] },
+      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-weak'] },
     ],
     rejectedResponseCalls: ['2NT'],
     north: { S: 'AK5', H: 'KQ9', D: '932', C: 'A754' },
@@ -598,7 +598,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
     ],
     expectedResponseCalls: [
-      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-balanced'] },
+      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-weak'] },
     ],
     rejectedResponseCalls: ['2NT'],
     north: { S: 'A52', H: 'K8532', D: 'KQ8', C: 'AJ' },
@@ -646,7 +646,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
     ],
     expectedResponseCalls: [
-      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-balanced'] },
+      { call: 'Pass', ruleIds: ['respond-to-1nt-w/-pass-0-7-weak'] },
     ],
     rejectedResponseCalls: ['2C'],
     north: { S: 'AQ532', H: '876', D: 'A6', C: 'AKT' },
