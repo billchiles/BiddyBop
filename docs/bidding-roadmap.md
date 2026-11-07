@@ -52,7 +52,7 @@ not a historical progress log or a commitment to model every possible auction.
   while investigating; avoid changing bidding outcomes in a code-organization pass.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
   Continue deliberate, separately tested organization passes. Next: inspect
-  type and practice-deal files for related-code
+  practice-deal files for related-code
   grouping, stale or misplaced comments, unnecessary wrappers, and readability.
   Include a final spot check of shared helpers and production blank-line
   transitions in `explanations.ts`; don't chase ordering counts at the expense
