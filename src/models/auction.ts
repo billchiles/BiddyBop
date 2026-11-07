@@ -148,12 +148,12 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
       if (responseBid === null) return false;
       if (responseBid.strain === 'NT') {
         if (advance === 'Pass') return responseBid.level >= 1 && responseBid.level <= 3;
-        // A9: advancer may make the ordinary cheapest raise of their natural overcall
+        // Advancer may make the ordinary cheapest raise of their natural overcall
         // after responder's natural 1NT; later NT competition remains unmodeled.
         return responseBid.level === 1 && advancerKind === 'raise' &&
           cheapestBidInStrainAfter(responseBid, overcallBid.strain) === advance;
       }
-      // Ordinary simple raises retain their existing natural continuations. A9 also recognizes
+      // Ordinary simple raises retain their existing natural continuations. This also recognizes
       // advancer's cheapest artificial cuebid of opener's suit, without treating it as natural.
       if (responseBid.strain === openingBid.strain && responseBid.level === 2) {
         if (advancerKind === 'cuebid') {
@@ -179,7 +179,7 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
           (responseBid.level === 4 && (openingBid.strain === 'H' || openingBid.strain === 'S'));
       }
       if (advance !== 'Pass') {
-        // A9: responder's natural three-level new suit is game forcing. An ordinary
+        // Responder's natural three-level new suit is game forcing. An ordinary
         // raise of advancer's original suit cannot cancel that commitment.
         if (responseBid.level === 3 && responseBid.strain !== openingBid.strain &&
             responseBid.strain !== overcallBid.strain &&
@@ -208,7 +208,7 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
     if (interference === 'jumpSuitOvercall') {
-      // A8 models the first opener continuation after responder's selected action and
+      // The app reviews the first opener continuation after responder's selected action and
       // advancer Pass. Reopening after responder Pass and later competition stay separate.
       if (advance !== 'Pass' || response === 'Pass') return false;
       const overcallBid = parseSuitBid(overcall);
