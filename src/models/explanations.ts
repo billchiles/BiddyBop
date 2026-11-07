@@ -199,19 +199,6 @@ export function getConventionalForcingPassFailureLines(result: BidEvalResult): s
 }
 
 
-
-
-
-
-
-/// Use one explanation path for the student's supported call and any substituted recorded call.
-/// The latter is evaluated against the recorded auction, but uses the same hand evidence.
-
-
-/// Add the actual hand valuation only where it explains a light one-level opening.  The
-/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
-
-
 function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): string[] {
   return [
     ...getOpeningRequirementFailureLines(result),
@@ -437,6 +424,8 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   if (includeRuleExplanation) appendRuleExplanation(lines, rule, handFacts, auctionLength);
 }
 
+/// Add the actual hand valuation only where it explains a light one-level opening.  The
+/// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
 function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
                                 auctionLength?: number): void {
   lines.push(`- ${rule.title} [${rule.id}]`);
@@ -945,10 +934,6 @@ const BALANCING_PASS_ID = 'balance-pass-defend';
 
 /// The refiner records each considered natural suit call, including those it removed.
 /// Qualification strength is checked separately on surviving calls.
-
-
-
-
 /// Give the hand-specific justification for the matched balancing treatment.
 export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
   if (BALANCING_SUIT_IDS.includes(rule.id)) {
