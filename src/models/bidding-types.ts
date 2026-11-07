@@ -161,8 +161,9 @@ export interface BidRule {
   callRefinement?: CallRefinementFunction;
   callCategory?: CallCategory[];
   priority?: {
-    // Higher rank means greater preference when multiple rules qualify.  Rank affects ordering
-    // only; it does not suppress lower-ranked qualifying rules.
+    // Higher rank expresses greater preference among qualifying rules without suppressing
+    // lower-ranked alternatives. Equal ranks (and unranked alternatives) imply no preference
+    // based on their declaration or listing order.
     rank?: number;
     note?: string;
   };
@@ -447,11 +448,12 @@ export interface CallEvidence {
 
   // Responses to opening bids and interference
   // A candidate passed its hand checks but a specific response treatment took precedence.
-  responseSelection?: {
-    preferredCall: Call;
-    reason: 'staymanOverJacoby' | 'fiveFiveTransferOrder' | 'majorSlamOverJacoby' |
-      'majorGameOverJacoby' | 'suitBeforeNaturalNt';
-  };
+  responseSelection?:
+    | { preferredCall: Call;
+        reason: 'staymanOverJacoby' | 'fiveFiveTransferOrder' | 'majorSlamOverJacoby' |
+          'majorGameOverJacoby' }
+    // Pass/NT fallbacks may have several qualifying suit alternatives, including ties.
+    | { preferredCalls: Call[]; reason: 'suitBeforeNaturalNt' };
   minorResponseSelection?: {
     preferredCall: Call | null;
     retainedCalls: Call[];

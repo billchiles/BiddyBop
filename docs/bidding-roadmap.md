@@ -34,19 +34,19 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Audit rule-declaration-order dependencies.**
-  The evaluator currently uses stable sorting by `priority.rank`; equal-ranked
-  rules retain their order in each stage's declaration array. Determine whether
-  any student-facing candidate order, first-supported comparison, suppressor,
-  or selected guidance depends on that incidental tie order. For genuinely
-  important preferences, consider an explicit `priority.rank` or domain selection
-  criterion rather than relying on declaration location. Preserve current behavior
-  while investigating; avoid changing bidding outcomes in a code-organization pass.
+- [ ] **Finish rule-declaration-order audit.**
+  Rule declaration order must not determine bidding semantics. Explicit ranks are
+  meaningful preferences; equal-ranked and unranked candidates do not imply a
+  preference from their listing order. Continue reviewing remaining uses of first
+  qualifying candidates and rank in specialized explanations and suppressors.
+  Make domain selection criteria explicit where they matter, without changing
+  bidding eligibility as part of source cleanup.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Next: audit
-  rule-declaration-order and candidate-selection dependencies, including
-  commented-out candidate guards in the Jacoby suppressors. Keep intentional
-  spacing between related definitions and preserve manually written introductory
+  Continue deliberate, separately tested organization passes. Next: review
+  other specialized first-candidate and ranked-rule selections, confirming where
+  a unique rule/call is guaranteed and where a tie needs explicit treatment.
+  Keep intentional spacing
+  between related definitions and preserve manually written introductory
   rationale when moving code. Avoid unrelated bidding changes or new test
   infrastructure.
 

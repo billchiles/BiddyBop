@@ -6791,13 +6791,15 @@ function runRecordedCallFeedbackTests (): number {
   const candidates = getApplicableCandidateCalls(attempted);
   const recordedRule = recorded.userCallMatchingRules.find((rule) =>
     rule.id === 'respond-to-1nt-w/-transfer-to-hearts');
-  const first = candidates[0];
+  const highestRank = Math.max(...candidates.map((candidate) =>
+    candidate.rule.priority?.rank ?? 0));
   checks++;
   if (status.kind !== 'supported' || candidates.length < 2 ||
-      first?.rule.id !== recordedRule?.id || recordedRule === undefined ||
+      recordedRule === undefined ||
+      !candidates.some((candidate) => candidate.rule.id === recordedRule.id) ||
       attempted.userCallMatchingRules.length > 0) {
     failures++;
-    console.error('FAIL recorded-call feedback: two-transfer qualification or comparison order.');
+    console.error('FAIL recorded-call feedback: two-transfer qualification.');
   } else {
     const rejectedLines = getBidExplanationLines({
       title: 'Rejected response', call: '2C', status, result: attempted,
@@ -6811,8 +6813,13 @@ function runRecordedCallFeedbackTests (): number {
       handFacts, auction.length);
     const handEvidence = fullMatchedLines.slice(0, -ruleLines.length);
     checks++;
-    if (ruleLines.some((line) => !rejectedLines.includes(line)) ||
-        correctionLines.some((line) => ruleLines.includes(line)) ||
+    const recordedRuleWasCompared = candidates.some((candidate) =>
+      candidate.rule.id === recordedRule.id &&
+      (candidate.rule.priority?.rank ?? 0) === highestRank);
+    if ((recordedRuleWasCompared && ruleLines.some((line) => !rejectedLines.includes(line))) ||
+        (recordedRuleWasCompared
+          ? correctionLines.some((line) => ruleLines.includes(line))
+          : ruleLines.some((line) => !correctionLines.includes(line))) ||
         handEvidence.length === 0 ||
         handEvidence.some((line) => !correctionLines.includes(line)) ||
         getApplicableCandidateCalls(recorded).length !== candidates.length) {
@@ -7091,7 +7098,10 @@ function runConventionalRejectionFeedbackTests (): number {
     const selected = result.ruleDiagnostics.flatMap((item) => item.candidates)
       .find((candidate) => candidate.call === scenario.rejected &&
         candidate.callEvidence?.responseSelection?.reason === scenario.reason);
-    const preferred = selected?.callEvidence?.responseSelection?.preferredCall;
+    const selection = selected?.callEvidence?.responseSelection;
+    const preferredCalls = selection === undefined ? [] :
+      selection.reason === 'suitBeforeNaturalNt' ? selection.preferredCalls :
+      [selection.preferredCall];
     const generated = getResponseSelectionFailureLines(result);
     const delivered = getBidExplanationLines({
       title: 'Response', call: scenario.rejected,
@@ -7099,8 +7109,9 @@ function runConventionalRejectionFeedbackTests (): number {
       handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
       previewLines: [], seatLabel: 'South', recordedUnjudged: false,
     });
-    if (result.userCallMatchingRules.length !== 0 || preferred === undefined ||
-        !getApplicableCandidateCalls(result).some((candidate) => candidate.call === preferred) ||
+    if (result.userCallMatchingRules.length !== 0 || preferredCalls.length === 0 ||
+        !preferredCalls.every((call) =>
+          getApplicableCandidateCalls(result).some((candidate) => candidate.call === call)) ||
         generated.length === 0 || !generated.every((line) => delivered.includes(line))) {
       failures++;
       console.error(`FAIL Q3 convention suppression evidence/delivery: ${scenario.description}.`);
