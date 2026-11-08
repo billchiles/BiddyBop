@@ -2,8 +2,12 @@
 /// This report is informational. It neither changes bidding behavior nor test results.
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { OpeningBidRules, ResponseBidRules, OvercallRules, AdvanceRules,
-         OpenerRebidRules, ResponderRebidRules } from '../src/models/bidding-rules';
+import { OpeningBidRules } from '../src/models/opening-rules';
+import { ResponseBidRules } from '../src/models/responding-rules';
+import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
+import { ResponderRebidRules } from '../src/models/responder-rebidding-rules';
+import { OvercallRules } from '../src/models/overcalling-rules';
+import { AdvanceRules } from '../src/models/advancing-rules';
 import type { BidRule, Call } from '../src/models/bidding-types';
 import { defaultBiddingSystem } from '../src/models/bidding-types';
 import { RULE_TEST_DEAL_BUCKETS, type RuleTestDeal } from '../src/models/test-deals-registry';
@@ -170,8 +174,7 @@ ${[
 The difference between executable declarations and distinct executable IDs comes
 from rules reused in more than one collection, principally responding and
 advancing. Those declarations represent different stage placements of a shared
-rule ID, not necessarily independent bidding treatments. The six collections
-exclude non-executable \`BiddingNotes\`.
+rule ID, not necessarily independent bidding treatments.
 
 ## Practice corpus and primary test assertions
 

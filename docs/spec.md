@@ -80,7 +80,7 @@ declarations from distinct rule IDs reused in more than one collection.
 - `BidStage` uses bidding-process names such as `opening`, `responding`, `openerRebid`, `responderRebid`, `overcalling`, and `advancing`.
 - The evaluator derives the current `BidStage` from the board and authoritative auction, then selects the appropriate rule array. React does not tell the evaluator that a seat is opener/responder.
 - There is no required flattened `BiddingRules` array.
-- Keep rule declarations in the stage-specific `*-rules.ts` files and their refiners and applicability checks in the corresponding `*-functions.ts` files. `bidding-rules.ts` re-exports the rule arrays and retains shared teaching notes; `common-rule-helpers.ts` contains only helpers needed across stages.
+- Keep rule declarations in the stage-specific `*-rules.ts` files and their refiners and applicability checks in the corresponding `*-functions.ts` files. The evaluator imports stage arrays directly; `common-rule-helpers.ts` contains only helpers needed across stages.
 - `BiddingSystem` is the configurable set of bidding agreements for the current practice session.
 - A rule's optional `agreement` selects whether the whole rule is active in the current `BiddingSystem`.
 - Declarative `appliesWhen` values should remain concrete and literal. Prefer representing bidding
@@ -90,9 +90,6 @@ declarations from distinct rule IDs reused in more than one collection.
 - `appliesWhen` may instead be a typed function for a rule whose applicability is clearer as executable domain logic, such as the Guideline of 20. Function-valued rules are normal compiled TypeScript functions, not `eval`-style code.
 - `callRefinement` may be a typed function that removes or orders candidates within one rule.
   Use it when forcing that logic into declarative data would make the rule less clear.
-- `BiddingNotes` contains documentation and teaching concepts that are not executable bidding
-  rules. Stage rule selection does not include them, so they cannot generate candidate calls or
-  ordinary rule explanations.
 - `appliesWhen` should contain only constraints the code can evaluate.
 - Human explanation belongs in `guidance`.
 - `meaning` is optional. Use it mainly when the call has a non-obvious or conventional meaning.

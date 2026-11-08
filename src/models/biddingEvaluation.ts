@@ -15,9 +15,12 @@ import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCall
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
          getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed }
   from './auction';
-import { AdvanceRules, OpeningBidRules, OpenerRebidRules, OvercallRules, ResponseBidRules,
-         ResponderRebidRules }
-  from './bidding-rules';
+import { OpeningBidRules } from './opening-rules';
+import { ResponseBidRules } from './responding-rules';
+import { OpenerRebidRules } from './opener-rebidding-rules';
+import { ResponderRebidRules } from './responder-rebidding-rules';
+import { OvercallRules } from './overcalling-rules';
+import { AdvanceRules } from './advancing-rules';
 import { getOpenerOpeningBid, hasBasicSuitStopper } from './common-rule-helpers';
 
 

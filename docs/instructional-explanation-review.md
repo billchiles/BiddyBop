@@ -70,7 +70,7 @@ The family groupings collectively cover each stage's executable declarations and
 | Overcaller/Doubler continuation after weak-two defenses, natural 2NT, suit overcalls and extra competition | Checked ordinary and strong Doubles, compulsory replies, systems-on 2NT continuations, and selected competitive boundaries | No family-specific review pending; include in final cross-stage check |
 | Responder rebid after Stayman/transfers, natural 1NT/2NT rebids, strong 2C, Jacoby 2NT/splinters | Extensive first-pass conventional and natural rebid explanation families exist; 88 recorded responder-rebid endings checked | No pending responder-rebid-specific review; revisit only if the cross-stage quality gate identifies a new issue |
 | Responder rebid after 2/1 versus Standard new suit, major/minor 1NT, simple/limit raises, game tries, repeated suits, economical second suit, reverse/strong jump shift | Hand-aware teaching compares invitations, known fits, and alternative strains; 76 matched rule IDs in the responder-rebid corpus | No pending responder-rebid-specific review; continue cross-stage audit for forcing and agreement consistency |
-| Bidding notes and deliberately unmodeled later auctions | BiddingNotes, scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not promote notes to executable bidding rules |
+| Deliberately unmodeled later auctions | Scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not turn notes into executable bidding rules |
 
 
 ## Deferred or intentionally limited

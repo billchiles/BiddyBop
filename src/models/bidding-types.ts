@@ -191,7 +191,6 @@ export type CallCategory =
   | 'natural'; // face value bid rather than an artificial convention meaning
 
 export type RuleKind =
-  | 'valuation'
   | 'openingBid'
   | 'responseBid'
   | 'overcall'
@@ -199,11 +198,7 @@ export type RuleKind =
   | 'advance'
   | 'openerRebid'
   | 'responderRebid'
-  | 'scopeBoundary'
-  | 'priority'
-  | 'rebidGuidance'
-  | 'footnote'
-  | 'concept';
+  | 'scopeBoundary';
 
 export interface HandConstraint {
   hcp?: PointRange;
