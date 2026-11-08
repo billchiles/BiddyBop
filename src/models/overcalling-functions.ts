@@ -170,49 +170,6 @@ type JumpOvercallForcingAdvance = {
   advanceBid: NonNullable<ReturnType<typeof parseSuitBid>>;
 };
 
-function getJumpOvercallForcingAdvance (context: RuleEvalContext):
-    JumpOvercallForcingAdvance | null {
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || opening === null ||
-      context.auction.length !== opening.index + 5 ||
-      context.auction[opening.index + 2] !== 'Pass' ||
-      context.auction[opening.index + 4] !== 'Pass') return null;
-  const openingBid = parseSuitBid(opening.call);
-  const overcallCall = context.auction[opening.index + 1];
-  const overcallBid = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-  const advanceCall = context.auction[opening.index + 3];
-  const advanceBid = advanceCall === undefined ? null : parseSuitBid(advanceCall);
-  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
-      overcallBid === null || overcallBid.strain === 'NT' ||
-      overcallBid.strain === openingBid.strain ||
-      (overcallBid.level !== 2 && overcallBid.level !== 3) ||
-      advanceBid === null || advanceBid.strain === 'NT' || advanceBid.level > 3 ||
-      advanceBid.strain === overcallBid.strain ||
-      advanceBid.strain === openingBid.strain) return null;
-  const cheapestOvercall = cheapestBidInStrainAfter(openingBid, overcallBid.strain);
-  const cheapestOvercallBid = cheapestOvercall === null ? null : parseSuitBid(cheapestOvercall);
-  if (cheapestOvercallBid === null || overcallBid.level <= cheapestOvercallBid.level ||
-      cheapestBidInStrainAfter(overcallBid, advanceBid.strain) !== advanceCall) return null;
-  return { suit: overcallBid.strain as Suit, advanceSuit: advanceBid.strain as Suit,
-           overcallLevel: overcallBid.level as 2 | 3, advanceBid };
-}
-
-/// A three-level raise describes an eight-card fit.  At the four level, require
-/// better fit/playing strength: four trumps, A/K, or QJ in advancer's suit.
-/// Three small cards alone must not drive the weak preempter to four of a new suit.
-function usefulJumpOvercallAdvanceSupport (context: RuleEvalContext,
-                                          info: JumpOvercallForcingAdvance,
-                                          raise: Call | null): boolean {
-  if (raise === null) return false;
-  const bid = parseSuitBid(raise);
-  const length = context.handFacts.lengths[info.advanceSuit];
-  if (bid === null || bid.level > 4 || length < 3) return false;
-  if (bid.level <= 3) return true;
-  const honors = getCardsForSuit(context.hand, info.advanceSuit).map((card) => card.rank);
-  return length >= 4 || honors.includes('A') || honors.includes('K') ||
-    (honors.includes('Q') && honors.includes('J'));
-}
-
 /// After a weak jump overcall, the new suit forces one more call but does not
 /// promise game.  Raise a known fit when economical/safe; otherwise repeat the
 /// preempt suit at its cheapest level.  NT, second suits, and unusual high-level
@@ -254,6 +211,49 @@ export function jumpOvercallForcingAdvanceBoundaryApplies (context: RuleEvalCont
     'PASS: forcing advance after a preemptive jump overcall may need judgment beyond ' +
       'the selected natural replies.' :
     'FAIL: not a forcing new-suit advance after a preemptive jump overcall.'] };
+}
+
+function getJumpOvercallForcingAdvance (context: RuleEvalContext):
+    JumpOvercallForcingAdvance | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') return null;
+  const openingBid = parseSuitBid(opening.call);
+  const overcallCall = context.auction[opening.index + 1];
+  const overcallBid = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  const advanceCall = context.auction[opening.index + 3];
+  const advanceBid = advanceCall === undefined ? null : parseSuitBid(advanceCall);
+  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
+      overcallBid === null || overcallBid.strain === 'NT' ||
+      overcallBid.strain === openingBid.strain ||
+      (overcallBid.level !== 2 && overcallBid.level !== 3) ||
+      advanceBid === null || advanceBid.strain === 'NT' || advanceBid.level > 3 ||
+      advanceBid.strain === overcallBid.strain ||
+      advanceBid.strain === openingBid.strain) return null;
+  const cheapestOvercall = cheapestBidInStrainAfter(openingBid, overcallBid.strain);
+  const cheapestOvercallBid = cheapestOvercall === null ? null : parseSuitBid(cheapestOvercall);
+  if (cheapestOvercallBid === null || overcallBid.level <= cheapestOvercallBid.level ||
+      cheapestBidInStrainAfter(overcallBid, advanceBid.strain) !== advanceCall) return null;
+  return { suit: overcallBid.strain as Suit, advanceSuit: advanceBid.strain as Suit,
+           overcallLevel: overcallBid.level as 2 | 3, advanceBid };
+}
+
+/// A three-level raise describes an eight-card fit.  At the four level, require
+/// better fit/playing strength: four trumps, A/K, or QJ in advancer's suit.
+/// Three small cards alone must not drive the weak preempter to four of a new suit.
+function usefulJumpOvercallAdvanceSupport (context: RuleEvalContext,
+                                          info: JumpOvercallForcingAdvance,
+                                          raise: Call | null): boolean {
+  if (raise === null) return false;
+  const bid = parseSuitBid(raise);
+  const length = context.handFacts.lengths[info.advanceSuit];
+  if (bid === null || bid.level > 4 || length < 3) return false;
+  if (bid.level <= 3) return true;
+  const honors = getCardsForSuit(context.hand, info.advanceSuit).map((card) => card.rank);
+  return length >= 4 || honors.includes('A') || honors.includes('K') ||
+    (honors.includes('Q') && honors.includes('J'));
 }
 
 ///
@@ -310,47 +310,6 @@ type SuitOvercallerAdvance = {
   advanceSuit: Suit | null;
   advanceBid: NonNullable<ReturnType<typeof parseSuitBid>>;
 };
-
-function getSuitOvercallerAdvance (context: RuleEvalContext): SuitOvercallerAdvance | null {
-  const info = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || info === null ||
-      context.auction.length !== info.index + 5 ||
-      context.auction[info.index + 2] !== 'Pass' ||
-      context.auction[info.index + 4] !== 'Pass') return null;
-  const openingBid = parseSuitBid(info.call);
-  const overcallCall = context.auction[info.index + 1] ?? 'Pass';
-  const overcall = parseSuitBid(overcallCall);
-  const advance = context.auction[info.index + 3] ?? 'Pass';
-  const advanceBid = parseSuitBid(advance);
-  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
-      overcall === null || overcall.strain === 'NT' ||
-      (overcall.level !== 1 && overcall.level !== 2) ||
-      cheapestBidInStrainAfter(openingBid, overcall.strain) !== overcallCall ||
-      advanceBid === null) return null;
-  const opening = openingBid.strain as Suit;
-  const suit = overcall.strain as Suit;
-  const level = overcall.level as 1 | 2;
-  let advanceKind: SuitOvercallerAdvance['advanceKind'] | null = null;
-  let advanceSuit: Suit | null = null;
-  if (advanceBid.strain === 'NT') {
-    if (advance === '1NT' && level === 1) advanceKind = 'oneNt';
-    if (advance === '2NT') advanceKind = 'twoNt';
-    if (advance === '3NT') advanceKind = 'threeNt';
-  } else if (advanceBid.strain === suit) {
-    if (advanceBid.level === level + 1) advanceKind = 'simpleRaise';
-    if (level === 1 && advanceBid.level === 3) advanceKind = 'weakJumpRaise';
-  } else if (advanceBid.strain === opening &&
-             cheapestBidInStrainAfter(overcall, opening) === advance) {
-    advanceKind = 'supportCuebid';
-  } else if (advanceBid.strain !== opening && advanceBid.strain !== suit &&
-             cheapestBidInStrainAfter(overcall, advanceBid.strain) === advance) {
-    advanceKind = advanceBid.level === 1 && level === 1 ?
-      'nonforcingNewSuit' : 'forcingNewSuit';
-    advanceSuit = advanceBid.strain as Suit;
-  }
-  return advanceKind === null ? null :
-    { opening, suit, level, advance, advanceKind, advanceSuit, advanceBid };
-}
 
 /// The shared bid selector below keeps one physical-auction definition for each continuation.
 /// Each treatment retains a separate BidRule and user-facing meaning; boundaries apply only
@@ -578,6 +537,47 @@ export function naturalSuitOvercallerRebidBoundaryApplies (
     `No ${kind} boundary in this natural suit-overcall auction.`] };
 }
 
+function getSuitOvercallerAdvance (context: RuleEvalContext): SuitOvercallerAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 2] !== 'Pass' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const openingBid = parseSuitBid(info.call);
+  const overcallCall = context.auction[info.index + 1] ?? 'Pass';
+  const overcall = parseSuitBid(overcallCall);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const advanceBid = parseSuitBid(advance);
+  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' ||
+      (overcall.level !== 1 && overcall.level !== 2) ||
+      cheapestBidInStrainAfter(openingBid, overcall.strain) !== overcallCall ||
+      advanceBid === null) return null;
+  const opening = openingBid.strain as Suit;
+  const suit = overcall.strain as Suit;
+  const level = overcall.level as 1 | 2;
+  let advanceKind: SuitOvercallerAdvance['advanceKind'] | null = null;
+  let advanceSuit: Suit | null = null;
+  if (advanceBid.strain === 'NT') {
+    if (advance === '1NT' && level === 1) advanceKind = 'oneNt';
+    if (advance === '2NT') advanceKind = 'twoNt';
+    if (advance === '3NT') advanceKind = 'threeNt';
+  } else if (advanceBid.strain === suit) {
+    if (advanceBid.level === level + 1) advanceKind = 'simpleRaise';
+    if (level === 1 && advanceBid.level === 3) advanceKind = 'weakJumpRaise';
+  } else if (advanceBid.strain === opening &&
+             cheapestBidInStrainAfter(overcall, opening) === advance) {
+    advanceKind = 'supportCuebid';
+  } else if (advanceBid.strain !== opening && advanceBid.strain !== suit &&
+             cheapestBidInStrainAfter(overcall, advanceBid.strain) === advance) {
+    advanceKind = advanceBid.level === 1 && level === 1 ?
+      'nonforcingNewSuit' : 'forcingNewSuit';
+    advanceSuit = advanceBid.strain as Suit;
+  }
+  return advanceKind === null ? null :
+    { opening, suit, level, advance, advanceKind, advanceSuit, advanceBid };
+}
+
 ///
 //// Natural suit overcall -- Advancer after responder acts
 ///
@@ -596,69 +596,6 @@ type ContestedSuitAdvance = {
   advanceSuit: Suit | null;
   lastBid: NonNullable<ReturnType<typeof parseSuitBid>>;
 };
-
-function getContestedSuitAdvance (context: RuleEvalContext): ContestedSuitAdvance | null {
-  const info = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || info === null ||
-      context.auction.length !== info.index + 5) return null;
-  const openingBid = parseSuitBid(info.call);
-  const overcallCall = context.auction[info.index + 1] ?? 'Pass';
-  const overcall = parseSuitBid(overcallCall);
-  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
-      overcall === null || overcall.strain === 'NT' ||
-      (overcall.level !== 1 && overcall.level !== 2) ||
-      cheapestBidInStrainAfter(openingBid, overcall.strain) !== overcallCall) return null;
-  const responderCall = context.auction[info.index + 2] ?? 'Pass';
-  const responderBid = parseSuitBid(responderCall);
-  const opening = openingBid.strain as Suit;
-  const suit = overcall.strain as Suit;
-  const level = overcall.level as 1 | 2;
-  let responderKind: ContestedSuitAdvance['responderKind'];
-  let responderSuit: Suit | null = null;
-  if (responderCall === 'Double') {
-    responderKind = 'negativeDouble';
-  } else if (responderBid !== null && responderBid.strain === opening &&
-             cheapestBidInStrainAfter(overcall, opening) === responderCall) {
-    responderKind = 'raise';
-  } else if (responderBid !== null && (responderBid.strain === 'NT' ||
-             responderBid.strain !== suit && responderBid.strain !== opening) &&
-             (responderBid.strain === 'NT' ||
-              cheapestBidInStrainAfter(overcall, responderBid.strain) === responderCall)) {
-    responderKind = 'natural';
-    responderSuit = responderBid.strain === 'NT' ? null : responderBid.strain as Suit;
-  } else return null;
-  const advanceCall = context.auction[info.index + 3] ?? 'Pass';
-  const lastBid = responderBid ?? overcall;
-  const advanceBid = parseSuitBid(advanceCall);
-  let advanceKind: ContestedSuitAdvance['advanceKind'] | null = null;
-  let advanceSuit: Suit | null = null;
-  if (advanceBid !== null && advanceBid.strain === suit) {
-    const cheapest = cheapestBidInStrainAfter(lastBid, suit);
-    const cheapestParsed = cheapest === null ? null : parseSuitBid(cheapest);
-    if (advanceCall === cheapest) advanceKind = 'simpleRaise';
-    if (level === 1 && cheapestParsed !== null &&
-        advanceBid.level === cheapestParsed.level + 1) advanceKind = 'weakJumpRaise';
-  } else if (advanceBid !== null && advanceBid.strain === opening &&
-             advanceCall === cheapestBidInStrainAfter(lastBid, opening)) {
-    advanceKind = 'supportCuebid';
-  } else if (advanceBid !== null && advanceBid.strain === 'NT') {
-    if (advanceCall === '1NT') advanceKind = 'oneNt';
-    if (advanceCall === '2NT') advanceKind = 'twoNt';
-    if (advanceCall === '3NT') advanceKind = 'threeNt';
-  } else if (advanceBid !== null && advanceBid.strain !== opening &&
-             advanceBid.strain !== suit && advanceBid.strain !== responderSuit &&
-             advanceCall === cheapestBidInStrainAfter(lastBid, advanceBid.strain)) {
-    advanceKind = advanceBid.level === 1 ? 'nonforcingNewSuit' : 'forcingNewSuit';
-    advanceSuit = advanceBid.strain as Suit;
-  } else if (advanceCall === 'Double' && responderKind === 'raise') {
-    advanceKind = 'responsiveDouble';
-  } else if (advanceCall === 'Redouble' && responderKind === 'negativeDouble') {
-    advanceKind = 'strengthRedouble';
-  }
-  if (advanceKind === null) return null;
-  return { opening, suit, level, responderKind, responderSuit, advanceKind,
-           advanceSuit, lastBid: advanceBid ?? lastBid };
-}
 
 type ContestedSuitTreatment = 'raise-pass' | 'raise-invite' | 'raise-game' |
   'cue-return' | 'cue-game' | 'new-pass' | 'new-support' | 'new-repeat' |
@@ -873,6 +810,69 @@ export function contestedSuitOvercallerBoundaryApplies (
     'Not a selected competitive overcaller judgment boundary.'] };
 }
 
+function getContestedSuitAdvance (context: RuleEvalContext): ContestedSuitAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      context.auction.length !== info.index + 5) return null;
+  const openingBid = parseSuitBid(info.call);
+  const overcallCall = context.auction[info.index + 1] ?? 'Pass';
+  const overcall = parseSuitBid(overcallCall);
+  if (openingBid === null || openingBid.level !== 1 || openingBid.strain === 'NT' ||
+      overcall === null || overcall.strain === 'NT' ||
+      (overcall.level !== 1 && overcall.level !== 2) ||
+      cheapestBidInStrainAfter(openingBid, overcall.strain) !== overcallCall) return null;
+  const responderCall = context.auction[info.index + 2] ?? 'Pass';
+  const responderBid = parseSuitBid(responderCall);
+  const opening = openingBid.strain as Suit;
+  const suit = overcall.strain as Suit;
+  const level = overcall.level as 1 | 2;
+  let responderKind: ContestedSuitAdvance['responderKind'];
+  let responderSuit: Suit | null = null;
+  if (responderCall === 'Double') {
+    responderKind = 'negativeDouble';
+  } else if (responderBid !== null && responderBid.strain === opening &&
+             cheapestBidInStrainAfter(overcall, opening) === responderCall) {
+    responderKind = 'raise';
+  } else if (responderBid !== null && (responderBid.strain === 'NT' ||
+             responderBid.strain !== suit && responderBid.strain !== opening) &&
+             (responderBid.strain === 'NT' ||
+              cheapestBidInStrainAfter(overcall, responderBid.strain) === responderCall)) {
+    responderKind = 'natural';
+    responderSuit = responderBid.strain === 'NT' ? null : responderBid.strain as Suit;
+  } else return null;
+  const advanceCall = context.auction[info.index + 3] ?? 'Pass';
+  const lastBid = responderBid ?? overcall;
+  const advanceBid = parseSuitBid(advanceCall);
+  let advanceKind: ContestedSuitAdvance['advanceKind'] | null = null;
+  let advanceSuit: Suit | null = null;
+  if (advanceBid !== null && advanceBid.strain === suit) {
+    const cheapest = cheapestBidInStrainAfter(lastBid, suit);
+    const cheapestParsed = cheapest === null ? null : parseSuitBid(cheapest);
+    if (advanceCall === cheapest) advanceKind = 'simpleRaise';
+    if (level === 1 && cheapestParsed !== null &&
+        advanceBid.level === cheapestParsed.level + 1) advanceKind = 'weakJumpRaise';
+  } else if (advanceBid !== null && advanceBid.strain === opening &&
+             advanceCall === cheapestBidInStrainAfter(lastBid, opening)) {
+    advanceKind = 'supportCuebid';
+  } else if (advanceBid !== null && advanceBid.strain === 'NT') {
+    if (advanceCall === '1NT') advanceKind = 'oneNt';
+    if (advanceCall === '2NT') advanceKind = 'twoNt';
+    if (advanceCall === '3NT') advanceKind = 'threeNt';
+  } else if (advanceBid !== null && advanceBid.strain !== opening &&
+             advanceBid.strain !== suit && advanceBid.strain !== responderSuit &&
+             advanceCall === cheapestBidInStrainAfter(lastBid, advanceBid.strain)) {
+    advanceKind = advanceBid.level === 1 ? 'nonforcingNewSuit' : 'forcingNewSuit';
+    advanceSuit = advanceBid.strain as Suit;
+  } else if (advanceCall === 'Double' && responderKind === 'raise') {
+    advanceKind = 'responsiveDouble';
+  } else if (advanceCall === 'Redouble' && responderKind === 'negativeDouble') {
+    advanceKind = 'strengthRedouble';
+  }
+  if (advanceKind === null) return null;
+  return { opening, suit, level, responderKind, responderSuit, advanceKind,
+           advanceSuit, lastBid: advanceBid ?? lastBid };
+}
+
 ///
 //// Natural 1NT overcall -- Responder interferes naturally
 ///
@@ -943,19 +943,6 @@ export function contestedOneNtOvercallerBoundaryApplies (context: RuleEvalContex
 /// A natural 1NT overcall after a one-level suit opening uses the same response agreements as
 /// a 1NT opening. This is overcaller's first rebid, with the opening side having passed twice.
 /// Do not let these conventions survive further competition or an opposing 1NT opening (DONT).
-function getNaturalOneNtOvercallAdvance (context: RuleEvalContext): Call | null {
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  const bid = opening === null ? null : parseSuitBid(opening.call);
-  if (context.stage !== 'overcallerRebid' || opening === null || bid === null ||
-      bid.level !== 1 || bid.strain === 'NT' ||
-      context.auction.length !== opening.index + 5 ||
-      context.auction[opening.index + 1] !== '1NT' ||
-      context.auction[opening.index + 2] !== 'Pass' ||
-      context.auction[opening.index + 4] !== 'Pass') {
-    return null;
-  }
-  return context.auction[opening.index + 3] ?? null;
-}
 
 /// The compulsory Stayman answer is the same as for a 1NT opening: hearts first with both majors.
 export function refineNaturalOneNtOvercallStayman (calls: Call[], context: RuleEvalContext):
@@ -1072,15 +1059,14 @@ export function naturalOneNtOvercallerSlamBoundaryApplies (
     'This artificial slam continuation is outside the modeled response family.' :
     'No unsupported ace inquiry or forcing 5NT response in this auction.'] };
 }
-
-/// getWeakTwoTwoNtConventionCall identifies advancer's call after partner's natural 2NT
-/// overcall of a weak two, provided responder and opener both pass as expected.
-function getWeakTwoTwoNtConventionCall (context: RuleEvalContext): Call | null {
+/// Return advancer's first call after the uncontested natural 1NT overcall.
+function getNaturalOneNtOvercallAdvance (context: RuleEvalContext): Call | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || opening === null ||
-      ! ['2D', '2H', '2S'].includes(opening.call) ||
+  const bid = opening === null ? null : parseSuitBid(opening.call);
+  if (context.stage !== 'overcallerRebid' || opening === null || bid === null ||
+      bid.level !== 1 || bid.strain === 'NT' ||
       context.auction.length !== opening.index + 5 ||
-      context.auction[opening.index + 1] !== '2NT' ||
+      context.auction[opening.index + 1] !== '1NT' ||
       context.auction[opening.index + 2] !== 'Pass' ||
       context.auction[opening.index + 4] !== 'Pass') {
     return null;
@@ -1139,6 +1125,21 @@ export function weakTwoTwoNtNaturalSignoffApplies (
     'FAIL: not a natural signoff, or advancer made a conventional request.'] };
 }
 
+/// getWeakTwoTwoNtConventionCall identifies advancer's call after partner's natural 2NT
+/// overcall of a weak two, provided responder and opener both pass as expected.
+function getWeakTwoTwoNtConventionCall (context: RuleEvalContext): Call | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null ||
+      ! ['2D', '2H', '2S'].includes(opening.call) ||
+      context.auction.length !== opening.index + 5 ||
+      context.auction[opening.index + 1] !== '2NT' ||
+      context.auction[opening.index + 2] !== 'Pass' ||
+      context.auction[opening.index + 4] !== 'Pass') {
+    return null;
+  }
+  return context.auction[opening.index + 3] ?? null;
+}
+
 ///
 //// Selected Rebids after Defending a Weak Two
 ///
@@ -1154,60 +1155,6 @@ type WeakTwoDefenseAdvance = {
   advanceSuit: Suit | null;
   lastBid: NonNullable<ReturnType<typeof parseSuitBid>>;
 };
-
-function getWeakTwoDefenseAdvance (context: RuleEvalContext): WeakTwoDefenseAdvance | null {
-  const info = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || info === null ||
-      ! ['2D', '2H', '2S'].includes(info.call) ||
-      context.auction.length !== info.index + 5 ||
-      context.auction[info.index + 2] !== 'Pass' ||
-      context.auction[info.index + 4] !== 'Pass') return null;
-  const opening = parseSuitBid(info.call)!;
-  const defenseCall = context.auction[info.index + 1] ?? 'Pass';
-  const defenseBid = parseSuitBid(defenseCall);
-  const advance = context.auction[info.index + 3] ?? 'Pass';
-  const bid = parseSuitBid(advance);
-  if (bid === null) return null;
-  const doubled = defenseCall === 'Double';
-  if (! doubled && (defenseBid === null || defenseBid.level !== 2 ||
-      defenseBid.strain === 'NT' ||
-      cheapestBidInStrainAfter(opening, defenseBid.strain) !== defenseCall)) return null;
-  const openingSuit = opening.strain as Suit;
-  const overcallSuit = doubled ? null : defenseBid!.strain as Suit;
-  let kind: WeakTwoDefenseAdvance['kind'] | null = null;
-  let advanceSuit: Suit | null = null;
-  if (advance === '2NT') kind = 'twoNt';
-  if (advance === '3NT') kind = 'threeNt';
-  if (bid.strain !== 'NT') {
-    const suit = bid.strain as Suit;
-    if (doubled) {
-      if (suit === openingSuit &&
-          cheapestBidInStrainAfter(opening, suit) === advance) kind = 'cuebid';
-      if (suit !== openingSuit) {
-        const cheapest = cheapestBidInStrainAfter(opening, suit);
-        const cheapestLevel = cheapest === null ? null : parseSuitBid(cheapest)?.level;
-        if (advance === cheapest) kind = 'minimumSuit';
-        if (cheapestLevel !== undefined && cheapestLevel !== null &&
-            bid.level === cheapestLevel + 1 && bid.level <= 3) kind = 'jumpSuit';
-        if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
-        advanceSuit = suit;
-      }
-    } else if (suit === overcallSuit && bid.level === 3) {
-      kind = 'simpleRaise';
-      advanceSuit = suit;
-    } else if (suit === openingSuit &&
-               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
-      kind = 'cuebid';
-    } else if (suit !== openingSuit && suit !== overcallSuit &&
-               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
-      kind = 'forcingNewSuit';
-      advanceSuit = suit;
-    }
-  }
-  return kind === null ? null : { opening: openingSuit,
-    defense: doubled ? 'Double' : 'suit', overcallSuit,
-    kind, advanceSuit, lastBid: bid };
-}
 
 /// Weak-two Double rebids distinguish the involuntary minimum suit response from
 /// constructive jumps, natural notrump, and forcing cuebids. In particular an
@@ -1424,53 +1371,66 @@ export function weakTwoDefenseBoundaryApplies (
     'No matching weak-two defensive continuation boundary.'] };
 }
 
+function getWeakTwoDefenseAdvance (context: RuleEvalContext): WeakTwoDefenseAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      ! ['2D', '2H', '2S'].includes(info.call) ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 2] !== 'Pass' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const opening = parseSuitBid(info.call)!;
+  const defenseCall = context.auction[info.index + 1] ?? 'Pass';
+  const defenseBid = parseSuitBid(defenseCall);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const bid = parseSuitBid(advance);
+  if (bid === null) return null;
+  const doubled = defenseCall === 'Double';
+  if (! doubled && (defenseBid === null || defenseBid.level !== 2 ||
+      defenseBid.strain === 'NT' ||
+      cheapestBidInStrainAfter(opening, defenseBid.strain) !== defenseCall)) return null;
+  const openingSuit = opening.strain as Suit;
+  const overcallSuit = doubled ? null : defenseBid!.strain as Suit;
+  let kind: WeakTwoDefenseAdvance['kind'] | null = null;
+  let advanceSuit: Suit | null = null;
+  if (advance === '2NT') kind = 'twoNt';
+  if (advance === '3NT') kind = 'threeNt';
+  if (bid.strain !== 'NT') {
+    const suit = bid.strain as Suit;
+    if (doubled) {
+      if (suit === openingSuit &&
+          cheapestBidInStrainAfter(opening, suit) === advance) kind = 'cuebid';
+      if (suit !== openingSuit) {
+        const cheapest = cheapestBidInStrainAfter(opening, suit);
+        const cheapestLevel = cheapest === null ? null : parseSuitBid(cheapest)?.level;
+        if (advance === cheapest) kind = 'minimumSuit';
+        if (cheapestLevel !== undefined && cheapestLevel !== null &&
+            bid.level === cheapestLevel + 1 && bid.level <= 3) kind = 'jumpSuit';
+        if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
+        advanceSuit = suit;
+      }
+    } else if (suit === overcallSuit && bid.level === 3) {
+      kind = 'simpleRaise';
+      advanceSuit = suit;
+    } else if (suit === openingSuit &&
+               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
+      kind = 'cuebid';
+    } else if (suit !== openingSuit && suit !== overcallSuit &&
+               cheapestBidInStrainAfter(defenseBid!, suit) === advance) {
+      kind = 'forcingNewSuit';
+      advanceSuit = suit;
+    }
+  }
+  return kind === null ? null : { opening: openingSuit,
+    defense: doubled ? 'Double' : 'suit', overcallSuit,
+    kind, advanceSuit, lastBid: bid };
+}
+
 ///
 //// DONT over a Strong 1NT
 ///
 
 /// The compact DONT treatment in this app uses shape and suit quality rather than trying to
 /// model vulnerability.  A one-suited hand has exactly one 6+ card suit and no second 4-card suit.
-function getDontSingleSuit (context: RuleEvalContext): Suit | null {
-  const longSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 6);
-  if (longSuits.length !== 1) return null;
-  const suit = longSuits[0]!;
-  if (SUITS.some((other) => other !== suit && context.handFacts.lengths[other] >= 4) ||
-      ! hasPreemptSuitQuality(context.hand, suit)) {
-    return null;
-  }
-  return suit;
-}
-
-/// A DONT two-suiter has exactly two suits of at least four cards, at least nine cards between
-/// them, and useful honor concentration in a five-card-or-longer member of the pair.
-function getDontTwoSuits (context: RuleEvalContext, lowerSuit: Suit,
-                          higherSuits: readonly Suit[]): [Suit, Suit] | null {
-  const fourCardSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 4);
-  if (fourCardSuits.length !== 2 || ! fourCardSuits.includes(lowerSuit)) return null;
-  const higherSuit = fourCardSuits.find((suit) => higherSuits.includes(suit));
-  if (higherSuit === undefined ||
-      context.handFacts.lengths[lowerSuit] + context.handFacts.lengths[higherSuit] < 9) {
-    return null;
-  }
-  const quality = [lowerSuit, higherSuit].some((suit) =>
-    context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit));
-  return quality ? [lowerSuit, higherSuit] : null;
-}
-
-/// Capture the actual eligibility decisions for the initial DONT call. Explanations use
-/// these observations rather than making their own independent bidding-rule decisions.
-function dontInitialEvidence(context: RuleEvalContext, singleSuit: Suit | null,
-                             twoSuits: [Suit, Suit] | null):
-    NonNullable<CallEvidence['dontInitial']> {
-  return {
-    hcp: context.handFacts.hcp,
-    lengths: { ...context.handFacts.lengths },
-    qualitySuits: SUITS.filter((suit) =>
-      context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit)),
-    singleSuit,
-    twoSuits,
-  };
-}
 
 /// In this compact DONT treatment, Double shows a good one-suited club, diamond, or heart hand.
 /// Direct 2S handles the ordinary one-suited spade hand; stronger spade distinctions are deferred.
@@ -1549,6 +1509,48 @@ export function refineDontOvercallerCorrection (calls: Call[], context: RuleEval
   return { calls: target === null ? [] : calls.filter((call) => call === target),
            telemetryLines: [] };
 }
+/// Identify the suit of a qualifying DONT one-suited hand.
+function getDontSingleSuit (context: RuleEvalContext): Suit | null {
+  const longSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 6);
+  if (longSuits.length !== 1) return null;
+  const suit = longSuits[0]!;
+  if (SUITS.some((other) => other !== suit && context.handFacts.lengths[other] >= 4) ||
+      ! hasPreemptSuitQuality(context.hand, suit)) {
+    return null;
+  }
+  return suit;
+}
+
+/// A DONT two-suiter has exactly two suits of at least four cards, at least nine cards between
+/// them, and useful honor concentration in a five-card-or-longer member of the pair.
+function getDontTwoSuits (context: RuleEvalContext, lowerSuit: Suit,
+                          higherSuits: readonly Suit[]): [Suit, Suit] | null {
+  const fourCardSuits = SUITS.filter((suit) => context.handFacts.lengths[suit] >= 4);
+  if (fourCardSuits.length !== 2 || ! fourCardSuits.includes(lowerSuit)) return null;
+  const higherSuit = fourCardSuits.find((suit) => higherSuits.includes(suit));
+  if (higherSuit === undefined ||
+      context.handFacts.lengths[lowerSuit] + context.handFacts.lengths[higherSuit] < 9) {
+    return null;
+  }
+  const quality = [lowerSuit, higherSuit].some((suit) =>
+    context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit));
+  return quality ? [lowerSuit, higherSuit] : null;
+}
+
+/// Capture the actual eligibility decisions for the initial DONT call. Explanations use
+/// these observations rather than making their own independent bidding-rule decisions.
+function dontInitialEvidence(context: RuleEvalContext, singleSuit: Suit | null,
+                             twoSuits: [Suit, Suit] | null):
+    NonNullable<CallEvidence['dontInitial']> {
+  return {
+    hcp: context.handFacts.hcp,
+    lengths: { ...context.handFacts.lengths },
+    qualitySuits: SUITS.filter((suit) =>
+      context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit)),
+    singleSuit,
+    twoSuits,
+  };
+}
 
 ///
 //// Takeout Double -- Doubler's Second Call
@@ -1565,69 +1567,6 @@ type DoublerAdvance = {
   lastBid: NonNullable<ReturnType<typeof parseSuitBid>>;
   responderActed: boolean;
 };
-
-function getDoublerAdvance (context: RuleEvalContext): DoublerAdvance | null {
-  const info = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'overcallerRebid' || info === null ||
-      context.auction.length !== info.index + 5 ||
-      context.auction[info.index + 1] !== 'Double' ||
-      context.auction[info.index + 4] !== 'Pass') return null;
-  const opening = parseSuitBid(info.call);
-  if (opening === null || opening.level !== 1 || opening.strain === 'NT') return null;
-  const response = context.auction[info.index + 2] ?? 'Pass';
-  const responseBid = parseSuitBid(response);
-  const advance = context.auction[info.index + 3] ?? 'Pass';
-  const bid = parseSuitBid(advance);
-  const last = responseBid ?? opening;
-  const openingSuit = opening.strain as Suit;
-  const responderActed = response !== 'Pass';
-  let kind: DoublerAdvance['kind'] | null = null;
-  let suit: Suit | null = null;
-
-  if (response === 'Pass') {
-    if (bid !== null && bid.strain === 'NT') {
-      if (advance === '1NT') kind = 'oneNt';
-      if (advance === '2NT') kind = 'twoNt';
-      if (advance === '3NT') kind = 'threeNt';
-    } else if (bid !== null && bid.strain === opening.strain &&
-               cheapestBidInStrainAfter(opening, bid.strain) === advance) {
-      kind = 'cuebid';
-    } else if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain) {
-      suit = bid.strain as Suit;
-      const cheapest = cheapestBidInStrainAfter(opening, bid.strain);
-      const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
-      if (advance === cheapest) kind = 'minimumSuit';
-      if (parsedCheapest !== null && bid.level === parsedCheapest.level + 1 &&
-          bid.level <= 3) kind = 'jumpSuit';
-      if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
-    }
-  } else if (response === 'Redouble') {
-    if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain &&
-        cheapestBidInStrainAfter(opening, bid.strain) === advance) {
-      kind = 'escape';
-      suit = bid.strain as Suit;
-    }
-  } else if (responseBid !== null &&
-             (responseBid.strain === opening.strain || responseBid.strain === 'NT' ||
-              cheapestBidInStrainAfter(opening, responseBid.strain) === response)) {
-    if (advance === 'Double' && responseBid.strain === opening.strain) {
-      kind = 'responsiveDouble';
-    } else if (bid !== null && bid.strain === opening.strain &&
-               cheapestBidInStrainAfter(responseBid, opening.strain) === advance) {
-      kind = 'cuebid';
-    } else if (bid !== null && bid.strain !== 'NT' &&
-               bid.strain !== opening.strain &&
-               bid.strain !== responseBid.strain &&
-               cheapestBidInStrainAfter(responseBid, bid.strain) === advance) {
-      kind = 'competitiveSuit';
-      suit = bid.strain as Suit;
-    }
-  }
-  return kind === null ? null : {
-    opening: openingSuit, kind, suit, lastBid: bid ?? last,
-    responderActed,
-  };
-}
 
 type DoublerRebidTreatment = 'minimum-pass' | 'minimum-raise' | 'maximum-raise' |
   'jump-pass' | 'jump-game' | 'cue-suit' | 'cue-nt' |
@@ -1836,6 +1775,69 @@ export function takeoutDoublerFurtherCompetitionBoundaryApplies (
     'No additional opposing competition in this Doubler-rebid auction.'] };
 }
 
+function getDoublerAdvance (context: RuleEvalContext): DoublerAdvance | null {
+  const info = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || info === null ||
+      context.auction.length !== info.index + 5 ||
+      context.auction[info.index + 1] !== 'Double' ||
+      context.auction[info.index + 4] !== 'Pass') return null;
+  const opening = parseSuitBid(info.call);
+  if (opening === null || opening.level !== 1 || opening.strain === 'NT') return null;
+  const response = context.auction[info.index + 2] ?? 'Pass';
+  const responseBid = parseSuitBid(response);
+  const advance = context.auction[info.index + 3] ?? 'Pass';
+  const bid = parseSuitBid(advance);
+  const last = responseBid ?? opening;
+  const openingSuit = opening.strain as Suit;
+  const responderActed = response !== 'Pass';
+  let kind: DoublerAdvance['kind'] | null = null;
+  let suit: Suit | null = null;
+
+  if (response === 'Pass') {
+    if (bid !== null && bid.strain === 'NT') {
+      if (advance === '1NT') kind = 'oneNt';
+      if (advance === '2NT') kind = 'twoNt';
+      if (advance === '3NT') kind = 'threeNt';
+    } else if (bid !== null && bid.strain === opening.strain &&
+               cheapestBidInStrainAfter(opening, bid.strain) === advance) {
+      kind = 'cuebid';
+    } else if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain) {
+      suit = bid.strain as Suit;
+      const cheapest = cheapestBidInStrainAfter(opening, bid.strain);
+      const parsedCheapest = cheapest === null ? null : parseSuitBid(cheapest);
+      if (advance === cheapest) kind = 'minimumSuit';
+      if (parsedCheapest !== null && bid.level === parsedCheapest.level + 1 &&
+          bid.level <= 3) kind = 'jumpSuit';
+      if (bid.level === 4 && (suit === 'H' || suit === 'S')) kind = 'majorGame';
+    }
+  } else if (response === 'Redouble') {
+    if (bid !== null && bid.strain !== 'NT' && bid.strain !== opening.strain &&
+        cheapestBidInStrainAfter(opening, bid.strain) === advance) {
+      kind = 'escape';
+      suit = bid.strain as Suit;
+    }
+  } else if (responseBid !== null &&
+             (responseBid.strain === opening.strain || responseBid.strain === 'NT' ||
+              cheapestBidInStrainAfter(opening, responseBid.strain) === response)) {
+    if (advance === 'Double' && responseBid.strain === opening.strain) {
+      kind = 'responsiveDouble';
+    } else if (bid !== null && bid.strain === opening.strain &&
+               cheapestBidInStrainAfter(responseBid, opening.strain) === advance) {
+      kind = 'cuebid';
+    } else if (bid !== null && bid.strain !== 'NT' &&
+               bid.strain !== opening.strain &&
+               bid.strain !== responseBid.strain &&
+               cheapestBidInStrainAfter(responseBid, bid.strain) === advance) {
+      kind = 'competitiveSuit';
+      suit = bid.strain as Suit;
+    }
+  }
+  return kind === null ? null : {
+    opening: openingSuit, kind, suit, lastBid: bid ?? last,
+    responderActed,
+  };
+}
+
 ///
 //// Takeout Doubles
 ///
@@ -1876,16 +1878,6 @@ export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalCont
 /// The stage is identified by the physical auction in getNextBiddingRuleStage.  These helpers never
 /// reuse direct-seat jump meanings or impose direct-seat opening strength.
 
-function getBalancingOpeningSuit (context: RuleEvalContext): Suit | null {
-  if (context.stage !== 'balancing') return null;
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  const bid = opening === null ? null : parseSuitBid(opening.call);
-  if (opening === null || bid === null || bid.level !== 1 || bid.strain === 'NT' ||
-      context.auction.length !== opening.index + 3 ||
-      context.auction[opening.index + 1] !== 'Pass' ||
-      context.auction[opening.index + 2] !== 'Pass') return null;
-  return bid.strain;
-}
 
 /// Cheapest non-jump suit only.  At level one a six-card suit may compensate for
 /// modest honor quality; bidding at level two always requires a good five-plus-card suit.
@@ -1988,4 +1980,15 @@ export function balancingPassApplies (call: Call, context: RuleEvalContext):
     `${eligible ? 'PASS' : 'FAIL'}: ${hcp} HCP, ${count} card(s) in opener's suit; ` +
       'Pass remains a reasonable defensive or weak-hand choice.',
   ], callEvidence: { balancingPass: { hcp, openerSuitLength: count, reason } } };
+}
+/// Identify opener's suit in a fourth-seat balancing auction.
+function getBalancingOpeningSuit (context: RuleEvalContext): Suit | null {
+  if (context.stage !== 'balancing') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const bid = opening === null ? null : parseSuitBid(opening.call);
+  if (opening === null || bid === null || bid.level !== 1 || bid.strain === 'NT' ||
+      context.auction.length !== opening.index + 3 ||
+      context.auction[opening.index + 1] !== 'Pass' ||
+      context.auction[opening.index + 2] !== 'Pass') return null;
+  return bid.strain;
 }
