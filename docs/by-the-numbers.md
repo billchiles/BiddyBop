@@ -31,8 +31,7 @@ and prints a short summary. It is not part of the normal build or test commands.
 The difference between executable declarations and distinct executable IDs comes
 from rules reused in more than one collection, principally responding and
 advancing. Those declarations represent different stage placements of a shared
-rule ID, not necessarily independent bidding treatments. The six collections
-exclude non-executable `BiddingNotes`.
+rule ID, not necessarily independent bidding treatments.
 
 ## Practice corpus and primary test assertions
 
@@ -61,11 +60,11 @@ also runs separate regression and agreement-compatibility checks.
 | Distinct executable rule IDs | Count |
 |---|---:|
 | Qualified a recorded call | **494** |
-| Qualified recorded call or a different alternative | **511** |
+| Qualified recorded call or a different alternative | **512** |
 | Considered in evaluator diagnostics | **601** |
-| Cited in generated core feedback | **511** |
-| Cited when not qualifying the entered call | **112** |
-| Not represented by a qualifying call or alternative | **111** |
+| Cited in generated core feedback | **512** |
+| Cited when not qualifying the entered call | **114** |
+| Not represented by a qualifying call or alternative | **110** |
 
 Unrepresented executable IDs are distinct from the separate scope boundaries.
 A rule considered in diagnostics may have failed an eligibility requirement;
@@ -79,7 +78,7 @@ Neither statistic alone establishes the instructional quality of a rule.
 | Opening | 13 | 0 | 12 | 12 | 1 | 13 |
 | Responding | 117 | 2 | 103 | 105 | 12 | 117 |
 | Overcalling / overcaller rebids | 114 | 24 | 79 | 79 | 35 | 112 |
-| Advancing | 105 | 2 | 95 | 95 | 10 | 105 |
+| Advancing | 105 | 2 | 95 | 96 | 9 | 105 |
 | Opener rebids | 202 | 31 | 145 | 159 | 43 | 185 |
 | Responder rebids | 95 | 26 | 77 | 78 | 17 | 93 |
 
@@ -93,7 +92,7 @@ cannot be added to obtain the distinct-ID counts above.
 
 ### Interpretation of unreached executable IDs
 
-The 111 distinct executable IDs not reached by a qualifying
+The 110 distinct executable IDs not reached by a qualifying
 call are **not** scope-boundary declarations. A source review on 5 November 2026
 classified the 111 IDs as follows:
 
