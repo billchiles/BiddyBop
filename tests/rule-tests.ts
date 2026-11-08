@@ -93,6 +93,106 @@ const CONVENTION_CONFIGURATIONS: { name: string; settings: ConventionValues }[] 
 ];
 const CONVENTION_SETTINGS: ConventionSetting[] = ['stayman', 'jacobyTransfers', 'texasTransfers'];
 
+//// Test execution
+/// Continue running independent test groups after an unexpected exception. Individual
+/// assertion failures are already counted within their groups; preserve those counts.
+function runAllRuleTests (): void {
+  const testGroups: (() => number)[] = [
+    runMajorNoSupportAgreementTests,
+    runBasicOpeningExplanationTests,
+    runMixedRebidRegressionTests,
+    runResponderAfterMinorJumpRepeatTests,
+    runOpenerPassAfterPreemptRaiseTests,
+    runStrongOpenerAfterMajorSimpleRaiseTests,
+    runStrongTwoCFourFourFourOneBoundaryTests,
+    runResponderStrongAndSupportConventionTests,
+    runAuctionHelperTests,
+    runResponderNtConventionTests,
+    runOpeningPositionAndPassTests,
+    runWeakTwoOpeningRangeTests,
+    runAuctionContextTests,
+    runCompetitionBoundaryTests,
+    runResponderInterferenceScopeBoundaryTests,
+    runCompetitiveOpenerRebidBoundaryTests,
+    runAdvancingBoundaryTests,
+    runTakeoutAdvanceBoundaryTests,
+    runSharedOneNtAdvanceBoundaryTests,
+    runResponderRaiseAdvanceBoundaryTests,
+    runResponderNaturalActionAdvanceBoundaryTests,
+    runNaturalActionPassLegalityTests,
+    runResponderArtificialActionAdvanceBoundaryTests,
+    runOneNtInterferencePartnerBoundaryTests,
+    runOneNtInterferenceExplanationTests,
+    runNaturalSuitOvercallerRebidExplanationTests,
+    runNaturalResponderRebidTeachingTests,
+    runConventionalResponderTeachingTests,
+    runOpenerInterferenceTeachingTests,
+    runOneNtInterferenceDoubleContinuityTests,
+    runBidExplanationDeliveryTests,
+    runMajorSupportNewSuitRejectionTests,
+    runRecordedCallFeedbackTests,
+    runConventionalOpenerEvidenceTests,
+    runConventionalRejectionFeedbackTests,
+    runInitialResponseEvidenceTests,
+    runNaturalCompetitiveRejectionFeedbackTests,
+    runForcingContinuationPassTests,
+    runPositiveAlternativeDeliveryTests,
+    runNaturalOpenerRebidEvidenceTests,
+    runRebidAlternativeFeedbackTests,
+    runDirectOvercallAlternativeTests,
+    runCompetitiveResponseAlternativesTests,
+    runCompetitiveBidExplanationTests,
+    runContestedSuitOvercallerRebidExplanationTests,
+    runTakeoutDoublerRebidExplanationTests,
+    runOvercallerRebidEvidenceTests,
+    runOneNtAndWeakTwoRebidExplanationTests,
+    runJumpOvercallAdvanceBoundaryTests,
+    runJumpOvercallForcingAdvanceRebidTests,
+    runWeakTwoOvercallExplanationTests,
+    runDontInitialExplanationTests,
+    runDontBoundaryTests,
+    runResponderRebidContextTests,
+    runResponderMajorRaiseContextTests,
+    runResponderRepeatedSuitContextTests,
+    runResponderSecondSuitContextTests,
+    runResponderStrongSecondSuitContextTests,
+    runResponderStrongTwoNtContextTests,
+    runResponderMajorOneNtContextTests,
+    runResponderMajorOneNtStrongTests,
+    runResponderInvitationExplanationTests,
+    runResponderMinorOneNtAndPassedHandTests,
+    runResponderStandardTwoLevelContextTests,
+    runResponderTwoOverOneContextTests,
+    runPracticeContinuationTests,
+    runResponderAfterMajorGameTryTests,
+    runResponderAfterOpenerSplinterTests,
+    runResponderAfterStrongJumpShiftTests,
+    runBiddingTurnStatusTests,
+    runContinuousAuctionFeedbackTests,
+    runUnmodeledDirectDefenseBoundaryTests,
+    runLaterStageTerminationGuidanceTests,
+    runCrossStageForceTests,
+    runEndingAndScopeStatusTests,
+    runStrongMinorArtificialSupportTests,
+    runBalancingAuctionAndDealTests,
+    runRuleTests,
+  ];
+  let failureCount = 0;
+  for (const run of testGroups) {
+    try {
+      failureCount += run();
+    } catch (error) {
+      failureCount += 1;
+      console.error(`FAIL test group ${run.name}: ${String(error)}`);
+    }
+  }
+  console.log(failureCount === 0 ? 'ZERO errors in all tests.' :
+    `${failureCount} error${failureCount === 1 ? '' : 's'} in tests.`);
+  if (failureCount !== 0) {
+    throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
+  }
+}
+
 //// Practice-deal evaluation and shared helpers
 
 /// Run all deals, including those requiring non-default partnership agreements.
@@ -1576,7 +1676,7 @@ function runDirectOvercallAlternativeTests (): number {
       scenario.prefix.every((call, index) => item.practiceAuction[index] === call));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q2 direct/balancing practice deal missing: ${scenario.name}.`);
+      console.error(`FAIL direct/balancing practice deal missing: ${scenario.name}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -1600,7 +1700,7 @@ function runDirectOvercallAlternativeTests (): number {
     if (selectedRule === undefined || !alternative || comparison.length === 0 ||
         !comparison.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q2 direct/balancing comparison or delivery: ${scenario.name}.`);
+      console.error(`FAIL direct/balancing comparison or delivery: ${scenario.name}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Direct overcall and balancing alternatives: ${checks} checks.\n`);
@@ -1697,12 +1797,12 @@ function runMajorNoSupportAgreementTests (): number {
   let failures = 0;
   let checks = 0;
   for (const { hcp, south } of hands) {
-    const { board } = makeRuleTestBoard({ description: 'B12 strength and prior Pass.',
+    const { board } = makeRuleTestBoard({ description: 'strength and prior Pass.',
       north: opening, south, practiceAuction: ['1S', 'Pass', '1NT'] });
     const actual = makeRuleEvalContext(board, ['1S', 'Pass']).handFacts.hcp;
     if (actual !== hcp) {
       failures += 1;
-      console.error(`FAIL B12 fixture: wanted ${hcp} HCP, got ${actual}.`);
+      console.error(`FAIL responder HCP test hand: wanted ${hcp} HCP, got ${actual}.`);
     }
     const unpassed: Call[] = ['1S', 'Pass'];
     const passed: Call[] = ['Pass', 'Pass', '1S', 'Pass'];
@@ -1727,13 +1827,13 @@ function runMajorNoSupportAgreementTests (): number {
       const actualBoard = item.auction === passed ? { ...board, dealer: 'S' as const } : board;
       if (supports(item.call, actualBoard, item.auction, item.system, item.rule) !== item.wanted) {
         failures += 1;
-        console.error(`FAIL B12 ${hcp}-HCP ${item.call} after ${item.auction.join(' ')} ` +
+        console.error(`FAIL ${hcp}-HCP ${item.call} after ${item.auction.join(' ')} ` +
           `in ${item.rule}: expected ${item.wanted}.`);
       }
     }
   }
   const { board: spadesBoard } = makeRuleTestBoard({
-    description: 'B12 show four spades rather than fallback 1NT after a heart opening.',
+    description: 'show four spades rather than fallback 1NT after a heart opening.',
     north: { S: 'A43', H: 'AKJT5', D: '972', C: '54' },
     south: { S: 'KQ87', H: '93', D: 'AQ65', C: '762' },
     practiceAuction: ['1H', 'Pass', '1S'],
@@ -1743,12 +1843,12 @@ function runMajorNoSupportAgreementTests (): number {
   if (!supports('1S', spadesBoard, spades, forcing,
       'respond-to-major-w/o-support-new-suit-one-level')) {
     failures += 1;
-    console.error('FAIL B12 four-card spade response after 1H not supported.');
+    console.error('FAIL four-card spade response after 1H not supported.');
   }
   if (supports('1NT', spadesBoard, spades, forcing,
       'respond-to-major-w/o-support-1nt-twooverone')) {
     failures += 1;
-    console.error('FAIL B12 1NT was not suppressed by available 1S.');
+    console.error('FAIL 1NT was not suppressed by available 1S.');
   }
   console.log(`${failures} ***FAILURES***. Major-no-support agreements: ${checks} behavioral checks.`);
   console.log('  Protects 11-12 HCP semi-forcing 1NT, passed-hand 2/1, and preferred 1S.\n');
@@ -1815,7 +1915,7 @@ function runInitialResponseEvidenceTests (): number {
       !weakPassResult.userCallMatchingRules.some((rule) => rule.id === 'respond-to-1nt-w/-pass-0-7-weak') ||
       weakPassCalls.length !== 1 || weakPassCalls[0]?.call !== 'Pass') {
     failures++;
-    console.error('FAIL Q4-7 weak unbalanced 1NT response should support Pass.');
+    console.error('FAIL weak unbalanced 1NT response should support Pass.');
   }
   // Expanding Pass eligibility must not hide weak five-card-major transfers or natural signoffs.
   for (const example of [
@@ -1828,7 +1928,7 @@ function runInitialResponseEvidenceTests (): number {
       item.description.includes(example.needle));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q4-7 missing weak 1NT suit-response hand: ${example.needle}.`);
+      console.error(`FAIL missing weak 1NT suit-response hand: ${example.needle}.`);
       continue;
     }
     const { board } = makeRuleTestBoard(deal);
@@ -1838,7 +1938,7 @@ function runInitialResponseEvidenceTests (): number {
     if (!choices.some(({ call }) => call === example.preferredCall) ||
         choices.some(({ call }) => call === 'Pass')) {
       failures++;
-      console.error(`FAIL Q4-7 weak 1NT Pass displaced ${example.preferredCall}.`);
+      console.error(`FAIL weak 1NT Pass displaced ${example.preferredCall}.`);
     }
   }
   const selected = [
@@ -1851,7 +1951,7 @@ function runInitialResponseEvidenceTests (): number {
       item.description.includes(scenario.needle));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q4-7 missing transfer hand: ${scenario.needle}.`);
+      console.error(`FAIL missing transfer hand: ${scenario.needle}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -1874,7 +1974,7 @@ function runInitialResponseEvidenceTests (): number {
     if (rule === undefined || otherSelection === undefined || support.length === 0 ||
         !support.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q4-7 preferred transfer feedback: ${scenario.needle}.`);
+      console.error(`FAIL preferred transfer feedback: ${scenario.needle}.`);
     }
   }
   checks++;
@@ -1882,7 +1982,7 @@ function runInitialResponseEvidenceTests (): number {
     item.description.includes('16-18: 7 HCP and four hearts qualify for Stayman'));
   if (shifted === undefined) {
     failures++;
-    console.error('FAIL Q4-7 missing shifted 1NT Pass example.');
+    console.error('FAIL missing shifted 1NT Pass example.');
   } else {
     const board = makeRuleTestBoard(shifted).board;
     const system = { ...defaultBiddingSystem, ...shifted.requiredSystem };
@@ -1894,7 +1994,7 @@ function runInitialResponseEvidenceTests (): number {
     if (hcp?.kind !== 'hcp' || hcp.min !== 0 || hcp.max !== 6 || hcp.actual !== 7 ||
         hcp.passed || result.userCallMatchingRules.length !== 0) {
       failures++;
-      console.error('FAIL Q4-7 adjusted 1NT response HCP boundary.');
+      console.error('FAIL adjusted 1NT response HCP boundary.');
     }
   }
   checks++;
@@ -1902,7 +2002,7 @@ function runInitialResponseEvidenceTests (): number {
     item.description.includes('10-HCP 4-4-4-1 responder'));
   if (waiting === undefined) {
     failures++;
-    console.error('FAIL Q4-7 missing strong 2C waiting hand.');
+    console.error('FAIL missing strong 2C waiting hand.');
   } else {
     const board = makeRuleTestBoard(waiting).board;
     const auction = waiting.practiceAuction.slice(0, 2);
@@ -1920,7 +2020,7 @@ function runInitialResponseEvidenceTests (): number {
     if (rule === undefined || support.length === 0 ||
         !support.every((line) => delivered.includes(line))) {
       failures++;
-      console.error('FAIL Q4-7 strong 2C waiting evidence delivery.');
+      console.error('FAIL strong 2C waiting evidence delivery.');
     }
   }
   checks++;
@@ -1928,7 +2028,7 @@ function runInitialResponseEvidenceTests (): number {
     item.description.includes('Seven hearts with 9 HCP'));
   if (opening === undefined) {
     failures++;
-    console.error('FAIL Q4-7 missing opening comparison hand.');
+    console.error('FAIL missing opening comparison hand.');
   } else {
     const board = makeRuleTestBoard(opening).board;
     const result = evaluateUserCall('3H', board, [], defaultBiddingSystem);
@@ -1939,7 +2039,7 @@ function runInitialResponseEvidenceTests (): number {
     if (strength?.kind !== 'totalPoints' || strength.actual !== 12 || strength.max !== 11 ||
         strength.passed || !getApplicableCandidateCalls(result).some(({ call }) => call === '1H')) {
       failures++;
-      console.error('FAIL Q4-7 strength and qualifying opening comparison.');
+      console.error('FAIL strength and qualifying opening comparison.');
     }
   }
   console.log(`${failures} ***FAILURES***. Initial-response evidence: ${checks} checks.\n`);
@@ -3139,7 +3239,7 @@ function runNaturalActionPassLegalityTests (): number {
       console.error(`FAIL ${testCase.name}: 1NT was offered after responder already bid 1NT.`);
     }
   }
-  console.log(`${failures} ***FAILURES***. B19 responder-1NT Pass legality: ` +
+  console.log(`${failures} ***FAILURES***. responder-1NT Pass legality: ` +
     `${cases.length * 2} checks.`);
   console.log('  An illegal natural 1NT advance cannot remove a valid Pass.\n');
   return failures;
@@ -3432,7 +3532,7 @@ function runJumpOvercallForcingAdvanceRebidTests (): number {
       if (!advance.some(({ call, rule }) => call === firstAdvance &&
           rule.id === 'advance-jump-overcall-forcing-new-suit')) {
         failures += 1;
-        console.error(`FAIL B4 ${test.name}: forcing new-suit advance did not qualify.`);
+        console.error(`FAIL ${test.name}: forcing new-suit advance did not qualify.`);
       }
     }
     const result = evaluateUserCall(test.call ?? 'Pass', board, test.auction, defaultBiddingSystem);
@@ -3443,7 +3543,7 @@ function runJumpOvercallForcingAdvanceRebidTests (): number {
       matches.length === 1 && matches[0]?.call === test.call && matches[0]?.rule.id === test.id;
     if (!correct || boundary !== (test.boundary === true)) {
       failures += 1;
-      console.error(`FAIL B4 ${test.name}: expected ${test.call ?? '-'} (${test.id ?? '-'}), ` +
+      console.error(`FAIL ${test.name}: expected ${test.call ?? '-'} (${test.id ?? '-'}), ` +
         `got ${formatCandidates(matches)}, boundary ${boundary}.`);
     }
     if (test.call !== undefined || test.boundary) {
@@ -3451,15 +3551,15 @@ function runJumpOvercallForcingAdvanceRebidTests (): number {
       const kind = test.boundary ? 'scopeBoundary' : 'supported';
       if (status.kind !== kind) {
         failures += 1;
-        console.error(`FAIL B4 ${test.name}: expected status ${kind}, got ${status.kind}.`);
+        console.error(`FAIL ${test.name}: expected status ${kind}, got ${status.kind}.`);
       }
       if (getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass')) {
         failures += 1;
-        console.error(`FAIL B4 ${test.name}: Pass cannot satisfy advancer's force.`);
+        console.error(`FAIL ${test.name}: Pass cannot satisfy advancer's force.`);
       }
     }
   }
-  console.log(`${failures} ***FAILURES***. B4 jump overcaller forcing-advance replies: ` +
+  console.log(`${failures} ***FAILURES***. jump overcaller forcing-advance replies: ` +
               `${cases.length} constructed-hand and auction-context checks.\n`);
   return failures;
 }
@@ -4379,7 +4479,7 @@ function runStrongMinorArtificialSupportTests (): number {
     if (!response.some(({ rule, call }) => call === test.firstResponse &&
         rule.id === test.responseRuleId)) {
       failures++;
-      console.error(`FAIL B5 ${test.name}: responder's artificial support bid did not qualify.`);
+      console.error(`FAIL ${test.name}: responder's artificial support bid did not qualify.`);
     }
     const result = evaluateUserCall(test.minCall ?? 'Pass', board, test.auction,
       defaultBiddingSystem);
@@ -4392,13 +4492,13 @@ function runStrongMinorArtificialSupportTests (): number {
       if (!options.some(({ call, rule }) => call === test.minCall && rule.id === ruleId) ||
           status.kind !== 'supported') {
         failures++;
-        console.error(`FAIL B5 ${test.name}: expected ${test.minCall} and supported status, ` +
+        console.error(`FAIL ${test.name}: expected ${test.minCall} and supported status, ` +
           `got ${formatCandidates(options)} / ${status.kind}.`);
       }
     } else if (status.kind !== 'scopeBoundary' ||
                status.rule.id !== test.expectedBoundary || options.length > 0) {
       failures++;
-      console.error(`FAIL B5 ${test.name}: expected boundary ${test.expectedBoundary}, got ` +
+      console.error(`FAIL ${test.name}: expected boundary ${test.expectedBoundary}, got ` +
         `${status.kind}, ${status.kind === 'scopeBoundary' ? status.rule.id : '-'}, ` +
         `${formatCandidates(options)}.`);
     }
@@ -4413,7 +4513,7 @@ function runStrongMinorArtificialSupportTests (): number {
   if (notJordan.applicableRules.some(({ id }) =>
       id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
     failures++;
-    console.error('FAIL B5: uncontested 2NT acquired the artificial Jordan boundary.');
+    console.error('FAIL uncontested 2NT acquired the artificial Jordan boundary.');
   }
   const { board: majorBoard } = makeRuleTestBoard({
     description: 'Jordan major game still has concrete rebid',
@@ -4426,9 +4526,9 @@ function runStrongMinorArtificialSupportTests (): number {
   if (majorResult.applicableRules.some(({ id }) =>
       id === 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras')) {
     failures++;
-    console.error('FAIL B5: major-suit Jordan acquired minor-suit scope boundary.');
+    console.error('FAIL major-suit Jordan acquired minor-suit scope boundary.');
   }
-  console.log(`${failures} ***FAILURES***. B5 strong minor artificial-support continuations: ` +
+  console.log(`${failures} ***FAILURES***. strong minor artificial-support continuations: ` +
               `${cases.length + 2} targeted checks.\n`);
   return failures;
 }
@@ -4574,7 +4674,7 @@ function runRebidAlternativeFeedbackTests (): number {
         item.requiredSystem?.[key as keyof BiddingSystem] === value));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q2 rebid practice deal missing: ${scenario.name}.`);
+      console.error(`FAIL rebid practice deal missing: ${scenario.name}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -4604,7 +4704,7 @@ function runRebidAlternativeFeedbackTests (): number {
         !generated.some((line) => line.includes(scenario.alternative)) ||
         !generated.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q2 rebid comparison or delivery: ${scenario.name}.`);
+      console.error(`FAIL rebid comparison or delivery: ${scenario.name}.`);
     }
   }
   // The matching major game is not invented for a responder who lacks game values.
@@ -4613,7 +4713,7 @@ function runRebidAlternativeFeedbackTests (): number {
   checks++;
   if (minimum === undefined) {
     failures++;
-    console.error('FAIL Q2 missing minimum responder practice hand.');
+    console.error('FAIL missing minimum responder practice hand.');
   } else {
     const board = makeRuleTestBoard(minimum).board;
     const prefix: Call[] = ['1H', 'Pass', '1S', 'Pass', '2H', 'Pass'];
@@ -4625,7 +4725,7 @@ function runRebidAlternativeFeedbackTests (): number {
         getNaturalResponderRebidLines(result, rule, getHandFacts(board.deal.S))
           .some((line) => line.includes('4H'))) {
       failures++;
-      console.error('FAIL Q2 invented a game alternative for minimum responder.');
+      console.error('FAIL invented a game alternative for minimum responder.');
     }
   }
   console.log(`${failures} ***FAILURES***. Rebid alternatives: ${checks} checks.\n`);
@@ -4655,7 +4755,7 @@ function runConventionalOpenerEvidenceTests (): number {
     const deal = deals.find((item) => item.practiceAuction.join(' ') === scenario.auction);
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q4 conventional deal not found: ${scenario.auction}.`);
+      console.error(`FAIL conventional deal not found: ${scenario.auction}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -4730,7 +4830,7 @@ function runConventionalOpenerEvidenceTests (): number {
     if (!valid || (reasons.length > 0 &&
         !reasons.every((line) => delivered.includes(line)))) {
       failures++;
-      console.error(`FAIL Q4 conventional opener evidence or delivery: ${scenario.auction} / ${scenario.call}.`);
+      console.error(`FAIL conventional opener evidence or delivery: ${scenario.auction} / ${scenario.call}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Conventional opener evidence: ${checks} checks.\n`);
@@ -5724,19 +5824,19 @@ function runResponderAfterMajorGameTryTests (): number {
         test.expected.some((call) => ! found.includes(call)) ||
         boundaryFound !== (test.boundary === true)) {
       failures += 1;
-      console.error(`FAIL B1 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+      console.error(`FAIL ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
         `found ${found.join(', ') || '-'}, boundary=${boundaryFound}.`);
     }
     // A supported candidate should be available before input; unusual strength should stop
     // at a scope boundary.  No invented Pass is acceptable after opener's forcing game try.
     if (test.expected.length && getBiddingTurnStatus(board, test.auction, defaultBiddingSystem).kind !== 'supported') {
       failures += 1;
-      console.error(`FAIL B1 ${test.name}: correct reply should have supported turn status.`);
+      console.error(`FAIL ${test.name}: correct reply should have supported turn status.`);
     }
     if (test.expected.length && getApplicableCandidateCalls(evaluation)
         .some(({ call }) => call === 'Pass')) {
       failures += 1;
-      console.error(`FAIL B1 ${test.name}: Pass must not satisfy a game-try reply rule.`);
+      console.error(`FAIL ${test.name}: Pass must not satisfy a game-try reply rule.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Responder answers to major game tries: ` +
@@ -5801,7 +5901,7 @@ function runResponderAfterOpenerSplinterTests (): number {
     if (actual.length !== test.expected.length ||
         test.expected.some((call) => ! actual.includes(call)) || boundary !== (test.boundary === true)) {
       failures += 1;
-      console.error(`FAIL B2 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+      console.error(`FAIL ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
         `got ${actual.join(', ') || '-'}, boundary=${boundary}.`);
     }
     // Any qualified response to the splinter must be 4M, never Pass or the short suit.
@@ -5809,7 +5909,7 @@ function runResponderAfterOpenerSplinterTests (): number {
     if ((test.expected.length > 0 && status.kind !== 'supported') ||
         (test.boundary && status.kind !== 'scopeBoundary')) {
       failures += 1;
-      console.error(`FAIL B2 ${test.name}: expected supported/scopeBoundary, got ${status.kind}.`);
+      console.error(`FAIL ${test.name}: expected supported/scopeBoundary, got ${status.kind}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Responder after opener splinter: ` +
@@ -5890,7 +5990,7 @@ function runResponderAfterStrongJumpShiftTests (): number {
         test.expected.some((call) => !actual.includes(call)) ||
         boundary !== (test.boundary === true)) {
       failures += 1;
-      console.error(`FAIL B3 ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
+      console.error(`FAIL ${test.name}: expected ${test.expected.join(', ') || '-'}, ` +
         `got ${actual.join(', ') || '-'}, boundary ${boundary}.`);
     }
     if (test.expected.length || test.boundary) {
@@ -5898,17 +5998,17 @@ function runResponderAfterStrongJumpShiftTests (): number {
       const expectedKind = test.expected.length ? 'supported' : 'scopeBoundary';
       if (status.kind !== expectedKind) {
         failures += 1;
-        console.error(`FAIL B3 ${test.name}: expected ${expectedKind} status, got ${status.kind}.`);
+        console.error(`FAIL ${test.name}: expected ${expectedKind} status, got ${status.kind}.`);
       }
       const passIsAllowed = getApplicableCandidateCalls(result).some(({ call }) => call === 'Pass');
       if (test.auction[4] !== '3NT' && test.auction[4] !== '4H' &&
           test.auction[4] !== '4S' && passIsAllowed) {
         failures += 1;
-        console.error(`FAIL B3 ${test.name}: Pass below game cannot satisfy a game force.`);
+        console.error(`FAIL ${test.name}: Pass below game cannot satisfy a game force.`);
       }
     }
   }
-  console.log(`${failures} ***FAILURES***. B3 responder after strong jump shift: ` +
+  console.log(`${failures} ***FAILURES***. responder after strong jump shift: ` +
               `${cases.length} constructed auction/hand checks.\n`);
   return failures;
 }
@@ -6403,7 +6503,7 @@ function runOvercallerRebidEvidenceTests (): number {
     const deal = deals.find((item) => item.practiceAuction.join(' ') === name);
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL missing Q4 strong-Double hand: ${name}.`);
+      console.error(`FAIL missing strong-Double hand: ${name}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -6891,7 +6991,7 @@ function runPositiveAlternativeDeliveryTests (): number {
     checks++;
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q2 missing existing practice deal: ${test.name}.`);
+      console.error(`FAIL missing existing practice deal: ${test.name}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -6916,7 +7016,7 @@ function runPositiveAlternativeDeliveryTests (): number {
         comparison.length === 0 ||
         !comparison.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q2 supported alternative teaching was not delivered: ${test.name}.`);
+      console.error(`FAIL supported alternative teaching was not delivered: ${test.name}.`);
     }
   }
   // Ordinary, without an actually qualifying jump, must not imply that the
@@ -6927,7 +7027,7 @@ function runPositiveAlternativeDeliveryTests (): number {
   checks++;
   if (ordinaryDeal === undefined) {
     failures++;
-    console.error('FAIL Q2 ordinary no-jump comparison fixture missing.');
+    console.error('FAIL ordinary no-jump comparison fixture missing.');
   } else {
     const board = makeRuleTestBoard(ordinaryDeal).board;
     const result = evaluateUserCall('1H', board, ['1C', 'Pass'],
@@ -6937,7 +7037,7 @@ function runPositiveAlternativeDeliveryTests (): number {
     if (rule === undefined || getMinorResponseSupportLines(result, rule)
       .some((line) => line.includes('2H'))) {
       failures++;
-      console.error('FAIL Q2 unqualified jump shift was presented as a supported alternative.');
+      console.error('FAIL unqualified jump shift was presented as a supported alternative.');
     }
   }
   console.log(`${failures} ***FAILURES***. Positive bidding alternatives: ${checks} checks.\n`);
@@ -6958,7 +7058,7 @@ function runCompetitiveBidExplanationTests (): number {
       item.practiceAuction.join(' ') === example.auction);
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL missing Q4 negative-Double hand: ${example.auction}.`);
+      console.error(`FAIL missing negative-Double hand: ${example.auction}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -6979,7 +7079,7 @@ function runCompetitiveBidExplanationTests (): number {
         evidence?.some((item) => item.length !== hand.lengths[item.suit] ||
           item.length < item.min) || handEvidence.length === 0) {
       failures++;
-      console.error(`FAIL Q4 negative-Double promised-suit evidence: ${example.auction}.`);
+      console.error(`FAIL negative-Double promised-suit evidence: ${example.auction}.`);
     }
   }
   const comparisons: { auction: string; selected: Call; ruleId: string;
@@ -7002,7 +7102,7 @@ function runCompetitiveBidExplanationTests (): number {
     const deal = collection.find((item) => item.practiceAuction.join(' ') === example.auction);
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL missing Q4 competitive comparison hand: ${example.auction}.`);
+      console.error(`FAIL missing competitive comparison hand: ${example.auction}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -7023,7 +7123,7 @@ function runCompetitiveBidExplanationTests (): number {
     if (rule === undefined || alternative === undefined || explanation.length === 0 ||
         !explanation.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q4 competitive alternative: ${example.selected} after ${auction.join(' ')}.`);
+      console.error(`FAIL competitive alternative: ${example.selected} after ${auction.join(' ')}.`);
     }
   }
   // Jordan's explicit shortage valuation must agree with the scored hand.
@@ -7032,7 +7132,7 @@ function runCompetitiveBidExplanationTests (): number {
     item.practiceAuction.join(' ') === '1D Double 2NT');
   if (jordan === undefined) {
     failures++;
-    console.error('FAIL missing Q4 Jordan example.');
+    console.error('FAIL missing Jordan example.');
   } else {
     const board = makeRuleTestBoard(jordan).board;
     const result = evaluateUserCall('2NT', board, jordan.practiceAuction.slice(0, 2),
@@ -7088,7 +7188,7 @@ function runConventionalRejectionFeedbackTests (): number {
     const deal = ntResponses.find((item) => item.description.includes(scenario.description));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q3 missing convention deal: ${scenario.description}.`);
+      console.error(`FAIL missing convention deal: ${scenario.description}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -7114,7 +7214,7 @@ function runConventionalRejectionFeedbackTests (): number {
           getApplicableCandidateCalls(result).some((candidate) => candidate.call === call)) ||
         generated.length === 0 || !generated.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q3 convention suppression evidence/delivery: ${scenario.description}.`);
+      console.error(`FAIL convention suppression evidence/delivery: ${scenario.description}.`);
     }
   }
   const forcing: { description: string; source: RuleTestDeal[]; prefixLength: number }[] = [
@@ -7132,7 +7232,7 @@ function runConventionalRejectionFeedbackTests (): number {
     const deal = scenario.source.find((item) => item.description.includes(scenario.description));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q3 missing forcing Pass deal: ${scenario.description}.`);
+      console.error(`FAIL missing forcing Pass deal: ${scenario.description}.`);
       continue;
     }
     const board = makeRuleTestBoard(deal).board;
@@ -7150,7 +7250,7 @@ function runConventionalRejectionFeedbackTests (): number {
     if (result.userCallMatchingRules.length !== 0 || generated.length === 0 ||
         !generated.every((line) => delivered.includes(line))) {
       failures++;
-      console.error(`FAIL Q3 forcing Pass explanation/delivery: ${scenario.description}.`);
+      console.error(`FAIL forcing Pass explanation/delivery: ${scenario.description}.`);
     }
   }
   const strong = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
@@ -7158,7 +7258,7 @@ function runConventionalRejectionFeedbackTests (): number {
   checks++;
   if (strong === undefined) {
     failures++;
-    console.error('FAIL Q3 missing weak responder to strong 2C.');
+    console.error('FAIL missing weak responder to strong 2C.');
   } else {
     const board = makeRuleTestBoard(strong).board;
     const auction: Call[] = ['2C', 'Pass'];
@@ -7181,7 +7281,7 @@ function runConventionalRejectionFeedbackTests (): number {
         getStrongTwoCResponseFailureLines(unrelated).some((line) =>
           line.includes('positive 2NT response'))) {
       failures++;
-      console.error('FAIL Q3 strong 2C positive 2NT evidence or unrelated-call safety.');
+      console.error('FAIL strong 2C positive 2NT evidence or unrelated-call safety.');
     }
   }
   // A legitimate natural signoff is not an outstanding conventional force.
@@ -7190,7 +7290,7 @@ function runConventionalRejectionFeedbackTests (): number {
   checks++;
   if (signoff === undefined) {
     failures++;
-    console.error('FAIL Q3 missing natural notrump signoff.');
+    console.error('FAIL missing natural notrump signoff.');
   } else {
     const board = makeRuleTestBoard(signoff).board;
     const result = evaluateUserCall('Pass', board, ['1NT', 'Pass', '3NT', 'Pass'],
@@ -7198,7 +7298,7 @@ function runConventionalRejectionFeedbackTests (): number {
     if (result.userCallMatchingRules.length === 0 ||
         getConventionalForcingPassFailureLines(result).length > 0) {
       failures++;
-      console.error('FAIL Q3 treated a natural notrump signoff as forcing.');
+      console.error('FAIL treated a natural notrump signoff as forcing.');
     }
   }
   console.log(`${failures} ***FAILURES***. Conventional and forcing rejection: ${checks} checks.\n`);
@@ -7235,27 +7335,27 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
     const deal = all.find((item) =>
       item.practiceAuction.slice(0, scenario.prefix.length).join(' ') ===
       scenario.prefix.join(' '));
-    if (deal === undefined) { failures++; console.error(`FAIL Q3 forcing deal ${scenario.prefix.join(' ')}`); continue; }
+    if (deal === undefined) { failures++; console.error(`FAIL forcing deal ${scenario.prefix.join(' ')}`); continue; }
     const board = makeRuleTestBoard(deal).board;
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...scenario.system };
     const result = evaluateUserCall('Pass', board, scenario.prefix, system);
     const generated = getResponderForcingPassFailureLines(result);
     if (result.userCallMatchingRules.length > 0 || result.responderPassForce?.kind !== scenario.kind ||
         generated.length === 0 || delivered(deal, scenario.prefix, 'Pass', system, generated).length > 0) {
-      failures++; console.error(`FAIL Q3 responder force ${scenario.prefix.join(' ')}.`);
+      failures++; console.error(`FAIL responder force ${scenario.prefix.join(' ')}.`);
     }
   }
   // The completed Standard one-round force does not become a game force.
   checks++;
   const standard = all.find((item) =>
     item.practiceAuction.slice(0, 6).join(' ') === '1S Pass 2C Pass 2S Pass');
-  if (standard === undefined) { failures++; console.error('FAIL Q3 missing Standard control.'); }
+  if (standard === undefined) { failures++; console.error('FAIL missing Standard control.'); }
   else {
     const board = makeRuleTestBoard(standard).board;
     const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'standard' as const };
     const result = evaluateUserCall('Pass', board, ['1S','Pass','2C','Pass','2S','Pass'], system);
     if (result.responderPassForce !== null || getResponderForcingPassFailureLines(result).length > 0) {
-      failures++; console.error('FAIL Q3 invented Standard game force.');
+      failures++; console.error('FAIL invented Standard game force.');
     }
   }
   const conventionCases: { source: RuleTestDeal[]; prefix: Call[]; rejected: Call;
@@ -7284,7 +7384,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
     const deal = scenario.source.find((item) =>
       item.practiceAuction.slice(0, scenario.prefix.length).join(' ') ===
       scenario.prefix.join(' '));
-    if (deal === undefined) { failures++; console.error(`FAIL Q3 convention deal ${scenario.ruleId}`); continue; }
+    if (deal === undefined) { failures++; console.error(`FAIL convention deal ${scenario.ruleId}`); continue; }
     const board = makeRuleTestBoard(deal).board;
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
     const result = evaluateUserCall(scenario.rejected, board, scenario.prefix, system);
@@ -7294,21 +7394,21 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
           item.call === scenario.preferred && item.rule.id === scenario.ruleId) ||
         generated.length === 0 || generated.some((line) => !line.includes(scenario.preferred)) ||
         delivered(deal, scenario.prefix, scenario.rejected, system, generated).length > 0) {
-      failures++; console.error(`FAIL Q3 overcaller convention ${scenario.ruleId}.`);
+      failures++; console.error(`FAIL overcaller convention ${scenario.ruleId}.`);
     }
   }
   // Transfer-disabled natural signoffs must remain eligible, with no forcing warning.
   checks++;
   const signoff = NATURAL_1NT_OVERCALL_REBID_TEST_DEALS.find((deal) =>
     deal.practiceAuction.join(' ') === '1D 1NT Pass 2S Pass Pass');
-  if (signoff === undefined) { failures++; console.error('FAIL Q3 natural signoff missing.'); }
+  if (signoff === undefined) { failures++; console.error('FAIL natural signoff missing.'); }
   else {
     const board = makeRuleTestBoard(signoff).board;
     const system = { ...defaultBiddingSystem, ...signoff.requiredSystem };
     const result = evaluateUserCall('Pass', board, signoff.practiceAuction.slice(0, 5), system);
     if (result.userCallMatchingRules.length === 0 ||
         getOvercallerConventionFailureLines(result).length !== 0) {
-      failures++; console.error('FAIL Q3 natural signoff mislabeled as transfer.');
+      failures++; console.error('FAIL natural signoff mislabeled as transfer.');
     }
   }
   // A two-level natural heart response was eliminated for four-card length;
@@ -7316,7 +7416,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
   checks++;
   const competitive = all.find((deal) =>
     deal.practiceAuction.join(' ') === '1D 1S Double Pass 2H');
-  if (competitive === undefined) { failures++; console.error('FAIL Q3 competitive example missing.'); }
+  if (competitive === undefined) { failures++; console.error('FAIL competitive example missing.'); }
   else {
     const board = makeRuleTestBoard(competitive).board;
     const auction: Call[] = ['1D','1S'];
@@ -7334,7 +7434,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
         delivered(competitive, auction, '2H', system, generated).length > 0 ||
         getCompetitiveResponseFailureLines(unrelated).some((line) =>
           line.includes('[respond-over-suit-new-suit-two-level]'))) {
-      failures++; console.error('FAIL Q3 competitive length/refiner evidence.');
+      failures++; console.error('FAIL competitive length/refiner evidence.');
     }
   }
   // Three-card invitational support justifies the spade-first explanation, but
@@ -7345,7 +7445,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
   const longSpades = all.find((deal) =>
     deal.description.includes('A six-card spade suit and game strength favor 4S'));
   if (threeSupport === undefined || longSpades === undefined) {
-    failures++; console.error('FAIL Q3 support examples missing.');
+    failures++; console.error('FAIL support examples missing.');
   } else {
     for (const [deal, expected] of [[threeSupport, true], [longSpades, false]] as const) {
       const board = makeRuleTestBoard(deal).board;
@@ -7360,7 +7460,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
         line.includes('[respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback]'));
       if (available !== expected || selectedRoute !== expected ||
           (expected && delivered(deal, auction, '1NT', system, generated).length > 0)) {
-        failures++; console.error(`FAIL Q3 spades-first support route ${deal.description}.`);
+        failures++; console.error(`FAIL spades-first support route ${deal.description}.`);
       }
     }
   }
@@ -7378,7 +7478,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
   for (const scenario of jacobyCases) {
     checks++;
     const deal = all.find((item) => item.description.includes(scenario.match));
-    if (deal === undefined) { failures++; console.error(`FAIL Q3 Jacoby example ${scenario.match}`); continue; }
+    if (deal === undefined) { failures++; console.error(`FAIL Jacoby example ${scenario.match}`); continue; }
     const board = makeRuleTestBoard(deal).board;
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
     const result = evaluateUserCall(scenario.chosen, board, scenario.prefix, system);
@@ -7395,7 +7495,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
           failedHcp?.kind !== 'hcp' || failedHcp.actual !== scenario.expectedHcp) ||
         generated.length === 0 ||
         delivered(deal, scenario.prefix, scenario.chosen, system, generated).length > 0) {
-      failures++; console.error(`FAIL Q3 Jacoby rebid ${scenario.match}.`);
+      failures++; console.error(`FAIL Jacoby rebid ${scenario.match}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Natural and competitive rejections: ${checks} checks.\n`);
@@ -7485,7 +7585,7 @@ function runLaterStageTerminationGuidanceTests (): number {
         status.kind !== 'scopeBoundary' ||
         (status.kind === 'scopeBoundary' && status.rule.id !== boundaryId)) {
       failures++;
-      console.error(`FAIL B6 ${test.name}: response ${responderMatches.map(r=>r.id)}, ` +
+      console.error(`FAIL ${test.name}: response ${responderMatches.map(r=>r.id)}, ` +
         `control ${openerMatches.map(r=>r.id)}, status ${status.kind}.`);
     }
     checks++;
@@ -7494,10 +7594,10 @@ function runLaterStageTerminationGuidanceTests (): number {
         evaluateUserCall('Pass', board, test.auction, noTransfer).applicableRules
           .some(({ id }) => id === boundaryId)) {
       failures++;
-      console.error(`FAIL B6 ${test.name}: direct slam-control boundary leaked with Jacoby off.`);
+      console.error(`FAIL ${test.name}: direct slam-control boundary leaked with Jacoby off.`);
     }
   }
-  const { board: ntBoard } = makeRuleTestBoard({ description: 'B6 unrelated NT rebid',
+  const { board: ntBoard } = makeRuleTestBoard({ description: 'unrelated NT rebid',
     north: ntCases[0]!.north, south: ntCases[0]!.south,
     practiceAuction: ['1NT', 'Pass', '3H', 'Pass', '4H', 'Pass'] });
   for (const auction of [
@@ -7509,7 +7609,7 @@ function runLaterStageTerminationGuidanceTests (): number {
     if (evaluateUserCall('Pass', ntBoard, auction, defaultBiddingSystem).applicableRules
       .some(({ id }) => id === boundaryId)) {
       failures++;
-      console.error(`FAIL B6 scope boundary leaked after ${auction.join(' ')}.`);
+      console.error(`FAIL scope boundary leaked after ${auction.join(' ')}.`);
     }
   }
   const forceCases = [
@@ -7542,7 +7642,7 @@ function runLaterStageTerminationGuidanceTests (): number {
     if (matches.length === 0 || status.kind !== 'noModeledStage' ||
         (obligation?.kind ?? null) !== test.expected) {
       failures++;
-      console.error(`FAIL B7 ${test.name}: matches ${matches.map(r=>r.id)}, ` +
+      console.error(`FAIL ${test.name}: matches ${matches.map(r=>r.id)}, ` +
         `status ${status.kind}, obligation ${obligation?.kind ?? '-'} expected ${test.expected}.`);
     }
   }
@@ -7608,9 +7708,9 @@ function runLaterStageTerminationGuidanceTests (): number {
     balancing.practiceAuction, defaultBiddingSystem);
   if (balancingForce?.kind !== 'oneRoundForce' || balancingForce.lastStage !== 'balancing') {
     failures++;
-    console.error(`FAIL B7 balancing Double: ${JSON.stringify(balancingForce)}.`);
+    console.error(`FAIL balancing Double: ${JSON.stringify(balancingForce)}.`);
   }
-  console.log(`${failures} ***FAILURES***. B6/B7 further-slam and forcing-endpoint checks: ` +
+  console.log(`${failures} ***FAILURES***. further-slam and forcing-endpoint checks: ` +
     `${checks} targeted cases.\n`);
   return failures;
 }
@@ -7838,7 +7938,7 @@ function runForcingContinuationPassTests (): number {
     });
     if (example === undefined) {
       failures++;
-      console.error(`FAIL Q3 missing forced-rebid case ${item.ruleId}.`);
+      console.error(`FAIL missing forced-rebid case ${item.ruleId}.`);
       continue;
     }
     const board = makeRuleTestBoard(example).board;
@@ -7861,7 +7961,7 @@ function runForcingContinuationPassTests (): number {
         !reason.some((line) => line.includes(item.call) && line.includes(`[${item.ruleId}]`)) ||
         reason.some((line) => !displayed.includes(line))) {
       failures++;
-      console.error(`FAIL Q3 forced-rebid explanation ${item.ruleId}.`);
+      console.error(`FAIL forced-rebid explanation ${item.ruleId}.`);
     }
   }
   const controls: Call[][] = [
@@ -7885,7 +7985,7 @@ function runForcingContinuationPassTests (): number {
     });
     if (example === undefined) {
       failures++;
-      console.error(`FAIL Q3 missing nonforcing control ${auction.join(' ')}.`);
+      console.error(`FAIL missing nonforcing control ${auction.join(' ')}.`);
       continue;
     }
     const board = makeRuleTestBoard(example).board;
@@ -7895,7 +7995,7 @@ function runForcingContinuationPassTests (): number {
         getOpenerForcingRebidPassFailureLines(result).length > 0 ||
         getOvercallerForcingAdvancePassFailureLines(result).length > 0) {
       failures++;
-      console.error(`FAIL Q3 nonforcing Pass mislabeled ${auction.join(' ')}.`);
+      console.error(`FAIL nonforcing Pass mislabeled ${auction.join(' ')}.`);
     }
   }
   // A forcing advance can legitimately reach a judgment boundary with no
@@ -7905,7 +8005,7 @@ function runForcingContinuationPassTests (): number {
     deal.practiceAuction.join(' ') === '1H 1S 2H 3C Pass');
   if (boundary === undefined) {
     failures++;
-    console.error('FAIL Q3 missing forcing competitive judgment boundary.');
+    console.error('FAIL missing forcing competitive judgment boundary.');
   } else {
     const board = makeRuleTestBoard(boundary).board;
     const auction = boundary.practiceAuction;
@@ -7917,7 +8017,7 @@ function runForcingContinuationPassTests (): number {
         getApplicableCandidateCalls(result).length !== 0 ||
         getOvercallerForcingAdvancePassFailureLines(result).length !== 0) {
       failures++;
-      console.error('FAIL Q3 invented a forced reply at judgment boundary.');
+      console.error('FAIL invented a forced reply at judgment boundary.');
     }
   }
   console.log(`${failures} ***FAILURES***. Forcing continuation Pass: ` +
@@ -7947,7 +8047,7 @@ function runCrossStageForceTests (): number {
       item.practiceAuction.join(' ') === test.auction.join(' '));
     if (deal === undefined) {
       failures++;
-      console.error(`FAIL Q4-8 missing deal for ${test.name}.`);
+      console.error(`FAIL missing deal for ${test.name}.`);
       continue;
     }
     const { board } = makeRuleTestBoard(deal);
@@ -7958,7 +8058,7 @@ function runCrossStageForceTests (): number {
       test.auction.slice(0, test.after), system);
     if (before?.kind !== 'gameForce' || after !== null) {
       failures++;
-      console.error(`FAIL Q4-8 ${test.name}: before ${before?.kind ?? '-'}, ` +
+      console.error(`FAIL ${test.name}: before ${before?.kind ?? '-'}, ` +
         `after ${after?.kind ?? '-'}.`);
     }
   }
@@ -7967,7 +8067,7 @@ function runCrossStageForceTests (): number {
     deal.practiceAuction.join(' ') === '1S Pass 2D Pass 2H Pass 3S');
   if (natural === undefined) {
     failures++;
-    console.error('FAIL Q4-8 missing 2/1 natural major continuation.');
+    console.error('FAIL missing 2/1 natural major continuation.');
   } else {
     const { board } = makeRuleTestBoard(natural);
     const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
@@ -7975,7 +8075,7 @@ function runCrossStageForceTests (): number {
     if (getUnmodeledContinuationForce(board, continued.slice(0, 7), system)?.kind !==
           'gameForce' || getUnmodeledContinuationForce(board, continued, system) !== null) {
       failures++;
-      console.error('FAIL Q4-8 natural game after unsupported continuation.');
+      console.error('FAIL natural game after unsupported continuation.');
     }
   }
   checks++;
@@ -7983,7 +8083,7 @@ function runCrossStageForceTests (): number {
     deal.practiceAuction.join(' ') === '1H Pass Pass Pass');
   if (completeDeal === undefined) {
     failures++;
-    console.error('FAIL Q4-8 missing completed bridge auction.');
+    console.error('FAIL missing completed bridge auction.');
   } else {
     const { board } = makeRuleTestBoard(completeDeal);
     if (getBiddingTurnStatus(board, completeDeal.practiceAuction,
@@ -7991,7 +8091,7 @@ function runCrossStageForceTests (): number {
         getBiddingTurnStatus(board, completeDeal.practiceAuction.slice(0, 3),
           defaultBiddingSystem).kind === 'auctionComplete') {
       failures++;
-      console.error('FAIL Q4-8 practice ending versus real auction completion.');
+      console.error('FAIL practice ending versus real auction completion.');
     }
   }
   console.log(`${failures} ***FAILURES***. Cross-stage forces and endings: ` +
@@ -8152,100 +8252,4 @@ function runEndingAndScopeStatusTests (): number {
   return failures;
 }
 
-//// Test execution
-/// Continue running independent test groups after an unexpected exception. Individual
-/// assertion failures are already counted within their groups; preserve those counts.
-const testGroups: (() => number)[] = [
-  runMajorNoSupportAgreementTests,
-  runBasicOpeningExplanationTests,
-  runMixedRebidRegressionTests,
-  runResponderAfterMinorJumpRepeatTests,
-  runOpenerPassAfterPreemptRaiseTests,
-  runStrongOpenerAfterMajorSimpleRaiseTests,
-  runStrongTwoCFourFourFourOneBoundaryTests,
-  runResponderStrongAndSupportConventionTests,
-  runAuctionHelperTests,
-  runResponderNtConventionTests,
-  runOpeningPositionAndPassTests,
-  runWeakTwoOpeningRangeTests,
-  runAuctionContextTests,
-  runCompetitionBoundaryTests,
-  runResponderInterferenceScopeBoundaryTests,
-  runCompetitiveOpenerRebidBoundaryTests,
-  runAdvancingBoundaryTests,
-  runTakeoutAdvanceBoundaryTests,
-  runSharedOneNtAdvanceBoundaryTests,
-  runResponderRaiseAdvanceBoundaryTests,
-  runResponderNaturalActionAdvanceBoundaryTests,
-  runNaturalActionPassLegalityTests,
-  runResponderArtificialActionAdvanceBoundaryTests,
-  runOneNtInterferencePartnerBoundaryTests,
-  runOneNtInterferenceExplanationTests,
-  runNaturalSuitOvercallerRebidExplanationTests,
-  runNaturalResponderRebidTeachingTests,
-  runConventionalResponderTeachingTests,
-  runOpenerInterferenceTeachingTests,
-  runOneNtInterferenceDoubleContinuityTests,
-  runBidExplanationDeliveryTests,
-  runMajorSupportNewSuitRejectionTests,
-  runRecordedCallFeedbackTests,
-  runConventionalOpenerEvidenceTests,
-  runConventionalRejectionFeedbackTests,
-  runInitialResponseEvidenceTests,
-  runNaturalCompetitiveRejectionFeedbackTests,
-  runForcingContinuationPassTests,
-  runPositiveAlternativeDeliveryTests,
-  runNaturalOpenerRebidEvidenceTests,
-  runRebidAlternativeFeedbackTests,
-  runDirectOvercallAlternativeTests,
-  runCompetitiveResponseAlternativesTests,
-  runCompetitiveBidExplanationTests,
-  runContestedSuitOvercallerRebidExplanationTests,
-  runTakeoutDoublerRebidExplanationTests,
-  runOvercallerRebidEvidenceTests,
-  runOneNtAndWeakTwoRebidExplanationTests,
-  runJumpOvercallAdvanceBoundaryTests,
-  runJumpOvercallForcingAdvanceRebidTests,
-  runWeakTwoOvercallExplanationTests,
-  runDontInitialExplanationTests,
-  runDontBoundaryTests,
-  runResponderRebidContextTests,
-  runResponderMajorRaiseContextTests,
-  runResponderRepeatedSuitContextTests,
-  runResponderSecondSuitContextTests,
-  runResponderStrongSecondSuitContextTests,
-  runResponderStrongTwoNtContextTests,
-  runResponderMajorOneNtContextTests,
-  runResponderMajorOneNtStrongTests,
-  runResponderInvitationExplanationTests,
-  runResponderMinorOneNtAndPassedHandTests,
-  runResponderStandardTwoLevelContextTests,
-  runResponderTwoOverOneContextTests,
-  runPracticeContinuationTests,
-  runResponderAfterMajorGameTryTests,
-  runResponderAfterOpenerSplinterTests,
-  runResponderAfterStrongJumpShiftTests,
-  runBiddingTurnStatusTests,
-  runContinuousAuctionFeedbackTests,
-  runUnmodeledDirectDefenseBoundaryTests,
-  runLaterStageTerminationGuidanceTests,
-  runCrossStageForceTests,
-  runEndingAndScopeStatusTests,
-  runStrongMinorArtificialSupportTests,
-  runBalancingAuctionAndDealTests,
-  runRuleTests,
-];
-let failureCount = 0;
-for (const run of testGroups) {
-  try {
-    failureCount += run();
-  } catch (error) {
-    failureCount += 1;
-    console.error(`FAIL test group ${run.name}: ${String(error)}`);
-  }
-}
-console.log(failureCount === 0 ? 'ZERO errors in all tests.' :
-  `${failureCount} error${failureCount === 1 ? '' : 's'} in tests.`);
-if (failureCount !== 0) {
-  throw new Error(`${failureCount} rule-test failure${failureCount === 1 ? '' : 's'}.`);
-}
+runAllRuleTests();
