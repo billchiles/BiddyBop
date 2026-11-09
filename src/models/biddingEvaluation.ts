@@ -3,7 +3,7 @@
 
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
-         type BiddingSystem, type BiddingAgreement, type HandShapeConstraint, type RuleEvalContext,
+         type BiddingSystem, type HandShapeConstraint, type RuleEvalContext,
          type CallRefinementResult,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
@@ -528,39 +528,9 @@ function evaluateRule (rule: BidRule, context: RuleEvalContext,
 /// between agreement variants while evaluating a hand.
 ///
 export function getActiveBiddingRules (rules: BidRule[], system: BiddingSystem): BidRule[] {
-  return rules.filter((rule) => ruleIsEnabled(rule, system));
-}
-
-function ruleIsEnabled (rule: BidRule, system: BiddingSystem): boolean {
-  if (rule.agreement === undefined) {
-    return true;
-  }
-  return agreementMatchesSystem(rule.agreement, system);
-}
-
-function agreementMatchesSystem (agreement: BiddingAgreement, system: BiddingSystem): boolean {
-  switch (agreement.setting) {
-    case 'oneNtOpening':
-      return system.oneNtOpening === agreement.value;
-    case 'oneNtFiveCardLengthUpgrade':
-      return system.oneNtFiveCardLengthUpgrade === agreement.value;
-    case 'jumpShift':
-      return system.jumpShift === agreement.value;
-    case 'twoLevelNewSuitResponse':
-      return system.twoLevelNewSuitResponse === agreement.value;
-    case 'majorOneNtResponse':
-      return system.majorOneNtResponse === agreement.value;
-    case 'majorGameForceWithSupport':
-      return system.majorGameForceWithSupport === agreement.value;
-    case 'stayman':
-      return system.stayman === agreement.value;
-    case 'jacobyTransfers':
-      return system.jacobyTransfers === agreement.value;
-    case 'splinters':
-      return system.splinters === agreement.value;
-    case 'texasTransfers':
-      return system.texasTransfers === agreement.value;
-  }
+  return rules.filter((rule) =>
+    rule.agreement === undefined ||
+    system[rule.agreement.setting] === rule.agreement.value);
 }
 
 
