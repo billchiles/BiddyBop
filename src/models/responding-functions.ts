@@ -1,6 +1,6 @@
 /// Responder Bid Functions: refiners, applicability checks, and related helpers.
 
-import {biddingBaseline, STRAIN_ORDER, type AppliesWhenResult,
+import {STRAIN_ORDER, type AppliesWhenResult,
         type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult, type RuleEvalContext, 
         type SuitBid} from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
@@ -110,14 +110,14 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         considered, reason: 'no-four-card-suit', longerDiamondAlternative: false } },
     };
   }
-  // Sort qualifying majors regarless of convenient minors agreement:
+  // Sort qualifying majors:
   // longer first, H before S if both have 4 cards, S before H each is 5+
   let majors = eligible.filter((candidate) => candidate.suit === 'H' || candidate.suit === 'S');
   if (majors.length > 1) {
     majors = orderMajorSuitCandidates(majors);
   }
-  // Order based on opening, convenient minors, and majors
-  if (biddingBaseline.convenientMinors && majors.length > 0) {
+  // With convenient minors fixed on, prefer a qualifying major.
+  if (majors.length > 0) {
     if (majors.length === 2) {
       if (majors[0].length !== majors[1].length) {
         majors = [majors[0]];
@@ -149,9 +149,8 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
               longerDiamondAlternative: refined.some((call) => call === '1D') &&
                 refined.some((call) => call === '1H' || call === '1S'),
             } },};
-  } // convenient minors and 4+ card majors exist
-  // No major is available under the convenient-minor agreement, or convenient minors is off.
-  // In either case use ordinary longest-suit treatment among the remaining eligible calls.
+  } // qualifying 4+ card majors exist
+  // With no qualifying major, use the ordinary longest-suit treatment.
   // This code seems oddly super general and falsely clever, but we need to handle 0 majors, equal
   // majors, unequal majors, diamonds existence and their length, and it all falls out of this code.
   // First keep only equally longest suits.

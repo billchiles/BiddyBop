@@ -109,43 +109,45 @@ export function oneNtResponseHcpShift (system: BiddingSystem): number {
 /// machine-readable comments; configurable choices belong in BiddingSystem instead.  If a fixed
 /// assumption later becomes useful as a user-configurable agreement, move it to BiddingSystem.
 ///
-export const biddingBaseline = {
-  description: 'Standard American / SAYC-like system with selected modern adaptations',
-  // Opening fundamentals
-  fiveCardMajors: true,
-  openingMinPoints: 12,
-  convenientMinors: true,
-  convenientMinorsDetails:
-    'Open longer minor; four cards in both minors, open 1D; three cards in both minors open 1C',
-  strong2COpening: true,
-  strong2CMinHcp: 22,
-  weakTwos: true,
-  weakTwoSuitLength: 6,
-  weakTwoHcpRange: { min: 5, max: 11 },
-  weakThrees: true,
-  weakThreeSuitLength: 7,
-  // Three-level preempts stay below ordinary one-level opening values in this treatment.
-  weakThreeMaxTotalPoints: 11,
-  // Gerber is 4C after a notrump opening, asking for aces.
-  gerberAfterNotrump: true,
-  // 4NT after a notrump opening is quantitative, not Blackwood.
-  fourNtAfterNotrumpIsQuantitative: true,
-  // Blackwood 4NT asks for aces after a suit auction.
-  blackwoodAfterSuitBid: true,
-  // Basic responding principles
-  oneSuitMinResponsePoints: 6,
-  oneSuitMinResponseNewSuitLength: 4,
-  oneSuitNewSuitResponseForcing: true,
-  oneSuitMinResponseTwoLevelPoints: 11,
-  respondConvenientMinorMinCount : 4,
-  respondConvenientMinorDetails : "if equal lengths of 4, bid up the line, if 5+, down the line ",
-  responseToMinorFourCardMajorsUpTheLine: true,
-  // Basic suit lengths implications
-  rebidOpeningSuitTypicalMinLength: 6,
-  // Hand valuation assumptions
-  ordinaryTotalPointsUseLengthPoints: true,
-  supportTotalPointsUseShortagePoints: true,
-};
+// export const biddingBaseline = {
+//   description: 'Standard American / SAYC-like system with selected modern adaptations',
+//   // Opening fundamentals
+//   fiveCardMajors: true,
+//   openingMinPoints: 12,
+//   convenientMinors: true,
+//   convenientMinorsDetails:
+//     'Open longer minor; four cards in both minors, open 1D; three cards in both minors open 1C',
+//   strong2COpening: true,
+//   strong2CMinHcp: 22,
+//   weakTwos: true,
+//   weakTwoSuitLength: 6,
+//   weakTwoHcpRange: { min: 5, max: 11 },
+//   weakThrees: true,
+//   weakThreeSuitLength: 7,
+//   // Three-level preempts stay below ordinary one-level opening values in this treatment.
+//   weakThreeMaxTotalPoints: 11,
+//   // Gerber is 4C after a notrump opening, asking for aces.
+//   gerberAfterNotrump: true,
+//   // 4NT after a notrump opening is quantitative, not Blackwood.
+//   fourNtAfterNotrumpIsQuantitative: true,
+//   // Blackwood 4NT asks for aces after a suit auction.
+//   blackwoodAfterSuitBid: true,
+//   // Fixed competitive defense
+//   dontAgainstStrongOneNt: true,
+//   // Basic responding principles
+//   oneSuitMinResponsePoints: 6,
+//   oneSuitMinResponseNewSuitLength: 4,
+//   oneSuitNewSuitResponseForcing: true,
+//   oneSuitMinResponseTwoLevelPoints: 11,
+//   respondConvenientMinorMinCount : 4,
+//   respondConvenientMinorDetails : "if equal lengths of 4, bid up the line, if 5+, down the line ",
+//   responseToMinorFourCardMajorsUpTheLine: true,
+//   // Basic suit lengths implications
+//   rebidOpeningSuitTypicalMinLength: 6,
+//   // Hand valuation assumptions
+//   ordinaryTotalPointsUseLengthPoints: true,
+//   supportTotalPointsUseShortagePoints: true,
+// };
 
 ///
 //// Types for declaring bidding rules

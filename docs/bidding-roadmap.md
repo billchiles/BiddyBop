@@ -34,12 +34,36 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
+- [ ] **Consolidate explanation diagnostic lookups.** Replace seven identical
+  lookup helpers in `src/models/explanations.ts` with `findCallDiagnostic`.
+- [ ] **Remove unused rule certainty metadata.** Delete `BidRule.certainty` and its
+  annotations throughout rule declarations, including `medium` values.
+- [ ] **Simplify rule agreement filtering.** Replace `ruleIsEnabled` and
+  `agreementMatchesSystem` with direct, typed agreement-property comparisons.
+- [ ] **Make special call evidence builders explicit on rules.** Introduce the
+  optional `BidRule.callEvidenceBuilder`, initially convert one representative
+  opener-rebid family, then the remaining families. Eliminate ID-pattern dispatch
+  in `evaluateCandidateCall` without changing hand qualification or explanations.
+  Preserve evidence for rejected calls and merge evidence from existing sources.
+- [ ] **Separately analyze requirement evidence in `evaluateHandConstraint`.** Review
+  its rule-ID-dependent `explain*` selection before deciding on changes; do not
+  combine this with the `callEvidenceBuilder` conversion.
+- [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
+  provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
+  a practice exercise distinct from completion of the bridge auction.
+- [ ] **Group practice-deal construction in `cards.ts`.** Keep it in that file,
+  under a distinct `////` section; preserve related comments and helper ordering.
+- [ ] **Cross-reference test-stage enumeration.** Add short comments to
+  `getTestedStages` in `tests/rule-tests.ts` and `assertionFields` in `tests/stats.ts`
+  pointing maintainers to the similar function in the other file. Do not
+  introduce a shared test module.
+- [ ] **Analyze removal of the All practice-bucket option.** Review the selector,
+  `nextTestDeal`, deal indexing, replay reporting, and registry assumptions before
+  deciding the smallest implementation change.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
-  Continue deliberate, separately tested organization passes. Review remaining
-  source readability and test organization with the rule-order audit completed.
-  Keep intentional spacing between related definitions and preserve manually
-  written introductory rationale when moving code. Avoid unrelated bidding
-  changes or new test infrastructure.
+  Continue deliberate, separately tested organization passes with the rule-order
+  audit completed. Keep intentional spacing and substantive manually written
+  rationale; avoid unrelated bidding changes or new test infrastructure.
 
 ## Deferred enhancements
 
