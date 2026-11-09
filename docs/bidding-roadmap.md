@@ -34,11 +34,12 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Make special call evidence builders explicit on rules.** Introduce the
-  optional `BidRule.callEvidenceBuilder`, initially convert one representative
-  opener-rebid family, then the remaining families. Eliminate ID-pattern dispatch
-  in `evaluateCandidateCall` without changing hand qualification or explanations.
-  Preserve evidence for rejected calls and merge evidence from existing sources.
+- [ ] **Convert remaining opener-rebid evidence families to rule-declared builders.**
+  The 1NT-response family already uses `BidRule.callEvidenceBuilder`; convert the
+  one- and two-level new-suit, competitive, artificial-support, and conventional
+  rebid families next. Eliminate their remaining ID-pattern dispatch from
+  `evaluateCandidateCall`, preserving evidence for rejected calls and merging
+  observations from existing sources without changing qualification or explanations.
 - [ ] **Separately analyze requirement evidence in `evaluateHandConstraint`.** Review
   its rule-ID-dependent `explain*` selection before deciding on changes; do not
   combine this with the `callEvidenceBuilder` conversion.

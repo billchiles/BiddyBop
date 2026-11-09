@@ -477,6 +477,33 @@ function getOneNtInterferenceContinuation (context: RuleEvalContext):
 
 //// Uncontested One-Level Suit Rebids
 
+/// Collect the opener's hand and auction facts for rebids after a natural 1NT response.
+/// This does not decide eligibility; appliesWhen and the candidate refiner do that.
+/// Return evidence even for a rejected call so its explanation can use the same facts.
+export function buildOpenerOneNtRebidEvidence (call: Call, context: RuleEvalContext,
+                                               system: BiddingSystem): CallEvidence | undefined {
+  const opening = getOpenerOpeningBid(context);
+  if (context.stage !== 'openerRebid' || opening === null || opening.strain === 'NT' ||
+      getResponderCall(context.dealer, context.auction) !== '1NT') {
+    return undefined;
+  }
+  const openingSuit = opening.strain as Suit;
+  const rebid = parseSuitBid(call);
+  const rebidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+  const previouslyPassed = responderPreviouslyPassed(context.dealer, context.auction);
+  return { openerOneNtRebid: {
+    openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+    rebidSuit, rebidLength: rebidSuit === null ? 0 : context.handFacts.lengths[rebidSuit],
+    hcp: context.handFacts.hcp, totalPoints: context.handFacts.totalPointsWLength,
+    lengthPoints: context.handFacts.lengthPoints,
+    balanced: context.handFacts.balanced,
+    balancedOrSemiBalanced: context.handFacts.balancedOrSemiBalanced,
+    previouslyPassed,
+    forcingOneNt: openingSuit !== 'C' && openingSuit !== 'D' &&
+      system.majorOneNtResponse === 'forcing' && !previouslyPassed,
+  } };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.

@@ -13,7 +13,7 @@ import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCall
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
-         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed }
+         getSeatForCallIndex, getPartnerSeat }
   from './auction';
 import { OpeningBidRules } from './opening-rules';
 import { ResponseBidRules } from './responding-rules';
@@ -562,33 +562,16 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
       telemetryLines.push(`FAIL: ${call} does not satisfy appliesWhen.`);
     }
   }
-  // Preserve the facts actually used in an opener's response-to-1NT rebid, without
-  // rechecking eligibility in the explanation layer. The candidate's requirements
-  // come from the declarative test or its custom second-suit applicability check.
-  const oneNtRebidFamily = context.stage === 'openerRebid' &&
-    (rule.id.includes('-after-minor-1nt') || rule.id.includes('-after-major-1nt'));
+  // Preserve evidence from appliesWhen, including for rejected calls. An optional
+  // rule-declared builder adds observations without making another eligibility decision.
+  const additionalEvidence = rule.callEvidenceBuilder?.(call, context, system);
+  let evidence = additionalEvidence === undefined ? result.callEvidence
+    : { ...result.callEvidence, ...additionalEvidence };
   const oneLevelSuitRebidFamily = context.stage === 'openerRebid' &&
     (rule.id.endsWith('-after-minor-one-level-new-suit') ||
      rule.id.endsWith('-after-major-one-level-new-suit'));
-  const opening = oneNtRebidFamily || oneLevelSuitRebidFamily ? getOpenerOpeningBid(context) : null;
+  const opening = oneLevelSuitRebidFamily ? getOpenerOpeningBid(context) : null;
   const rebid = parseSuitBid(call);
-  let evidence = result.callEvidence;
-  if (opening !== null && opening.strain !== 'NT' && getResponderCall(context.dealer, context.auction) === '1NT') {
-    const openingSuit = opening.strain as Suit;
-    const rebidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
-    evidence = { ...evidence, openerOneNtRebid: {
-      openingSuit, openingLength: context.handFacts.lengths[openingSuit],
-      rebidSuit, rebidLength: rebidSuit === null ? 0 : context.handFacts.lengths[rebidSuit],
-      hcp: context.handFacts.hcp, totalPoints: context.handFacts.totalPointsWLength,
-      lengthPoints: context.handFacts.lengthPoints,
-      balanced: context.handFacts.balanced,
-      balancedOrSemiBalanced: context.handFacts.balancedOrSemiBalanced,
-      previouslyPassed: responderPreviouslyPassed(context.dealer, context.auction),
-      forcingOneNt: openingSuit !== 'C' && openingSuit !== 'D' &&
-        system.majorOneNtResponse === 'forcing' &&
-        !responderPreviouslyPassed(context.dealer, context.auction),
-    } };
-  }
   if (oneLevelSuitRebidFamily && opening !== null && opening.strain !== 'NT') {
     const responderCall = getResponderCall(context.dealer, context.auction);
     const response = responderCall === null ? null : parseSuitBid(responderCall);
