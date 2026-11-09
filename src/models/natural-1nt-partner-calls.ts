@@ -42,7 +42,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'a qualifying transfer or natural signoff takes precedence.'],
     meaning: 'Sign off in 1NT; partner is expected to leave the contract there ' +
              'if there is no interference.',
-    certainty: 'high',
   },
   //
   {
@@ -58,7 +57,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
     appliesWhen: oneNtTwoNtInvitationApplies, // owns only local 2NT eligibility
     guidance: ['15-17: 8-9 HCP; 16-18: 7-8 HCP.'],
     meaning: 'Invitational raise to 2NT.',
-    certainty: 'high',
   },
   //
   {
@@ -73,7 +71,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { balanced: true } },
     guidance: ['15-17: 10-15 HCP; 16-18: 9-14 HCP.'],
     meaning: 'Place the contract in game.',
-    certainty: 'high',
   },
   //
   {
@@ -88,7 +85,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { balanced: true } },
     guidance: ['15-17: 16-17 HCP; 16-18: 15-16 HCP.'],
     meaning: 'Quantitative invitation to small slam.',
-    certainty: 'high',
   },
   //
   {
@@ -103,7 +99,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { balanced: true } },
     guidance: ['15-17: 18-19 HCP; 16-18: 17-18 HCP.'],
     meaning: 'Place the contract in small slam.',
-    certainty: 'high',
   },
   //
   {
@@ -119,7 +114,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
     guidance: ['15-17: 20-21 HCP; 16-18: 19-20 HCP.'],
     meaning: 'Forces at least a small slam while inviting the 1NT bidder to bid grand slam ' +
              'with extra values.',
-    certainty: 'high',
   },
   //
   {
@@ -134,7 +128,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { balanced: true } },
     guidance: ['15-17: 22+ HCP; 16-18: 21+ HCP.'],
     meaning: 'Place the contract in grand slam.',
-    certainty: 'high',
   },
   //
   {
@@ -154,7 +147,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'must respond.',
                'Stayman asks the 1NT bidder for a four-card major.',
                'Can be used even if short in clubs.'],
-    certainty: 'high',
   },
   //
   {
@@ -175,7 +167,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'With 0-7 HCP over 15-17, or 0-6 over 16-18, transfer with a five-card or ' +
                'longer major and then pass rather ' +
                'than automatically passing 1NT; the major-suit contract may play better.'],
-    certainty: 'high',
   },
   //
   {
@@ -196,7 +187,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'With 0-7 HCP over 15-17, or 0-6 over 16-18, transfer with a five-card or ' +
                'longer major and then pass rather ' +
                'than automatically passing 1NT; the major-suit contract may play better.'],
-    certainty: 'high',
   },
   //
   {
@@ -215,7 +205,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
     guidance: ['15-17: 0-7 HCP; 16-18: 0-6 HCP.',
                'With a weak hand and a five-card or longer major, prefer the major-suit ' +
                'signoff to automatically passing 1NT.'],
-    certainty: 'high',
   },
   //
   {
@@ -232,7 +221,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'Good means six or more cards with at least two of A/K/Q.'],
     meaning: 'Invitational natural minor-suit bid asking whether the 1NT bidder has a ' +
              'fitting top honor.',
-    certainty: 'high',
   },
   //
   {
@@ -251,7 +239,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { noFourCardOtherMajor: true } },
     guidance: ['15-17: 10-15 HCP; 16-18: 9-14 HCP.'],
     meaning: 'Natural game signoff with a six-card or longer major.',
-    certainty: 'high',
   },
   //
   {
@@ -270,7 +257,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    suitLengths: [{ suit: 'H', min: 6 }, { suit: 'S', max: 3 }] },
     guidance: ['15-17: 10-15 HCP; 16-18: 9-14 HCP.'],
     meaning: 'Texas transfer asks the 1NT bidder to bid 4H.',
-    certainty: 'high',
   },
   //
   {
@@ -289,7 +275,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    suitLengths: [{ suit: 'S', min: 6 }, { suit: 'H', max: 3 }] },
     guidance: ['15-17: 10-15 HCP; 16-18: 9-14 HCP.'],
     meaning: 'Texas transfer asks the 1NT bidder to bid 4S.',
-    certainty: 'high',
   },
   //
   {
@@ -307,7 +292,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     guidance: ['15-17: 10+ HCP; 16-18: 9+ HCP.'],
     meaning: 'Natural game-forcing major-suit response.',
-    certainty: 'high',
   },
   //
   {
@@ -328,7 +312,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                    shape: { noFourCardOtherMajor: true } },
     guidance: ['15-17: 16+ HCP; 16-18: 15+ HCP.'],
     meaning: 'Natural game-forcing major-suit bid with slam interest.',
-    certainty: 'high',
   },
   //
   {
@@ -347,7 +330,6 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'slam and ace count is the specific remaining information needed to choose the ' +
                'final contract.'],
     meaning: 'Gerber is artificial and forcing, asking the 1NT bidder to show aces.',
-    certainty: 'high',
   },
 ];
 

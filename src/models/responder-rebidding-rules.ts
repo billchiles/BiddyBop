@@ -32,7 +32,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'passMinimumNt'),
     meaning: 'After 2C–2D–2NT, opener has shown 22–24 balanced HCP; with 0–2 HCP, 2NT may be the practical contract.',
     guidance: ['Unlike an unbalanced suit rebid by the strong opener, this 2NT rebid is nonforcing.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-strong-2c-waiting-game-3nt', kind: 'responderRebid',
@@ -43,7 +42,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'After 2C–2D–2NT, balanced 4–9 HCP ordinarily supplies enough for notrump game.',
     guidance: ['With exactly three HCP, a long suit or exceptional distribution, the game choice is borderline; ' +
                'do not treat the point threshold as a guarantee of nine tricks.'],
-    certainty: 'medium',
   },
   {
     id: 'responder-rebid-strong-2c-waiting-pass-3nt', kind: 'responderRebid',
@@ -53,7 +51,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'passGameNt'),
     meaning: 'Opener has placed the partnership in 3NT with 25–27 balanced HCP.',
     guidance: ['With substantial additional responder strength, do not assume game is the final contract.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-strong-2c-positive-pass-3nt', kind: 'responderRebid',
@@ -64,7 +61,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'A natural 3NT rebid has reached game after an 8+ HCP positive response.',
     guidance: ['This rule is limited to balanced minimum-positive hands; evaluate stronger ' +
                'hands and special suit fits individually for slam interest.'],
-    certainty: 'medium',
   },
   {
     id: 'responder-rebid-strong-2c-positive-major-game', kind: 'responderRebid',
@@ -75,7 +71,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderStrongTwoCDecisionApplies(call, context, 'positiveMajorGame'),
     meaning: 'Opener raised responder’s positive five-card major with three-card support; game is forced.',
     guidance: ['The major fit is established. Larger positive holdings may justify further slam judgment.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-strong-2c', kind: 'scopeBoundary',
@@ -91,7 +86,6 @@ export const ResponderRebidRules: BidRule[] = [
                'your longest suit or stoppers, without assuming an artificial waiting bid.',
                'The 28–30 HCP 4NT rebid after a waiting 2D is natural and quantitative, not Blackwood. ' +
                'Special distribution, a borderline 2NT game decision or slam interest requires judgment.'],
-    certainty: 'high',
   },
   //// Jacoby 2NT and responder splinter: terminate in agreed major when appropriate.
   // Opener 3NT following Jacoby 2NT is an artificial medium-strength rebid, NOT a
@@ -109,7 +103,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['Opener’s 3NT shows medium strength by convention: it is not a natural 3NT signoff.',
                'After a strong 3M, descriptive shortness, or a side suit, slam prospects depend on ' +
                'working honors; a 4M game choice remains available if the level permits.'],
-    certainty: 'medium',
   },
   {
     id: 'responder-rebid-jacoby-2nt-pass-major-game', kind: 'responderRebid',
@@ -121,7 +114,6 @@ export const ResponderRebidRules: BidRule[] = [
       responderMajorSupportConventionApplies(call, context, system, 'passGame', 'jacoby2NT'),
     meaning: 'Opener’s 4M has already fulfilled the Jacoby 2NT game force.',
     guidance: ['Higher values or working controls may make slam worth investigating.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-jacoby-2nt', kind: 'scopeBoundary',
@@ -137,7 +129,6 @@ export const ResponderRebidRules: BidRule[] = [
                'If opener has bid a side suit above four of the agreed major, returning to ' +
                'the major may require the five level. Do not invent an illegal 4M call.',
                'Further control bidding and slam decisions are outside executable coverage.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-splinter-major-game', kind: 'responderRebid',
@@ -150,7 +141,6 @@ export const ResponderRebidRules: BidRule[] = [
       responderMajorSupportConventionApplies(call, context, system, 'returnToGame', 'splinter'),
     meaning: 'Responder’s splinter established the fit and game force; returning to 4M declines further slam exploration.',
     guidance: ['Consider how opener’s side-suit control works opposite responder’s shortness.'],
-    certainty: 'medium',
   },
   {
     id: 'responder-rebid-splinter-pass-major-game', kind: 'responderRebid',
@@ -161,7 +151,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) =>
       responderMajorSupportConventionApplies(call, context, system, 'passGame', 'splinter'),
     meaning: 'Opener bid the agreed major game after the splinter. The partnership has reached game.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-splinter', kind: 'scopeBoundary',
@@ -176,7 +165,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['Partner’s below-game control bid shows slam interest; do not Pass it.',
                'High-card values opposite responder’s short suit may be wasted. Where slam remains ' +
                'plausible, further control decisions are outside the chosen teaching scope.'],
-    certainty: 'high',
   },
   //// After opener splinters in support of responder's suit
   // These are opener's artificial short-suit rebids, NOT responder's initial splinter
@@ -195,7 +183,6 @@ export const ResponderRebidRules: BidRule[] = [
              'and shortness in the side suit.  Ordinary responder values place game in the agreed major.',
     guidance: ["High cards in opener's short suit can be wasted opposite a singleton or void.",
                'Responder with unusually strong values may need slam investigation instead of an automatic game signoff.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-opener-major-splinter', kind: 'scopeBoundary',
@@ -211,7 +198,6 @@ export const ResponderRebidRules: BidRule[] = [
              'Responder with extra strength may need to explore slam rather than automatically stop in game.',
     guidance: ['Do not Pass a forcing splinter below game.  Slam evaluation depends on controls, ' +
                'working honors opposite the short suit, trump quality and distribution.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-opener-minor-splinter', kind: 'scopeBoundary',
@@ -227,7 +213,6 @@ export const ResponderRebidRules: BidRule[] = [
              'Choosing notrump, five of the minor or slam requires further judgment.',
     guidance: ['Do not Pass below game.  Minor-suit fits leave more room for notrump ' +
                'and slam decisions than a simple major-game return.'],
-    certainty: 'high',
   },
   //// Responder after Stayman over a natural 1NT or 2NT opening
   // Keep these at the responder-rebid stage; they do not initiate a further auction stage.
@@ -241,7 +226,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['2NT'], callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanInviteNt'),
     meaning: 'No four-four major fit; invite game with 8–9 HCP opposite 15–17 (7–8 opposite 16–18).',
-    guidance: ['Opener may accept with suitable maximum values.'], certainty: 'high',
+    guidance: ['Opener may accept with suitable maximum values.'],
   },
   {
     id: 'responder-rebid-1nt-stayman-game-3nt',
@@ -251,7 +236,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanGameNt'),
     meaning: 'No discovered four-four major fit; choose notrump game with ordinary game-going values.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-1nt-stayman-invite-major',
@@ -265,7 +249,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Four-card support for the major opener showed; invite game with invitational strength.',
     guidance: ['Opener can Pass at three with a minimum or bid major game with suitable ' +
                'maximum values and a useful fit.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-1nt-stayman-game-major',
@@ -277,7 +260,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'staymanGameMajor'),
     meaning: 'Opener showed four of this major; responder has four or more, so choose major game.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-2nt-stayman-game-3nt',
@@ -287,7 +269,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'stayman2NtGameNt'),
     meaning: 'No four-four major fit; choose 3NT with the ordinary 4–10 HCP game-response range.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-2nt-stayman-game-major',
@@ -299,7 +280,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'stayman2NtGameMajor'),
     meaning: 'Bid four of the matched major opposite a 20–21 HCP 2NT opening.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-nt-stayman',
@@ -316,7 +296,6 @@ export const ResponderRebidRules: BidRule[] = [
                'or four of the major to play with game values.',
                'Unusual distribution, alternative major-suit continuations, and slam ' +
                'investigation are outside these selected executable decisions.'],
-    certainty: 'high',
   },
   //// Responder after opener completes a Jacoby major transfer
   {
@@ -327,7 +306,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferPass'),
     meaning: 'Opener has completed the artificial transfer. With weak values, play the major partscore.',
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-1nt-transfer-invite-2nt',
@@ -338,7 +316,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferInviteNt'),
     meaning: 'With a balanced five-card major and invitational values, offer opener a choice of games.',
     guidance: ['With three-card support opener may prefer the major; otherwise consider 2NT or 3NT.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-1nt-transfer-invite-major',
@@ -352,7 +329,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'A six-card major supports a natural invitation at the three level.',
     guidance: ['With the long major already known, opener decides whether to Pass or accept ' +
                'game according to the notrump range and the quality of the fit.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-nt-transfer-game-3nt',
@@ -363,7 +339,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) => responderNtConventionApplies(call, context, system, 'transferGameNt'),
     meaning: 'With balanced game values and only five in the transferred major, offer 3NT.',
     guidance: ['Opener can choose four of the major with three-card support.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-nt-transfer-game-major-no-texas',
@@ -377,7 +352,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'With six or more cards and game strength, place the contract in the major.',
     guidance: ['With Texas enabled a direct Texas transfer is the fast game route; a Jacoby ' +
                'transfer followed by four of the major may convey additional slam interest.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-nt-transfer',
@@ -396,7 +370,6 @@ export const ResponderRebidRules: BidRule[] = [
                'can have a different, slam-interest meaning; this is not automatically recommended.',
                'Further slam-oriented, two-suited, and judgment-dependent continuations are ' +
                'not modeled.'],
-    certainty: 'high',
   },
   //// Responder after opener cooperates with direct 1NT-3M slam interest
   // The earlier 3M showed a long major and slam interest, not a Jacoby transfer.
@@ -418,7 +391,6 @@ export const ResponderRebidRules: BidRule[] = [
                'a slam requires judgment about controls, trump quality and overall playing strength.',
                'The app does not evaluate those further calls; do not treat opener\'s ' +
                'control bid as a signoff or an invitation to Pass.'],
-    certainty: 'high',
   },
   //// Responder after a natural 2/1 game-forcing new-suit response
   // Opener's economical rebid has not released the game force. These continuations
@@ -435,7 +407,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingGame'),
     meaning: "With a known eight-card fit, choose game in opener's six-card major; the two-card preference is enough.",
-    certainty: 'high',
   },
   //
   {
@@ -452,7 +423,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: "With three or more of opener's major and extras, a slow 3M raise remains forcing and leaves room to investigate slam.",
     guidance: ['Opener must continue toward game. With the fit established, assess working controls ' +
                'and playing strength before choosing game or exploring higher.'],
-    certainty: 'high',
   },
   //
   {
@@ -467,7 +437,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'secondMajorGame'),
     meaning: 'After opener naturally shows four cards in a new major, four-card responder support establishes game.',
-    certainty: 'high',
   },
   //
   {
@@ -484,7 +453,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Natural six-card suit; unlike Standard, a 3-level repetition is forcing to game.',
     guidance: ['Opener must not Pass below game. Support the long suit when suitable or ' +
                'continue describing shape and notrump suitability; the final strain is unresolved.'],
-    certainty: 'high',
   },
   //
   {
@@ -497,7 +465,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'gameNt'),
     meaning: 'With suitable balanced game values, stoppers, and no known major fit, choose 3NT.',
-    certainty: 'high',
   },
   //
   {
@@ -513,7 +480,6 @@ export const ResponderRebidRules: BidRule[] = [
              'no unbid-suit stopper is promised and opener must continue.',
     guidance: ['Opener should further describe suit length, a fit, or notrump suitability. ' +
                'Neither partner may stop below game under this 2/1 agreement.'],
-    certainty: 'high',
   },
   //
   {
@@ -530,7 +496,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['With ordinary game-going values and a suitable contract, accept opener\'s ' +
                'choice. Unusual extra playing strength or a poor fit may justify continuing; ' +
                'this rule does not attempt slam exploration.'],
-    certainty: 'high',
   },
   //
   {
@@ -553,7 +518,6 @@ export const ResponderRebidRules: BidRule[] = [
                'suit, or economical notrump description preserves room to find the right game. ' +
                'After opener bids game, Pass is possible; further bidding with extra strength, ' +
                'an unsuitable strain, or slam interest requires judgment beyond these rules.'],
-    certainty: 'high',
   },
   //
   //// Responder after a Standard two-level new-suit response
@@ -572,7 +536,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'repeatResponse'),
     meaning: 'With minimum values and six or more cards in the response suit, rebid it nonforcing ' +
              'after opener has satisfied the one-round force.',
-    certainty: 'high',
   },
   //
   {
@@ -585,7 +548,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passRaise'),
     meaning: "Opener has raised responder's natural suit, and minimum responder values can stop in partscore.",
-    certainty: 'high',
   },
   //
   {
@@ -597,7 +559,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3D'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'preferDiamonds'),
     meaning: "With minimum values and three or more diamonds, prefer opener's five-card-or-longer suit.",
-    certainty: 'high',
   },
   //
   {
@@ -614,7 +575,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['At 12 HCP, game can be close: the partnership may have 24-26 HCP. ' +
                'Passing is a reasonable minimum treatment; stoppers, honors and the quality ' +
                'of the long suit may instead favor 3NT. This is not an automatic game bid.'],
-    certainty: 'high',
   },
   //
   {
@@ -627,7 +587,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'gameNt'),
     meaning: 'Balanced game-going responder values justify 3NT opposite a minimum 2NT rebid.',
-    certainty: 'high',
   },
   //
   {
@@ -642,7 +601,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'majorGame'),
     meaning: 'With game values and a known heart fit after opener raises, choose 4H.',
-    certainty: 'high',
   },
   //
   {
@@ -655,7 +613,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderStandardTwoLevelApplies(call, context, 'passGame'),
     meaning: "Opener has placed the contract in notrump game after a Standard natural response.",
-    certainty: 'high',
   },
   //
   {
@@ -675,7 +632,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['A reverse or stronger opener rebid may create a new forcing obligation. ' +
                'When the best suit or further invitation is unclear, those continuations ' +
                'rely on too many variables and judgment for this app to reliably provide practice.'],
-    certainty: 'high',
   },
   //
   //// Responder after a natural 1NT response to a minor opening
@@ -690,7 +646,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passRepeat'),
     meaning: 'With minimum values and two or more cards in opener\'s six-card minor, Pass.',
-    certainty: 'high',
   },
   //
   {
@@ -702,7 +657,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passSecond'),
     meaning: 'After 1D-1NT-2C, four clubs establish a suitable fit for partscore.',
-    certainty: 'high',
   },
   //
   {
@@ -714,7 +668,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['2D'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'preferOpening'),
     meaning: 'With three diamonds but insufficient club fit, prefer opener\'s known five-card diamonds.',
-    certainty: 'high',
   },
   //
   {
@@ -726,7 +679,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'decline2Nt'),
     meaning: 'Six HCP opposite 18-19 HCP make game uncertain; Pass is a normal choice.',
-    certainty: 'high',
   },
   //
   {
@@ -738,7 +690,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'accept2Nt'),
     meaning: 'Seven or more HCP opposite 18-19 balanced HCP normally justify 3NT.',
-    certainty: 'high',
   },
   //
   {
@@ -750,7 +701,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'declineJump'),
     meaning: 'With 6-7 HCP and a minor fit, accept opener\'s invitational partscore.',
-    certainty: 'high',
   },
   //
   {
@@ -762,7 +712,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['Pass'], callCategory: ['signoff'],
     appliesWhen: (call, context) => responderAfterMinorOneNtApplies(call, context, 'passGame'),
     meaning: 'Opener has placed the contract in 3NT or a long-minor game.',
-    certainty: 'high',
   },
   //
   {
@@ -777,7 +726,6 @@ export const ResponderRebidRules: BidRule[] = [
                'For other hands, choosing between minor-suit game, 3NT, and further ' +
                'description relies on too many variables and judgment for this app ' +
                'to provide reliable practice.'],
-    certainty: 'high',
   },
   //
   //// Responder after opener's invitational jump repeat of a minor
@@ -794,7 +742,6 @@ export const ResponderRebidRules: BidRule[] = [
              'and at least two cards in that suit, with no more than five cards in the ' +
              'originally bid major, responder may Pass and decline further progress toward game.',
     guidance: ['With a particularly useful nine-point hand, game may be worth considering.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-3nt-after-minor-jump-repeat', kind: 'responderRebid',
@@ -807,7 +754,6 @@ export const ResponderRebidRules: BidRule[] = [
              "choose 3NT opposite opener's strong six-card minor.",
     guidance: ['A long responder major or uncertain outside stoppers makes the game choice ' +
                'more judgment-dependent than this rule can establish.'],
-    certainty: 'high',
   },
   {
     id: 'responder-rebid-boundary-after-minor-jump-repeat', kind: 'scopeBoundary',
@@ -822,7 +768,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['With borderline values, a long major, weak minor support, or greater strength, ' +
                'the right choice among Pass, a major-suit continuation, 3NT, and further ' +
                'minor bidding depends on judgment the app does not reliably teach here.'],
-    certainty: 'high',
   },
   //// Responder after an initial 1NT response to a major opening
   // The first 1NT may be forcing or nonforcing, and either agreement can carry a
@@ -838,7 +783,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'passMajor'),
     meaning: 'With minimum values, prefer opener\'s known six-card major to further bidding.',
-    certainty: 'high',
   },
   //
   {
@@ -854,7 +798,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'inviteMajor'),
     meaning: 'Invite major-suit game with constructive values and a known eight-card fit.',
     guidance: ['Opener may Pass or accept game according to the strength of the six-card major.'],
-    certainty: 'high',
   },
   //
   {
@@ -871,7 +814,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'With minimum values, prefer opener\'s five-card major with even two cards in support.',
     guidance: ['A two-card preference for opener\'s known five-card major can be safer than ' +
                'a weak fit in the newly shown minor.'],
-    certainty: 'high',
   },
   //
   {
@@ -887,7 +829,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['With forcing 1NT, 2C can contain only two clubs (so six-card club support ' +
                'guarantees eight trumps), while 2D has at least three (five diamonds suffice). ' +
                'Without a forcing 1NT obligation, opener’s economical new suit normally shows four.'],
-    certainty: 'high',
   },
   //
   {
@@ -903,7 +844,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'After showing a hand through 1NT, identify a long minor naturally and nonforcing.',
     guidance: ['Opener has already rebid, so this natural minor continuation is nonforcing ' +
                'under the selected 1NT-response agreement.'],
-    certainty: 'high',
   },
   //
   {
@@ -919,7 +859,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'delayedLimitRaise'),
     meaning: 'Show exactly three-card major support and 11-12 support points, inviting game.',
     guidance: ['This finishes the planned limit raise concealed by the initial 1NT response.'],
-    certainty: 'high',
   },
   //
   {
@@ -933,7 +872,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) => responderAfterMajorOneNtApplies(call, context, system, 'inviteNt'),
     meaning: 'Invite 3NT with a balanced constructive hand, without an established major fit.',
     guidance: ['Opener may accept with extra values and suitable notrump holdings.'],
-    certainty: 'high',
   },
   //
   {
@@ -949,7 +887,6 @@ export const ResponderRebidRules: BidRule[] = [
              'Responder can choose a suitable partscore or invite game where the hand is clear.',
     guidance: ['Other suit choices, unusual strength, and borderline fits need more information ' +
                'and judgment than this app can reliably evaluate.'],
-    certainty: 'high',
   },
   //
   //// After a major-opening 1NT response: opener shows an invitational maximum
@@ -966,7 +903,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'With 6-7 balanced HCP and no major fit, accept 2NT as the final contract.',
     guidance: ['Opener has 18-19 HCP. The partnership may fall short of the values normally ' +
                'needed for 3NT; with a borderline seven-count, good intermediates can matter.'],
-    certainty: 'high',
   },
   //
   {
@@ -978,7 +914,6 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'acceptNt'),
     meaning: 'With 8-12 balanced HCP and no known major fit, bid 3NT opposite 18-19 HCP.',
-    certainty: 'high',
   },
   //
   {
@@ -994,7 +929,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Three-card support and 11-12 support points make major game attractive opposite 18-19 HCP.',
     guidance: ['A three-card limit raise may have started with a 1NT response; opener has now ' +
                'shown enough strength to accept game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1007,7 +941,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'declineJumpMajor'),
     meaning: 'With minimum responder values and at least two-card support, Pass the invitational 3M rebid.',
     guidance: ['Opener showed extra strength and a six-card major, but has not forced game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1021,7 +954,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderAfterMajorOneNtStrongApplies(call, context, 'acceptJumpMajor'),
     meaning: 'With constructive responder values and at least two cards in opener\'s six-card major, bid game.',
-    certainty: 'high',
   },
   //
   {
@@ -1041,7 +973,6 @@ export const ResponderRebidRules: BidRule[] = [
                'After a strong jump shift, look for an eight-card fit or suitable notrump ' +
                'contract. Selecting a further natural description requires judgment beyond ' +
                'these modeled continuations.'],
-    certainty: 'high',
   },
   //
   {
@@ -1060,7 +991,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['A balanced minimum may Pass 2NT; constructive values normally accept 3NT ' +
                'without a major fit. After a jump to 3M, two-card support gives an eight-card ' +
                'fit. Borderline points, poor fit, or unusual distribution call for judgment.'],
-    certainty: 'high',
   },
   //
   //// After opener rebids a natural minimum 1NT
@@ -1080,7 +1010,6 @@ export const ResponderRebidRules: BidRule[] = [
                    { suit: 'S', max: 5 }, { suit: 'C', max: 5 }, { suit: 'D', max: 5 }] },
     meaning: 'Content to play 1NT opposite a balanced 12-14 HCP opener.',
     guidance: ['With six cards in the major you responded, consider playing in that suit instead.'],
-    certainty: 'high',
   },
   //
   {
@@ -1096,7 +1025,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 6, max: 10 }, suitLengths: [{ min: 6 }] },
     meaning: 'A nonforcing preference for the six-card major already shown.',
     guidance: ['Opener usually passes this signoff; it is not a new-suit force.'],
-    certainty: 'high',
   },
   //
   {
@@ -1115,7 +1043,6 @@ export const ResponderRebidRules: BidRule[] = [
                'With five cards in the major first shown, many partnerships use New Minor ' +
                'Forcing to investigate opener’s three-card support. This trainer does not ' +
                'implement New Minor Forcing or its follow-up auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -1131,7 +1058,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 11, max: 12 }, suitLengths: [{ min: 6 }] },
     meaning: "Invite game in responder's six-card major without forcing game.",
     guidance: ['Opener can pass or accept the invitation with sufficient strength and fit.'],
-    certainty: 'high',
   },
   //
   {
@@ -1147,7 +1073,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Choose notrump game after opener has limited the hand to 12-14 HCP.',
     guidance: ['The partnership generally leaves the contract in 3NT; strong slam-oriented ' +
                'hands need further judgment and are not forced into this rule.'],
-    certainty: 'high',
   },
   //
   {
@@ -1164,7 +1089,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: "Place the contract in responder's six-card major with enough values for game.",
     guidance: ['The balanced opener has at least two cards in the major. Further slam exploration ' +
                'with exceptional strength requires additional judgment.'],
-    certainty: 'high',
   },
   //
   {
@@ -1179,7 +1103,6 @@ export const ResponderRebidRules: BidRule[] = [
              'not implement that convention or its continuations.',
     guidance: ['Those decisions depend on too many variables and judgment for this app to ' +
                'reliably recommend one bid, including Pass.'],
-    certainty: 'high',
   },
   //
   //// After opener's strong natural 2NT rebid
@@ -1199,7 +1122,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 6, max: 6 }, shape: { balanced: true } },
     meaning: "With only six HCP, accept 2NT opposite opener's 18-19 HCP balanced hand.",
     guidance: ['This is a real, nonforcing Pass; opener has invited rather than forced game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1215,7 +1137,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: "Choose 3NT with a balanced 7-12 HCP hand opposite opener's 18-19 HCP.",
     guidance: ['With five cards in a major already shown, describing that suit first can ' +
                'help opener choose between 3NT and major-suit game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1232,7 +1153,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: "Show exactly five cards in responder's major, asking opener to choose a game.",
     guidance: ['With three cards in the major, opener ordinarily bids 4M; with only two, ' +
                '3NT is usually preferred. The partnership is committed to game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1248,7 +1168,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 7, max: 12 }, suitLengths: [{ min: 6 }] },
     meaning: "Six cards in responder's major ensure an eight-card fit opposite balanced opener.",
     guidance: ['The strength and known major fit favor bidding game directly.'],
-    certainty: 'high',
   },
   //
   {
@@ -1262,7 +1181,6 @@ export const ResponderRebidRules: BidRule[] = [
              'an unshown major, select another strain, or consider slam with exceptional strength.',
     guidance: ['These choices depend on additional partnership agreements, hand details, ' +
                'and judgment, so this app cannot reliably recommend a specific next bid.'],
-    certainty: 'high',
   },
   //
   //// After responder's simple raise of opener's major, opener invites game
@@ -1283,7 +1201,6 @@ export const ResponderRebidRules: BidRule[] = [
                'try, weak honors and no useful shortness in that suit favor stopping below game.',
                'After a balanced 2NT game try, eight support points are judgmental; ' +
                'both accepting and declining remain available.'],
-    certainty: 'high',
   },
   //
   {
@@ -1301,7 +1218,6 @@ export const ResponderRebidRules: BidRule[] = [
                'can make game attractive.',
                'After a balanced 2NT game try, eight support points are judgmental; ' +
                'both accepting and declining remain available.'],
-    certainty: 'high',
   },
   //
   {
@@ -1318,7 +1234,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['Three or four of the major is the normal decision.  Very unusual responder ' +
                'strength, a different final strain, or slam exploration requires additional judgment.',
                'A game try is forcing for one round; do not Pass merely because opener bid a side suit.'],
-    certainty: 'high',
   },
   //
   //// After opener naturally raises responder's one-level major
@@ -1336,7 +1251,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' } },
     meaning: 'Opener has raised with 12-16 support points. Responder has no invitation to offer.',
-    certainty: 'high',
   },
   //
   {
@@ -1353,7 +1267,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Invite game with 11-12 support points opposite opener\'s minimum raise.',
     guidance: ['Opener may Pass with a minimum, or bid four of the major with a ' +
                'maximum and useful working honors in the agreed fit.'],
-    certainty: 'high',
   },
   //
   {
@@ -1368,7 +1281,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: { totalPoints: { min: 13, max: 16, valuation: 'shortage' } },
     meaning: 'Choose game in the agreed major with ordinary game-going responder values.',
-    certainty: 'high',
   },
   //
   {
@@ -1382,7 +1294,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 6, max: 7, valuation: 'shortage' } },
     meaning: 'Opener has shown 17-18 support points and invited game; responder declines.',
-    certainty: 'high',
   },
   //
   {
@@ -1397,7 +1308,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: { totalPoints: { min: 8, max: 14, valuation: 'shortage' } },
     meaning: 'Accept game with enough support points opposite opener\'s stronger jump raise.',
-    certainty: 'high',
   },
   //
   {
@@ -1412,7 +1322,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 6, max: 12, valuation: 'shortage' } },
     meaning: 'Opener has shown maximum values and placed the partnership in major-suit game.',
     guidance: ['With these values, opener\'s game bid ordinarily settles the contract.'],
-    certainty: 'high',
   },
   //
   {
@@ -1426,7 +1335,6 @@ export const ResponderRebidRules: BidRule[] = [
              'or side-suit game tries need further information about controls and distribution.',
     guidance: ['Those continuations rely on too many variables and judgment for this app to ' +
                'reliably provide practice. Pass is not automatically recommended.'],
-    certainty: 'high',
   },
   //
   {
@@ -1440,7 +1348,6 @@ export const ResponderRebidRules: BidRule[] = [
              'support points, responder may want to investigate slam rather than sign off in game.',
     guidance: ['Those continuations rely on too many variables and judgment for this app to ' +
                'reliably provide practice.'],
-    certainty: 'high',
   },
   //
   {
@@ -1454,7 +1361,6 @@ export const ResponderRebidRules: BidRule[] = [
              'with 13 or more support points should consider slam rather than automatically Pass.',
     guidance: ['Slam decisions rely on too many variables and judgment for this app to ' +
                'reliably provide practice.'],
-    certainty: 'high',
   },
   //
   //// After a minimum repetition of opener's opening suit
@@ -1477,7 +1383,6 @@ export const ResponderRebidRules: BidRule[] = [
              'cards; a repeated minor normally does too but may be five with no suitable rebid.',
     guidance: ['Three cards in a repeated minor guarantee at least eight combined trumps ' +
                'when opener may have made a five-card fallback.'],
-    certainty: 'high',
   },
   //
   {
@@ -1494,7 +1399,6 @@ export const ResponderRebidRules: BidRule[] = [
                    suitLengths: [{ min: 6 }] },
     meaning: 'Prefer responder\'s six-card original suit without inviting game.',
     guidance: ['Opener ordinarily passes this nonforcing rebid.'],
-    certainty: 'high',
   },
   //
   {
@@ -1509,7 +1413,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
     meaning: 'Invite 3NT after opener has shown a minimum hand and normally six cards in the opening suit.',
     guidance: ['A suit invitation may be more attractive if an eight-card major fit is known.'],
-    certainty: 'high',
   },
   //
   {
@@ -1524,7 +1427,6 @@ export const ResponderRebidRules: BidRule[] = [
                    suitLengths: [{ suit: 'H', min: 2 }] },
     meaning: 'Invite 4H with at least two hearts opposite opener\'s six or more.',
     guidance: ['Opener can accept the invitation or settle for 3H.'],
-    certainty: 'high',
   },
   //
   {
@@ -1542,7 +1444,6 @@ export const ResponderRebidRules: BidRule[] = [
                    suitLengths: [{ min: 6 }] },
     meaning: 'Invite in responder\'s original six-card suit with extra strength.',
     guidance: ['A known major fit may offer another invitation in opener\'s suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -1558,7 +1459,6 @@ export const ResponderRebidRules: BidRule[] = [
     meaning: 'Place the contract in notrump with game values and balanced shape.',
     guidance: ['With a major fit, four of the major remains a reasonable alternative with ' +
                'sufficient support when the fit is attractive.'],
-    certainty: 'high',
   },
   //
   {
@@ -1572,7 +1472,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 13, max: 16, valuation: 'shortage' },
                    suitLengths: [{ suit: 'H', min: 2 }] },
     meaning: 'Choose the known eight-card heart fit and bid major-suit game.',
-    certainty: 'high',
   },
   //
   {
@@ -1586,7 +1485,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: responderSevenSpadeGameApplies,
     meaning: 'Place game in seven-card spades with sufficient strength and suit quality.',
     guidance: ['Opener has not shown spade support; an independently strong suit matters here.'],
-    certainty: 'high',
   },
   //
   {
@@ -1601,7 +1499,6 @@ export const ResponderRebidRules: BidRule[] = [
              'may still need to investigate another suit, forcing action, or slam.',
     guidance: ['Those continuations depend on too many variables and judgment for this app ' +
                'to reliably provide practice; Pass is not automatically recommended.'],
-    certainty: 'high',
   },
   //
   //// After opener shows an economical second natural suit
@@ -1617,7 +1514,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'passSecond'),
     meaning: 'Accept opener\'s natural second suit with at least four-card support and minimum values.',
-    certainty: 'high',
   },
   //
   {
@@ -1632,7 +1528,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'preferOpening'),
     meaning: 'Prefer opener\'s original suit with sufficient length to justify the fit.',
     guidance: ['A minor opening may be only three cards, so this preference requires more support.'],
-    certainty: 'high',
   },
   //
   {
@@ -1646,7 +1541,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'repeatResponse'),
     meaning: 'Prefer the independently long suit responder originally showed.',
-    certainty: 'high',
   },
   //
   {
@@ -1659,7 +1553,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'invitational'],
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteNt'),
     meaning: 'Invite 3NT with balanced values, knowing opener can still have up to 18 points.',
-    certainty: 'high',
   },
   //
   {
@@ -1674,7 +1567,6 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 4, note: 'A supported long opening suit can be preferable to notrump.' },
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteOpening'),
     meaning: 'Show constructive support for opener\'s first suit after a two-level second-suit rebid.',
-    certainty: 'high',
   },
   //
   {
@@ -1689,7 +1581,6 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 4, note: 'Fit-oriented invitations can be preferable to notrump.' },
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'inviteSecond'),
     meaning: 'Raise opener\'s natural second minor with invitational fit and strength.',
-    certainty: 'high',
   },
   //
   {
@@ -1704,7 +1595,6 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondPartscore'),
     meaning: 'Settle in spades after opener shows four and responder has four.',
-    certainty: 'high',
   },
   //
   {
@@ -1719,7 +1609,6 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondInvite'),
     meaning: 'Invite game in spades after the partnership discovers its eight-card fit.',
-    certainty: 'high',
   },
   //
   {
@@ -1734,7 +1623,6 @@ export const ResponderRebidRules: BidRule[] = [
     priority: { rank: 8, note: 'An established major fit is preferred to an uncertain minor preference.' },
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'majorSecondGame'),
     meaning: 'Place the contract in spades with game values and four-card support.',
-    certainty: 'high',
   },
   //
   {
@@ -1747,7 +1635,6 @@ export const ResponderRebidRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (call, context) => responderEconomicalDecisionApplies(call, context, 'gameNt'),
     meaning: 'Choose 3NT with balanced game strength and a basic stopper in the unbid suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1765,7 +1652,6 @@ export const ResponderRebidRules: BidRule[] = [
              'on partnership agreements and details of both hands.',
     guidance: ['Those decisions rely on too many variables and judgment for this app to ' +
                'reliably provide practice; Pass is not automatically the right action.'],
-    certainty: 'high',
   },
   //
   //// After responder makes a classic strong jump shift
@@ -1787,7 +1673,6 @@ export const ResponderRebidRules: BidRule[] = [
              'choose a known major fit or balanced notrump game; Pass only when game is reached.',
     guidance: ['A strong jump shift shows slam interest. A clear game is a practical placement ' +
                'with minimum strong values, not a ruling out of a possible slam.'],
-    certainty: 'medium',
   },
   //
   {
@@ -1807,7 +1692,6 @@ export const ResponderRebidRules: BidRule[] = [
     guidance: ['The best descriptive rebid, uncertain game strain, and slam exploration require ' +
                'judgment beyond these selected rules. If already at game, Pass may be reasonable ' +
                'but is not automatic with substantial additional values.'],
-    certainty: 'high',
   },
   //
   //// After opener reverses or makes a natural strong jump shift
@@ -1826,7 +1710,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: responderStrongSecondSuitGameApplies,
     meaning: 'Place game in a major shown by opener when responder provides enough support. ' +
              'After a reverse, use sufficient game values; after a jump shift game is already forced.',
-    certainty: 'high',
   },
   //
   {
@@ -1840,7 +1723,6 @@ export const ResponderRebidRules: BidRule[] = [
     appliesWhen: responderStrongSecondSuitGameApplies,
     meaning: 'Balanced values and a stopper in the unbid suit make notrump game a reasonable choice.',
     guidance: ['An eight-card major fit may be preferable when responder can support it.'],
-    certainty: 'high',
   },
   //
   {
@@ -1858,7 +1740,6 @@ export const ResponderRebidRules: BidRule[] = [
              'make a discouraging but forcing continuation rather than jump to game.',
     guidance: ['The best lower-level response depends on the agreed treatment of weak ' +
                'continuations, suit fits and stoppers. Pass immediately after the reverse is not appropriate.'],
-    certainty: 'high',
   },
   //
   {
@@ -1875,6 +1756,5 @@ export const ResponderRebidRules: BidRule[] = [
              'best strain is still uncertain, responder should continue describing the hand.',
     guidance: ['Choosing the next descriptive call or investigating slam depends on ' +
                'partnership agreements and hand judgment; Pass below game is not appropriate.'],
-    certainty: 'high',
   },
 ];

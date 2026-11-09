@@ -44,7 +44,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Partner has not bid, so you are not obliged to act over an opposing opening. ' +
                'Passing with a marginal hand may also be reasonable, but vulnerability and ' +
                'scoring judgment are outside this treatment.'],
-    certainty: 'high',
   },
   //
   //// Direct defenses intentionally outside the selected bidding treatment
@@ -59,7 +58,6 @@ export const OvercallRules: BidRule[] = [
              'competitive defenses to this opening.',
     guidance: ['Partnership agreements, suit quality, and vulnerability matter when deciding ' +
                'whether to compete.  Pass is not automatically the only reasonable action.'],
-    certainty: 'high',
   },
   //
   {
@@ -71,7 +69,6 @@ export const OvercallRules: BidRule[] = [
              'against a strong 2NT opening.',
     guidance: ['Suit quality, distribution, and partnership agreements affect the choice.  ' +
                'Do not interpret the lack of a recommendation as advice to Pass.'],
-    certainty: 'high',
   },
   //
   {
@@ -83,7 +80,6 @@ export const OvercallRules: BidRule[] = [
              'outside the app’s selected defense rules.',
     guidance: ['Consider distribution, likely tricks, vulnerability, and possible sacrifices.  ' +
                'No automatic Pass or Double is recommended.'],
-    certainty: 'high',
   },
   //
   {
@@ -97,7 +93,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'The app does not model defensive bidding against this high-level opening.',
     guidance: ['Penalty, sacrifice, and high-level competitive decisions depend on judgment ' +
                'and partnership methods that the app cannot evaluate reliably.'],
-    certainty: 'high',
   },
   //
   {
@@ -114,7 +109,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['The app’s DONT Double is artificial and promises a long one-suited hand, ' +
                'not a penalty hand.  When no DONT call qualifies, penalty-oriented choices ' +
                'and other partnership methods require judgment outside the app’s treatment.'],
-    certainty: 'high',
   },
   //
   //// DONT against a strong 1NT
@@ -133,7 +127,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['This is not a penalty Double. Partner normally bids 2C; the DONT bidder then ' +
                'passes with clubs or names the long suit.',
                'A one-suited spade hand uses direct 2S in this compact treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -146,7 +139,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: dontTwoSuitOvercallApplies,
     meaning: 'DONT 2C shows clubs plus exactly one higher suit, normally at least 5-4.',
     guidance: ['Partner may pass with a club fit; otherwise 2D asks for the higher suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -160,7 +152,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'DONT 2D shows diamonds plus exactly one major, normally at least 5-4.',
     guidance: ['Partner may pass with a diamond fit; otherwise 2H asks partner to pass or ' +
                'correct to 2S.'],
-    certainty: 'high',
   },
   //
   {
@@ -173,7 +164,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: dontTwoSuitOvercallApplies,
     meaning: 'DONT 2H shows both majors, normally at least 5-4.',
     guidance: ['Partner passes with a heart preference or bids 2S with a spade preference.'],
-    certainty: 'high',
   },
   //
   {
@@ -187,7 +177,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Natural DONT 2S shows one good 6+ card spade suit.',
     guidance: ['Full DONT treatments often distinguish a stronger spade hand by doubling first; ' +
                'that strength split is intentionally omitted here.'],
-    certainty: 'high',
   },
   //
   // Direct natural overcalls and informational takeout doubles after a one-level suit opening.
@@ -207,7 +196,6 @@ export const OvercallRules: BidRule[] = [
                'five-card-or-longer suit; vulnerability is not modeled.',
                'With 18+ HCP and a strong suit-oriented hand, begin with a takeout Double. ' +
                'A balanced 18-HCP hand with an opener-suit stopper may instead qualify for 1NT.'],
-    certainty: 'high',
   },
   //
   {
@@ -224,7 +212,6 @@ export const OvercallRules: BidRule[] = [
              '9 with eight or more).',
     guidance: ['A jump overcall is preemptive and uses a separate weak-jump treatment.',
                'This is a sounder action than a one-level overcall; vulnerability is not modeled.'],
-    certainty: 'high',
   },
   // Natural 1NT overcalls are balanced 15-18 HCP with a stopper in opener's suit.
   {
@@ -238,7 +225,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: naturalNotrumpOvercallApplies, // 15-18 HCP balanced with an opening-suit stopper
     meaning: "Natural 1NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
     guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
-    certainty: 'high',
   },
   //
   // Preemptive jump overcalls are distinct from economical suit overcalls: honor quality is
@@ -255,7 +241,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: { hcp: { min: 5, max: 11 } },
     meaning: 'Preemptive jump to the two level: 5-11 HCP with a good six-card suit.',
     guidance: ['This must be a jump over the cheapest natural overcall in that suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -271,7 +256,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Preemptive jump to the three level: fewer than 10 HCP with a good seven-card suit.',
     guidance: ['The source treats intermediate jump strains as partnership agreement; ' +
                'this app uses only natural jump overcalls in a new suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -286,7 +270,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: { hcp: { max: 9 } },
     meaning: 'Preemptive jump to the four level: fewer than 10 HCP with a good eight-card suit.',
     guidance: ['This is separate from rare four- and five-level opening preempts.'],
-    certainty: 'high',
   },
   //
   // Ordinary takeout doubles promise a tolerable fit in each unbid suit; a high-card-strength
@@ -305,7 +288,6 @@ export const OvercallRules: BidRule[] = [
                'specific length or shortness in opener’s suit.',
                'An 18+ HCP hand may double without this distribution, then describe its strength ' +
                'or suit on the next turn.'],
-    certainty: 'high',
   },
   //
   {
@@ -321,7 +303,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Exceptionally powerful distributional hands with fewer than 18 HCP require ' +
                'judgment; the app does not estimate playing tricks for this exception.',
                'General penalty decisions are not modeled; selected natural doubler rebids are modeled.'],
-    certainty: 'high',
   },
   //
   // Direct defenses to opposing weak 2D/2H/2S openings. They reuse the existing
@@ -338,7 +319,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Natural two-level overcall of a weak two: 13+ points with length, up to 17 HCP, ' +
              'and a good 5+ card suit.',
     guidance: ['With 18+ HCP, begin with a takeout double and describe the hand later.'],
-    certainty: 'high',
   },
   //
   {
@@ -354,7 +334,6 @@ export const OvercallRules: BidRule[] = [
              'and a good 6+ card suit.',
     guidance: ['Higher-level natural competition needs more shape and strength; the app does not ' +
                'model jump-overcall treatments over weak twos.'],
-    certainty: 'high',
   },
   //
   {
@@ -370,7 +349,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['This uses the same basic takeout-double shape as over a one-level suit opening. ' +
                'Prefer four-card support in the unbid suits when possible; no particular ' +
                'shortness in opener’s suit is promised.'],
-    certainty: 'high',
   },
   //
   {
@@ -385,7 +363,6 @@ export const OvercallRules: BidRule[] = [
              'promising support for all unbid suits.',
     guidance: ['The strong-hand exception is the same one used over a one-level suit opening; ' +
                'Later rebids distinguish this strong Double from an ordinary takeout Double.'],
-    certainty: 'high',
   },
   //
   {
@@ -399,7 +376,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: naturalNotrumpOvercallApplies,
     meaning: "Natural 2NT overcall: 15-18 HCP, balanced, with a stopper in opener's suit.",
     guidance: ['The app uses A, Kx, Qxx, or Jxxx as an executable stopper approximation.'],
-    certainty: 'high',
   },
   //
   //// Overcaller rebids
@@ -419,7 +395,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['conventional'],
     meaning: 'After 2C Stayman, 2D denies a four-card major, 2H shows four or more hearts ' +
       '(including both four-card majors), and 2S shows four spades without four hearts.',
-    certainty: 'high',
   },
   //
   {
@@ -434,7 +409,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['conventional'],
     meaning: 'Complete advancer’s artificial two-level major transfer.',
     guidance: ['Do not superaccept in this selected treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -448,7 +422,6 @@ export const OvercallRules: BidRule[] = [
     callRefinement: refineNaturalOneNtOvercallTexas,
     callCategory: ['conventional'],
     meaning: 'Complete the artificial transfer to game in advancer’s major.',
-    certainty: 'high',
   },
   //
   //// Natural 1NT overcall -- Invitations and natural signoffs
@@ -464,7 +437,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     meaning: 'Stop in 2NT with minimum or borderline values.',
     guidance: ['Use the configured 1NT strength range; the middle value permits either choice.'],
-    certainty: 'high',
   },
   //
   {
@@ -479,7 +451,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     meaning: 'Accept the invitation and bid 3NT.',
     guidance: ['Use the configured 1NT strength range; the middle value permits either choice.'],
-    certainty: 'high',
   },
   //
   {
@@ -492,7 +463,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: naturalOneNtOvercallerSignoffApplies,
     callCategory: ['signoff'],
     meaning: 'Pass natural 3NT/6NT/7NT, or a natural major signoff with transfers disabled.',
-    certainty: 'high',
   },
   //
   {
@@ -505,7 +475,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalOneNtOvercallerMinorInvitationApplies(call, context, false),
     callCategory: ['signoff'],
     meaning: 'Play the good six-card minor when overcaller lacks a fitting A/K/Q.',
-    certainty: 'high',
   },
   //
   {
@@ -518,7 +487,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalOneNtOvercallerMinorInvitationApplies(call, context, true),
     callCategory: ['natural', 'signoff'],
     meaning: 'Bid 3NT with A, K, or Q in advancer’s long minor.',
-    certainty: 'high',
   },
   //
   {
@@ -533,7 +501,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'With Jacoby off, choose 3NT on two-card major support or major game with a fit. ' +
              'With Jacoby on, four of the major is the bounded continuation after slam interest.',
     guidance: ['Further control bids or slam exploration are outside this selected overcall system.'],
-    certainty: 'high',
   },
   //
   {
@@ -547,7 +514,6 @@ export const OvercallRules: BidRule[] = [
       naturalOneNtOvercallerInvitationApplies(call, context, system, '4NT', false),
     callCategory: ['signoff'],
     meaning: 'Stop in 4NT rather than automatically bidding slam.',
-    certainty: 'high',
   },
   //
   {
@@ -561,7 +527,6 @@ export const OvercallRules: BidRule[] = [
       naturalOneNtOvercallerInvitationApplies(call, context, system, '4NT', true),
     callCategory: ['natural', 'signoff'],
     meaning: 'Bid 6NT when the selected range and hand strength justify accepting.',
-    certainty: 'high',
   },
   //
   {
@@ -574,7 +539,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Advancer made a forcing ace inquiry or forcing 5NT slam invitation.',
     guidance: ['Gerber ace replies and forcing 5NT continuations are deliberately not modeled. ' +
                'Do not treat this as a signoff or an automatic Pass.'],
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After advancer's ordinary or weak raise
@@ -590,7 +554,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     meaning: 'Pass the nonforcing raise with ordinary overcall values.',
     guidance: ['A weak jump raise is preemptive, not invitational.'],
-    certainty: 'high',
   },
   //
   {
@@ -604,7 +567,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Invite game with extras after a constructive raise of a one-level major overcall.',
     guidance: ['Advancer weighs maximum values, trump support and working honors before ' +
                'accepting; remember that the original overcall might have been light.'],
-    certainty: 'high',
   },
   //
   {
@@ -616,7 +578,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'raise-game'),
     callCategory: ['natural', 'signoff'],
     meaning: 'Choose major game with a strong six-card overcall and a known fit.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After a forcing support cuebid
@@ -631,7 +592,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     meaning: 'Return economically to the overcalled suit after the forcing support cuebid.',
     guidance: ['The cuebid is artificial and shows 11+ support points; this return is not a signoff.'],
-    certainty: 'high',
   },
   //
   {
@@ -645,7 +605,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Show more than a minimum overcall after advancer’s artificial support cuebid.',
     guidance: ['The forcing cuebid has already shown support. Advancer now judges whether ' +
                'the extra strength warrants major game; the invitation is not a game force.'],
-    certainty: 'high',
   },
   //
   {
@@ -657,7 +616,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'cue-game'),
     callCategory: ['natural'],
     meaning: 'Bid major game with substantial extras and a six-card trump suit.',
-    certainty: 'high',
   },
   //
   //// Preemptive jump overcall -- After advancer's forcing new suit
@@ -676,7 +634,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Three-card support suffices for a three-level raise.  A four-level raise ' +
                'needs stronger support: four trumps, A/K, or QJ in partner’s suit.',
                'Advancer’s new suit was forcing for one round; this raise satisfies that force.'],
-    certainty: 'high',
   },
   //
   {
@@ -693,7 +650,6 @@ export const OvercallRules: BidRule[] = [
                'It answers advancer’s one-round force.',
                'Advancer’s next judgment, including notrump and slam exploration, ' +
                'is beyond the modeled bidding depth.'],
-    certainty: 'high',
   },
   //
   {
@@ -707,7 +663,6 @@ export const OvercallRules: BidRule[] = [
                'further strain and playing-strength judgment is needed.',
                'Pass does not satisfy this one-round force.  The app cannot reliably ' +
                'recommend a notrump, second-suit, or unusual high-level continuation.'],
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After a constructive new suit
@@ -722,7 +677,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-pass'),
     callCategory: ['signoff'],
     meaning: 'Pass a nonforcing one-level advance with ordinary overcall values.',
-    certainty: 'high',
   },
   //
   {
@@ -735,7 +689,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     meaning: 'Support a five-card advancer suit when an eight-card fit is known.',
     guidance: ['A two-/three-level new suit is forcing one round; do not Pass it.'],
-    certainty: 'high',
   },
   //
   {
@@ -747,7 +700,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-repeat'),
     callCategory: ['natural'],
     meaning: 'Repeat the original six-card overcall suit when partner has forced a description.',
-    certainty: 'high',
   },
   //
   {
@@ -759,7 +711,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-nt'),
     callCategory: ['natural'],
     meaning: 'Describe strength in natural NT with a stopper in opener’s suit and no known fit.',
-    certainty: 'high',
   },
   //
   {
@@ -771,7 +722,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'new-second-suit'),
     callCategory: ['natural'],
     meaning: 'Describe a second five-card suit with sufficient strength and no advancer fit.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After natural notrump advances
@@ -784,7 +734,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-pass'),
     callCategory: ['signoff'],
     meaning: 'Decline a natural notrump invitation or accept a game signoff.',
-    certainty: 'high',
   },
   //
   {
@@ -798,7 +747,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Invite game with extras opposite 8–11 balanced points.',
     guidance: ['Advancer normally declines with a minimum and accepts with sufficient ' +
                'maximum values and adequate notrump stoppers.'],
-    certainty: 'high',
   },
   //
   {
@@ -810,7 +758,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => naturalSuitOvercallerRebidApplies(call, context, 'nt-game'),
     callCategory: ['natural', 'signoff'],
     meaning: 'Bid natural 3NT with sufficient overcall strength to accept game.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- Judgment boundaries
@@ -825,7 +772,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['The overcall does not fit the selected minimum return or strong major description. ' +
                'Pass cannot satisfy the cuebid’s force; further strength and game judgment ' +
                'remain outside the modeled replies.'],
-    certainty: 'high',
   },
   //
   {
@@ -839,7 +785,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['No selected support, long-suit repetition, natural NT, or second-suit description ' +
                'fits this hand. Do not Pass a forcing advance merely because the app has no ' +
                'specific natural recommendation.'],
-    certainty: 'high',
   },
   //
   {
@@ -852,7 +797,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'The raise, natural notrump, or one-level new suit does not require overcaller to bid.',
     guidance: ['With substantial extras, deciding whether to invite, bid game, or stop can depend ' +
                'on playing strength, suit quality, and partnership judgment.'],
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After responder also bids -- nonforcing support
@@ -867,7 +811,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'raise-pass'),
     callCategory: ['signoff'],
     meaning: 'Pass an ordinary competitive raise with minimum overcall values.',
-    certainty: 'high',
   },
   //
   {
@@ -880,7 +823,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'raise-invite'),
     callCategory: ['invitational'],
     meaning: 'Compete to three of the major with extra overcall values and a known fit.',
-    certainty: 'high',
   },
   //
   {
@@ -893,7 +835,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'raise-game'),
     callCategory: ['natural'],
     meaning: 'With a strong six-card major and fit, bid game.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After responder also bids -- forcing support cuebid
@@ -908,7 +849,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'cue-return'),
     callCategory: ['natural'],
     meaning: 'A strong artificial support cuebid requires overcaller to describe the strength and trump fit.',
-    certainty: 'high',
   },
   //
   {
@@ -921,7 +861,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'cue-game'),
     callCategory: ['natural'],
     meaning: 'Bid major game with 16+ HCP and at least five cards in the overcalled major, opposite the strong support cuebid.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After responder also bids -- natural new suit
@@ -936,7 +875,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'new-pass'),
     callCategory: ['signoff'],
     meaning: 'An economical one-level new suit is nonforcing; a minimum overcaller can Pass.',
-    certainty: 'high',
   },
   //
   {
@@ -949,7 +887,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'new-support'),
     callCategory: ['natural'],
     meaning: "Three-card support completes an eight-card fit in advancer's five-card suit.",
-    certainty: 'high',
   },
   //
   {
@@ -962,7 +899,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'new-repeat'),
     callCategory: ['natural'],
     meaning: "A long original suit is a useful natural description without partner's suit fit.",
-    certainty: 'high',
   },
   //
   {
@@ -975,7 +911,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'new-nt'),
     callCategory: ['natural'],
     meaning: "Balanced or semi-balanced with stoppers in the opponents' naturally shown suits.",
-    certainty: 'high',
   },
   //
   {
@@ -988,7 +923,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'new-second-suit'),
     callCategory: ['natural'],
     meaning: 'Describe a clear five-card second suit with sufficient extra strength.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After responder raises -- responsive Double
@@ -1003,7 +937,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'responsive-suit'),
     callCategory: ['natural'],
     meaning: 'Show the economical four-card unbid suit requested by advancer.',
-    certainty: 'high',
   },
   //
   {
@@ -1016,7 +949,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'responsive-repeat'),
     callCategory: ['natural'],
     meaning: 'Describe a sound six-card overcall when neither unbid suit fits.',
-    certainty: 'high',
   },
   //
   //// Natural suit overcall -- After responder also bids -- natural notrump
@@ -1031,7 +963,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'nt-pass'),
     callCategory: ['signoff'],
     meaning: 'Pass a nonforcing natural notrump call with minimum values, or a game signoff.',
-    certainty: 'high',
   },
   //
   {
@@ -1044,7 +975,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'nt-invite'),
     callCategory: ['invitational'],
     meaning: 'With extras, invite notrump game by raising advancer to 2NT.',
-    certainty: 'high',
   },
   //
   {
@@ -1057,7 +987,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => contestedSuitOvercallerRebidApplies(call, context, 'nt-game'),
     callCategory: ['natural'],
     meaning: 'A stronger overcaller can accept a natural invitation or improve a 1NT advance.',
-    certainty: 'high',
   },
   //
   {
@@ -1069,7 +998,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: (context) => contestedSuitOvercallerBoundaryApplies(context, 'forcing'),
     meaning: 'A forcing cuebid, forcing new suit, or responsive Double asks for a description.',
     guidance: ['When no clear fit, natural suit, or stopped notrump bid qualifies, this competitive choice requires further judgment; do not treat it as a signoff.'],
-    certainty: 'high',
   },
   //
   {
@@ -1081,7 +1009,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: (context) => contestedSuitOvercallerBoundaryApplies(context, 'redouble'),
     meaning: "Advancer's general strength Redouble does not specify a trump fit or a penalty contract.",
     guidance: ['Whether to defend the redoubled contract or continue in a suit needs further agreement and judgment.'],
-    certainty: 'high',
   },
   //
   {
@@ -1093,7 +1020,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: (context) => contestedSuitOvercallerBoundaryApplies(context, 'nonforcing'),
     meaning: 'A nonforcing raise, suit bid, or NT advance may permit Pass; extra-value action may depend on fit and playing strength.',
     guidance: ['No selected additional action fits this hand; marginal competition is not modeled.'],
-    certainty: 'high',
   },
   //
   {
@@ -1105,7 +1031,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: (context) => contestedSuitOvercallerBoundaryApplies(context, 'furtherCompetition'),
     meaning: "The opening side has competed again after advancer's call.",
     guidance: ['High-level bidding, penalty decisions, and forcing Pass meanings remain outside this selected overcaller continuation.'],
-    certainty: 'high',
   },
   //
   //// Natural 1NT overcall -- Natural interference and nonforcing advances
@@ -1119,7 +1044,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context, system) => contestedOneNtOvercallerRebidApplies(call, context, system, 'pass'),
     callCategory: ['signoff'],
     meaning: "Defend the opponents' natural suit after advancer Passes; further competition is judgment-dependent.",
-    certainty: 'high',
   },
   //
   {
@@ -1132,7 +1056,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context, system) => contestedOneNtOvercallerRebidApplies(call, context, system, 'invite-decline'),
     callCategory: ['signoff'],
     meaning: "With minimum configured NT values, Pass advancer's natural 2NT invitation.",
-    certainty: 'high',
   },
   //
   {
@@ -1145,7 +1068,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context, system) => contestedOneNtOvercallerRebidApplies(call, context, system, 'invite-accept'),
     callCategory: ['signoff'],
     meaning: 'Bid 3NT with sufficient NT strength and a stopper in the naturally overcalled suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1157,7 +1079,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: contestedOneNtOvercallerBoundaryApplies,
     meaning: 'Responder has introduced a natural two-level suit over our 1NT overcall.',
     guidance: ['Further competition and stopper-sensitive notrump decisions are limited here.'],
-    certainty: 'high',
   },
   //
   // Systems-on replies after a natural 2NT overcall of a weak two are a separate selected
@@ -1174,7 +1095,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['conventional'],
     meaning: 'After 3C Stayman, 3D denies a four-card major, 3H shows four or more hearts ' +
       '(including both four-card majors), and 3S shows four spades without four hearts.',
-    certainty: 'high',
   },
   //
   {
@@ -1189,7 +1109,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['conventional'],
     meaning: 'Complete the transfer to advancer’s requested major.',
     guidance: ['This compact treatment does not model transfer superaccepts.'],
-    certainty: 'high',
   },
   //
   {
@@ -1203,7 +1122,6 @@ export const OvercallRules: BidRule[] = [
     agreement: { setting: 'texasTransfers', value: true },
     callCategory: ['conventional'],
     meaning: 'Complete the Texas transfer to game in the requested major.',
-    certainty: 'high',
   },
   //
   {
@@ -1217,7 +1135,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: weakTwoTwoNtNaturalSignoffApplies,
     meaning: 'A natural 3NT or major-suit signoff is intended as the final contract. ' +
              'Transfer requests must instead be completed.',
-    certainty: 'high',
   },
   //// Weak-two takeout Double -- Selected rebids after advancer Pass-side response
   // An economical advance may have few values, even when forced to the three level.
@@ -1232,7 +1149,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'minimum-pass'),
     meaning: 'An ordinary takeout Doubler may Pass advancer’s possibly compulsory minimum suit response.',
-    certainty: 'high',
   },
   //
   {
@@ -1245,7 +1161,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'jump-pass'),
     meaning: 'A minimum Doubler may stop in advancer’s invitational jump suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1259,7 +1174,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'jump-game'),
     meaning: 'With extra Doubler values and four-card support, accept advancer’s ' +
              'constructive major-suit invitation.',
-    certainty: 'high',
   },
   //
   {
@@ -1272,7 +1186,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'minimum-raise'),
     meaning: 'With strong Doubler values and four-card support, make an economical constructive raise.',
-    certainty: 'high',
   },
   //
   {
@@ -1285,7 +1198,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'nt-pass'),
     meaning: 'With a minimum ordinary Double, stop in advancer’s natural 2NT.',
-    certainty: 'high',
   },
   //
   {
@@ -1298,7 +1210,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'nt-game'),
     meaning: 'Bid 3NT with suitable combined values opposite the 11–12 HCP invitation.',
-    certainty: 'high',
   },
   //
   {
@@ -1311,7 +1222,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'game-pass'),
     meaning: 'Advancer has selected a game contract; no further action is normally needed.',
-    certainty: 'high',
   },
   //
   {
@@ -1324,7 +1234,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'cue-suit'),
     meaning: 'Answer the strong cuebid with a four-card-or-longer unbid suit where space permits.',
-    certainty: 'high',
   },
   //
   {
@@ -1337,7 +1246,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'cue-nt'),
     meaning: 'Bid 3NT with sufficient values, suitable shape, and a stopper in the opening suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1350,7 +1258,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'strong-suit'),
     meaning: 'After a minimum or jump advance, show a good five-card-or-longer suit with 18+ HCP.',
-    certainty: 'high',
   },
   //
   {
@@ -1363,7 +1270,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoDoublerRebidApplies(call, context, 'strong-nt'),
     meaning: 'After a weak suit advance, a natural notrump rebid shows extra strength and an opening-suit stopper.',
-    certainty: 'high',
   },
   //
   {
@@ -1376,7 +1282,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Advancer’s cuebid is forcing; the Doubler must describe the hand further.',
     guidance: ['When no clear unbid suit or stopped notrump bid is available, choosing a ' +
                'strain at the remaining level requires judgment. Pass is not a signoff here.'],
-    certainty: 'high',
   },
   //
   {
@@ -1390,7 +1295,6 @@ export const OvercallRules: BidRule[] = [
              'and available bidding room.',
     guidance: ['After a nonforcing advance, Pass may be reasonable; a very strong Double ' +
                'usually needs a further description.'],
-    certainty: 'high',
   },
   //// Weak-two natural two-level suit overcall -- Selected rebids
   {
@@ -1403,7 +1307,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'raise-pass'),
     meaning: 'Accept a nonforcing three-level raise without enough extra playing strength for game.',
-    certainty: 'high',
   },
   //
   {
@@ -1416,7 +1319,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'raise-game'),
     meaning: 'An upper-range six-card major overcall can accept a three-level simple raise.',
-    certainty: 'high',
   },
   //
   {
@@ -1429,7 +1331,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'nt-pass'),
     meaning: 'Stop in natural 2NT with lower-range overcall values.',
-    certainty: 'high',
   },
   //
   {
@@ -1442,7 +1343,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'nt-game'),
     meaning: 'With upper-range values and suitable shape, raise the natural invitation to game.',
-    certainty: 'high',
   },
   //
   {
@@ -1455,7 +1355,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'game-pass'),
     meaning: 'Advancer has already placed the contract in notrump game.',
-    certainty: 'high',
   },
   //
   {
@@ -1468,7 +1367,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'cue-return'),
     meaning: 'An economical return to the original major describes a lower-range overcall.',
-    certainty: 'high',
   },
   //
   {
@@ -1481,7 +1379,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'cue-game'),
     meaning: 'With 16+ HCP, five or more cards in the overcalled major and known cuebid support, bid game.',
-    certainty: 'high',
   },
   //
   {
@@ -1494,7 +1391,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-support'),
     meaning: 'Show three-card or longer support for advancer’s natural forcing new suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1507,7 +1403,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-repeat'),
     meaning: 'A six-card original major supplies a natural response to advancer’s forcing suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1520,7 +1415,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => weakTwoSuitOvercallerRebidApplies(call, context, 'new-nt'),
     meaning: 'A higher-range semi-balanced overcaller with an opening-suit stopper may choose 3NT.',
-    certainty: 'high',
   },
   //
   {
@@ -1533,7 +1427,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'A support cuebid or natural new suit asks for another description, not Pass.',
     guidance: ['Without a clear fit, repeatable major, or suitable stopped notrump, ' +
                'the remaining bidding space calls for judgment.'],
-    certainty: 'high',
   },
   //
   {
@@ -1545,7 +1438,6 @@ export const OvercallRules: BidRule[] = [
     scopeBoundaryWhen: (context) => weakTwoDefenseBoundaryApplies(context, 'suit', false),
     meaning: 'A nonforcing raise or notrump invitation may be accepted; ' +
              'other constructive continuations need judgment.',
-    certainty: 'high',
   },
   //
   //// DONT overcaller continuations
@@ -1562,7 +1454,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Accept advancer’s relay when it reaches the concealed suit, or correct to that suit.',
     guidance: ['This models only the basic DONT landing sequence. Game inquiries and ' +
                'continuations after responder competes remain unsupported.'],
-    certainty: 'high',
   },
   //// Takeout Double -- Doubler rebids after advancer acts
   // Keep ordinary and 18+ HCP doubles distinct. Forcing cuebids and responsive Doubles
@@ -1577,7 +1468,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'minimum-pass'),
     meaning: 'A minimum ordinary takeout Doubler may stop in the suit advancer was obliged to choose.',
-    certainty: 'high',
   },
   //
   {
@@ -1590,7 +1480,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'minimum-raise'),
     meaning: 'Medium ordinary takeout Double with four-card support; raise economically.',
-    certainty: 'high',
   },
   //
   {
@@ -1604,7 +1493,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'maximum-raise'),
     meaning: 'Jump raise to three with 19+ total points with shortage, four-card ' +
              'support, and less than 22 HCP. Invites game; advancer may Pass.',
-    certainty: 'high',
   },
   //
   {
@@ -1617,7 +1505,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'jump-pass'),
     meaning: 'Ordinary minimum doubler can decline an invitational jump.',
-    certainty: 'high',
   },
   //
   {
@@ -1630,7 +1517,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'jump-game'),
     meaning: 'Stronger doubler with a suitable major fit accepts the invitation.',
-    certainty: 'high',
   },
   //
   {
@@ -1643,7 +1529,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'cue-suit'),
     meaning: "Advancer's cuebid is artificial and forcing; show a four-card unbid suit.",
-    certainty: 'high',
   },
   //
   {
@@ -1656,7 +1541,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'cue-nt'),
     meaning: 'Without a four-card unbid fit, natural notrump requires balanced shape and an opening-suit stopper.',
-    certainty: 'high',
   },
   //
   {
@@ -1669,7 +1553,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-pass'),
     meaning: 'Advancer has already promised the opening-suit stopper; do not require it again.',
-    certainty: 'high',
   },
   //
   {
@@ -1684,7 +1567,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Extra values may invite over natural 1NT.',
     guidance: ['Advancer evaluates the invitation with the originally promised opener-suit ' +
                'stopper and useful maximum values; a minimum can Pass.'],
-    certainty: 'high',
   },
   //
   {
@@ -1697,7 +1579,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'nt-game'),
     meaning: 'Accept a natural notrump invitation or raise 1NT to game with sufficient strength.',
-    certainty: 'high',
   },
   //
   {
@@ -1710,7 +1591,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'game-pass'),
     meaning: 'A game-level advance is ordinarily a signoff; slam exploration is outside this treatment.',
-    certainty: 'high',
   },
   //
   //// Strong takeout Double -- Double then suit or notrump
@@ -1724,7 +1604,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-suit'),
     meaning: 'An 18+ HCP Double followed by a good natural five-card-or-longer suit shows extra values.',
-    certainty: 'high',
   },
   //
   {
@@ -1737,7 +1616,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-nt'),
     meaning: 'With 18+ HCP, a balanced hand and opener-suit stopper, Double then NT shows strength.',
-    certainty: 'high',
   },
   //
   {
@@ -1751,7 +1629,6 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'strong-fit'),
     meaning: 'Direct major game over a potentially very weak minimum advance requires ' +
              'at least 22 HCP and four-card support; lesser strong hands can invite.',
-    certainty: 'high',
   },
   //
   //// Takeout Double -- After responder competes
@@ -1765,7 +1642,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'competitive-pass'),
     meaning: 'A voluntary natural suit advance after responder acts is not a forced response.',
-    certainty: 'high',
   },
   //
   {
@@ -1778,7 +1654,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'competitive-raise'),
     meaning: 'Selected constructive major game with adequate support and strength.',
-    certainty: 'high',
   },
   //
   {
@@ -1791,7 +1666,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'responsive-suit'),
     meaning: 'Responsive Double asks the doubler to choose an economical unbid suit.',
-    certainty: 'high',
   },
   //
   {
@@ -1804,7 +1678,6 @@ export const OvercallRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: (call, context) => takeoutDoublerRebidApplies(call, context, 'escape-pass'),
     meaning: "An ordinary doubler can stop in partner's weak escape; complex penalty choices are omitted.",
-    certainty: 'high',
   },
   //
   //// Takeout Double -- Explanations at the selected stopping point
@@ -1818,7 +1691,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'Partner asked the doubler to describe a suit or strength, not to Pass.',
     guidance: ['Without a clear natural fit or stopped notrump description, consider the ' +
                'best strain and playing strength; no automatic signoff is modeled.'],
-    certainty: 'high',
   },
   //
   {
@@ -1831,7 +1703,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'An 18+ HCP Double normally needs another description after a weak advance.',
     guidance: ['No selected good suit, fit, or suitable balanced NT rebid is available. ' +
                'Further strength and strain judgment is outside this treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -1844,7 +1715,6 @@ export const OvercallRules: BidRule[] = [
     meaning: 'A nonforcing advance may be passed; improving the contract may require judgment.',
     guidance: ['A fit, playing strength, bidding space, and competition determine whether ' +
                'to compete further. No mechanical bid is recommended for this hand.'],
-    certainty: 'high',
   },
   //
   {
@@ -1858,7 +1728,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Pass may be reasonable after a nonforcing advance, but a forcing call from ' +
                'partner changes the obligation. Further competition and penalty decisions ' +
                'require partnership judgment not modeled here.'],
-    certainty: 'high',
   },
   //
   //// Fourth-seat balancing after a one-level suit opening and two Passes
@@ -1882,7 +1751,6 @@ export const OvercallRules: BidRule[] = [
                'weak jump overcall immediately after opener; jump bidding is outside ' +
                'this executable treatment.',
                'Vulnerability and the likely defensive result still matter.'],
-    certainty: 'high',
   },
   //
   {
@@ -1899,7 +1767,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['A balancing two-level suit bid needs more suit quality and strength than a ' +
                'one-level balance; a mere six-card suit without honors is insufficient.',
                'Partner must allow for the lighter balancing range when considering game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1916,7 +1783,6 @@ export const OvercallRules: BidRule[] = [
                'Partner should allow for the balancing range when evaluating game.',
                'With a stronger suitable hand, Double first and describe notrump later; ' +
                'the subsequent auction is not practiced here.'],
-    certainty: 'high',
   },
   //
   {
@@ -1933,7 +1799,6 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Partner generally chooses an unbid suit, but need not assume a full opening hand.',
                'A penalty conversion by passing requires unusual defensive strength in ' +
                'opener’s suit; partner’s continuation is outside the practiced auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -1952,7 +1817,6 @@ export const OvercallRules: BidRule[] = [
                'preferable; that judgment is not automatic.',
                'A strong jump to 2NT is another partnership-dependent treatment, not ' +
                'an executable choice in this trainer.'],
-    certainty: 'high',
   },
   //
   {
@@ -1969,7 +1833,6 @@ export const OvercallRules: BidRule[] = [
                'length in opener’s suit. Reopening can help the opponents find a better contract.',
                'Some marginal hands also qualify for a light competing bid; length in opener’s ' +
                'suit and expected defensive tricks can favor Pass.'],
-    certainty: 'high',
   },
   //
   {
@@ -1983,6 +1846,5 @@ export const OvercallRules: BidRule[] = [
                'strong 2NT, penalty choices, and specialized cuebids are not executable here.',
                'Consider opener-suit length, suit quality, strength, vulnerability and ' +
                'whether passing would defend a favorable contract.'],
-    certainty: 'high',
   },
 ];

@@ -174,8 +174,6 @@ export interface BidRule {
   guidance?: string[]; // bid explanation info as well as how to refine and choose a bid
   // Human-readable alternate treatments or choices worth showing/reviewing.  Not evaluator input.
   alternatives?: string[];
-  // Authoring confidence in this rule's modeling, not the probability that a bid is correct.
-  certainty: 'high' | 'medium' | 'low';
   // Developer/author notes about source ambiguity, modeling questions, or future cleanup.  Not user
   // advice and not evaluator input.
   reviewNotes?: string[];

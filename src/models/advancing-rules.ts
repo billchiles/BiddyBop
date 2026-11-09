@@ -53,7 +53,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 0, max: 7 } },
     meaning: 'Sign off in 2NT with 0-7 HCP when no preferred major-suit convention applies.',
     guidance: ['A Jacoby transfer with a five-card major may still be preferable to Pass.'],
-    certainty: 'high',
   },
   //
   {
@@ -69,7 +68,6 @@ export const AdvanceRules: BidRule[] = [
                'this simplified treatment bids game.',
                'With slam-oriented values above this range, later slam exploration is outside ' +
                'this compact weak-two-defense family.'],
-    certainty: 'medium',
   },
   //
   {
@@ -86,7 +84,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Stayman asks the natural 2NT overcaller for a four-card major.',
     guidance: ['Use the same Stayman convention as after a 2NT opening, but judge game strength ' +
                'against partner’s 15-18 HCP overcall.'],
-    certainty: 'high',
   },
   //
   {
@@ -101,7 +98,6 @@ export const AdvanceRules: BidRule[] = [
     priority: { rank: 20 },
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'H', min: 5 }] },
     meaning: 'Jacoby transfer asks the 2NT overcaller to bid 3H.',
-    certainty: 'high',
   },
   //
   {
@@ -116,7 +112,6 @@ export const AdvanceRules: BidRule[] = [
     priority: { rank: 20 },
     appliesWhen: { hcp: { min: 0 }, suitLengths: [{ suit: 'S', min: 5 }] },
     meaning: 'Jacoby transfer asks the 2NT overcaller to bid 3S.',
-    certainty: 'high',
   },
   //
   {
@@ -131,7 +126,6 @@ export const AdvanceRules: BidRule[] = [
     priority: { rank: 20 },
     appliesWhen: { hcp: { min: 0, max: 7 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural weak signoff in a five-card or longer major.',
-    certainty: 'medium',
   },
   //
   {
@@ -147,7 +141,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10, max: 15 }, suitLengths: [{ min: 6 }],
                    shape: { noFourCardOtherMajor: true } },
     meaning: 'Natural game signoff in a six-card or longer major.',
-    certainty: 'high',
   },
   //
   {
@@ -163,7 +156,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10, max: 15 },
                    suitLengths: [{ suit: 'H', min: 6 }, { suit: 'S', max: 3 }] },
     meaning: 'Texas transfer asks the 2NT overcaller to bid 4H.',
-    certainty: 'high',
   },
   //
   {
@@ -179,7 +171,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10, max: 15 },
                    suitLengths: [{ suit: 'S', min: 6 }, { suit: 'H', max: 3 }] },
     meaning: 'Texas transfer asks the 2NT overcaller to bid 4S.',
-    certainty: 'high',
   },
   //// DONT over a strong 1NT -- Basic pass-or-correct advances
   // DONT advances after an opposing strong 1NT are simple pass-or-correct decisions.
@@ -197,7 +188,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['After Double, relay to 2C. After 2C or 2D, pass with a fit or bid the next suit ' +
                'to ask partner to pass or correct. After 2H, choose the preferred major.',
                'Game inquiries and continuations after responder competes are not modeled.'],
-    certainty: 'high',
   },
   //// Natural one-level suit overcall -- Advances after responder Pass
   // First family: advance partner's natural one-level suit overcall when responder passes.
@@ -215,7 +205,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'With at most 10 HCP and no constructive action, Pass the natural overcall.',
     guidance: ['Unlike a takeout Double, partner’s natural overcall does not force an advance.',
                'Prefer a qualifying raise, new suit, or natural notrump action to this Pass.'],
-    certainty: 'high',
   },
   //
   {
@@ -233,7 +222,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A constructive, nonforcing raise with 6-10 support points and 3+ trumps.',
     guidance: ['An overcall may be lighter than an opening bid. Value a known fit with ' +
                'shortage points, not ordinary length points.'],
-    certainty: 'high',
   },
   //
   {
@@ -251,7 +239,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A preemptive, nonforcing jump raise with 4+ trumps and at most 6 support points.',
     guidance: ['The jump consumes opponents’ bidding room; it is not a traditional limit raise.',
                'At exactly 6 support points, the simple raise may also qualify.'],
-    certainty: 'high',
   },
   //
   {
@@ -270,7 +257,6 @@ export const AdvanceRules: BidRule[] = [
              '3+ trumps, invitational or stronger, forcing one round.',
     guidance: ['This is not a natural bid of the opponents’ suit. ' +
                'The cuebid frees the direct jump raise to be preemptive.'],
-    certainty: 'high',
   },
   //
   {
@@ -285,7 +271,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Natural, nonforcing 1NT: 8-11 HCP, balanced, with a stopper in opener’s suit.',
     guidance: ['A one-level overcall can be light, so these NT ranges are not the same as ' +
                'responses to a full opening bid.'],
-    certainty: 'high',
   },
   //
   {
@@ -299,7 +284,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: naturalNotrumpAdvanceApplies, // 12-14 HCP, balanced, opening-suit stopper
     meaning: 'Natural, invitational 2NT: 12-14 HCP, balanced, with an opener-suit stopper.',
     guidance: ['Partner judges the invitation against the strength and quality of the overcall.'],
-    certainty: 'high',
   },
   //
   {
@@ -315,7 +299,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A constructive, nonforcing new-suit advance: 5+ cards and 8-13 HCP.',
     guidance: ['New suits by advancer are not automatically forcing as they would be ' +
                'when responding to partner’s opening bid.'],
-    certainty: 'high',
   },
   //
   {
@@ -332,7 +315,6 @@ export const AdvanceRules: BidRule[] = [
              'forcing one round.',
     guidance: ['Bid economically; a jump in a new suit would require a different, ' +
                'stronger agreement that is not yet modeled.'],
-    certainty: 'high',
   },
   {
     id: 'advance-one-level-suit-overcall-three-notrump',
@@ -347,7 +329,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Natural 3NT: 15-18 HCP, balanced, and a stopper in opener’s suit.',
     guidance: ['Partner has made a one-level overcall, so game values must come substantially ' +
                'from advancer’s hand. Stronger slam investigations are outside this treatment.'],
-    certainty: 'high',
   },
   //// Natural two-level suit overcall -- Advances after responder Pass
   // Second family: partner makes a natural, non-jump two-level suit overcall of a one-level
@@ -364,7 +345,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'With at most 10 HCP and no constructive action, Pass the natural overcall.',
     guidance: ['Partner’s two-level overcall is not forcing, even when the opening was a weak two.',
                'A suitable raise or economical forcing new suit takes precedence.'],
-    certainty: 'high',
   },
   //
   {
@@ -380,7 +360,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'A nonforcing single raise to the three level: 7-10 support points and 3+ trumps.',
     guidance: ['This is not a preemptive jump raise: partner has already overcalled at two.'],
-    certainty: 'high',
   },
   //
   {
@@ -396,7 +375,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'An artificial cuebid: 11+ support points, 3+ trumps, and forcing one round.',
     guidance: ['Cuebid the opponents’ opening suit to show a strong raise, not a natural suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -409,7 +387,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: naturalTwoLevelNotrumpAdvanceApplies, // 11-13 HCP, balanced, opening-suit stopper
     meaning: 'Natural, invitational 2NT: 11-13 HCP, balanced, with an opener-suit stopper.',
     guidance: ['Partner’s two-level overcall is stronger than a typical one-level overcall.'],
-    certainty: 'high',
   },
   //
   {
@@ -423,7 +400,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'An economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['The suit must differ from both the opener’s suit and partner’s overcall.'],
-    certainty: 'high',
   },
   //
   {
@@ -439,7 +415,6 @@ export const AdvanceRules: BidRule[] = [
              'forcing one round.',
     guidance: ['Suit quality uses the shared test: two of A/K/Q or three of A/K/Q/J/T. ' +
                'Jump new-suit advances remain unmodeled.'],
-    certainty: 'high',
   },
   {
     id: 'advance-two-level-suit-overcall-three-notrump',
@@ -453,7 +428,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Natural 3NT: 14-17 HCP, balanced, and a stopper in opener’s suit.',
     guidance: ['A non-jump two-level overcall suggests enough extra strength to lower the ' +
                'minimum advancer values needed for game.'],
-    certainty: 'high',
   },
   //// Takeout Double -- Initial advances after responder Pass
   // Third family: Advancer responds to partner's takeout double of an opposing suit opening.
@@ -473,7 +447,6 @@ export const AdvanceRules: BidRule[] = [
                'With no four-card unbid suit, a three-card unbid suit is a necessary fallback.',
                'A cheapest-level three-level response after a weak two can contain 9-11 points.',
                'An 18+ HCP doubler may have doubled without the usual unbid-suit support.'],
-    certainty: 'high',
   },
   //
   {
@@ -489,7 +462,6 @@ export const AdvanceRules: BidRule[] = [
              'and 4+ cards.',
     guidance: ['A jump is measured against the cheapest legal bid in that same suit, ' +
                'not merely by its numbered level.'],
-    certainty: 'high',
   },
   //
   {
@@ -506,7 +478,6 @@ export const AdvanceRules: BidRule[] = [
              'it does not promise support for a particular unbid suit.',
     guidance: ['Unlike a cuebid after partner’s suit overcall, this is not a raise. ' +
                'Partner should describe the doubled hand further.'],
-    certainty: 'high',
   },
   //
   {
@@ -521,7 +492,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Natural 1NT: 8-11 HCP, balanced, and a stopper in opener’s suit.',
     guidance: ['This is not a suit preference. It offers to play notrump with protection ' +
                'against the opponents’ opening suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -536,7 +506,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies,
     meaning: 'Natural invitational 2NT with a balanced hand and a stopper in opener’s suit.',
     guidance: ['Use 12-13 HCP after a one-level opening and 11-12 after a weak two.'],
-    certainty: 'high',
   },
   //
   {
@@ -551,7 +520,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: naturalTakeoutDoubleNotrumpAdvanceApplies,
     meaning: 'Natural 3NT game with a balanced hand and a stopper in opener’s suit.',
     guidance: ['Use 14-16 HCP after a one-level opening and 13-15 after a weak two.'],
-    certainty: 'high',
   },
   //
   {
@@ -568,7 +536,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Direct major-suit game with 12+ length-adjusted points and a 5+ card unbid major.',
     guidance: ['This deterministic game treatment assumes partner has an ordinary takeout double. ' +
                'It does not replace judgment about honor location or a strong off-shape double.'],
-    certainty: 'high',
   },
   //
   // A direct major game after a weak-two Double needs a real five-card suit and
@@ -589,7 +556,6 @@ export const AdvanceRules: BidRule[] = [
              'in the unbid major.',
     guidance: ['This is a selected common action, not a general high-level response system. ' +
                'Partner normally passes the game signoff.'],
-    certainty: 'high',
   },
   //// After responder preempts -- Pass and scope boundaries
   // After responder makes a *modeled* preemptive jump raise or weak jump shift,
@@ -607,7 +573,6 @@ export const AdvanceRules: BidRule[] = [
              'jump shift over partner’s natural overcall or takeout Double.',
     guidance: ['Responder’s jump uses extra bidding space. Competing or Doubling at these ' +
                'levels is a separate decision, not a forced response to partner.'],
-    certainty: 'high',
   },
   {
     id: 'advance-after-responder-preemptive-jump-scope-boundary',
@@ -620,7 +585,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['With stronger values, Pass, Double, competing in partner’s suit, or naming ' +
                'a new suit may all warrant consideration. Their meanings and safety depend on ' +
                'shape, vulnerability, and partnership agreements not modeled here.'],
-    certainty: 'high',
   },
   // Other artificial responder actions and high-level raises are not handled by the
   // ordinary natural-raise or new-suit advancing rules.
@@ -638,7 +602,6 @@ export const AdvanceRules: BidRule[] = [
                'Artificial support bids and high-level raises can change the meaning and ' +
                'safety of further competition; higher natural notrump responses also require ' +
                'auction-specific judgment beyond the selected treatment.'],
-    certainty: 'high',
   },
   //// After responder acts -- Selected natural notrump advances
   // Selected natural NT advances after an ordinary responder raise, natural new suit,
@@ -659,7 +622,6 @@ export const AdvanceRules: BidRule[] = [
                'and 14-16 respectively.',
                'Responders’ jump bids, cuebids, and artificial notrump raises do not ' +
                'use this simple natural ladder.'],
-    certainty: 'high',
   },
   //// One-level suit overcall -- After responder raises opener
   // Fourth family: opener's partner raises after a natural one-level suit overcall.
@@ -676,7 +638,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Pass when responder’s raise removes any obligation to act and no clearer bid fits.',
     guidance: ['Unlike the auction after a takeout double and Pass, advancer is not forced to bid.',
                'This explicit Pass applies only to the modeled simple-raise auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -693,7 +654,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Competitive nonforcing raise with 6-10 support points and 3+ trumps.',
     guidance: ['Responder’s raise does not change the basic constructive support range.'],
-    certainty: 'high',
   },
   //
   {
@@ -710,7 +670,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 4 } },
     meaning: 'Weak competitive jump raise with 4+ trumps and at most 6 support points.',
     guidance: ['The jump consumes bidding room; it is not a limit raise.'],
-    certainty: 'high',
   },
   //
   {
@@ -728,7 +687,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
     guidance: ['The cuebid is the cheapest legal bid in opener’s suit after ' +
                'responder’s raise.'],
-    certainty: 'high',
   },
   //
   {
@@ -743,7 +701,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['A clear five-card suit is bid naturally instead of using a responsive Double.'],
-    certainty: 'high',
   },
   //
   {
@@ -758,7 +715,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
-    certainty: 'high',
   },
   //
   {
@@ -775,7 +731,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['This is not a penalty Double. The modeled subset requires four cards in ' +
                'each unbid suit, no five-card natural suit, and fewer than three cards in ' +
                'partner’s suit.'],
-    certainty: 'high',
   },
   //// Two-level suit overcall -- After responder raises opener
   // Companion to the preceding family: responder raises after a natural two-level suit overcall.
@@ -792,7 +747,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Pass when no suitable competitive action is available after responder raises.',
     guidance: ['Partner’s two-level overcall has already shown meaningful strength and suit ' +
                'quality; do not compete higher without fit, shape, or values.'],
-    certainty: 'high',
   },
   //
   {
@@ -810,7 +764,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Competitive nonforcing raise with 7-10 support points and 3+ trumps.',
     guidance: ['The cheapest raise is usually at the three level, so require a little more than ' +
                'for a low-level competitive raise.'],
-    certainty: 'high',
   },
   //
   {
@@ -827,7 +780,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
     guidance: ['The cuebid is the cheapest legal bid in opener’s suit after responder’s raise.'],
-    certainty: 'high',
   },
   //
   {
@@ -843,7 +795,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['A clear five-card suit is more descriptive than a responsive Double.'],
-    certainty: 'high',
   },
   //
   {
@@ -859,7 +810,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
-    certainty: 'high',
   },
   //
   {
@@ -875,7 +825,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Takeout-oriented responsive Double with 9+ length points and both unbid suits.',
     guidance: ['The modeled subset requires four cards in each unbid suit, no five-card natural ' +
                'suit, and fewer than three cards in partner’s overcalled suit.'],
-    certainty: 'high',
   },
   //// Takeout Double -- After responder raises opener
   // Fifth family: responder raises after partner's takeout double.
@@ -891,7 +840,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: takeoutResponderRaisePassApplies,
     meaning: 'Pass with no suitable descriptive action after responder raises opener’s suit.',
     guidance: ['Responder’s raise removes the obligation to choose a suit with a weak hand.'],
-    certainty: 'high',
   },
   //
   {
@@ -907,7 +855,6 @@ export const AdvanceRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     meaning: 'Natural competitive suit: 5+ cards and 6-11 length-adjusted points.',
     guidance: ['With one clear long suit, bid it rather than make a responsive Double.'],
-    certainty: 'high',
   },
   //
   {
@@ -923,7 +870,6 @@ export const AdvanceRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     meaning: 'Natural three-level suit: a good 5+ card suit and 9-11 length-adjusted points.',
     guidance: ['The higher level requires both extra values and concentrated suit honors.'],
-    certainty: 'high',
   },
   //
   {
@@ -939,7 +885,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Takeout-oriented responsive Double with 6-11 length points and multiple unbid suits.',
     guidance: ['The modeled subset requires at least two four-card unbid suits and no five-card ' +
                'natural suit. Partner is asked to choose a fit; this is not a penalty Double.'],
-    certainty: 'high',
   },
   //
   {
@@ -956,7 +901,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Strong artificial cuebid with 12+ length-adjusted points, forcing one round.',
     guidance: ['Unlike a cuebid after a natural suit overcall, this does not promise support ' +
                'for one particular suit.'],
-    certainty: 'high',
   },
   //// Natural suit overcall -- After responder bids a suit or notrump
   // Responder-natural-action family: responder bids an economical new suit or natural 1NT
@@ -974,7 +918,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Pass with limited values when responder has acted and no modeled natural ' +
              'action fits.',
     guidance: ['Responder’s natural call removes any obligation for advancer to keep bidding.'],
-    certainty: 'high',
   },
   //
   {
@@ -992,7 +935,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Competitive nonforcing raise with 6-10 support points and 3+ trumps.',
     guidance: ['Use the same constructive support range after responder bids a new suit or 1NT.'],
-    certainty: 'high',
   },
   //
   {
@@ -1010,7 +952,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 4 } },
     meaning: 'Weak competitive jump raise with 4+ trumps and at most 6 support points.',
     guidance: ['The jump is preemptive rather than invitational.'],
-    certainty: 'high',
   },
   //
   {
@@ -1028,7 +969,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Competitive nonforcing raise with 7-10 support points and 3+ trumps.',
     guidance: ['Partner’s natural two-level overcall starts from a stronger range.'],
-    certainty: 'high',
   },
   //
   {
@@ -1045,7 +985,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
     guidance: ['The bid names opener’s original suit, not responder’s newly bid suit.'],
-    certainty: 'high',
   },
   //
   {
@@ -1061,7 +1000,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 8 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural one-level new suit with 5+ cards and 8+ HCP.',
     guidance: ['Bid only a suit still unbid by either opponent or by partner.'],
-    certainty: 'high',
   },
   //
   {
@@ -1077,7 +1015,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['The suit must remain unbid and the call must be economical in that strain.'],
-    certainty: 'high',
   },
   //
   {
@@ -1093,7 +1030,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
-    certainty: 'high',
   },
   //// Takeout Double -- After responder bids a suit or notrump
   // After a takeout double, responder's economical natural suit or 1NT call removes the
@@ -1109,7 +1045,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: takeoutResponderNaturalActionPassApplies,
     meaning: 'Pass with no suitable natural action after responder bids a new suit or 1NT.',
     guidance: ['Once responder bids, advancer no longer has to choose a suit with a weak hand.'],
-    certainty: 'high',
   },
   //
   {
@@ -1126,7 +1061,6 @@ export const AdvanceRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     meaning: 'Natural one-level suit: 5+ cards and 6-11 length-adjusted points.',
     guidance: ['Responder’s suit is not available as a natural advance in this treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -1143,7 +1077,6 @@ export const AdvanceRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     meaning: 'Natural two-level suit: 5+ cards and 6-11 length-adjusted points.',
     guidance: ['With a clear long suit, compete naturally after responder has acted.'],
-    certainty: 'high',
   },
   //
   {
@@ -1160,7 +1093,6 @@ export const AdvanceRules: BidRule[] = [
                    suitLengths: [{ min: 5 }] },
     meaning: 'Natural three-level suit: a good 5+ card suit and 9-11 length-adjusted points.',
     guidance: ['The higher level requires extra values and concentrated suit honors.'],
-    certainty: 'high',
   },
   //
   {
@@ -1176,7 +1108,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
     meaning: 'Strong artificial cuebid with 12+ length-adjusted points, forcing one round.',
     guidance: ['Cuebid opener’s original suit rather than responder’s newly bid suit.'],
-    certainty: 'high',
   },
   //// Natural suit overcall -- After responder makes a negative Double
   // Artificial responder actions: a negative Double after a natural suit overcall and a
@@ -1192,7 +1123,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: overcallNegativeDoublePassApplies,
     meaning: 'Pass when responder’s negative Double leaves no modeled constructive advance.',
     guidance: ['Responder’s Double is artificial; advancer is not required to keep bidding.'],
-    certainty: 'high',
   },
   //
   {
@@ -1209,7 +1139,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Constructive nonforcing raise with 6-10 support points and 3+ trumps.',
-    certainty: 'high',
   },
   //
   {
@@ -1226,7 +1155,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: 'Weak preemptive jump raise with 4+ trumps and at most 6 support points.',
-    certainty: 'high',
   },
   //
   {
@@ -1243,7 +1171,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Constructive nonforcing raise with 7-10 support points and 3+ trumps.',
-    certainty: 'high',
   },
   //
   {
@@ -1260,7 +1187,6 @@ export const AdvanceRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Artificial cuebid showing 11+ support points and 3+ trumps, forcing one round.',
     guidance: ['Use the strong support cuebid rather than a general strength-showing Redouble.'],
-    certainty: 'high',
   },
   //
   {
@@ -1276,7 +1202,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Natural balanced notrump with the modeled range and a stopper in opener’s suit.',
     guidance: ['A descriptive natural NT call is preferred to a general strength-showing ' +
                'Redouble.'],
-    certainty: 'high',
   },
   //
   {
@@ -1292,7 +1217,6 @@ export const AdvanceRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural economical side suit with 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['Do not bid a suit that responder’s negative Double normally advertises.'],
-    certainty: 'high',
   },
   //
   {
@@ -1309,7 +1233,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['This is a general values action, not a penalty-double system.',
                'Prefer a strong support cuebid, natural NT, or clear natural side suit when ' +
                'available.'],
-    certainty: 'high',
   },
   //// Takeout Double -- After responder Redoubles
   // After responder Redoubles partner's takeout Double, this trainer models only the ordinary
@@ -1330,7 +1253,6 @@ export const AdvanceRules: BidRule[] = [
                'four-card unbid suit exists.',
                'Pass may be a good judgment in this situation, but the trainer cannot ' +
                'confirm it from the limited factors evaluated here.'],
-    certainty: 'high',
   },
   //// Preemptive jump overcall -- Advances after responder Pass
   // Preemptive-jump family: partner makes a preemptive jump overcall and opener's partner passes.
@@ -1347,7 +1269,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'Leave partner’s preempt in place without a worthwhile further action.',
     guidance: ['Unlike partner’s takeout double, a preempt does not require advancer to bid.',
                'Even with support, a four-level jump overcall usually ends the auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -1365,7 +1286,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A preemptive single raise with 3+ trumps and at most 10 support points.',
     guidance: ['Partner normally has six cards in the overcalled suit. ' +
                'Three-card support gives the partnership at least nine trumps.'],
-    certainty: 'high',
   },
   //
   {
@@ -1383,7 +1303,6 @@ export const AdvanceRules: BidRule[] = [
     meaning: 'A competitive, preemptive minor raise with 4+ trumps and up to 8 support points.',
     guidance: ['This conservative rule requires at least eleven combined trumps. ' +
                'No automatic five-level contract is suggested.'],
-    certainty: 'high',
   },
   //
   {
@@ -1401,7 +1320,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['Require four-card support after a six-card two-level jump; ' +
                'three-card support after a seven-card three-level jump.',
                'Playing strength and vulnerability can override this simplified guideline.'],
-    certainty: 'high',
   },
   //
   {
@@ -1418,7 +1336,6 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['A new suit over a preempt is not a casual signoff. ' +
                'The suit must have two of A/K/Q or three of A/K/Q/J/T.',
                'Four-level new suits and jump-new-suit treatments are deferred.'],
-    certainty: 'high',
   },
 
 ];

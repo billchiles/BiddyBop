@@ -57,7 +57,6 @@ export const ResponseBidRules: BidRule[] = [
                'With a choice of four-card suits, bid the lowest-ranking suit, bidding up the line.',
                'After 1C with about 6-10 points some prefer to bypass a 4+ diamond suit to bid ' +
                   'a four-card major.'],
-    certainty: 'high',
   },
   //
   {
@@ -72,7 +71,6 @@ export const ResponseBidRules: BidRule[] = [
                  note: 'Standard: 11+ and forcing, but not forcing to game.' },
     appliesWhen: { hcp: { min: 11 }, suitLengths: [{ suit: 'C', min: 5 }] },
     meaning: 'Natural club response at the two level, forcing but not game forcing.',
-    certainty: 'high',
   },
   //
   {
@@ -104,7 +102,6 @@ export const ResponseBidRules: BidRule[] = [
       };
     },
     meaning: 'Natural club response at the two level, forcing to game only by an unpassed responder.',
-    certainty: 'high',
   },
   //
   //// Minor openings -- Natural notrump responses
@@ -118,7 +115,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 60 },
     appliesWhen: { hcp: { min: 6, max: 10 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced non-forcing response with no four-card major; opener may pass or continue.',
-    certainty: 'high',
   },
   //
   {
@@ -132,7 +128,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 65 },
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced invitational response with no four-card major.',
-    certainty: 'high',
   },
   //
   {
@@ -146,7 +141,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 70 },
     appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced game response with no four-card major; opener may pass or continue.',
-    certainty: 'high',
   },
   //
   //// Minor openings -- Raises and strong support routes
@@ -167,7 +161,6 @@ export const ResponseBidRules: BidRule[] = [
                'Four-card support is enough after 1D.'],
     meaning: 'Non-forcing minimum raise of opener minor with normal support and no four-card major; ' +
              'opener may pass or continue.',
-    certainty: 'medium',
   },
   //
   {
@@ -187,7 +180,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Invitational limit raise of opener minor; opener may pass or continue with extra values.',
     guidance: ['Use five-card support after 1C and four-card support after 1D.',
                'Some play inverted minors, where single raise is strong, and jump is weak.'],
-    certainty: 'medium',
   },
   //
   {
@@ -204,7 +196,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['Five clubs support 1C; four diamonds support 1D.',
                'The new-suit response is forcing absent interference.', 'Plan to raise later.'],
     meaning: 'Start with a forcing new-suit response and plan to show the minor support later.',
-    certainty: 'high',
   },
   //
   //// Minor openings -- Jump shifts and rare ace asking
@@ -224,7 +215,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['With two equally long 6+ suits, use the higher-ranking suit for a deterministic ' +
                'preemptive choice.'],
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
-    certainty: 'high',
   },
   //
   {
@@ -244,7 +234,6 @@ export const ResponseBidRules: BidRule[] = [
                'With two 5+ new suits, respond naturally in the higher-ranking suit first and ' +
                'plan to show the lower-ranking suit later.'],
     meaning: 'Classic strong jump shift: game-forcing with a good long suit and slam interest.',
-    certainty: 'high',
   },
   //
   {
@@ -262,7 +251,6 @@ export const ResponseBidRules: BidRule[] = [
                'slam and ace count is the specific remaining information needed to choose the ' +
                'final contract.'],
     meaning: 'Blackwood is artificial and forcing, asking partner to show aces.',
-    certainty: 'high',
   },
   //
   //// One-level openings -- Weak Pass and major-support responses
@@ -292,7 +280,6 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineSharedWeakResponderPass,
     appliesWhen: { totalPoints: { max: 5, valuation: 'shortage' }, supportLength: { min: 3 } },
     meaning: 'Game is unlikely.',
-    certainty: 'high',
   },
   //
   {
@@ -305,7 +292,6 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineSharedWeakResponderPass,
     appliesWhen: { hcp: { max: 5 }, supportLength: { max: 2 }, },
     meaning: 'Responder has too few points to bid.',
-    certainty: 'high',
   },
   //
   {
@@ -319,7 +305,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { hcp: { max: 5 } },
     meaning: 'Responder has too few points to bid.',
-    certainty: 'high',
   },
   //
   //
@@ -334,7 +319,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Non-forcing simple raise of partner major; opener may pass or continue.',
-    certainty: 'high',
   },
   //
   {
@@ -350,7 +334,6 @@ export const ResponseBidRules: BidRule[] = [
                    supportLength: { min: 4 } },
     meaning: 'Invitational jump raise with four-card or longer support; ' +
              'opener bids game with extra values.',
-    certainty: 'high',
   },
   //
   {
@@ -372,7 +355,6 @@ export const ResponseBidRules: BidRule[] = [
                'support points make the invitation slightly conservative.',
                'Count high-card points plus shortage points. Opener may pass a minimum ' +
                'or accept the invitation with extra values.'],
-    certainty: 'medium',
   },
   //
   {
@@ -393,7 +375,6 @@ export const ResponseBidRules: BidRule[] = [
                'Otherwise use 1NT, then make an invitational raise to the three level.'],
     meaning: 'With exactly three-card support and limit-raise values, use forcing 1NT when no ' +
              'one-level new suit takes priority, then raise invitationally.',
-    certainty: 'high',
   },
   //
   {
@@ -413,7 +394,6 @@ export const ResponseBidRules: BidRule[] = [
                'Otherwise use 1NT as the catch-all; opener may occasionally pass.'],
     meaning: 'With exactly three-card support and limit-raise values, use 1NT when no one-level ' +
              'new suit is available, then invite later if opener continues.',
-    certainty: 'high',
   },
   //
   {
@@ -431,7 +411,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ["After 1H, show four or more spades with 1S and later raise opener's hearts."],
     meaning: 'With exactly three-card support and limit-raise values, show an available one-level ' +
              'new suit first, then make the invitational raise.',
-    certainty: 'high',
   },
   //
   {
@@ -451,7 +430,6 @@ export const ResponseBidRules: BidRule[] = [
                    supportLength: { min: 3, max: 3 } },
     guidance: ['Bid a new suit and then raise to at least game.'],
     meaning: 'Game-forcing support path with three-card support.',
-    certainty: 'high',
   },
   //
   {
@@ -472,7 +450,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 80 }, // relative to rule 'respond-to-major-w/-support-splinter' at 95
     guidance: ['Bid a new suit and then raise to at least game.'],
     meaning: 'Game-forcing support path when not using Jacoby 2NT.',
-    certainty: 'high',
   },
   //
   {
@@ -488,7 +465,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' }, supportLength: { min: 4 } },
     meaning: 'Jacoby 2NT is an artificial game force showing four-card or longer major support ' +
              'and 13+ points.',
-    certainty: 'high',
   },
   //
   {
@@ -511,7 +487,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 95 },
     meaning: 'Artificial game-forcing double jump showing major support and shortness ' +
              'in the bid suit.',
-    certainty: 'high',
   },
   //
   {
@@ -525,7 +500,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { max: 9, valuation: 'shortage' }, supportLength: { min: 5 } },
     meaning: 'Non-forcing preemptive raise to game w/ long support and fewer than 10 total points.',
-    certainty: 'high',
   },
   //
   //// Major openings -- New suits and natural notrump without support
@@ -543,7 +517,6 @@ export const ResponseBidRules: BidRule[] = [
                    suitLengths: [{ suit: 'S', min: 4 }] },
     guidance: ["Use a new suit at the one level to show no support for partner's major.",
                'The new-suit response is forcing absent opponent interference.'],
-    certainty: 'high',
   },
   //
   {
@@ -563,7 +536,6 @@ export const ResponseBidRules: BidRule[] = [
       return majorTwoLevelNewSuitApplies(call, context, 11, 'Standard');
     },
     meaning: 'Standard two-level new-suit response: forcing, but not forcing to game.',
-    certainty: 'high',
   },
   //
   {
@@ -583,7 +555,6 @@ export const ResponseBidRules: BidRule[] = [
       return majorTwoLevelNewSuitApplies(call, context, 13, '2/1');
     },
     meaning: 'Two-over-one game force after partner opens a major.',
-    certainty: 'high',
   },
   //
   {
@@ -617,7 +588,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['No available preferred suit response.',
                'Forcing only when responder has not previously passed and opponents have not interfered.'],
     meaning: '1NT response to a major in 2/1 style.',
-    certainty: 'high',
   },
   //
   {
@@ -647,7 +617,6 @@ export const ResponseBidRules: BidRule[] = [
         ] } };
     },
     meaning: 'A previously passed hand responds 1NT naturally; opener may Pass.',
-    certainty: 'high',
   },
   //
   {
@@ -678,7 +647,6 @@ export const ResponseBidRules: BidRule[] = [
       ] } };
     },
     meaning: 'Nonforcing 1NT: 6-10 under Standard; semi-forcing 6-12 under 2/1. Opener may Pass.',
-    certainty: 'high',
   },
   //
   {
@@ -695,7 +663,6 @@ export const ResponseBidRules: BidRule[] = [
                'With more control-rich values, starting a forcing support route may be preferable.'],
     meaning: 'Very flat 13-15 HCP game response, normally with three-card support; opener may pass ' +
              'or continue.',
-    certainty: 'medium',
   },
   //
   //// Major openings -- Jump shifts and rare ace asking
@@ -715,7 +682,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ["With three-card or longer support, raise opener's major instead of making a weak " +
                'jump shift.'],
     meaning: 'Weak, non-forcing jump shift with a six-card suit; preemptive and passable.',
-    certainty: 'high',
   },
   //
   {
@@ -735,7 +701,6 @@ export const ResponseBidRules: BidRule[] = [
                'With two 5+ new suits, respond naturally in the higher-ranking suit first and ' +
                'plan to show the lower-ranking suit later.'],
     meaning: 'Game-forcing strong jump shift showing a good long suit and slam interest.',
-    certainty: 'high',
   },
   //
   {
@@ -753,7 +718,6 @@ export const ResponseBidRules: BidRule[] = [
                'slam and ace count is the specific remaining information needed to choose the ' +
                'final contract.'],
     meaning: 'Blackwood is artificial and forcing, asks partner for aces.',
-    certainty: 'high',
   },
   // Responding to notrump
   //
@@ -775,7 +739,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['Distribution alone does not rule out Pass with 0-3 HCP.',
                'When a preferred Jacoby transfer qualifies, it takes precedence over Pass.'],
     meaning: 'Sign off in 2NT; opener is expected to leave the contract there absent interference.',
-    certainty: 'high',
   },
   //
   {
@@ -790,7 +753,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['A qualifying Stayman, transfer, natural major, or strong natural minor route ' +
                'takes precedence over this notrump fallback.'],
     meaning: 'Place the contract in 3NT when no preferred suit response is available.',
-    certainty: 'high',
   },
   //
   {
@@ -808,7 +770,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural 5+ clubs with 10+ HCP and an unbalanced hand; forcing to game.',
     guidance: ['Use the normal notrump ladder with a balanced hand, and prefer an available ' +
                'major-suit route before describing the minor.'],
-    certainty: 'medium',
   },
   //
   {
@@ -826,7 +787,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural 5+ diamonds with 10+ HCP and an unbalanced hand; forcing to game.',
     guidance: ['Use the normal notrump ladder with a balanced hand, and prefer an available ' +
                'major-suit route before describing the minor.'],
-    certainty: 'medium',
   },
   //
   {
@@ -844,7 +804,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'major', min: 6 }],
                    shape: { noFourCardOtherMajor: true } },
     meaning: 'Natural game signoff with a six-card or longer major.',
-    certainty: 'high',
   },
   //
   {
@@ -862,7 +821,6 @@ export const ResponseBidRules: BidRule[] = [
                    // can't use noFourCardOtherMajor because 4D is not 4H which maps to four spades
                    suitLengths: [{ suit: 'H', min: 6 }, { suit: 'S', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4H.',
-    certainty: 'high',
   },
   //
   {
@@ -880,7 +838,6 @@ export const ResponseBidRules: BidRule[] = [
                    // can't use noFourCardOtherMajor because artificial 4H would check spades
                    suitLengths: [{ suit: 'S', min: 6 }, { suit: 'H', max: 3 }] },
     meaning: 'Texas transfer asks opener to bid 4S.',
-    certainty: 'high',
   },
   //
   {
@@ -898,7 +855,6 @@ export const ResponseBidRules: BidRule[] = [
                'slam and ace count is the specific remaining information needed to choose the ' +
                'final contract.'],
     meaning: 'Gerber is artificial and forcing, asking the notrump opener to show aces.',
-    certainty: 'high',
   },
   //
   {
@@ -911,7 +867,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['invitational'],
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true } },
     meaning: 'Invite opener to bid slam.',
-    certainty: 'high',
   },
   //
   {
@@ -924,7 +879,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 13, max: 15 }, shape: { balanced: true } },
     meaning: 'Small slam in notrump.',
-    certainty: 'high',
   },
   //
   {
@@ -937,7 +891,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing'],
     appliesWhen: { hcp: { min: 16, max: 16 }, shape: { balanced: true } },
     meaning: 'Forces at least a small slam while inviting grand slam if opener has extra values.',
-    certainty: 'high',
   },
   //
   {
@@ -950,7 +903,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { hcp: { min: 17 }, shape: { balanced: true } },
     meaning: 'Place the contract in grand slam.',
-    certainty: 'high',
   },
   //
   {
@@ -965,7 +917,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['forcing', 'conventional'],
     appliesWhen: { hcp: { min: 4 }, suitLengths: [{ suit: 'major', exact: 4 }] },
     guidance: ['Stayman is artificial and forcing absent interference; opener must respond.'],
-    certainty: 'high',
   },
   //
   {
@@ -982,7 +933,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['The transfer is artificial and forcing absent interference; opener normally ' +
                'completes the transfer.',
                'Use transfers to have the partner with the concealed points bid the contract.'],
-    certainty: 'high',
   },
   //
   {
@@ -999,7 +949,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['The transfer is artificial and forcing absent interference; opener normally ' +
                'completes the transfer.',
                'Use transfers to have the partner with the concealed points bid the contract.'],
-    certainty: 'high',
   },
   //
   {
@@ -1015,7 +964,6 @@ export const ResponseBidRules: BidRule[] = [
     callCategory: ['gameForcing'],
     appliesWhen: { hcp: { min: 4 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural game-forcing major-suit response.',
-    certainty: 'high',
   },
   //
   //// Strong 2C openings -- Waiting and positive responses
@@ -1036,7 +984,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['2D does not show weakness; it is available with any responder strength or shape.',
                'With about 8+ HCP, a good 5+ suit or a balanced 2NT response can describe the hand ' +
                'immediately instead.'],
-    certainty: 'high',
   },
   //
   {
@@ -1053,7 +1000,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ["Good suit uses the app's shared executable quality test: at least two of A/K/Q " +
                'or at least three of A/K/Q/J/T.',
                'An immediate positive response commits the partnership to game.'],
-    certainty: 'high',
   },
   //
   {
@@ -1068,7 +1014,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Positive balanced response showing about 8+ HCP.',
     guidance: ["Balanced means the app's ordinary 4-3-3-3, 4-4-3-2, or 5-3-3-2 shapes; no " +
                'additional qualification is imposed.'],
-    certainty: 'high',
   },
   //
   //// Weak-two openings -- Responses
@@ -1087,7 +1032,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: weakTwoPassApplies, // Guideline of 17 below 17 and at most two trumps
     meaning: 'No game investigation and no useful fit; leave the weak two in place.',
     guidance: ['The Guideline of 17 (your HCP plus cards in opener’s suit) is only a rough check; actual playing tricks can override it.'],
-    certainty: 'high',
   },
   {
     id: 'respond-to-weak-two-w/-raise-to-three',
@@ -1100,7 +1044,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: weakTwoSimpleRaiseApplies, // exactly three trumps, no Rule-of-17 game interest
     meaning: 'Preemptive raise based on nine combined trumps; opener is expected to pass.',
     guidance: ['Raises of a weak two are non-forcing; 2NT and new-suit responses are forcing.'],
-    certainty: 'high',
   },
   {
     id: 'respond-to-weak-two-w/-raise-to-four',
@@ -1114,7 +1057,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Further the preempt to the four level; in a major this may also be the game contract.',
     guidance: ['This call can be based on the known ten-card fit or on an expectation of making game.',
                'The app does not estimate playing tricks for direct game placement.'],
-    certainty: 'high',
   },
   {
     id: 'respond-to-weak-two-w/-2nt-inquiry',
@@ -1127,7 +1069,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Artificial inquiry asking opener to describe minimum/maximum strength and features.',
     guidance: ['The Guideline of 17 (your HCP plus cards in opener’s suit) is a rough trigger for investigating game, not a playing-trick ' +
                'calculator.  Controls, fit, honor location, and vulnerability still matter.'],
-    certainty: 'high',
   },
   {
     id: 'respond-to-weak-two-w/-new-suit-forcing',
@@ -1141,7 +1082,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural new suit, forcing one round, showing a good five-card-or-longer suit.',
     guidance: ['Use only with game interest; the Guideline of 17 (your HCP plus cards in opener’s suit) is a rough guide rather ' +
                'than an estimate of actual playing tricks.'],
-    certainty: 'high',
   },
   //// Three-level preempts -- Responses
   {
@@ -1157,7 +1097,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'With two or fewer trumps and no judged game, leave opener at the three level.',
     guidance: ['The app does not estimate playing tricks.  Direct 3NT or another game can be right ' +
                'when you judge that the partnership can take the required tricks.'],
-    certainty: 'medium',
   },
   {
     id: 'respond-to-three-level-preempt-w/-raise-to-four',
@@ -1173,7 +1112,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Raise to the four level on the known ten-card-or-longer fit.',
     guidance: ['In a major this can also be a game contract; playing-trick judgment can justify ' +
                'game even without the trump-count rationale.'],
-    certainty: 'high',
   },
   {
     id: 'respond-to-three-level-preempt-w/-new-suit-forcing',
@@ -1188,7 +1126,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Natural new suit below game, forcing one round and showing game interest.',
     guidance: ['The app checks suit length and quality but does not estimate the playing tricks ' +
                'needed to decide whether the hand truly has game interest.'],
-    certainty: 'medium',
   },
   //
   //// Natural four- and five-level preempts -- Pass response
@@ -1208,7 +1145,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['These rare natural preempts are included as opening examples. Whether to bid on ' +
                'depends on fit, playing tricks, vulnerability, and high-level judgment beyond ' +
                'the chosen responder treatment. This Pass is not a universal bridge requirement.'],
-    certainty: 'high',
   },
   //
   //// After an opposing natural suit overcall -- Competitive responses
@@ -1238,7 +1174,6 @@ export const ResponseBidRules: BidRule[] = [
       'or both unbid minors when the majors have been bid. It does not promise every unbid suit.',
     guidance: ['This is a negative (takeout-oriented) double, never a penalty-double rule.',
                'Modeled after non-jump suit overcalls at levels one and two; jump preempts follow later.'],
-    certainty: 'high',
   },
   //
   {
@@ -1254,7 +1189,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 90 },
     meaning: 'Natural one-level new suit, forcing one round: normally five cards, except after ' +
              'a minor opening and a 1D overcall, where four cards in a major suffice.',
-    certainty: 'high',
   },
   //
   {
@@ -1270,7 +1204,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 85 },
     meaning: 'Five-card or longer new suit with 10+ HCP; forcing one round, not automatically ' +
              'forcing to game even when playing a 2/1 system.',
-    certainty: 'high',
   },
   //
   {
@@ -1285,7 +1218,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 13 } },
     meaning: 'Five-card or longer new suit at three level, when that is the cheapest available ' +
              'bid in the strain, showing game-going values.',
-    certainty: 'medium',
   },
   //
   {
@@ -1302,7 +1234,6 @@ export const ResponseBidRules: BidRule[] = [
                    supportLength: { min: 4 } },
     meaning: 'Preemptive jump raise with at least four-card support and fewer than 10 ' +
              'shortage-adjusted points; not an invitational limit raise.',
-    certainty: 'high',
   },
   //
   {
@@ -1317,7 +1248,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: responderCuebidAfterOvercallApplies,
     priority: { rank: 100 },
     meaning: 'Artificial cuebid in opponent suit shows a limit raise or stronger support.',
-    certainty: 'high',
   },
   //
   {
@@ -1331,7 +1261,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: responderNotrumpAfterOvercallApplies,
     meaning: 'Natural balanced 1NT (6-10), 2NT (11-12), or 3NT (13-15), with a stopper ' +
              'in the opponent suit.  Not Jacoby or forcing 1NT.',
-    certainty: 'high',
   },
   //
   //// After an opposing takeout Double -- Competitive responses
@@ -1364,7 +1293,6 @@ export const ResponseBidRules: BidRule[] = [
                'this trainer deliberately keeps both strength-showing options available.',
                'Later penalty-double decisions are outside the trainer; this first response ' +
                'only teaches the strength meaning.'],
-    certainty: 'high',
   },
   //
   {
@@ -1384,7 +1312,6 @@ export const ResponseBidRules: BidRule[] = [
                'Support points combine HCP with appropriate shortage points. A hand may qualify ' +
                'with fewer than 10 HCP when its shortage-adjusted total reaches 10.',
                'Redouble remains visible with 10+ HCP; Jordan is not the only strength-showing call.'],
-    certainty: 'medium',
   },
   //
   {
@@ -1400,7 +1327,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 100 },
     meaning: 'A natural four-card-or-longer new suit at the one level, forcing one round; ' +
              'does not deny 10+ HCP.',
-    certainty: 'high',
   },
   //
   {
@@ -1416,7 +1342,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 65 },
     meaning: 'Nonforcing new suit at two level: 5-9 HCP and a good six-card suit, ' +
              'rather than uncontested 2/1 forcing values.',
-    certainty: 'high',
   },
   //
   {
@@ -1432,7 +1357,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 60 },
     meaning: 'Weak, nonforcing jump into a six-card-or-longer new suit; not the ' +
              'uncontested strong-jump-shift agreement.',
-    certainty: 'high',
   },
   //
   {
@@ -1448,7 +1372,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 55 },
     meaning: 'Weak preemptive jump raise with 0-6 HCP and 4+ major/diamond or 5+ club ' +
              'support, not an invitational limit raise.',
-    certainty: 'medium',
   },
   //
   {
@@ -1463,7 +1386,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 45 },
     meaning: 'Natural 1NT with 6-9 HCP and balanced shape; no opponent-suit stopper is required ' +
              'because the opponent doubled rather than naming a suit.',
-    certainty: 'high',
   },
   //
   //// After an opposing natural 1NT overcall -- Responses and boundaries
@@ -1483,7 +1405,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'With modest values and no qualifying support raise or good long suit, let the ' +
              'opponents play 1NT rather than manufacture a response.',
     guidance: ['Pass is a fallback only: an eligible natural response or raise takes precedence.'],
-    certainty: 'high',
   },
   {
     id: 'respond-over-1nt-scope-boundary-strong-hand',
@@ -1500,7 +1421,6 @@ export const ResponseBidRules: BidRule[] = [
     guidance: ['A penalty-oriented Double is common against a natural 1NT overcall, but ' +
                'requires defensive judgment and follow-ups not modeled here.',
                'Do not choose a weak natural suit response merely to keep bidding.'],
-    certainty: 'high',
   },
   //
   // Constructive two-level new suits are nonforcing. The simple raise and weak Pass
@@ -1521,7 +1441,6 @@ export const ResponseBidRules: BidRule[] = [
              'The usual uncontested two-level strength requirement does not apply.',
     guidance: ['This is a conservative partnership treatment; strong hands that would normally ' +
                'double for penalties are deliberately not assigned a weaker response.'],
-    certainty: 'high',
   },
   //
   {
@@ -1537,7 +1456,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 55 },
     meaning: 'Weak, preemptive jump raise with 0-6 HCP, at most nine support points, ' +
              'and 4+ major/diamond or 5+ club support; not an invitational limit raise.',
-    certainty: 'medium',
   },
   //
   //// After an opposing preemptive jump overcall -- Responses
@@ -1558,7 +1476,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'With 6-9 HCP and no qualifying competitive raise, Pass may be right after a preempt.',
     guidance: ['The opponent has consumed bidding room; 6+ HCP does not oblige a response.',
                'This is a limited Pass treatment, not the general inferred-Pass mechanism.'],
-    certainty: 'high',
   },
   //
   {
@@ -1576,7 +1493,6 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Nonforcing, economical three-level raise with 8-10 support points; not a jump raise.',
     guidance: ['For a minor opening, prefer four-card diamond or five-card club support; ' +
                'these additional minimums are enforced by the raise refiner.'],
-    certainty: 'medium',
   },
   //
   {
@@ -1591,7 +1507,6 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     priority: { rank: 80 },
     meaning: 'Natural five-card-or-longer new suit with 10+ HCP, forcing one round.',
-    certainty: 'high',
   },
   //
   {
@@ -1607,7 +1522,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 85 },
     meaning: 'Natural five-card-or-longer new suit with 13+ HCP, forcing to game; ' +
              'the cheapest available new suit must actually be at the three level.',
-    certainty: 'medium',
   },
   //
   {
@@ -1624,7 +1538,6 @@ export const ResponseBidRules: BidRule[] = [
              'three-level jump, plus suitable unbid-suit holdings.',
     guidance: ['Four cards in each unbid major (or each unbid minor when no major remains) ' +
                'is the conservative modeled subset; this is never a penalty double.'],
-    certainty: 'medium',
   },
   //
   {
@@ -1642,7 +1555,6 @@ export const ResponseBidRules: BidRule[] = [
              'shortage-adjusted support points, with game-going intent.',
     guidance: ['Only cuebids of two-level jump overcalls after a major opening are modeled; ' +
                'a minor-opening cuebid can instead ask about a stopper and is deferred.'],
-    certainty: 'medium',
   },
   //
   {
@@ -1657,7 +1569,6 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 65 },
     meaning: 'Natural balanced 2NT with 11-12 HCP or 3NT with 13-15 HCP, with a stopper ' +
              'in the opponent long suit; 2NT is unavailable over a three-level preempt.',
-    certainty: 'medium',
   },
   //
   {
@@ -1675,6 +1586,5 @@ export const ResponseBidRules: BidRule[] = [
     meaning: 'Constructive major-suit game bid with 13+ shortage-adjusted support points and 3+ trumps.',
     guidance: ['The already modeled weak raise to game with 5+ support remains a separate ' +
                'preemptive alternative; this rule does not calculate playing tricks.'],
-    certainty: 'medium',
   },
  ];

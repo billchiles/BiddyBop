@@ -476,27 +476,27 @@ function runAuctionContextTests (): number {
     {
       id: 'test-context-one-level-minor', kind: 'responseBid', title: 'test one-level minor context',
       auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
-      calls: ['Pass'], certainty: 'high',
+      calls: ['Pass'],
     },
     {
       id: 'test-context-one-level-major', kind: 'responseBid', title: 'test one-level major context',
       auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
-      calls: ['Pass'], certainty: 'high',
+      calls: ['Pass'],
     },
     {
       id: 'test-context-weak-two-set', kind: 'responseBid', title: 'test weak-two opening set',
       auctionContext: { stage: 'responding', openerCalls: ['2D', '2H', '2S'] },
-      calls: ['Pass'], certainty: 'high',
+      calls: ['Pass'],
     },
     {
       id: 'test-context-strong-two-clubs', kind: 'responseBid', title: 'test strong 2C opening',
       auctionContext: { stage: 'responding', openerCalls: ['2C'] },
-      calls: ['Pass'], certainty: 'high',
+      calls: ['Pass'],
     },
     {
       id: 'test-context-literal-auction', kind: 'responseBid', title: 'test literal auction context',
       auctionContext: { stage: 'responding', auction: ['1C'], openerStrain: 'minor' },
-      calls: ['Pass'], certainty: 'high',
+      calls: ['Pass'],
     },
   ];
   const cases: { auction: Call[]; expected: string[]; rejected: string[] }[] = [
