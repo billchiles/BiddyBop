@@ -8,6 +8,8 @@ import { cheapestBidInStrainAfter, compareSuitBids, getOpeningCallInfo, getOpeni
 import { hasBasicSuitStopper } from './common-rule-helpers';
 import type { Suit } from './cards';
 
+//// Other natural responder rebids after one-level suit responses
+
 /// Repeat only the natural suit responder actually showed at the one level.
 export function refineResponderOriginalOneLevelSuit (calls: Call[], context: RuleEvalContext):
     CallRefinementResult {
@@ -100,29 +102,6 @@ export function responderStrongTwoNtThreeNtApplies (_call: Call, context: RuleEv
 
 //// Natural responder decisions after opener shows an economical second suit
 
-/// This identifies the *meaning* of the first three partnership bids, not a printed example
-/// auction. Reverses, jumps, one-notrump responses and two-level forcing responses need their
-/// own treatments; an economical second suit can show 12-18 points and only four cards in it.
-export function getResponderEconomicalSecondSuit (context: RuleEvalContext):
-    { opening: Suit; response: Suit; second: Suit; secondLevel: number } | null {
-  if (context.stage !== 'responderRebid') return null;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) return null;
-  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (partnership.length !== 3 || !/^1[CDHS]$/.test(partnership[0] ?? '') ||
-      !/^1[CDHS]$/.test(partnership[1] ?? '')) return null;
-  const opening = parseSuitBid(partnership[0]);
-  const response = parseSuitBid(partnership[1]);
-  const rebid = parseSuitBid(partnership[2]);
-  if (opening === null || response === null || rebid === null || rebid.strain === 'NT' ||
-      response.strain === opening.strain || rebid.strain === opening.strain ||
-      rebid.strain === response.strain ||
-      cheapestBidInStrainAfter(response, rebid.strain) !== partnership[2] ||
-      openerRebidIsReverse(opening, response, rebid)) return null;
-  return { opening: opening.strain as Suit, response: response.strain as Suit,
-           second: rebid.strain as Suit, secondLevel: rebid.level };
-}
-
 /// Keep the natural suit and level implied by the preceding auction. In particular, prefer
 /// opener's *first* suit only with a credible fit; a convenient club opening may be three cards.
 export function refineResponderEconomicalSuit (calls: Call[], context: RuleEvalContext,
@@ -190,13 +169,12 @@ export function responderEconomicalDecisionApplies (_call: Call, context: RuleEv
     } } };
 }
 
-//// Responder after opener's strong natural second suit
 
-/// Classify the first three partnership bids by their established meanings. A reverse is a
-/// cheapest forcing new suit; a strong jump shift jumps one level beyond an economical new suit.
-/// Neither the printed suit combination nor the opponent's intervening Passes define the family.
-export function getResponderStrongSecondSuit (context: RuleEvalContext):
-    { kind: 'reverse' | 'jumpShift'; opening: Suit; response: Suit; second: Suit } | null {
+/// This identifies the *meaning* of the first three partnership bids, not a printed example
+/// auction. Reverses, jumps, one-notrump responses and two-level forcing responses need their
+/// own treatments; an economical second suit can show 12-18 points and only four cards in it.
+export function getResponderEconomicalSecondSuit (context: RuleEvalContext):
+    { opening: Suit; response: Suit; second: Suit; secondLevel: number } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null) return null;
@@ -207,19 +185,15 @@ export function getResponderStrongSecondSuit (context: RuleEvalContext):
   const response = parseSuitBid(partnership[1]);
   const rebid = parseSuitBid(partnership[2]);
   if (opening === null || response === null || rebid === null || rebid.strain === 'NT' ||
-      opening.strain === response.strain || rebid.strain === opening.strain ||
-      rebid.strain === response.strain) return null;
-  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
-  const cheapestParsed = cheapest === null ? null : parseSuitBid(cheapest);
-  if (cheapestParsed === null) return null;
-  const reverse = rebid.level === cheapestParsed.level &&
-    openerRebidIsReverse(opening, response, rebid);
-  const jumpShift = rebid.level === cheapestParsed.level + 1 &&
-    ! openerRebidIsReverse(opening, response, cheapestParsed);
-  if (!reverse && !jumpShift) return null;
-  return { kind: reverse ? 'reverse' : 'jumpShift', opening: opening.strain as Suit,
-           response: response.strain as Suit, second: rebid.strain as Suit };
+      response.strain === opening.strain || rebid.strain === opening.strain ||
+      rebid.strain === response.strain ||
+      cheapestBidInStrainAfter(response, rebid.strain) !== partnership[2] ||
+      openerRebidIsReverse(opening, response, rebid)) return null;
+  return { opening: opening.strain as Suit, response: response.strain as Suit,
+           second: rebid.strain as Suit, secondLevel: rebid.level };
 }
+
+//// Responder after opener's strong natural second suit
 
 /// Natural games can be chosen when their strain and existing force are both sufficiently clear.
 /// A game-force does not automatically license 3NT without a stopper or major game without
@@ -262,49 +236,37 @@ export function responderStrongSecondSuitGameApplies (call: Call, context: RuleE
   } } };
 }
 
-//// Responder after a natural 1NT response to a major opening
 
-/// A 1NT response can be forcing, nonforcing, or a three-card limit-raise route.
-/// Classify opener's ordinary two-level rebid without claiming a manufactured minor
-/// necessarily contains four cards. Reverses, jump rebids, and strong 2NT are separate.
-export function getResponderAfterMajorOneNt (context: RuleEvalContext):
-    { opening: Suit; rebid: Suit; kind: 'repeat' | 'second' } | null {
+/// Classify the first three partnership bids by their established meanings. A reverse is a
+/// cheapest forcing new suit; a strong jump shift jumps one level beyond an economical new suit.
+/// Neither the printed suit combination nor the opponent's intervening Passes define the family.
+export function getResponderStrongSecondSuit (context: RuleEvalContext):
+    { kind: 'reverse' | 'jumpShift'; opening: Suit; response: Suit; second: Suit } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null) return null;
   const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (partnership.length !== 3 || !/^1[HS]$/.test(partnership[0] ?? '') ||
-      partnership[1] !== '1NT' || !/^2[CDHS]$/.test(partnership[2] ?? '')) return null;
-  const opening = partnership[0][1] as Suit;
-  const rebid = partnership[2][1] as Suit;
-  if (rebid !== opening && cheapestBidInStrainAfter({ level: 1, strain: 'NT' }, rebid) !==
-      partnership[2]) return null;
-  // A 2S rebid over 1H-1NT is a strong reverse, not an economical second suit.
-  if (rebid !== opening && rebid === 'S' && opening === 'H') return null;
-  return { opening, rebid, kind: rebid === opening ? 'repeat' : 'second' };
+  if (partnership.length !== 3 || !/^1[CDHS]$/.test(partnership[0] ?? '') ||
+      !/^1[CDHS]$/.test(partnership[1] ?? '')) return null;
+  const opening = parseSuitBid(partnership[0]);
+  const response = parseSuitBid(partnership[1]);
+  const rebid = parseSuitBid(partnership[2]);
+  if (opening === null || response === null || rebid === null || rebid.strain === 'NT' ||
+      opening.strain === response.strain || rebid.strain === opening.strain ||
+      rebid.strain === response.strain) return null;
+  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
+  const cheapestParsed = cheapest === null ? null : parseSuitBid(cheapest);
+  if (cheapestParsed === null) return null;
+  const reverse = rebid.level === cheapestParsed.level &&
+    openerRebidIsReverse(opening, response, rebid);
+  const jumpShift = rebid.level === cheapestParsed.level + 1 &&
+    ! openerRebidIsReverse(opening, response, cheapestParsed);
+  if (!reverse && !jumpShift) return null;
+  return { kind: reverse ? 'reverse' : 'jumpShift', opening: opening.strain as Suit,
+           response: response.strain as Suit, second: rebid.strain as Suit };
 }
 
-/// Stronger opener rebids after a major-opening 1NT response have different meanings
-/// from an economical two-level suit rebid. Keep this classification separate so
-/// ordinary signoffs and limit raises cannot leak into a reverse or jump shift.
-export function getResponderAfterMajorOneNtStrong (context: RuleEvalContext):
-    { opening: 'H' | 'S'; kind: 'reverse' | 'ntInvite' | 'jumpRepeat' | 'jumpShift' } | null {
-  if (context.stage !== 'responderRebid') return null;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) return null;
-  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (bids.length !== 3 || (bids[0] !== '1H' && bids[0] !== '1S') ||
-      bids[1] !== '1NT') return null;
-  const opening = bids[0][1] as 'H' | 'S';
-  const rebid = bids[2];
-  const kind = opening === 'H' && rebid === '2S' ? 'reverse' :
-    rebid === '2NT' ? 'ntInvite' :
-    rebid === `3${opening}` ? 'jumpRepeat' :
-    // Opener's maximum-strength jump shift is into a lower-ranking new suit.
-    /^3[CDH]$/.test(rebid) && rebid[1] !== opening &&
-      (opening === 'S' || rebid[1] === 'C' || rebid[1] === 'D') ? 'jumpShift' : null;
-  return kind === null ? null : { opening, kind };
-}
+//// Responder after a natural 1NT response to a major opening
 
 /// Name opener's major, not an unbid major, when an invitation is accepted in game.
 export function refineResponderAfterMajorOneNtStrongGame (calls: Call[], context: RuleEvalContext,
@@ -366,6 +328,28 @@ export function responderAfterMajorOneNtStrongApplies (call: Call, context: Rule
     `responder ${f.hcp} HCP, ${length} ${info.opening} cards, ` +
     `${f.totalPointsWShortage} total points with shortage.`,
   ] };
+}
+
+/// Stronger opener rebids after a major-opening 1NT response have different meanings
+/// from an economical two-level suit rebid. Keep this classification separate so
+/// ordinary signoffs and limit raises cannot leak into a reverse or jump shift.
+export function getResponderAfterMajorOneNtStrong (context: RuleEvalContext):
+    { opening: 'H' | 'S'; kind: 'reverse' | 'ntInvite' | 'jumpRepeat' | 'jumpShift' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || (bids[0] !== '1H' && bids[0] !== '1S') ||
+      bids[1] !== '1NT') return null;
+  const opening = bids[0][1] as 'H' | 'S';
+  const rebid = bids[2];
+  const kind = opening === 'H' && rebid === '2S' ? 'reverse' :
+    rebid === '2NT' ? 'ntInvite' :
+    rebid === `3${opening}` ? 'jumpRepeat' :
+    // Opener's maximum-strength jump shift is into a lower-ranking new suit.
+    /^3[CDH]$/.test(rebid) && rebid[1] !== opening &&
+      (opening === 'S' || rebid[1] === 'C' || rebid[1] === 'D') ? 'jumpShift' : null;
+  return kind === null ? null : { opening, kind };
 }
 
 /// Select the suit and level from opener's real auction, not a hardcoded major.
@@ -448,29 +432,28 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
     } } };
 }
 
-//// Responder after a natural 1NT response to a minor opening
 
-/// The response denied a four-card major and was nonforcing. Distinguish the natural
-/// minimum descriptions and invitations from reverse/jump-shift forcing obligations.
-export function getResponderAfterMinorOneNt (context: RuleEvalContext):
-    { opening: 'C' | 'D'; kind: 'repeat' | 'second' | 'jumpRepeat' | 'ntInvite' |
-                           'gameNt' | 'gameMinor' } | null {
+/// A 1NT response can be forcing, nonforcing, or a three-card limit-raise route.
+/// Classify opener's ordinary two-level rebid without claiming a manufactured minor
+/// necessarily contains four cards. Reverses, jump rebids, and strong 2NT are separate.
+export function getResponderAfterMajorOneNt (context: RuleEvalContext):
+    { opening: Suit; rebid: Suit; kind: 'repeat' | 'second' } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null) return null;
-  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (bids.length !== 3 || (bids[0] !== '1C' && bids[0] !== '1D') ||
-      bids[1] !== '1NT') return null;
-  const opening = bids[0][1] as 'C' | 'D';
-  const rebid = bids[2];
-  const kind = rebid === `2${opening}` ? 'repeat' :
-    opening === 'D' && rebid === '2C' ? 'second' :
-    rebid === `3${opening}` ? 'jumpRepeat' :
-    rebid === '2NT' ? 'ntInvite' :
-    rebid === '3NT' ? 'gameNt' :
-    rebid === `5${opening}` ? 'gameMinor' : null;
-  return kind === null ? null : { opening, kind };
+  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (partnership.length !== 3 || !/^1[HS]$/.test(partnership[0] ?? '') ||
+      partnership[1] !== '1NT' || !/^2[CDHS]$/.test(partnership[2] ?? '')) return null;
+  const opening = partnership[0][1] as Suit;
+  const rebid = partnership[2][1] as Suit;
+  if (rebid !== opening && cheapestBidInStrainAfter({ level: 1, strain: 'NT' }, rebid) !==
+      partnership[2]) return null;
+  // A 2S rebid over 1H-1NT is a strong reverse, not an economical second suit.
+  if (rebid !== opening && rebid === 'S' && opening === 'H') return null;
+  return { opening, rebid, kind: rebid === opening ? 'repeat' : 'second' };
 }
+
+//// Responder after a natural 1NT response to a minor opening
 
 /// Minimum suit selections and a natural 2NT invitation answer use the actual opening
 /// minor and responder's balanced 6-10 HCP promise. Strong and forcing rebids are excluded.
@@ -510,26 +493,30 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
     } } };
 }
 
-//// Responder after opener jump-repeats a six-card minor following a one-level major response
 
-/// Recognize exactly the uncontested 1m–1M–3m invitation.  Physical opponent Passes
-/// matter: a superficially similar competitive auction has different meanings.  Passes
-/// before the opening (including a non-dealer opener) are harmless.
-export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
-    { opening: 'C' | 'D'; response: 'H' | 'S' } | null {
+/// The response denied a four-card major and was nonforcing. Distinguish the natural
+/// minimum descriptions and invitations from reverse/jump-shift forcing obligations.
+export function getResponderAfterMinorOneNt (context: RuleEvalContext):
+    { opening: 'C' | 'D'; kind: 'repeat' | 'second' | 'jumpRepeat' | 'ntInvite' |
+                           'gameNt' | 'gameMinor' } | null {
   if (context.stage !== 'responderRebid') return null;
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null || (opening.call !== '1C' && opening.call !== '1D') ||
-      context.auction.length !== opening.index + 6) return null;
-  const start = opening.index;
-  const response = context.auction[start + 2];
-  if ((response !== '1H' && response !== '1S') ||
-      context.auction[start + 1] !== 'Pass' ||
-      context.auction[start + 3] !== 'Pass' ||
-      context.auction[start + 4] !== `3${opening.call[1]}` ||
-      context.auction[start + 5] !== 'Pass') return null;
-  return { opening: opening.call[1] as 'C' | 'D', response: response[1] as 'H' | 'S' };
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || (bids[0] !== '1C' && bids[0] !== '1D') ||
+      bids[1] !== '1NT') return null;
+  const opening = bids[0][1] as 'C' | 'D';
+  const rebid = bids[2];
+  const kind = rebid === `2${opening}` ? 'repeat' :
+    opening === 'D' && rebid === '2C' ? 'second' :
+    rebid === `3${opening}` ? 'jumpRepeat' :
+    rebid === '2NT' ? 'ntInvite' :
+    rebid === '3NT' ? 'gameNt' :
+    rebid === `5${opening}` ? 'gameMinor' : null;
+  return kind === null ? null : { opening, kind };
 }
+
+//// Responder after opener jump-repeats a six-card minor following a one-level major response
 
 /// The 3m jump repeat is invitational, not forcing.  A minimum responder with an
 /// eight-card minor fit may Pass; 3NT needs additional HCP, balance, and stoppers in
@@ -554,48 +541,27 @@ export function responderAfterMinorJumpRepeatApplies (_call: Call, context: Rule
   ] };
 }
 
-//// Natural responder choices after a 2/1 game-forcing response
 
-/// Identify the original game force by the first three partnership bids, not by the
-/// particular suit letters or the opponents' intervening Passes. The original minor
-/// might have been a three-card suit on the separate game-forcing major-support route.
-export function getResponderTwoOverOne (context: RuleEvalContext):
-    { opening: Suit; response: Suit; rebid: string;
-      kind: 'repeatOpening' | 'raiseResponse' | 'secondSuit' | 'twoNt' | 'other';
-      second: Suit | null } | null {
+/// Recognize exactly the uncontested 1m–1M–3m invitation.  Physical opponent Passes
+/// matter: a superficially similar competitive auction has different meanings.  Passes
+/// before the opening (including a non-dealer opener) are harmless.
+export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
+    { opening: 'C' | 'D'; response: 'H' | 'S' } | null {
   if (context.stage !== 'responderRebid') return null;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) return null;
-  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (bids.length !== 3 || !/^1[DHS]$/.test(bids[0] ?? '') ||
-      !/^2[CDH]$/.test(bids[1] ?? '') ||
-      responseJump(bids[0] as `1${Suit}`, bids[1] as `2${Suit}`) !== 0 || bids[0][1] === bids[1][1]) return null;
-  const opening = bids[0][1] as Suit;
-  const response = bids[1][1] as Suit;
-  if (responderPreviouslyPassed(context.dealer, context.auction)) return null;
-  const rebid = bids[2];
-  const suit = parseSuitBid(rebid);
-  const repeat = suit !== null && suit.strain === opening && suit.level === 2;
-  const raise = suit !== null && suit.strain === response && suit.level === 3;
-  const second = suit !== null && suit.strain !== 'NT' &&
-    suit.strain !== opening && suit.strain !== response ? suit.strain as Suit : null;
-  return { opening, response, rebid,
-           kind: repeat ? 'repeatOpening' : raise ? 'raiseResponse' :
-             second !== null ? 'secondSuit' : rebid === '2NT' ? 'twoNt' : 'other', second };
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null || (opening.call !== '1C' && opening.call !== '1D') ||
+      context.auction.length !== opening.index + 6) return null;
+  const start = opening.index;
+  const response = context.auction[start + 2];
+  if ((response !== '1H' && response !== '1S') ||
+      context.auction[start + 1] !== 'Pass' ||
+      context.auction[start + 3] !== 'Pass' ||
+      context.auction[start + 4] !== `3${opening.call[1]}` ||
+      context.auction[start + 5] !== 'Pass') return null;
+  return { opening: opening.call[1] as 'C' | 'D', response: response[1] as 'H' | 'S' };
 }
 
-/// Only natural games in a previously shown partnership suit (or 3NT) complete this
-/// 2/1 obligation here. A jump to game in an unbid suit could be artificial, and 4NT
-/// can be ace-asking; neither is treated as a routine Pass without further agreements.
-export function responderTwoOverOneReachedGame (context: RuleEvalContext): boolean {
-  const info = getResponderTwoOverOne(context);
-  if (info === null) return false;
-  return info.rebid === '3NT' ||
-    ((info.opening === 'H' || info.opening === 'S') && info.rebid === `4${info.opening}`) ||
-    (info.response === 'H' && info.rebid === '4H') ||
-    ((info.opening === 'C' || info.opening === 'D') && info.rebid === `5${info.opening}`) ||
-    ((info.response === 'C' || info.response === 'D') && info.rebid === `5${info.response}`);
-}
+//// Natural responder choices after a 2/1 game-forcing response
 
 /// Only the suit known from the auction may be chosen. A direct 4M may use two-card
 /// support when opener has repeated a six-card major; a slower 3M shows three-card
@@ -690,31 +656,49 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
     } } };
 }
 
-//// Standard two-level new-suit responder continuations
 
-/// The first two partnership bids establish a one-round force. Only ordinary natural
-/// Standard responses qualify; the same printed auction under 2/1 is game forcing.
-/// An opener repeat at the two level may be a restricted five-card major fallback.
-export function getResponderStandardTwoLevel (context: RuleEvalContext):
+/// Only natural games in a previously shown partnership suit (or 3NT) complete this
+/// 2/1 obligation here. A jump to game in an unbid suit could be artificial, and 4NT
+/// can be ace-asking; neither is treated as a routine Pass without further agreements.
+export function responderTwoOverOneReachedGame (context: RuleEvalContext): boolean {
+  const info = getResponderTwoOverOne(context);
+  if (info === null) return false;
+  return info.rebid === '3NT' ||
+    ((info.opening === 'H' || info.opening === 'S') && info.rebid === `4${info.opening}`) ||
+    (info.response === 'H' && info.rebid === '4H') ||
+    ((info.opening === 'C' || info.opening === 'D') && info.rebid === `5${info.opening}`) ||
+    ((info.response === 'C' || info.response === 'D') && info.rebid === `5${info.response}`);
+}
+
+/// Identify the original game force by the first three partnership bids, not by the
+/// particular suit letters or the opponents' intervening Passes. The original minor
+/// might have been a three-card suit on the separate game-forcing major-support route.
+export function getResponderTwoOverOne (context: RuleEvalContext):
     { opening: Suit; response: Suit; rebid: string;
-      kind: 'repeat' | 'raise' | 'minorRepeat' | 'minimumNt' | 'gameNt' | 'other' } | null {
+      kind: 'repeatOpening' | 'raiseResponse' | 'secondSuit' | 'twoNt' | 'other';
+      second: Suit | null } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null) return null;
   const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
   if (bids.length !== 3 || !/^1[DHS]$/.test(bids[0] ?? '') ||
-      !/^2[CDH]$/.test(bids[1] ?? '')) return null;
-  const opening = bids[0] as `1${Suit}`;
-  const response = bids[1] as `2${Suit}`;
-  if (opening[1] === response[1] || responseJump(opening, response) !== 0) return null;
+      !/^2[CDH]$/.test(bids[1] ?? '') ||
+      responseJump(bids[0] as `1${Suit}`, bids[1] as `2${Suit}`) !== 0 || bids[0][1] === bids[1][1]) return null;
+  const opening = bids[0][1] as Suit;
+  const response = bids[1][1] as Suit;
+  if (responderPreviouslyPassed(context.dealer, context.auction)) return null;
   const rebid = bids[2];
-  const repeated = rebid === `2${opening[1]}`;
-  const raised = rebid === `3${response[1]}`;
-  const kind = repeated ? (opening === '1D' ? 'minorRepeat' : 'repeat') :
-    raised ? 'raise' : rebid === '2NT' ? 'minimumNt' :
-    rebid === '3NT' ? 'gameNt' : 'other';
-  return { opening: opening[1] as Suit, response: response[1] as Suit, rebid, kind };
+  const suit = parseSuitBid(rebid);
+  const repeat = suit !== null && suit.strain === opening && suit.level === 2;
+  const raise = suit !== null && suit.strain === response && suit.level === 3;
+  const second = suit !== null && suit.strain !== 'NT' &&
+    suit.strain !== opening && suit.strain !== response ? suit.strain as Suit : null;
+  return { opening, response, rebid,
+           kind: repeat ? 'repeatOpening' : raise ? 'raiseResponse' :
+             second !== null ? 'secondSuit' : rebid === '2NT' ? 'twoNt' : 'other', second };
 }
+
+//// Standard two-level new-suit responder continuations
 
 /// The bid chosen must follow from opener's actual rebid, not merely the opening suit.
 export function refineResponderStandardTwoLevel (calls: Call[], context: RuleEvalContext,
@@ -763,6 +747,31 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
   } } };
 }
 
+
+/// The first two partnership bids establish a one-round force. Only ordinary natural
+/// Standard responses qualify; the same printed auction under 2/1 is game forcing.
+/// An opener repeat at the two level may be a restricted five-card major fallback.
+export function getResponderStandardTwoLevel (context: RuleEvalContext):
+    { opening: Suit; response: Suit; rebid: string;
+      kind: 'repeat' | 'raise' | 'minorRepeat' | 'minimumNt' | 'gameNt' | 'other' } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
+  if (bids.length !== 3 || !/^1[DHS]$/.test(bids[0] ?? '') ||
+      !/^2[CDH]$/.test(bids[1] ?? '')) return null;
+  const opening = bids[0] as `1${Suit}`;
+  const response = bids[1] as `2${Suit}`;
+  if (opening[1] === response[1] || responseJump(opening, response) !== 0) return null;
+  const rebid = bids[2];
+  const repeated = rebid === `2${opening[1]}`;
+  const raised = rebid === `3${response[1]}`;
+  const kind = repeated ? (opening === '1D' ? 'minorRepeat' : 'repeat') :
+    raised ? 'raise' : rebid === '2NT' ? 'minimumNt' :
+    rebid === '3NT' ? 'gameNt' : 'other';
+  return { opening: opening[1] as Suit, response: response[1] as Suit, rebid, kind };
+}
+
 //// Responder after a direct 1NT-3M slam try and opener's side-control reply
 
 /// Recognize the selected uncontested 1NT-3M-control auction, not a Jacoby transfer
@@ -791,37 +800,6 @@ export function responderAfterOneNtMajorSlamControl (context: RuleEvalContext): 
 }
 
 //// Responder's continuation after a notrump-opening convention
-
-/// Recognize only the exact three partnership calls of an uncontested Stayman or
-/// Jacoby-transfer sequence. The 1NT opening/overcall distinction matters: an opponent's
-/// suit opening followed by our natural 1NT overcall is not an NT *opening* here.
-/// Agreement filtering of the rules separately protects natural 2C/3C or 2D/3D uses when
-/// the relevant convention is disabled.
-export function getResponderNtConvention (context: RuleEvalContext):
-    { opening: '1NT' | '2NT'; convention: 'stayman' | 'jacoby'; reply: Call;
-      major: 'H' | 'S' | null; matched: boolean } | null {
-  if (context.stage !== 'responderRebid') return null;
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null || (opening.call !== '1NT' && opening.call !== '2NT')) return null;
-  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
-  if (bids.length !== 3 || bids[0] !== opening.call) return null;
-  const [ , response, reply ] = bids;
-  const base = opening.call === '1NT' ? 2 : 3;
-  const stayman = `${base}C`;
-  if (response === stayman &&
-      (reply === `${base}D` || reply === `${base}H` || reply === `${base}S`)) {
-    const major = reply === `${base}H` ? 'H' : reply === `${base}S` ? 'S' : null;
-    return { opening: opening.call, convention: 'stayman', reply,
-             major, matched: major !== null && context.handFacts.lengths[major] >= 4 };
-  }
-  if (response === `${base}D` && reply === `${base}H`) {
-    return { opening: opening.call, convention: 'jacoby', reply, major: 'H', matched: true };
-  }
-  if (response === `${base}H` && reply === `${base}S`) {
-    return { opening: opening.call, convention: 'jacoby', reply, major: 'S', matched: true };
-  }
-  return null;
-}
 
 /// A shown Stayman major is the only suit to raise; a Jacoby completion is the only
 /// major in which responder may rebid naturally. Prevent a fixed 3H/3S/4H/4S rule
@@ -901,47 +879,39 @@ export function responderNtConventionApplies (call: Call, context: RuleEvalConte
 
 
 
-//// Shared uncontested opener–responder–opener sequence
-/// Read the first three partnership calls only when all three intervening opponents Passed.
-/// This prevents competitive auctions from inheriting uncontested game-try or convention meanings.
-function getUncontestedThreeCallContinuation (context: RuleEvalContext):
-    { opening: Call; response: Call; rebid: Call } | null {
+
+/// Recognize only the exact three partnership calls of an uncontested Stayman or
+/// Jacoby-transfer sequence. The 1NT opening/overcall distinction matters: an opponent's
+/// suit opening followed by our natural 1NT overcall is not an NT *opening* here.
+/// Agreement filtering of the rules separately protects natural 2C/3C or 2D/3D uses when
+/// the relevant convention is disabled.
+export function getResponderNtConvention (context: RuleEvalContext):
+    { opening: '1NT' | '2NT'; convention: 'stayman' | 'jacoby'; reply: Call;
+      major: 'H' | 'S' | null; matched: boolean } | null {
   if (context.stage !== 'responderRebid') return null;
   const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (opening === null) return null;
-  const i = opening.index;
-  if (context.auction.length !== i + 6 ||
-      context.auction[i + 1] !== 'Pass' ||
-      context.auction[i + 3] !== 'Pass' ||
-      context.auction[i + 5] !== 'Pass') return null;
-  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
-  if (partnership.length !== 3) return null;
-  return { opening: partnership[0], response: partnership[1], rebid: partnership[2] };
+  if (opening === null || (opening.call !== '1NT' && opening.call !== '2NT')) return null;
+  const bids = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
+  if (bids.length !== 3 || bids[0] !== opening.call) return null;
+  const [ , response, reply ] = bids;
+  const base = opening.call === '1NT' ? 2 : 3;
+  const stayman = `${base}C`;
+  if (response === stayman &&
+      (reply === `${base}D` || reply === `${base}H` || reply === `${base}S`)) {
+    const major = reply === `${base}H` ? 'H' : reply === `${base}S` ? 'S' : null;
+    return { opening: opening.call, convention: 'stayman', reply,
+             major, matched: major !== null && context.handFacts.lengths[major] >= 4 };
+  }
+  if (response === `${base}D` && reply === `${base}H`) {
+    return { opening: opening.call, convention: 'jacoby', reply, major: 'H', matched: true };
+  }
+  if (response === `${base}H` && reply === `${base}S`) {
+    return { opening: opening.call, convention: 'jacoby', reply, major: 'S', matched: true };
+  }
+  return null;
 }
 
 //// Responder after opener makes a game try following a simple major raise
-
-/// An uncontested 1M–2M–(help suit or 2NT) auction is an invitation, not opener's
-/// competitive 3M with a six-card suit.  Require the actual cheapest side-suit bid so
-/// a jump or an unrelated natural rebid cannot accidentally inherit game-try meaning.
-export function getResponderAfterMajorGameTry (context: RuleEvalContext):
-    { major: 'H' | 'S'; kind: 'helpSuit' | 'balanced'; helpSuit: Suit | null } | null {
-  const seq = getUncontestedThreeCallContinuation(context);
-  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
-  const major = seq.opening[1] as 'H' | 'S';
-  if (seq.response !== `2${major}` || context.handFacts.lengths[major] < 3) return null;
-  if (seq.rebid === '2NT') return { major, kind: 'balanced', helpSuit: null };
-  const rebid = parseSuitBid(seq.rebid);
-  const raise = parseSuitBid(seq.response);
-  if (rebid === null || raise === null || rebid.strain === 'NT' ||
-      rebid.strain === major ||
-      cheapestBidInStrainAfter(raise, rebid.strain) !== seq.rebid ||
-      // A genuine invitation must leave a legal 3M decline available.
-      !isCallAvailableInAuction(`3${major}` as Call, context.auction)) {
-    return null;
-  }
-  return { major, kind: 'helpSuit', helpSuit: rebid.strain as Suit };
-}
 
 /// The invitation belongs to the already established major fit, even when opener
 /// used 2NT or a side suit to ask about game.
@@ -952,16 +922,6 @@ export function refineResponderMajorGameTry (calls: Call[], context: RuleEvalCon
     call === `3${info.major}` || call === `4${info.major}`),
     telemetryLines: [info === null ? 'No qualifying major-fit game try.' :
       `The agreed suit is ${info.major}; responder may stop at three or accept at four.`] };
-}
-
-/// A help-suit game try asks for working values in the named suit, or useful
-/// shortness for ruffing.  At an eight-point borderline, count A/K, a QJ
-/// combination, or a singleton/void as useful assistance; a lone J or Q does
-/// not by itself promise the help opener is looking for.
-function hasGameTrySuitHelp (context: RuleEvalContext, suit: Suit): boolean {
-  const cards = context.hand.cards.filter((card) => card.suit === suit);
-  return cards.length <= 1 || cards.some((card) => card.rank === 'A' || card.rank === 'K') ||
-    (cards.some((card) => card.rank === 'Q') && cards.some((card) => card.rank === 'J'));
 }
 
 /// Responder's simple raise originally showed 6–10 *support* points.  With 9–10,
@@ -993,36 +953,58 @@ export function responderMajorGameTryApplies (call: Call, context: RuleEvalConte
   } } };
 }
 
-//// Responder after opener makes a splinter agreeing responder's suit
 
-/// Recognize only the opener-side splinters the opener-rebid rules actually describe:
-///   - 1m/1M – 1new-suit – double-jump into a different short suit, or
-///   - 1M – 2M – single-jump into a different short suit.
-/// In both cases the opening bidder promises four-card support for responder's new suit
-/// (five-card trump support after the simple raise).  This helper recognizes the actual
-/// auction, not the student's strength or any unannounced shortness in their hand.
-export function getResponderAfterOpenerSplinter (context: RuleEvalContext):
-    { agreedSuit: Suit; shortSuit: Suit; responseKind: 'newSuit' | 'simpleMajorRaise' } | null {
+/// An uncontested 1M–2M–(help suit or 2NT) auction is an invitation, not opener's
+/// competitive 3M with a six-card suit.  Require the actual cheapest side-suit bid so
+/// a jump or an unrelated natural rebid cannot accidentally inherit game-try meaning.
+export function getResponderAfterMajorGameTry (context: RuleEvalContext):
+    { major: 'H' | 'S'; kind: 'helpSuit' | 'balanced'; helpSuit: Suit | null } | null {
   const seq = getUncontestedThreeCallContinuation(context);
-  if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
-  const openingSuit = seq.opening[1] as Suit;
-  const response = parseSuitBid(seq.response);
+  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
+  const major = seq.opening[1] as 'H' | 'S';
+  if (seq.response !== `2${major}` || context.handFacts.lengths[major] < 3) return null;
+  if (seq.rebid === '2NT') return { major, kind: 'balanced', helpSuit: null };
   const rebid = parseSuitBid(seq.rebid);
-  if (response === null || rebid === null || response.strain === 'NT' ||
-      rebid.strain === 'NT' || rebid.strain === openingSuit ||
-      rebid.strain === response.strain) return null;
-  const simpleMajorRaise = (openingSuit === 'H' || openingSuit === 'S') &&
-    seq.response === `2${openingSuit}`;
-  const newSuit = response.level === 1 && response.strain !== openingSuit &&
-    responseJump(seq.opening as SuitBid, seq.response as SuitBid) === 0;
-  if (!simpleMajorRaise && !newSuit) return null;
-  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
-  if (cheapest === null || rebid.level !== parseSuitBid(cheapest)!.level +
-      (simpleMajorRaise ? 1 : 2)) return null;
-  return { agreedSuit: (simpleMajorRaise ? openingSuit : response.strain) as Suit,
-    shortSuit: rebid.strain as Suit,
-    responseKind: simpleMajorRaise ? 'simpleMajorRaise' : 'newSuit' };
+  const raise = parseSuitBid(seq.response);
+  if (rebid === null || raise === null || rebid.strain === 'NT' ||
+      rebid.strain === major ||
+      cheapestBidInStrainAfter(raise, rebid.strain) !== seq.rebid ||
+      // A genuine invitation must leave a legal 3M decline available.
+      !isCallAvailableInAuction(`3${major}` as Call, context.auction)) {
+    return null;
+  }
+  return { major, kind: 'helpSuit', helpSuit: rebid.strain as Suit };
 }
+
+/// A help-suit game try asks for working values in the named suit, or useful
+/// shortness for ruffing.  At an eight-point borderline, count A/K, a QJ
+/// combination, or a singleton/void as useful assistance; a lone J or Q does
+/// not by itself promise the help opener is looking for.
+function hasGameTrySuitHelp (context: RuleEvalContext, suit: Suit): boolean {
+  const cards = context.hand.cards.filter((card) => card.suit === suit);
+  return cards.length <= 1 || cards.some((card) => card.rank === 'A' || card.rank === 'K') ||
+    (cards.some((card) => card.rank === 'Q') && cards.some((card) => card.rank === 'J'));
+}
+
+/// Read the first three partnership calls only when all three intervening opponents Passed.
+/// This prevents competitive auctions from inheriting uncontested game-try or convention meanings.
+/// Also used by later splinter, jump-shift, strong-2C, and major-support continuations.
+function getUncontestedThreeCallContinuation (context: RuleEvalContext):
+    { opening: Call; response: Call; rebid: Call } | null {
+  if (context.stage !== 'responderRebid') return null;
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (opening === null) return null;
+  const i = opening.index;
+  if (context.auction.length !== i + 6 ||
+      context.auction[i + 1] !== 'Pass' ||
+      context.auction[i + 3] !== 'Pass' ||
+      context.auction[i + 5] !== 'Pass') return null;
+  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, opening.seat);
+  if (partnership.length !== 3) return null;
+  return { opening: partnership[0], response: partnership[1], rebid: partnership[2] };
+}
+
+//// Responder after opener makes a splinter agreeing responder's suit
 
 /// With a normal response, opener's splinter has already forced the partnership to
 /// game in the agreed major.  Return to 4M; stronger responder hands may merit slam
@@ -1062,35 +1044,37 @@ export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: 
       `Return to ${game} after opener's splinter in ${info!.shortSuit}.`] };
 }
 
-//// Responder after a classic strong jump-shift response
 
-/// Recognize responder's *original* single-jump new-suit response, not opener's later
-/// jump shift.  The opener rebid must be one of the natural continuations modeled for
-/// this forcing response: an economical raise, repeat, second suit, or notrump rebid.
-/// All intervening opponent calls must have been Pass.  The agreement setting is
-/// checked by the rules that use this helper.
-export function getResponderAfterStrongJumpShift (context: RuleEvalContext):
-    { opening: Suit; response: Suit; rebid: Call; kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump' } | null {
+/// Recognize only the opener-side splinters the opener-rebid rules actually describe:
+///   - 1m/1M – 1new-suit – double-jump into a different short suit, or
+///   - 1M – 2M – single-jump into a different short suit.
+/// In both cases the opening bidder promises four-card support for responder's new suit
+/// (five-card trump support after the simple raise).  This helper recognizes the actual
+/// auction, not the student's strength or any unannounced shortness in their hand.
+export function getResponderAfterOpenerSplinter (context: RuleEvalContext):
+    { agreedSuit: Suit; shortSuit: Suit; responseKind: 'newSuit' | 'simpleMajorRaise' } | null {
   const seq = getUncontestedThreeCallContinuation(context);
   if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
+  const openingSuit = seq.opening[1] as Suit;
   const response = parseSuitBid(seq.response);
   const rebid = parseSuitBid(seq.rebid);
   if (response === null || rebid === null || response.strain === 'NT' ||
-      response.strain === seq.opening[1] ||
-      responseJump(seq.opening as SuitBid, seq.response as SuitBid) !== 1) return null;
-  const opening = seq.opening[1] as Suit;
-  const responseSuit = response.strain as Suit;
-  let kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump';
-  if (rebid.strain === responseSuit && rebid.level === response.level + 1) {
-    kind = 'raise';
-  } else if (cheapestBidInStrainAfter(response, rebid.strain) === seq.rebid) {
-    kind = rebid.strain === 'NT' ? 'notrump' :
-      rebid.strain === opening ? 'repeat' : 'secondSuit';
-  } else {
-    return null;
-  }
-  return { opening, response: responseSuit, rebid: seq.rebid, kind };
+      rebid.strain === 'NT' || rebid.strain === openingSuit ||
+      rebid.strain === response.strain) return null;
+  const simpleMajorRaise = (openingSuit === 'H' || openingSuit === 'S') &&
+    seq.response === `2${openingSuit}`;
+  const newSuit = response.level === 1 && response.strain !== openingSuit &&
+    responseJump(seq.opening as SuitBid, seq.response as SuitBid) === 0;
+  if (!simpleMajorRaise && !newSuit) return null;
+  const cheapest = cheapestBidInStrainAfter(response, rebid.strain);
+  if (cheapest === null || rebid.level !== parseSuitBid(cheapest)!.level +
+      (simpleMajorRaise ? 1 : 2)) return null;
+  return { agreedSuit: (simpleMajorRaise ? openingSuit : response.strain) as Suit,
+    shortSuit: rebid.strain as Suit,
+    responseKind: simpleMajorRaise ? 'simpleMajorRaise' : 'newSuit' };
 }
+
+//// Responder after a classic strong jump-shift response
 
 /// The jump shift already established a game force and expresses slam interest.
 /// For a minimum strong jump shifter (17–18 HCP), support an obvious major-suit
@@ -1141,14 +1125,36 @@ export function responderAfterStrongJumpShiftGameApplies (call: Call, context: R
   } } };
 }
 
-//// Responder after strong 2C, Jacoby 2NT and splinter continuations
-export function getResponderStrongTwoC (context: RuleEvalContext):
-    { response: Call; rebid: Call; positive: boolean } | null {
+
+/// Recognize responder's *original* single-jump new-suit response, not opener's later
+/// jump shift.  The opener rebid must be one of the natural continuations modeled for
+/// this forcing response: an economical raise, repeat, second suit, or notrump rebid.
+/// All intervening opponent calls must have been Pass.  The agreement setting is
+/// checked by the rules that use this helper.
+export function getResponderAfterStrongJumpShift (context: RuleEvalContext):
+    { opening: Suit; response: Suit; rebid: Call; kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump' } | null {
   const seq = getUncontestedThreeCallContinuation(context);
-  if (seq === null || seq.opening !== '2C' ||
-      !['2D', '2H', '2S', '3C', '3D', '2NT'].includes(seq.response)) return null;
-  return { response: seq.response, rebid: seq.rebid, positive: seq.response !== '2D' };
+  if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
+  const response = parseSuitBid(seq.response);
+  const rebid = parseSuitBid(seq.rebid);
+  if (response === null || rebid === null || response.strain === 'NT' ||
+      response.strain === seq.opening[1] ||
+      responseJump(seq.opening as SuitBid, seq.response as SuitBid) !== 1) return null;
+  const opening = seq.opening[1] as Suit;
+  const responseSuit = response.strain as Suit;
+  let kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump';
+  if (rebid.strain === responseSuit && rebid.level === response.level + 1) {
+    kind = 'raise';
+  } else if (cheapestBidInStrainAfter(response, rebid.strain) === seq.rebid) {
+    kind = rebid.strain === 'NT' ? 'notrump' :
+      rebid.strain === opening ? 'repeat' : 'secondSuit';
+  } else {
+    return null;
+  }
+  return { opening, response: responseSuit, rebid: seq.rebid, kind };
 }
+
+//// Responder after strong 2C, Jacoby 2NT and splinter continuations
 
 /// The minimum 2NT rebid after a waiting 2D is nonforcing, but a suit rebid is
 /// forcing. After a positive response game is already forced. We implement only
@@ -1202,23 +1208,12 @@ export function refineResponderStrongTwoCMajorGame (calls: Call[], context: Rule
       `Keep four of the positive ${suit} major.`] };
 }
 
-export function getResponderMajorSupportConvention (context: RuleEvalContext,
-    system: BiddingSystem):
-    { kind: 'jacoby2NT' | 'splinter'; major: Suit; rebid: Call } | null {
+export function getResponderStrongTwoC (context: RuleEvalContext):
+    { response: Call; rebid: Call; positive: boolean } | null {
   const seq = getUncontestedThreeCallContinuation(context);
-  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
-  const major = seq.opening[1] as Suit;
-  if (seq.response === '2NT' && system.majorGameForceWithSupport === 'jacoby2NT' &&
-      /^3([CDHS]|NT)$|^4[CDHS]$/.test(seq.rebid)) {
-    return { kind: 'jacoby2NT', major, rebid: seq.rebid };
-  }
-  const response = parseSuitBid(seq.response);
-  if (system.splinters && response !== null && response.strain !== 'NT' &&
-      response.strain !== major && responseJump(seq.opening as '1H' | '1S', seq.response as SuitBid) === 2 &&
-      /^([34])([CDHS])$/.test(seq.rebid)) {
-    return { kind: 'splinter', major, rebid: seq.rebid };
-  }
-  return null;
+  if (seq === null || seq.opening !== '2C' ||
+      !['2D', '2H', '2S', '3C', '3D', '2NT'].includes(seq.response)) return null;
+  return { response: seq.response, rebid: seq.rebid, positive: seq.response !== '2D' };
 }
 
 export function responderMajorSupportConventionApplies (call: Call, context: RuleEvalContext,
@@ -1252,4 +1247,23 @@ export function refineResponderSupportMajorGame (calls: Call[], context: RuleEva
   return { calls: info === null ? [] : calls.filter((call) => call === `4${info.major}`),
     telemetryLines: [info === null ? 'No established Jacoby/splinter major fit.' :
       `Only game in the agreed ${info.major} major is considered.`] };
+}
+
+export function getResponderMajorSupportConvention (context: RuleEvalContext,
+    system: BiddingSystem):
+    { kind: 'jacoby2NT' | 'splinter'; major: Suit; rebid: Call } | null {
+  const seq = getUncontestedThreeCallContinuation(context);
+  if (seq === null || (seq.opening !== '1H' && seq.opening !== '1S')) return null;
+  const major = seq.opening[1] as Suit;
+  if (seq.response === '2NT' && system.majorGameForceWithSupport === 'jacoby2NT' &&
+      /^3([CDHS]|NT)$|^4[CDHS]$/.test(seq.rebid)) {
+    return { kind: 'jacoby2NT', major, rebid: seq.rebid };
+  }
+  const response = parseSuitBid(seq.response);
+  if (system.splinters && response !== null && response.strain !== 'NT' &&
+      response.strain !== major && responseJump(seq.opening as '1H' | '1S', seq.response as SuitBid) === 2 &&
+      /^([34])([CDHS])$/.test(seq.rebid)) {
+    return { kind: 'splinter', major, rebid: seq.rebid };
+  }
+  return null;
 }
