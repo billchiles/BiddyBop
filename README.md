@@ -50,11 +50,62 @@ which need not be the end of the bridge auction.
 The app is a practice companion: make a bidding decision first, then compare it with the
 supported candidates and explanations.  It does not claim to know the best bid in every auction.
 
-## Bidding-system settings
+## Bidding-system agreements
 
-Partnership agreements can be changed in the app's settings.  You can turn on common conventions, for example, Stayman and Jacoby Transfers, as you learn about them.  Changing an agreement can change
-both the bids recommended for a hand and which rule-practice deals are available.  For example,
-turning off 2/1 agreements may leave some practice groups with zero pre-formed deals.
+BiddyBop teaches one selected partnership system, with some assumptions fixed and a smaller
+set of agreements configurable in **Bidding System**. The fixed assumptions describe what
+the app teaches; they are not switches that can be changed by editing a setting.
+
+### Fixed bidding agreements and teaching assumptions
+
+- **One-level suit openings:** Five-card majors and convenient minors. With both minors, open
+  the longer; with equal four-card minors, open 1D; with equal three-card minors, open 1C.
+  Ordinary openings generally require at least 12 total points with length, subject to
+  the opening rules' HCP, shape, and Guideline of 20 qualifications.
+- **Strong openings:** An artificial strong 2C requires 22+ HCP (without a separate
+  playing-trick exception); a natural 2NT opening shows 20–21 HCP and appropriate shape.
+- **Preemptive openings:** Weak 2D/2H/2S openings require exactly six cards and 5–11 HCP.
+  Three-level preempts require seven cards and at most 11 total points with length. These
+  fixed cutoffs are teaching simplifications, not universal bidding requirements.
+- **Responses to one-level suit openings:** Ordinary responses start at six points with
+  the relevant hand valuation; natural new-suit responses require at least four cards and
+  are generally forcing for one round. Under Standard responses, a natural two-level new
+  suit generally requires 11+ points. Responses to convenient-minor openings favor
+  four-card majors up the line and, with suitable longer suits, five-card suits down the line.
+  The chosen treatments also include natural invitational 2NT and game-going 3NT responses
+  to minor openings rather than inverted minor raises.
+- **Hand valuation:** Length points supplement HCP for ordinary total-point evaluation;
+  shortage points supplement HCP when evaluating support for partner's suit. The relevant
+  measure depends on the bidding situation.
+- **Selected conventions and competitive treatments:** Jordan 2NT after a takeout Double
+  of partner's one-level suit opening, strength-showing Redouble, and a compact **DONT**
+  defense against an opposing strong 1NT are fixed treatments. DONT is on, not a settings
+  option; it includes basic pass-or-correct continuations but not all DONT extensions.
+- **Slam-related calls:** Gerber 4C after a notrump opening and Blackwood 4NT after a suit
+  auction are selected ace-asking treatments; direct 4NT over a natural notrump opening
+  is quantitative rather than Blackwood. The app does not teach a complete slam system
+  or all conventional ace-asking responses.
+
+These are summaries, not a complete rule specification. The bidding-coverage tables below
+identify which auction families and later continuations are supported or omitted.
+
+### Configurable partnership agreements
+
+| Setting | Available choices | Default |
+| --- | --- | --- |
+| 1NT opening range | 15–17 or 16–18 HCP | 15–17 |
+| Five-card-major 1NT upgrade | On or off (upgrade a qualifying balanced hand one HCP below the normal range) | Off |
+| Jump shifts after a one-level suit opening | Strong or weak | Strong |
+| Two-level new-suit responses | Standard or 2/1 game forcing | Standard |
+| 1NT response to partner's major | Forcing or non-forcing | Non-forcing |
+| Major game force with support | New suit then raise or Jacoby 2NT | New suit then raise |
+| Stayman | On or off | On |
+| Jacoby transfers | On or off | On |
+| Splinters | On or off | On |
+| Texas transfers | On or off | On |
+
+Changing an agreement can change both the recommended bids and which prepared rule-practice
+deals are available. Some practice groups may have no compatible deals under particular settings.
 
 ## What the app is and isn't
 
