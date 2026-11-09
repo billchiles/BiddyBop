@@ -25,7 +25,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     guidance: ['15-17: 0-7 HCP; 16-18: 0-6 HCP.',
                'Natural interference turns off the ordinary Stayman and transfer treatments.'],
     meaning: 'No constructive action after the opponent competes over partner\'s 1NT.',
-    certainty: 'high',
   },
   //
   {
@@ -43,7 +42,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
                'The suit must contain five or more cards with at least two of A/K/Q.',
                'This is a natural, nonforcing competitive action.'],
     meaning: 'Natural competitive suit bid after the opponent interferes over partner\'s 1NT.',
-    certainty: 'high',
   },
   //
   {
@@ -62,7 +60,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
                'This treatment is deliberately natural rather than an artificial relay or ' +
                'transfer method.'],
     meaning: 'Natural constructive suit bid when interference forces the auction to three.',
-    certainty: 'medium',
   },
   //
   {
@@ -78,7 +75,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     guidance: ['15-17: 8-9 HCP; 16-18: 7-8 HCP.',
                'A basic stopper in the interference suit is required.'],
     meaning: 'Natural invitation with balanced shape and a stopper in the opponent\'s suit.',
-    certainty: 'high',
   },
   //
   {
@@ -94,7 +90,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     guidance: ['15-17: 10-15 HCP; 16-18: 9-14 HCP.',
                'A basic stopper in the interference suit is required.'],
     meaning: 'Natural game bid with balanced shape and a stopper in the opponent\'s suit.',
-    certainty: 'high',
   },
   //
   {
@@ -113,7 +108,6 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
                'is available, both minors.',
                'Prefer a descriptive natural suit or notrump action when it fits clearly.'],
     meaning: 'Negative/takeout Double showing values and useful shape in the unbid suits.',
-    certainty: 'high',
   },
 ];
 
@@ -269,7 +263,6 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
       telemetryLines: ['Pass is an ordinary weak action over DONT interference.'],
     }),
     meaning: 'Insufficient values for a selected constructive action against both majors.',
-    certainty: 'high',
   },
   {
     id: 'respond-after-dont-majors-2nt',
@@ -280,7 +273,6 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     callCategory: ['natural', 'invitational'],
     appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 8, 9),
     meaning: 'Natural invitation with balanced values and stoppers in hearts and spades.',
-    certainty: 'high',
   },
   {
     id: 'respond-after-dont-majors-3nt',
@@ -291,7 +283,6 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     callCategory: ['natural', 'signoff'],
     appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 10, 15),
     meaning: 'Natural game with balanced values and stoppers in both opposing majors.',
-    certainty: 'high',
   },
   {
     id: 'respond-after-dont-majors-natural-minor',
@@ -305,7 +296,6 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     guidance: ['A five-card minor with two of the top three honors and 10+ HCP is needed ' +
                '(9+ over a configured 16–18 1NT opening).',
                'This is nonforcing; opener may pass without a suitable notrump contract.'],
-    certainty: 'high',
   },
   {
     id: 'respond-after-dont-scope-boundary',
@@ -327,6 +317,5 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
                'description is wrong.',
                'Beyond the selected natural minor and stopped NT decisions, further ' +
                'defensive meanings require specific partnership agreements.'],
-    certainty: 'high',
   },
 ];
