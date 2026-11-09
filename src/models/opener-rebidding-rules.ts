@@ -2218,7 +2218,8 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without forcing partner higher.',
-    guidance: ['A one-level second-suit rebid does not require a five-card opening minor.'],
+    guidance: ['After opening a convenient minor, show an available four-card major at the one level ' +
+               'before rebidding the minor, even with five or more cards in the minor.'],
   },
   //
   {
