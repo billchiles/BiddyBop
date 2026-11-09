@@ -34,8 +34,6 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Consolidate explanation diagnostic lookups.** Replace seven identical
-  lookup helpers in `src/models/explanations.ts` with `findCallDiagnostic`.
 - [ ] **Remove unused rule certainty metadata.** Delete `BidRule.certainty` and its
   annotations throughout rule declarations, including `medium` values.
 - [ ] **Simplify rule agreement filtering.** Replace `ruleIsEnabled` and
