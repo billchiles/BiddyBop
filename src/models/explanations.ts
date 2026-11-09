@@ -1772,7 +1772,7 @@ const STRONG_MAJOR_IDS = [
 /// Return additional instruction only when the actual call qualified under its strong-support rule.
 function strongMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!STRONG_MAJOR_IDS.includes(rule.id)) return [];
-  const { diagnostic, candidate } = majorSupportCandidate(result, rule.id);
+  const { diagnostic, candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const points = minorRequirement(candidate, 'totalPoints');
   const support = minorRequirement(candidate, 'partnerSupport');
@@ -1865,7 +1865,7 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
       `[${STRONG_MAJOR_NEW_SUIT_IDS[1]}].`);
   }
   for (const ruleId of STRONG_MAJOR_IDS) {
-    const { diagnostic, candidate } = majorSupportCandidate(result, ruleId);
+    const { diagnostic, candidate } = findCallDiagnostic(result, ruleId);
     if (diagnostic === undefined || !diagnostic.rule.calls?.includes(entered)) continue;
     // The narrow 13-point fallback only describes direct 3M, never an unrelated 3M splinter.
     if (ruleId === STRONG_MAJOR_LIMIT_FALLBACK_ID &&
@@ -1877,7 +1877,7 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
       const fallback = diagnostic.callEvidence?.longMajorLimitFallback;
       // Only identify an available game force when the special fallback's 13-point, 6+ support
       // requirements were actually established by a companion evaluated response.
-      const ordinary = majorSupportCandidate(result, 'respond-to-major-w/-support-limit-raise-four-card');
+      const ordinary = findCallDiagnostic(result, 'respond-to-major-w/-support-limit-raise-four-card');
       const ordinaryPoints = ordinary.candidate === undefined ? undefined :
         minorRequirement(ordinary.candidate, 'totalPoints');
       const ordinarySupport = ordinary.candidate === undefined ? undefined :
@@ -1983,7 +1983,9 @@ const THREE_CARD_MAJOR_ROUTE_IDS = [
   'respond-to-major-w/-support-limit-raise-three-card-new-suit-first',
 ];
 
-function majorSupportCandidate(result: BidEvalResult, ruleId: string) {
+/// Find the diagnostic for a rule and its candidate for the entered call. Shared by
+/// response, advance, and competitive explanation families throughout this file.
+function findCallDiagnostic(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
   return { diagnostic, candidate };
@@ -2002,7 +2004,7 @@ function supportPointText(points: Extract<Requirement, { kind: 'totalPoints' }>)
 export function getMajorSupportLines(result: BidEvalResult, rule: BidRule): string[] {
   if (STRONG_MAJOR_IDS.includes(rule.id)) return strongMajorSupportLines(result, rule);
   if (!BASIC_MAJOR_SUPPORT_IDS.includes(rule.id)) return [];
-  const { candidate, diagnostic } = majorSupportCandidate(result, rule.id);
+  const { candidate, diagnostic } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const points = minorRequirement(candidate, 'totalPoints');
   const support = minorRequirement(candidate, 'partnerSupport');
@@ -2054,7 +2056,7 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
     item.call === '1S' &&
     item.rule.id === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first');
   for (const ruleId of BASIC_MAJOR_SUPPORT_IDS) {
-    const { candidate, diagnostic } = majorSupportCandidate(result, ruleId);
+    const { candidate, diagnostic } = findCallDiagnostic(result, ruleId);
     if (candidate === undefined && entered === '1NT' && supportedSpadesFirst &&
         ruleId === 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback' &&
         diagnostic?.callEvidence?.majorSupportRoute?.reason === 'spades-first') {
@@ -2115,7 +2117,7 @@ const MAJOR_NO_SUPPORT_IDS = [
 /// obligation. Do not infer a game force from a Standard new-suit response.
 export function getMajorNoSupportLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!MAJOR_NO_SUPPORT_IDS.includes(rule.id)) return [];
-  const { candidate } = noSupportDiagnostic(result, rule.id);
+  const { candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const hcp = minorRequirement(candidate, 'hcp');
   const support = minorRequirement(candidate, 'partnerSupport');
@@ -2173,7 +2175,7 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
   const entered = result.normalizedCall;
   const lines: string[] = [];
   for (const ruleId of MAJOR_NO_SUPPORT_IDS) {
-    const { diagnostic, candidate } = noSupportDiagnostic(result, ruleId);
+    const { diagnostic, candidate } = findCallDiagnostic(result, ruleId);
     if (diagnostic === undefined) continue;
     if (entered === '1NT' && diagnostic.callEvidence?.suppressedBy !== undefined) {
       lines.push(`After partner opens 1H, a qualifying ${diagnostic.callEvidence.suppressedBy} ` +
@@ -2214,7 +2216,7 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
 
 
 function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): string | null {
-  const { diagnostic } = noSupportDiagnostic(result, ruleId);
+  const { diagnostic } = findCallDiagnostic(result, ruleId);
   const selection = diagnostic?.callEvidence?.majorNoSupportNewSuit;
   if (selection === undefined) return null;
   const qualified = selection.orderedCalls.filter((call) =>
@@ -2236,12 +2238,6 @@ function twoLevelNewSuitPreference(result: BidEvalResult, ruleId: string): strin
   }
   return `Both ${preferred} and ${other} qualify as four-card new suits. ` +
     `Bid up the line (${preferred} first); ${other} remains supported.`;
-}
-
-function noSupportDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
 }
 
 ///
@@ -2582,7 +2578,7 @@ function supportedAdvanceAlternative(result: BidEvalResult): { call: Call; evide
 /// particular advance.  Rule meaning/guidance still follows in the ordinary UI path.
 export function getNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!NATURAL_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
-  const { candidate } = naturalAdvanceDiagnostic(result, rule.id);
+  const { candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -2656,7 +2652,7 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   const entered = result.normalizedCall;
   for (const ruleId of NATURAL_ADVANCE_RULES) {
-    const { diagnostic, candidate } = naturalAdvanceDiagnostic(result, ruleId);
+    const { diagnostic, candidate } = findCallDiagnostic(result, ruleId);
     if (diagnostic === undefined) continue;
     if (entered === 'Pass' && ruleId.endsWith('-pass') && candidate?.ruleApplies === false) {
       const decision = candidate.callEvidence?.advancePass;
@@ -2727,12 +2723,6 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
-
-function naturalAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
 
 ///
 //// Competitive responder's first action after interference
@@ -3215,7 +3205,7 @@ const TAKEOUT_ADVANCE_RULES = [
 /// The refiner and hand predicate, not this function, determine which calls survive.
 export function getTakeoutAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!TAKEOUT_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
-  const { diagnostic, candidate } = takeoutAdvanceDiagnostic(result, rule.id);
+  const { diagnostic, candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -3308,7 +3298,7 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   // refiner excluding the same call for being a different kind of bid.
   for (const { rule } of takeoutRules) {
     if (rule.calls?.includes(entered) !== true) continue;
-    const { candidate } = takeoutAdvanceDiagnostic(result, rule.id);
+    const { candidate } = findCallDiagnostic(result, rule.id);
     if (candidate === undefined || candidate.ruleApplies) continue;
     const requirements = candidate.callEvidence?.requirements ?? [];
     const points = requirements.find((item) => item.kind === 'totalPoints');
@@ -3353,7 +3343,7 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   }
   for (const { rule } of takeoutRules) {
     if (rule.calls?.includes(entered) !== true) continue;
-    const { diagnostic } = takeoutAdvanceDiagnostic(result, rule.id);
+    const { diagnostic } = findCallDiagnostic(result, rule.id);
     const selection = diagnostic?.callEvidence?.takeoutSuitSelection;
     const considered: NonNullable<CallEvidence['takeoutSuitSelection']>['considered'][number] |
       undefined = selection?.considered.find((item) => item.call === entered);
@@ -3391,21 +3381,9 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   return [];
 }
 
-function takeoutAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
-
 ///
 //// Natural notrump partner responses and advances
 ///
-
-function notrumpPartnerDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
 
 
 
@@ -3421,7 +3399,7 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   const isTwoNtOpening = rule.id.startsWith('respond-to-2nt-w/-');
   const isTwoNt = rule.id.startsWith('advance-weak-two-2nt-') || isTwoNtOpening;
   if ((!isOneNt && !isTwoNt) || result.normalizedCall === null) return [];
-  const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
+  const { candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -3610,7 +3588,7 @@ function notrumpTargetSuit(ruleId: string, call: Call): 'hearts' | 'spades' | nu
 
 function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): string[] {
   if (result.normalizedCall === null) return [];
-  const { candidate } = notrumpPartnerDiagnostic(result, rule.id);
+  const { candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -3668,7 +3646,7 @@ function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): st
 export function getResponderPreemptiveAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (rule.id !== 'advance-after-responder-preemptive-jump-pass' ||
       result.normalizedCall !== 'Pass') return [];
-  const candidate = notrumpPartnerDiagnostic(result, rule.id).candidate;
+  const candidate = findCallDiagnostic(result, rule.id).candidate;
   if (candidate?.ruleApplies !== true) return [];
   const hcp = minorRequirement(candidate, 'hcp');
   if (hcp === undefined) return [];
@@ -3870,7 +3848,7 @@ const COMPETITIVE_NT_ID = 'advance-after-responder-action-natural-notrump';
 export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if ((!competitiveRaiseRule(rule.id) && rule.id !== COMPETITIVE_NT_ID) ||
       result.normalizedCall === null) return [];
-  const { candidate } = competitiveRaiseDiagnostic(result, rule.id);
+  const { candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const id = `[${rule.id}]`;
   const call = result.normalizedCall;
@@ -4076,12 +4054,6 @@ function competitiveRaiseRule(ruleId: string): boolean {
   return COMPETITIVE_RAISE_PREFIXES.some((prefix) => ruleId.startsWith(prefix));
 }
 
-function competitiveRaiseDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
-}
-
 ///
 //// Competitive advances after responder bids naturally
 ///
@@ -4250,7 +4222,7 @@ const REDOUBLED_TAKEOUT_ESCAPE_ID =
 export function getNegativeDoubleAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if ((!negativeDoubleAdvanceRule(rule.id) &&
        rule.id !== REDOUBLED_TAKEOUT_ESCAPE_ID) || result.normalizedCall === null) return [];
-  const { diagnostic, candidate } = negativeDoubleAdvanceDiagnostic(result, rule.id);
+  const { diagnostic, candidate } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -4666,12 +4638,6 @@ function negativeDoubleAdvanceRule(ruleId: string): boolean {
     ruleId.startsWith('advance-suit-overcall-') ||
     ruleId.startsWith('advance-one-level-suit-overcall-') ||
     ruleId.startsWith('advance-two-level-suit-overcall-'));
-}
-
-function negativeDoubleAdvanceDiagnostic(result: BidEvalResult, ruleId: string) {
-  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
-  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
-  return { diagnostic, candidate };
 }
 
 ///
