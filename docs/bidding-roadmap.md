@@ -35,11 +35,12 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 - [ ] **Convert remaining opener-rebid evidence families to rule-declared builders.**
-  The 1NT-response family already uses `BidRule.callEvidenceBuilder`; convert the
-  one- and two-level new-suit, competitive, artificial-support, and conventional
-  rebid families next. Eliminate their remaining ID-pattern dispatch from
-  `evaluateCandidateCall`, preserving evidence for rejected calls and merging
-  observations from existing sources without changing qualification or explanations.
+  The 1NT-response and one-level new-suit response families already use
+  `BidRule.callEvidenceBuilder`; convert the two-level new-suit, competitive,
+  artificial-support, and conventional rebid families next. Eliminate their
+  remaining ID-pattern dispatch from `evaluateCandidateCall`, preserving evidence
+  for rejected calls and merging observations from existing sources without
+  changing qualification or explanations.
 - [ ] **Separately analyze requirement evidence in `evaluateHandConstraint`.** Review
   its rule-ID-dependent `explain*` selection before deciding on changes; do not
   combine this with the `callEvidenceBuilder` conversion.
