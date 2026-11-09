@@ -6,6 +6,7 @@ import {
 } from './bidding-types';
 import {
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
+  buildOpenerTwoLevelNewSuitRebidEvidence,
   openerJacobyGoodSideSuitApplies, openerMinorOneLevelOneNtApplies,
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
   openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
@@ -2492,6 +2493,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-repeat-diamonds-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid diamonds cheaply after a Standard 1D-2C response',
     auctionContext: {
@@ -2510,6 +2512,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-reverse-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Reverse into a four-card major after Standard 1D-2C',
     auctionContext: {
@@ -2529,6 +2532,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-2nt-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2NT with 12-14 HCP after Standard 1D-2C',
     auctionContext: {
@@ -2544,6 +2548,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-simple-raise-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Raise clubs cheaply with minimum values after Standard 1D-2C',
     auctionContext: {
@@ -2564,6 +2569,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-jump-repeat-diamonds-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump rebid a good six-card diamond suit with medium values',
     auctionContext: {
@@ -2579,6 +2585,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-3nt-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 3NT with 18-19 HCP after Standard 1D-2C',
     auctionContext: {
@@ -2594,6 +2601,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-jump-raise-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump raise clubs with medium values after Standard 1D-2C',
     auctionContext: {
@@ -2613,6 +2621,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-raise-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Raise clubs to game with maximum values after Standard 1D-2C',
     auctionContext: {
@@ -2632,6 +2641,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-in-diamonds-after-minor-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card diamond suit after Standard 1D-2C',
     auctionContext: {
@@ -2653,6 +2663,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-repeat-diamonds-after-minor-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2D with five or more diamonds in a 2/1 game force',
     auctionContext: {
@@ -2671,6 +2682,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-major-after-minor-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a four-card major up the line after 2/1 1D-2C',
     auctionContext: {
@@ -2688,6 +2700,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-2nt-after-minor-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2NT when no five-card diamond suit or four-card major is available',
     auctionContext: {
@@ -2707,6 +2720,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-simple-raise-after-minor-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Raise clubs naturally when 2NT is unattractive in a 2/1 game force',
     auctionContext: {
@@ -3150,6 +3164,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-simple-raise-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
@@ -3173,6 +3188,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-repeat-major-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
@@ -3191,6 +3207,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-five-card-major-fallback-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Repeat a five-card major only when a minimum hand has no descriptive rebid',
     auctionContext: {
@@ -3209,6 +3226,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-second-suit-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Show an economical second suit without reversing',
     auctionContext: {
@@ -3225,6 +3243,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-reverse-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
@@ -3241,6 +3260,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-2nt-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2NT with 12-14 HCP and balanced shape',
     auctionContext: {
@@ -3256,6 +3276,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-jump-repeat-major-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
@@ -3274,6 +3295,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-jump-raise-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Invite a minor-suit game with medium values",
     auctionContext: {
@@ -3292,6 +3314,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-heart-game-raise-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid 4H with medium values and a known heart fit',
     auctionContext: {
@@ -3310,6 +3333,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-3nt-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump to 3NT with 18-19 HCP and balanced shape',
     auctionContext: {
@@ -3325,6 +3349,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-jump-shift-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
@@ -3343,6 +3368,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-same-major-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
@@ -3361,6 +3387,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-raise-after-major-standard-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
@@ -3382,6 +3409,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-simple-raise-after-major-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Support responder's suit at the cheapest level in a 2/1 game force",
     auctionContext: {
@@ -3406,6 +3434,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-repeat-major-after-major-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply in a 2/1 game force',
     auctionContext: {
@@ -3424,6 +3453,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-second-suit-after-major-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a four-card second suit cheaply in a 2/1 game force',
     auctionContext: {
@@ -3443,6 +3473,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-2nt-after-major-two-over-one-new-suit',
+    callEvidenceBuilder: buildOpenerTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2NT with balanced or semi-balanced shape in a 2/1 game force',
     auctionContext: {
