@@ -13,7 +13,7 @@ import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCall
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
-         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed }
+         getSeatForCallIndex, getPartnerSeat }
   from './auction';
 import { OpeningBidRules } from './opening-rules';
 import { ResponseBidRules } from './responding-rules';
