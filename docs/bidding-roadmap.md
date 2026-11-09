@@ -34,8 +34,6 @@ not a historical progress log or a commitment to model every possible auction.
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
-- [ ] **Simplify rule agreement filtering.** Replace `ruleIsEnabled` and
-  `agreementMatchesSystem` with direct, typed agreement-property comparisons.
 - [ ] **Make special call evidence builders explicit on rules.** Introduce the
   optional `BidRule.callEvidenceBuilder`, initially convert one representative
   opener-rebid family, then the remaining families. Eliminate ID-pattern dispatch
