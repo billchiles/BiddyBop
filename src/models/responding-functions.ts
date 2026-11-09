@@ -128,8 +128,7 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
     // lower-preference alternative.  Equal or shorter diamonds are suppressed by the major.
     if (opening.strain === 'C' && context.handFacts.hcp <= 10) {
       const diamond = eligible.find((candidate) => candidate.suit === 'D');
-      // Alternative treatment: suppress 1D entirely whenever a 4+ major is available.
-      // const refined = majors.map((candidate) => candidate.call);
+      // A stricter alternative would suppress 1D even when diamonds are longer.
       if (diamond !== undefined && diamond.length > majors[0].length) { // a longest major
         refined.push(diamond.call);
       }
@@ -175,31 +174,6 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         };
 } // refineOneLevelNewSuitAfterMinor()
 
-/// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
-/// opening suit, thereby removing raises and jump shifts.  This does not yet choose among multiple
-/// eligible suits by hand length or up-the-line/down-the-line preference; candidate hand
-/// constraints do that only partially.
-///
-export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalContext)
-    : CallRefinementResult {
-  const opening = getPartnerOpeningBid(context);
-  // If the partner opening is unavailable, no new-suit response can be selected.
-  if (opening === null) {
-    return { calls: [], telemetryLines: ['No opening bid is available for a new-suit response.'] };
-  }
-  const refined = calls.filter((call) => {
-      const candidate = parseSuitBid(call);
-      // This refiner is specifically for a new suit, never NT, and while all current rules have no
-      // NT call candidates, this is defensive for future rules.
-      if (candidate === null || candidate.strain === 'NT') {
-        return false;
-      }
-      return cheapestNewSuitBid(opening, candidate.strain) === call;
-    });
-  return {calls: refined,
-          telemetryLines: ['Keep only non-jump new-suit calls legal over the actual opening.'] };
-}
-
 /// refineMajorTwoLevelNewSuitByLength orders natural two-level responses by suit length.  With
 /// equal five-card-or-longer suits prefer the higher-ranking suit so the lower suit can be shown
 /// economically later; equal four-card suits stay up the line.  Lower choices remain visible.
@@ -230,6 +204,31 @@ export function refineMajorTwoLevelNewSuitByLength (
       considered: candidates.map(({ call, length }) => ({ call, length })),
     } },
   };
+}
+
+/// refineToCheapestNewSuitBids chooses the cheapest legal call in a new suit over partner's actual
+/// opening suit, thereby removing raises and jump shifts.  This does not yet choose among multiple
+/// eligible suits by hand length or up-the-line/down-the-line preference; candidate hand
+/// constraints do that only partially.
+///
+export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalContext)
+    : CallRefinementResult {
+  const opening = getPartnerOpeningBid(context);
+  // If the partner opening is unavailable, no new-suit response can be selected.
+  if (opening === null) {
+    return { calls: [], telemetryLines: ['No opening bid is available for a new-suit response.'] };
+  }
+  const refined = calls.filter((call) => {
+      const candidate = parseSuitBid(call);
+      // This refiner is specifically for a new suit, never NT, and while all current rules have no
+      // NT call candidates, this is defensive for future rules.
+      if (candidate === null || candidate.strain === 'NT') {
+        return false;
+      }
+      return cheapestNewSuitBid(opening, candidate.strain) === call;
+    });
+  return {calls: refined,
+          telemetryLines: ['Keep only non-jump new-suit calls legal over the actual opening.'] };
 }
 
 //// Major support -- Indirect limit and game-forcing routes
@@ -275,6 +274,35 @@ export function refineThreeCardMajorSupportNewSuitFirst (
       ? { majorSupportRoute: { reason: 'spades-first',
           spadeLength: context.handFacts.lengths.S } } : undefined,
   };
+}
+
+/// refineLongMajorSupportLimitRaiseFallback allows a conservative three-level invitation with
+/// exactly 13 support points only when no game-forcing new-suit route is available.  This is a
+/// narrow fallback for long trump fits with no suitable side suit, not a general 13-point raise.
+/// Singleton/void hands are excluded because their playing strength calls for separate judgment
+/// (and may qualify for a splinter) rather than an automatic limit raise.
+///
+export function refineLongMajorSupportLimitRaiseFallback (
+    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+  const opening = getPartnerOpeningBid(context)!;
+  const otherSuits = SUITS.filter((suit) => suit !== opening.strain);
+  if (otherSuits.some((suit) => context.handFacts.lengths[suit] < 2)) {
+    return { calls: [], telemetryLines: ['Shortness rules out the conservative long-fit limit-raise fallback.'],
+      callEvidence: { longMajorLimitFallback: { reason: 'shortness', alternativeCalls: [] } } };
+  }
+  const newSuit = refineMajorSupportNewSuitFirst(['1S', '2C', '2D', '2H'], context);
+  if (newSuit.calls.length > 0) {
+    return { calls: [], telemetryLines: ['A game-forcing new-suit response is available instead of a limit raise.'],
+      callEvidence: { longMajorLimitFallback: {
+        reason: 'new-suit-available', alternativeCalls: newSuit.calls,
+        alternativeIsRareThreeCardMinor: newSuit.callEvidence?.majorGameForceNewSuit
+          ?.reason === 'three-card-minor-fallback',
+      } } };
+  }
+  const raise = refineRaisePartnerSuitBy2(calls, context);
+  return { ...raise, callEvidence: { longMajorLimitFallback: {
+    reason: 'qualified', alternativeCalls: [],
+  } } };
 }
 
 /// refineMajorSupportNewSuitFirst chooses the new suit used before a later raise of opener's major.
@@ -323,35 +351,6 @@ export function refineMajorSupportNewSuitFirst (calls: Call[], context: RuleEval
       considered, retainedCalls: fallbackMinorCalls,
     } },
   };
-}
-
-/// refineLongMajorSupportLimitRaiseFallback allows a conservative three-level invitation with
-/// exactly 13 support points only when no game-forcing new-suit route is available.  This is a
-/// narrow fallback for long trump fits with no suitable side suit, not a general 13-point raise.
-/// Singleton/void hands are excluded because their playing strength calls for separate judgment
-/// (and may qualify for a splinter) rather than an automatic limit raise.
-///
-export function refineLongMajorSupportLimitRaiseFallback (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
-  const opening = getPartnerOpeningBid(context)!;
-  const otherSuits = SUITS.filter((suit) => suit !== opening.strain);
-  if (otherSuits.some((suit) => context.handFacts.lengths[suit] < 2)) {
-    return { calls: [], telemetryLines: ['Shortness rules out the conservative long-fit limit-raise fallback.'],
-      callEvidence: { longMajorLimitFallback: { reason: 'shortness', alternativeCalls: [] } } };
-  }
-  const newSuit = refineMajorSupportNewSuitFirst(['1S', '2C', '2D', '2H'], context);
-  if (newSuit.calls.length > 0) {
-    return { calls: [], telemetryLines: ['A game-forcing new-suit response is available instead of a limit raise.'],
-      callEvidence: { longMajorLimitFallback: {
-        reason: 'new-suit-available', alternativeCalls: newSuit.calls,
-        alternativeIsRareThreeCardMinor: newSuit.callEvidence?.majorGameForceNewSuit
-          ?.reason === 'three-card-minor-fallback',
-      } } };
-  }
-  const raise = refineRaisePartnerSuitBy2(calls, context);
-  return { ...raise, callEvidence: { longMajorLimitFallback: {
-    reason: 'qualified', alternativeCalls: [],
-  } } };
 }
 
 //// Jump shifts and economical suit-bid selection
@@ -911,29 +910,6 @@ function getWeakTwoGuidelineOf17Info (context: RuleEvalContext): WeakTwoGuidelin
 //// Responder After a Natural Suit Overcall
 ///
 
-/// getOpenerCallAndOvercallForResponder reads the opener's suit bid and the opponent's
-/// subsequent suit overcall for responder's refiners and applicability checks. It returns
-/// null unless the opening is at the one level and the overcall is the cheapest natural bid
-/// in a different suit. This helper identifies the auction; it does not choose a bid.
-///
-function getOpenerCallAndOvercallForResponder (context: RuleEvalContext):
-    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) {
-    return null;
-  }
-  const action = context.auction[openingInfo.index + 1];
-  const opening = parseSuitBid(openingInfo.call);
-  const overcall = action === undefined ? null : parseSuitBid(action);
-  if (opening === null || overcall === null || opening.level !== 1 ||
-      opening.strain === 'NT' || overcall.strain === 'NT' ||
-      opening.strain === overcall.strain ||
-      cheapestBidInStrainAfter(opening, overcall.strain) !== action) {
-    return null;
-  }
-  return { opening, overcall };
-}
-
 /// refineResponderNewSuitAfterOvercall selects responder's cheapest natural new-suit bid
 /// after an opponent's suit overcall. Four cards suffice for a one-level major after
 /// 1m-(1D); otherwise responder needs five cards in the new suit.
@@ -1083,6 +1059,29 @@ export function responderNotrumpAfterOvercallApplies (call: Call, context: RuleE
   ] };
 }
 
+/// getOpenerCallAndOvercallForResponder reads the opener's suit bid and the opponent's
+/// subsequent suit overcall for responder's refiners and applicability checks. It returns
+/// null unless the opening is at the one level and the overcall is the cheapest natural bid
+/// in a different suit. This helper identifies the auction; it does not choose a bid.
+///
+function getOpenerCallAndOvercallForResponder (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (openingInfo === null) {
+    return null;
+  }
+  const action = context.auction[openingInfo.index + 1];
+  const opening = parseSuitBid(openingInfo.call);
+  const overcall = action === undefined ? null : parseSuitBid(action);
+  if (opening === null || overcall === null || opening.level !== 1 ||
+      opening.strain === 'NT' || overcall.strain === 'NT' ||
+      opening.strain === overcall.strain ||
+      cheapestBidInStrainAfter(opening, overcall.strain) !== action) {
+    return null;
+  }
+  return { opening, overcall };
+}
+
 ///
 //// Responder After a Takeout Double
 ///
@@ -1186,26 +1185,6 @@ export function refineResponderPreemptiveMajorGameRaise (calls: Call[], context:
     return { calls: [], telemetryLines: ['Four-level jump-overcall responses remain unmodeled.'] };
   }
   return refineRaiseToLevel(calls, context, 4);
-}
-
-/// getJumpOvercallForResponder identifies an opposing two- or three-level jump suit
-/// overcall of partner's one-level opening; four-level interference stays unmodeled.
-///
-function getJumpOvercallForResponder (context: RuleEvalContext):
-    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
-  if (getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
-    return null;
-  }
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  const opening = openingInfo === null ? null : parseSuitBid(openingInfo.call);
-  const action = openingInfo === null ? undefined : context.auction[openingInfo.index + 1];
-  const overcall = action === undefined ? null : parseSuitBid(action);
-  if (opening === null || overcall === null || opening.level !== 1 ||
-      opening.strain === 'NT' || overcall.strain === 'NT' ||
-      (overcall.level !== 2 && overcall.level !== 3)) {
-    return null;
-  }
-  return { opening, overcall };
 }
 
 /// refineResponderRaiseAfterJumpOvercall selects only the cheapest legal three-level raise,
@@ -1343,4 +1322,24 @@ export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: R
     `${success ? 'PASS' : 'FAIL'}: ${call} needs ${call === '2NT' ? '11-12' : '13-15'} HCP, ` +
       `balanced shape, and a ${auction.overcall.strain} stopper.`,
   ], callEvidence: { jumpResponseNotrump: { hcp, balanced: context.handFacts.balanced, stopper, opponentSuit: auction.overcall.strain as Suit, minHcp: call === '2NT' ? 11 : 13, maxHcp: call === '2NT' ? 12 : 15 } } };
+}
+
+/// getJumpOvercallForResponder identifies an opposing two- or three-level jump suit
+/// overcall of partner's one-level opening; four-level interference stays unmodeled.
+///
+function getJumpOvercallForResponder (context: RuleEvalContext):
+    { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
+  if (getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
+    return null;
+  }
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const opening = openingInfo === null ? null : parseSuitBid(openingInfo.call);
+  const action = openingInfo === null ? undefined : context.auction[openingInfo.index + 1];
+  const overcall = action === undefined ? null : parseSuitBid(action);
+  if (opening === null || overcall === null || opening.level !== 1 ||
+      opening.strain === 'NT' || overcall.strain === 'NT' ||
+      (overcall.level !== 2 && overcall.level !== 3)) {
+    return null;
+  }
+  return { opening, overcall };
 }
