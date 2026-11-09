@@ -153,6 +153,13 @@ export function oneNtResponseHcpShift (system: BiddingSystem): number {
 //// Types for declaring bidding rules
 ///
 
+/// callEvidenceBuilder observes facts for explanations without deciding whether a call qualifies.
+export type CallEvidenceBuilder = (
+  call: Call,
+  context: RuleEvalContext,
+  system: BiddingSystem,
+) => CallEvidence | undefined;
+
 export interface BidRule {
   id: string;
   kind: RuleKind;
@@ -170,6 +177,7 @@ export interface BidRule {
     note?: string;
   };
   appliesWhen?: HandConstraint | AppliesWhenFunction;
+  callEvidenceBuilder?: CallEvidenceBuilder;
   meaning?: string; // what bidder is conveying to partner
   guidance?: string[]; // bid explanation info as well as how to refine and choose a bid
   // Human-readable alternate treatments or choices worth showing/reviewing.  Not evaluator input.
