@@ -568,34 +568,6 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   let evidence = additionalEvidence === undefined ? result.callEvidence
     : { ...result.callEvidence, ...additionalEvidence };
   const rebid = parseSuitBid(call);
-  const twoLevelRebidFamily = context.stage === 'openerRebid' &&
-    (rule.id.includes('-after-minor-standard-two-level-new-suit') ||
-     rule.id.includes('-after-major-standard-two-level-new-suit') ||
-     rule.id.includes('-after-minor-two-over-one-new-suit') ||
-     rule.id.includes('-after-major-two-over-one-new-suit'));
-  if (twoLevelRebidFamily) {
-    const opening = getOpenerOpeningBid(context);
-    const responseCall = getResponderCall(context.dealer, context.auction);
-    const response = responseCall === null ? null : parseSuitBid(responseCall);
-    const rebid = parseSuitBid(call);
-    if (opening !== null && opening.strain !== 'NT' && response !== null &&
-        response.level === 2 && response.strain !== 'NT') {
-      const openingSuit = opening.strain as Suit;
-      const responseSuit = response.strain as Suit;
-      const rebidSuit = rebid === null || rebid.strain === 'NT' ? null : rebid.strain as Suit;
-      const facts = context.handFacts;
-      evidence = { ...evidence, openerTwoLevelNewSuitRebid: {
-        agreement: rule.id.includes('-standard-two-level-new-suit') ? 'standard' : 'twoOverOne',
-        openingSuit, responseSuit, rebidSuit,
-        openingLength: facts.lengths[openingSuit], responseSupport: facts.lengths[responseSuit],
-        rebidLength: rebidSuit === null ? 0 : facts.lengths[rebidSuit],
-        hcp: facts.hcp, lengthPoints: facts.lengthPoints, shortagePoints: facts.shortPoints,
-        totalLengthPoints: facts.totalPointsWLength,
-        totalShortagePoints: facts.totalPointsWShortage,
-        balanced: facts.balanced, balancedOrSemiBalanced: facts.balancedOrSemiBalanced,
-      } };
-    }
-  }
   const competitiveForcingRebid = context.stage === 'openerRebid' &&
     (rule.id.includes('-after-overcall-two-level-new-suit') ||
      rule.id.includes('-after-forcing-response-advancer-competition'));
