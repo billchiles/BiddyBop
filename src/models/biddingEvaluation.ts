@@ -567,32 +567,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   const additionalEvidence = rule.callEvidenceBuilder?.(call, context, system);
   let evidence = additionalEvidence === undefined ? result.callEvidence
     : { ...result.callEvidence, ...additionalEvidence };
-  const oneLevelSuitRebidFamily = context.stage === 'openerRebid' &&
-    (rule.id.endsWith('-after-minor-one-level-new-suit') ||
-     rule.id.endsWith('-after-major-one-level-new-suit'));
-  const opening = oneLevelSuitRebidFamily ? getOpenerOpeningBid(context) : null;
   const rebid = parseSuitBid(call);
-  if (oneLevelSuitRebidFamily && opening !== null && opening.strain !== 'NT') {
-    const responderCall = getResponderCall(context.dealer, context.auction);
-    const response = responderCall === null ? null : parseSuitBid(responderCall);
-    if (response !== null && response.strain !== 'NT' && response.level === 1) {
-      const openingSuit = opening.strain as Suit;
-      const responseSuit = response.strain as Suit;
-      const rebidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
-      evidence = { ...evidence, openerOneLevelNewSuitRebid: {
-        openingSuit, responseSuit, rebidSuit,
-        openingLength: context.handFacts.lengths[openingSuit],
-        responseSupport: context.handFacts.lengths[responseSuit],
-        rebidLength: rebidSuit === null ? 0 : context.handFacts.lengths[rebidSuit],
-        hcp: context.handFacts.hcp,
-        lengthPoints: context.handFacts.lengthPoints,
-        shortagePoints: context.handFacts.shortPoints,
-        totalLengthPoints: context.handFacts.totalPointsWLength,
-        totalShortagePoints: context.handFacts.totalPointsWShortage,
-        balanced: context.handFacts.balanced,
-      } };
-    }
-  }
   const twoLevelRebidFamily = context.stage === 'openerRebid' &&
     (rule.id.includes('-after-minor-standard-two-level-new-suit') ||
      rule.id.includes('-after-major-standard-two-level-new-suit') ||
