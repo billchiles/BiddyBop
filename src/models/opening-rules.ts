@@ -23,7 +23,6 @@ export const OpeningBidRules: BidRule[] = [
     guidance: ['Pass rather than manufacture an opening when the hand lacks sufficient ' +
                'strength, distribution, or preemptive suit quality.',
                'Passing now does not prevent bidding on a later turn.'],
-    certainty: 'high',
   },
   //
   // Basic one bids
@@ -46,7 +45,6 @@ export const OpeningBidRules: BidRule[] = [
     guidance: ['You can bid 1NT with a 5-card major.',
                'Do not consider a convenient minor when the hand fits a natural 1NT opening; ' +
                   '1NT describes both strength and shape more precisely.', ],
-    certainty: 'high',
   },
   //
   {
@@ -66,7 +64,6 @@ export const OpeningBidRules: BidRule[] = [
     guidance: ['You can bid 1NT with a 5-card major.',
                'Do not consider a convenient minor when the hand fits a natural 1NT opening; ' +
                   '1NT describes both strength and shape more precisely.', ],
-    certainty: 'high',
   },
   //
   {
@@ -83,7 +80,6 @@ export const OpeningBidRules: BidRule[] = [
     priority: { rank: 100 },
     appliesWhen: oneNtFiveCardLengthUpgradeApplies,
     meaning: 'Optional five-card-major treatment permits one HCP below the normal 1NT minimum.',
-    certainty: 'high',
   },
   //
   {
@@ -101,7 +97,6 @@ export const OpeningBidRules: BidRule[] = [
     meaning: 'Open 1H or 1S with a five-card or longer major and at least 12 total points ' +
              '(high-card points plus length points).',
     guidance: ['With two five-card or longer majors, open the longer suit; with equal lengths, open spades.'],
-    certainty: 'high',
   },
   //
   {
@@ -119,7 +114,6 @@ export const OpeningBidRules: BidRule[] = [
     guidance: ['No natural NT opening.', 'No five-card major.',
                '1C may be three-card or longer.', 'Bid longer suit.',
                'Bid 1D if both minors are four-card.'],
-    certainty: 'high',
   },
   //
   {
@@ -136,7 +130,6 @@ export const OpeningBidRules: BidRule[] = [
     appliesWhen: guidelineOf20Applies,
     meaning: 'HCP plus the lengths of the two longest suits is at least 20.',
     guidance: ['Use as an alternate opening-hand valuation in first or second seat.'],
-    certainty: 'high',
   },
   //
   // Strong bids
@@ -155,7 +148,6 @@ export const OpeningBidRules: BidRule[] = [
     guidance: ['Do not consider a convenient minor when the hand fits the natural 2NT opening; ' +
                   '2NT describes both strength and shape more precisely.', ],
     meaning: 'Strong balanced opening showing 20–21 HCP.',
-    certainty: 'high',
   },
   //
   {
@@ -171,7 +163,6 @@ export const OpeningBidRules: BidRule[] = [
                'can be awkward to describe later and can lead to a less suitable final contract.  ' +
                'This app does not lower the 2C HCP threshold by counting playing tricks.'],
     meaning: 'Strong artificial and forcing opening; absent interference, partner must respond.',
-    certainty: 'high',
   },
   //
   // Weak bids
@@ -195,7 +186,6 @@ export const OpeningBidRules: BidRule[] = [
                'Going down vulnerable can give the opponents enough penalty points that the ' +
                  'sacrifice is not worthwhile; vulnerability is guidance-only in this app.'],
     meaning: 'Descriptive and obstructive weak two-bid with exactly six cards in the suit.',
-    certainty: 'high',
   },
   //
   {
@@ -214,7 +204,6 @@ export const OpeningBidRules: BidRule[] = [
                'Going down vulnerable can give the opponents enough penalty points that the ' +
                  'sacrifice is not worthwhile; vulnerability is guidance-only in this app.'],
     meaning: 'Preemptive opening with a good seven-card suit and less than one-level opening values.',
-    certainty: 'high',
   },
   //
   {
@@ -237,7 +226,6 @@ export const OpeningBidRules: BidRule[] = [
                'Vulnerability and table judgment are explanatory rather than executable ' +
                  'opening constraints in this trainer.'],
     meaning: 'Preemptive opening with a good eight-card suit.',
-    certainty: 'high',
   },
   //
   {
@@ -252,6 +240,5 @@ export const OpeningBidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 9 }] },
     guidance: ['Rare: good nine-card minor with about eight playing tricks.'],
     meaning: 'Very high-level descriptive and obstructive preempt.',
-    certainty: 'medium',
   },
  ];
