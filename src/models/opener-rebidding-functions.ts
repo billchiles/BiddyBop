@@ -534,6 +534,35 @@ export function buildOpenerOneLevelNewSuitRebidEvidence (call: Call, context: Ru
   } };
 }
 
+/// Record opener's hand and response-suit facts after a natural two-level new-suit response.
+/// The selected Standard or 2/1 agreement is already validated by rule selection.
+/// This records evidence for rejected candidates too; it does not qualify the call.
+export function buildOpenerTwoLevelNewSuitRebidEvidence (call: Call, context: RuleEvalContext,
+                                                         system: BiddingSystem): CallEvidence | undefined {
+  const opening = getOpenerOpeningBid(context);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const response = responseCall === null ? null : parseSuitBid(responseCall);
+  if (context.stage !== 'openerRebid' || opening === null || opening.strain === 'NT' ||
+      response === null || response.level !== 2 || response.strain === 'NT') {
+    return undefined;
+  }
+  const openingSuit = opening.strain as Suit;
+  const responseSuit = response.strain as Suit;
+  const rebid = parseSuitBid(call);
+  const rebidSuit = rebid === null || rebid.strain === 'NT' ? null : rebid.strain as Suit;
+  const facts = context.handFacts;
+  return { openerTwoLevelNewSuitRebid: {
+    agreement: system.twoLevelNewSuitResponse,
+    openingSuit, responseSuit, rebidSuit,
+    openingLength: facts.lengths[openingSuit], responseSupport: facts.lengths[responseSuit],
+    rebidLength: rebidSuit === null ? 0 : facts.lengths[rebidSuit],
+    hcp: facts.hcp, lengthPoints: facts.lengthPoints, shortagePoints: facts.shortPoints,
+    totalLengthPoints: facts.totalPointsWLength,
+    totalShortagePoints: facts.totalPointsWShortage,
+    balanced: facts.balanced, balancedOrSemiBalanced: facts.balancedOrSemiBalanced,
+  } };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
