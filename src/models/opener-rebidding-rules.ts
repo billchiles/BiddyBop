@@ -73,7 +73,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: '4C is artificial Gerber, asking opener for aces; Pass is not a valid reply.',
     guidance: ['With the common 4D/4H/4S/4NT step responses, show 0-or-4, 1, 2, or 3 aces respectively. ' +
                'The trainer explains, but does not practice, ace-response or subsequent slam auctions.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-boundary-after-direct-blackwood',
@@ -88,7 +87,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: '4NT is Blackwood asking opener for aces; Pass is not a valid reply.',
     guidance: ['Under ordinary Blackwood, 5C/5D/5H/5S conventionally show 0-or-4, 1, 2, or 3 aces.',
                'This is explanatory only: the trainer does not execute slam responses or later auctions.'],
-    certainty: 'high',
   },
   //// Strong 2C -- After the 2D waiting response
   // Opener's first rebid after the artificial 2D waiting response to strong 2C.
@@ -103,7 +101,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Balanced 22-24 HCP hand.',
     guidance: ["This rebid is not forcing.  Later responder methods can mirror the partnership's " +
                'methods over a notrump opening.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-2c-2d',
@@ -115,7 +112,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 25, max: 27 }, shape: { balanced: true } },
     meaning: 'Balanced 25-27 HCP hand.',
     guidance: ['No additional qualification beyond the stated balanced shape and HCP range is used.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-4nt-after-2c-2d',
@@ -127,7 +123,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 28, max: 30 }, shape: { balanced: true } },
     meaning: 'Balanced 28-30 HCP hand; this is a natural strength-showing rebid, not Blackwood.',
     guidance: ['No additional qualification beyond the stated balanced shape and HCP range is used.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-longest-suit-after-2c-2d',
@@ -141,7 +136,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: "Natural forcing rebid in opener's longest five-card-or-longer suit.",
     guidance: ['With two equal five-card or equal six-card suits, bid the higher-ranking suit.',
                'Balanced hands use the separate 2NT, 3NT, or 4NT rebids instead.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-boundary-strong-2c-waiting-4441',
@@ -163,7 +157,6 @@ export const OpenerRebidRules: BidRule[] = [
                'Showing a four-card suit or using notrump with a singleton requires judgment ' +
                'and potentially additional partnership agreements.  The app cannot select a ' +
                'reliable call for this unusual hand.'],
-    certainty: 'high',
   },
   //
   //// Strong 2C -- After a positive response
@@ -189,7 +182,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Three-card-or-longer support for responder\'s positive five-card major; forcing.',
     guidance: ['Raise at the cheapest three-level bid to preserve space for game or slam exploration.',
                'Do not treat this raise as a weak or invitational major raise.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-support-positive-minor-after-2c',
@@ -209,7 +201,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Unbalanced four-card-or-longer support for responder\'s positive minor.',
     guidance: ['This deliberately bypasses 3NT only with a substantial minor fit and no longer ' +
                'natural side suit to describe. Further bidding may investigate slam.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-longest-suit-after-2c-positive',
@@ -225,7 +216,6 @@ export const OpenerRebidRules: BidRule[] = [
                'Show the longest eligible own suit at the cheapest legal level through 3S; ' +
                'equal lengths use the higher-ranking suit.',
                'Do not invent a four-level new suit where it would bypass 3NT.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-natural-nt-after-2c-positive',
@@ -239,7 +229,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['After a positive major, prefer 3M with a three-card fit; otherwise describe with 2NT.',
                'After a positive minor or balanced 2NT response, the lowest available natural NT is 3NT.',
                'Partner has shown 8+ HCP, so a game-level rebid does not end possible slam interest.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-2c-positive',
@@ -252,7 +241,6 @@ export const OpenerRebidRules: BidRule[] = [
                'that would bypass 3NT, do not manufacture a signoff.',
                'Deciding on a control bid, a strain, or a slam investigation requires more ' +
                'judgment and agreements than this selected strong-2C treatment models.'],
-    certainty: 'high',
   },
   //
   //// Notrump openings -- Stayman, transfers, and signoffs
@@ -269,7 +257,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['conventional'],
     appliesWhen: { suitLengths: [{ suit: 'H', max: 3 }, { suit: 'S', max: 3 }] },
     meaning: 'No four-card major; responder can now describe their hand.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-show-hearts-after-nt-stayman',
@@ -282,7 +269,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['conventional'],
     appliesWhen: { suitLengths: [{ suit: 'H', min: 4 }] },
     meaning: 'Show hearts first when opener has both four-card majors.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-show-spades-after-nt-stayman',
@@ -295,7 +281,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['conventional'],
     appliesWhen: { suitLengths: [{ suit: 'S', min: 4 }, { suit: 'H', max: 3 }] },
     meaning: 'Show a four-card spade suit when no four-card heart suit is available.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-complete-jacoby-after-nt',
@@ -308,7 +293,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['conventional'],
     meaning: 'Complete the transfer at the next level; opener normally becomes declarer.',
     guidance: ['This initial treatment does not model superaccepting transfers.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-complete-texas-after-nt',
@@ -320,7 +304,6 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'texasTransfers', value: true },
     callCategory: ['conventional'],
     meaning: 'Complete the Texas transfer to game in the requested major.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-nt-natural-nt-signoff',
@@ -333,7 +316,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: openerNtNotrumpSignoffApplies,
     meaning: 'Responder placed the contract in 3NT, 6NT, or 7NT.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-nt-natural-major-game',
@@ -345,7 +327,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: openerNtNaturalMajorGameApplies,
     meaning: 'Without Texas, a direct 4H or 4S is natural and to play.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-1nt-weak-natural-major',
@@ -357,7 +338,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: openerNtWeakMajorSignoffApplies,
     meaning: 'Without Jacoby transfers, 2H and 2S are natural weak signoffs.',
-    certainty: 'high',
   },
   //// 1NT opening -- Natural minor invitations
   // A natural 1NT-3m invitation is about fitting honor strength, not simply minimum/maximum.
@@ -374,7 +354,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: "Play three of responder's minor when opener cannot guarantee the suit will run.",
     guidance: ['Responder has promised 6+ cards and at least two of A/K/Q; without one of A/K/Q ' +
                'in that minor, opener cannot guarantee all three top honors.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-1nt-3-minor-invitation',
@@ -388,7 +367,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (call, context) => openerNtMinorInvitationApplies(call, context, true),
     meaning: "Bid 3NT when opener holds A, K, or Q in responder's promised good six-card minor.",
     guidance: ['The fitting honor, rather than raw opener HCP, is the executable acceptance test.'],
-    certainty: 'high',
   },
   //// Notrump openings -- Natural three-major response
   // Natural 3M with Jacoby off is a choice of games: two-card support favors 3NT, 3+ favors 4M.
@@ -404,7 +382,6 @@ export const OpenerRebidRules: BidRule[] = [
     priority: { rank: 45 },
     appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 2, 2),
     meaning: "With only two cards in responder's five-card-or-longer major, choose the notrump game.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-in-responder-major-after-nt-natural-3-major',
@@ -419,7 +396,6 @@ export const OpenerRebidRules: BidRule[] = [
     priority: { rank: 45 },
     appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 3),
     meaning: 'Three-card support establishes the known eight-card major fit; choose the major game.',
-    certainty: 'high',
   },
   //// 1NT opening -- Direct major slam interest
   // With transfers on, direct 1NT-3M is the existing slam-interest treatment.  4M always remains
@@ -439,7 +415,6 @@ export const OpenerRebidRules: BidRule[] = [
       openerNtDirectMajorSlamInterestApplies(call, context, system, false),
     meaning: 'Decline further slam exploration while placing the contract in the agreed major game.',
     guidance: ['4M remains visible even when a control bid is also reasonable.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-control-after-1nt-direct-3-major-slam-interest',
@@ -457,7 +432,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Show the cheapest side-suit ace or king while keeping the agreed major available at game.',
     guidance: ['Cooperate from the middle of the 1NT range upward; a maximum is especially suitable.',
                'This is modest control bidding, not Gerber or Blackwood.'],
-    certainty: 'medium',
   },
   //// 2NT opening -- Natural forcing minor response
   // A strong natural 3m over 2NT is forcing; 3NT is the basic continuation rather than Pass.
@@ -474,7 +448,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Use 3NT as the normal game destination after responder describes a strong long minor.',
     guidance: ['Responder may continue with additional slam interest; deeper minor-fit slam ' +
                'machinery is not modeled in this treatment.'],
-    certainty: 'medium',
   },
   //// 1NT opening -- Opener after responder's takeout Double
   // After a natural DONT 2S over our 1NT, responder's takeout Double promises
@@ -495,7 +468,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['This reply completes the takeout Double; responder can assess a game ' +
                'invitation or game with additional values.',
                'After an opposing raise to 3S, selecting a higher contract needs judgment.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-2nt-after-1nt-interference-double',
@@ -509,7 +481,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: oneNtInterferenceDoubleNtApplies,
     meaning: 'No four-card heart fit for responder’s Double; minimum or middle 1NT opening ' +
              'with a spade stopper.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-1nt-interference-double',
@@ -523,7 +494,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: oneNtInterferenceDoubleNtApplies,
     meaning: 'Maximum 1NT values, a spade stopper, and no four-card heart fit ' +
              'for responder’s takeout Double.',
-    certainty: 'medium',
   },
   //// 1NT opening -- Natural suit responses after interference
   // Responder\'s natural suit calls are nonforcing; partner has 8+ at the two level
@@ -541,7 +511,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'No constructive improvement over partner’s natural, nonforcing suit response.',
     guidance: ['23–25 minimum combined HCP makes game possible, not automatic. ' +
                'Strong fit and stoppers may justify an invitation or game.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-raise-major-after-1nt-interference-natural-suit',
@@ -555,7 +524,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: oneNtInterferenceNaturalMajorRaiseApplies,
     meaning: 'A three-level raise invites with an adequate major fit; four of the major ' +
              'places game with sufficient strength and support.',
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-3nt-after-1nt-interference-natural-suit',
@@ -569,7 +537,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: oneNtInterferenceNaturalThreeNtApplies,
     meaning: 'Responder has 10+ HCP, making game realistic, and opener stops the opposing ' +
              'suit without a preferred major fit.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-1nt-interference',
@@ -584,7 +551,6 @@ export const OpenerRebidRules: BidRule[] = [
                'four-card fit; further suit choice may require judgment.',
                'A constructive three-level response often suggests game, but without a stopper ' +
                'or agreed trump fit the exact strain requires additional bidding methods.'],
-    certainty: 'high',
   },
   //// Notrump openings -- Natural and quantitative invitations
   // Natural invitations are not signoffs: minimums decline, maximums accept, and
@@ -604,7 +570,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Decline the invitation and play 2NT.',
     guidance: ['Over 15-17, Pass with 15 and generally with 16; consider 3NT with a good 16.',
                'Over 16-18, Pass with 16 and generally with 17; consider 3NT with a good 17.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-1nt-2nt-invitation',
@@ -622,7 +587,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Over 15-17, accept with 17 or a suitable 16.',
                'Over 16-18, accept with 18 or a suitable 17.',
                'Borderline hands depend on texture, working honors, and likely tricks.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-nt-4nt-quantitative-invitation',
@@ -638,7 +602,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Minimum 1NT openers decline; middle-strength hands require judgment.',
                'A 20-HCP 2NT opener declines, and a 21-HCP opener may also decline: ' +
                'responder could have only 11 HCP.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-6nt-after-nt-4nt-quantitative-invitation',
@@ -654,7 +617,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Maximum 1NT openers normally accept; the middle HCP is a judgment case.',
                'After a 20-21 2NT opening, even 21 opposite 11-12 may provide only 32-33 ' +
                'combined HCP: treat 6NT as conditional on good trick-taking prospects.'],
-    certainty: 'high',
   },
   //
   //// Weak preempts -- 2NT inquiry and forcing new suits
@@ -676,7 +638,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['A 5-8 minimum rebids the opening suit at the three level.',
                'For a 9-11 maximum, a side ace/king or solid-suit 3NT message takes precedence; ' +
                  'repeating the suit is the conservative fallback when neither applies.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-feature-after-weak-two-2nt-inquiry',
@@ -689,7 +650,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['conventional'],
     appliesWhen: weakTwoFeatureAfterInquiryApplies,
     meaning: 'A 9-11 HCP maximum with a side ace or king; the side-suit bid shows that feature.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-weak-two-2nt-inquiry',
@@ -703,7 +663,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Maximum weak two with a solid opening suit suitable for notrump.',
     guidance: ['The app uses AKQJ in the six-card opening suit as its conservative executable ' +
                "approximation of the solid-suit requirement."],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-raise-after-preempt-new-suit',
@@ -717,7 +676,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: openerPreemptNewSuitRaiseApplies,
     meaning: "Three-card-or-longer support for responder's forcing natural suit.",
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-repeat-after-preempt-new-suit',
@@ -731,7 +689,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: openerPreemptNewSuitRepeatApplies,
     meaning: "No three-card fit for responder's forcing suit; return to the preempt suit economically.",
-    certainty: 'medium',
   },
   //
   //// Weak preempts -- Nonforcing raises of the opening suit
@@ -752,7 +709,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Opener has already described a weak hand with a long suit and ordinarily ' +
                "leaves partner's raise in place.  Further bidding requires unusual judgment " +
                "outside the app's selected treatment."],
-    certainty: 'high',
   },
   //
   //// Suit openings -- Responder after an opposing jump overcall
@@ -771,7 +727,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Pass a nonforcing three-level raise, natural 2NT invitation, or game signoff ' +
              'when opener lacks sufficient extras to bid again.',
     guidance: ['Do not pass a negative Double or a forcing new-suit response.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-after-jump-overcall-major-game',
@@ -786,7 +741,6 @@ export const OpenerRebidRules: BidRule[] = [
     priority: { rank: 40 },
     meaning: 'Show game-going major support when partner has identified a fit or forced game.',
     guidance: ['A support cuebid is artificial: return to opener\'s agreed major, not the opponent suit.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-after-jump-overcall-natural-suit',
@@ -803,7 +757,6 @@ export const OpenerRebidRules: BidRule[] = [
              'suit, or describe an eligible second suit; selected minor support is conditional.',
     guidance: ['Choose the cheapest descriptive call; do not name the natural overcall suit. ' +
                'A reverse needs extra values.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-after-jump-overcall-natural-nt',
@@ -819,7 +772,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Selected balanced natural notrump description or 3NT invitation acceptance.',
     guidance: ['After a natural forcing suit or negative Double, opener must have a stopper ' +
                'in the opposing preempt suit. Responder\'s natural 2NT already showed one.'],
-    certainty: 'medium',
   },
   {
     id: 'opener-rebid-scope-boundary-after-jump-overcall',
@@ -834,7 +786,6 @@ export const OpenerRebidRules: BidRule[] = [
                'our limited continuation rules cannot place the contract.',
                'With a minor fit, an uncertain stopper, or extra/slam-going strength, ' +
                'choosing a game or further competition can depend on playing tricks and controls.'],
-    certainty: 'high',
   },
   //
   // Selected competitive opener rebids.  Natural responder meanings reuse explicitly opted-in
@@ -871,7 +822,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Show a four-card or longer fit in a suit implied by responder’s negative Double.',
     guidance: ['Prefer the longer implied fit.  Equal four-card majors use the existing up-line ' +
                'major ordering; equal implied minors are presented up the line.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-jump-implied-suit-after-negative-double-medium',
@@ -888,7 +838,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
     meaning: 'Jump one level below game with medium values in a suit implied by the negative Double, inviting game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-implied-major-after-negative-double-medium',
@@ -905,7 +854,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
     meaning: 'A medium-strength jump to four of an implied major has already reached game; it is not an invitation to bid game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-major-after-negative-double-maximum',
@@ -924,7 +872,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Bid game with maximum values and a four-card or longer implied major.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-jump-implied-minor-after-negative-double-maximum',
@@ -942,7 +889,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Show the strong implied-minor fit below the four level without assuming minor game.',
     guidance: ['Five of a minor is not automatic merely because opener has maximum values.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-implied-suit-after-negative-double-competition-minimum',
@@ -962,7 +908,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
     meaning: 'Keep describing a known implied-suit fit when competition leaves a cheap call.',
     guidance: ['The trainer does not turn a consumed three-level fit bid into an automatic game.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-implied-suit-after-negative-double-competition-medium',
@@ -983,7 +928,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Medium opener uses the cheapest still-descriptive implied-suit fit through level three.',
     guidance: ['Advancer’s action consumes the old jump step; it does not force opener one level ' +
                'higher merely to preserve the uncontested strength ladder.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-repeat-opening-suit-after-negative-double',
@@ -1001,7 +945,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 18 } },
     meaning: 'Without an implied-suit fit, repeat a six-card opening suit while it stays below game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-natural-nt-after-negative-double',
@@ -1020,7 +963,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Use the ordinary balanced 12-14 or 18-19 HCP NT rebid when that exact level remains.',
     guidance: ['Opener must stop every suit the opponents have bid naturally.  Do not promote an ' +
                'unavailable NT level merely because competition consumed it.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-negative-double-competition-minimum',
@@ -1039,7 +981,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Advancer’s intervention removes the obligation to manufacture a rebid with a minimum.',
     guidance: ['Responder still has another turn; this Pass does not convert the negative Double ' +
                'into a penalty Double.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-negative-double-advancer-pass',
@@ -1061,7 +1002,6 @@ export const OpenerRebidRules: BidRule[] = [
       'description may be appropriate, but choosing among those actions depends on hand texture ' +
       'and partnership judgment beyond this treatment.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-negative-double-advancer-action',
@@ -1086,7 +1026,6 @@ export const OpenerRebidRules: BidRule[] = [
       'remaining choice depends on playing strength, fit quality, honor location, vulnerability, ' +
       'and the level of the opponents’ action.',
     ],
-    certainty: 'high',
   },
   //// Competitive suit-opening rebids -- Strength Redouble
   // A strength-showing Redouble does not force opener to choose a new strain.  With advancer
@@ -1106,7 +1045,6 @@ export const OpenerRebidRules: BidRule[] = [
       'This is not a final signoff or a penalty-double system; the original doubler still has a ' +
       'turn.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Forcing two-level new suit
@@ -1132,7 +1070,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: "Minimum opener confirms support for responder's five-card-or-longer forcing suit.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum',
@@ -1148,7 +1085,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Minimum opener repeats a six-card or longer opening suit economically.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-second-suit-after-overcall-two-level-new-suit',
@@ -1164,7 +1100,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without promising reverse strength.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-reverse-after-overcall-two-level-new-suit',
@@ -1180,7 +1115,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['forcing', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural second suit with the extra strength required for a reverse.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-2nt-after-overcall-two-level-new-suit',
@@ -1195,7 +1129,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balanced: true } },
     meaning: 'Natural minimum balanced rebid; the shared competitive filter requires a stopper.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-jump-raise-after-overcall-two-level-new-suit',
@@ -1213,7 +1146,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'A constructive four-of-a-minor raise shows medium values and support, inviting partner to judge whether to continue toward minor game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium',
@@ -1231,7 +1163,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Four of the agreed major has reached game with medium values and support; it is not a below-game invitation.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-overcall-two-level-new-suit',
@@ -1246,7 +1177,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true } },
     meaning: 'Natural strong balanced rebid; the shared competitive filter requires a stopper.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-raise-after-overcall-two-level-new-suit',
@@ -1264,7 +1194,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: "Bid game with maximum values and support for responder's natural suit.",
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Forcing suit after further competition
@@ -1291,7 +1220,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['A two-level forcing response after a suit overcall promises five or more cards, ' +
                'so three-card opener support is enough there; the one-level forcing families use ' +
                'their normal four-card support threshold.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-repeat-after-forcing-response-advancer-competition',
@@ -1309,7 +1237,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Describe a six-card or longer opening suit at the cheapest level competition leaves.',
     guidance: ['The trainer keeps this descriptive continuation only through the three level; it ' +
                'does not promote a blocked partscore rebid into game by formula.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-second-suit-after-forcing-response-advancer-competition',
@@ -1326,7 +1253,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Keep an ordinary non-reverse second-suit description only if advancer has not ' +
              'consumed that exact call.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-reverse-after-forcing-response-advancer-competition',
@@ -1345,7 +1271,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A natural reverse keeps its extra-strength meaning when the same call remains legal.',
     guidance: ['Do not move the reverse one level higher merely because advancer consumed the ' +
                'original descriptive call.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-nt-after-forcing-response-advancer-competition',
@@ -1363,7 +1288,6 @@ export const OpenerRebidRules: BidRule[] = [
              'available after competition.',
     guidance: ['The shared competitive filter additionally requires a basic stopper in every suit ' +
                'the opponents have bid naturally.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-raise-after-forcing-response-advancer-competition',
@@ -1379,7 +1303,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' } },
     meaning: "Maximum opener can still place responder's supported natural suit in game.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
@@ -1397,7 +1320,6 @@ export const OpenerRebidRules: BidRule[] = [
              'opener has no selected natural continuation.',
     guidance: ['Responder still has another turn.  This Pass does not change the strength or ' +
                'forcing meaning responder showed before advancer acted.'],
-    certainty: 'high',
   },
   // These three boundaries share the same hand test but keep family-specific guidance so the user
   // sees exactly what responder promised before the auction became judgment-heavy.
@@ -1422,7 +1344,6 @@ export const OpenerRebidRules: BidRule[] = [
       'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
       'auction.  The trainer stops rather than assign false precision to that judgment.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-two-level-forcing-response',
@@ -1445,7 +1366,6 @@ export const OpenerRebidRules: BidRule[] = [
       'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
       'auction.  The trainer stops rather than assign false precision to that judgment.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-double-one-level-forcing-response',
@@ -1468,7 +1388,6 @@ export const OpenerRebidRules: BidRule[] = [
       'strength, fit, honor location, vulnerability, and how high the opponents have pushed the ' +
       'auction.  The trainer stops rather than assign false precision to that judgment.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Support cuebid and Jordan 2NT
@@ -1492,7 +1411,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 13, valuation: 'shortage' } },
     meaning: 'Minimum opener rebids the agreed suit; responder can continue with stronger values.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-major-after-support-cuebid',
@@ -1508,7 +1426,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 14, valuation: 'shortage' } },
     meaning: 'Responder promised 11+ support points, so 14+ opener points reach game values.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-three-of-suit-after-jordan-2nt-minimum',
@@ -1524,7 +1441,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 14, valuation: 'shortage' } },
     meaning: 'Minimum opener rebids the agreed suit; responder can continue with stronger values.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-major-after-jordan-2nt',
@@ -1540,7 +1456,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 15, valuation: 'shortage' } },
     meaning: 'Jordan promises 10+ support points, so 15+ opener points reach game values.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-minor-jordan-2nt-extras',
@@ -1559,7 +1474,6 @@ export const OpenerRebidRules: BidRule[] = [
         + 'requires stopper and playing-strength judgment beyond this selected treatment.  '
         + 'The app cannot reliably choose a contract from support points alone.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Natural notrump responses
@@ -1580,7 +1494,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 14, true),
     meaning: 'Responder showed natural 1NT with 6-10 HCP and a stopper; a minimum opener may ' +
              'accept 1NT or decline to compete if advancer raises the opposing suit.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-repeat-suit-after-overcall-natural-1nt',
@@ -1596,7 +1509,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening suit rather than play 1NT with a shapely minimum.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-2nt-after-overcall-natural-1nt',
@@ -1610,7 +1522,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balancedOrSemiBalanced: true } },
     meaning: 'Natural 18-19 HCP invitation opposite responder\'s 6-10 HCP natural 1NT.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-overcall-natural-1nt',
@@ -1625,7 +1536,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 20, max: 21 },
                    shape: { balanced: false, balancedOrSemiBalanced: true } },
     meaning: 'Responder\'s minimum still supplies game values opposite a 20-21 HCP semi-balanced hand.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-natural-1nt',
@@ -1642,7 +1552,6 @@ export const OpenerRebidRules: BidRule[] = [
       'on opener\'s exact shape and playing strength.  The trainer stops rather than force the ' +
       'uncontested 1NT-response structure onto this competitive auction.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-overcall-natural-2nt',
@@ -1657,7 +1566,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 13),
     meaning: 'Responder showed natural, invitational 2NT with 11-12 HCP and a stopper; ' +
              'a minimum opener declines game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-overcall-natural-2nt',
@@ -1671,7 +1579,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { hcp: { min: 14, max: 18 } },
     meaning: 'Fourteen or more HCP reaches normal game strength opposite responder\'s 11-12 HCP.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-natural-2nt',
@@ -1687,7 +1594,6 @@ export const OpenerRebidRules: BidRule[] = [
       'shape, controls, fit, and working honors.  This competitive family stops rather than add a ' +
       'low-value slam tree.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-overcall-natural-3nt',
@@ -1702,7 +1608,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (_call, context) => openerCompetitiveNaturalNtPassApplies(context, 17),
     meaning: 'Responder showed natural 3NT with 13-15 HCP, balanced shape, and a stopper; ' +
              'ordinary opener values leave the game contract in place.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-natural-3nt',
@@ -1717,7 +1622,6 @@ export const OpenerRebidRules: BidRule[] = [
       'Pass at 3NT can still be right, while quantitative or suit-oriented slam exploration may ' +
       'also be appropriate.  The trainer does not model that control-and-fit judgment here.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Advancer's artificial support cuebid
@@ -1735,7 +1639,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerSupportCuebidPassApplies,
     meaning: "Pass over the opponents' artificial cuebid with minimum values; the bid does not " +
              'show their willingness to play our suit.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-game-after-advancer-support-cuebid',
@@ -1750,7 +1653,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerSupportCuebidGameApplies,
     meaning: 'Maximum values opposite a known fit justify major game or a stopped 3NT ' +
              'with a minor fit.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-advancer-support-cuebid',
@@ -1764,7 +1666,6 @@ export const OpenerRebidRules: BidRule[] = [
              'takeout Double; this is not a natural suit contract.',
     guidance: ['Minimum values often favor defending. With extras, competing or bidding game ' +
                'requires the known fit, reliable stoppers, and playing-strength judgment.'],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Game-forcing three-level new suit
@@ -1786,7 +1687,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { supportLength: { min: 3 } },
     meaning: 'Responder promised five or more cards and game-going values; three-card major support ' +
              'is enough to place the partnership in game.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition',
@@ -1802,7 +1702,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder promised game-going values; opener has six cards in the opening major ' +
              'and at least 15 length-adjusted points to select that major-suit game, even ' +
              "without a fit in responder's minor.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-3nt-after-overcall-three-level-forcing-response',
@@ -1818,7 +1717,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: openerThreeLevelForcingResponseThreeNtApplies,
     meaning: 'Use 3NT without a known major fit when opener is balanced/semi-balanced and stops ' +
              'the opponent suit.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-three-level-forcing-response',
@@ -1839,7 +1737,6 @@ export const OpenerRebidRules: BidRule[] = [
       'playing strength, and stopper quality. Pass may be right under further competition ' +
       'but is not confirmed by this boundary.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Weak jump raises
@@ -1859,7 +1756,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, max: 15, valuation: 'shortage' } },
     meaning: 'Responder made a weak preemptive raise, so a minimum opener does not treat 3M/3m ' +
              'as an invitational limit raise.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-overcall-preemptive-three-level-raise',
@@ -1876,7 +1772,6 @@ export const OpenerRebidRules: BidRule[] = [
       'strength, trump quality, fit, honor location, and vulnerability, which this trainer does ' +
       'not model at this competitive level.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-minor-support-cuebid-extras',
@@ -1893,7 +1788,6 @@ export const OpenerRebidRules: BidRule[] = [
       'stoppers, shape, and playing strength.  The trainer stops here rather than force a minor ' +
       'game or notrump contract from support points alone.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-suit-overcall-responder-pass',
@@ -1911,7 +1805,6 @@ export const OpenerRebidRules: BidRule[] = [
       'This is the separate balancing/reopening judgment family rather than an ordinary opener ' +
       'rebid inferred from responder\'s Pass.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Redouble runouts and reopening judgment
@@ -1934,7 +1827,6 @@ export const OpenerRebidRules: BidRule[] = [
       'depends on defensive prospects and penalty judgment that this trainer deliberately does ' +
       'not model.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-takeout-double-pass-pass',
@@ -1951,7 +1843,6 @@ export const OpenerRebidRules: BidRule[] = [
       'strength, and doubled-contract judgment.  Those penalty/runout decisions are outside the ' +
       'trainer\'s selected takeout-Double treatment.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- After an opposing natural 1NT overcall
@@ -1982,7 +1873,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     meaning: 'Responder showed a good six-card suit with only 5-9 HCP; an ordinary or ' +
              'length-qualified minimum opener may stop.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-opponent-1nt-weak-new-suit',
@@ -1998,7 +1888,6 @@ export const OpenerRebidRules: BidRule[] = [
       'may still be right.  The trainer does not turn this weak competitive response into a ' +
       'forcing auction merely because opener has extras.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-opponent-1nt-preemptive-raise',
@@ -2012,7 +1901,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 12, max: 15, valuation: 'shortage' } },
     meaning: 'Responder made a weak preemptive raise, so a minimum opener normally leaves it there.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-opponent-1nt-preemptive-raise',
@@ -2027,7 +1915,6 @@ export const OpenerRebidRules: BidRule[] = [
       'Pass versus bidding on depends on fit, playing strength, trump texture, and vulnerability.  ' +
       'The trainer stops rather than reinterpret the weak raise as an invitation.',
     ],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-opponent-1nt-responder-pass',
@@ -2043,7 +1930,6 @@ export const OpenerRebidRules: BidRule[] = [
       'Passing, competing again, or doubling can depend on opener\'s shape, strength, and penalty ' +
       'prospects.  That reopening decision is not inferred from responder\'s Pass in this trainer.',
     ],
-    certainty: 'high',
   },
   //
   //// Competitive suit-opening rebids -- Nonforcing responses after takeout Double
@@ -2063,7 +1949,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system, true),
     meaning: 'Responder made a natural nonforcing 1NT bid; a minimum opener may play there.',
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-double-weak-two-level-new-suit',
@@ -2078,7 +1963,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system),
     meaning: "Responder's two-level new suit is weak and nonforcing; a minimum opener may Pass.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-double-weak-three-level-new-suit',
@@ -2093,7 +1977,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system),
     meaning: "Responder's jump shift is weak and nonforcing; a minimum opener may Pass.",
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-pass-after-double-weak-jump-raise',
@@ -2108,7 +1991,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: (call, context, system) =>
       openerWeakAfterDoublePassApplies(call, context, system),
     meaning: "Responder's three-level raise is preemptive and nonforcing; a minimum opener may Pass.",
-    certainty: 'high',
   },
   //
   //// Stronger-hand and unusual-shape boundaries after weak responses to a Double
@@ -2124,7 +2006,6 @@ export const OpenerRebidRules: BidRule[] = [
       'extra-strength or distributional judgment.',
     guidance: ['Pass may still be right. A long opening suit or extra strength may justify a ' +
       'different contract; the app cannot confirm one automatically.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-double-weak-two-level-new-suit',
@@ -2136,7 +2017,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder showed 5–9 HCP and a good six-card natural suit, nonforcing.',
     guidance: ['With extra strength, opener may Pass or continue based on fit, playing tricks, ' +
       'and strain. The app does not infer a game force from this weak response.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-double-weak-three-level-new-suit',
@@ -2148,7 +2028,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder made a weak, nonforcing six-card-or-longer jump shift.',
     guidance: ['Extras do not turn the weak shift into a forcing bid. Pass or a further ' +
       'action depends on hand fit and playing strength outside this app’s selected rules.'],
-    certainty: 'high',
   },
   {
     id: 'opener-rebid-scope-boundary-after-double-weak-jump-raise',
@@ -2160,7 +2039,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder’s three-level raise is weak and preemptive, not invitational.',
     guidance: ['Pass may be correct even with extras. Further bidding depends on trump ' +
       'quality, playing strength, and vulnerability, not an automatic game threshold.'],
-    certainty: 'high',
   },
   //
   //
@@ -2180,7 +2058,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 12, max: 14 }, shape: { balancedOrSemiBalanced: true } },
     meaning: "Minimum balanced or semi-balanced opener accepts responder's 1NT contract.",
-    certainty: 'high',
   },
   //
   {
@@ -2198,7 +2075,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Minimum opener shows a six-card or longer opening minor.',
-    certainty: 'high',
   },
   //
   {
@@ -2217,7 +2093,6 @@ export const OpenerRebidRules: BidRule[] = [
       return openerSecondSuitApplies(call, context, 12, 18, 'lower-ranking second suit');
     },
     meaning: 'Show a lower-ranking second suit while staying at a safe level.',
-    certainty: 'high',
   },
   //
   {
@@ -2237,7 +2112,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     meaning: 'A reverse shows a second suit and enough extra strength to force responder higher.',
     guidance: ['This treatment uses 17+ total points for a reverse in this non-game-forcing auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -2256,7 +2130,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Jump rebid the long opening minor to show medium strength.',
     guidance: ['Prefer a good six-card or longer suit for the jump rebid.'],
-    certainty: 'high',
   },
   //
   {
@@ -2272,7 +2145,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balancedOrSemiBalanced: true } },
     meaning: 'Invite game while showing 18-19 HCP and a balanced or semi-balanced hand.',
-    certainty: 'high',
   },
   //
   {
@@ -2292,7 +2164,6 @@ export const OpenerRebidRules: BidRule[] = [
       return openerSecondSuitApplies(call, context, 19, 21, 'jump shift');
     },
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
-    certainty: 'high',
   },
   //
   {
@@ -2309,7 +2180,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 20, max: 21 },
                    shape: { balanced: false, balancedOrSemiBalanced: true } },
     meaning: 'Show 20-21 HCP with a 5-4-2-2 or 6-3-2-2 hand that did not open 2NT.',
-    certainty: 'high',
   },
   //
   {
@@ -2327,7 +2197,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
-    certainty: 'high',
   },
   //
   //// Minor opening -- After a one-level new-suit response
@@ -2350,7 +2219,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without forcing partner higher.',
     guidance: ['A one-level second-suit rebid does not require a five-card opening minor.'],
-    certainty: 'high',
   },
   //
   {
@@ -2366,7 +2234,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: openerMinorOneLevelOneNtApplies,
     meaning: 'Natural minimum balanced rebid without four-card support or a new suit to show at one.',
-    certainty: 'high',
   },
   //
   {
@@ -2388,7 +2255,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: "Show four-card or longer support for responder's suit with minimum values.",
     guidance: ['A good three-card raise is an occasional judgment exception, not an automatic ' +
                'trainer rule.'],
-    certainty: 'high',
   },
   //
   {
@@ -2407,7 +2273,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening minor with minimum values.',
-    certainty: 'high',
   },
   //
   {
@@ -2426,7 +2291,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Normally a simple repeat promises six cards. Here opener has no suitable ' +
                'four-card support, economical second suit, or natural balanced 1NT rebid; ' +
                'do not assume six trumps from this last-resort description.'],
-    certainty: 'high',
   },
   //
   {
@@ -2446,7 +2310,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     meaning: 'A reverse shows a second suit and enough extra strength to force responder higher.',
     guidance: ['This treatment uses 17+ total points for a reverse in this non-game-forcing auction.'],
-    certainty: 'high',
   },
   //
   {
@@ -2465,7 +2328,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening minor.',
-    certainty: 'high',
   },
   //
   {
@@ -2485,7 +2347,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show medium values and four-card or longer support for responder's suit.",
-    certainty: 'high',
   },
   //
   {
@@ -2502,7 +2363,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true },
                    supportLength: { max: 3 } },
     meaning: 'Natural 18-19 HCP balanced rebid without four-card support for responder.',
-    certainty: 'high',
   },
   //
   {
@@ -2525,7 +2385,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
     guidance: ['Do not use a jump in a suit whose non-jump rebid is already a strength-showing ' +
                'reverse; that higher call is left to partnership agreement.'],
-    certainty: 'high',
   },
   //
   {
@@ -2543,7 +2402,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Bid game with maximum values and four-card or longer support for responder's suit.",
-    certainty: 'high',
   },
   //
   {
@@ -2562,7 +2420,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
-    certainty: 'high',
   },
   //
   {
@@ -2581,7 +2438,6 @@ export const OpenerRebidRules: BidRule[] = [
                'but the jump repeat is normally only invitational and can be Passed. ' +
                'Choosing an imperfect continuation and exploring game or slam require judgment; ' +
                'do not Pass simply because no modeled rebid fits.'],
-    certainty: 'high',
   },
   //
   {
@@ -2604,7 +2460,6 @@ export const OpenerRebidRules: BidRule[] = [
                    supportLength: { min: 4 }, suitLengths: [{ max: 1 }] },
     meaning: "Artificial double jump showing support for responder's suit and shortness in the bid suit.",
     guidance: ['This is an optional partnership treatment rather than the ordinary natural rebid.'],
-    certainty: 'high',
   },
   //
   //// 1D opening -- Standard 2C response
@@ -2627,7 +2482,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Show a five-card or longer diamond suit without enough strength for a stronger rebid.',
     guidance: ['This rebid normally shows six diamonds.  Five diamonds are allowed when opener ' +
                'has no better minimum rebid, especially when a four-card major would require a reverse.'],
-    certainty: 'high',
   },
   //
   {
@@ -2647,7 +2501,6 @@ export const OpenerRebidRules: BidRule[] = [
     },
     meaning: 'Show a four-card major with reverse strength; this auction is not already forced to game.',
     guidance: ['With both four-card majors, show hearts before spades.'],
-    certainty: 'high',
   },
   //
   {
@@ -2663,7 +2516,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balanced: true } },
     meaning: 'Describe a minimum balanced hand; a four-card major may be concealed because showing it would reverse.',
-    certainty: 'high',
   },
   //
   {
@@ -2684,7 +2536,6 @@ export const OpenerRebidRules: BidRule[] = [
                    supportLength: { min: 3 } },
     meaning: 'Show an eight-card-or-longer club fit with minimum values.',
     guidance: ['Responder promised five or more clubs, so three-card opener support is enough.'],
-    certainty: 'high',
   },
   //
   {
@@ -2700,7 +2551,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ suit: 'D', min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer diamond suit.',
-    certainty: 'high',
   },
   //
   {
@@ -2716,7 +2566,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true } },
     meaning: 'Describe a strong balanced hand and place the partnership in game.',
-    certainty: 'high',
   },
   //
   {
@@ -2736,7 +2585,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Show medium values and club support while inviting the minor-suit game.',
-    certainty: 'high',
   },
   //
   {
@@ -2756,7 +2604,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Bid the club game with maximum values and a known eight-card-or-longer fit.',
-    certainty: 'high',
   },
   //
   {
@@ -2772,7 +2619,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ suit: 'D', min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer diamond suit.',
-    certainty: 'high',
   },
 
   //
@@ -2797,7 +2643,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Describe five or more diamonds without implying extra strength.',
     guidance: ['With five or more diamonds, rebid 2D before showing a four-card major.',
                'A specialized jump to 3D with a solid six-card suit remains guidance-only.'],
-    certainty: 'high',
   },
   //
   {
@@ -2815,7 +2660,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { suitLengths: [{ suit: 'D', max: 4 }, { min: 4 }] },
     meaning: 'With fewer than five diamonds, show a natural four-card major without promising extras.',
     guidance: ['With both four-card majors, show hearts before spades.'],
-    certainty: 'high',
   },
   //
   {
@@ -2835,7 +2679,6 @@ export const OpenerRebidRules: BidRule[] = [
                    shape: { balancedOrSemiBalanced: true } },
     meaning: 'Describe balanced or semi-balanced shape economically; the auction is already game forcing.',
     guidance: ['This is the usual rebid after denying five diamonds and a four-card major.'],
-    certainty: 'high',
   },
   //
   {
@@ -2859,7 +2702,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Confirm a club fit when a natural notrump rebid is unattractive.',
     guidance: ['Responder promised five or more clubs; this chosen 2/1 treatment normally uses ' +
                'four-card opener support for the club raise.'],
-    certainty: 'high',
   },
   //
   //// Major opening -- After responder bids 1NT
@@ -2890,7 +2732,6 @@ export const OpenerRebidRules: BidRule[] = [
       };
     },
     meaning: 'Responder previously Passed, so this 1NT is nonforcing despite the configured agreement.',
-    certainty: 'high',
   },
   //
   {
@@ -2909,7 +2750,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A flat minimum may accept 1NT as the final contract when the response is not forcing.',
     guidance: ['A 14-HCP hand or a flat-ish 5-4-2-2 hand can be a judgment case; this executable ' +
                'pass rule deliberately uses the conservative 12-13 HCP, 5-3-3-2 case.'],
-    certainty: 'high',
   },
   //
   {
@@ -2927,7 +2767,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
-    certainty: 'high',
   },
   //
   {
@@ -2945,7 +2784,6 @@ export const OpenerRebidRules: BidRule[] = [
       return openerSecondSuitApplies(call, context, 12, 18, 'lower-ranking second suit');
     },
     meaning: 'Show a natural four-card or longer lower-ranking second suit.',
-    certainty: 'high',
   },
   //
   {
@@ -2963,7 +2801,6 @@ export const OpenerRebidRules: BidRule[] = [
       return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
     },
     meaning: 'A higher-ranking second suit at the two level is a reverse and shows extra strength.',
-    certainty: 'high',
   },
   //
   {
@@ -2984,7 +2821,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Prefer an ordinary natural rebid whenever one exists. Ordinarily this fallback ' +
                'shows at least three cards, but with no three-card minor a 2C rebid can be on two. ' +
                'Responder must not assume an eight-card club fit with only five clubs.'],
-    certainty: 'high',
   },
   //
   {
@@ -3003,7 +2839,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
     guidance: ['Prefer a good six-card or longer suit for the jump rebid.'],
-    certainty: 'high',
   },
   //
   {
@@ -3018,7 +2853,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balancedOrSemiBalanced: true } },
     meaning: 'Natural 18-19 HCP notrump rebid after the 1NT response.',
-    certainty: 'high',
   },
   //
   {
@@ -3036,7 +2870,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['forcing', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A jump shift shows a natural second suit and maximum opening strength.',
-    certainty: 'high',
   },
   //
   {
@@ -3054,7 +2887,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
-    certainty: 'high',
   },
   //
   //// 1H opening -- After responder bids 1S
@@ -3078,7 +2910,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['A raise normally needs four-card support here.  With three good spades and a hand ' +
                'that is unattractive for notrump, an occasional three-card raise can be safer; ' +
                'that judgment exception is guidance-only in this trainer.'],
-    certainty: 'high',
   },
   //
   {
@@ -3100,7 +2931,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: "Show four-card or longer support for responder's suit with minimum values.",
     guidance: ['A good three-card raise is an occasional judgment exception, not an automatic ' +
                'trainer rule.'],
-    certainty: 'high',
   },
   //
   {
@@ -3119,7 +2949,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
-    certainty: 'high',
   },
   //
   {
@@ -3138,7 +2967,6 @@ export const OpenerRebidRules: BidRule[] = [
       return openerSecondSuitApplies(call, context, 12, 18, 'lower-ranking second suit');
     },
     meaning: 'Show a natural four-card or longer second suit with minimum or medium values.',
-    certainty: 'high',
   },
   //
   {
@@ -3157,7 +2985,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
-    certainty: 'high',
   },
   //
   {
@@ -3177,7 +3004,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show medium values and four-card or longer support for responder's suit.",
-    certainty: 'high',
   },
   //
   {
@@ -3194,7 +3020,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true },
                    supportLength: { max: 3 } },
     meaning: 'Natural 18-19 HCP balanced rebid without four-card support for responder.',
-    certainty: 'high',
   },
   //
   {
@@ -3213,7 +3038,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['gameForcing', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
-    certainty: 'high',
   },
   //
   {
@@ -3233,7 +3057,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Bid game with maximum values and four-card or longer support for responder's suit.",
-    certainty: 'high',
   },
   //
   {
@@ -3252,7 +3075,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
-    certainty: 'high',
   },
   //
   {
@@ -3275,7 +3097,6 @@ export const OpenerRebidRules: BidRule[] = [
                    supportLength: { min: 4 }, suitLengths: [{ max: 1 }] },
     meaning: "Artificial jump showing support for responder's suit and shortness in the bid suit.",
     guidance: ['This is an optional partnership treatment rather than the ordinary natural rebid.'],
-    certainty: 'high',
   },
   //
   //// Major opening -- Standard two-level new-suit response
@@ -3303,7 +3124,6 @@ export const OpenerRebidRules: BidRule[] = [
                'hearts; a minor-suit response normally needs four-card opener support. ' +
                'An exceptional three-card minor used to begin a major-support sequence ' +
                'does not itself establish an eight-card minor fit.'],
-    certainty: 'high',
   },
   //
   {
@@ -3322,7 +3142,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
-    certainty: 'high',
   },
   //
   {
@@ -3341,7 +3160,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A minimum opener may repeat exactly five cards in the opening major when the one-round force leaves no normal rebid.',
     guidance: ['Normally a repeat promises six cards. This is an explicitly limited fallback, ' +
                'not an invitation to conceal a suitable second suit, fit, or balanced NT rebid.'],
-    certainty: 'high',
   },
   //
   {
@@ -3358,7 +3176,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without promising reverse strength.',
-    certainty: 'high',
   },
   //
   {
@@ -3375,7 +3192,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['forcing', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A reverse, including a three-level lower suit that forces partner higher, shows 17+ total points in Standard.',
-    certainty: 'high',
   },
   //
   {
@@ -3391,7 +3207,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 12, max: 14 }, shape: { balanced: true } },
     meaning: 'Natural minimum balanced rebid after a Standard two-level response.',
-    certainty: 'high',
   },
   //
   {
@@ -3410,7 +3225,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['forcing', 'natural'],
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
-    certainty: 'high',
   },
   //
   {
@@ -3429,7 +3243,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['invitational', 'natural'],
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
     meaning: "Invite 5C or 5D with medium values and normal minor-suit support.",
-    certainty: 'high',
   },
   //
   {
@@ -3448,7 +3261,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
     meaning: 'After 1S-2H, three-card support for the five-card heart response and 17-18 shortage points can justify bidding game directly.',
-    certainty: 'high',
   },
   //
   {
@@ -3464,7 +3276,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { hcp: { min: 18, max: 19 }, shape: { balanced: true } },
     meaning: 'Natural 18-19 HCP balanced rebid after the Standard two-level response.',
-    certainty: 'high',
   },
   //
   {
@@ -3483,7 +3294,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['gameForcing', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
-    certainty: 'high',
   },
   //
   {
@@ -3502,7 +3312,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
-    certainty: 'high',
   },
   //
   {
@@ -3519,7 +3328,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff', 'natural'],
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 19, 21),
     meaning: "Bid game with maximum values and normal support for responder's suit.",
-    certainty: 'high',
   },
   //
   //// Major opening -- 2/1 game-forcing new-suit response
@@ -3549,7 +3357,6 @@ export const OpenerRebidRules: BidRule[] = [
                'hearts; a minor-suit response normally needs four-card opener support. ' +
                'An exceptional three-card minor used to begin a major-support sequence ' +
                'does not itself establish an eight-card minor fit.'],
-    certainty: 'high',
   },
   //
   {
@@ -3568,7 +3375,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['gameForcing', 'natural'],
     appliesWhen: { suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major; the auction is already game forcing.',
-    certainty: 'high',
   },
   //
   {
@@ -3588,7 +3394,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { suitLengths: [{ min: 4 }] },
     meaning: 'Describe a natural second suit economically; reverse (higher new suit) does not ' +
              'require traditional 17+ strength once game is already forced.',
-    certainty: 'high',
   },
   //
   {
@@ -3610,7 +3415,6 @@ export const OpenerRebidRules: BidRule[] = [
                'With a weak doubleton in an unbid suit or a clear natural suit/fit rebid, prefer ' +
                'describing the suit when judgment says notrump is unattractive; this rule keeps ' +
                '2NT available rather than encoding stopper quality.'],
-    certainty: 'high',
   },
   //
   //// Minor opening -- Simple and limit raises
@@ -3631,7 +3435,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 12, max: 16 } },
     meaning: 'With minimum values after a non-forcing minor raise, stop in the partscore.',
-    certainty: 'high',
   },
   //
   {
@@ -3652,7 +3455,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Invite game by raising the agreed minor with medium values.',
     guidance: ['If game is eventually reached after a minor-suit fit, 3NT is usually preferred ' +
                'to five of the minor when notrump is suitable.'],
-    certainty: 'high',
   },
   //
   {
@@ -3677,7 +3479,6 @@ export const OpenerRebidRules: BidRule[] = [
                'longer.  Partial holdings such as Qx or Jxx, or holdings whose effectiveness ' +
                'depends on which hand declares and who leads the suit, may still be adequate in ' +
                'practice as a judgment call.'],
-    certainty: 'high',
   },
   //
   {
@@ -3700,7 +3501,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A very long minor and strongly unbalanced shape can make the minor-suit game preferable.',
     guidance: ['3NT remains the usual game target; this is a conservative executable case for ' +
                'choosing five of the minor when notrump is clearly less attractive.'],
-    certainty: 'medium',
   },
   //
   {
@@ -3715,7 +3515,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 12, max: 13 } },
     meaning: 'Responder has invited game; a bad minimum opener may decline at three of the minor.',
-    certainty: 'high',
   },
   //
   {
@@ -3739,7 +3538,6 @@ export const OpenerRebidRules: BidRule[] = [
                'longer.  Partial holdings such as Qx or Jxx, or holdings whose effectiveness ' +
                'depends on which hand declares and who leads the suit, may still be adequate in ' +
                'practice as a judgment call.'],
-    certainty: 'high',
   },
   //
   {
@@ -3761,7 +3559,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'A very long agreed minor and extreme shape can make five of the minor preferable to 3NT.',
     guidance: ['Keep 3NT available as the usual game; the lower-ranked five-minor candidate marks ' +
                'a distributional judgment case rather than a mandatory choice.'],
-    certainty: 'medium',
   },
   //
   //// Minor opening -- Natural invitational 2NT response
@@ -3782,7 +3579,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Decline responder\'s natural game invitation and play 2NT with a minimum opener.',
     guidance: ['With 12 HCP, Pass.  A 13-HCP hand is a judgment case, so both Pass and 3NT remain ' +
                'available in the trainer.'],
-    certainty: 'high',
   },
   //
   {
@@ -3807,7 +3603,6 @@ export const OpenerRebidRules: BidRule[] = [
                'practice as a judgment call.',
                'More detailed shape-showing continuations after 1m-2NT are partnership treatment ' +
                'and are not executable in this natural invitation model.'],
-    certainty: 'high',
   },
   //
   //// Major opening -- Jacoby 2NT raise
@@ -3835,7 +3630,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { suitLengths: [{ max: 1 }] },
     meaning: 'Show singleton or void in the bid side suit after the Jacoby 2NT game force.',
     guidance: ['Responder can use the shortness information when judging game versus slam.'],
-    certainty: 'high',
   },
   //
   {
@@ -3860,7 +3654,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Our agreed treatment requires at least two of A/K/Q/J for the good side suit.',
                'When both shortness and a good side suit can be described, shortness is presented ' +
                'first while this bid remains visible as a reasonable partnership judgment.'],
-    certainty: 'high',
   },
   //
   {
@@ -3881,7 +3674,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'With no shortness to show, a minimum opener signs off in game in the agreed major.',
     guidance: ['This range includes an unusually light Rule-of-20 opener; the auction is already ' +
                'forced to game.'],
-    certainty: 'high',
   },
   //
   {
@@ -3899,7 +3691,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'With no shortness to show, 3NT conventionally shows a medium 14-15 HCP opener.',
     guidance: ['The agreed major remains trump; 3NT is a strength message rather than a proposal ' +
                'to play notrump.'],
-    certainty: 'high',
   },
   //
   {
@@ -3920,7 +3711,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'With no shortness to show, three of the agreed major shows a strong opener and slam interest.',
     guidance: ['Responder continues the game-forcing auction with the knowledge that opener has ' +
                'substantial extra strength.  Later control bids and keycard methods are not modeled here.'],
-    certainty: 'high',
   },
   //
   //// Major opening -- Responder's splinter
@@ -3950,7 +3740,6 @@ export const OpenerRebidRules: BidRule[] = [
                'enough working strength outside that suit, a higher-ranked control bid may also ' +
                'appear as a slam-interest alternative; four of the major remains available as a ' +
                'judgment choice.'],
-    certainty: 'high',
   },
   //
   {
@@ -3978,7 +3767,6 @@ export const OpenerRebidRules: BidRule[] = [
                'to reach slam.',
                'If no qualifying control bid is available below game, bid four of the major; ' +
                'later keycard or higher-level slam methods are beyond these exercises.'],
-    certainty: 'medium',
   },
   //
   //// Suit opening -- Weak and strong jump shifts
@@ -4002,7 +3790,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder has made a weak, preemptive, passable jump shift; opener normally stops.',
     guidance: ['An unusually strong opener with an exceptional fit may continue by partnership ' +
                'judgment, but those exceptional continuations are not modeled here.'],
-    certainty: 'high',
   },
   //
   {
@@ -4022,7 +3809,6 @@ export const OpenerRebidRules: BidRule[] = [
     appliesWhen: { supportLength: { min: 3 } },
     meaning: "Confirm the fit in responder's five-card-or-longer suit while preserving bidding room.",
     guidance: ['Three-card support is enough because the strong jump shift promises 5+ cards.'],
-    certainty: 'high',
   },
   //
   {
@@ -4039,7 +3825,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['gameForcing', 'natural'],
     appliesWhen: { suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card-or-longer opening suit; responder has already forced the auction to game.',
-    certainty: 'high',
   },
   //
   {
@@ -4060,7 +3845,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Describe a natural four-card-or-longer second suit economically in the game force.',
     guidance: ['Traditional reverse-strength restrictions are unnecessary because responder has ' +
                'already forced the auction to game.'],
-    certainty: 'high',
   },
   //
   {
@@ -4079,7 +3863,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Describe a balanced or semi-balanced opener economically; the auction remains game forcing.',
     guidance: ['Do not jump merely to show extra strength.  Prefer a clear fit or natural suit ' +
                'description when one is more informative.'],
-    certainty: 'high',
   },
   //
   //// Suit opening -- Responder's game-level signoffs
@@ -4102,7 +3885,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder has placed the contract in 3NT with balanced game-going values.',
     guidance: ['Pass remains the ordinary practical choice.  With 18-21 HCP, quantitative 4NT is ' +
                'also available as a judgment-based slam invitation.'],
-    certainty: 'high',
   },
   //
   {
@@ -4119,7 +3901,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder has offered 3NT with a very flat 13-15 HCP hand and three-card major support.',
     guidance: ['Pass remains a judgment alternative even though the known eight-card major fit ' +
                'also makes four of the major available.'],
-    certainty: 'high',
   },
   //
   {
@@ -4141,7 +3922,6 @@ export const OpenerRebidRules: BidRule[] = [
              'at least an eight-card major fit.',
     guidance: ['Four of the major is presented ahead of 3NT, but Pass remains visible because the ' +
                'relative merits of the two games can still depend on the actual cards.'],
-    certainty: 'high',
   },
   //
   {
@@ -4162,7 +3942,6 @@ export const OpenerRebidRules: BidRule[] = [
                'Pass at 3NT remains available because accepting the slam try is a judgment decision.',
                'After a major opening, this project still treats 4NT as quantitative in this ' +
                'specific direct-3NT family; four of the known major fit remains available ahead of it.'],
-    certainty: 'high',
   },
   //
   {
@@ -4179,7 +3958,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Responder\'s direct four-of-the-major raise is weak, preemptive, and non-forcing.',
     guidance: ['Exceptional slam-oriented hands can explore further in actual play; those control ' +
                'bids or ace-asking continuations are not modeled in this rule family.'],
-    certainty: 'high',
   },
 
   //
@@ -4201,7 +3979,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Decline responder\'s invitational raise and play three of the agreed major.',
     guidance: ['With 12 support points, Pass.  A 13-support-point hand is a judgment case, so ' +
                'both Pass and game remain available in the trainer.'],
-    certainty: 'high',
   },
   //
   {
@@ -4225,7 +4002,6 @@ export const OpenerRebidRules: BidRule[] = [
                'using HCP alone.',
                'With substantial extra strength and useful controls, slam exploration may be ' +
                'appropriate in actual play; those continuations are not modeled in this rule family.'],
-    certainty: 'high',
   },
 
   //
@@ -4245,7 +4021,6 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['signoff'],
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
     meaning: 'With the major fit established and minimum values, game is unlikely.',
-    certainty: 'high',
   },
   //
   // A voluntary raise to three without opponents intervening is a game invitation.
@@ -4270,7 +4045,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Show extra values and six or more trumps; responder can decline or accept game.',
     guidance: ['Without opponent competition, raising the agreed major from two to three is ' +
                'a game invitation. Help-suit and balanced 2NT invitations remain alternatives.'],
-    certainty: 'high',
   },
   //
   {
@@ -4294,7 +4068,6 @@ export const OpenerRebidRules: BidRule[] = [
                    supportLength: { min: 6 } },
     meaning: 'After a suit overcall, six or more trumps permit a non-invitational competitive raise.',
     guidance: ['Responder should not treat 3M as an invitation to game in this treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -4318,7 +4091,6 @@ export const OpenerRebidRules: BidRule[] = [
                    supportLength: { min: 6 } },
     meaning: 'After a takeout Double, six or more trumps permit a non-invitational competitive raise.',
     guidance: ['Responder should not treat 3M as an invitation to game in this treatment.'],
-    certainty: 'high',
   },
   //
   {
@@ -4341,7 +4113,6 @@ export const OpenerRebidRules: BidRule[] = [
     meaning: 'Ask responder for useful high cards or shortness in the side suit before deciding game.',
     guidance: ['This project uses the natural help-suit treatment: the game-try suit has at least ' +
                'three cards.  Some partnerships instead use short-suit or artificial game tries.'],
-    certainty: 'high',
   },
   //
   {
@@ -4362,7 +4133,6 @@ export const OpenerRebidRules: BidRule[] = [
     guidance: ['Use high-card points for this natural notrump-oriented invitation rather than ' +
                'promoting the hand with shortage points.  Responder decides whether to stop below ' +
                'game or accept the invitation; the final strain can still be the major or notrump.'],
-    certainty: 'high',
   },
   //
   {
@@ -4385,7 +4155,6 @@ export const OpenerRebidRules: BidRule[] = [
                'natural choice.  Unusually strong playing strength, controls, or a favorable ' +
                'second-suit fit may justify exploring slam instead.',
                'The app does not teach a complete slam-investigation sequence in this auction.'],
-    certainty: 'high',
   },
   //
   //// Suit opening -- Simple raise with further competition
@@ -4411,7 +4180,6 @@ export const OpenerRebidRules: BidRule[] = [
       'The trainer stops here rather than turn an uncontested game try into false precision after ' +
       'the opponents have changed the available bidding space.',
     ],
-    certainty: 'high',
   },
   //
   //// Major opening -- Optional splinter after a simple raise
@@ -4438,6 +4206,5 @@ export const OpenerRebidRules: BidRule[] = [
                'Responder should judge whether honors are useful opposite opener\'s shortness ' +
                'before considering slam.  Further slam continuations are outside the app\'s ' +
                'selected treatment.'],
-    certainty: 'high',
   },
 ];
