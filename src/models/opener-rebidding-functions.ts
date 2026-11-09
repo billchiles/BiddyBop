@@ -504,6 +504,36 @@ export function buildOpenerOneNtRebidEvidence (call: Call, context: RuleEvalCont
   } };
 }
 
+/// Preserve opener's hand and response-suit facts after a one-level new-suit response.
+/// Qualification is handled by appliesWhen and callRefinement; this builder also records
+/// evidence for unsuccessful candidates so their explanations can use the same facts.
+export function buildOpenerOneLevelNewSuitRebidEvidence (call: Call, context: RuleEvalContext):
+    CallEvidence | undefined {
+  const opening = getOpenerOpeningBid(context);
+  const responderCall = getResponderCall(context.dealer, context.auction);
+  const response = responderCall === null ? null : parseSuitBid(responderCall);
+  if (context.stage !== 'openerRebid' || opening === null || opening.strain === 'NT' ||
+      response === null || response.strain === 'NT' || response.level !== 1) {
+    return undefined;
+  }
+  const openingSuit = opening.strain as Suit;
+  const responseSuit = response.strain as Suit;
+  const rebid = parseSuitBid(call);
+  const rebidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+  return { openerOneLevelNewSuitRebid: {
+    openingSuit, responseSuit, rebidSuit,
+    openingLength: context.handFacts.lengths[openingSuit],
+    responseSupport: context.handFacts.lengths[responseSuit],
+    rebidLength: rebidSuit === null ? 0 : context.handFacts.lengths[rebidSuit],
+    hcp: context.handFacts.hcp,
+    lengthPoints: context.handFacts.lengthPoints,
+    shortagePoints: context.handFacts.shortPoints,
+    totalLengthPoints: context.handFacts.totalPointsWLength,
+    totalShortagePoints: context.handFacts.totalPointsWShortage,
+    balanced: context.handFacts.balanced,
+  } };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
