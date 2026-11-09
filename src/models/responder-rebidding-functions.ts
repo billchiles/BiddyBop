@@ -192,6 +192,7 @@ export function getResponderEconomicalSecondSuit (context: RuleEvalContext):
   return { opening: opening.strain as Suit, response: response.strain as Suit,
            second: rebid.strain as Suit, secondLevel: rebid.level };
 }
+
 //// Responder after opener's strong natural second suit
 
 /// Natural games can be chosen when their strain and existing force are both sufficiently clear.
@@ -264,6 +265,7 @@ export function getResponderStrongSecondSuit (context: RuleEvalContext):
   return { kind: reverse ? 'reverse' : 'jumpShift', opening: opening.strain as Suit,
            response: response.strain as Suit, second: rebid.strain as Suit };
 }
+
 //// Responder after a natural 1NT response to a major opening
 
 /// Name opener's major, not an unbid major, when an invitation is accepted in game.
@@ -450,6 +452,7 @@ export function getResponderAfterMajorOneNt (context: RuleEvalContext):
   if (rebid !== opening && rebid === 'S' && opening === 'H') return null;
   return { opening, rebid, kind: rebid === opening ? 'repeat' : 'second' };
 }
+
 //// Responder after a natural 1NT response to a minor opening
 
 /// Minimum suit selections and a natural 2NT invitation answer use the actual opening
@@ -512,6 +515,7 @@ export function getResponderAfterMinorOneNt (context: RuleEvalContext):
     rebid === `5${opening}` ? 'gameMinor' : null;
   return kind === null ? null : { opening, kind };
 }
+
 //// Responder after opener jump-repeats a six-card minor following a one-level major response
 
 /// The 3m jump repeat is invitational, not forcing.  A minimum responder with an
@@ -556,6 +560,7 @@ export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
       context.auction[start + 5] !== 'Pass') return null;
   return { opening: opening.call[1] as 'C' | 'D', response: response[1] as 'H' | 'S' };
 }
+
 //// Natural responder choices after a 2/1 game-forcing response
 
 /// Only the suit known from the auction may be chosen. A direct 4M may use two-card
@@ -692,6 +697,7 @@ export function getResponderTwoOverOne (context: RuleEvalContext):
            kind: repeat ? 'repeatOpening' : raise ? 'raiseResponse' :
              second !== null ? 'secondSuit' : rebid === '2NT' ? 'twoNt' : 'other', second };
 }
+
 //// Standard two-level new-suit responder continuations
 
 /// The bid chosen must follow from opener's actual rebid, not merely the opening suit.
@@ -765,6 +771,7 @@ export function getResponderStandardTwoLevel (context: RuleEvalContext):
     rebid === '3NT' ? 'gameNt' : 'other';
   return { opening: opening[1] as Suit, response: response[1] as Suit, rebid, kind };
 }
+
 //// Responder after a direct 1NT-3M slam try and opener's side-control reply
 
 /// Recognize the selected uncontested 1NT-3M-control auction, not a Jacoby transfer
@@ -903,6 +910,7 @@ export function getResponderNtConvention (context: RuleEvalContext):
   }
   return null;
 }
+
 //// Responder after opener makes a game try following a simple major raise
 
 /// The invitation belongs to the already established major fit, even when opener
@@ -977,6 +985,7 @@ function hasGameTrySuitHelp (context: RuleEvalContext, suit: Suit): boolean {
   return cards.length <= 1 || cards.some((card) => card.rank === 'A' || card.rank === 'K') ||
     (cards.some((card) => card.rank === 'Q') && cards.some((card) => card.rank === 'J'));
 }
+
 /// Read the first three partnership calls only when all three intervening opponents Passed.
 /// This prevents competitive auctions from inheriting uncontested game-try or convention meanings.
 /// Also used by later splinter, jump-shift, strong-2C, and major-support continuations.
@@ -1064,6 +1073,7 @@ export function getResponderAfterOpenerSplinter (context: RuleEvalContext):
     shortSuit: rebid.strain as Suit,
     responseKind: simpleMajorRaise ? 'simpleMajorRaise' : 'newSuit' };
 }
+
 //// Responder after a classic strong jump-shift response
 
 /// The jump shift already established a game force and expresses slam interest.
@@ -1143,6 +1153,7 @@ export function getResponderAfterStrongJumpShift (context: RuleEvalContext):
   }
   return { opening, response: responseSuit, rebid: seq.rebid, kind };
 }
+
 //// Responder after strong 2C, Jacoby 2NT and splinter continuations
 
 /// The minimum 2NT rebid after a waiting 2D is nonforcing, but a suit rebid is
@@ -1196,6 +1207,7 @@ export function refineResponderStrongTwoCMajorGame (calls: Call[], context: Rule
     telemetryLines: [suit === null ? 'No positive major-suit response.' :
       `Keep four of the positive ${suit} major.`] };
 }
+
 export function getResponderStrongTwoC (context: RuleEvalContext):
     { response: Call; rebid: Call; positive: boolean } | null {
   const seq = getUncontestedThreeCallContinuation(context);
