@@ -3539,6 +3539,14 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
       const amount = length.exact !== undefined ? `exactly ${length.exact}` :
         length.min !== undefined ? `at least ${length.min}` :
         length.max !== undefined ? `at most ${length.max}` : 'the required number of';
+      if (length.suitGroup !== undefined && length.testedLengths?.length === 2) {
+        const holdings = length.testedLengths.map(({ suit: heldSuit, actual }) =>
+          `${actual} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' } as const)[heldSuit]}`)
+          .join(' and ');
+        return [`This ${entered} treatment requires ${amount} cards in at least one ` +
+          `${length.suitGroup} suit; you have ${holdings} ${id}.`];
+      }
+      if (length.actual === undefined) continue;
       if (afterInterference && entered === 'Double') {
         return [`This takeout Double asks partner to help choose an unbid suit and requires ` +
           `${amount} ${suit}; you have ${length.actual} ${id}.`];
@@ -5452,7 +5460,14 @@ export function getOpenerOneNtRebidFailureLines(result: BidEvalResult): string[]
     if (candidate === undefined || candidate.ruleApplies) continue;
     const facts = candidate.callEvidence?.openerOneNtRebid;
     if (facts === undefined) continue;
-    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    // Choose the requirement this rebid explanation can actually teach. A failed
+    // unrelated shape property must not displace the tested rebid-shape requirement.
+    const checks = candidate.callEvidence?.requirements ?? [];
+    const failed = checks.find((item) => item.kind === 'hcp' && !item.passed) ??
+      checks.find((item) => item.kind === 'totalPoints' && !item.passed) ??
+      checks.find((item) => item.kind === 'suitLength' && !item.passed) ??
+      checks.find((item) => item.kind === 'rebidShape' && !item.passed) ??
+      checks.find((item) => item.kind === 'responderPreviouslyPassed' && !item.passed);
     if (failed === undefined) continue;
     let text: string;
     switch (failed.kind) {
