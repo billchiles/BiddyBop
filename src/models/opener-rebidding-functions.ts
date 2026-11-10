@@ -564,6 +564,61 @@ export function buildOpenerTwoLevelNewSuitRebidEvidence (call: Call, context: Ru
   } };
 }
 
+/// Record Jacoby 2NT and jump-shift rebid facts for successful and rejected calls.
+/// A rule's selected convention determines applicability; this only collects evidence.
+export function buildOpenerConventionalRebidEvidence (
+    call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  return buildOpenerConventionalRebidFacts(call, context, false);
+}
+
+/// For a splinter, discount K/Q/J honors located in responder's short suit.
+/// Keep this builder explicit on splinter rules instead of recognizing their IDs.
+export function buildOpenerSplinterRebidEvidence (
+    call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  return buildOpenerConventionalRebidFacts(call, context, true);
+}
+
+/// Collect the shared conventional rebid facts without determining qualification.
+function buildOpenerConventionalRebidFacts (
+    call: Call, context: RuleEvalContext, splinter: boolean): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const original = getOpenerOpeningBid(context);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const response = responseCall === null ? null : parseSuitBid(responseCall);
+  if (original === null || original.strain === 'NT') {
+    return undefined;
+  }
+  const facts = context.handFacts;
+  const openingSuit = original.strain as Suit;
+  const responseSuit = response !== null && response.strain !== 'NT'
+    ? response.strain as Suit : null;
+  const rebid = parseSuitBid(call);
+  const bidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+  const cards = bidSuit === null ? [] : getCardsForSuit(context.hand, bidSuit);
+  const ranks = cards.map((card) => card.rank);
+  const shortCards = responseSuit === null ? [] : getCardsForSuit(context.hand, responseSuit);
+  const wasted = splinter
+    ? shortCards.reduce((total, card) => total + (card.rank === 'K' ? 3 :
+        card.rank === 'Q' ? 2 : card.rank === 'J' ? 1 : 0), 0)
+    : 0;
+  const sideControl = bidSuit === null ? null :
+    ranks.includes('A') ? 'ace' :
+    ranks.includes('K') ? 'king' :
+    cards.length === 0 ? 'void' : cards.length === 1 ? 'singleton' : null;
+  return { openerConventionalRebid: {
+    openingSuit, shortSuits: (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
+      suit !== openingSuit && facts.lengths[suit] <= 1),
+    responseSuit, bidSuit, bidSuitLength: cards.length,
+    responseSupport: responseSuit === null ? 0 : facts.lengths[responseSuit],
+    topFourHonors: ranks.filter((rank) =>
+      rank === 'A' || rank === 'K' || rank === 'Q' || rank === 'J').length,
+    splinterWastedHcp: wasted, splinterWorkingHcp: facts.hcp - wasted,
+    sideControl,
+  } };
+}
+
 /// refineOpenerLowerRankingSecondSuitRebid keeps only a natural lower-ranking second suit.
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.

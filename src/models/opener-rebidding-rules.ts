@@ -7,6 +7,7 @@ import {
 import {
   buildOpenerArtificialSupportRebidEvidence,
   buildOpenerCompetitiveNaturalNtRebidEvidence,
+  buildOpenerConventionalRebidEvidence, buildOpenerSplinterRebidEvidence,
   buildOpenerForcingResponseAdvancerRebidEvidence,
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
   buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
@@ -3733,6 +3734,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-shortness-after-major-jacoby-2nt',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Show singleton or void after Jacoby 2NT',
     auctionContext: {
@@ -3754,6 +3756,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-side-suit-after-major-jacoby-2nt',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a good five-card side suit after Jacoby 2NT',
     auctionContext: {
@@ -3778,6 +3781,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Jump to game with a minimum Jacoby 2NT opener',
     auctionContext: {
@@ -3798,6 +3802,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-3nt-after-major-jacoby-2nt',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Show medium strength after Jacoby 2NT',
     auctionContext: {
@@ -3815,6 +3820,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-strong-3-major-after-major-jacoby-2nt',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Show strong slam-interest values after Jacoby 2NT',
     auctionContext: {
@@ -3841,6 +3847,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-game-in-opening-major-after-major-splinter',
+    callEvidenceBuilder: buildOpenerSplinterRebidEvidence,
     kind: 'openerRebid',
     title: 'Keep game in the agreed major available after a splinter',
     auctionContext: {
@@ -3864,6 +3871,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-control-after-major-splinter',
+    callEvidenceBuilder: buildOpenerSplinterRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a side-suit control with slam interest after a splinter',
     auctionContext: {
@@ -3897,6 +3905,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-pass-after-weak-jump-shift',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a weak jump shift',
     auctionContext: {
@@ -3914,6 +3923,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-raise-after-strong-jump-shift',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's strong jump-shift suit economically",
     auctionContext: {
@@ -3933,6 +3943,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-repeat-opening-suit-after-strong-jump-shift',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after a strong jump shift',
     auctionContext: {
@@ -3949,6 +3960,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-new-suit-after-strong-jump-shift',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a four-card second suit after a strong jump shift',
     auctionContext: {
@@ -3969,6 +3981,7 @@ export const OpenerRebidRules: BidRule[] = [
   //
   {
     id: 'opener-rebid-notrump-after-strong-jump-shift',
+    callEvidenceBuilder: buildOpenerConventionalRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid notrump economically after a strong jump shift',
     auctionContext: {
