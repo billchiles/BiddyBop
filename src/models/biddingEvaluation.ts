@@ -7,7 +7,7 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type CallRefinementResult,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
-import { getHandFacts, getCardsForSuit, type Board, type HandFacts, type Suit } from './cards';
+import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
@@ -21,7 +21,7 @@ import { OpenerRebidRules } from './opener-rebidding-rules';
 import { ResponderRebidRules } from './responder-rebidding-rules';
 import { OvercallRules } from './overcalling-rules';
 import { AdvanceRules } from './advancing-rules';
-import { getOpenerOpeningBid, hasBasicSuitStopper } from './common-rule-helpers';
+import { hasBasicSuitStopper } from './common-rule-helpers';
 
 
 //// Bidding Input
@@ -565,47 +565,8 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   // Preserve evidence from appliesWhen, including for rejected calls. An optional
   // rule-declared builder adds observations without making another eligibility decision.
   const additionalEvidence = rule.callEvidenceBuilder?.(call, context, system);
-  let evidence = additionalEvidence === undefined ? result.callEvidence
+  const evidence = additionalEvidence === undefined ? result.callEvidence
     : { ...result.callEvidence, ...additionalEvidence };
-  const rebid = parseSuitBid(call);
-  const conventionalRebid = context.stage === 'openerRebid' &&
-    (rule.id.endsWith('-after-major-jacoby-2nt') ||
-     rule.id.endsWith('-after-major-splinter') ||
-     rule.id.endsWith('-after-strong-jump-shift') ||
-     rule.id === 'opener-rebid-pass-after-weak-jump-shift');
-  if (conventionalRebid) {
-    const original = getOpenerOpeningBid(context);
-    const responseCall = getResponderCall(context.dealer, context.auction);
-    const response = responseCall === null ? null : parseSuitBid(responseCall);
-    if (original !== null && original.strain !== 'NT') {
-      const facts = context.handFacts;
-      const openingSuit = original.strain as Suit;
-      const responseSuit = response !== null && response.strain !== 'NT'
-        ? response.strain as Suit : null;
-      const bidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
-      const cards = bidSuit === null ? [] : getCardsForSuit(context.hand, bidSuit);
-      const ranks = cards.map((card) => card.rank);
-      const shortCards = responseSuit === null ? [] : getCardsForSuit(context.hand, responseSuit);
-      const wasted = rule.id.endsWith('-after-major-splinter')
-        ? shortCards.reduce((total, card) => total + (card.rank === 'K' ? 3 :
-            card.rank === 'Q' ? 2 : card.rank === 'J' ? 1 : 0), 0)
-        : 0;
-      const sideControl = bidSuit === null ? null :
-        ranks.includes('A') ? 'ace' :
-        ranks.includes('K') ? 'king' :
-        cards.length === 0 ? 'void' : cards.length === 1 ? 'singleton' : null;
-      evidence = { ...evidence, openerConventionalRebid: {
-        openingSuit, shortSuits: (['C', 'D', 'H', 'S'] as Suit[]).filter((suit) =>
-          suit !== openingSuit && facts.lengths[suit] <= 1),
-        responseSuit, bidSuit, bidSuitLength: cards.length,
-        responseSupport: responseSuit === null ? 0 : facts.lengths[responseSuit],
-        topFourHonors: ranks.filter((rank) =>
-          rank === 'A' || rank === 'K' || rank === 'Q' || rank === 'J').length,
-        splinterWastedHcp: wasted, splinterWorkingHcp: facts.hcp - wasted,
-        sideControl,
-      } };
-    }
-  }
   return { rule, call, ruleApplies: result.success, telemetryLines,
            callEvidence: evidence };
 }
