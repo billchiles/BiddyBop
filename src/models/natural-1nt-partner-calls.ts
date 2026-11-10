@@ -331,7 +331,41 @@ export const NaturalOneNtPartnerCallRules: BidRule[] = [
                'final contract.'],
     meaning: 'Gerber is artificial and forcing, asking the 1NT bidder to show aces.',
   },
+  //
+  {
+    id: 'respond-to-1nt-boundary-game-going-long-minor',
+    kind: 'scopeBoundary',
+    title: 'Game-going hand with a strong long minor over 1NT',
+    auctionContext: { partnerNaturalOneNt: true },
+    scopeBoundaryWhen: oneNtGameGoingLongMinorBoundaryApplies,
+    meaning: 'Your values opposite partner\'s 1NT opening justify considering game. A strong ' +
+             'six-card or longer minor can provide extra tricks in notrump even though your ' +
+             'hand is unbalanced.',
+    guidance: ['3NT may be practical when the long minor supplies tricks, but entries to the ' +
+               'long suit and stoppers in the other suits also matter.',
+               'The app does not decide whether 3NT or another game contract is best in ' +
+               'this situation. This is not a recommendation to bid 3NT or to Pass.'],
+  },
 ];
+
+/// oneNtGameGoingLongMinorBoundaryApplies identifies a narrow game-going 1NT response
+/// that needs judgment about tricks, entries, and stoppers rather than a fixed bid.
+/// Keep this specific to responding to an opening 1NT; the shared advance rules also cover 1NT overcalls.
+function oneNtGameGoingLongMinorBoundaryApplies (context: RuleEvalContext,
+                                                 system: BiddingSystem): AppliesWhenResult {
+  const facts = context.handFacts;
+  const shift = oneNtResponseHcpShift(system);
+  const gameValues = facts.hcp >= 10 - shift && facts.hcp <= 15 - shift;
+  const noFourCardMajor = facts.lengths.H < 4 && facts.lengths.S < 4;
+  const strongMinor = (['C', 'D'] as Suit[]).some((suit) =>
+    facts.lengths[suit] >= 6 && hasTwoOfTopThreeHonors(context.hand, suit));
+  const success = context.stage === 'responding' && gameValues && !facts.balanced &&
+    noFourCardMajor && strongMinor;
+  return { success, telemetryLines: [
+    `${success ? 'PASS' : 'FAIL'}: game-going unbalanced response with a strong 6+ minor, ` +
+      'without a four-card major, needs long-suit and notrump judgment.',
+  ] };
+}
 
 /// oneNtNaturalMinorInvitationApplies requires the candidate minor to be six cards or longer
 /// with at least two of A/K/Q.  The response HCP range follows the selected 1NT opening range.
