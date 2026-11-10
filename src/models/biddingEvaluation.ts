@@ -568,43 +568,6 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   let evidence = additionalEvidence === undefined ? result.callEvidence
     : { ...result.callEvidence, ...additionalEvidence };
   const rebid = parseSuitBid(call);
-  const competitiveForcingRebid = context.stage === 'openerRebid' &&
-    (rule.id.includes('-after-overcall-two-level-new-suit') ||
-     rule.id.includes('-after-forcing-response-advancer-competition'));
-  if (competitiveForcingRebid) {
-    const first = getOpenerOpeningBid(context);
-    const responderCall = getResponderCall(context.dealer, context.auction);
-    const response = responderCall === null ? null : parseSuitBid(responderCall);
-    if (first !== null && first.strain !== 'NT' &&
-        response !== null && response.strain !== 'NT') {
-      const openingSuit = first.strain as Suit;
-      const responseSuit = response.strain as Suit;
-      const interference = getInterferenceAfterOpening(context.dealer, context.auction);
-      const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-      const firstOpponentCall = openingInfo === null ? undefined :
-        context.auction[openingInfo.index + 1];
-      const overcall = firstOpponentCall === undefined ? null : parseSuitBid(firstOpponentCall);
-      // One-level natural responses after a Double need four cards. After an overcall,
-      // five are normally needed, except a major over a 1D overcall of a minor opening.
-      const fourCardOneLevel = interference === 'takeoutDouble' ||
-        (interference === 'suitOvercall' &&
-         (openingSuit === 'C' || openingSuit === 'D') && overcall?.strain === 'D' &&
-         (responseSuit === 'H' || responseSuit === 'S'));
-      const responseMinLength = response.level === 2 ? 5 : fourCardOneLevel ? 4 : 5;
-      const bidSuit = rebid !== null && rebid.strain !== 'NT' ?
-        rebid.strain as Suit : null;
-      const afterAdvancerAction = rule.id.includes('-after-forcing-response-advancer-competition');
-      evidence = { ...evidence, openerCompetitiveForcingRebid: {
-        openingSuit, responseSuit, responseLevel: response.level, responseMinLength,
-        openingLength: context.handFacts.lengths[openingSuit],
-        responseSupport: context.handFacts.lengths[responseSuit],
-        requiredSupport: response.level === 2 ? 3 : 4,
-        rebidSuit: bidSuit,
-        rebidLength: bidSuit === null ? 0 : context.handFacts.lengths[bidSuit],
-        afterAdvancerAction,
-      } };
-    }
-  }
   const competitiveThreeLevelGameForce = context.stage === 'openerRebid' &&
     rule.kind === 'openerRebid' &&
     rule.id.includes('-after-overcall-three-level-forcing-');
