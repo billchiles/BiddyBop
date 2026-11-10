@@ -5,7 +5,9 @@ import {
   type AppliesWhenResult
 } from './bidding-types';
 import {
+  buildOpenerForcingResponseAdvancerRebidEvidence,
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
+  buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
   buildOpenerTwoLevelNewSuitRebidEvidence,
   openerJacobyGoodSideSuitApplies, openerMinorOneLevelOneNtApplies,
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
@@ -1058,6 +1060,7 @@ export const OpenerRebidRules: BidRule[] = [
   // support hands can jump or bid game; other strong distributions remain separate decisions.
   {
     id: 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's forcing two-level suit with minimum values",
     auctionContext: {
@@ -1075,6 +1078,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after a forcing two-level response',
     auctionContext: {
@@ -1090,6 +1094,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-second-suit-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Show an economical second suit after a forcing competitive response',
     auctionContext: {
@@ -1105,6 +1110,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-reverse-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Reverse into a second suit after a forcing competitive response',
     auctionContext: {
@@ -1120,6 +1126,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-2nt-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 2NT with a minimum balanced hand and an overcall stopper',
     auctionContext: {
@@ -1134,6 +1141,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-jump-raise-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's forcing minor to four with medium values",
     auctionContext: {
@@ -1151,6 +1159,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's forcing major to game with medium values",
     auctionContext: {
@@ -1168,6 +1177,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-3nt-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: 'Rebid 3NT with 18-19 balanced and an overcall stopper',
     auctionContext: {
@@ -1182,6 +1192,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-raise-after-overcall-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
     kind: 'openerRebid',
     title: "Raise responder's forcing suit to game with maximum values",
     auctionContext: {
@@ -1207,6 +1218,7 @@ export const OpenerRebidRules: BidRule[] = [
   // extra-value hands stop at family-specific scope guidance rather than receiving a fabricated bid.
   {
     id: 'opener-rebid-support-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: "Support responder's forcing suit after advancer competes",
     auctionContext: {
@@ -1225,6 +1237,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-repeat-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after advancer competes',
     auctionContext: {
@@ -1242,6 +1255,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-second-suit-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: 'Show an economical second suit that remains available after competition',
     auctionContext: {
@@ -1258,6 +1272,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-reverse-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: 'Keep a strength-qualified reverse that remains available after competition',
     auctionContext: {
@@ -1276,6 +1291,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-nt-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: 'Retain a natural balanced notrump rebid after advancer competes',
     auctionContext: {
@@ -1293,6 +1309,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-raise-after-forcing-response-advancer-competition',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: "Bid game with maximum values and support for responder's forcing suit",
     auctionContext: {
@@ -1308,6 +1325,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum',
+    callEvidenceBuilder: buildOpenerForcingResponseAdvancerRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass with a minimum when competition removes the clear descriptive rebids',
     auctionContext: {
