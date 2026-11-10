@@ -1864,6 +1864,27 @@ function getOpenerForcingResponseCompetitionInfo (context: RuleEvalContext):
 //// Other Competitive Suit Rebids
 ///
 
+/// Collect the opening suit and responder's action for weak competitive Pass rebids.
+/// This supports explanations of successful and rejected calls; it does not test eligibility.
+export function buildOpenerWeakCompetitiveRebidEvidence (
+    _call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const first = getOpenerOpeningBid(context);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const response = responseCall === null ? null : parseSuitBid(responseCall);
+  if (first === null || first.strain === 'NT' || responseCall === null) {
+    return undefined;
+  }
+  const openingSuit = first.strain as Suit;
+  const responseSuit = response !== null && response.strain !== 'NT' &&
+    response.strain !== first.strain ? response.strain as Suit : null;
+  return { openerWeakCompetitiveRebid: {
+    openingSuit, responseCall, responseSuit,
+  } };
+}
+
 /// Pass of a weak competitive response after a takeout Double is selected for a
 /// 12–14-HCP minimum or a valid sub-12-HCP opening with 12+ length points.
 /// For natural 1NT, shape remains essential; a long-suit opener need not play 1NT.
