@@ -5,6 +5,7 @@ import {
   type AppliesWhenResult
 } from './bidding-types';
 import {
+  buildOpenerCompetitiveNaturalNtRebidEvidence,
   buildOpenerForcingResponseAdvancerRebidEvidence,
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
   buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
@@ -1504,6 +1505,7 @@ export const OpenerRebidRules: BidRule[] = [
   // shape or slam interest makes the next action judgment-heavy.
   {
     id: 'opener-rebid-pass-after-overcall-natural-1nt-minimum',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass with a minimum after a natural 1NT response in competition',
     auctionContext: {
@@ -1518,6 +1520,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-repeat-suit-after-overcall-natural-1nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after responder\'s natural 1NT',
     auctionContext: {
@@ -1533,6 +1536,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-2nt-after-overcall-natural-1nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Invite with 2NT after responder\'s natural 1NT over an overcall',
     auctionContext: {
@@ -1546,6 +1550,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-3nt-after-overcall-natural-1nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid game with a 20-21 HCP semi-balanced opener after natural 1NT',
     auctionContext: {
@@ -1576,6 +1581,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-overcall-natural-2nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Decline responder\'s natural 2NT invitation after an overcall',
     auctionContext: {
@@ -1590,6 +1596,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-3nt-after-overcall-natural-2nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Accept responder\'s natural 2NT invitation after an overcall',
     auctionContext: {
@@ -1618,6 +1625,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-overcall-natural-3nt',
+    callEvidenceBuilder: buildOpenerCompetitiveNaturalNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass responder\'s natural 3NT game response after an overcall',
     auctionContext: {
