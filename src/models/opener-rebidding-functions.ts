@@ -1556,6 +1556,62 @@ function getOpenerNegativeDoubleInfo (context: RuleEvalContext): OpenerNegativeD
 //// Competitive Suit Rebids After a Forcing Response
 ///
 
+/// Preserve forcing-response evidence when opener rebids immediately after a suit overcall.
+/// The rule's auction context establishes the competition stage; this builder does not
+/// decide whether the candidate call qualifies.
+export function buildOpenerOvercallTwoLevelNewSuitRebidEvidence (
+    call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  return buildOpenerCompetitiveForcingRebidEvidence(call, context, false);
+}
+
+/// Preserve the same forcing-response facts after advancer has entered the competition.
+/// Keeping this builder distinct records the additional opponent action explicitly.
+export function buildOpenerForcingResponseAdvancerRebidEvidence (
+    call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  return buildOpenerCompetitiveForcingRebidEvidence(call, context, true);
+}
+
+/// Share the hand and auction observations without relying on rule IDs for the distinction
+/// between immediate overcall situations and later advancer competition.
+function buildOpenerCompetitiveForcingRebidEvidence (
+    call: Call, context: RuleEvalContext, afterAdvancerAction: boolean): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const first = getOpenerOpeningBid(context);
+  const responderCall = getResponderCall(context.dealer, context.auction);
+  const response = responderCall === null ? null : parseSuitBid(responderCall);
+  if (first === null || first.strain === 'NT' ||
+      response === null || response.strain === 'NT') {
+    return undefined;
+  }
+  const openingSuit = first.strain as Suit;
+  const responseSuit = response.strain as Suit;
+  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const firstOpponentCall = openingInfo === null ? undefined :
+    context.auction[openingInfo.index + 1];
+  const overcall = firstOpponentCall === undefined ? null : parseSuitBid(firstOpponentCall);
+  // One-level natural responses after a Double need four cards. After an overcall,
+  // five are normally needed, except a major over a 1D overcall of a minor opening.
+  const fourCardOneLevel = interference === 'takeoutDouble' ||
+    (interference === 'suitOvercall' &&
+     (openingSuit === 'C' || openingSuit === 'D') && overcall?.strain === 'D' &&
+     (responseSuit === 'H' || responseSuit === 'S'));
+  const responseMinLength = response.level === 2 ? 5 : fourCardOneLevel ? 4 : 5;
+  const rebid = parseSuitBid(call);
+  const bidSuit = rebid !== null && rebid.strain !== 'NT' ? rebid.strain as Suit : null;
+  return { openerCompetitiveForcingRebid: {
+    openingSuit, responseSuit, responseLevel: response.level, responseMinLength,
+    openingLength: context.handFacts.lengths[openingSuit],
+    responseSupport: context.handFacts.lengths[responseSuit],
+    requiredSupport: response.level === 2 ? 3 : 4,
+    rebidSuit: bidSuit,
+    rebidLength: bidSuit === null ? 0 : context.handFacts.lengths[bidSuit],
+    afterAdvancerAction,
+  } };
+}
+
 /// refineOpenerForcingResponseCompetitionSupport keeps a natural raise of responder's forcing suit
 /// only through the three level.  Competition may make the old cheap raise unavailable, but moving
 /// one level higher remains descriptive when it is still below game; a forced game-level decision
