@@ -35,10 +35,10 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 - [ ] **Finish rule-declared opener-rebid evidence builders.** Convert the
-  remaining competitive natural-NT, artificial-support, and conventional rebid
-  families. Remove their rule-ID dispatch from `evaluateCandidateCall`, preserving
-  evidence for rejected calls and merging existing observations without changing
-  bidding qualification or explanations.
+  remaining artificial-support and conventional rebid families. Remove their
+  rule-ID dispatch from `evaluateCandidateCall`, preserving evidence for rejected
+  calls and merging existing observations without changing bidding qualification
+  or explanations.
 - [ ] **Separately analyze requirement evidence in `evaluateHandConstraint`.** Review
   its rule-ID-dependent `explain*` selection before deciding on changes; do not
   combine this with the `callEvidenceBuilder` conversion.

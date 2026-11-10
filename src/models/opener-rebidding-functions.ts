@@ -10,6 +10,7 @@ import {
   cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids,
   getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening, getOpeningCallInfo,
   getOpponentNaturallyBidSuitsForOpenerRebid, getResponderCall, isCallAvailableInAuction,
+  isContractBid,
   openerRebidIsReverse, parseSuitBid, responderPreviouslyPassed, type ParsedSuitBid
 } from './auction';
 import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
@@ -1882,6 +1883,30 @@ export function buildOpenerWeakCompetitiveRebidEvidence (
     response.strain !== first.strain ? response.strain as Suit : null;
   return { openerWeakCompetitiveRebid: {
     openingSuit, responseCall, responseSuit,
+  } };
+}
+
+/// Collect the competitive auction facts for opener after responder's natural NT call.
+/// This builder supplies explanation evidence for qualifying and rejected candidates.
+export function buildOpenerCompetitiveNaturalNtRebidEvidence (
+    _call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const first = getOpenerOpeningBid(context);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const opponentCall = openingInfo === null ? undefined : context.auction[openingInfo.index + 1];
+  const opponentBid = opponentCall === undefined ? null : parseSuitBid(opponentCall);
+  if (first === null || first.strain === 'NT' || responseCall === null ||
+      openingInfo === null || opponentBid === null || opponentBid.strain === 'NT') {
+    return undefined;
+  }
+  const openingSuit = first.strain as Suit;
+  return { openerCompetitiveNaturalNtRebid: {
+    openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+    opponentSuit: opponentBid.strain as Suit, responseCall,
+    currentContract: context.auction.filter(isContractBid).slice(-1)[0] ?? responseCall,
   } };
 }
 
