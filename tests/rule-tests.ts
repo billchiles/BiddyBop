@@ -117,6 +117,7 @@ function runAllRuleTests (): void {
     runAdvancingBoundaryTests,
     runTakeoutAdvanceBoundaryTests,
     runSharedOneNtAdvanceBoundaryTests,
+    runOneNtLongMinorBoundaryTests,
     runResponderRaiseAdvanceBoundaryTests,
     runResponderNaturalActionAdvanceBoundaryTests,
     runNaturalActionPassLegalityTests,
@@ -2999,6 +3000,45 @@ function runSharedOneNtAdvanceBoundaryTests (): number {
   console.log(`${failures} ***FAILURES***. Shared 1NT advancing boundaries: ${checks} checks.`);
   console.log('  Verifies that shared 1NT rules work after openings and overcalls,');
   console.log('  respect partnership range settings, and exclude unrelated auctions.\n');
+  return failures;
+}
+/// A strong, long minor can leave an unbalanced game-going hand without a definite
+/// response to 1NT. Check the explanatory boundary without inventing a new bid.
+function runOneNtLongMinorBoundaryTests (): number {
+  // The exact deal that exposed the missing explanation; this is a test hand, not a practice deal.
+  const { board } = makeRuleTestBoard({
+    description: 'Game-going long minor after 1NT',
+    dealer: 'N', practiceAuction: ['1NT', 'Pass'],
+    north: { S: 'J84', H: 'AKQ43', D: 'A93', C: 'J3' },
+    east: { S: 'T75', H: 'T9762', D: '76', C: 'Q96' },
+    south: { S: 'KQ6', H: '5', D: '852', C: 'AKT854' },
+    west: { S: 'A932', H: 'J8', D: 'KQJT4', C: '72' },
+  });
+  const auction: Call[] = ['1NT', 'Pass'];
+  let checks = 0;
+  let failures = 0;
+  for (const range of ['15-17', '16-18'] as const) {
+    const system = { ...defaultBiddingSystem, oneNtOpening: range };
+    const status = getBiddingTurnStatus(board, auction, system);
+    const result = evaluateUserCall('3NT', board, auction, system);
+    checks++;
+    if (status.kind !== 'scopeBoundary' ||
+        status.rule.id !== 'respond-to-1nt-boundary-game-going-long-minor' ||
+        getApplicableCandidateCalls(result).length !== 0 ||
+        result.userCallMatchingRules.length !== 0) {
+      failures++;
+      console.error(`FAIL game-going long-minor 1NT boundary with ${range}: ` +
+        `${status.kind}, ${formatCandidates(getApplicableCandidateCalls(result))}.`);
+    }
+  }
+  const overcall = evaluateUserCall('3NT', board, ['1H', '1NT', 'Pass'], defaultBiddingSystem);
+  checks++;
+  if (overcall.applicableRules.some((rule) =>
+      rule.id === 'respond-to-1nt-boundary-game-going-long-minor')) {
+    failures++;
+    console.error('FAIL opening-1NT long-minor boundary applied to a 1NT overcall.');
+  }
+  console.log(`${failures} ***FAILURES***. 1NT long-minor boundary: ${checks} checks.\n`);
   return failures;
 }
 /// Responder-raise advances apply only to a simple raise of opener's suit.  These checks
