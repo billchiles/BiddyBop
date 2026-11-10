@@ -1883,7 +1883,7 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
       const ordinarySupport = ordinary.candidate === undefined ? undefined :
         minorRequirement(ordinary.candidate, 'partnerSupport');
       if (fallback?.reason === 'new-suit-available' && ordinaryPoints?.actual === 13 &&
-          ordinarySupport !== undefined && ordinarySupport.actual >= 6) {
+          ordinarySupport?.actual !== undefined && ordinarySupport.actual >= 6) {
         const alternative = fallback.alternativeCalls.join(' or ');
         lines.push(`The ordinary 11–12-support-point limit raise (${opener}–${entered}) ` +
           `invites game and lets opener Pass. With 13 support points, the selected ` +
@@ -1894,7 +1894,7 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
             : ` That makes the direct invitation too conservative under this treatment.`) +
           ` [${ruleId}].`);
       } else if (fallback?.reason === 'shortness' && ordinaryPoints?.actual === 13 &&
-                 ordinarySupport !== undefined && ordinarySupport.actual >= 6) {
+                 ordinarySupport?.actual !== undefined && ordinarySupport.actual >= 6) {
         lines.push(`The exceptional 13-point ${entered} limit-raise fallback does not ` +
           `apply with an outside singleton or void; that shortness calls for separate ` +
           `game-going judgment [${ruleId}].`);
@@ -2072,7 +2072,7 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
       const fallback = result.ruleDiagnostics.find(({ rule }) =>
         rule.id === STRONG_MAJOR_LIMIT_FALLBACK_ID)?.callEvidence?.longMajorLimitFallback;
       const specialized13PointExplanation = ruleId === 'respond-to-major-w/-support-limit-raise-four-card' &&
-        points.actual === 13 && support !== undefined && support.actual >= 6 &&
+        points.actual === 13 && support?.actual !== undefined && support.actual >= 6 &&
         (fallback?.reason === 'new-suit-available' || fallback?.reason === 'shortness');
       if (!specialized13PointExplanation) {
         lines.push(`${entered} under this treatment requires ${strengthRange(points).replace('total points',
@@ -2188,7 +2188,7 @@ export function getMajorNoSupportFailureLines(result: BidEvalResult): string[] {
     const suit = minorRequirement(candidate, 'suitLength');
     const unpassed = minorRequirement(candidate, 'responderPreviouslyPassed');
     // Three or more trumps belongs to the separate major-support response families.
-    if (support !== undefined && support.actual > 2) continue;
+    if (support?.actual !== undefined && support.actual > 2) continue;
     if (ruleId === MAJOR_NO_SUPPORT_IDS[4] && unpassed?.passed === false) continue;
     if (unpassed?.passed === false) {
       lines.push(ruleId === MAJOR_NO_SUPPORT_IDS[2]
@@ -5905,9 +5905,11 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
         `${failed.min !== undefined && actual < failed.min ? 'too few' : 'too many'} ` +
         `for this treatment.`;
     } else if (failed.kind === 'partnerSupport') {
+      if (failed.actual === undefined) continue;
       explanation = `${attempted} requires ${failed.min ?? 0} or more cards in responder's ` +
         `${suitPlural(`1${facts.responseSuit}` as Call)}; you have ${failed.actual}.`;
     } else if (failed.kind === 'suitLength') {
+      if (failed.actual === undefined) continue;
       const suit = failed.suit === undefined ? 'the tested suit' :
         suitPlural(`1${failed.suit}` as Call);
       const criterion = failed.max !== undefined && failed.actual > failed.max ?

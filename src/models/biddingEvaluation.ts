@@ -1010,8 +1010,9 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
                                  context: RuleEvalContext, system: BiddingSystem, ruleId: string)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
-  // Collect declarative requirements for these opening calls only; other rule families
-  // remain unchanged until their explanation requirements are reviewed.
+  // Ordinary point, suit-length, and support evidence is now retained for every evaluated
+  // declarative constraint. These flags still preserve specialized representations and
+  // the shape evidence selection until the remaining refactor passes.
   const explainOpeningRequirements = context.stage === 'opening' &&
     (call === '1NT' || call === '2NT' || call === '2C');
   const explainPreemptRequirements = context.stage === 'opening' &&
@@ -1133,20 +1134,16 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
-      if (explainPreemptRequirements || explainMinorResponse || explainMajorSupport ||
-          explainMajorNoSupport || explainNaturalAdvance || explainTakeoutAdvance ||
-          explainNaturalNtResponse || explainStrongTwoCPositive || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
-          explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-          explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
-          explainOpenerTwoLevelNewSuitRebid) {
-        if (explainNaturalNtResponse && suitLength.suit === 'major' &&
-            suitLength.exact === 4) {
-          requirements.push({ kind: 'fourCardMajor', passed: result.pass });
-        } else if (result.actualLength !== undefined && result.suit !== undefined) {
-          requirements.push({ kind: 'suitLength', suit: result.suit,
-            actual: result.actualLength, exact: suitLength.exact,
-            min: suitLength.min, max: suitLength.max, passed: result.pass });
-        }
+      if (explainNaturalNtResponse && suitLength.suit === 'major' &&
+          suitLength.exact === 4) {
+        // Preserve the special Stayman observation; do not choose one arbitrary major.
+        requirements.push({ kind: 'fourCardMajor', passed: result.pass });
+      } else {
+        // An unresolved candidate suit has no measured length; retain the failed test
+        // without inventing a suit or holding. Categorical failures are reviewed in pass 2.
+        requirements.push({ kind: 'suitLength', suit: result.suit,
+          actual: result.actualLength, exact: suitLength.exact,
+          min: suitLength.min, max: suitLength.max, passed: result.pass });
       }
       pass = pass && result.pass;
     }
@@ -1182,19 +1179,13 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.supportLength !== undefined) {
     const result = testSupportLength(constraint.supportLength, context);
     telemetryLines.push(result.telemetryLine);
-    if (explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
-        explainNaturalAdvance || explainJumpAdvance || explainJumpResponder || explainCompetitiveRaiseAdvance ||
-        explainCompetitiveNaturalAdvance || explainNegativeDoubleAdvance ||
-        explainOpenerOneLevelNewSuitRebid ||
-        explainOpenerTwoLevelNewSuitRebid) {
-      const supportSuit = getSupportSuitForStage(context);
-      if (supportSuit !== null) {
-        requirements.push({ kind: 'partnerSupport', suit: supportSuit,
-          actual: context.handFacts.lengths[supportSuit],
-          min: constraint.supportLength.min, max: constraint.supportLength.max,
-          passed: result.pass });
-      }
-    }
+    // No partner suit means the constraint failed without a measurable holding.
+    // Record that outcome rather than omit evidence or assign an invented suit.
+    const supportSuit = getSupportSuitForStage(context);
+    requirements.push({ kind: 'partnerSupport', suit: supportSuit ?? undefined,
+      actual: supportSuit === null ? undefined : context.handFacts.lengths[supportSuit],
+      min: constraint.supportLength.min, max: constraint.supportLength.max,
+      passed: result.pass });
     pass = pass && result.pass;
   }
   return { success: pass, telemetryLines,
