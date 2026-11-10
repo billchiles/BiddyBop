@@ -399,9 +399,15 @@ export interface CallEvidence {
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number;
         valuation?: 'length' | 'shortage'; passed: boolean }
-    // Suit and actual are absent only when an evaluated constraint has no resolvable suit.
+    // Suit and actual are absent for an unresolved target or a failed either-suit test.
+    // For category tests, testedLengths retains both measured suits.
     | { kind: 'partnerSupport'; suit?: Suit; actual?: number; min?: number; max?: number; passed: boolean }
-    | { kind: 'suitLength'; suit?: Suit; actual?: number; exact?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'suitLength'; suit?: Suit; suitGroup?: 'major' | 'minor';
+        testedLengths?: { suit: Suit; actual: number }[];
+        actual?: number; exact?: number; min?: number; max?: number; passed: boolean }
+    // A compound shape is evaluated one declared property at a time.
+    | { kind: 'shapeProperty'; property: keyof HandShapeConstraint; actual: boolean | number;
+        required: boolean | number; passed: boolean }
     | { kind: 'fourCardMajor'; passed: boolean }
     | { kind: 'topThreeHonors'; suit: Suit; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
