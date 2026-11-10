@@ -7840,6 +7840,9 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
   }
   for (const entry of result.ruleDiagnostics) {
     if (!OPENER_FORCING_COMPETITION_IDS.includes(entry.rule.id)) continue;
+    // New declarative strength evidence must not silently replace the existing generic
+    // rejection guidance. Review the desired competitive failure lesson separately.
+    if (typeof entry.rule.appliesWhen !== 'function') continue;
     const rejected = entry.candidates.find((candidate) =>
       candidate.call === call && !candidate.ruleApplies);
     const failure = rejected?.callEvidence?.requirements?.find((item) => !item.passed);
