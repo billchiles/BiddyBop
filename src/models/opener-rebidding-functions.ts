@@ -1886,6 +1886,29 @@ export function buildOpenerWeakCompetitiveRebidEvidence (
   } };
 }
 
+/// Record facts after responder's support cuebid or Jordan 2NT, or advancer's
+/// artificial support cuebid.  This supports explanations without testing eligibility.
+export function buildOpenerArtificialSupportRebidEvidence (
+    _call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const first = getOpenerOpeningBid(context);
+  const responderCall = getResponderCall(context.dealer, context.auction);
+  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
+  if (first === null || first.strain === 'NT' ||
+      responderCall === null || openingInfo === null) {
+    return undefined;
+  }
+  const openingSuit = first.strain as Suit;
+  return { openerArtificialSupportRebid: {
+    openingSuit,
+    openingLength: context.handFacts.lengths[openingSuit],
+    responderCall,
+    advancerCall: context.auction[openingInfo.index + 3] ?? null,
+  } };
+}
+
 /// Collect the competitive auction facts for opener after responder's natural NT call.
 /// This builder supplies explanation evidence for qualifying and rejected candidates.
 export function buildOpenerCompetitiveNaturalNtRebidEvidence (
