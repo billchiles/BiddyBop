@@ -8,6 +8,7 @@ import {
   buildOpenerForcingResponseAdvancerRebidEvidence,
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
   buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
+  buildOpenerThreeLevelForcingRebidEvidence,
   buildOpenerTwoLevelNewSuitRebidEvidence,
   openerJacobyGoodSideSuitApplies, openerMinorOneLevelOneNtApplies,
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
@@ -1693,6 +1694,7 @@ export const OpenerRebidRules: BidRule[] = [
   // clearest destinations: a known major fit or 3NT when opener has the shape and stopper(s).
   {
     id: 'opener-rebid-game-major-after-overcall-three-level-forcing-response',
+    callEvidenceBuilder: buildOpenerThreeLevelForcingRebidEvidence,
     kind: 'openerRebid',
     title: 'Raise responder\'s game-forcing three-level major to game',
     auctionContext: {
@@ -1710,6 +1712,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-own-major-game-after-overcall-three-level-forcing-competition',
+    callEvidenceBuilder: buildOpenerThreeLevelForcingRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid the six-card opening major at game with extra values after competition',
     auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
@@ -1725,6 +1728,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-3nt-after-overcall-three-level-forcing-response',
+    callEvidenceBuilder: buildOpenerThreeLevelForcingRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid 3NT after a game-forcing three-level response with the right shape and stopper',
     auctionContext: {
