@@ -1612,6 +1612,34 @@ function buildOpenerCompetitiveForcingRebidEvidence (
   } };
 }
 
+/// Record opponent suits and stoppers after responder's competitive three-level game force.
+/// This builder provides facts for successful and rejected calls without deciding eligibility.
+export function buildOpenerThreeLevelForcingRebidEvidence (
+    _call: Call, context: RuleEvalContext): CallEvidence | undefined {
+  if (context.stage !== 'openerRebid') {
+    return undefined;
+  }
+  const first = getOpenerOpeningBid(context);
+  const firstInfo = getOpeningCallInfo(context.dealer, context.auction);
+  const responseCall = getResponderCall(context.dealer, context.auction);
+  const response = responseCall === null ? null : parseSuitBid(responseCall);
+  if (first === null || first.strain === 'NT' || response === null ||
+      response.level !== 3 || response.strain === 'NT' || firstInfo === null) {
+    return undefined;
+  }
+  const openingSuit = first.strain as Suit;
+  const responderSuit = response.strain as Suit;
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(
+    context.dealer, context.auction);
+  return { openerThreeLevelGameForceRebid: {
+    openingSuit, openingLength: context.handFacts.lengths[openingSuit],
+    responderSuit, responseSupport: context.handFacts.lengths[responderSuit],
+    advancerCall: context.auction[firstInfo.index + 3] ?? 'Pass',
+    opponentSuits,
+    unstoppedSuits: opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit)),
+  } };
+}
+
 /// refineOpenerForcingResponseCompetitionSupport keeps a natural raise of responder's forcing suit
 /// only through the three level.  Competition may make the old cheap raise unavailable, but moving
 /// one level higher remains descriptive when it is still below game; a forced game-level decision
