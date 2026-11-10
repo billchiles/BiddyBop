@@ -1125,7 +1125,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     const result = testTotalPointsRange(context, constraint.totalPoints);
     telemetryLines.push(...result.telemetryLines);
     requirements.push({ kind: 'totalPoints', actual: result.actual,
-      hcp: explainMajorSupport ? context.handFacts.hcp : undefined,
+      hcp: constraint.totalPoints.valuation === 'shortage' ? context.handFacts.hcp : undefined,
       min: constraint.totalPoints.min, max: constraint.totalPoints.max,
       valuation: constraint.totalPoints.valuation ?? 'length', passed: result.pass });
     pass = pass && result.pass;
@@ -1134,15 +1134,23 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     for (const suitLength of constraint.suitLengths) {
       const result = testSuitLengths(suitLength, call, context.handFacts);
       telemetryLines.push(result.telemetryLine);
-      if (explainNaturalNtResponse && suitLength.suit === 'major' &&
+      if (suitLength.suit === 'major' &&
           suitLength.exact === 4) {
         // Preserve the special Stayman observation; do not choose one arbitrary major.
         requirements.push({ kind: 'fourCardMajor', passed: result.pass });
       } else {
-        // An unresolved candidate suit has no measured length; retain the failed test
-        // without inventing a suit or holding. Categorical failures are reviewed in pass 2.
-        requirements.push({ kind: 'suitLength', suit: result.suit,
-          actual: result.actualLength, exact: suitLength.exact,
+        // Either-major/minor requirements test both suits. A failure cannot be assigned
+        // to the first suit, and both actual lengths remain available for explanations.
+        const group = suitLength.suit === 'major' || suitLength.suit === 'minor' ?
+          suitLength.suit : undefined;
+        const testedLengths = group === 'major' ?
+          [{ suit: 'H' as Suit, actual: context.handFacts.lengths.H },
+           { suit: 'S' as Suit, actual: context.handFacts.lengths.S }] :
+          group === 'minor' ?
+          [{ suit: 'C' as Suit, actual: context.handFacts.lengths.C },
+           { suit: 'D' as Suit, actual: context.handFacts.lengths.D }] : undefined;
+        requirements.push({ kind: 'suitLength', suit: result.suit, suitGroup: group,
+          testedLengths, actual: result.actualLength, exact: suitLength.exact,
           min: suitLength.min, max: suitLength.max, passed: result.pass });
       }
       pass = pass && result.pass;
@@ -1151,28 +1159,33 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
   if (constraint.shape !== undefined) {
     const result = testHandShape(constraint.shape, call, context.handFacts);
     telemetryLines.push(...result.telemetryLines);
-    if ((explainOpeningRequirements || explainMinorResponse || explainNaturalNtResponse ||
-         explainStrongTwoCPositive ||
-         explainOpenerOneLevelNewSuitRebid ||
-         explainOpenerTwoLevelNewSuitRebid) && constraint.shape.balanced === true) {
+    if (constraint.shape.balanced === true) {
+      const balanced = result.checks.find((check) => check.property === 'balanced');
       requirements.push({ kind: 'balanced', actual: context.handFacts.balanced,
-        passed: context.handFacts.balanced });
+        passed: balanced?.passed === true });
     }
-    if (explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid) {
-      const shape = constraint.shape.balanced === false &&
+    // Describe the rebid distribution requirement independently of other tests in the
+    // same shape declaration (for example, no singleton). Do not depend on rule IDs.
+    if (context.stage === 'openerRebid') {
+      const rebidShape = constraint.shape.balanced === false &&
         constraint.shape.balancedOrSemiBalanced === true ? 'semiBalancedOnly' :
         constraint.shape.balanced === true ? 'balanced' :
         constraint.shape.balancedOrSemiBalanced === true ? 'balancedOrSemiBalanced' : null;
-      if (shape !== null) requirements.push({ kind: 'rebidShape', shape, passed: result.pass });
+      if (rebidShape !== null) {
+        const shapePass = result.checks.filter((check) =>
+          check.property === 'balanced' || check.property === 'balancedOrSemiBalanced')
+          .every((check) => check.passed);
+        requirements.push({ kind: 'rebidShape', shape: rebidShape, passed: shapePass });
+      }
     }
-    if (explainOpenerTwoLevelNewSuitRebid &&
-        constraint.shape.balancedOrSemiBalanced === true) {
-      requirements.push({ kind: 'rebidShape', shape: 'balancedOrSemiBalanced',
-        passed: result.pass });
-    }
-    if (explainMinorResponse && constraint.shape.noFourCardMajor === true) {
+    if (constraint.shape.noFourCardMajor === true) {
       const noMajor = !context.handFacts.hasFourCardMajor;
       requirements.push({ kind: 'noFourCardMajor', actual: noMajor, passed: noMajor });
+    }
+    // Retain each independently tested property, including conditions that don't have
+    // an existing specialized learner-facing representation.
+    for (const check of result.checks) {
+      requirements.push({ kind: 'shapeProperty', ...check });
     }
     pass = pass && result.pass;
   }
@@ -1246,7 +1259,10 @@ function testSuitLengths (constraint: SuitLengthConstraint, call: Call, handFact
     return { pass: true, suit, actualLength: length,
              telemetryLine: `PASS: ${suit} length ${length} satisfies suit length constraint.` };
   }
-  const first = targetSuits[0];
+  // Categorical constraints are OR tests: failure of both doesn't identify either
+  // as the failed suit. The evidence collector records both actual lengths.
+  const first = constraint.suit === 'major' || constraint.suit === 'minor' ?
+    undefined : targetSuits[0];
   return { pass: false, suit: first,
            actualLength: first === undefined ? undefined : handFacts.lengths[first],
            telemetryLine: `FAIL: no target suit satisfied suit length constraint for call ${call}.` };
@@ -1274,38 +1290,54 @@ function getSuitsForLengthTesting (constraint: SuitLengthConstraint, call: Call)
 /// testHandShape checks handFacts against the rule's balanced/distribution-shape constraints.
 ///
 function testHandShape (shape: HandShapeConstraint, call: Call, 
-                        handFacts: HandFacts): { pass: boolean; telemetryLines: string[] } {
+                        handFacts: HandFacts): { pass: boolean; telemetryLines: string[];
+                        checks: { property: keyof HandShapeConstraint; actual: boolean | number;
+                          required: boolean | number; passed: boolean }[] } {
   const telemetryLines: string[] = [];
+  const checks: { property: keyof HandShapeConstraint; actual: boolean | number;
+    required: boolean | number; passed: boolean }[] = [];
   let pass = true;
   if (shape.balanced !== undefined) {
     const thisPass = handFacts.balanced === shape.balanced;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balanced is ${handFacts.balanced}.`);
+    checks.push({ property: 'balanced', actual: handFacts.balanced,
+      required: shape.balanced, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.balancedOrSemiBalanced !== undefined) {
     const thisPass = handFacts.balancedOrSemiBalanced === shape.balancedOrSemiBalanced;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: balancedOrSemiBalanced is ` +
                         `${handFacts.balancedOrSemiBalanced}.`);
+    checks.push({ property: 'balancedOrSemiBalanced', actual: handFacts.balancedOrSemiBalanced,
+      required: shape.balancedOrSemiBalanced, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.noVoid !== undefined) {
     const thisPass = shape.noVoid ? handFacts.voidCount === 0 : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: void count is ${handFacts.voidCount}.`);
+    checks.push({ property: 'noVoid', actual: handFacts.voidCount === 0,
+      required: shape.noVoid, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.noSingleton !== undefined) {
     const thisPass = shape.noSingleton ? handFacts.singletonCount === 0 : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: singleton count is ${handFacts.singletonCount}.`);
+    checks.push({ property: 'noSingleton', actual: handFacts.singletonCount === 0,
+      required: shape.noSingleton, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.maxDoubletons !== undefined) {
     const thisPass = handFacts.doubletonCount <= shape.maxDoubletons;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: doubleton count is ${handFacts.doubletonCount}.`);
+    checks.push({ property: 'maxDoubletons', actual: handFacts.doubletonCount,
+      required: shape.maxDoubletons, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.noFourCardMajor !== undefined) {
     const thisPass = shape.noFourCardMajor ? ! handFacts.hasFourCardMajor : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFourCardMajor is ${handFacts.hasFourCardMajor}.`);
+    checks.push({ property: 'noFourCardMajor', actual: !handFacts.hasFourCardMajor,
+      required: shape.noFourCardMajor, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.noFourCardOtherMajor !== undefined) {
@@ -1321,14 +1353,18 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
     const thisPass = noOther;
     // const thisPass = noFourCardOtherMajorMatches(call, handFacts);
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: noFourCardOtherMajor for ${call}.`);
+    checks.push({ property: 'noFourCardOtherMajor', actual: noOther,
+      required: shape.noFourCardOtherMajor, passed: thisPass });
     pass = pass && thisPass;
   }
   if (shape.noFiveCardMajor !== undefined) {
     const thisPass = shape.noFiveCardMajor ? ! handFacts.hasFiveCardMajor : true;
     telemetryLines.push(`${thisPass ? 'PASS' : 'FAIL'}: hasFiveCardMajor is ${handFacts.hasFiveCardMajor}.`);
+    checks.push({ property: 'noFiveCardMajor', actual: !handFacts.hasFiveCardMajor,
+      required: shape.noFiveCardMajor, passed: thisPass });
     pass = pass && thisPass;
   }
-  return { pass, telemetryLines };
+  return { pass, telemetryLines, checks };
 } //testHandShape()
 
 //// Hand constraints -- Partner support
