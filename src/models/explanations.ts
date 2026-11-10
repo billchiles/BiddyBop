@@ -383,8 +383,8 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
     lines.push('The auction may continue; this explanation does not recommend Pass.');
   } else if (status.kind === 'noApplicableRule') {
     lines.push(status.hasAuctionTreatment
-      ? 'No supported bid qualifies for this hand and auction. This does not mean ' +
-        'your call is wrong.'
+      ? 'The app has no bidding rule that identifies an appropriate call for your hand. ' +
+        'This is a limitation of the bidding guidance, not an indication that you should Pass.'
       : 'The app does not evaluate bids in this auction context. Your call has not ' +
         'been judged. The absence of an applicable rule does not mean you should Pass, ' +
         'but it also does not mean Pass is wrong.');
