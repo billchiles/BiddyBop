@@ -5,6 +5,7 @@ import {
   type AppliesWhenResult
 } from './bidding-types';
 import {
+  buildOpenerArtificialSupportRebidEvidence,
   buildOpenerCompetitiveNaturalNtRebidEvidence,
   buildOpenerForcingResponseAdvancerRebidEvidence,
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
@@ -1421,6 +1422,7 @@ export const OpenerRebidRules: BidRule[] = [
   // stopper and playing-strength judgment rather than support points alone.
   {
     id: 'opener-rebid-three-of-suit-after-support-cuebid-minimum',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a minimum after responder cuebids with support',
     auctionContext: {
@@ -1436,6 +1438,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-major-after-support-cuebid',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid major-suit game with enough values opposite the support cuebid',
     auctionContext: {
@@ -1451,6 +1454,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-three-of-suit-after-jordan-2nt-minimum',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Show a minimum after Jordan 2NT',
     auctionContext: {
@@ -1466,6 +1470,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-major-after-jordan-2nt',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid major-suit game with enough values opposite Jordan 2NT',
     auctionContext: {
@@ -1658,6 +1663,7 @@ export const OpenerRebidRules: BidRule[] = [
   // when clearly justified.
   {
     id: 'opener-rebid-pass-after-advancer-support-cuebid',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Defend after advancer cuebids our agreed suit with a minimum',
     auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
@@ -1671,6 +1677,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-game-after-advancer-support-cuebid',
+    callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid a suitable game after the opponents cuebid our agreed suit',
     auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
