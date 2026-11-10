@@ -9,7 +9,7 @@ import {
   buildOpenerOneLevelNewSuitRebidEvidence, buildOpenerOneNtRebidEvidence,
   buildOpenerOvercallTwoLevelNewSuitRebidEvidence,
   buildOpenerThreeLevelForcingRebidEvidence,
-  buildOpenerTwoLevelNewSuitRebidEvidence,
+  buildOpenerTwoLevelNewSuitRebidEvidence, buildOpenerWeakCompetitiveRebidEvidence,
   openerJacobyGoodSideSuitApplies, openerMinorOneLevelOneNtApplies,
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
   openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
@@ -1769,6 +1769,7 @@ export const OpenerRebidRules: BidRule[] = [
   // range is intentionally wide on the weak side.
   {
     id: 'opener-rebid-pass-after-overcall-preemptive-three-level-raise',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive three-level raise with a minimum',
     auctionContext: {
@@ -1875,6 +1876,7 @@ export const OpenerRebidRules: BidRule[] = [
   // rather than inheriting uncontested 2/1 or limit-raise meanings.
   {
     id: 'opener-rebid-pass-after-opponent-1nt-weak-new-suit',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass responder\'s weak natural suit after an opposing 1NT overcall',
     auctionContext: {
@@ -1915,6 +1917,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-opponent-1nt-preemptive-raise',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive jump raise after an opposing 1NT',
     auctionContext: {
@@ -1962,6 +1965,7 @@ export const OpenerRebidRules: BidRule[] = [
   // continuation; stronger hands remain available for later, more specific treatment.
   {
     id: 'opener-rebid-pass-after-double-natural-1nt-minimum',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a natural 1NT response after a takeout Double with a minimum',
     auctionContext: {
@@ -1976,6 +1980,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-double-weak-two-level-new-suit',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a weak two-level new-suit response after a takeout Double',
     auctionContext: {
@@ -1990,6 +1995,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-double-weak-three-level-new-suit',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a weak jump shift after a takeout Double',
     auctionContext: {
@@ -2004,6 +2010,7 @@ export const OpenerRebidRules: BidRule[] = [
   },
   {
     id: 'opener-rebid-pass-after-double-weak-jump-raise',
+    callEvidenceBuilder: buildOpenerWeakCompetitiveRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a weak jump raise after a takeout Double',
     auctionContext: {
