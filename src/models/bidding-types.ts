@@ -399,8 +399,9 @@ export interface CallEvidence {
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number;
         valuation?: 'length' | 'shortage'; passed: boolean }
-    | { kind: 'partnerSupport'; suit?: Suit; actual: number; min?: number; max?: number; passed: boolean }
-    | { kind: 'suitLength'; suit?: Suit; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
+    // Suit and actual are absent only when an evaluated constraint has no resolvable suit.
+    | { kind: 'partnerSupport'; suit?: Suit; actual?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'suitLength'; suit?: Suit; actual?: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'fourCardMajor'; passed: boolean }
     | { kind: 'topThreeHonors'; suit: Suit; passed: boolean }
     | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
