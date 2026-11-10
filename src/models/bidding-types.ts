@@ -397,7 +397,8 @@ export interface CallEvidence {
     | { kind: 'rebidShape'; shape: 'balanced' | 'balancedOrSemiBalanced' | 'semiBalancedOnly';
         passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
-    | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number; passed: boolean }
+    | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number;
+        valuation?: 'length' | 'shortage'; passed: boolean }
     | { kind: 'partnerSupport'; suit?: Suit; actual: number; min?: number; max?: number; passed: boolean }
     | { kind: 'suitLength'; suit?: Suit; actual: number; exact?: number; min?: number; max?: number; passed: boolean }
     | { kind: 'fourCardMajor'; passed: boolean }
