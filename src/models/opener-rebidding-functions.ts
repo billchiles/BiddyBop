@@ -2538,17 +2538,14 @@ export function weakTwoRepeatAfterInquiryApplies (_call: Call, context: RuleEval
     return { success: false, telemetryLines: ['FAIL: Weak-two repeat needs a weak-two opening.'] };
   }
   const suit = opening.strain as Suit;
-  const minimum = context.handFacts.hcp >= 5 && context.handFacts.hcp <= 8;
-  const maximum = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11;
-  const solid = hasSolidWeakTwoSuit(context.hand, suit);
-  const hasFeature = hasSideAceOrKing(context, suit);
-  const maximumFallback = maximum && ! solid && ! hasFeature;
-  const success = minimum || maximumFallback;
+  const facts = getWeakTwoInquiryRebidFacts(context, suit, _call);
+  const maximumFallback = facts.maximum && !facts.solidOpeningSuit && !facts.hasSideFeature;
+  const success = facts.minimum || maximumFallback;
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: repeat the preempt with a 5-8 minimum or a 9-11 ` +
       `maximum lacking both a side A/K feature and the solid-suit 3NT message; HCP=` +
-      `${context.handFacts.hcp}, side feature=${hasFeature}, solid=${solid}.`,
-  ] };
+      `${facts.hcp}, side feature=${facts.hasSideFeature}, solid=${facts.solidOpeningSuit}.`,
+  ], callEvidence: { weakTwoInquiryRebid: facts } };
 }
 
 /// weakTwoFeatureAfterInquiryApplies uses a 9-11 maximum with a side ace or king after 2NT.
@@ -2559,15 +2556,13 @@ export function weakTwoFeatureAfterInquiryApplies (_call: Call, context: RuleEva
     return { success: false, telemetryLines: ['FAIL: Feature rebid needs a weak-two opening.'] };
   }
   const suit = opening.strain as Suit;
-  const maximum = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11;
-  const solid = hasSolidWeakTwoSuit(context.hand, suit);
-  const hasFeature = hasSideAceOrKing(context, suit);
-  const success = maximum && ! solid && hasFeature;
+  const facts = getWeakTwoInquiryRebidFacts(context, suit, _call);
+  const success = facts.maximum && !facts.solidOpeningSuit && facts.hasSideFeature;
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: feature rebid needs 9-11 HCP, a side ace or king, and ` +
-      `no solid-suit 3NT message; HCP=${context.handFacts.hcp}, side feature=${hasFeature}, ` +
-      `solid=${solid}.`,
-  ] };
+      `no solid-suit 3NT message; HCP=${facts.hcp}, side feature=${facts.hasSideFeature}, ` +
+      `solid=${facts.solidOpeningSuit}.`,
+  ], callEvidence: { weakTwoInquiryRebid: facts } };
 }
 
 /// weakTwoSolidThreeNtApplies uses AKQJ in the six-card preempt suit as the executable
@@ -2579,12 +2574,36 @@ export function weakTwoSolidThreeNtApplies (_call: Call, context: RuleEvalContex
     return { success: false, telemetryLines: ['FAIL: Solid-suit 3NT needs a weak-two opening.'] };
   }
   const suit = opening.strain as Suit;
-  const solid = hasSolidWeakTwoSuit(context.hand, suit);
-  const success = context.handFacts.hcp >= 9 && context.handFacts.hcp <= 11 && solid;
+  const facts = getWeakTwoInquiryRebidFacts(context, suit, _call);
+  const success = facts.maximum && facts.solidOpeningSuit;
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: 3NT after the inquiry needs a 9-11 HCP maximum and ` +
-      `AKQJ in the six-card ${suit} suit; HCP=${context.handFacts.hcp}, solid=${solid}.`,
-  ] };
+      `AKQJ in the six-card ${suit} suit; HCP=${facts.hcp}, solid=${facts.solidOpeningSuit}.`,
+  ], callEvidence: { weakTwoInquiryRebid: facts } };
+}
+
+/// Record the facts already used to qualify a weak-two inquiry rebid. The refiner has chosen
+/// any side-feature call before this helper reads the ace or king in its named suit.
+function getWeakTwoInquiryRebidFacts(context: RuleEvalContext, openingSuit: Suit, call: Call):
+    NonNullable<CallEvidence['weakTwoInquiryRebid']> {
+  const bid = parseSuitBid(call);
+  const featureSuit = bid === null || bid.strain === 'NT' || bid.strain === openingSuit ?
+    null : bid.strain as Suit;
+  const honors = featureSuit === null ? [] : getCardsForSuit(context.hand, featureSuit);
+  const featureHonor = honors.some((card) => card.rank === 'A') ? 'A' :
+    honors.some((card) => card.rank === 'K') ? 'K' : null;
+  const hcp = context.handFacts.hcp;
+  return {
+    openingSuit,
+    openingLength: context.handFacts.lengths[openingSuit],
+    hcp,
+    minimum: hcp >= 5 && hcp <= 8,
+    maximum: hcp >= 9 && hcp <= 11,
+    solidOpeningSuit: hasSolidWeakTwoSuit(context.hand, openingSuit),
+    hasSideFeature: hasSideAceOrKing(context, openingSuit),
+    featureSuit,
+    featureHonor,
+  };
 }
 
 /// openerPreemptRaisePassApplies accepts responder's nonforcing raise of the original preempt
