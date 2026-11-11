@@ -281,7 +281,7 @@ export const OvercallRules: BidRule[] = [
     auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
-    appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ shortage points, 3+ in all unbid suits
+    appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ total points with shortage, 3+ in all unbid suits
     meaning: 'Takeout double with opening values and at least three cards in each unbid suit; ' +
              'asks partner to choose another suit rather than defending opener’s suit.',
     guidance: ['Prefer four-card support in the unbid suits. The Double does not promise a ' +
@@ -344,7 +344,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
     appliesWhen: ordinaryTakeoutDoubleApplies,
-    meaning: 'Takeout double with 13+ shortage points and at least three cards in each unbid suit; ' +
+    meaning: 'Takeout double with 13+ total points with shortage and at least three cards in each unbid suit; ' +
              'asks partner to choose an unbid suit.',
     guidance: ['This uses the same basic takeout-double shape as over a one-level suit opening. ' +
                'Prefer four-card support in the unbid suits when possible; no particular ' +

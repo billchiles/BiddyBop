@@ -1860,13 +1860,14 @@ export function ordinaryTakeoutDoubleApplies (_call: Call, context: RuleEvalCont
   return {
     success: support && points >= 13 && hcp < 18,
     telemetryLines: [
-      `${points >= 13 ? 'PASS' : 'FAIL'}: ${points} points with shortage; need at least 13.`,
+      `${points >= 13 ? 'PASS' : 'FAIL'}: ${points} total points with shortage; need at least 13.`,
       `${support ? 'PASS' : 'FAIL'}: need three cards in each unbid suit (${unbid.map((suit) =>
         `${suit}=${context.handFacts.lengths[suit]}`).join(', ')}).`,
       `${hcp < 18 ? 'PASS' : 'FAIL'}: 18+ HCP uses the strong-double rule.`,
     ],
     callEvidence: { requirements: [
-      { kind: 'totalPoints', actual: points, min: 13, passed: points >= 13 },
+      { kind: 'totalPoints', actual: points, hcp, min: 13, valuation: 'shortage',
+        passed: points >= 13 },
       { kind: 'unbidSuitSupport', min: 3, shortSuits, passed: support },
       { kind: 'hcp', actual: hcp, max: 17, passed: hcp < 18 },
     ] },
@@ -1935,14 +1936,14 @@ export function balancingTakeoutDoubleApplies (call: Call, context: RuleEvalCont
   const short = lengths[suit] <= 2;
   const eligible = hcp >= 8 && hcp < 16 && totalPointsWShortage >= 10;
   return { success: support && short && eligible, telemetryLines: [
-    `${eligible ? 'PASS' : 'FAIL'}: 8–15 HCP, at least 10 shortage points; ` +
-      `${hcp} HCP, ${totalPointsWShortage} shortage points.`,
+    `${eligible ? 'PASS' : 'FAIL'}: 8–15 HCP and at least 10 total points with shortage; ` +
+      `hand has ${hcp} HCP and ${totalPointsWShortage} total points.`,
     `${short ? 'PASS' : 'FAIL'}: at most two cards in opener's suit.`,
     `${support ? 'PASS' : 'FAIL'}: at least three cards in each unbid suit.`,
   ], callEvidence: { requirements: [
     { kind: 'hcp', actual: hcp, min: 8, max: 15, passed: hcp >= 8 && hcp < 16 },
-    { kind: 'totalPoints', actual: totalPointsWShortage, min: 10,
-      passed: totalPointsWShortage >= 10 },
+    { kind: 'totalPoints', actual: totalPointsWShortage, hcp, min: 10,
+      valuation: 'shortage', passed: totalPointsWShortage >= 10 },
     { kind: 'openerSuitLength', actual: lengths[suit], max: 2, passed: short },
     { kind: 'unbidSuitSupport', min: 3, shortSuits, passed: support },
   ] } };
