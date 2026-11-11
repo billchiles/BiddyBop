@@ -398,6 +398,7 @@ function buildUnjudgedCallExplanation(title: string, call: Call,
 function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,
                                       handFacts: HandFacts, auctionLength: number,
                                       includeRuleExplanation = true): void {
+  const firstEvidenceLine = lines.length;
   const handEvidence = getOpeningRequirementSupportLine(result, rule);
   if (handEvidence !== null) lines.push(handEvidence);
   lines.push(...getOpeningSelectionSupportLines(result, rule));
@@ -455,16 +456,21 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getOpenerCompetitiveNaturalNtRebidLines(result, rule, handFacts));
   lines.push(...getOpenerWeakCompetitiveRebidLines(result, rule, handFacts));
   lines.push(...getOpenerThreeLevelGameForceRebidLines(result, rule, handFacts));
-  if (includeRuleExplanation) appendRuleExplanation(lines, rule, handFacts, auctionLength);
+  if (includeRuleExplanation) {
+    // Do not repeat the ID when the hand-specific explanation already identifies this rule.
+    const hasRuleId = lines.slice(firstEvidenceLine).some((line) =>
+      line.includes(`[${rule.id}]`));
+    appendRuleExplanation(lines, rule, handFacts, auctionLength, !hasRuleId);
+  }
 }
 
 /// Add the actual hand valuation only where it explains a light one-level opening.  The
 /// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
 function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
-                                auctionLength?: number): void {
-  lines.push(`- ${rule.title}`);
+                                auctionLength?: number, includeRuleId = true): void {
+  const idSuffix = includeRuleId ? ` [${rule.id}]` : '';
   if (rule.meaning !== undefined && rule.meaning !== '') {
-    lines.push(`  Meaning: ${rule.meaning}`);
+    lines.push(`  Meaning: ${rule.meaning}${idSuffix}`);
   }
   if ((rule.id === 'open-five-card-major' || rule.id === 'open-convenient-minor') &&
       handFacts !== undefined && handFacts.hcp < 12 && handFacts.totalPointsWLength >= 12) {
@@ -487,8 +493,10 @@ function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: Hand
   if (rule.guidance !== undefined && rule.guidance.length > 0) {
     lines.push('  ---');
     lines.push('  General rule guidance (not specific to your hand):');
-    for (const guidanceLine of rule.guidance) {
-      lines.push(`  ${guidanceLine}`);
+    for (const [index, guidanceLine] of rule.guidance.entries()) {
+      // Some rules have guidance but no separate Meaning; keep one identifiable rule reference.
+      lines.push(`  ${guidanceLine}${rule.meaning === undefined || rule.meaning === '' ?
+        index === 0 ? idSuffix : '' : ''}`);
     }
     lines.push('');
   }
