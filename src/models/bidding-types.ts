@@ -643,6 +643,19 @@ export interface CallEvidence {
   };
 
   // Opener rebids
+  // Opener's reply to a forcing 2NT inquiry after a weak two. The feature honor
+  // is from the chosen side suit, after the refiner has selected the bid.
+  weakTwoInquiryRebid?: {
+    openingSuit: Suit;
+    openingLength: number;
+    hcp: number;
+    minimum: boolean;
+    maximum: boolean;
+    solidOpeningSuit: boolean;
+    hasSideFeature: boolean;
+    featureSuit: Suit | null;
+    featureHonor: 'A' | 'K' | null;
+  };
   // First rebid after a one-level suit opening and a 1NT response. The evaluator
   // records auction and hand facts; rule-specific tested thresholds remain in requirements.
   openerOneNtRebid?: {
