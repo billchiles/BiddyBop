@@ -242,6 +242,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getOneNtOvercallerRebidFailureLines(result),
     ...getOvercallerConventionFailureLines(result),
     ...getWeakTwoDefenseRebidFailureLines(result),
+    ...getOpenerWeakTwoInquiryRebidFailureLines(result),
     ...getOpenerForcingRebidPassFailureLines(result),
     ...getOpenerOneNtRebidFailureLines(result),
     ...getOpenerOneLevelNewSuitRebidFailureLines(result),
@@ -449,6 +450,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getOpenerRaiseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerConventionalRebidLines(result, rule, handFacts));
   lines.push(...getOpenerStrongTwoCRebidLines(result, rule, handFacts));
+  lines.push(...getOpenerWeakTwoInquiryRebidLines(result, rule));
   lines.push(...getOpenerGameResponseRebidLines(result, rule, handFacts));
   lines.push(...getOpenerNegativeDoubleRebidLines(result, rule, handFacts));
   lines.push(...getOpenerForcingCompetitionRebidLines(result, rule, handFacts));
@@ -5441,6 +5443,74 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
       `three-level jump repeat.${otherDescription} ${id}`];
   }
   return [];
+}
+
+/// Explain a weak-two opener's answer to responder's forcing 2NT inquiry using evidence
+/// from the rule that qualified that actual rebid, not a new interpretation of the hand.
+export function getOpenerWeakTwoInquiryRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const ids = [
+    'opener-rebid-repeat-after-weak-two-2nt-inquiry',
+    'opener-rebid-feature-after-weak-two-2nt-inquiry',
+    'opener-rebid-3nt-after-weak-two-2nt-inquiry',
+  ];
+  if (!ids.includes(rule.id)) return [];
+  const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
+  const facts = candidate?.callEvidence?.weakTwoInquiryRebid;
+  if (candidate === undefined || facts === undefined) return [];
+  const { hcp, openingSuit, openingLength } = facts;
+  const own = suitPlural(`1${openingSuit}` as Call);
+  const id = `[${rule.id}]`;
+  if (rule.id === 'opener-rebid-repeat-after-weak-two-2nt-inquiry') {
+    if (facts.minimum) {
+      return [`Your ${hcp} HCP are in the 5–8 HCP minimum range. ${candidate.call} repeats ` +
+        `your ${openingLength} ${own} after responder's forcing 2NT inquiry ${id}.`];
+    }
+    if (facts.maximum && !facts.hasSideFeature && !facts.solidOpeningSuit) {
+      return [`Your ${hcp} HCP are in the 9–11 HCP maximum range, but you have neither ` +
+        `a side ace or king nor AKQJ in your ${own}. ${candidate.call} therefore repeats ` +
+        `your opening suit as the fallback reply ${id}.`];
+    }
+    return [];
+  }
+  if (rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry') {
+    if (!facts.maximum || facts.featureSuit === null || facts.featureHonor === null) return [];
+    const feature = facts.featureHonor === 'A' ? 'ace' : 'king';
+    const shown = suitPlural(`1${facts.featureSuit}` as Call);
+    return [`Your ${hcp} HCP are in the 9–11 HCP maximum range. The ${feature} of ` +
+      `${shown} allows ${candidate.call} to show your cheapest available side feature; ` +
+      `this does not promise natural length in ${shown} ${id}.`];
+  }
+  if (!facts.maximum || !facts.solidOpeningSuit) return [];
+  return [`Your ${hcp} HCP are in the 9–11 HCP maximum range, and your ` +
+    `${openingLength} ${own} contain AKQJ. ${candidate.call} describes this solid ` +
+    `opening suit without promising a balanced hand ${id}.`];
+}
+
+/// When a weak-two opener repeats the suit instead of an actually qualifying maximum-hand
+/// feature or solid-suit reply, identify that supported alternative without rechecking the hand.
+export function getOpenerWeakTwoInquiryRebidFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const alternative = getApplicableCandidateCalls(result).find((candidate) =>
+    candidate.rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry' ||
+    candidate.rule.id === 'opener-rebid-3nt-after-weak-two-2nt-inquiry');
+  const facts = alternative?.callEvidence?.weakTwoInquiryRebid;
+  if (alternative === undefined || facts === undefined ||
+      result.normalizedCall !== `3${facts.openingSuit}`) return [];
+  const own = suitPlural(`1${facts.openingSuit}` as Call);
+  const id = `[${alternative.rule.id}]`;
+  if (alternative.rule.id === 'opener-rebid-feature-after-weak-two-2nt-inquiry') {
+    if (facts.featureSuit === null || facts.featureHonor === null) return [];
+    const feature = facts.featureHonor === 'A' ? 'ace' : 'king';
+    const shown = suitPlural(`1${facts.featureSuit}` as Call);
+    return [`With ${facts.hcp} HCP and the ${feature} of ${shown}, your hand qualifies ` +
+      `for the ${alternative.call} side-feature reply. Repeating ${own} is the reply for a ` +
+      `minimum hand, or a maximum lacking both a side feature and a solid opening suit ${id}.`];
+  }
+  if (!facts.solidOpeningSuit) return [];
+  return [`With ${facts.hcp} HCP and AKQJ in your ${own}, your hand qualifies for ` +
+    `the special ${alternative.call} solid-suit reply. Repeating ${own} is reserved ` +
+    `for a minimum hand or a maximum without another descriptive reply ${id}.`];
 }
 
 /// Give only failed checks of the particular attempted rebid. Missing a refiner-generated

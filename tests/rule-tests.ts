@@ -38,7 +38,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getOpenerJumpOvercallRebidLines, getOpenerJumpOvercallRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
          getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines,
-         getOpenerForcingRebidPassFailureLines, getOvercallerForcingAdvancePassFailureLines }
+         getOpenerForcingRebidPassFailureLines, getOvercallerForcingAdvancePassFailureLines,
+         getOpenerWeakTwoInquiryRebidLines, getOpenerWeakTwoInquiryRebidFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -110,6 +111,7 @@ function runAllRuleTests (): void {
     runResponderNtConventionTests,
     runOpeningPositionAndPassTests,
     runWeakTwoOpeningRangeTests,
+    runWeakTwoInquiryExplanationTests,
     runAuctionContextTests,
     runCompetitionBoundaryTests,
     runResponderInterferenceScopeBoundaryTests,
@@ -740,6 +742,85 @@ function runWeakTwoOpeningRangeTests (): number {
   console.log(`${failures} ***FAILURES***. Weak-two opening and 2NT inquiry boundaries: ${checks} checks.\\n`);
   return failures;
 }
+/// Check the evidence and delivery of all three weak-two 2NT inquiry replies. Rejected
+/// repeats must point to a qualified alternative rather than a hypothetical feature.
+function runWeakTwoInquiryExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const cases: { ruleId: string; call: Call; rejectedRepeat: Call | null }[] = [
+    { ruleId: 'opener-rebid-repeat-after-weak-two-2nt-inquiry',
+      call: '3H', rejectedRepeat: null },
+    { ruleId: 'opener-rebid-feature-after-weak-two-2nt-inquiry',
+      call: '3C', rejectedRepeat: '3S' },
+    { ruleId: 'opener-rebid-3nt-after-weak-two-2nt-inquiry',
+      call: '3NT', rejectedRepeat: '3D' },
+  ];
+  for (const test of cases) {
+    checks++;
+    const deal = RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((item) =>
+      item.expectedOpenerRebidCalls?.some((bid) =>
+        bid.call === test.call && bid.ruleIds.includes(test.ruleId)));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL weak-two inquiry explanation: missing ${test.call} practice hand.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 4);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(test.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === test.ruleId);
+    const choice = getApplicableCandidateCalls(result).find((item) =>
+      item.rule.id === test.ruleId && item.call === test.call);
+    const handFacts = getHandFacts(board.deal.N);
+    const facts = choice?.callEvidence?.weakTwoInquiryRebid;
+    const featured = facts?.featureSuit === null || facts?.featureSuit === undefined ?
+      [] : board.deal.N.cards.filter((card) =>
+        card.suit === facts.featureSuit && (card.rank === 'A' || card.rank === 'K'));
+    const evidenceFits = facts !== undefined && facts.hcp === handFacts.hcp &&
+      facts.openingSuit === auction[0]?.slice(1) &&
+      facts.openingLength === handFacts.lengths[facts.openingSuit] &&
+      facts.minimum === (handFacts.hcp >= 5 && handFacts.hcp <= 8) &&
+      facts.maximum === (handFacts.hcp >= 9 && handFacts.hcp <= 11) &&
+      (test.call !== '3H' || facts.minimum) &&
+      (test.call !== '3C' || (facts.hasSideFeature && !facts.solidOpeningSuit &&
+        facts.featureSuit === 'C' && featured.some((card) => card.rank === facts.featureHonor))) &&
+      (test.call !== '3NT' || facts.solidOpeningSuit);
+    const lines = rule === undefined ? [] : getOpenerWeakTwoInquiryRebidLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'North bids', call: test.call, status: getBiddingTurnStatus(board, auction, system),
+      result, handFacts, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (!evidenceFits || rule === undefined || lines.length === 0 ||
+        lines.some((line) => !matched.includes(line) || !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL weak-two inquiry evidence or delivery for ${test.call}.`);
+    }
+    if (test.rejectedRepeat === null) continue;
+    checks++;
+    const rejected = evaluateUserCall(test.rejectedRepeat, board, auction, system);
+    const reason = getOpenerWeakTwoInquiryRebidFailureLines(rejected);
+    const rejectedDelivered = getBidExplanationLines({
+      title: 'North bids', call: test.rejectedRepeat,
+      status: getBiddingTurnStatus(board, auction, system), result: rejected,
+      handFacts, auctionLength: auction.length, previewLines: [],
+      seatLabel: 'North', recordedUnjudged: false,
+    });
+    const accepted = getApplicableCandidateCalls(rejected).find((item) =>
+      item.rule.id === test.ruleId && item.call === test.call);
+    if (rejected.userCallMatchingRules.length !== 0 || accepted === undefined ||
+        reason.length === 0 || reason.some((line) => !rejectedDelivered.includes(line))) {
+      failures++;
+      console.error(`FAIL weak-two rejected-repeat evidence or delivery for ${test.rejectedRepeat}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Weak-two inquiry explanation evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 /// The first instructional-explanation batch covers only basic opening requirements.
 /// Inspect the evidence actually returned by the evaluator, not a second HCP/shape evaluator.
 function runBasicOpeningExplanationTests (): number {
