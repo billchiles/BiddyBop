@@ -7861,12 +7861,16 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
     const rejected = entry.candidates.find((candidate) =>
       candidate.call === call && !candidate.ruleApplies);
     const requirements = rejected?.callEvidence?.requirements ?? [];
-    const failedHcp = requirements.find((item) => item.kind === 'hcp' && !item.passed);
-    const failedPoints = requirements.find((item) => item.kind === 'totalPoints' && !item.passed);
-    const failedLengths = requirements.filter((item) => item.kind === 'suitLength' && !item.passed);
-    const failedSupport = requirements.find((item) =>
+    const failedHcp = requirements.find((item): item is Extract<Requirement, { kind: 'hcp' }> =>
+      item.kind === 'hcp' && !item.passed);
+    const failedPoints = requirements.find((item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
+      item.kind === 'totalPoints' && !item.passed);
+    const failedLengths = requirements.filter((item): item is Extract<Requirement, { kind: 'suitLength' }> =>
+      item.kind === 'suitLength' && !item.passed);
+    const failedSupport = requirements.find((item): item is Extract<Requirement, { kind: 'partnerSupport' }> =>
       item.kind === 'partnerSupport' && !item.passed);
-    const failedBalance = requirements.find((item) => item.kind === 'balanced' && !item.passed);
+    const failedBalance = requirements.find((item): item is Extract<Requirement, { kind: 'balanced' }> =>
+      item.kind === 'balanced' && !item.passed);
     const reasons: string[] = [];
     if (failedHcp !== undefined) {
       reasons.push(`requires ${strengthRange(failedHcp)}, but you have ${failedHcp.actual} HCP`);
