@@ -1617,7 +1617,9 @@ export function getMinorResponseSupportLines(result: BidEvalResult, rule: BidRul
     }
     const selection = diagnostic?.callEvidence?.minorResponseSelection;
     if (selection !== undefined) {
-      lines.push(minorSuitSelectionText(selection, result.normalizedCall) + ` [${rule.id}]`);
+      // The strength explanation already identifies the rule when that line is present.
+      const ruleId = lines.length === 0 ? ` [${rule.id}]` : '';
+      lines.push(minorSuitSelectionText(selection, result.normalizedCall) + ruleId);
     }
     const jumpAlternative = qualifyingResponderJumpShift(result, rule);
     if (jumpAlternative !== null) lines.push(jumpAlternative);
