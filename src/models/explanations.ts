@@ -7752,9 +7752,30 @@ export function getOpenerForcingCompetitionRebidLines(
   const shortageBreakdown = shortageRequirement?.hcp === undefined ? '' :
     ` (${shortageRequirement.hcp} HCP + ${supportPoints - shortageRequirement.hcp} shortage points)`;
   const supportFit = `${info.responseSupport} cards in responder’s ${suitPlural(`1${info.responseSuit}` as Call)}`;
-  const lengthPoints = facts.totalPointsWLength;
+  const lengthRequirement = matched.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
+      item.kind === 'totalPoints' && item.valuation === 'length' && item.passed);
+  const lengthPoints = lengthRequirement?.actual ?? facts.totalPointsWLength;
+  const lengthStrength = lengthRequirement === undefined ?
+    `Your ${lengthPoints} total points with length` :
+    `Your ${lengthPoints} total points with length meet the ` +
+      `${strengthRange(lengthRequirement, 'length')} requirement`;
   const shape = info.rebidSuit === null ? '' :
     `${info.rebidLength} ${suitPlural(call)}`;
+  const rebidLengthRequirement = matched.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: 'suitLength' }> =>
+      item.kind === 'suitLength' && item.suit === info.rebidSuit && item.passed);
+  const rebidHolding = rebidLengthRequirement?.min === undefined ?
+    `Your ${shape} describe the bid suit` :
+    `Your ${shape} meet the ${rebidLengthRequirement.min}-card ` +
+      `${info.rebidSuit === info.openingSuit ? 'repeat' : 'second-suit'} requirement`;
+  // A competitive reverse can separately test the first and second suits.
+  const openingLengthRequirement = matched.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: 'suitLength' }> =>
+      item.kind === 'suitLength' && item.suit === info.openingSuit && item.passed);
+  const openingHolding = openingLengthRequirement?.min === undefined ? '' :
+    ` Your ${info.openingLength} ${suitPlural(`1${info.openingSuit}` as Call)} meet the ` +
+      `${openingLengthRequirement.min}-card opening-suit requirement.`;
   const responseMeaning = info.responseLevel === 2
     ? 'Responder showed 5+ cards and 10+ HCP in a natural two-level suit, forcing one round but not necessarily to game.'
     : `Responder showed ${info.responseMinLength}+ cards and 6+ HCP in a natural ` +
@@ -7767,18 +7788,16 @@ export function getOpenerForcingCompetitionRebidLines(
         'This minimum raise confirms a fit without treating the forcing response as game forcing.';
       break;
     case 'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum':
-      reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
-        `opening suit justify the economical repeat ${call}. Responder can still bid again.`;
+      reason = `${lengthStrength}. ${rebidHolding}. ` +
+        `The economical repeat ${call} shows opener's long suit; responder can still bid again.`;
       break;
     case 'opener-rebid-second-suit-after-overcall-two-level-new-suit':
-      reason = `Your ${lengthPoints} length-adjusted points and ${shape} qualify for ` +
-        `a natural, non-reverse second-suit rebid. ${call} does not by itself ` +
-        'promise the stronger reverse range.';
+      reason = `${lengthStrength}. ${rebidHolding}. ${call} describes an economical ` +
+        'natural second suit without promising reverse strength.';
       break;
     case 'opener-rebid-reverse-after-overcall-two-level-new-suit':
-      reason = `Your ${lengthPoints} length-adjusted points, ${info.openingLength}-card ` +
-        `opening suit, and ${shape} meet the extra-strength reverse requirements. ` +
-        'This is a forcing natural description, not an economical minimum rebid.';
+      reason = `${lengthStrength}. ${rebidHolding}. ${call} is a strength-showing, ` +
+        'forcing natural reverse rather than an economical minimum rebid.';
       break;
     case 'opener-rebid-2nt-after-overcall-two-level-new-suit':
       reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 2NT. ` +
@@ -7814,20 +7833,19 @@ export function getOpenerForcingCompetitionRebidLines(
         'raise below game rather than preserving an old jump.';
       break;
     case 'opener-rebid-repeat-after-forcing-response-advancer-competition':
-      reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
-        `opening suit support ${call}. Advancer has competed; only the cheapest ` +
-        'still-available repeat through level three remains a selected description.';
+      reason = `${lengthStrength}. ${rebidHolding}. ${call} is the cheapest ` +
+        'still-available opening-suit repeat through the three level; competition ' +
+        'does not automatically turn a blocked partscore rebid into game.';
       break;
     case 'opener-rebid-second-suit-after-forcing-response-advancer-competition':
-      reason = `Your ${lengthPoints} length-adjusted points and ${shape} permit ` +
-        `the economical second-suit call ${call}. Further competition has not ` +
-        'changed the bid into a higher-level reverse or forced game action.';
+      reason = `${lengthStrength}. ${rebidHolding}. ${call} remains an economical ` +
+        'natural second-suit rebid; further competition has not changed it into ' +
+        'a strength-showing reverse or automatic game bid.';
       break;
     case 'opener-rebid-reverse-after-forcing-response-advancer-competition':
-      reason = `Your ${lengthPoints} length-adjusted points, ${info.openingLength}-card ` +
-        `opening suit, and ${shape} qualify for the strength-showing reverse. ` +
-        'Competition has not consumed this actual bid; the app does not ' +
-        'promote a blocked reverse one level higher.';
+      reason = `${lengthStrength}. ${rebidHolding}.${openingHolding} ` +
+        `${call} remains a strength-showing, forcing reverse because the same bid ` +
+        'is available; the app does not promote a blocked reverse one level higher.';
       break;
     case 'opener-rebid-nt-after-forcing-response-advancer-competition':
       reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural ${call} ` +
