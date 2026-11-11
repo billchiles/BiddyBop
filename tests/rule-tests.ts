@@ -6949,6 +6949,13 @@ function runRecordedCallFeedbackTests (): number {
     const correctionLines = getRecordedCallExplanationLines(attempted, recorded,
       status, handFacts, auction.length);
     const ruleLines = getRuleExplanationLines(recordedRule, handFacts, auction.length);
+    // Diagnostic ID placement differs when a hand-specific line already names the rule.
+    // Compare the generated teaching lines rather than their optional ID suffix.
+    const withoutRuleId = (line: string): string =>
+      line.replace(` [${recordedRule.id}]`, '');
+    const teachingLines = ruleLines.map(withoutRuleId);
+    const includesTeaching = (lines: string[], line: string): boolean =>
+      lines.some((item) => withoutRuleId(item) === line);
     const fullMatchedLines = getMatchedCallExplanationLines(recorded, recordedRule,
       handFacts, auction.length);
     const handEvidence = fullMatchedLines.slice(0, -ruleLines.length);
@@ -6956,10 +6963,11 @@ function runRecordedCallFeedbackTests (): number {
     const recordedRuleWasCompared = candidates.some((candidate) =>
       candidate.rule.id === recordedRule.id &&
       (candidate.rule.priority?.rank ?? 0) === highestRank);
-    if ((recordedRuleWasCompared && ruleLines.some((line) => !rejectedLines.includes(line))) ||
+    if ((recordedRuleWasCompared &&
+         teachingLines.some((line) => !includesTeaching(rejectedLines, line))) ||
         (recordedRuleWasCompared
-          ? correctionLines.some((line) => ruleLines.includes(line))
-          : ruleLines.some((line) => !correctionLines.includes(line))) ||
+          ? correctionLines.some((line) => teachingLines.includes(withoutRuleId(line)))
+          : teachingLines.some((line) => !includesTeaching(correctionLines, line))) ||
         handEvidence.length === 0 ||
         handEvidence.some((line) => !correctionLines.includes(line)) ||
         getApplicableCandidateCalls(recorded).length !== candidates.length) {
@@ -6971,7 +6979,7 @@ function runRecordedCallFeedbackTests (): number {
       recorded, status, handFacts, auction.length);
     checks++;
     if (anotherSupported.userCallMatchingRules.length === 0 ||
-        ruleLines.some((line) => !anotherCorrection.includes(line))) {
+        teachingLines.some((line) => !includesTeaching(anotherCorrection, line))) {
       failures++;
       console.error('FAIL recorded-call feedback: distinct rules lost recorded-call teaching.');
     }
@@ -6981,7 +6989,7 @@ function runRecordedCallFeedbackTests (): number {
       seatLabel: 'South', recordedUnjudged: false,
     });
     checks++;
-    if (ruleLines.some((line) => !newDealLines.includes(line))) {
+    if (teachingLines.some((line) => !includesTeaching(newDealLines, line))) {
       failures++;
       console.error('FAIL recorded-call feedback: shared rule guidance missing outside practice correction.');
     }
