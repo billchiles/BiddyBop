@@ -462,7 +462,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
 /// rule still qualifies on total points; this advice does not make Pass a modeled candidate.
 function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: HandFacts,
                                 auctionLength?: number): void {
-  lines.push(`- ${rule.title} [${rule.id}]`);
+  lines.push(`- ${rule.title}`);
   if (rule.meaning !== undefined && rule.meaning !== '') {
     lines.push(`  Meaning: ${rule.meaning}`);
   }

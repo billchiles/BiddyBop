@@ -40,6 +40,18 @@ not a historical progress log or a commitment to model every possible auction.
   explicit, educationally useful evidence choices, reviewing proposed changes to
   learner-facing text in small batches. Keep the broad replay harness temporary;
   retain only focused permanent tests for concrete regression risks.
+- [ ] **Clarify positive natural notrump opener rebids after competition.** Review the
+  2NT (12–14 HCP) and 3NT (18–19 HCP) rebids after an overcall and a forcing
+  two-level new-suit response, plus 1NT/2NT/3NT after further advancer competition.
+  In `openerForcingResponseCompetitionNtApplies`, preserve the HCP range actually
+  evaluated for each candidate without implying that an unavailable original
+  bidding level failed for lack of strength. Keep the balanced-shape meaning,
+  the shared opponent-suit stopper filter, and existing bidding qualification,
+  priorities and suppression intact. Review positive and rejected explanations,
+  including representative one- and two-level forcing responses and targeted
+  credible auctions. Compare intentional feedback changes using the temporary
+  replay; do not add broad wording snapshots or exercises solely for coverage.
+  After this batch, resume the wider evidence-consumer instructional review.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.
