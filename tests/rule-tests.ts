@@ -11,6 +11,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
          getRuleExplanationLines, getCompetitiveResponseAlternativeLines,
+         getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
@@ -7209,6 +7210,52 @@ function runCompetitiveBidExplanationTests (): number {
           item.length < item.min) || handEvidence.length === 0) {
       failures++;
       console.error(`FAIL negative-Double promised-suit evidence: ${example.auction}.`);
+    }
+  }
+  // Qualified natural new-suit responses should carry the actual HCP and suit
+  // length through to the final explanation, including the four-card exception.
+  const naturalExamples: { auction: string; ruleId: string; minLength: number }[] = [
+    { auction: '1C 1D 1H', ruleId: 'respond-over-suit-new-suit-one-level', minLength: 4 },
+    { auction: '1H 1S 2C', ruleId: 'respond-over-suit-new-suit-two-level', minLength: 5 },
+    { auction: '1H 2D 3C', ruleId: 'respond-over-suit-new-suit-three-level', minLength: 5 },
+  ];
+  for (const example of naturalExamples) {
+    checks++;
+    const deal = RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing natural response hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const call = deal.practiceAuction[2];
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(call, board, auction, system);
+    const hand = getHandFacts(board.deal.S);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId);
+    const candidate = diagnostic?.candidates.find((item) => item.call === call);
+    const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    const considered = diagnostic?.callEvidence?.competitiveNewSuit?.considered.find((item) =>
+      item.call === call);
+    const handSpecific = rule === undefined ? [] : getNaturalNewSuitOvercallLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, hand, auction.length);
+    const assembled = getBidExplanationLines({
+      title: 'South bids', call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: hand,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || hcp?.kind !== 'hcp' || !hcp.passed ||
+        hcp.actual !== hand.hcp || hcp.min === undefined ||
+        considered === undefined || considered.length !== hand.lengths[considered.suit] ||
+        considered.minimum !== example.minLength || considered.length < considered.minimum ||
+        handSpecific.length === 0 ||
+        handSpecific.some((line) => !matched.includes(line) || !assembled.includes(line))) {
+      failures++;
+      console.error(`FAIL natural response evidence/delivery: ${example.auction}.`);
     }
   }
   const comparisons: { auction: string; selected: Call; ruleId: string;

@@ -418,6 +418,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getMajorNoSupportLines(result, rule));
   lines.push(...getResponderJumpShiftLines(result, rule));
   lines.push(...getCompetitiveResponseLines(result, rule));
+  lines.push(...getNaturalNewSuitOvercallLines(result, rule));
   lines.push(...getWeakTwoResponseLines(result, rule));
   lines.push(...getJumpResponseLines(result, rule));
   lines.push(...getCompetitiveResponseAlternativeLines(result, rule));
@@ -2814,6 +2815,43 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
   return [`With ${facts.supportPoints} total points with shortage and ` +
     `${facts.partnerSupport} ${suit}, this cuebid artificially shows strong support, ` +
     `not a natural suit. Partner must bid again ${id}.`];
+}
+
+/// Explain a qualifying natural new-suit response after a non-jump suit overcall.
+/// HCP comes from the candidate's actual requirement check; length and the special
+/// four-card exception come from the rule's recorded refinement, not a second test.
+export function getNaturalNewSuitOvercallLines(result: BidEvalResult, rule: BidRule): string[] {
+  const oneId = 'respond-over-suit-new-suit-one-level';
+  const twoId = 'respond-over-suit-new-suit-two-level';
+  const threeId = 'respond-over-suit-new-suit-three-level';
+  if (rule.id !== oneId && rule.id !== twoId && rule.id !== threeId) return [];
+  const candidate = competitiveResponseCandidate(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  const considered = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.callEvidence?.competitiveNewSuit?.considered.find((item) =>
+      item.call === candidate.call);
+  if (hcp?.kind !== 'hcp' || !hcp.passed || hcp.min === undefined ||
+      considered === undefined) return [];
+  const strength = `Your ${hcp.actual} HCP meet the ${hcp.min}-HCP minimum`;
+  const length = `${considered.length} ${suitPlural(candidate.call)}`;
+  const id = `[${rule.id}]`;
+  if (rule.id === oneId && considered.minimum === 4) {
+    const fit = considered.length === 4 ? 'meet' : 'exceed';
+    return [`${strength}, and your ${length} ${fit} the four-card major minimum ` +
+      `allowed after a 1D overcall of partner's minor. Natural ${candidate.call} ` +
+      `forces one round ${id}.`];
+  }
+  const description = `${strength}, and your ${length} meet the ` +
+    `${considered.minimum}-card new-suit requirement for ${candidate.call}.`;
+  if (rule.id === threeId) {
+    return [`${description} This natural three-level response forces to game ${id}.`];
+  }
+  if (rule.id === twoId) {
+    return [`${description} This natural response forces one round, but does not ` +
+      `establish a game force even with a 2/1 agreement ${id}.`];
+  }
+  return [`${description} This natural response forces one round ${id}.`];
 }
 
 /// Compare competing descriptions only when every referenced call actually
