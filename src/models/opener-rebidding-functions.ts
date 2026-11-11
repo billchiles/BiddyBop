@@ -1791,11 +1791,19 @@ export function openerForcingResponseCompetitionPassApplies (
     return { success: false, telemetryLines: ['FAIL: not a reviewed forcing-response competition.'] };
   }
   const hasFit = context.handFacts.lengths[info.response.strain as Suit] >= info.minimumSupport;
+  const valuation: 'length' | 'shortage' = hasFit ? 'shortage' : 'length';
   const points = hasFit
     ? context.handFacts.totalPointsWShortage
     : context.handFacts.totalPointsWLength;
-  if (points < 12 || points > 16) {
-    return { success: false, telemetryLines: [`FAIL: minimum Pass range is 12-16; hand has ${points}.`] };
+  const pointRequirement = { kind: 'totalPoints' as const, actual: points,
+    hcp: hasFit ? context.handFacts.hcp : undefined,
+    min: 12, max: 16, valuation, passed: points >= 12 && points <= 16 };
+  if (!pointRequirement.passed) {
+    return {
+      success: false,
+      telemetryLines: [`FAIL: minimum Pass range is 12-16; hand has ${points}.`],
+      callEvidence: { requirements: [pointRequirement] },
+    };
   }
   const clearContinuation = hasClearForcingResponseCompetitionContinuation(context, info);
   return {
@@ -1803,6 +1811,7 @@ export function openerForcingResponseCompetitionPassApplies (
     telemetryLines: [clearContinuation
       ? 'FAIL: a selected natural descriptive continuation remains available.'
       : 'PASS: competition removed the selected descriptive rebids; minimum opener may Pass.'],
+    callEvidence: { requirements: [pointRequirement] },
   };
 }
 
