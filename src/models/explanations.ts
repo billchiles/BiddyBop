@@ -5341,7 +5341,7 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
        rule.id.includes('-repeat-major-after-major-1nt')) &&
       !rule.id.includes('-jump-repeat-')) {
     return [`Your ${openingLength} ${own} and ${pointsExplanation} meet the six-card ` +
-      `length and ${totalRequirement} for an economical ${selected} rebid. ` +
+      `requirement and ${totalRequirement} for an economical ${selected} rebid. ` +
       `You are describing extra suit length without the strength promised by a jump rebid. ` +
       `${forcingOneNt ? 'This also satisfies responder’s one-round forcing 1NT.' :
         'Responder may Pass this nonforcing rebid.'}${otherDescription} ${id}`];
@@ -5391,8 +5391,8 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
   if (rule.id === 'opener-rebid-jump-shift-lower-suit-after-minor-1nt' ||
       rule.id === 'opener-rebid-jump-shift-lower-suit-after-major-1nt') {
     return [`You have ${openingLength} ${own}, ${rebidLength} ${second}, and ` +
-      `${pointsExplanation}. The jump shift ${selected} requires maximum opening strength ` +
-      `(${totalRequirement}) and at least four cards in the second suit. It goes beyond an ` +
+      `${pointsExplanation}. The jump shift ${selected} requires ${totalRequirement} ` +
+      `and at least four cards in the second suit. It goes beyond an ` +
       `economical description and establishes a forcing continuation.${otherDescription} ${id}`];
   }
   if (rule.id === 'opener-rebid-3nt-after-minor-1nt') {
