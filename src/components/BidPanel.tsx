@@ -457,13 +457,17 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       lines.push('A game-forcing call commits the partnership to continue toward game, ' +
         'absent substantive opposing interference. The app does not teach every later ' +
         'continuation; a practice exercise ending does not cancel the game force.');
+    } else if (outstandingForce.lastStage === 'responding' ||
+               outstandingForce.lastStage === 'responderRebid') {
+      // This is advice for opener's next turn, not an evaluation of the opponent's call.
+      lines.push('', "Opener's next rebid (if the opponents Pass):",
+        "Responder's call is forcing for one round. Opener must bid again. " +
+        'The app does not teach every subsequent call.');
     } else {
       const bidder = outstandingForce.lastStage === 'opening' ||
         outstandingForce.lastStage === 'openerRebid' ? 'Opener' :
-        outstandingForce.lastStage === 'responding' ||
-        outstandingForce.lastStage === 'responderRebid' ? 'Responder' :
         outstandingForce.lastStage === 'advancing' ? 'Advancer' : 'Overcaller';
-      lines.push(`${bidder}'s call is forcing for one round. Partner must act if the ` +
+      lines.push('', `${bidder}'s call is forcing for one round. Partner must act if the ` +
         'opponents do not interfere. The app does not teach every subsequent call.');
     }
   }
