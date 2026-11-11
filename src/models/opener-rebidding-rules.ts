@@ -669,8 +669,8 @@ export const OpenerRebidRules: BidRule[] = [
     callCategory: ['natural'],
     appliesWhen: weakTwoSolidThreeNtApplies, // AKQJ is the executable solid-suit approximation
     meaning: 'Maximum weak two with a solid opening suit suitable for notrump.',
-    guidance: ['The app uses AKQJ in the six-card opening suit as its conservative executable ' +
-               "approximation of the solid-suit requirement."],
+    guidance: ['The special 3NT rebid requires AKQJ in the six-card opening suit; it does ' +
+               'not promise a balanced hand.'],
   },
   {
     id: 'opener-rebid-raise-after-preempt-new-suit',
