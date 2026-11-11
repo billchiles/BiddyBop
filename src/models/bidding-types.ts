@@ -525,6 +525,18 @@ export interface CallEvidence {
   competitiveNewSuit?: {
     considered: { call: Call; suit: Suit; length: number; minimum: number }[];
   };
+  // A natural, nonforcing two-level new suit after a takeout Double or 1NT overcall.
+  // The same suit-quality test used for eligibility supplies these observations.
+  competitiveTwoLevelNewSuit?: {
+    hcp: number;
+    minHcp: number;
+    maxHcp: number;
+    suit: Suit;
+    length: number;
+    minLength: number;
+    quality: boolean;
+    honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+  };
   // Actual tested facts for responder's competitive Double or artificial support action.
   competitiveResponse?: {
     hcp: number;
