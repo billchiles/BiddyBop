@@ -5304,11 +5304,17 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
   const id = `[${rule.id}]`;
   const requirements = candidate.callEvidence?.requirements ?? [];
   const hcpCheck = requirements.find((item) => item.kind === 'hcp');
-  const totalCheck = requirements.find((item) => item.kind === 'totalPoints');
-  const pointsExplanation = `${totalPoints} total points (${hcp} HCP + ${lengthPoints} length ` +
-    `point${lengthPoints === 1 ? '' : 's'})`;
-  const levelComparison = `An ordinary two-level repeat needs 12–16 total points and six ${own}; ` +
-    'the jump to three needs 17–18 total points and six.';
+  const totalCheck = requirements.find((item) => item.kind === 'totalPoints' && item.passed);
+  const totalRange = totalCheck?.kind === 'totalPoints' &&
+    totalCheck.min !== undefined && totalCheck.max !== undefined ?
+    `${totalCheck.min}–${totalCheck.max}` : null;
+  const totalRequirement = totalRange === null ? 'the required strength range' :
+    `the ${totalRange}-point range`;
+  const pointsExplanation = `${totalPoints} total points with length (${hcp} HCP` +
+    (lengthPoints > 0 ?
+      ` + ${lengthPoints} length point${lengthPoints === 1 ? '' : 's'}` : '') + ')';
+  const levelComparison = `An ordinary two-level repeat needs 12–16 points and six ${own}; ` +
+    'the jump to three needs 17–18 points and six.';
   const supportedOthers = result.ruleDiagnostics.flatMap((item) => item.candidates)
     .filter((other) => other.ruleApplies && other.call !== selected &&
       (other.rule.id.includes('-after-minor-1nt') ||
@@ -5319,8 +5325,8 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
 
   if (rule.id === 'opener-rebid-pass-after-minor-1nt') {
     return [`Responder's 1NT over a minor is nonforcing. With ${pointsExplanation} and ` +
-      `${balanced ? 'balanced' : 'semi-balanced'} shape, you meet the 12–14 total-point ` +
-      `minimum for leaving partner in 1NT. A stronger 18–19 HCP balanced hand can invite ` +
+      `${balanced ? 'balanced' : 'semi-balanced'} shape, you meet ${totalRequirement} ` +
+      `for leaving partner in 1NT. A stronger 18–19 HCP balanced hand can invite ` +
       `with 2NT; a six-card minor may be rebid rather than passed.${otherDescription} ${id}`];
   }
   if (rule.id === 'opener-rebid-pass-after-major-1nt-passed-hand' ||
@@ -5335,21 +5341,21 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
        rule.id.includes('-repeat-major-after-major-1nt')) &&
       !rule.id.includes('-jump-repeat-')) {
     return [`Your ${openingLength} ${own} and ${pointsExplanation} meet the six-card ` +
-      `length and 12–16 total-point requirements for an economical ${selected} rebid. ` +
+      `length and ${totalRequirement} for an economical ${selected} rebid. ` +
       `You are describing extra suit length without the strength promised by a jump rebid. ` +
       `${forcingOneNt ? 'This also satisfies responder’s one-round forcing 1NT.' :
         'Responder may Pass this nonforcing rebid.'}${otherDescription} ${id}`];
   }
   if (rule.id.includes('-lower-second-suit-after-')) {
     return [`With ${openingLength} ${own}, ${rebidLength} ${second}, and ${pointsExplanation}, ` +
-      `you meet the 12–18 total-point requirements to show an economical second suit. ` +
+      `you meet ${totalRequirement} to show an economical second suit. ` +
       `Because ${selected} is lower-ranking than your opening suit, partner can return ` +
       `to ${own} at the two level; this is not a reverse.${otherDescription} ${id}`];
   }
   if (rule.id.includes('-reverse-after-')) {
     return [`Your ${openingLength} ${own} and ${rebidLength} ${second} satisfy the ` +
       `five-card opening-suit and four-card new-suit requirements. With ${pointsExplanation}, ` +
-      `you meet the 17–21 total-point strength range for a reverse. ` +
+      `you meet ${totalRequirement} for a reverse. ` +
       `After ${selected}, responder must bid at the three level to give a simple ` +
       `preference back to ${own}; the rebid therefore promises extra strength and ` +
       `forces another call.${otherDescription} ${id}`];
@@ -5370,7 +5376,8 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
   if (rule.id.includes('-jump-repeat-minor-after-') ||
       rule.id.includes('-jump-repeat-major-after-')) {
     return [`With ${openingLength} ${own} and ${pointsExplanation}, ${selected} is the ` +
-      `17–18 total-point invitational jump repeat. ${levelComparison} ` +
+      `${totalRange === null ? 'medium-strength' : `${totalRange}-point`} invitational jump repeat. ` +
+      `${levelComparison} ` +
       `It describes a stronger long-suit hand, not a natural notrump rebid, which uses ` +
       `HCP and balanced shape.${otherDescription} ${id}`];
   }
@@ -5385,8 +5392,7 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
       rule.id === 'opener-rebid-jump-shift-lower-suit-after-major-1nt') {
     return [`You have ${openingLength} ${own}, ${rebidLength} ${second}, and ` +
       `${pointsExplanation}. The jump shift ${selected} requires maximum opening strength ` +
-      `(${totalCheck?.kind === 'totalPoints' ? `${totalCheck.min}–${totalCheck.max}` : '19–21'} ` +
-      `total points) and at least four cards in the second suit. It goes beyond an ` +
+      `(${totalRequirement}) and at least four cards in the second suit. It goes beyond an ` +
       `economical description and establishes a forcing continuation.${otherDescription} ${id}`];
   }
   if (rule.id === 'opener-rebid-3nt-after-minor-1nt') {
@@ -5398,7 +5404,7 @@ export function getOpenerOneNtRebidLines(result: BidEvalResult, rule: BidRule): 
   if (rule.id.includes('-game-minor-after-minor-1nt') ||
       rule.id.includes('-game-same-major-after-major-1nt')) {
     return [`Your ${openingLength} ${own} and ${pointsExplanation} meet the ` +
-      `seven-card, 19–21 total-point requirements for ${selected}. This bids game ` +
+      `seven-card requirement and ${totalRequirement} for ${selected}. This bids game ` +
       `directly on the long opening suit instead of merely inviting with a ` +
       `three-level jump repeat.${otherDescription} ${id}`];
   }
@@ -5767,9 +5773,21 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
   const forcing = agreement === 'standard' ?
     `Responder's natural two-level new suit is forcing for one round, but not to game.` :
     `Responder's natural two-level new suit has already established a game force.`;
-  const lengthValue = `${totalLengthPoints} total points (${hcp} HCP + ${lengthPoints} length points)`;
-  const shortageValue = `${totalShortagePoints} shortage points (${hcp} HCP + ${shortagePoints} short-suit points)`;
-  const usesShortage = id.includes('-raise-');
+  const totalCheck = candidate.callEvidence?.requirements?.find(
+    (item) => item.kind === 'totalPoints' && item.passed);
+  const totalRange = totalCheck?.kind === 'totalPoints' &&
+    totalCheck.min !== undefined && totalCheck.max !== undefined ?
+    `${totalCheck.min}–${totalCheck.max}` : null;
+  const totalRequirement = totalRange === null ? 'the required strength range' :
+    `the ${totalRange}-point range`;
+  const lengthValue = `${totalLengthPoints} total points with length (${hcp} HCP` +
+    (lengthPoints > 0 ?
+      ` + ${lengthPoints} length point${lengthPoints === 1 ? '' : 's'}` : '') + ')';
+  const shortageValue = `${totalShortagePoints} total points with shortage (${hcp} HCP` +
+    (shortagePoints > 0 ?
+      ` + ${shortagePoints} shortage point${shortagePoints === 1 ? '' : 's'}` : '') + ')';
+  const usesShortage = totalCheck?.kind === 'totalPoints' &&
+    totalCheck.valuation === 'shortage';
   const value = usesShortage ? shortageValue : lengthValue;
   const isGame = call === '3NT' || call === '4H' || call === '4S' ||
     call === '5C' || call === '5D';
@@ -5801,8 +5819,8 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
     }
   } else if (id.includes('-reverse-')) {
     reason = `With ${openingLength} ${opening}, ${rebidLength} cards in the second suit, ` +
-      `and ${lengthValue}, you meet the Standard reverse requirements (17–21 total ` +
-      `points, at least five ${opening}, and at least four cards in the second suit). ` +
+      `and ${lengthValue}, you meet the Standard reverse requirements (${totalRequirement}, ` +
+      `at least five ${opening}, and at least four cards in the second suit). ` +
       `The reverse (responder must bid at the three level to return to ${opening}) ` +
       `therefore shows extra strength in this non-game-forcing auction.`;
   } else if (id.includes('-major-after-minor-two-over-one-')) {
@@ -5820,13 +5838,14 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
           `cheapest available level, even if responder would need the three level to ` +
           `return to ${opening}. No traditional 17+ reverse strength is required.`);
   } else if (id.includes('-jump-shift-')) {
-    reason = `Your ${rebidLength}-card second suit and ${value} meet the 19–21 total-point ` +
-      `maximum-strength jump-shift treatment. A cheaper natural rebid could show ` +
+    reason = `Your ${rebidLength}-card second suit and ${value} meet ${totalRequirement} ` +
+      `for the maximum-strength jump-shift treatment. A cheaper natural rebid could show ` +
       `the second suit without advertising these extras; this jump establishes a game force.`;
   } else if (id.includes('-heart-game-raise-')) {
-    reason = `Responder promised at least five hearts, and your ${responseSupport} ${response} ` +
-      `complete an eight-card fit. With ${shortageValue}, ${call} bids a major-suit ` +
-      `game directly; it is not an invitation to game.`;
+    reason = `With ${shortageValue}, you meet ${totalRequirement} for this direct ` +
+      `game raise. Your ${responseSupport} ${response} complete an eight-card fit with ` +
+      `responder's promised five or more hearts. ${call} reaches game directly; ` +
+      `it is not an invitation.`;
   } else if (id.includes('-game-raise-') || id.includes('-simple-raise-') ||
              id.includes('-jump-raise-')) {
     const required = agreement === 'twoOverOne' && openingSuit === 'D' ? 4 :
@@ -5835,15 +5854,15 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
     const fitText = `Responder's ${response} and your ${responseSupport}-card support ` +
       `meet the ${required}-card support requirement.`;
     if (id.includes('-game-raise-')) {
-      reason = `${fitText} Your ${shortageValue} qualify for the 19–21 shortage-point ` +
-        `direct game raise, rather than a minimum or invitational raise.`;
+      reason = `${fitText} Your ${shortageValue} qualify for ${totalRequirement} ` +
+        `for a direct game raise, rather than a minimum or invitational raise.`;
     } else if (id.includes('-jump-raise-')) {
-      reason = `${fitText} Your ${shortageValue} fall in the 17–18 shortage-point ` +
-        `invitational range. ${call} invites five of the agreed minor; responder may ` +
+      reason = `${fitText} Your ${shortageValue} meet ${totalRequirement} ` +
+        `for an invitation. ${call} invites five of the agreed minor; responder may ` +
         `still decide not to bid game.`;
     } else if (agreement === 'standard') {
-      reason = `${fitText} Your ${shortageValue} satisfy the ordinary 12–16 shortage-point ` +
-        `simple-raise range. This does not promise the extra strength for a jump raise.`;
+      reason = `${fitText} Your ${shortageValue} satisfy ${totalRequirement} ` +
+        `for a simple raise. This does not promise the extra strength for a jump raise.`;
     } else {
       reason = `${fitText} An economical raise confirms the fit without consuming more ` +
         `bidding room. It does not limit opener's strength because game is already forced.`;
@@ -5853,8 +5872,8 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
         `though responder promised five or more.`;
     }
   } else if (id.includes('-jump-repeat-')) {
-    reason = `Your ${openingLength} ${opening} and ${value} meet the six-card, 17–18 ` +
-      `total-point jump-repeat treatment. This stronger rebid contrasts with a ` +
+    reason = `Your ${openingLength} ${opening} and ${value} meet the six-card requirement ` +
+      `and ${totalRequirement} for a jump repeat. This stronger rebid contrasts with a ` +
       `minimum economical repeat. The jump is forcing for another round, but does not ` +
       `by itself establish a game force.`;
   } else if (id.includes('-2nt-')) {
@@ -5872,8 +5891,8 @@ export function getOpenerTwoLevelNewSuitRebidLines(result: BidEvalResult, rule: 
       `3NT range. ${call} places the partnership in game rather than making a ` +
       `12–14 HCP economical 2NT rebid.`;
   } else if (id.includes('-game-in-diamonds-') || id.includes('-game-same-major-')) {
-    reason = `Your ${openingLength} ${opening} and ${value} meet the seven-card, 19–21 ` +
-      `total-point game treatment. This bids game directly rather than repeating ` +
+    reason = `Your ${openingLength} ${opening} and ${value} meet the seven-card requirement ` +
+      `and ${totalRequirement} for game. This bids game directly rather than repeating ` +
       `the long suit economically or inviting with a jump repeat.`;
   } else {
     return [];
