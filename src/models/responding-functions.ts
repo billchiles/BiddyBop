@@ -1100,11 +1100,16 @@ export function responderWeakTwoLevelNewSuitApplies (call: Call, context: RuleEv
   const suit = candidate.strain as Suit;
   const length = context.handFacts.lengths[suit];
   const hcp = context.handFacts.hcp;
-  const enough = length >= 6 && hasPreemptSuitQuality(context.hand, suit) && hcp >= 5 && hcp <= 9;
+  const quality = hasPreemptSuitQuality(context.hand, suit);
+  const enough = length >= 6 && quality && hcp >= 5 && hcp <= 9;
+  const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+    context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: nonforcing two-level new suit needs a good six-card ` +
       `${suit} suit and 5-9 HCP (have ${length} cards, ${hcp} HCP).`,
-  ] };
+  ], callEvidence: { competitiveTwoLevelNewSuit: {
+    hcp, minHcp: 5, maxHcp: 9, suit, length, minLength: 6, quality, honors,
+  } } };
 }
 
 /// responderJordanTwoNtAfterDoubleApplies uses 10+ shortage-adjusted support points and
