@@ -7751,6 +7751,13 @@ export function getOpenerForcingCompetitionRebidLines(
   const info = matched?.callEvidence?.openerCompetitiveForcingRebid;
   if (matched === undefined || info === undefined) return [];
   const call = matched.call;
+  const ntHcpRequirement = matched.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: 'hcp' }> =>
+      item.kind === 'hcp' && item.passed);
+  const naturalNtStrength = ntHcpRequirement === undefined ?
+    `Your balanced ${facts.hcp}-HCP hand qualifies for natural ${call}.` :
+    `Your balanced hand has ${ntHcpRequirement.actual} HCP, meeting the ` +
+      `${strengthRange(ntHcpRequirement)} requirement for natural ${call}.`;
   const shortageRequirement = matched.callEvidence?.requirements?.find(
     (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
       item.kind === 'totalPoints' && item.valuation === 'shortage' && item.passed);
@@ -7808,9 +7815,8 @@ export function getOpenerForcingCompetitionRebidLines(
         'forcing natural reverse rather than an economical minimum rebid.';
       break;
     case 'opener-rebid-2nt-after-overcall-two-level-new-suit':
-      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 2NT. ` +
-        'The app also requires a basic stopper in the overcalled suit; this is ' +
-        'not an artificial forcing notrump response.';
+      reason = naturalNtStrength + ' A basic stopper in the overcalled suit is ' +
+        'also required; this is a natural opener rebid, not an artificial response.';
       break;
     case 'opener-rebid-jump-raise-after-overcall-two-level-new-suit':
       reason = `Your ${supportPoints} total points with shortage${shortageRange}, and your ` +
@@ -7824,9 +7830,9 @@ export function getOpenerForcingCompetitionRebidLines(
         'Four of a major is game, not a below-game invitation.';
       break;
     case 'opener-rebid-3nt-after-overcall-two-level-new-suit':
-      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 3NT. ` +
-        'The overcalled suit must have a basic stopper. This places the contract ' +
-        'in game even though responder’s competitive two-level suit did not force game.';
+      reason = naturalNtStrength + ' The overcalled suit must have a basic stopper. ' +
+        'This reaches game even though responder’s competitive two-level new suit ' +
+        'was forcing for one round, not necessarily to game.';
       break;
     case 'opener-rebid-game-raise-after-overcall-two-level-new-suit':
       reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
@@ -7856,10 +7862,10 @@ export function getOpenerForcingCompetitionRebidLines(
         'is available; the app does not promote a blocked reverse one level higher.';
       break;
     case 'opener-rebid-nt-after-forcing-response-advancer-competition':
-      reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural ${call} ` +
-        'at the original strength-defined level. The app requires a basic ' +
-        'stopper in each opponent suit and does not promote an unavailable ' +
-        'notrump rebid just because advancer has acted.';
+      reason = naturalNtStrength + ' The bid remains at its normal strength-defined ' +
+        'level after advancer competes. A basic stopper is required in each ' +
+        'naturally bid opponent suit; an unavailable NT rebid is not moved ' +
+        'one level higher just because of competition.';
       break;
     case 'opener-rebid-game-raise-after-forcing-response-advancer-competition':
       reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
