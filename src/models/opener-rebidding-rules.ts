@@ -3373,7 +3373,7 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['signoff', 'natural'],
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context, 17, 18),
-    meaning: 'After 1S-2H, three-card support for the five-card heart response and 17-18 shortage points can justify bidding game directly.',
+    meaning: 'After 1S-2H, three-card support for the five-card heart response and 17–18 total points with shortage can justify bidding game directly.',
   },
   //
   {
