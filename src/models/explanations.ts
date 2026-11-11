@@ -6851,12 +6851,54 @@ export function getOpenerStrongTwoCRebidLines(result: BidEvalResult, rule: BidRu
     'opener-rebid-3nt-after-2c-2d',
     'opener-rebid-4nt-after-2c-2d',
     'opener-rebid-longest-suit-after-2c-2d',
+    'opener-rebid-support-positive-major-after-2c',
+    'opener-rebid-support-positive-minor-after-2c',
+    'opener-rebid-longest-suit-after-2c-positive',
+    'opener-rebid-natural-nt-after-2c-positive',
   ];
   if (!calls.includes(rule.id)) return [];
   const selected = result.ruleDiagnostics.find((entry) => entry.rule.id === rule.id)
     ?.candidates.find((item) => item.call === result.normalizedCall && item.ruleApplies);
   if (selected === undefined) return [];
   const id = `[${rule.id}]`;
+  if (rule.id === 'opener-rebid-support-positive-major-after-2c') {
+    const suit = selected.call.slice(-1) as 'H' | 'S';
+    const support = facts.lengths[suit];
+    return [`Your ${support} ${suitPlural(selected.call)} support responder's promised ` +
+      `five-card-or-longer major, giving a fit of at least ${support + 5} cards. ` +
+      `${selected.call} shows this fit economically; the positive response already ` +
+      `forces game ${id}.`];
+  }
+  if (rule.id === 'opener-rebid-support-positive-minor-after-2c') {
+    const suit = selected.call.slice(-1) as 'C' | 'D';
+    const support = facts.lengths[suit];
+    return [`Your unbalanced hand has ${support} ${suitPlural(selected.call)} ` +
+      `opposite responder's promised five or more, giving a ` +
+      `fit of at least ${support + 5} cards. With no five-card side suit, ${selected.call} ` +
+      `shows the fit rather than a natural notrump rebid. Game is already forced ${id}.`];
+  }
+  if (rule.id === 'opener-rebid-longest-suit-after-2c-positive' ||
+      rule.id === 'opener-rebid-natural-nt-after-2c-positive') {
+    const majorSupport = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'opener-rebid-support-positive-major-after-2c')
+      ?.candidates.find((item) => item.call === '3H' || item.call === '3S');
+    const majorSuit = majorSupport?.call.slice(-1) as 'H' | 'S' | undefined;
+    const majorName = majorSuit === 'H' ? 'heart' : 'spade';
+    const noMajorFit = majorSuit === undefined ? '' :
+      ` You have ${facts.lengths[majorSuit]} ${majorName}` +
+      `${facts.lengths[majorSuit] === 1 ? '' : 's'}, short of the three-card ` +
+      `support needed to raise responder's major.`;
+    if (rule.id === 'opener-rebid-natural-nt-after-2c-positive') {
+      return [`Your ${facts.hcp} HCP and balanced shape meet the 22–24 HCP range ` +
+        `for a natural ${selected.call} rebid.${noMajorFit} Responder's positive ` +
+        `bid has already forced game; this is not a signoff ${id}.`];
+    }
+    const suit = selected.call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    return [`With ${facts.hcp} HCP and an unbalanced hand, ${selected.call} shows ` +
+      `your longest eligible natural suit (${facts.lengths[suit]} ` +
+      `${suitPlural(selected.call)}) economically.${noMajorFit} ` +
+      `Responder's positive bid has already forced game ${id}.`];
+  }
   if (rule.id !== 'opener-rebid-longest-suit-after-2c-2d') {
     const requirement = typeof rule.appliesWhen === 'function' ? undefined :
       rule.appliesWhen?.hcp;
