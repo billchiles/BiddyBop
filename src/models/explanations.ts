@@ -2740,6 +2740,7 @@ const COMPETITIVE_RESPONSE_RULES = [
   'respond-over-suit-negative-double',
   'respond-over-jump-negative-double',
   'respond-over-suit-support-cuebid',
+  'respond-over-suit-natural-notrump',
   'respond-over-jump-support-cuebid-major',
   'respond-after-double-jordan-2nt-support',
   'respond-after-double-redouble-values',
@@ -2753,6 +2754,19 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
   if (candidate?.ruleApplies !== true) return [];
   const facts = candidate.callEvidence?.competitiveResponse;
   const id = `[${rule.id}]`;
+  if (rule.id === 'respond-over-suit-natural-notrump') {
+    const hcp = minorRequirement(candidate, 'hcp');
+    const balanced = minorRequirement(candidate, 'balanced');
+    const stopper = minorRequirement(candidate, 'stopper');
+    const call = result.normalizedCall;
+    if (hcp === undefined || balanced?.passed !== true ||
+        stopper?.passed !== true || stopper.suit === undefined || call === null) return [];
+    const meaning = call === '1NT' ? 'nonforcing' :
+      call === '2NT' ? 'invitational and nonforcing' : 'a game bid';
+    return [`Your balanced hand has ${hcp.actual} HCP and a stopper in the opponents' ` +
+      `${suitPlural(`1${stopper.suit}` as Call)}, meeting the ${hcpRangeText(hcp)} ` +
+      `requirement for natural ${call}. This bid is ${meaning} ${id}.`];
+  }
   if (rule.id.endsWith('-negative-double')) {
     if (facts?.unbidSuits === undefined || facts.minHcp === undefined) return [];
     const suits = facts.unbidSuits.map(({ suit, length, exact }) =>
@@ -2924,6 +2938,24 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
 
 export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const nt = competitiveResponseCandidate(result, 'respond-over-suit-natural-notrump');
+  if (nt !== undefined && !nt.ruleApplies) {
+    const hcp = minorRequirement(nt, 'hcp');
+    const balanced = minorRequirement(nt, 'balanced');
+    const stopper = minorRequirement(nt, 'stopper');
+    const entered = result.normalizedCall;
+    const id = '[respond-over-suit-natural-notrump]';
+    if (hcp !== undefined && !hcp.passed) {
+      return [`Natural ${entered} requires ${hcpRangeText(hcp)}; you have ${hcp.actual} HCP ${id}.`];
+    }
+    if (balanced !== undefined && !balanced.passed) {
+      return [`Natural ${entered} requires a balanced hand; yours is not balanced ${id}.`];
+    }
+    if (stopper !== undefined && !stopper.passed && stopper.suit !== undefined) {
+      return [`Natural ${entered} requires a stopper in the opponents' ` +
+        `${suitPlural(`1${stopper.suit}` as Call)}; your hand lacks one ${id}.`];
+    }
+  }
   const newSuit = result.ruleDiagnostics.find(({ rule }) =>
     rule.id === 'respond-over-suit-new-suit-two-level');
   const checked = newSuit?.callEvidence?.competitiveNewSuit?.considered.find((item) =>
