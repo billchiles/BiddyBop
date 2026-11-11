@@ -71,7 +71,8 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
     biddingTurnStatus, practiceComplete, outstandingForce, practiceStep, unfulfilledAuctionForce);
-  const displayedExplanation = [...explanationLines, ...turnGuidance,
+  const presentedExplanation = [...explanationLines, ...turnGuidance].map(labelExplanationRuleIds);
+  const displayedExplanation = [...presentedExplanation,
     ...(reportNotice === null ? [] : ['', reportNotice.text])];
   // Scroll to the last *reviewed* call, not a preview of the next seat's turn.
   // Before the first call, keep the New Deal heading at the top.
@@ -200,7 +201,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
 
   function reportState(includeTelemetry: boolean): void {
     // The confirmation belongs to the visible panel, not the copied report.
-    const report = buildReportText(board, auction, [...explanationLines, ...turnGuidance],
+    const report = buildReportText(board, auction, presentedExplanation,
       biddingSystem, testDeal, practiceDealIdentification,
       includeTelemetry ? telemetryLines : null);
     if (navigator.clipboard === undefined) {
@@ -311,6 +312,12 @@ function appendExplanation(current: string[], added: string[]): string[] {
   if (updated.length <= MAX_EXPLANATION_LINES) return updated;
   return ['Earlier explanation from this deal omitted (history limit).',
     ...updated.slice(-(MAX_EXPLANATION_LINES - 1))];
+}
+
+/// Label technical rule references in the visible transcript and copied Report.
+/// Rule IDs contain a hyphen; leave other bracketed text unchanged.
+function labelExplanationRuleIds(line: string): string {
+  return line.replace(/\[([a-z][a-z0-9/._-]*-[a-z0-9/._-]*)\]/gi, '[RuleID: $1]');
 }
 
 /// Report reuses the explanation displayed to the learner, including rule IDs, rather than
