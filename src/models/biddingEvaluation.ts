@@ -552,7 +552,7 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
   } else if (typeof appliesWhen === 'function') {
     result = appliesWhen(call, context, system);
   } else {
-    result = evaluateHandConstraint(appliesWhen, call, context, system, rule.id);
+    result = evaluateHandConstraint(appliesWhen, call, context, system);
   }
   telemetryLines.push(...result.telemetryLines);
   if (appliesWhen !== undefined) {
@@ -1006,106 +1006,10 @@ function maybeSuppress1NTWhenMajorSupport (ruleDiagnostics: RuleEvalResult[]) :
 
 /// evaluateHandConstraint evaluates rule.appliesWhen's declarative hand constraints against a call.
 ///
-function evaluateHandConstraint (constraint: HandConstraint, call: Call, 
-                                 context: RuleEvalContext, system: BiddingSystem, ruleId: string)
+function evaluateHandConstraint (constraint: HandConstraint, call: Call,
+                                 context: RuleEvalContext, system: BiddingSystem)
                                 : AppliesWhenResult {
   const telemetryLines: string[] = [];
-  // Ordinary point, suit-length, and support evidence is now retained for every evaluated
-  // declarative constraint. These flags still preserve specialized representations and
-  // the shape evidence selection until the remaining refactor passes.
-  const explainOpeningRequirements = context.stage === 'opening' &&
-    (call === '1NT' || call === '2NT' || call === '2C');
-  const explainPreemptRequirements = context.stage === 'opening' &&
-    (ruleId === 'open-weak-two' || ruleId === 'open-weak-three' ||
-     ruleId === 'open-four-level-preempt' || ruleId === 'open-five-level-minor-preempt');
-  const explainStrongTakeoutDouble = context.stage === 'overcalling' && call === 'Double' &&
-    (ruleId === 'overcall-takeout-double-strong-hand' ||
-     ruleId === 'overcall-weak-two-takeout-double-strong-hand');
-  const explainBalancingSuit = context.stage === 'balancing' &&
-    (ruleId === 'balance-natural-one-level-suit' || ruleId === 'balance-natural-two-level-suit');
-  const explainJumpOvercall = context.stage === 'overcalling' &&
-    (ruleId === 'overcall-preemptive-jump-at-two-level' ||
-     ruleId === 'overcall-preemptive-jump-at-three-level' ||
-     ruleId === 'overcall-preemptive-jump-at-four-level');
-  const explainWeakTwoSuitOvercall = context.stage === 'overcalling' &&
-    (ruleId === 'overcall-weak-two-natural-suit-at-two-level' ||
-     ruleId === 'overcall-weak-two-natural-suit-at-three-level');
-  const explainJumpResponder = context.stage === 'responding' &&
-    (ruleId === 'respond-over-jump-raise-cheapest-to-three' ||
-     ruleId === 'respond-over-jump-new-suit-two-level' ||
-     ruleId === 'respond-over-jump-new-suit-three-level');
-  const explainStrongTwoCPositive = context.stage === 'responding' &&
-    (ruleId === 'respond-to-2c-w/-positive-suit' ||
-     ruleId === 'respond-to-2c-w/-2nt-positive-balanced');
-  const explainResponderRedouble = context.stage === 'responding' &&
-    ruleId === 'respond-after-double-redouble-values';
-  const explainMinorResponse = context.stage === 'responding' && (
-    ruleId === 'respond-to-minor-w/-new-suit-one-level-priority' ||
-    ruleId === 'respond-to-minor-w/-1nt' || ruleId === 'respond-to-minor-w/-2nt' ||
-    ruleId === 'respond-to-minor-w/-3nt' || ruleId === 'respond-to-minor-w/-pass-0-5' ||
-    ruleId === 'respond-to-1d-w/-2c-standard' ||
-    ruleId === 'respond-to-1d-w/-2c-two-over-one');
-  const explainMajorNoSupport = context.stage === 'responding' && (
-    ruleId === 'respond-to-major-w/o-support-new-suit-one-level' ||
-    ruleId === 'respond-to-major-w/o-support-1nt-standard');
-  const explainMajorSupport = context.stage === 'responding' && (
-    ruleId === 'respond-to-major-w/-support-pass-0-5' ||
-    ruleId === 'respond-to-major-w/-pass-0-5' ||
-    ruleId === 'respond-to-major-w/-support-simple-raise' ||
-    ruleId === 'respond-to-major-w/-support-limit-raise-four-card' ||
-    ruleId === 'respond-to-major-w/-support-limit-raise-three-card' ||
-    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback' ||
-    ruleId === 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first' ||
-    ruleId === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' ||
-    ruleId === 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise' ||
-    ruleId === 'respond-to-major-w/-support-jacoby-2nt-agreement' ||
-    ruleId === 'respond-to-major-w/-support-splinter' ||
-    ruleId === 'respond-to-major-w/-support-preemptive-game-raise' ||
-    ruleId === 'respond-to-major-w/-support-long-fit-13-limit-raise-fallback');
-  const explainJumpShift = context.stage === 'responding' && (
-    ruleId === 'respond-to-minor-w/-weak-jump-shift-modern' ||
-    ruleId === 'respond-to-minor-w/-strong-jump-shift-classic' ||
-    ruleId === 'respond-to-major-w-weak-jump-shift-modern' ||
-    ruleId === 'respond-to-major-w/-strong-jump-shift-classic');
-  const explainTakeoutAdvance = context.stage === 'advancing' && (
-    ruleId.startsWith('advance-takeout-double-') ||
-    ruleId === 'advance-weak-two-double-direct-major-game');
-  const explainNaturalNtResponse = ruleId.startsWith('respond-to-1nt-w/-') ||
-    ruleId.startsWith('respond-to-2nt-w/-') ||
-    ruleId.startsWith('advance-weak-two-2nt-') ||
-    ruleId.startsWith('partner-of-1nt-after-interference-');
-  const explainNaturalAdvance = context.stage === 'advancing' && (
-    ruleId.startsWith('advance-one-level-suit-overcall-') ||
-    ruleId.startsWith('advance-two-level-suit-overcall-')) &&
-    !ruleId.includes('-after-');
-  const explainCompetitiveRaiseAdvance = context.stage === 'advancing' &&
-    ruleId.includes('-after-responder-raise-') &&
-    (ruleId.startsWith('advance-one-level-suit-overcall-') ||
-     ruleId.startsWith('advance-two-level-suit-overcall-') ||
-     ruleId.startsWith('advance-takeout-double-'));
-  const explainCompetitiveNaturalAdvance = context.stage === 'advancing' &&
-    ruleId.includes('-after-responder-natural-action-');
-  const explainNegativeDoubleAdvance = context.stage === 'advancing' &&
-    ruleId.includes('-after-negative-double-');
-  const explainJumpAdvance = context.stage === 'advancing' && (
-    ruleId === 'advance-two-level-jump-overcall-raise' ||
-    ruleId === 'advance-three-level-jump-overcall-minor-raise' ||
-    ruleId === 'advance-jump-overcall-major-game' ||
-    ruleId === 'advance-jump-overcall-forcing-new-suit');
-  const explainOpenerOneNtRebid = context.stage === 'openerRebid' &&
-    (ruleId.includes('-after-minor-1nt') || ruleId.includes('-after-major-1nt'));
-  const explainOpenerOneLevelNewSuitRebid = context.stage === 'openerRebid' &&
-    (ruleId.endsWith('-after-minor-one-level-new-suit') ||
-     ruleId.endsWith('-after-major-one-level-new-suit'));
-  const explainOpenerTwoLevelNewSuitRebid = context.stage === 'openerRebid' &&
-    (ruleId.includes('-after-minor-standard-two-level-new-suit') ||
-     ruleId.includes('-after-major-standard-two-level-new-suit') ||
-     ruleId.includes('-after-minor-two-over-one-new-suit') ||
-     ruleId.includes('-after-major-two-over-one-new-suit'));
-  const explainOpenerJacobyRebid = context.stage === 'openerRebid' &&
-    (ruleId === 'opener-rebid-3nt-after-major-jacoby-2nt' ||
-     ruleId === 'opener-rebid-strong-3-major-after-major-jacoby-2nt' ||
-     ruleId === 'opener-rebid-game-in-opening-major-after-major-jacoby-2nt');
   const requirements: NonNullable<CallEvidence['requirements']> = [];
   let pass = true;
   if (constraint.hcp !== undefined) {
@@ -1202,15 +1106,7 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     pass = pass && result.pass;
   }
   return { success: pass, telemetryLines,
-    callEvidence: requirements.length > 0 || explainOpeningRequirements || explainPreemptRequirements ||
-      explainStrongTakeoutDouble || explainBalancingSuit || explainJumpOvercall ||
-      explainWeakTwoSuitOvercall || explainResponderRedouble || explainJumpResponder ||
-      explainMinorResponse || explainMajorSupport || explainMajorNoSupport || explainJumpShift ||
-      explainNaturalAdvance || explainTakeoutAdvance || explainNaturalNtResponse ||
-      explainStrongTwoCPositive || explainJumpAdvance || explainCompetitiveRaiseAdvance || explainCompetitiveNaturalAdvance ||
-      explainNegativeDoubleAdvance || explainOpenerOneNtRebid || explainOpenerOneLevelNewSuitRebid ||
-      explainOpenerTwoLevelNewSuitRebid || explainOpenerJacobyRebid ?
-        { requirements } : undefined };
+    callEvidence: requirements.length > 0 ? { requirements } : undefined };
 } //evaluateHandConstraint()
 
 function testPointRange (value: number, range: PointRange, label: string)

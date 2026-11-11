@@ -35,10 +35,11 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Refactor declarative hand-constraint evidence collection.** Follow the
-  pending design and staged verification plan below. Preserve all bidding qualifications
-  and existing learner-facing explanations while removing the rule-ID-dependent
-  `explain*` evidence-selection flags from `evaluateHandConstraint`.
+- [ ] **Review instructional use of hand-constraint evidence.** Examine each explanation
+  generator and its evidence selectors against the temporary replay samples. Make
+  explicit, educationally useful evidence choices, reviewing proposed changes to
+  learner-facing text in small batches. Keep the broad replay harness temporary;
+  retain only focused permanent tests for concrete regression risks.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.
@@ -55,130 +56,6 @@ not a historical progress log or a commitment to model every possible auction.
   Continue deliberate, separately tested organization passes with the rule-order
   audit completed. Keep intentional spacing and substantive manually written
   rationale; avoid unrelated bidding changes or new test infrastructure.
-
-## Declarative hand-constraint evidence cleanup (pending plan)
-
-### Goal and boundaries
-
-- `evaluateCandidateCall` calls `evaluateHandConstraint` **only** when a rule's
-  `appliesWhen` is a declarative `HandConstraint`. Function-valued `appliesWhen`
-  returns its own evidence, and a rule's optional `callEvidenceBuilder` contributes
-  other observations. Leave both mechanisms intact.
-- Always evaluate declared hand constraints exactly as before. For every *actually
-  evaluated* declarative requirement, retain factual evidence for passed **and**
-  failed tests: HCP, total points, suit length, shape, and partner support.
-  Do not fabricate constraint evidence when call refinement generated no candidate.
-- More evidence must **not automatically produce more explanation text**, change
-  which failed requirement is explained, or change the candidate qualification
-  and suppression decisions. The target is the same learner-facing output for
-  existing bids, including rejected calls. Treat unplanned differences as regressions.
-- `HandFacts` describes the hand generally; `CallEvidence.requirements` describes
-  only the constraints actually checked for an individual candidate call. Keep
-  rule-family teaching logic in `explanations.ts`, not in the generic evaluator.
-- Prefer short, in-place evidence records in `evaluateHandConstraint` over five
-  trivial evidence-builder helpers; keep existing substantive testing helpers.
-  Do not introduce `BidRule.handConstraintEvidence` or an evidence-profile property
-  unless a concrete exception cannot be inferred from the constraint and context.
-
-### Existing 24 evidence gates
-
-`evaluateHandConstraint` currently declares these `explain*` flags. The table
-shows which evidence types each flag allows the function to save *when that
-constraint is present*: H = HCP, P = total points, L = suit length, Sh = shape,
-S = partner support. Blank cells do not mean the corresponding rule cannot
-test that constraint; this is a matrix of evidence-retention permissions.
-
-| Flag (omit `explain` prefix) | H | P | L | Sh | S |
-| --- | :---: | :---: | :---: | :---: | :---: |
-| OpeningRequirements | ✓ | | | ✓ | |
-| PreemptRequirements | ✓ | ✓ | ✓ | | |
-| StrongTakeoutDouble | ✓ | | | | |
-| BalancingSuit | ✓ | | | | |
-| JumpOvercall | ✓ | | | | |
-| WeakTwoSuitOvercall | ✓ | ✓ | | | |
-| JumpResponder | ✓ | ✓ | ✓ | | ✓ |
-| StrongTwoCPositive | ✓ | | ✓ | ✓ | |
-| ResponderRedouble | ✓ | | | | |
-| MinorResponse | ✓ | | ✓ | ✓ | |
-| MajorNoSupport | ✓ | | ✓ | | ✓ |
-| MajorSupport | ✓ | ✓ | ✓ | | ✓ |
-| JumpShift | ✓ | | | | ✓ |
-| TakeoutAdvance | | ✓ | ✓ | | |
-| NaturalNtResponse | ✓ | | ✓ | ✓ | |
-| NaturalAdvance | ✓ | ✓ | ✓ | | ✓ |
-| CompetitiveRaiseAdvance | ✓ | ✓ | ✓ | | ✓ |
-| CompetitiveNaturalAdvance | ✓ | ✓ | ✓ | | ✓ |
-| NegativeDoubleAdvance | ✓ | ✓ | ✓ | | ✓ |
-| JumpAdvance | ✓ | ✓ | ✓ | | ✓ |
-| OpenerOneNtRebid | ✓ | ✓ | ✓ | ✓ | |
-| OpenerOneLevelNewSuitRebid | ✓ | ✓ | ✓ | ✓ | ✓ |
-| OpenerTwoLevelNewSuitRebid | ✓ | ✓ | ✓ | ✓ | ✓ |
-| OpenerJacobyRebid | ✓ | | | | |
-
-Eighteen flags only gate ordinary evidence. Six also affect representation:
-- `explainNaturalNtResponse`: a `suitLengths: [{ suit: 'major', exact: 4 }]`
-  test produces `fourCardMajor`, not an arbitrarily chosen failed major-suit
-  length; preserve Stayman's instructional evidence.
-- `explainMinorResponse`: `shape.noFourCardMajor` produces the
-  `noFourCardMajor` evidence record; preserve its negative explanations.
-- `explainMajorSupport`: total-points evidence includes the bidder's HCP,
-  allowing shortage-point breakdowns. Make this factual detail available
-  without testing the rule ID.
-- `explainOpenerOneNtRebid`, `explainOpenerOneLevelNewSuitRebid`, and
-  `explainOpenerTwoLevelNewSuitRebid`: preserve `rebidShape` with its
-  `balanced`, `balancedOrSemiBalanced`, or `semiBalancedOnly` distinctions.
-  Derive the classification from declared shape constraints, with any necessary
-  bidding-stage context.
-
-### Before changes: evidence-consumer audit
-
-- Review **all** `CallEvidence.requirements` consumers in `explanations.ts`,
-  including `minorRequirement`, `find` for the first failed check, `find`
-  by kind, `filter`, iteration order, repeated kinds, and fallbacks that
-  presently rely on missing evidence. Extra true/false records must not
-  redirect an explanation or create duplicate/inappropriate lines.
-- Review how categorical major/minor suit-length failures are represented:
-  `testSuitLengths` currently returns the first target suit on failure, which
-  may not describe the actual *either-suit* requirement. Do not imply a
-  specific failed suit where the test was for a category.
-- `testHandShape` aggregates several shape checks into one pass/fail. When
-  collecting more shape evidence, attribute failures to the actual individual
-  constraint, not every condition in the shape object.
-- Preserve the existing display of combined HCP and shortage points. Add
-  `valuation?: 'length' | 'shortage'` to the `totalPoints` requirements
-  variant, matching `HandConstraint.totalPoints.valuation`; fill it for
-  declarative tests. Keep it optional initially because custom `appliesWhen`
-  functions may also construct this evidence. Avoid unqualified "total points"
-  in learner-facing wording.
-- Inspect positive and negative explanation paths across all stages, including
-  currently unsupported calls. Compare before/after explanation outputs for
-  representative saved practice deals and targeted hand/auction scenarios,
-  especially multi-failure cases. A temporary output diff is fine; do not add
-  permanent tests of exact instructional wording. Preserve existing behavior
-  unless a separately agreed instructional correction is necessary.
-
-### Implementation passes
-
-1. **Ordinary evidence and consumer review.** Audit consumers and collect
-   every actually tested declarative HCP, total-points, suit-length, and
-   support requirement, whether passed or failed. Add the total-points
-   `valuation` field. Keep existing special representations during this pass.
-   Diagnose and correct unintended explanation changes before merging.
-2. **Specialized evidence from constraints.** Preserve `fourCardMajor`,
-   `noFourCardMajor`, support-point HCP breakdown, and `rebidShape`
-   semantics without naming rule IDs. Resolve categorical suit and
-   compound-shape failure accuracy, while retaining the same explanation
-   behavior. No new rule-level property unless truly needed.
-3. **Final simplification.** Remove the now-unused 24 `explain*` flags,
-   repeated OR chains, and the `ruleId` argument of
-   `evaluateHandConstraint`. Keep the function readable with its five
-   natural constraint sections; add helpers only if nontrivial logic warrants
-   them. Re-run build, rule tests, and explanation comparisons.
-
-Make focused GitHub branches, run build and rule tests, then squash-merge each
-reviewed batch. Preserve user-authored comments and caller-before-callee order.
-When all passes are done, **delete this entire planning section and completed
-checklist item** rather than retaining a historical log.
 
 ## Deferred enhancements
 
