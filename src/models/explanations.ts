@@ -5698,8 +5698,10 @@ export function getOpenerOneLevelNewSuitRebidFailureLines(result: BidEvalResult)
       if (required !== null) {
         const suit = failed.suit === undefined ? 'the tested suit' :
           suitPlural(`1${failed.suit}` as Call);
-        explanation = `${result.normalizedCall} requires ${required} cards in ${suit}; ` +
-          `you have ${failed.actual}.`;
+        const count = failed.exact ?? (failed.min !== undefined && failed.actual < failed.min ?
+          failed.min : failed.max);
+        explanation = `${result.normalizedCall} requires ${required} ${count === 1 ? 'card' : 'cards'} ` +
+          `in ${suit}; you have ${failed.actual}.`;
       }
     } else if (failed?.kind === 'balanced') {
       explanation = `${result.normalizedCall} requires a balanced hand; your hand is not balanced.`;
@@ -5963,8 +5965,10 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
       if (required !== null) {
         const suit = failed.suit === undefined ? 'the tested suit' :
           suitPlural(`1${failed.suit}` as Call);
-        explanation = `${attempted} requires ${required} cards in ${suit}; ` +
-          `you have ${failed.actual}.`;
+        const count = failed.exact ?? (failed.min !== undefined && failed.actual < failed.min ?
+          failed.min : failed.max);
+        explanation = `${attempted} requires ${required} ${count === 1 ? 'card' : 'cards'} ` +
+          `in ${suit}; you have ${failed.actual}.`;
       }
     } else if (failed.kind === 'balanced') {
       explanation = `${attempted} requires a balanced hand; your hand is not balanced.`;
