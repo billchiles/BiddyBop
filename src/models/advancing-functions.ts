@@ -308,7 +308,8 @@ export function takeoutDoubleMinimumSuitAdvanceApplies (call: Call, context: Rul
   const success = opening !== null && points <= (directThreeLevel ? 11 : 8);
   const max = directThreeLevel ? 11 : 8;
   return { success, callEvidence: { requirements: [
-    { kind: 'totalPoints', actual: points, min: 0, max, passed: success },
+    { kind: 'totalPoints', actual: points, hcp: context.handFacts.hcp,
+      min: 0, max, valuation: 'length', passed: success },
   ] }, telemetryLines: [success ?
     'PASS: cheapest suit advance has the modeled strength for this takeout-double auction.' :
     'FAIL: cheapest suit advance is too strong for the modeled non-jump range.'] };
