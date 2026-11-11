@@ -493,10 +493,10 @@ function appendRuleExplanation (lines: string[], rule: BidRule, handFacts?: Hand
   if (rule.guidance !== undefined && rule.guidance.length > 0) {
     lines.push('  ---');
     lines.push('  General rule guidance (not specific to your hand):');
+    // Some rules have guidance but no separate Meaning; keep one identifiable rule reference.
+    const guidanceId = rule.meaning === undefined || rule.meaning === '' ? idSuffix : '';
     for (const [index, guidanceLine] of rule.guidance.entries()) {
-      // Some rules have guidance but no separate Meaning; keep one identifiable rule reference.
-      lines.push(`  ${guidanceLine}${rule.meaning === undefined || rule.meaning === '' ?
-        index === 0 ? idSuffix : '' : ''}`);
+      lines.push(`  ${guidanceLine}${index === 0 ? guidanceId : ''}`);
     }
     lines.push('');
   }
