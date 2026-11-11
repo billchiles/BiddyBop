@@ -7196,6 +7196,58 @@ function runCompetitiveBidExplanationTests (): number {
       console.error('FAIL Jordan total-points-with-shortage evidence mismatch.');
     }
   }
+  // Natural notrump after a suit overcall must teach the evaluated HCP, shape,
+  // and stopper facts, including the decisive failure of an attempted 1NT.
+  const notrumpCases: { auction: string; expectedFailure: 'hcp' | 'balanced' | 'stopper' | null }[] = [
+    { auction: '1D 1S 1NT', expectedFailure: null },
+    { auction: '1H 1S 2H 3C Pass', expectedFailure: 'hcp' },
+    { auction: '1D 1S Double 2S 3D', expectedFailure: 'balanced' },
+    { auction: '1D 1S Double', expectedFailure: 'stopper' },
+  ];
+  const allDeals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals);
+  for (const example of notrumpCases) {
+    checks++;
+    const deal = allDeals.find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing suit-overcall notrump hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const hand = getHandFacts(board.deal.S);
+    const result = evaluateUserCall('1NT', board, auction, system);
+    const ruleId = 'respond-over-suit-natural-notrump';
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === ruleId)
+      ?.candidates.find((item) => item.call === '1NT');
+    const requirements = candidate?.callEvidence?.requirements ?? [];
+    const hcp = requirements.find((item) => item.kind === 'hcp');
+    const balanced = requirements.find((item) => item.kind === 'balanced');
+    const stopper = requirements.find((item) => item.kind === 'stopper');
+    const requiredSuit = auction[1]?.slice(-1);
+    const failedKind = requirements.find((item) => !item.passed)?.kind ?? null;
+    const matchingRule = result.userCallMatchingRules.find((rule) => rule.id === ruleId);
+    const generated = matchingRule === undefined ?
+      getCompetitiveResponseFailureLines(result) :
+      getMatchedCallExplanationLines(result, matchingRule, hand, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South bids', call: '1NT', result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: hand,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South',
+      recordedUnjudged: false,
+    });
+    if (hcp?.kind !== 'hcp' || hcp.actual !== hand.hcp ||
+        balanced?.kind !== 'balanced' || balanced.actual !== hand.balanced ||
+        stopper?.kind !== 'stopper' || stopper.suit !== requiredSuit ||
+        failedKind !== example.expectedFailure ||
+        (matchingRule !== undefined) !== (example.expectedFailure === null) ||
+        generated.length === 0 || generated.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL suit-overcall notrump evidence or delivery: ${example.auction}.`);
+    }
+  }
   console.log(`${failures} ***FAILURES***. Competitive bidding explanations: ${checks} checks.\n`);
   return failures;
 }
