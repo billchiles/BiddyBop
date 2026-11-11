@@ -7845,7 +7845,8 @@ export function getOpenerForcingCompetitionRebidLines(
   return [`${responseMeaning} ${reason} [${rule.id}]`];
 }
 
-/// Report only a failed requirement actually recorded for this candidate.
+/// Explain only requirements that were actually checked for the rejected candidate.
+/// Different kinds and repeated suit lengths are chosen explicitly, not by their array order.
 export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   const call = result.normalizedCall;
@@ -7857,31 +7858,50 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
   }
   for (const entry of result.ruleDiagnostics) {
     if (!OPENER_FORCING_COMPETITION_IDS.includes(entry.rule.id)) continue;
-    // New declarative strength evidence must not silently replace the existing generic
-    // rejection guidance. Review the desired competitive failure lesson separately.
-    if (typeof entry.rule.appliesWhen !== 'function') continue;
     const rejected = entry.candidates.find((candidate) =>
       candidate.call === call && !candidate.ruleApplies);
-    const failure = rejected?.callEvidence?.requirements?.find((item) => !item.passed);
-    if (failure === undefined) continue;
-    const id = entry.rule.id;
-    switch (failure.kind) {
-      case 'hcp':
-        return [`${call} requires ${strengthRange(failure)}; ` +
-          `you have ${failure.actual} HCP. [${id}]`];
-      case 'totalPoints':
-        return [`${call} does not meet the ${strengthRange(failure)} requirement; ` +
-          `your hand has ${failure.actual} total points. [${id}]`];
-      case 'partnerSupport':
-        return [`${call} needs at least ${failure.min ?? 0} cards supporting responder’s ` +
-          `suit; your hand has ${failure.actual}. [${id}]`];
-      case 'suitLength':
-        return [`${call} requires at least ${failure.min ?? 0} cards in the ` +
-          `relevant suit; your hand has ${failure.actual}. [${id}]`];
-      case 'balanced':
-        return [`${call} needs a balanced hand, which this is not. [${id}]`];
-      default:
-        break;
+    const requirements = rejected?.callEvidence?.requirements ?? [];
+    const failedHcp = requirements.find((item): item is Extract<Requirement, { kind: 'hcp' }> =>
+      item.kind === 'hcp' && !item.passed);
+    const failedPoints = requirements.find((item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
+      item.kind === 'totalPoints' && !item.passed);
+    const failedLengths = requirements.filter((item): item is Extract<Requirement, { kind: 'suitLength' }> =>
+      item.kind === 'suitLength' && !item.passed);
+    const failedSupport = requirements.find((item): item is Extract<Requirement, { kind: 'partnerSupport' }> =>
+      item.kind === 'partnerSupport' && !item.passed);
+    const failedBalance = requirements.find((item): item is Extract<Requirement, { kind: 'balanced' }> =>
+      item.kind === 'balanced' && !item.passed);
+    const reasons: string[] = [];
+    if (failedHcp !== undefined) {
+      reasons.push(`requires ${strengthRange(failedHcp)}, but you have ${failedHcp.actual} HCP`);
+    }
+    if (failedPoints !== undefined) {
+      const valuation = failedPoints.valuation ?? 'length';
+      const breakdown = valuation === 'shortage' && failedPoints.hcp !== undefined
+        ? ` (${failedPoints.hcp} HCP + ${failedPoints.actual - failedPoints.hcp} shortage points)`
+        : '';
+      reasons.push(`requires ${strengthRange(failedPoints, valuation)}, but you have ` +
+        `${failedPoints.actual} total points with ${valuation}${breakdown}`);
+    }
+    for (const length of failedLengths) {
+      if (length.suit === undefined || length.actual === undefined || length.min === undefined) {
+        continue;
+      }
+      reasons.push(`requires at least ${length.min} ${suitPlural(`1${length.suit}` as Call)}, ` +
+        `but you have ${length.actual}`);
+    }
+    if (failedSupport !== undefined && failedSupport.actual !== undefined &&
+        failedSupport.min !== undefined) {
+      const suit = failedSupport.suit === undefined ? 'responder’s suit'
+        : `responder’s suit (${suitPlural(`1${failedSupport.suit}` as Call)})`;
+      reasons.push(`requires at least ${failedSupport.min} cards supporting ${suit}, ` +
+        `but you have ${failedSupport.actual}`);
+    }
+    if (failedBalance !== undefined) {
+      reasons.push('requires a balanced hand, but yours is not balanced');
+    }
+    if (reasons.length > 0) {
+      return [`${call} does not qualify: it ${reasons.join('; it also ')}. [${entry.rule.id}]`];
     }
   }
   return [];
@@ -8006,9 +8026,10 @@ function strengthValue(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints'
 }
 
 function strengthRange(check: Extract<Requirement, { kind: 'hcp' | 'totalPoints' }>,
-                       valuation: 'length' | null = null): string {
+                       valuation: 'length' | 'shortage' | null = null): string {
   const units = check.kind === 'hcp' ? 'HCP' :
-    valuation === 'length' ? 'total points with length' : 'total points';
+    valuation === 'length' ? 'total points with length' :
+    valuation === 'shortage' ? 'total points with shortage' : 'total points';
   if (check.min !== undefined && check.max !== undefined) {
     return `${check.min}–${check.max} ${units}`;
   }

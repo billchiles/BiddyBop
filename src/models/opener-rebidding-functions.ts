@@ -1310,7 +1310,7 @@ export function openerSecondSuitApplies (call: Call, context: RuleEvalContext, m
     ],
     callEvidence: { requirements: [
       { kind: 'totalPoints', actual: points, min: minPoints, max: maxPoints,
-        passed: pointsApply },
+        valuation: 'length', passed: pointsApply },
       { kind: 'suitLength', suit: openingSuit,
         actual: context.handFacts.lengths[openingSuit], min: 5,
         passed: openingLengthApplies },
