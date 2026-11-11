@@ -7743,7 +7743,15 @@ export function getOpenerForcingCompetitionRebidLines(
   const info = matched?.callEvidence?.openerCompetitiveForcingRebid;
   if (matched === undefined || info === undefined) return [];
   const call = matched.call;
-  const supportPoints = facts.totalPointsWShortage;
+  const shortageRequirement = matched.callEvidence?.requirements?.find(
+    (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
+      item.kind === 'totalPoints' && item.valuation === 'shortage' && item.passed);
+  const supportPoints = shortageRequirement?.actual ?? facts.totalPointsWShortage;
+  const shortageRange = shortageRequirement === undefined ? '' :
+    ` meet the ${strengthRange(shortageRequirement, 'shortage')} requirement`;
+  const shortageBreakdown = shortageRequirement?.hcp === undefined ? '' :
+    ` (${shortageRequirement.hcp} HCP + ${supportPoints - shortageRequirement.hcp} shortage points)`;
+  const supportFit = `${info.responseSupport} cards in responder’s ${suitPlural(`1${info.responseSuit}` as Call)}`;
   const lengthPoints = facts.totalPointsWLength;
   const shape = info.rebidSuit === null ? '' :
     `${info.rebidLength} ${suitPlural(call)}`;
@@ -7754,9 +7762,9 @@ export function getOpenerForcingCompetitionRebidLines(
   let reason: string;
   switch (rule.id) {
     case 'opener-rebid-raise-after-overcall-two-level-new-suit-minimum':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
-        `in responder’s suit permit ${call}. This minimum raise confirms a fit ` +
-        'without pretending the response has forced game.';
+      reason = `Your ${supportPoints} total points with shortage${shortageRange}, and your ` +
+        `${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'This minimum raise confirms a fit without treating the forcing response as game forcing.';
       break;
     case 'opener-rebid-repeat-after-overcall-two-level-new-suit-minimum':
       reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
@@ -7778,16 +7786,15 @@ export function getOpenerForcingCompetitionRebidLines(
         'not an artificial forcing notrump response.';
       break;
     case 'opener-rebid-jump-raise-after-overcall-two-level-new-suit':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
-        `in responder’s minor support ${call}. Four of a minor is below game: ` +
-        'this is a constructive invitation, and responder may Pass or continue ' +
-        'toward five of the minor.';
+      reason = `Your ${supportPoints} total points with shortage${shortageRange}, and your ` +
+        `${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'Four of a minor remains below game: this is a constructive invitation, ' +
+        'and responder may Pass or continue toward five of the minor.';
       break;
     case 'opener-rebid-game-major-raise-after-overcall-two-level-new-suit-medium':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport} ` +
-        `cards in responder’s major qualify for ${call}. Four of a major has ` +
-        'already reached game, so this medium-strength raise is a game bid, ' +
-        'not an invitation to bid game.';
+      reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
+        `and your ${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'Four of a major is game, not a below-game invitation.';
       break;
     case 'opener-rebid-3nt-after-overcall-two-level-new-suit':
       reason = `Your balanced ${facts.hcp}-HCP hand qualifies for natural 3NT. ` +
@@ -7795,15 +7802,16 @@ export function getOpenerForcingCompetitionRebidLines(
         'in game even though responder’s competitive two-level suit did not force game.';
       break;
     case 'opener-rebid-game-raise-after-overcall-two-level-new-suit':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport} cards ` +
-        `in responder’s suit qualify for ${call} with maximum values. ` +
-        'Major game needs ten tricks; five of a minor needs eleven.';
+      reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
+        `and your ${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'With maximum values, opener can bid game: four of a major needs ten tricks; ' +
+        'five of a minor needs eleven.';
       break;
     case 'opener-rebid-support-after-forcing-response-advancer-competition':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport}-card ` +
-        `support meet the ${info.requiredSupport}-card requirement for ${call}. ` +
-        'Advancer has competed, so the app raises at the cheapest still-available ' +
-        'level below game rather than artificially preserving an old jump.';
+      reason = `Your ${supportPoints} total points with shortage${shortageRange}, and your ` +
+        `${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'Advancer has competed, so the app uses the cheapest available natural ' +
+        'raise below game rather than preserving an old jump.';
       break;
     case 'opener-rebid-repeat-after-forcing-response-advancer-competition':
       reason = `Your ${lengthPoints} length-adjusted points and ${info.openingLength}-card ` +
@@ -7828,17 +7836,24 @@ export function getOpenerForcingCompetitionRebidLines(
         'notrump rebid just because advancer has acted.';
       break;
     case 'opener-rebid-game-raise-after-forcing-response-advancer-competition':
-      reason = `Your ${supportPoints} support points and ${info.responseSupport}-card ` +
-        `fit qualify for ${call}. With maximum values and responder’s forcing ` +
-        'suit established, opener can still bid the appropriate suit game ' +
-        'despite further competition.';
+      reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
+        `and your ${supportFit} meet the ${info.requiredSupport}-card support requirement for ${call}. ` +
+        'With maximum values and responder’s forcing suit established, opener ' +
+        'can still bid the appropriate game despite further competition.';
       break;
-    case 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum':
-      reason = `With ${facts.hcp} HCP, opener has no selected natural rebid ` +
-        'remaining after advancer’s action. Pass is permitted for a minimum ' +
-        'hand: responder still has another turn, and the original response ' +
-        'has not changed into a weak, nonforcing call.';
+    case 'opener-rebid-pass-after-forcing-response-advancer-competition-minimum': {
+      const minimumPoints = matched.callEvidence?.requirements?.find(
+        (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
+          item.kind === 'totalPoints' && item.passed);
+      const valuation = minimumPoints?.valuation ?? 'length';
+      const minimumStrength = minimumPoints === undefined ? 'With minimum values' :
+        `Your ${minimumPoints.actual} total points with ${valuation} meet the ` +
+        `${strengthRange(minimumPoints, valuation)} minimum-Pass requirement`;
+      reason = `${minimumStrength}. Advancer’s action leaves no selected natural ` +
+        'rebid. Pass is permitted here: responder still has another turn, ' +
+        'and the original response remains forcing for one round.';
       break;
+    }
     default:
       return [];
   }
