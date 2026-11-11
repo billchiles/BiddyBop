@@ -797,9 +797,9 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
     if (points?.kind !== 'totalPoints' || hcp?.kind !== 'hcp' ||
         support?.kind !== 'unbidSuitSupport' || !points.passed || !support.passed) return null;
     const shortage = points.actual - hcp.actual;
-    const valuation = shortage > 0
-      ? `You have ${hcp.actual} HCP plus ${shortage} shortage points, for ${points.actual} points.`
-      : `You have ${points.actual} points including shortage valuation.`;
+    const valuation = `Your ${hcp.actual} HCP` +
+      (shortage > 0 ? ` plus ${shortage} shortage point${shortage === 1 ? '' : 's'}` : '') +
+      ` give ${points.actual} total points with shortage`;
     const notrump = qualifyingOvercallAlternative(result,
       [NATURAL_ONE_NT_OVERCALL_ID, WEAK_TWO_NT_ID], 'Double');
     const suit = qualifyingOvercallAlternative(result,
@@ -810,7 +810,7 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
       : suit !== null
         ? ` ${suit} also qualifies and shows your own ${suitPlural(suit)}; ` +
           `Double instead lets partner choose among the unbid suits.` : '';
-    return `${valuation} That meets the 13-point requirement. You have at least ` +
+    return `${valuation}, meeting the 13-point minimum. You have at least ` +
       `three cards in each unbid suit.${comparison} [${rule.id}]`;
   }
   if (STRONG_IDS.includes(rule.id)) {
@@ -850,8 +850,8 @@ export function getTakeoutDoubleFailureLines(result: BidEvalResult): string[] {
       strongHcp?.kind !== 'hcp') return [];
   const lines: string[] = [];
   if (!points.passed) {
-    lines.push(`An ordinary takeout Double requires at least 13 points including shortage; ` +
-      `your hand has ${points.actual} [${ordinary.rule.id}].`);
+    lines.push(`An ordinary takeout Double requires at least 13 total points with shortage; ` +
+      `you have ${points.actual} [${ordinary.rule.id}].`);
   }
   if (!support.passed) {
     lines.push(`An ordinary takeout Double requires at least three cards in each unbid suit; ` +
@@ -907,12 +907,11 @@ export function getBalancingDoubleSupportLine(result: BidEvalResult, rule: BidRu
     if (points?.kind !== 'totalPoints' || support?.kind !== 'unbidSuitSupport' ||
         !points.passed || !support.passed) return null;
     const shortage = points.actual - hcp.actual;
-    const valuation = shortage > 0
-      ? `${hcp.actual} HCP plus ${shortage} shortage point${shortage === 1 ? '' : 's'} ` +
-        `gives ${points.actual} points`
-      : `${hcp.actual} HCP gives ${points.actual} points including shortage valuation`;
-    return `Your ${valuation}. A balancing takeout Double requires 8–15 HCP and ` +
-      `at least 10 points including shortage. You have at most two cards in opener's suit ` +
+    const valuation = `Your ${hcp.actual} HCP` +
+      (shortage > 0 ? ` plus ${shortage} shortage point${shortage === 1 ? '' : 's'}` : '') +
+      ` give ${points.actual} total points with shortage`;
+    return `${valuation}, meeting the 10-point minimum; your HCP also fall in the ` +
+      `8–15 range. You have at most two cards in opener's suit ` +
       `and at least three cards in each unbid suit. Compared with a Double in the seat ` +
       `immediately after opener, the balancing seat can act with less strength [${rule.id}].`;
   }
@@ -944,8 +943,8 @@ export function getBalancingDoubleFailureLines(result: BidEvalResult): string[] 
       strongOpener?.kind !== 'openerSuitLength') return [];
   const lines: string[] = [];
   if (!hcp.passed || !points.passed) {
-    lines.push(`An ordinary balancing Double requires 8–15 HCP and at least 10 points ` +
-      `including shortage; your hand has ${hcp.actual} HCP and ${points.actual} points ` +
+    lines.push(`An ordinary balancing Double requires 8–15 HCP and at least 10 total ` +
+      `points with shortage; your hand has ${hcp.actual} HCP and ${points.actual} total points ` +
       `[${ordinary.rule.id}].`);
   }
   if (!opener.passed) {
@@ -3317,7 +3316,7 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
     const stopper = requirements.find((item) => item.kind === 'stopper');
     if (points?.kind === 'totalPoints' && !points.passed) {
       return [`${entered} under this treatment requires ` +
-        `${strengthRange(points).replace('total points', 'length-adjusted points')}; ` +
+        `${strengthRange(points, points.valuation ?? 'length')}; ` +
         `you have ${points.actual} [${rule.id}].`];
     }
     if (hcp?.kind === 'hcp' && !hcp.passed) {
