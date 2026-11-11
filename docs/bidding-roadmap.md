@@ -39,7 +39,9 @@ not a historical progress log or a commitment to model every possible auction.
   generator and its evidence selectors against the temporary replay samples. Make
   explicit, educationally useful evidence choices, reviewing proposed changes to
   learner-facing text in small batches. Keep the broad replay harness temporary;
-  retain only focused permanent tests for concrete regression risks.
+  retain only focused permanent tests for concrete regression risks. After these
+  review passes, regenerate `docs/by-the-numbers.md` with `npm run stats:bidding`
+  and inspect the resulting diff.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.

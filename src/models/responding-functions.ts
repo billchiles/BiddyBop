@@ -1055,7 +1055,11 @@ export function responderNotrumpAfterOvercallApplies (call: Call, context: RuleE
     `${strength ? 'PASS' : 'FAIL'}: natural ${call} needs ${range.min}-${range.max} HCP; have ${points}.`,
     `${balanced ? 'PASS' : 'FAIL'}: natural notrump needs balanced distribution.`,
     `${stopper ? 'PASS' : 'FAIL'}: need A, Kx, Qxx, or Jxxx stopper in opponent ${suit}.`,
-  ] };
+  ], callEvidence: { requirements: [
+    { kind: 'hcp', actual: points, min: range.min, max: range.max, passed: strength },
+    { kind: 'balanced', actual: balanced, passed: balanced },
+    { kind: 'stopper', suit, passed: stopper },
+  ] } };
 }
 
 /// getOpenerCallAndOvercallForResponder reads the opener's suit bid and the opponent's
