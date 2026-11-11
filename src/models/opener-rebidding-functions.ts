@@ -1772,11 +1772,23 @@ export function openerForcingResponseCompetitionNtApplies (
   }
   const success = wanted !== null && call === wanted &&
     isCallAvailableInAuction(wanted, context.auction);
+  // Record the range belonging to this candidate, independently of the hand's HCP.
+  // A blocked NT level or a missing stopper is filtered before this function runs.
+  const minimumCall = info.response.level === 1 ? '1NT' : '2NT';
+  const maximumCall = info.response.level === 1 ? '2NT' : '3NT';
+  const requiredRange = call === minimumCall ? { min: 12, max: 14 } :
+    call === maximumCall ? { min: 18, max: 19 } : null;
+  const hcpRequirement = requiredRange === null ? undefined : {
+    kind: 'hcp' as const, actual: hcp, min: requiredRange.min, max: requiredRange.max,
+    passed: hcp >= requiredRange.min && hcp <= requiredRange.max,
+  };
   return {
     success,
     telemetryLines: [success
       ? `PASS: ${wanted} retains the natural balanced range after advancer competes.`
       : 'FAIL: no available natural notrump rebid matches this strength and response level.'],
+    callEvidence: hcpRequirement === undefined ? undefined :
+      { requirements: [hcpRequirement] },
   };
 }
 
