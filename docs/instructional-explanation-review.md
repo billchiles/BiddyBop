@@ -26,6 +26,33 @@ Assess every **decision family** in the selected model, including its executable
 
 The provisional statuses below mean **previously developed**, **targeted validation**, or **deep review**. They are **not** the four final decisions above; apply the final labels only after reading representative actual explanations. Avoid using presence/absence of a rule ID in explanations.ts as proof of adequacy.
 
+## Post-refactor evidence review (November 2026)
+
+The earlier Q4 review assessed all modeled bidding stages for instructional quality.
+A subsequent hand-constraint-evidence refactor calls for a distinct, systematic
+check that explanations consume the intended evaluated facts and that only
+deliberately approved messages change. Q4 family coverage alone does **not**
+certify a family in this follow-up audit.
+
+| Focused family examined since the refactor | Follow-up decision |
+| --- | --- |
+| Strong 2C opener rebids after positive responses | Improved (hand-specific rebid evidence) |
+| Natural notrump responses after suit overcalls | Improved (positive and rejected checks) |
+| Weak-two opener rebids after forcing 2NT | Improved (strength, feature, solid suit) |
+| Natural new-suit responses after suit overcalls | Improved (levels one, two and three) |
+| Natural responses after takeout Double | Improved (natural 1NT, one- and two-level new suits) |
+
+**Remaining:** Walk the family inventory below in its published stage order, and
+record an Adequate, Improve, Judgment boundary, or Integration issue decision
+after checking each family's actual positive/rejected output. Previously
+developed or Q4-reviewed families are **not** implicitly skipped. Preserve
+student-facing lines verbatim unless a change is deliberate; inspect every
+changed line in temporary recorded-call replays. Keep the 15,888-case
+refactor comparison separate from the narrower 2,582-context recorded-call
+replay, and do not treat either replay as proof of instructional correctness.
+The roadmap holds only pending work; statistical reach stays in
+`docs/by-the-numbers.md`.
+
 ## Initial source census and review limitations
 
 | Rule declaration module | Executable rule declarations | Scope boundaries | First-pass conclusion |

@@ -11,6 +11,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
          getRuleExplanationLines, getCompetitiveResponseAlternativeLines,
+         getCompetitiveResponseLines,
          getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
@@ -7256,6 +7257,99 @@ function runCompetitiveBidExplanationTests (): number {
         handSpecific.some((line) => !matched.includes(line) || !assembled.includes(line))) {
       failures++;
       console.error(`FAIL natural response evidence/delivery: ${example.auction}.`);
+    }
+  }
+  // Natural responses after takeout Double: use the rule's checked HCP, shape,
+  // suit length, and suit quality in positive and rejected-call feedback.
+  const takeoutCases: { auction: string; ruleId: string; call: Call }[] = [
+    { auction: '1H Double 1NT', ruleId: 'respond-after-double-natural-1nt', call: '1NT' },
+    { auction: '1H Double 1S', ruleId: 'respond-after-double-new-suit-one-level', call: '1S' },
+    { auction: '1H Double 2D', ruleId: 'respond-after-double-new-suit-two-level', call: '2D' },
+  ];
+  for (const example of takeoutCases) {
+    checks++;
+    const deal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing takeout-Double response: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId)
+      ?.candidates.find((item) => item.call === example.call && item.ruleApplies);
+    const hand = getHandFacts(board.deal.S);
+    const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    const balanced = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'balanced');
+    const length = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'suitLength');
+    const quality = candidate?.callEvidence?.competitiveTwoLevelNewSuit;
+    const passed = rule !== undefined && candidate !== undefined &&
+      (example.call === '1NT' ? hcp?.kind === 'hcp' && hcp.passed &&
+        hcp.actual === hand.hcp && balanced?.kind === 'balanced' && balanced.passed &&
+        balanced.actual === hand.balanced : example.call === '1S' ?
+        hcp?.kind === 'hcp' && hcp.passed && hcp.actual === hand.hcp &&
+        length?.kind === 'suitLength' && length.passed && length.actual === hand.lengths.S :
+        quality !== undefined && quality.hcp === hand.hcp &&
+        quality.length === hand.lengths.D && quality.quality &&
+        quality.honors.every((rank) => board.deal.S.cards.some((card) =>
+          card.suit === quality.suit && card.rank === rank)));
+    const generated = rule === undefined ? [] : getCompetitiveResponseLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, hand, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South bids', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: hand,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    const alt = rule === undefined || example.call !== '1NT' ? [] :
+      getCompetitiveResponseAlternativeLines(result, rule);
+    if (!passed || generated.length === 0 ||
+        generated.some((line) => !matched.includes(line) || !delivered.includes(line)) ||
+        (example.call === '1NT' && (alt.length === 0 ||
+          alt.some((line) => !delivered.includes(line))))) {
+      failures++;
+      console.error(`FAIL takeout-Double positive evidence/delivery: ${example.auction}.`);
+    }
+  }
+  const takeoutFailures: { auction: string; entered: Call; kind: 'hcp' | 'balanced' | 'suitLength' }[] = [
+    { auction: '1H Double Redouble', entered: '1NT', kind: 'hcp' },
+    { auction: '1H Double 2D', entered: '1NT', kind: 'balanced' },
+    { auction: '1H Double Redouble', entered: '1S', kind: 'suitLength' },
+  ];
+  for (const example of takeoutFailures) {
+    checks++;
+    const deal = RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing rejected takeout-Double response: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.entered, board, auction, system);
+    const id = example.entered === '1NT' ? 'respond-after-double-natural-1nt' :
+      'respond-after-double-new-suit-one-level';
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
+      ?.candidates.find((item) => item.call === example.entered);
+    const failed = candidate?.callEvidence?.requirements?.find((item) => !item.passed);
+    const generated = getCompetitiveResponseFailureLines(result);
+    const handFacts = getHandFacts(board.deal.S);
+    const delivered = getBidExplanationLines({
+      title: 'South bids', call: example.entered, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (candidate?.ruleApplies !== false || failed?.kind !== example.kind ||
+        result.userCallMatchingRules.length !== 0 || generated.length === 0 ||
+        generated.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL rejected takeout-Double evidence/delivery: ${example.auction} as ${example.entered}.`);
     }
   }
   const comparisons: { auction: string; selected: Call; ruleId: string;

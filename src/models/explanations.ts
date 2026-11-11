@@ -2747,6 +2747,9 @@ const COMPETITIVE_RESPONSE_RULES = [
   'respond-over-jump-support-cuebid-major',
   'respond-after-double-jordan-2nt-support',
   'respond-after-double-redouble-values',
+  'respond-after-double-natural-1nt',
+  'respond-after-double-new-suit-one-level',
+  'respond-after-double-new-suit-two-level',
 ];
 
 /// Explain a qualifying response after interference from recorded suit and
@@ -2757,6 +2760,32 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
   if (candidate?.ruleApplies !== true) return [];
   const facts = candidate.callEvidence?.competitiveResponse;
   const id = `[${rule.id}]`;
+  if (rule.id === 'respond-after-double-natural-1nt') {
+    const hcp = minorRequirement(candidate, 'hcp');
+    const balanced = minorRequirement(candidate, 'balanced');
+    if (hcp?.kind !== 'hcp' || !hcp.passed || balanced?.passed !== true) return [];
+    return [`Your balanced hand has ${hcp.actual} HCP, within the ${hcpRangeText(hcp)} ` +
+      `range for natural, nonforcing 1NT. Their takeout Double named no suit, so no ` +
+      `opponent-suit stopper is required ${id}.`];
+  }
+  if (rule.id === 'respond-after-double-new-suit-one-level') {
+    const hcp = minorRequirement(candidate, 'hcp');
+    const length = minorRequirement(candidate, 'suitLength');
+    if (hcp?.kind !== 'hcp' || !hcp.passed || hcp.min === undefined ||
+        length?.kind !== 'suitLength' || !length.passed ||
+        length.actual === undefined || length.min === undefined) return [];
+    return [`Your ${hcp.actual} HCP meet the ${hcp.min}-HCP minimum, and your ` +
+      `${length.actual} ${suitPlural(candidate.call)} meet the ${length.min}-card ` +
+      `new-suit requirement. Natural ${candidate.call} forces opener to bid again ${id}.`];
+  }
+  if (rule.id === 'respond-after-double-new-suit-two-level') {
+    const value = candidate.callEvidence?.competitiveTwoLevelNewSuit;
+    if (value === undefined) return [];
+    const honors = value.honors.length > 0 ? ` (headed by ${value.honors.join('-')})` : '';
+    return [`Your ${value.hcp} HCP are within the ${value.minHcp}–${value.maxHcp} HCP range. ` +
+      `Your ${value.length} ${suitPlural(candidate.call)}${honors} satisfy the ` +
+      `six-card and suit-quality requirements. Natural ${candidate.call} is nonforcing ${id}.`];
+  }
   if (rule.id === 'respond-over-suit-natural-notrump') {
     const hcp = minorRequirement(candidate, 'hcp');
     const balanced = minorRequirement(candidate, 'balanced');
@@ -2933,6 +2962,19 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
         `and consumes more room [${weakTwoId}].`];
     }
   }
+  if (rule.id === 'respond-after-double-natural-1nt' && call === '1NT') {
+    const alternative = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'respond-after-double-new-suit-one-level')
+      ?.candidates.find((item) => item.call === '1S' && item.ruleApplies);
+    if (alternative !== undefined) {
+      const length = minorRequirement(alternative, 'suitLength');
+      if (length?.kind === 'suitLength' && length.actual !== undefined) {
+        return [`Natural 1S also qualifies with your ${length.actual} spades and forces ` +
+          `opener to bid again. Your 1NT instead shows a balanced, limited-strength ` +
+          `hand and allows opener to Pass [respond-after-double-new-suit-one-level].`];
+      }
+    }
+  }
   const preemptiveId = 'respond-over-suit-preemptive-jump-raise';
   if (rule.id === preemptiveId && qualifiedResponse(result, preemptiveId, call) &&
       getApplicableCandidateCalls(result).some((item) => item.call === 'Pass')) {
@@ -2978,6 +3020,37 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
 
 export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  if (result.normalizedCall === '1NT') {
+    const ntAfterDouble = competitiveResponseCandidate(result, 'respond-after-double-natural-1nt');
+    if (ntAfterDouble !== undefined && !ntAfterDouble.ruleApplies) {
+      const hcp = minorRequirement(ntAfterDouble, 'hcp');
+      const balanced = minorRequirement(ntAfterDouble, 'balanced');
+      const id = '[respond-after-double-natural-1nt]';
+      if (hcp?.kind === 'hcp' && !hcp.passed) {
+        return [`Natural 1NT after a takeout Double requires ${hcpRangeText(hcp)}; ` +
+          `you have ${hcp.actual} HCP ${id}.`];
+      }
+      if (balanced?.kind === 'balanced' && !balanced.passed) {
+        return [`Natural 1NT after a takeout Double requires a balanced hand; ` +
+          `yours is unbalanced ${id}.`];
+      }
+    }
+  }
+  const oneLevel = competitiveResponseCandidate(result, 'respond-after-double-new-suit-one-level');
+  if (oneLevel !== undefined && !oneLevel.ruleApplies) {
+    const hcp = minorRequirement(oneLevel, 'hcp');
+    const length = minorRequirement(oneLevel, 'suitLength');
+    const id = '[respond-after-double-new-suit-one-level]';
+    if (hcp?.kind === 'hcp' && !hcp.passed) {
+      return [`Natural ${oneLevel.call} after a takeout Double needs ${hcpRangeText(hcp)}; ` +
+        `you have ${hcp.actual} HCP ${id}.`];
+    }
+    if (length?.kind === 'suitLength' && !length.passed &&
+        length.min !== undefined && length.actual !== undefined) {
+      return [`Natural ${oneLevel.call} after a takeout Double requires at least ` +
+        `${length.min} ${suitPlural(oneLevel.call)}; you have ${length.actual} ${id}.`];
+    }
+  }
   const nt = competitiveResponseCandidate(result, 'respond-over-suit-natural-notrump');
   if (nt !== undefined && !nt.ruleApplies) {
     const hcp = minorRequirement(nt, 'hcp');
