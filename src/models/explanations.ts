@@ -5664,40 +5664,58 @@ export function getOpenerOneLevelNewSuitRebidFailureLines(result: BidEvalResult)
     if (candidate === undefined) continue;
     const facts = candidate.callEvidence?.openerOneLevelNewSuitRebid;
     if (facts === undefined) continue;
-    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    const checks = candidate.callEvidence?.requirements ?? [];
+    // Choose an understood failure by its meaning, not its position in the evidence array.
+    const failed = checks.find((item) => item.kind === 'hcp' && !item.passed) ??
+      checks.find((item) => item.kind === 'totalPoints' && !item.passed) ??
+      checks.find((item) => item.kind === 'partnerSupport' && !item.passed) ??
+      checks.find((item) => item.kind === 'suitLength' && !item.passed) ??
+      checks.find((item) => item.kind === 'rebidShape' && !item.passed) ??
+      checks.find((item) => item.kind === 'balanced' && !item.passed);
     let explanation: string | null = null;
     if (failed?.kind === 'hcp' || failed?.kind === 'totalPoints') {
-      const unit = failed.kind === 'hcp' ? 'HCP' :
-        `total points with ${diagnostic.rule.id.includes('-raise-') ||
-          diagnostic.rule.id.includes('-splinter-') ? 'shortage' : 'length'}`;
-      const required = failed.min !== undefined && failed.max !== undefined ?
-        `${failed.min}–${failed.max}` : failed.min !== undefined ?
-        `at least ${failed.min}` : `at most ${failed.max}`;
-      const direction = failed.min !== undefined && failed.actual < failed.min ?
-        'too few' : 'too many';
-      explanation = `${result.normalizedCall} requires ${required} ${unit}; ` +
-        `you have ${failed.actual}, ${direction} for this treatment.`;
-      if (failed.kind === 'totalPoints') {
-        explanation += ` That total includes ${diagnostic.rule.id.includes('-raise-') ||
-          diagnostic.rule.id.includes('-splinter-') ? 'shortage' : 'length'} ` +
-          `points in addition to HCP.`;
+      const valuation = failed.kind === 'totalPoints' ? failed.valuation ?? 'length' : null;
+      const unit = failed.kind === 'hcp' ? 'HCP' : `total points with ${valuation}`;
+      const direction = failed.min !== undefined && failed.actual < failed.min ? 'below' : 'above';
+      const breakdown = failed.kind === 'totalPoints' && valuation === 'shortage' &&
+        failed.hcp !== undefined ?
+        ` (${failed.hcp} HCP + ${failed.actual - failed.hcp} shortage points)` : '';
+      explanation = `${result.normalizedCall} requires ${strengthRange(failed, valuation)}; ` +
+        `you have ${failed.actual} ${unit}${breakdown}, ${direction} the requirement.`;
+    } else if (failed?.kind === 'partnerSupport' && failed.actual !== undefined) {
+      const required = failed.min !== undefined && failed.actual < failed.min ?
+        `at least ${failed.min}` : failed.max !== undefined && failed.actual > failed.max ?
+        `at most ${failed.max}` : null;
+      if (required !== null) {
+        explanation = `${result.normalizedCall} requires ${required} cards supporting ` +
+          `responder's ${suitPlural(`1${facts.responseSuit}` as Call)}; ` +
+          `you have ${failed.actual}.`;
       }
-    } else if (failed?.kind === 'partnerSupport') {
-      explanation = `${result.normalizedCall} requires ${failed.min !== undefined ?
-        `at least ${failed.min}` : `at most ${failed.max}`} ` +
-        `${suitPlural(`1${facts.responseSuit}` as Call)} of support; ` +
-        `you have ${failed.actual}.`;
-    } else if (failed?.kind === 'suitLength') {
-      explanation = `${result.normalizedCall} requires ${failed.min ?? failed.exact} ` +
-        `${failed.suit === undefined ? 'cards in the suit' : suitPlural(`1${failed.suit}` as Call)}; ` +
-        `you have ${failed.actual}.`;
-    } else if (failed?.kind === 'balanced' || failed?.kind === 'rebidShape') {
-      explanation = `${result.normalizedCall} requires balanced distribution; ` +
-        `your hand does not meet that shape requirement.`;
-    } else if (candidate.callEvidence?.openerMinorOneNtSecondSuitAvailable === true &&
-               result.normalizedCall === '1NT') {
-      explanation = `Opener has an economical four-card second suit to show at the one ` +
-        `level, so this selected 1NT treatment does not apply.`;
+    } else if (failed?.kind === 'suitLength' && failed.actual !== undefined) {
+      const required = failed.exact !== undefined ? `exactly ${failed.exact}` :
+        failed.min !== undefined && failed.actual < failed.min ? `at least ${failed.min}` :
+        failed.max !== undefined && failed.actual > failed.max ? `at most ${failed.max}` : null;
+      if (required !== null) {
+        const suit = failed.suit === undefined ? 'the tested suit' :
+          suitPlural(`1${failed.suit}` as Call);
+        const count = failed.exact ?? (failed.min !== undefined && failed.actual < failed.min ?
+          failed.min : failed.max);
+        explanation = `${result.normalizedCall} requires ${required} ${count === 1 ? 'card' : 'cards'} ` +
+          `in ${suit}; you have ${failed.actual}.`;
+      }
+    } else if (failed?.kind === 'balanced') {
+      explanation = `${result.normalizedCall} requires a balanced hand; your hand is not balanced.`;
+    } else if (failed?.kind === 'rebidShape') {
+      const required = failed.shape === 'semiBalancedOnly' ?
+        'semi-balanced but not strictly balanced' : failed.shape === 'balancedOrSemiBalanced' ?
+        'balanced or semi-balanced' : 'balanced';
+      explanation = `${result.normalizedCall} requires ${required} distribution; ` +
+        'your hand does not qualify.';
+    }
+    if (explanation === null && candidate.callEvidence?.openerMinorOneNtSecondSuitAvailable === true &&
+        result.normalizedCall === '1NT') {
+      explanation = 'Opener has an economical four-card second suit to show at the one ' +
+        'level, so this selected 1NT treatment does not apply.';
     }
     if (explanation !== null) return [`${explanation} [${diagnostic.rule.id}]`];
   }
@@ -5913,41 +5931,55 @@ export function getOpenerTwoLevelNewSuitRebidFailureLines(result: BidEvalResult)
     if (candidate === undefined) continue;
     const facts = candidate.callEvidence?.openerTwoLevelNewSuitRebid;
     if (facts === undefined) continue;
-    const failed = candidate.callEvidence?.requirements?.find((item) => !item.passed);
+    const checks = candidate.callEvidence?.requirements ?? [];
+    // Choose an understood failure by its meaning, not its position in the evidence array.
+    const failed = checks.find((item) => item.kind === 'hcp' && !item.passed) ??
+      checks.find((item) => item.kind === 'totalPoints' && !item.passed) ??
+      checks.find((item) => item.kind === 'partnerSupport' && !item.passed) ??
+      checks.find((item) => item.kind === 'suitLength' && !item.passed) ??
+      checks.find((item) => item.kind === 'rebidShape' && !item.passed) ??
+      checks.find((item) => item.kind === 'balanced' && !item.passed);
     if (failed === undefined) continue;
-    let explanation: string;
+    let explanation: string | null = null;
     if (failed.kind === 'hcp' || failed.kind === 'totalPoints') {
-      const measure = failed.kind === 'hcp' ? 'HCP' : 'total points';
-      const range = failed.min !== undefined && failed.max !== undefined ?
-        `${failed.min}–${failed.max}` : failed.min !== undefined ?
-        `at least ${failed.min}` : `at most ${failed.max}`;
-      const shortage = diagnostic.rule.id.includes('-raise-');
-      const actual = failed.actual;
-      explanation = `${attempted} requires ${range} ${shortage && failed.kind === 'totalPoints' ?
-        'shortage points' : measure}; you have ${actual}, ` +
-        `${failed.min !== undefined && actual < failed.min ? 'too few' : 'too many'} ` +
-        `for this treatment.`;
-    } else if (failed.kind === 'partnerSupport') {
-      if (failed.actual === undefined) continue;
-      explanation = `${attempted} requires ${failed.min ?? 0} or more cards in responder's ` +
-        `${suitPlural(`1${facts.responseSuit}` as Call)}; you have ${failed.actual}.`;
-    } else if (failed.kind === 'suitLength') {
-      if (failed.actual === undefined) continue;
-      const suit = failed.suit === undefined ? 'the tested suit' :
-        suitPlural(`1${failed.suit}` as Call);
-      const criterion = failed.max !== undefined && failed.actual > failed.max ?
-        `at most ${failed.max}` : failed.min !== undefined ? `at least ${failed.min}` :
-        `exactly ${failed.exact}`;
-      explanation = `${attempted} requires ${criterion} cards in ${suit}; ` +
-        `you have ${failed.actual}.`;
+      const valuation = failed.kind === 'totalPoints' ? failed.valuation ?? 'length' : null;
+      const unit = failed.kind === 'hcp' ? 'HCP' : `total points with ${valuation}`;
+      const direction = failed.min !== undefined && failed.actual < failed.min ? 'below' : 'above';
+      const breakdown = failed.kind === 'totalPoints' && valuation === 'shortage' &&
+        failed.hcp !== undefined ?
+        ` (${failed.hcp} HCP + ${failed.actual - failed.hcp} shortage points)` : '';
+      explanation = `${attempted} requires ${strengthRange(failed, valuation)}; ` +
+        `you have ${failed.actual} ${unit}${breakdown}, ${direction} the requirement.`;
+    } else if (failed.kind === 'partnerSupport' && failed.actual !== undefined) {
+      const required = failed.min !== undefined && failed.actual < failed.min ?
+        `at least ${failed.min}` : failed.max !== undefined && failed.actual > failed.max ?
+        `at most ${failed.max}` : null;
+      if (required !== null) {
+        explanation = `${attempted} requires ${required} cards supporting responder's ` +
+          `${suitPlural(`1${facts.responseSuit}` as Call)}; you have ${failed.actual}.`;
+      }
+    } else if (failed.kind === 'suitLength' && failed.actual !== undefined) {
+      const required = failed.exact !== undefined ? `exactly ${failed.exact}` :
+        failed.min !== undefined && failed.actual < failed.min ? `at least ${failed.min}` :
+        failed.max !== undefined && failed.actual > failed.max ? `at most ${failed.max}` : null;
+      if (required !== null) {
+        const suit = failed.suit === undefined ? 'the tested suit' :
+          suitPlural(`1${failed.suit}` as Call);
+        const count = failed.exact ?? (failed.min !== undefined && failed.actual < failed.min ?
+          failed.min : failed.max);
+        explanation = `${attempted} requires ${required} ${count === 1 ? 'card' : 'cards'} ` +
+          `in ${suit}; you have ${failed.actual}.`;
+      }
     } else if (failed.kind === 'balanced') {
-      explanation = `${attempted} requires a balanced hand; this hand is not balanced.`;
+      explanation = `${attempted} requires a balanced hand; your hand is not balanced.`;
     } else if (failed.kind === 'rebidShape') {
-      explanation = `${attempted} requires ${failed.shape === 'balancedOrSemiBalanced' ?
-        'balanced or semi-balanced' : 'balanced'} shape, which this hand lacks.`;
-    } else {
-      continue;
+      const required = failed.shape === 'semiBalancedOnly' ?
+        'semi-balanced but not strictly balanced' : failed.shape === 'balancedOrSemiBalanced' ?
+        'balanced or semi-balanced' : 'balanced';
+      explanation = `${attempted} requires ${required} distribution; ` +
+        'your hand does not qualify.';
     }
+    if (explanation === null) continue;
     return [`${explanation} [${diagnostic.rule.id}]`];
   }
   return [];

@@ -924,12 +924,13 @@ export function openerTwoLevelRaiseApplies (_call: Call, context: RuleEvalContex
     (maxPoints === undefined || points <= maxPoints);
   return { success, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: ${required}-card opener support required after the ` +
-    `natural two-level response; actual support ${support}, shortage points ${points}.`,
+    `natural two-level response; actual support ${support}, total points with shortage ${points}.`,
   ],
     callEvidence: { requirements: [
       { kind: 'partnerSupport', suit: response?.strain as Suit | undefined,
         actual: support, min: required, passed: support >= required },
-      { kind: 'totalPoints', actual: points, min: minPoints, max: maxPoints,
+      { kind: 'totalPoints', actual: points, hcp: context.handFacts.hcp,
+        min: minPoints, max: maxPoints, valuation: 'shortage',
         passed: (minPoints === undefined || points >= minPoints) &&
                 (maxPoints === undefined || points <= maxPoints) },
     ] },
