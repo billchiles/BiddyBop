@@ -431,7 +431,7 @@ export interface CallEvidence {
     balanced: boolean;
     hasFiveCardMajor: boolean;
   };
-  preemptSuitQuality?: { call: Call; passed: boolean }[];
+  preemptSuitQuality?: { call: Call; passed: boolean; honors: ('A' | 'K' | 'Q' | 'J' | 'T')[] }[];
 
   // Direct overcalls, defense, and balancing
   naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
