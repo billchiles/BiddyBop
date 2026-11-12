@@ -70,8 +70,8 @@ openings, including natural suit/NT responses, raises, jump shifts, and
 qualifying alternatives. Mark each family reviewed, including those that
 require no code change.
 
-**Remaining:** Walk the family inventory below in its published stage order, and
-record an Adequate, Improve, Judgment boundary, or Integration issue decision
+**Remaining:** Continue the family inventory below from initial responses onward,
+and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve
 student-facing lines verbatim unless a change is deliberate; inspect every
