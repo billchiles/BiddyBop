@@ -14,6 +14,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getCompetitiveResponseLines,
          getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
+         getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getPreemptOpeningSupportLine,
@@ -141,6 +142,7 @@ function runAllRuleTests (): void {
     runConventionalOpenerEvidenceTests,
     runConventionalRejectionFeedbackTests,
     runInitialResponseEvidenceTests,
+    runMajorDirectThreeNtEvidenceTests,
     runNaturalCompetitiveRejectionFeedbackTests,
     runForcingContinuationPassTests,
     runPositiveAlternativeDeliveryTests,
@@ -2037,6 +2039,100 @@ function runMajorSupportNewSuitRejectionTests (): number {
   console.log(`${failures} ***FAILURES***. Major-support new-suit rejection: ${checks} checks.\n`);
   return failures;
 }
+/// Verify evaluated flat-hand facts and feedback delivery for the direct 3NT major response.
+/// The rejected checks use existing hands that qualify for other support routes.
+function runMajorDirectThreeNtEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const ruleId = 'respond-to-major-w/-3nt-flat-13-15';
+  const deals = [...new Set(RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals))];
+  const positives = deals.filter((deal) =>
+    (deal.practiceAuction[0] === '1H' || deal.practiceAuction[0] === '1S') &&
+    deal.practiceAuction[1] === 'Pass' && deal.practiceAuction[2] === '3NT');
+  checks++;
+  if (positives.length !== 2) {
+    failures++;
+    console.error('FAIL expected two existing direct 3NT major-response practice hands.');
+  }
+  const nearMisses = [
+    { text: '1S-2NT: 13 HCP plus one shortage point', failed: 'partnerSupport' },
+    { text: '1S: 13 HCP with three spades, four hearts', failed: 'suitLength' },
+  ];
+  for (const deal of positives) {
+    checks++;
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const hand = getHandFacts(board.deal.S);
+    const result = evaluateUserCall('3NT', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === ruleId);
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === ruleId)
+      ?.candidates.find((item) => item.call === '3NT');
+    const checksForCall = candidate?.callEvidence?.requirements ?? [];
+    const strength = checksForCall.find((item) => item.kind === 'hcp');
+    const support = checksForCall.find((item) => item.kind === 'partnerSupport');
+    const otherMajor = checksForCall.find((item) => item.kind === 'suitLength');
+    const shape = checksForCall.find((item) => item.kind === 'fourThreeThreeThree');
+    const ownMajor = auction[0]?.slice(-1) as 'H' | 'S';
+    const otherSuit = ownMajor === 'H' ? 'S' : 'H';
+    const computedShape = Object.values(hand.lengths).sort((a, b) => b - a).join('-');
+    const generated = rule === undefined ? [] : getMajorDirectThreeNtLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, hand, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: '3NT', result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: hand,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    const newSuitAlternative = getApplicableCandidateCalls(result).some((item) =>
+      item.rule.id === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise');
+    if (candidate?.ruleApplies !== true || strength?.kind !== 'hcp' ||
+        strength.actual !== hand.hcp || !strength.passed ||
+        support?.kind !== 'partnerSupport' || support.suit !== ownMajor ||
+        support.actual !== hand.lengths[ownMajor] || !support.passed ||
+        otherMajor?.kind !== 'suitLength' || otherMajor.suit !== otherSuit ||
+        otherMajor.actual !== hand.lengths[otherSuit] || !otherMajor.passed ||
+        shape?.kind !== 'fourThreeThreeThree' || !shape.passed ||
+        shape.distribution !== computedShape || !newSuitAlternative ||
+        generated.length === 0 ||
+        generated.some((line) => !matched.includes(line) || !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL direct 3NT evidence/delivery: ${deal.description}.`);
+    }
+  }
+  for (const example of nearMisses) {
+    checks++;
+    const deal = deals.find((item) => item.description.includes(example.text));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing direct 3NT near miss: ${example.text}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const hand = getHandFacts(board.deal.S);
+    const result = evaluateUserCall('3NT', board, auction, system);
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === ruleId)
+      ?.candidates.find((item) => item.call === '3NT');
+    const firstFailed = candidate?.callEvidence?.requirements?.find((item) => !item.passed);
+    const reasons = getMajorDirectThreeNtFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: '3NT', result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: hand,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length !== 0 || candidate?.ruleApplies !== false ||
+        firstFailed?.kind !== example.failed || reasons.length === 0 ||
+        reasons.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL direct 3NT rejected evidence/delivery: ${example.text}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Direct 3NT major-response evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Check actual evaluator facts and the shared explanation delivery for initial responses.
 function runInitialResponseEvidenceTests (): number {
   let failures = 0;
