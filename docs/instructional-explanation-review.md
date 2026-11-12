@@ -65,12 +65,31 @@ recorded-call replay changed only the 43 intended preempt examples. A wider
 the same four preempt families, with no rule-match changes. The preserved
 15,888-case earlier refactor archive is unavailable and is not claimed here.
 
-**Next systematic stage:** Initial responses to one-level minor and major
-openings, including natural suit/NT responses, raises, jump shifts, and
-qualifying alternatives. Mark each family reviewed, including those that
-require no code change.
+### Stage 2 — responses to one-level minor and major openings
 
-**Remaining:** Continue the family inventory below from initial responses onward,
+| Initial-response decision family | Disposition | Basis |
+| --- | --- | --- |
+| Minor new suits and strong support routes, including Standard versus 2/1 1D–2C | Adequate | Evaluated HCP, suit selection and forcing status already explained |
+| Minor natural 1NT/2NT/3NT and simple/limit raises | Adequate | Shape, support, HCP and relevant alternative paths already covered |
+| Major simple/limit raises, three-card support and support game forces | Adequate | Actual support, shortage valuation, agreements and competing support routes explained |
+| Major new suits and natural 1NT under Standard and 2/1 | Adequate | HCP, length and one-round versus game-force distinctions clear |
+| Major weak/strong jump shifts and splinter/Jacoby treatments | Adequate | Suit quality, shortage and forcing evidence already present |
+| Direct 3NT after a major opening | Improved | Actual 13–15 HCP, 4-3-3-3 shape, exactly three-card support and supported game-forcing alternative; targeted near-miss feedback |
+| Exceptional 13-support-point fallback and rare three-card-minor routes | Judgment boundary | Existing text acknowledges partnership judgment rather than inventing certainty |
+| Direct 4NT ace asking and unmodeled slam continuations | Judgment boundary | Initial action taught; subsequent ace responses/slam decisions deliberately outside the modeled scope |
+
+The direct-3NT change was compared against the 2,582-context recorded-call
+baseline: two intended recorded explanations changed, with no other recorded
+messages or qualified calls altered. An additional 108-attempt major-opening
+comparison identified 21 deliberately improved rejected 3NT near misses with
+13–15 HCP; other attempted calls were left unchanged. These checks are
+regression comparisons, not proof that the explanation text is optimal.
+
+**Next systematic stage:** Responses to natural 1NT and 2NT openings, then
+strong artificial 2C and weak/preemptive openings, followed by competitive
+responses. Preserve an explicit decision even when the family is adequate.
+
+**Remaining:** Continue the family inventory below from natural-notrump responses onward,
 and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve
