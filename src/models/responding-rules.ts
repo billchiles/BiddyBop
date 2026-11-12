@@ -661,7 +661,7 @@ export const ResponseBidRules: BidRule[] = [
     appliesWhen: majorDirectThreeNtApplies,
     guidance: ['This is a partnership treatment for very flat game-going values.',
                'With more control-rich values, starting a forcing support route may be preferable.'],
-    meaning: 'Very flat 13-15 HCP game response, normally with three-card support; opener may pass ' +
+    meaning: 'Very flat 13-15 HCP game response with exactly three-card support; opener may Pass ' +
              'or continue.',
   },
   //
