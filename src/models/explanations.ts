@@ -220,6 +220,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getMinorResponseFailureLines(result),
     ...getMajorSupportFailureLines(result),
     ...getMajorNoSupportFailureLines(result),
+    ...getMajorDirectThreeNtFailureLines(result),
     ...getResponderJumpShiftFailureLines(result),
     ...getCompetitiveResponseFailureLines(result),
     ...getWeakTwoResponseFailureLines(result),
@@ -416,6 +417,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getMinorResponseSupportLines(result, rule));
   lines.push(...getMajorSupportLines(result, rule));
   lines.push(...getMajorNoSupportLines(result, rule));
+  lines.push(...getMajorDirectThreeNtLines(result, rule));
   lines.push(...getResponderJumpShiftLines(result, rule));
   lines.push(...getCompetitiveResponseLines(result, rule));
   lines.push(...getNaturalNewSuitOvercallLines(result, rule));
@@ -2109,6 +2111,69 @@ export function getMajorSupportFailureLines(result: BidEvalResult): string[] {
     }
   }
   return lines;
+}
+
+/// Explain direct 3NT after a major opening using the evaluated flat-hand checks.
+/// An alternative new-suit route is mentioned only if it actually qualifies.
+export function getMajorDirectThreeNtLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (rule.id !== 'respond-to-major-w/-3nt-flat-13-15') return [];
+  const { candidate } = findCallDiagnostic(result, rule.id);
+  if (candidate?.ruleApplies !== true) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  const shape = minorRequirement(candidate, 'fourThreeThreeThree');
+  const otherMajor = minorRequirement(candidate, 'suitLength');
+  if (hcp?.passed !== true || support?.passed !== true || shape?.passed !== true ||
+      otherMajor?.passed !== true || support.suit === undefined ||
+      support.actual === undefined) return [];
+  const major = suitPlural(`1${support.suit}` as Call);
+  const alternatives = getApplicableCandidateCalls(result).filter((item) =>
+    item.rule.id === 'respond-to-major-w/-three-card-support-13plus-bid-new-suit-then-raise' &&
+    item.call !== result.normalizedCall).map((item) => item.call);
+  const otherRoute = alternatives.length === 0 ? '' :
+    ` A game-forcing ${alternatives.join(' or ')} response also qualifies; ` +
+    `that new-suit route can be followed by a raise of opener's ${major} to game.`;
+  return [`Your ${hcp.actual} HCP, ${shape.distribution} distribution, and exactly ` +
+    `${support.actual} ${major} meet the requirements for direct 3NT. This shows ` +
+    `a very flat, game-going hand with at least an eight-card fit in ${major}; ` +
+    `opener may Pass or continue in ${major}.${otherRoute} [${rule.id}].`];
+}
+
+/// Explain only failed requirements of an attempted direct 3NT after a major opening.
+/// Shape and support decisions are preserved by the bidding rule, not redone here.
+export function getMajorDirectThreeNtFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== '3NT' || result.userCallMatchingRules.length > 0) return [];
+  const ruleId = 'respond-to-major-w/-3nt-flat-13-15';
+  const { candidate } = findCallDiagnostic(result, ruleId);
+  if (candidate?.ruleApplies !== false) return [];
+  const hcp = minorRequirement(candidate, 'hcp');
+  const support = minorRequirement(candidate, 'partnerSupport');
+  const otherMajor = minorRequirement(candidate, 'suitLength');
+  const shape = minorRequirement(candidate, 'fourThreeThreeThree');
+  // Most weak or strong hands have enough information in the general meaning and
+  // supported alternatives; reserve this diagnostic for a genuine 13–15 HCP near miss.
+  if (hcp?.passed !== true) return [];
+  if (support?.passed === false && support.suit !== undefined &&
+      support.actual !== undefined) {
+    const jacoby = getApplicableCandidateCalls(result).some((item) =>
+      item.rule.id === 'respond-to-major-w/-support-jacoby-2nt-agreement' &&
+      item.call === '2NT');
+    return [`Direct 3NT requires exactly three ${suitPlural(`1${support.suit}` as Call)} ` +
+      `in support of opener; you have ${support.actual}.` +
+      (jacoby ? ' Jacoby 2NT also qualifies with your game-forcing support.' : '') +
+      ` [${ruleId}].`];
+  }
+  if (otherMajor?.passed === false && otherMajor.suit !== undefined &&
+      otherMajor.actual !== undefined) {
+    return [`Direct 3NT does not allow four cards in the other major; ` +
+      `you have ${otherMajor.actual} ${suitPlural(`1${otherMajor.suit}` as Call)} ` +
+      `[${ruleId}].`];
+  }
+  if (shape?.passed === false) {
+    return [`Direct 3NT requires 4-3-3-3 distribution; ` +
+      `your hand is ${shape.distribution} [${ruleId}].`];
+  }
+  return [];
 }
 
 ///

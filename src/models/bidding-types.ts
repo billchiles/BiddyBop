@@ -397,6 +397,7 @@ export interface CallEvidence {
     | { kind: 'rebidShape'; shape: 'balanced' | 'balancedOrSemiBalanced' | 'semiBalancedOnly';
         passed: boolean }
     | { kind: 'fiveCardMajor'; actual: boolean; passed: boolean }
+    | { kind: 'fourThreeThreeThree'; actual: boolean; distribution: string; passed: boolean }
     | { kind: 'totalPoints'; actual: number; hcp?: number; min?: number; max?: number;
         valuation?: 'length' | 'shortage'; passed: boolean }
     // Suit and actual are absent for an unresolved target or a failed either-suit test.

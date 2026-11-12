@@ -555,14 +555,26 @@ export function majorDirectThreeNtApplies (_call: Call, context: RuleEvalContext
   const sortedLengths = SUITS.map((suit) => lengths[suit]).sort((a, b) => a - b);
   const isFourThreeThreeThree = sortedLengths.join('-') === '3-3-3-4';
   const hcp = context.handFacts.hcp;
-  const success = hcp >= 13 && hcp <= 15 && supportLength === 3 &&
-                  lengths[otherMajor] <= 3 && isFourThreeThreeThree;
+  const strengthQualified = hcp >= 13 && hcp <= 15;
+  const supportQualified = supportLength === 3;
+  const otherMajorQualified = lengths[otherMajor] <= 3;
+  const success = strengthQualified && supportQualified &&
+                  otherMajorQualified && isFourThreeThreeThree;
   return {
     success,
     telemetryLines: [
       `${success ? 'APPLIES' : 'FAIL'}: direct 3NT requires 13-15 HCP, 4-3-3-3 shape, ` +
       `exactly three-card support, and no four-card other major.`,
     ],
+    callEvidence: { requirements: [
+      { kind: 'hcp', actual: hcp, min: 13, max: 15, passed: strengthQualified },
+      { kind: 'partnerSupport', suit: opening.strain, actual: supportLength,
+        min: 3, max: 3, passed: supportQualified },
+      { kind: 'suitLength', suit: otherMajor, actual: lengths[otherMajor],
+        max: 3, passed: otherMajorQualified },
+      { kind: 'fourThreeThreeThree', actual: isFourThreeThreeThree,
+        distribution: [...sortedLengths].reverse().join('-'), passed: isFourThreeThreeThree },
+    ] },
   };
 }
 
