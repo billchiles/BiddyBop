@@ -42,8 +42,36 @@ certify a family in this follow-up audit.
 | Natural new-suit responses after suit overcalls | Improved (levels one, two and three) |
 | Natural responses after takeout Double | Improved (natural 1NT, one- and two-level new suits) |
 
-**Remaining:** Walk the family inventory below in its published stage order, and
-record an Adequate, Improve, Judgment boundary, or Integration issue decision
+### Stage-order evidence audit decisions
+
+The focused fixes above were selected as substantive gaps, not as evidence that
+the intervening families were skipped. The systematic audit now follows the
+family inventory in stage order, recording decisions after representative
+positive and rejected-call review.
+
+| Stage 1 — opening decision family | Disposition | Basis |
+| --- | --- | --- |
+| Pass with no qualifying opening | Adequate | Four-seat fallback and boundaries already tested; no extra Pass prose needed |
+| Five-card major and convenient minor | Adequate | Selected suit, length valuation, and meaningful competing openings already explained |
+| Guideline of 20 | Adequate | First-/second-seat alternative hand valuation identified when relevant |
+| Natural 1NT, both ranges, optional five-card-major upgrade | Adequate | HCP, balanced shape, upgrade, and nearby failures have evaluated explanations |
+| Natural 2NT (20–21 HCP) | Adequate | Actual HCP and balanced shape already reported |
+| Strong artificial 2C | Adequate | Actual strength and forcing meaning already explained |
+| Weak-two, three-, four-, and five-level preempts | Improved | Actual qualifying A/K/Q/J/10 holdings now identify the relevant suit-quality standard; strength and length remain evaluated |
+
+For the opening-stage preempt improvement, a temporary 2,582-context
+recorded-call replay changed only the 43 intended preempt examples. A wider
+13,167-attempt opening-call replay changed 46 explanations, all belonging to
+the same four preempt families, with no rule-match changes. The preserved
+15,888-case earlier refactor archive is unavailable and is not claimed here.
+
+**Next systematic stage:** Initial responses to one-level minor and major
+openings, including natural suit/NT responses, raises, jump shifts, and
+qualifying alternatives. Mark each family reviewed, including those that
+require no code change.
+
+**Remaining:** Continue the family inventory below from initial responses onward,
+and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve
 student-facing lines verbatim unless a change is deliberate; inspect every

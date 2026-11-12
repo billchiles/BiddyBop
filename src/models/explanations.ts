@@ -664,9 +664,14 @@ export function getPreemptOpeningSupportLine(result: BidEvalResult, rule: BidRul
       strength === undefined || (strength.kind !== 'hcp' && strength.kind !== 'totalPoints')) {
     return null;
   }
-  return `Your ${suitName(result.normalizedCall)} suit has ${length.actual} cards and meets ` +
-    `the suit-quality requirement (${PREEMPT_SUIT_QUALITY}). ` +
-    `With ${strengthValue(strength, 'length')}, your hand meets the ` +
+  const honors = quality.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const topThree = quality.honors.filter((rank) =>
+    rank === 'A' || rank === 'K' || rank === 'Q').length;
+  const standard = topThree >= 2 ? 'at least two of A/K/Q' :
+    'at least three of A/K/Q/J/10';
+  return `Your ${length.actual} ${suitPlural(result.normalizedCall)} contain ${honors}, ` +
+    `meeting the preempt suit-quality requirement (${standard}). With ` +
+    `${strengthValue(strength, 'length')}, your hand meets the ` +
     `${strengthRange(strength, 'length')} requirement [${rule.id}].`;
 }
 

@@ -16,6 +16,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getNaturalAdvanceLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
+         getPreemptOpeningSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
          getResponseSelectionFailureLines, getResponseSelectionSupportLines,
          getConventionalForcingPassFailureLines,
@@ -103,6 +104,7 @@ function runAllRuleTests (): void {
   const testGroups: (() => number)[] = [
     runMajorNoSupportAgreementTests,
     runBasicOpeningExplanationTests,
+    runPreemptOpeningHonorEvidenceTests,
     runMixedRebidRegressionTests,
     runResponderAfterMinorJumpRepeatTests,
     runOpenerPassAfterPreemptRaiseTests,
@@ -820,6 +822,66 @@ function runWeakTwoInquiryExplanationTests (): number {
     }
   }
   console.log(`${failures} ***FAILURES***. Weak-two inquiry explanation evidence: ${checks} checks.\n`);
+  return failures;
+}
+
+/// Confirm the actual qualifying honors are preserved and delivered for every preempt
+/// level, including both permitted suit-quality standards. No wording is snapshotted.
+function runPreemptOpeningHonorEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const examples: { bucketId: string; call: Call; ruleId: string;
+    standard: 'topThree' | 'topFive' }[] = [
+    { bucketId: 'response-weak-preempt', call: '2H',
+      ruleId: 'open-weak-two', standard: 'topThree' },
+    { bucketId: 'overcall-weak-two-2nt', call: '2D',
+      ruleId: 'open-weak-two', standard: 'topFive' },
+    { bucketId: 'response-weak-preempt', call: '3H',
+      ruleId: 'open-weak-three', standard: 'topThree' },
+    { bucketId: 'response-weak-preempt', call: '4H',
+      ruleId: 'open-four-level-preempt', standard: 'topThree' },
+    { bucketId: 'response-weak-preempt', call: '5D',
+      ruleId: 'open-five-level-minor-preempt', standard: 'topThree' },
+  ];
+  for (const example of examples) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === example.bucketId)
+      ?.deals.find((item) => item.practiceAuction[0] === example.call);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing preempt honor example: ${example.bucketId} ${example.call}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.call, board, [], system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const quality = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId)
+      ?.callEvidence?.preemptSuitQuality?.find((item) => item.call === example.call);
+    const hand = board.deal.N;
+    const handFacts = getHandFacts(hand);
+    const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      hand.cards.some((card) => card.suit === example.call[1] && card.rank === rank));
+    const topThree = honors.filter((rank) =>
+      rank === 'A' || rank === 'K' || rank === 'Q').length;
+    const standard = topThree >= 2 ? 'topThree' : honors.length >= 3 ? 'topFive' : null;
+    const line = rule === undefined ? null : getPreemptOpeningSupportLine(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, 0);
+    const delivered = getBidExplanationLines({
+      title: 'North opens', call: example.call,
+      status: getBiddingTurnStatus(board, [], system), result, handFacts,
+      auctionLength: 0, previewLines: [], seatLabel: 'North', recordedUnjudged: false,
+    });
+    if (rule === undefined || quality?.passed !== true ||
+        quality.honors.join(',') !== honors.join(',') ||
+        standard !== example.standard || line === null ||
+        !matched.includes(line) || !delivered.includes(line)) {
+      failures++;
+      console.error(`FAIL preempt honor evidence/delivery: ${example.call} ${example.bucketId}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Preempt opening honor evidence: ${checks} checks.\n`);
   return failures;
 }
 

@@ -120,7 +120,9 @@ export function refinePreemptSuitQuality (calls: Call[], context: RuleEvalContex
   const quality = calls.map((call) => {
     const candidate = parseSuitBid(call)!;
     const suit = candidate.strain as Suit; // only rules with suit calls use this refiner, no NT
-    return { call, passed: hasPreemptSuitQuality(context.hand, suit) };
+    const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+    return { call, passed: hasPreemptSuitQuality(context.hand, suit), honors };
   });
   return {
     calls: quality.filter(({ passed }) => passed).map(({ call }) => call),
