@@ -11,7 +11,8 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
          getRuleExplanationLines, getCompetitiveResponseAlternativeLines,
-         getCompetitiveResponseLines,
+         getCompetitiveResponseLines, getStage6BCompetitiveAlternativeLines,
+         getJumpResponseLines, getJumpResponseFailureLines,
          getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
@@ -156,6 +157,7 @@ function runAllRuleTests (): void {
     runRebidAlternativeFeedbackTests,
     runDirectOvercallAlternativeTests,
     runCompetitiveResponseAlternativesTests,
+    runStage6BCompetitiveResponseTests,
     runCompetitiveBidExplanationTests,
     runWeakCompetitiveResponseEvidenceTests,
     runContestedSuitOvercallerRebidExplanationTests,
@@ -2917,6 +2919,116 @@ function runResponderStrongAndSupportConventionTests (): number {
               `${checks} focused checks.\n`);
   return failures;
 }
+/// Exercise checked Stage 6B alternatives and constructive-game evidence through panel delivery.
+/// Test delivered evidence rather than matching student-facing English wording.
+function runStage6BCompetitiveResponseTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const examples: { deals: RuleTestDeal[]; auction: string; call: Call; ruleId: string;
+    alternate: Call }[] = [
+    { deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, auction: '1C 1D 2D',
+      call: '2D', ruleId: 'respond-over-suit-support-cuebid', alternate: '1H' },
+    { deals: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS, auction: '1C 1D 2D',
+      call: '1H', ruleId: 'respond-over-suit-new-suit-one-level', alternate: '2D' },
+    { deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, auction: '1H Double 1S',
+      call: '1S', ruleId: 'respond-after-double-new-suit-one-level', alternate: '2NT' },
+    { deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, auction: '1H Double 1S',
+      call: '2NT', ruleId: 'respond-after-double-jordan-2nt-support', alternate: '1S' },
+    { deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, auction: '1H Double 1NT',
+      call: '1NT', ruleId: 'respond-after-double-natural-1nt', alternate: '2H' },
+    { deals: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, auction: '1H Double 1NT',
+      call: '2H', ruleId: 'respond-to-major-w/-support-simple-raise', alternate: '1NT' },
+  ];
+  for (const example of examples) {
+    checks++;
+    const deal = example.deals.find((item) => item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) { failures++; continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const alternativeFits = getApplicableCandidateCalls(result).some((item) =>
+      item.call === example.alternate && item.ruleApplies);
+    const added = rule === undefined ? [] : getStage6BCompetitiveAlternativeLines(result, rule);
+    const earlier = rule === undefined ? [] : getCompetitiveResponseAlternativeLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    const shouldRetainEarlier = example.auction === '1H Double 1S' && example.call === '1S' ||
+      example.auction === '1H Double 1NT' && example.call === '1NT';
+    if (rule === undefined || !alternativeFits || added.length === 0 ||
+        added.some((line) => !delivered.includes(line) || !line.includes(example.alternate)) ||
+        shouldRetainEarlier && (earlier.length === 0 ||
+          earlier.some((line) => !delivered.includes(line)))) {
+      failures++;
+      console.error('FAIL Stage 6B competitive alternative: ' + example.auction + ' ' + example.call);
+    }
+  }
+  for (const auctionText of ['1H 3S 4H', '1H 2S 3C']) {
+    checks++;
+    const deal = RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === auctionText);
+    if (deal === undefined) { failures++; continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall('4H', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'respond-over-jump-major-game-constructive');
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule?.id)
+      ?.candidates.find((item) => item.call === '4H');
+    const facts = getHandFacts(board.deal.S);
+    const points = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const trumps = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'partnerSupport');
+    const generated = rule === undefined ? [] : getJumpResponseLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: '4H', result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: facts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South',
+      recordedUnjudged: false,
+    });
+    if (rule === undefined || points?.kind !== 'totalPoints' || !points.passed ||
+        points.actual !== facts.totalPointsWShortage || trumps?.kind !== 'partnerSupport' ||
+        !trumps.passed || trumps.actual !== facts.lengths.H ||
+        generated.length === 0 || generated.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error('FAIL Stage 6B constructive-game evidence: ' + auctionText);
+    }
+  }
+  checks++;
+  const rejected = RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS.find((item) =>
+    item.practiceAuction.join(' ') === '1H 2S 3H');
+  if (rejected === undefined) { failures++; } else {
+    const board = makeRuleTestBoard(rejected).board;
+    const auction = rejected.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...rejected.requiredSystem };
+    const result = evaluateUserCall('4H', board, auction, system);
+    const corrective = getJumpResponseFailureLines(result);
+    const previous = getMajorSupportFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: '4H', result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 || corrective.length === 0 ||
+        corrective.some((line) => !delivered.includes(line)) ||
+        previous.some((line) => line.includes('support-preemptive-game-raise'))) {
+      failures++;
+      console.error('FAIL Stage 6B constructive-game rejection.');
+    }
+  }
+  console.log(failures + ' ***FAILURES***. Stage 6B competitive responses: ' +
+    checks + ' checks.\n');
+  return failures;
+}
+
 /// Check qualified competitive alternatives, including reciprocal directions,
 /// from the evaluator through the same explanation assembly used by the panel.
 function runCompetitiveResponseAlternativesTests (): number {
