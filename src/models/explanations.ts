@@ -4503,7 +4503,7 @@ export function getJumpAdvanceAlternativeLines(result: BidEvalResult, rule: BidR
   const info = passCandidate?.callEvidence?.jumpAdvance;
   if (info?.overcallLevel !== 3 || info.passReason !== 'limited-no-fit') return [];
   const gameCall = `4${info.trumpSuit}` as Call;
-  const gameDiagnostic = rult.ruleDiagnostics.find((item) =>
+  const gameDiagnostic = result.ruleDiagnostics.find((item) =>
     item.rule.id === 'advance-jump-overcall-major-game');
   const gameCandidate = gameDiagnostic?.candidates.find((item) =>
     item.call === gameCall && item.ruleApplies);
@@ -4514,7 +4514,7 @@ export function getJumpAdvanceAlternativeLines(result: BidEvalResult, rule: BidR
   if (gameInfo?.overcallLevel !== 3 || gameInfo.trumpSuit !== info.trumpSuit ||
       points?.passed !== true || points.valuation !== 'shortage' ||
       !getApplicableCandidateCalls(result).some((item) =>
-        item.rule.id === 'advance-jump-overcall-major-game' && item.call == gameCall)) return [];
+        item.rule.id === 'advance-jump-overcall-major-game' && item.call === gameCall)) return [];
   const fit = 7 + gameInfo.support;
   if (rule.id === 'advance-jump-overcall-pass' && result.normalizedCall === 'Pass') {
     return [`Natural ${gameCall} also qualifies: your ${points.actual} total points with ` +
