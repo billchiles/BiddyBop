@@ -218,19 +218,19 @@ All 25 executable families were exercised. The full rule suite passed.
 
 | Direct defense and balancing family | Disposition | Evidence reviewed |
 | --- | --- | --- |
-| Direct Pass when no action qualifies | Improve in 7B | Add hand-specific reason without equating 10 HCP with insufficient strength |
+| Direct Pass when no action qualifies | Improved in 7B | Reports actual HCP and lack of a qualifying evaluated defense without implying that ten HCP is too weak |
 | DONT one-suit artificial Double and natural 2S | Improved in 7A | Actual honors and checked suit-quality standard, distinct conventional meanings |
 | DONT two-suit 2C/2D/2H | Improved in 7A | Identify honors only in a suit that passed the five-card quality check; do not assert both suits qualify |
-| Natural one-level suit overcall | Improved honors in 7A; rejected-call detail pending 7B | Actual A/K/Q/J/10 and qualifying honor standard; 6+ cards can qualify by length alone |
-| Natural two-level suit overcall | Improved honors in 7A; rejected-call detail pending 7B | Actual honors alongside length-sensitive HCP requirements |
+| Natural one-level suit overcall | Improved in 7A/7B | Actual honors and length-only exceptions; rejected calls state actual suit length or quality failure |
+| Natural two-level suit overcall | Improved in 7A/7B | Actual honors and length-sensitive HCP; rejected bids distinguish insufficient cards from poor quality |
 | Natural 1NT overcall | Adequate | Balanced shape, 15–18 HCP, stopper and genuine Double alternative already explained |
 | Preemptive jump overcall at levels 2/3/4 | Improved in 7A | Actual honors, checked quality standard and existing exact suit-length requirements |
 | Ordinary and strong takeout Doubles | Adequate | Existing strength, shape and genuine competing actions |
 | Natural suit defenses against weak twos at levels 2/3 | Improved in 7A | Actual quality honors; retain points-with-length, economy and 18-HCP boundaries |
 | Ordinary and strong Doubles of weak twos | Adequate | Shortage-adjusted values and distinct shape requirements |
 | Natural 2NT defense of weak two | Adequate | Balanced 15–18 HCP, stopper and supported Double alternative |
-| Balancing natural suits | Improve in 7B | Add actual honor evidence and rejected-call suit length |
-| Balancing 1NT, ordinary/strong Double and defensive Pass | Adequate; grammatical fix in 7B | Actual evaluated HCP, shape, stopper and lighter fourth-seat standards |
+| Balancing natural suits | Improved in 7B | Actual honors and qualifying standard for five-card suits; six-card length-only case retained; rejected calls state actual length or quality failure |
+| Balancing 1NT, ordinary/strong Double and defensive Pass | Adequate; wording corrected in 7B | Actual evaluated HCP, shape, stopper and lighter fourth-seat standards; corrected strong-Double grammatical agreement |
 | Six direct/balancing scope boundaries | Judgment boundary | Do not invent high-level, penalty-oriented or unsupported defenses |
 
 **Batch 7A validation:** The local TypeScript rule-test compilation and full
@@ -244,15 +244,25 @@ Stage 6B working snapshot rather than every updated file from GitHub master;
 GitHub CI validates the actual master-based patch. Neither proves bridge
 judgment correctness.
 
-**Next Stage 7 batch (7B):** Give failed natural direct or balancing suit calls
-the actual suit length, explain a direct Pass from the evaluated lack of
-qualifying action, report balancing suit honors, and correct the strong
-balancing-Double grammatical agreement. Preserve rules, priorities and deals.
-Only after 7B is validated should Stage 7 be marked complete.
+**Batch 7B validation:** Local TypeScript compilation and the complete rule
+suite pass, including ten focused evidence and explanation-delivery checks.
+A 2,979-call recorded replay showed 286 expected explanation changes,
+predominantly the same direct Pass decision repeated in later practice
+buckets. Across 648 legal Stage 7 attempts, 58 feedback outputs changed,
+all within direct Pass, direct natural-suit rejection, balancing suit
+qualification/rejection, or the strong balancing-Double wording correction.
+No rule matches or turn statuses changed. The local comparison uses the
+available Stage 7A source snapshot rather than a complete current-master
+source checkout. GitHub CI validates the actual master-based patch separately.
 
-**Then:** Stage 8, advancing: natural suit and notrump advances, takeout-Double
-advances, DONT, jump and weak-two defenses. Keep explicit family dispositions
-and intentionally compare every changed learner-facing explanation. Regenerate
+**Stage 7 closeout:** All 25 executable families and six scope boundaries have
+explicit dispositions. The remaining changes were instructional only;
+no bidding thresholds, priorities or practice deals were modified.
+
+**Next systematic stage — Stage 8:** Advancing. Review natural suit and
+notrump advances, takeout-Double advances, DONT, jump and weak-two defenses,
+and explicitly record each family's positive and rejected-call disposition.
+Compare every intentional learner-facing change. Regenerate
 `docs/by-the-numbers.md` after all evidence-review passes.
 
 ## Initial source census and review limitations
@@ -283,7 +293,7 @@ The family groupings collectively cover each stage's executable declarations and
 | Direct overcall: preemptive jump at levels two, three, four | Stage 7A reports actual honors satisfying the checked suit-quality standard; exact jump length retained | Adequate after 7A; cross-stage audit only |
 | Direct defense: DONT after opposing strong 1NT | Stage 7A reports checked honor evidence for single-/two-suit meanings; existing rejected-call diagnostics retained | Adequate after 7A; agreement-specific advancing remains in Stage 8 |
 | Direct defense: natural suit/2NT over weak two; defense to strong 2C/2NT, three-level preempts and high openings | Concrete weak-two overcall rules and boundary meanings exist; specialized natural-suit helper focuses on ordinary one-level-opening overcalls | Targeted: whether weak-two natural suit/NT and stopper-quality near misses get sufficient feedback; boundaries are candidates for meaning-only adequacy |
-| Balancing: suit, 1NT, ordinary/strong Double, defensive Pass, judgment boundary | Replay of defensive Pass and nearby Double/1NT failures confirms actual hand facts and separate judgment boundaries | Adequate; do not invent calls at judgment boundaries |
+| Balancing: suit, 1NT, ordinary/strong Double, defensive Pass, judgment boundary | Stage 7B now reports checked suit honors and actual rejected suit lengths, with strong-Double grammar corrected | Adequate after Stage 7; do not invent calls at judgment boundaries |
 | Responses to minor/major: suits, raises, limit/strong support, 1NT/2NT/3NT, weak/strong jump shifts | Initial responses checked against competing support and suit routes; a failed weak-Pass test now leaves honest competitive judgment when no constructive call qualifies | Adequate; preserve supported alternatives and scope limits |
 | Responses to 1NT/2NT and strong 2C; to weak and high preempts | Agreement-shifted HCP bounds remain nonnegative; preferred Stayman/transfer choices now give their evaluated reason; 2C waiting explains why stronger unbalanced hands have no qualifying positive response | Adequate after targeted explanation and evidence fixes; cross-stage checks only |
 | Responses after suit overcall, takeout Double, natural 1NT overcall, jump overcall | Stage 6A/6B completed weak-response evidence, constructive game, and evaluated alternatives | Adequate after Stage 6; cross-stage audit only |
