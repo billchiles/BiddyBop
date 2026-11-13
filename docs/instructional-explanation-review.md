@@ -202,7 +202,6 @@ replay, and do not treat either replay as proof of instructional correctness.
 The roadmap holds only pending work; statistical reach stays in
 `docs/by-the-numbers.md`.
 
-
 ## Initial source census and review limitations
 
 | Rule declaration module | Executable rule declarations | Scope boundaries | First-pass conclusion |
