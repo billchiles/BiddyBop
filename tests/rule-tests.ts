@@ -72,6 +72,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONSE_TO_STRONG_2C_TEST_DEALS,
          RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS,
          RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
+         RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
@@ -156,6 +157,7 @@ function runAllRuleTests (): void {
     runDirectOvercallAlternativeTests,
     runCompetitiveResponseAlternativesTests,
     runCompetitiveBidExplanationTests,
+    runWeakCompetitiveResponseEvidenceTests,
     runContestedSuitOvercallerRebidExplanationTests,
     runTakeoutDoublerRebidExplanationTests,
     runOvercallerRebidEvidenceTests,
@@ -7664,6 +7666,144 @@ function runPositiveAlternativeDeliveryTests (): number {
   console.log(`${failures} ***FAILURES***. Positive bidding alternatives: ${checks} checks.\n`);
   return failures;
 }
+/// Verify the selected weak competitive response's hand evidence reaches the panel,
+/// and that rejected calls receive their evaluated failure reasons.
+function runWeakCompetitiveResponseEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const families = {
+    suit: RESPONDER_AFTER_SUIT_OVERCALL_TEST_DEALS,
+    dbl: RESPONDER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS,
+    nt: RESPONDER_AFTER_1NT_OVERCALL_TEST_DEALS,
+  };
+  const successful: { family: keyof typeof families; auction: string; call?: Call; ruleId: string;
+    kind: 'weakSuit' | 'jumpShift' | 'weakRaise' }[] = [
+    { family: 'suit', auction: '1S 2H 3S',
+      ruleId: 'respond-over-suit-preemptive-jump-raise', kind: 'weakRaise' },
+    { family: 'dbl', auction: '1H Double 3H',
+      ruleId: 'respond-after-double-weak-jump-raise', kind: 'weakRaise' },
+    { family: 'dbl', auction: '1H Double 2S',
+      ruleId: 'respond-after-double-weak-jump-shift', kind: 'jumpShift' },
+    { family: 'dbl', auction: '1H Double 2D', call: '3D',
+      ruleId: 'respond-after-double-weak-jump-shift', kind: 'jumpShift' },
+    { family: 'nt', auction: '1H 1NT 2D',
+      ruleId: 'respond-over-1nt-new-suit-two-level', kind: 'weakSuit' },
+    { family: 'nt', auction: '1S 1NT 3S',
+      ruleId: 'respond-over-1nt-preemptive-jump-raise', kind: 'weakRaise' },
+  ];
+  for (const example of successful) {
+    checks++;
+    const deal = families[example.family].find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing weak competitive hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const call = example.call ?? deal.practiceAuction[2];
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId);
+    const candidate = diagnostic?.candidates.find((item) => item.call === call && item.ruleApplies);
+    const handFacts = getHandFacts(board.deal.S);
+    const weakSuit = candidate?.callEvidence?.competitiveTwoLevelNewSuit;
+    const weakRaise = candidate?.callEvidence?.competitiveResponse;
+    const jumpShift = diagnostic?.callEvidence?.jumpShift;
+    const suit = call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    const support = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'partnerSupport');
+    const points = candidate?.callEvidence?.requirements?.find((item) =>
+      item.kind === 'totalPoints');
+    const verified = example.kind === 'weakSuit'
+      ? weakSuit !== undefined && weakSuit.quality &&
+        weakSuit.qualityStandard !== null && weakSuit.hcp === handFacts.hcp &&
+        weakSuit.length === handFacts.lengths[suit] &&
+        weakSuit.honors.every((rank) => board.deal.S.cards.some((card) =>
+          card.suit === suit && card.rank === rank))
+      : example.kind === 'jumpShift'
+        ? jumpShift?.selectedCall === call && jumpShift.hcp === handFacts.hcp &&
+          jumpShift.considered.some((item) => item.call === call &&
+            item.length === handFacts.lengths[suit] && item.length >= 6)
+        : weakRaise !== undefined
+          ? weakRaise.partnerSuit !== undefined &&
+            weakRaise.partnerSupport === handFacts.lengths[weakRaise.partnerSuit] &&
+            weakRaise.supportPoints === handFacts.totalPointsWShortage &&
+            weakRaise.hcp === handFacts.hcp
+          : support?.kind === 'partnerSupport' && support.passed &&
+            support.actual === handFacts.lengths[suit] &&
+            points?.kind === 'totalPoints' && points.passed &&
+            points.actual === handFacts.totalPointsWShortage;
+    const generated = rule === undefined ? [] : getCompetitiveResponseLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || candidate === undefined || !verified || generated.length === 0 ||
+        generated.some((line) => !matched.includes(line) || !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL weak competitive positive evidence/delivery: ${example.auction}.`);
+    }
+  }
+  const rejected: { family: keyof typeof families; auction: string; entered: Call;
+    ruleId: string; evidence: 'newSuit' | 'jumpShift' | 'raise' }[] = [
+    { family: 'suit', auction: '1D 1S Double', entered: '3D',
+      ruleId: 'respond-over-suit-preemptive-jump-raise', evidence: 'raise' },
+    { family: 'dbl', auction: '1H Double 2D', entered: '2C',
+      ruleId: 'respond-after-double-new-suit-two-level', evidence: 'newSuit' },
+    { family: 'dbl', auction: '1H Double 2S', entered: '3D',
+      ruleId: 'respond-after-double-weak-jump-shift', evidence: 'jumpShift' },
+    { family: 'dbl', auction: '1H Double Redouble', entered: '3H',
+      ruleId: 'respond-after-double-weak-jump-raise', evidence: 'raise' },
+    { family: 'nt', auction: '1H 1NT 2D', entered: '2C',
+      ruleId: 'respond-over-1nt-new-suit-two-level', evidence: 'newSuit' },
+    { family: 'nt', auction: '1H 1NT 2D', entered: '3H',
+      ruleId: 'respond-over-1nt-preemptive-jump-raise', evidence: 'raise' },
+  ];
+  for (const example of rejected) {
+    checks++;
+    const deal = families[example.family].find((item) =>
+      item.practiceAuction.join(' ') === example.auction);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing rejected weak response hand: ${example.auction}.`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.entered, board, auction, system);
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId);
+    const candidate = diagnostic?.candidates.find((item) => item.call === example.entered);
+    const evidence = example.evidence === 'newSuit'
+      ? candidate?.callEvidence?.competitiveTwoLevelNewSuit !== undefined
+      : example.evidence === 'raise'
+        ? candidate?.callEvidence?.competitiveResponse !== undefined ||
+          candidate?.callEvidence?.requirements?.some((item) => !item.passed) === true
+        : diagnostic?.callEvidence?.jumpShift?.considered.some((item) =>
+          item.call === example.entered) === true;
+    const generated = getCompetitiveResponseFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.entered, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 || !evidence || generated.length === 0 ||
+        generated.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL weak competitive rejection/delivery: ${example.auction} ${example.entered}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Weak competitive response evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Competitive explanations: verify hand-specific promises and reciprocal alternatives.
 /// Use existing deals and inspect evaluated evidence plus assembled feedback, not prose snapshots.
 function runCompetitiveBidExplanationTests (): number {

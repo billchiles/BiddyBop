@@ -2844,6 +2844,11 @@ const COMPETITIVE_RESPONSE_RULES = [
   'respond-after-double-natural-1nt',
   'respond-after-double-new-suit-one-level',
   'respond-after-double-new-suit-two-level',
+  'respond-over-1nt-new-suit-two-level',
+  'respond-after-double-weak-jump-shift',
+  'respond-over-suit-preemptive-jump-raise',
+  'respond-after-double-weak-jump-raise',
+  'respond-over-1nt-preemptive-jump-raise',
 ];
 
 /// Explain a qualifying response after interference from recorded suit and
@@ -2879,6 +2884,51 @@ export function getCompetitiveResponseLines(result: BidEvalResult, rule: BidRule
     return [`Your ${value.hcp} HCP are within the ${value.minHcp}–${value.maxHcp} HCP range. ` +
       `Your ${value.length} ${suitPlural(candidate.call)}${honors} satisfy the ` +
       `six-card and suit-quality requirements. Natural ${candidate.call} is nonforcing ${id}.`];
+  }
+  if (rule.id === 'respond-over-1nt-new-suit-two-level') {
+    const value = candidate.callEvidence?.competitiveTwoLevelNewSuit;
+    if (value === undefined || !value.quality || value.qualityStandard === null) return [];
+    const honors = value.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+    const standard = value.qualityStandard === 'twoTopThree'
+      ? 'two of A/K/Q' : 'three of A/K/Q/J/10';
+    return [`Your ${value.hcp} HCP fall within the ${value.minHcp}–${value.maxHcp} HCP range, ` +
+      `and your ${value.length} ${suitPlural(candidate.call)} contain ${honors}, meeting ` +
+      `the requirement for ${standard}. Natural ${candidate.call} is nonforcing ` +
+      `after the opponent's 1NT overcall ${id}.`];
+  }
+  if (rule.id === 'respond-after-double-weak-jump-shift') {
+    const selected = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+      ?.callEvidence?.jumpShift;
+    const chosen = selected?.considered.find((item) => item.call === candidate.call);
+    const hcp = minorRequirement(candidate, 'hcp');
+    if (selected?.selectedCall !== candidate.call || chosen === undefined ||
+        hcp?.kind !== 'hcp' || !hcp.passed) return [];
+    return [`Your ${hcp.actual} HCP fall within the ${hcp.min}–${hcp.max} HCP range, ` +
+      `and your ${chosen.length} ${suitPlural(candidate.call)} meet the six-card minimum. ` +
+      `The jump to ${candidate.call} is weak and nonforcing, not the uncontested ` +
+      `strong jump-shift treatment ${id}.`];
+  }
+  if (rule.id === 'respond-over-suit-preemptive-jump-raise') {
+    const support = minorRequirement(candidate, 'partnerSupport');
+    const points = minorRequirement(candidate, 'totalPoints');
+    if (support?.kind !== 'partnerSupport' || support.actual === undefined ||
+        !support.passed || points?.kind !== 'totalPoints' || !points.passed) return [];
+    return [`Your ${support.actual} ${suitPlural(candidate.call)} and ${points.actual} ` +
+      `total points with shortage meet the four-card support and nine-point maximum ` +
+      `for a weak preemptive raise. ${candidate.call} takes away bidding room without ` +
+      `inviting game ${id}.`];
+  }
+  if (rule.id === 'respond-after-double-weak-jump-raise' ||
+      rule.id === 'respond-over-1nt-preemptive-jump-raise') {
+    if (facts?.partnerSuit === undefined || facts.partnerSupport === undefined ||
+        facts.supportPoints === undefined || facts.minPartnerSupport === undefined) return [];
+    const points = `${facts.supportPoints} total ${facts.supportPoints === 1 ? 'point' : 'points'} ` +
+      `with shortage (${facts.hcp} HCP)`;
+    const pointsVerb = facts.supportPoints === 1 ? 'meets' : 'meet';
+    return [`Your ${facts.partnerSupport} ${suitPlural(`1${facts.partnerSuit}` as Call)} ` +
+      `meet the ${facts.minPartnerSupport}-card support minimum. Your ${points} ` +
+      `${pointsVerb} the weak-raise limits (0–6 HCP, at most nine support points). ` +
+      `${candidate.call} is a nonforcing preemptive raise, not an invitation ${id}.`];
   }
   if (rule.id === 'respond-over-suit-natural-notrump') {
     const hcp = minorRequirement(candidate, 'hcp');
@@ -3143,6 +3193,86 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
         length.min !== undefined && length.actual !== undefined) {
       return [`Natural ${oneLevel.call} after a takeout Double requires at least ` +
         `${length.min} ${suitPlural(oneLevel.call)}; you have ${length.actual} ${id}.`];
+    }
+  }
+  const weakTwoIds = [
+    'respond-after-double-new-suit-two-level',
+    'respond-over-1nt-new-suit-two-level',
+  ];
+  for (const id of weakTwoIds) {
+    const candidate = competitiveResponseCandidate(result, id);
+    const facts = candidate?.callEvidence?.competitiveTwoLevelNewSuit;
+    if (candidate === undefined || candidate.ruleApplies || facts === undefined) continue;
+    const entered = candidate.call;
+    if (facts.hcp < facts.minHcp || facts.hcp > facts.maxHcp) {
+      return [`Natural ${entered} requires ${facts.minHcp}–${facts.maxHcp} HCP; ` +
+        `you have ${facts.hcp} HCP [${id}].`];
+    }
+    if (facts.length < facts.minLength) {
+      return [`Natural ${entered} requires at least ${facts.minLength} ` +
+        `${suitPlural(entered)}; you have ${facts.length} [${id}].`];
+    }
+    if (!facts.quality) {
+      return [`Your ${facts.length} ${suitPlural(entered)} lack the required suit ` +
+        `honors (two of A/K/Q or three of A/K/Q/J/10) [${id}].`];
+    }
+  }
+  // A rejected jump shift can disappear during refinement, but its actual
+  // suit length is still recorded among the considered jump bids.
+  const jumpId = 'respond-after-double-weak-jump-shift';
+  const jump = result.ruleDiagnostics.find((entry) => entry.rule.id === jumpId)
+    ?.callEvidence?.jumpShift;
+  const jumpedSuit = jump?.considered.find((item) => item.call === result.normalizedCall);
+  if (jumpedSuit !== undefined) {
+    if (jumpedSuit.length < 6) {
+      return [`Weak ${jumpedSuit.call} after a takeout Double requires at least six ` +
+        `${suitPlural(jumpedSuit.call)}; you have ${jumpedSuit.length} [${jumpId}].`];
+    }
+    if (jump !== undefined && (jump.hcp < 4 || jump.hcp > 7)) {
+      return [`Weak ${jumpedSuit.call} after a takeout Double requires 4–7 HCP; ` +
+        `you have ${jump.hcp} [${jumpId}].`];
+    }
+    if (jump !== undefined && jump.selectedCall !== null) {
+      return [`The weak jump-shift treatment selects ${jump.selectedCall} from your ` +
+        `qualifying long suits, rather than ${jumpedSuit.call} [${jumpId}].`];
+    }
+  }
+  const preemptiveIds = [
+    'respond-over-suit-preemptive-jump-raise',
+    'respond-after-double-weak-jump-raise',
+    'respond-over-1nt-preemptive-jump-raise',
+  ];
+  for (const id of preemptiveIds) {
+    const candidate = competitiveResponseCandidate(result, id);
+    if (candidate === undefined || candidate.ruleApplies) continue;
+    const support = minorRequirement(candidate, 'partnerSupport');
+    const points = minorRequirement(candidate, 'totalPoints');
+    const facts = candidate.callEvidence?.competitiveResponse;
+    if (support?.kind === 'partnerSupport' && !support.passed &&
+        support.min !== undefined && support.actual !== undefined) {
+      return [`The weak preemptive ${candidate.call} raise requires at least ` +
+        `${support.min} trumps; you have ${support.actual} [${id}].`];
+    }
+    if (points?.kind === 'totalPoints' && !points.passed && points.max !== undefined) {
+      return [`The weak preemptive ${candidate.call} raise permits at most ` +
+        `${points.max} total points with shortage; you have ${points.actual} [${id}].`];
+    }
+    if (facts === undefined || facts.partnerSupport === undefined ||
+        facts.minPartnerSupport === undefined) continue;
+    if (facts.partnerSupport < facts.minPartnerSupport) {
+      return [`The weak preemptive ${candidate.call} raise requires at least ` +
+        `${facts.minPartnerSupport} ${suitPlural(`1${facts.partnerSuit}` as Call)}; ` +
+        `you have ${facts.partnerSupport} [${id}].`];
+    }
+    if (facts.maxHcp !== undefined && facts.hcp > facts.maxHcp) {
+      return [`The weak preemptive ${candidate.call} raise permits at most ` +
+        `${facts.maxHcp} HCP; you have ${facts.hcp} [${id}].`];
+    }
+    if (facts.maxSupportPoints !== undefined && facts.supportPoints !== undefined &&
+        facts.supportPoints > facts.maxSupportPoints) {
+      return [`The weak preemptive ${candidate.call} raise permits at most ` +
+        `${facts.maxSupportPoints} total points with shortage; you have ` +
+        `${facts.supportPoints} [${id}].`];
     }
   }
   const nt = competitiveResponseCandidate(result, 'respond-over-suit-natural-notrump');

@@ -566,13 +566,16 @@ export interface CallEvidence {
     minLength: number;
     quality: boolean;
     honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
   };
   // Actual tested facts for responder's competitive Double or artificial support action.
   competitiveResponse?: {
     hcp: number;
     minHcp?: number;
+    maxHcp?: number;
     supportPoints?: number;
     minSupportPoints?: number;
+    maxSupportPoints?: number;
     partnerSuit?: Suit;
     partnerSupport?: number;
     minPartnerSupport?: number;
