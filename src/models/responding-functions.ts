@@ -671,8 +671,8 @@ export function twoNtNaturalMinorForcingApplies (call: Call, context: RuleEvalCo
       `${! hasPreferredMajor ? 'PASS' : 'FAIL'}: no preferred major-suit response takes precedence.`,
     ],
     callEvidence: { naturalTwoNtMinor: {
-      hcp: context.handFacts.hcp, minHcp: 10, suit,
-      length: context.handFacts.lengths[suit], minLength: 5,
+      hcp: context.handFacts.hcp, minHcp: 10, strengthQualified: hcpApplies, suit,
+      length: context.handFacts.lengths[suit], minLength: 5, lengthQualified: lengthApplies,
       unbalanced: shapeApplies, hasPreferredMajor,
     } },
   };
