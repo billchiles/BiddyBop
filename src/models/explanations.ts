@@ -410,6 +410,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   const callEvidenceLine = getTakeoutDoubleSupportLine(result, rule) ??
     getBalancingDoubleSupportLine(result, rule) ??
     getBalancingCallSupportLine(result, rule) ??
+    getDirectOvercallPassSupportLine(result, rule) ??
     getDontInitialSupportLine(result, rule) ??
     getWeakTwoOvercallSupportLine(result, rule) ??
     getNaturalOvercallSupportLine(result, rule) ??
@@ -929,7 +930,7 @@ export function getBalancingDoubleSupportLine(result: BidEvalResult, rule: BidRu
       `immediately after opener, the balancing seat can act with less strength [${rule.id}].`;
   }
   if (rule.id === BALANCING_STRONG_ID) {
-    return `Your ${hcp.actual} HCP meets the 16+ HCP requirement for a strong balancing ` +
+    return `Your ${hcp.actual} HCP meet the 16+ HCP requirement for a strong balancing ` +
       `Double, and you have at most three cards in opener's suit. This treatment does ` +
       `not require support for every unbid suit [${rule.id}].`;
   }
@@ -995,15 +996,20 @@ export function getBalancingCallSupportLine(result: BidEvalResult, rule: BidRule
     if (check === undefined || candidate?.ruleApplies !== true || hcp === undefined) return null;
     const suit = result.normalizedCall;
     if (check.level === 1) {
-      return `Your ${hcp.actual} HCP and ${check.length}-card suit qualify for ${suit}. ` +
-        (check.good ? 'The suit meets the honor-quality requirement. ' :
-          'With six or more cards, this one-level balance does not require the usual honor quality. ') +
+      const honors = overcallHonorText(check);
+      const suitReason = check.length >= 6
+        ? 'The six-card-or-longer suit qualifies by length alone. '
+        : honors === null ? '' : `${honors}. `;
+      return `Your ${hcp.actual} HCP and ${check.length} ${suitPlural(suit ?? check.call)} qualify for ${suit}. ` +
+        suitReason +
         'Balancing may be lighter than overcalling in the seat immediately after opener. ' +
         'The balancing bidder’s partner should expect that lighter strength ' +
         `[${rule.id}].`;
     }
-    return `Your ${hcp.actual} HCP and good ${check.length}-card suit qualify for ${suit}. ` +
-      'A two-level balancing suit bid requires at least 8 HCP and a good suit of five or ' +
+    const honors = overcallHonorText(check);
+    if (honors === null) return null;
+    return `Your ${hcp.actual} HCP and ${check.length} ${suitPlural(suit ?? check.call)} qualify for ${suit}; ` +
+      `${honors}. A two-level balancing suit bid requires at least 8 HCP and a good suit of five or ` +
       `more cards [${rule.id}].`;
   }
   if (rule.id === BALANCING_NT_ID) {
@@ -1066,11 +1072,15 @@ export function getBalancingCallFailureLines(result: BidEvalResult): string[] {
     if (check === undefined) continue;
     const lines: string[] = [];
     if (!check.passed) {
-      lines.push(check.level === 1
-        ? `A one-level balancing suit bid needs a good five-card suit or any six-card suit ` +
-          `[${ruleId}].`
-        : `A two-level balancing suit bid needs a good suit of at least five cards ` +
+      if (check.length < 5) {
+        lines.push(`Your ${check.length} ${suitPlural(entered)} fall short of the five-card minimum ` +
+          `for a natural ${entered} balance [${ruleId}].`);
+      } else if (!check.good) {
+        lines.push(`Your ${check.length} ${suitPlural(entered)} do not meet the suit-quality ` +
+          `requirement (two of A/K/Q or three of A/K/Q/J/10) for this ${check.level}-level ` +
+          `balance${check.level === 1 ? '; six cards would also qualify by length' : ''} ` +
           `[${ruleId}].`);
+      }
     }
     if (candidate?.ruleApplies === false && hcp !== undefined && !hcp.passed) {
       lines.push(`A ${check.level}-level balancing suit bid requires ${check.level === 1 ?
@@ -1103,6 +1113,27 @@ function balancingNtEvidence(result: BidEvalResult) {
     balanced: balanced?.kind === 'balanced' ? balanced : undefined,
     stopper: stopper?.kind === 'stopper' ? stopper : undefined,
   };
+}
+
+///
+//// Direct overcall Pass explanation
+///
+
+const DIRECT_OVERCALL_PASS_ID = 'overcall-pass-no-qualifying-action';
+
+/// A direct Pass is a fallback when no evaluated competitive action qualifies.
+/// Strength alone is not sufficient reason to bid or sufficient evidence of weakness.
+export function getDirectOvercallPassSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (rule.id !== DIRECT_OVERCALL_PASS_ID || result.normalizedCall !== 'Pass') return null;
+  const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
+    ?.candidates.find(({ call }) => call === 'Pass');
+  if (candidate?.ruleApplies !== true || getApplicableCandidateCalls(result).some(
+      (item) => item.call !== 'Pass')) return null;
+  const hcp = candidate.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  if (hcp?.kind !== 'hcp' || !hcp.passed) return null;
+  return `With ${hcp.actual} HCP, none of the evaluated competitive actions qualifies ` +
+    `for your hand. Pass is supported; partner has not bid, so you are not obliged ` +
+    `to compete [${rule.id}].`;
 }
 
 ///
@@ -1209,11 +1240,15 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
     if (check === undefined) continue;
     const lines: string[] = [];
     if (!check.passed) {
-      lines.push(check.level === 1
-        ? `A natural one-level overcall requires a good five-card suit (${SIMPLE_OVERCALL_SUIT_QUALITY}) ` +
-          `or any suit of six or more cards [${ruleId}].`
-        : `A natural two-level overcall requires a good five-card-or-longer suit ` +
-          `(${SIMPLE_OVERCALL_SUIT_QUALITY}) [${ruleId}].`);
+      if (check.length < 5) {
+        lines.push(`Your ${check.length} ${suitPlural(entered)} fall short of the five-card ` +
+          `minimum for a natural ${entered} overcall [${ruleId}].`);
+      } else if (!check.good) {
+        lines.push(`Your ${check.length} ${suitPlural(entered)} do not meet the suit-quality ` +
+          `requirement (${SIMPLE_OVERCALL_SUIT_QUALITY}) for a natural ${entered} overcall` +
+          `${check.level === 1 ? '; six cards would also qualify by length' : ''} ` +
+          `[${ruleId}].`);
+      }
     }
     if (candidate?.ruleApplies === false && check.level === 1 &&
         strength?.passed === false) {
