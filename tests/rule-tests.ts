@@ -26,6 +26,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getCompetitiveResponseFailureLines, getMajorSupportFailureLines,
          getOpenerConventionalRebidFailureLines, getStrongTwoCResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
+         getNaturalOvercallSupportLine, getJumpOvercallSupportLine,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
@@ -168,6 +169,7 @@ function runAllRuleTests (): void {
     runJumpOvercallForcingAdvanceRebidTests,
     runWeakTwoOvercallExplanationTests,
     runDontInitialExplanationTests,
+    runStage7ASuitHonorEvidenceTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1609,6 +1611,95 @@ function runDontInitialExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. DONT initial explanations: ${checks} checks.\n`);
   return failures;
 }
+/// Verify the checked suit honors reach direct-overcall explanations without
+/// inventing an honor requirement for a six-card one-level suit overcall.
+function runStage7ASuitHonorEvidenceTests (): number {
+  const cases: { bucket: string; index: number; ruleId: string;
+    kind: 'natural' | 'weakTwo' | 'jump' | 'dont'; lengthOnly?: boolean }[] = [
+    { bucket: 'overcall-simple', index: 1, ruleId: 'overcall-simple-suit-at-one-level', kind: 'natural' },
+    { bucket: 'overcall-simple', index: 3, ruleId: 'overcall-simple-suit-at-two-level', kind: 'natural' },
+    { bucket: 'opener-after-interference', index: 24,
+      ruleId: 'overcall-simple-suit-at-one-level', kind: 'natural', lengthOnly: true },
+    { bucket: 'overcall-weak-two-defense', index: 1,
+      ruleId: 'overcall-weak-two-natural-suit-at-two-level', kind: 'weakTwo' },
+    { bucket: 'overcall-weak-two-defense', index: 3,
+      ruleId: 'overcall-weak-two-natural-suit-at-three-level', kind: 'weakTwo' },
+    { bucket: 'overcall-preemptive-jump', index: 0,
+      ruleId: 'overcall-preemptive-jump-at-two-level', kind: 'jump' },
+    { bucket: 'overcall-preemptive-jump', index: 2,
+      ruleId: 'overcall-preemptive-jump-at-three-level', kind: 'jump' },
+    { bucket: 'overcall-preemptive-jump', index: 3,
+      ruleId: 'overcall-preemptive-jump-at-four-level', kind: 'jump' },
+    { bucket: 'overcall-dont-1nt', index: 1,
+      ruleId: 'overcall-dont-single-suit-double', kind: 'dont' },
+    { bucket: 'overcall-dont-1nt', index: 2,
+      ruleId: 'overcall-dont-clubs-plus-higher', kind: 'dont' },
+    { bucket: 'overcall-dont-1nt', index: 4,
+      ruleId: 'overcall-dont-diamonds-plus-major', kind: 'dont' },
+    { bucket: 'overcall-dont-1nt', index: 5,
+      ruleId: 'overcall-dont-majors', kind: 'dont' },
+    { bucket: 'overcall-dont-1nt', index: 6,
+      ruleId: 'overcall-dont-natural-spades', kind: 'dont' },
+  ];
+  let failures = 0;
+  for (const example of cases) {
+    const deal = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)
+      ?.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 1);
+    const call = deal.practiceAuction[1];
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(call, board, auction, system);
+    const rule = result.userCallMatchingRules.find(({ id }) => id === example.ruleId);
+    const diagnostic = result.ruleDiagnostics.find(({ rule: item }) =>
+      item.id === example.ruleId);
+    const info = diagnostic?.candidates.find((item) => item.call === call)
+      ?.callEvidence?.dontInitial;
+    const examined = example.kind === 'natural'
+      ? diagnostic?.callEvidence?.naturalOvercallSuit?.find((item) => item.call === call)
+      : example.kind === 'weakTwo'
+        ? diagnostic?.callEvidence?.weakTwoSuit?.find((item) => item.call === call)
+        : example.kind === 'jump'
+          ? diagnostic?.callEvidence?.jumpOvercallSuit?.find((item) => item.call === call)
+          : info?.qualityHonors.find((item) => item.suit ===
+              (info.singleSuit ?? info.twoSuits?.find((suit) =>
+                info.qualitySuits.includes(suit))));
+    const seat = getSeatForCallIndex(board.dealer, 1);
+    const suit = example.kind === 'dont'
+      ? info?.singleSuit ?? info?.twoSuits?.find((item) => info.qualitySuits.includes(item))
+      : call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    const actualHonors = suit === undefined ? [] :
+      (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+        board.deal[seat].cards.some((card) => card.suit === suit && card.rank === rank));
+    const topThree = actualHonors.filter((rank) =>
+      rank === 'A' || rank === 'K' || rank === 'Q').length;
+    const expectedStandard = example.lengthOnly ? null :
+      topThree >= 2 ? 'twoTopThree' : 'threeTopFive';
+    const supportedLine = rule === undefined ? null : example.kind === 'natural'
+      ? getNaturalOvercallSupportLine(result, rule)
+      : example.kind === 'weakTwo'
+        ? getWeakTwoOvercallSupportLine(result, rule)
+        : example.kind === 'jump'
+          ? getJumpOvercallSupportLine(result, rule)
+          : getDontInitialSupportLine(result, rule);
+    const panel = getBidExplanationLines({
+      title: 'Review', call, result, status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (rule === undefined || examined === undefined ||
+        examined.honors.join(',') !== actualHonors.join(',') ||
+        examined.qualityStandard !== expectedStandard ||
+        supportedLine === null || !panel.includes(supportedLine)) {
+      failures++;
+      console.error(`FAIL Stage 7A honor evidence/delivery: ${example.bucket}/${example.index} ${call}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Stage 7A suit honors: ${cases.length} checks.\n`);
+  return failures;
+}
+
 /// Protect the hand-specific explanations for natural suit and 2NT defenses to weak twos.
 /// What-if hands are separate from saved practice deals and have no duplicate cards.
 function runWeakTwoOvercallExplanationTests (): number {
