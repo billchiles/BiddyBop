@@ -282,17 +282,17 @@ These counts measure exercised contexts, not instructional correctness.
 | Direct major game after weak-two Double (1) | Adequate | Preserve |
 | DONT pass-or-correct (1) | Adequate | Preserve actual suit lengths and convention meaning |
 | One-level suit overcall, responder Pass (9) | Adequate | Preserve fit, Pass and notrump explanations |
-| Two-level suit overcall, responder Pass (7) | Improve | 8B: checked honors in higher-level new suits |
+| Two-level suit overcall, responder Pass (7) | Improved in 8B | Actual honors and evaluated quality standard for economical three-level new suits |
 | Takeout Double, responder Pass (7) | Adequate | 8A: protect actual compulsory minimum-suit response after Pass |
 | Responder preempts or takes a special unsupported action (3) | Adequate / scope boundary | Avoid invented continuations |
 | Natural notrump after responder acts (1) | Adequate | Preserve actual stopper, HCP and balanced facts |
-| Responder raises after natural suit overcall (13) | Improve | 8B: actual honors in three-level natural new suits |
-| Responder raises after takeout Double (5) | Pass-feedback corrected in 8A; otherwise adequate | No false penalty-conversion warning after a raise |
-| Responder bids naturally after suit overcall (8) | Improve | 8B: checked honors in three-level suits |
-| Responder bids naturally after takeout Double (5) | Pass-feedback corrected in 8A; otherwise adequate | No false penalty-conversion warning after a natural bid |
+| Responder raises after natural suit overcall (13) | Improved in 8B | Checked three-level natural new-suit honors and specific rejected quality explanations |
+| Responder raises after takeout Double (5) | Improved in 8A/8B | Correct Pass context; actual honors in three-level new-suit advances |
+| Responder bids naturally after suit overcall (8) | Improved in 8B | Actual honors for natural three-level new suits; existing forcing distinctions retained |
+| Responder bids naturally after takeout Double (5) | Improved in 8A/8B | Correct Pass context; actual honors in three-level natural new suits |
 | Responder makes negative Double (8) | Adequate | Preserve |
 | Responder Redoubles the takeout Double (1) | Pass-feedback corrected in 8A | Redouble is not an opposing Pass |
-| Partner makes a preemptive jump overcall (5) | Improve | 8B actual honors; 8C Pass versus direct game |
+| Partner makes a preemptive jump overcall (5) | Improved honors in 8B; comparison pending 8C | Forcing natural new suits report actual honors and failed-quality evidence; 8C compares Pass versus game |
 
 Three natural-2NT-over-weak-two rules were not the recorded call in the
 available hands (weak Pass, spade Jacoby transfer, heart Texas transfer).
@@ -312,15 +312,26 @@ takeout-Double Pass examples and three contested examples are protected by
 focused evidence/delivery checks. The local source snapshot is not a full
 current-master checkout; GitHub CI validates the actual master-based patch.
 
-**Batch 8B — still pending:** Report the actual qualifying A/K/Q/J/10 honors
-and checked two-of-A/K/Q versus three-of-A/K/Q/J/10 standard for higher-level
-natural advances. Refine the current `advanceNewSuitQuality`,
-`competitiveRaiseNewSuit` and `jumpAdvance` evidence as necessary; inspect
-positive and rejected reasons. Do not re-evaluate bidding eligibility in
-explanation code or change priorities. Preserve genuine length/quality
-exceptions and existing comparison text.
+**Batch 8B — completed:** Refiner evidence now retains actual A/K/Q/J/10
+honors and the qualifying two-of-A/K/Q or three-of-A/K/Q/J/10 standard for
+`advanceNewSuitQuality`, `competitiveRaiseNewSuit`,
+`competitiveNaturalNewSuit`, and forcing-new-suit `jumpAdvance` choices.
+Student explanations distinguish which standard the held cards satisfy.
+Rejected suit-quality explanations identify the actual suit length and honors.
+Two-level natural advances do not acquire an honor requirement, and
+jump-overcall trump raises are unaffected.
 
-**Batch 8C — still pending:** Compare only genuine qualifying alternatives.
+Local TypeScript compilation and the full rule suite passed with zero failures,
+including eleven focused evidence/delivery checks. A like-for-like replay of
+all 2,979 recorded auction calls changed exactly twelve explanatory messages,
+all in higher-level natural advancing families, with zero rule-match/status
+changes. Among 3,524 attempted advancing calls, 26 feedback messages changed
+for the same families and rejected honor-quality calls, with no qualifying-call
+or turn-status changes. These are replay results from the available local
+Stage 8A snapshot; GitHub CI separately validates the actual master-based
+Stage 8B patch. Changes are instructional, not bidding-system changes.
+
+**Batch 8C — next:** Compare only genuine qualifying alternatives.
 One recorded `1D–(3H)–Pass` hand supports both advancer Pass and 4H
 with nine total points with shortage and a ten-card partnership trump fit;
 explain reciprocal descriptions without asserting that game makes, mentioning
@@ -331,11 +342,11 @@ under the applicable agreements: the saved `2H–(2NT)–Pass` hand offers
 hand offers direct natural 4H versus 3D Jacoby-to-hearts. Do not add
 convention rules or practice deals solely for numerical reach.
 
-**Crash-recovery checkpoint:** GitHub `master` is authoritative. After each
-approved batch, update this document's dispositions and next-step plan, delete
-completed punch-list items rather than preserving them in
-`docs/bidding-roadmap.md`, and retain the strict small-batch approval,
-commit and squash-merge practice. For replay comparisons distinguish
+**Crash-recovery checkpoint:** GitHub `master` is authoritative. Stages
+1–7 and 8A/8B are complete; Stage 8C is next. After each approved batch,
+update this document's dispositions and next-step plan, delete completed
+punch-list items rather than preserving them in `docs/bidding-roadmap.md`,
+and retain the strict small-batch approval, commit and squash-merge practice. For replay comparisons distinguish
 an older local snapshot from current-master validation, and inspect every
 learner-facing change for instructional intent. Permanent tests cover
 evaluated evidence/delivery, not exact English wording. After the remaining
