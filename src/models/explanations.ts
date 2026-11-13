@@ -224,6 +224,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getResponderJumpShiftFailureLines(result),
     ...getCompetitiveResponseFailureLines(result),
     ...getWeakTwoResponseFailureLines(result),
+    ...getThreeLevelPreemptResponseFailureLines(result),
     ...getJumpResponseFailureLines(result),
     ...getNaturalAdvanceFailureLines(result),
     ...getTakeoutAdvanceFailureLines(result),
@@ -422,6 +423,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveResponseLines(result, rule));
   lines.push(...getNaturalNewSuitOvercallLines(result, rule));
   lines.push(...getWeakTwoResponseLines(result, rule));
+  lines.push(...getThreeLevelPreemptResponseLines(result, rule));
   lines.push(...getJumpResponseLines(result, rule));
   lines.push(...getCompetitiveResponseAlternativeLines(result, rule));
   lines.push(...getNaturalAdvanceLines(result, rule));
@@ -3261,21 +3263,35 @@ export function getWeakTwoResponseLines(result: BidEvalResult, rule: BidRule): s
       `Opener is not required to bid again ${id}.`];
   }
   if (rule.id.endsWith('/-2nt-inquiry')) {
+    const newSuit = result.ruleDiagnostics.find(({ rule: other }) =>
+      other.id === 'respond-to-weak-two-w/-new-suit-forcing')
+      ?.candidates.find((item) => item.ruleApplies)?.call;
     return [`${guidelineOf17Explanation(facts)}, meeting 17. ` +
       `Artificial 2NT investigates game by asking opener about strength and features; ` +
-      `it is not an offer to play in notrump ${id}.`];
+      `it is not an offer to play in notrump ${id}.`,
+    ...(newSuit === undefined ? [] : [
+      `Natural ${newSuit} also qualifies as a forcing response, describing your good ` +
+      `five-card-or-longer ${suitPlural(newSuit)} immediately. Both calls are supported: ` +
+      `2NT asks about opener's hand, while ${newSuit} describes your suit ` +
+      '[respond-to-weak-two-w/-new-suit-forcing].'])];
   }
   const selection = entry?.callEvidence?.weakTwoNewSuit;
   const chosen = selection?.considered.find((item) => item.call === result.normalizedCall);
-  if (chosen === undefined || !chosen.quality || selection?.selected !== result.normalizedCall) return [];
+  if (chosen === undefined || !chosen.quality || chosen.qualityStandard === null ||
+      selection?.selected !== result.normalizedCall) return [];
+  const honors = chosen.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const standard = chosen.qualityStandard === 'twoTopThree'
+    ? 'two of A/K/Q' : 'three of A/K/Q/J/10';
   const twoNt = result.ruleDiagnostics.find(({ rule: other }) =>
     other.id === 'respond-to-weak-two-w/-2nt-inquiry')
     ?.candidates.some(({ ruleApplies }) => ruleApplies);
-  return [`${guidelineOf17Explanation(facts)}, meeting 17. Your ${chosen.length}-card ` +
-    `${suitPlural(result.normalizedCall!)} satisfy the suit-quality requirement ` +
-    '(2 of top 3 honors or 3 of top 5 honors). ' +
-    `This is a natural new suit, forcing one round. ` +
-    (twoNt ? 'Artificial 2NT is also supported if you prefer to ask about opener’s hand. ' : '') +
+  return [`${guidelineOf17Explanation(facts)}, meeting 17. Your ${chosen.length} ` +
+    `${suitPlural(result.normalizedCall!)} contain ${honors}, satisfying the ` +
+    `suit-quality standard of ${standard}. ${result.normalizedCall} is natural and ` +
+    `forcing one round. ` +
+    (twoNt ? 'Artificial 2NT also qualifies; it asks about opener’s strength and features, ' +
+      `while ${result.normalizedCall} describes your good suit immediately. Both calls ` +
+      'are supported. ' : '') +
     `[${rule.id}].`];
 }
 
@@ -3324,6 +3340,113 @@ export function getWeakTwoResponseFailureLines(result: BidEvalResult): string[] 
       return [`${guidelineOf17Explanation(facts)}, below the 17 required for ` +
         `this forcing new-suit response [${id}].`];
     }
+  }
+  return [];
+}
+
+///
+//// Responses to partner's three-level preempt
+///
+const THREE_LEVEL_PREEMPT_RESPONSE_IDS = [
+  'respond-to-three-level-preempt-w/-pass',
+  'respond-to-three-level-preempt-w/-raise-to-four',
+  'respond-to-three-level-preempt-w/-new-suit-forcing',
+];
+
+/// Describe the actual trump fit or good new suit, and identify a supported alternative
+/// without claiming that the structural checks estimate how many tricks can be taken.
+export function getThreeLevelPreemptResponseLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (!THREE_LEVEL_PREEMPT_RESPONSE_IDS.includes(rule.id) || result.normalizedCall === null)
+    return [];
+  const entry = result.ruleDiagnostics.find(({ rule: other }) => other.id === rule.id);
+  const candidate = entry?.candidates.find(({ call }) => call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const id = `[${rule.id}]`;
+  const fit = candidate.callEvidence?.threeLevelPreemptResponse;
+  if (rule.id.endsWith('/-pass') && fit !== undefined) {
+    const newSuit = result.ruleDiagnostics.find(({ rule: other }) =>
+      other.id === 'respond-to-three-level-preempt-w/-new-suit-forcing')
+      ?.candidates.find((item) => item.ruleApplies)?.call;
+    return [`You have ${fit.support} ${suitPlural(`1${fit.openingSuit}` as Call)} ` +
+      `opposite opener's promised seven-card suit. Pass qualifies structurally with ` +
+      `two or fewer trumps, but this does not establish that game is unlikely ${id}.`,
+    ...(newSuit === undefined ? [] : [
+      `Natural ${newSuit} also qualifies, showing your good long suit and forcing ` +
+      `one round. Pass and ${newSuit} are both supported by the modeled checks; ` +
+      `deciding whether to pursue game requires playing-trick judgment ` +
+      '[respond-to-three-level-preempt-w/-new-suit-forcing].'])];
+  }
+  if (rule.id.endsWith('/-raise-to-four') && fit !== undefined) {
+    return [`Your ${fit.support} ${suitPlural(`1${fit.openingSuit}` as Call)} ` +
+      `combine with opener's promised seven to give at least ${fit.support + 7} ` +
+      `trumps. Raising to ${result.normalizedCall} is nonforcing; in a major it ` +
+      `may also be the game contract ${id}.`];
+  }
+  const selection = entry?.callEvidence?.threeLevelPreemptNewSuit;
+  const chosen = selection?.considered.find(({ call }) => call === result.normalizedCall);
+  if (chosen === undefined || !chosen.quality || chosen.qualityStandard === null ||
+      !chosen.economical || !chosen.belowGame ||
+      chosen.length < chosen.minLength || selection?.selected !== result.normalizedCall) return [];
+  const honors = chosen.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const standard = chosen.qualityStandard === 'twoTopThree'
+    ? 'two of A/K/Q' : 'three of A/K/Q/J/10';
+  const pass = result.ruleDiagnostics.find(({ rule: other }) =>
+    other.id === 'respond-to-three-level-preempt-w/-pass')
+    ?.candidates.some((item) => item.call === 'Pass' && item.ruleApplies) === true;
+  return [`Your ${chosen.length} ${suitPlural(result.normalizedCall)} contain ${honors}, ` +
+    `meeting the ${standard} honor requirement for this ${chosen.minLength}-card-minimum ` +
+    `response. Natural ${result.normalizedCall} is forcing one round, showing game ` +
+    `interest; actual game prospects require playing-trick judgment ${id}.`,
+  ...(pass ? [
+    `Pass also qualifies under the two-or-fewer-trumps structural check, but ` +
+    `${result.normalizedCall} describes your good long suit. That Pass check alone ` +
+    `does not establish Pass as the better choice ` +
+    '[respond-to-three-level-preempt-w/-pass].'] : [])];
+}
+
+/// Explain only an attempted three-level-preempt response that failed its evaluated checks.
+export function getThreeLevelPreemptResponseFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
+  const call = result.normalizedCall;
+  const pass = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-three-level-preempt-w/-pass');
+  const passCandidate = pass?.candidates.find((item) => item.call === call);
+  const passFacts = passCandidate?.callEvidence?.threeLevelPreemptResponse;
+  if (call === 'Pass' && passFacts !== undefined && passFacts.support > 2 &&
+      passCandidate?.ruleApplies === false) {
+    return [`This structural Pass treatment requires at most two ` +
+      `${suitPlural(`1${passFacts.openingSuit}` as Call)}; you have ` +
+      `${passFacts.support} [respond-to-three-level-preempt-w/-pass].`];
+  }
+  const raise = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-three-level-preempt-w/-raise-to-four');
+  const raiseCandidate = raise?.candidates.find((item) => item.call === call);
+  const raiseFacts = raiseCandidate?.callEvidence?.threeLevelPreemptResponse;
+  if (raiseFacts !== undefined && raiseFacts.support < 3 &&
+      raiseCandidate?.ruleApplies === false) {
+    return [`Raising partner's three-level preempt to ${call} needs at least ` +
+      `three ${suitPlural(`1${raiseFacts.openingSuit}` as Call)} opposite the ` +
+      `promised seven-card suit; you have ${raiseFacts.support} ` +
+      '[respond-to-three-level-preempt-w/-raise-to-four].'];
+  }
+  const entry = result.ruleDiagnostics.find(({ rule }) =>
+    rule.id === 'respond-to-three-level-preempt-w/-new-suit-forcing');
+  const selection = entry?.callEvidence?.threeLevelPreemptNewSuit;
+  const chosen = selection?.considered.find((item) => item.call === call);
+  if (chosen === undefined) return [];
+  const id = '[respond-to-three-level-preempt-w/-new-suit-forcing]';
+  if (!chosen.economical) return [`${call} is not the cheapest legal bid in that ` +
+    `new suit after opener's three-level preempt ${id}.`];
+  if (!chosen.belowGame) return [`${call} reaches game in that suit. This treatment ` +
+    `models only natural forcing new suits below game ${id}.`];
+  if (chosen.length < chosen.minLength) return [`A natural forcing ${call} response ` +
+    `needs at least ${chosen.minLength} ${suitPlural(call)}; you have ` +
+    `${chosen.length} ${id}.`];
+  if (!chosen.quality) return [`Your ${chosen.length} ${suitPlural(call)} do not ` +
+    `meet the suit honor requirement (two of A/K/Q or three of A/K/Q/J/10) ${id}.`];
+  if (selection?.selected !== null && selection?.selected !== call) {
+    return [`Of the qualifying new suits, this treatment selects ${selection?.selected} ` +
+      `by length and suit rank instead of ${call} ${id}.`];
   }
   return [];
 }
