@@ -111,6 +111,7 @@ function runAllRuleTests (): void {
     runOpenerPassAfterPreemptRaiseTests,
     runStrongOpenerAfterMajorSimpleRaiseTests,
     runStrongTwoCFourFourFourOneBoundaryTests,
+    runStrongTwoCPositiveSuitEvidenceTests,
     runResponderStrongAndSupportConventionTests,
     runAuctionHelperTests,
     runResponderNtConventionTests,
@@ -1016,6 +1017,118 @@ function runStrongTwoCFourFourFourOneBoundaryTests (): number {
     }
   }
   console.log(`${failures} ***FAILURES***. Strong 2C 4-4-4-1 boundary: 2 focused cases.\n`);
+  return failures;
+}
+
+/// Check positive strong-2C suit honors and genuine positive-2NT overlaps.
+/// These use existing practice hands and check generated evidence and delivery, not wording.
+function runStrongTwoCPositiveSuitEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const suitCases: { needle: string; call: Call;
+    standard: 'twoTopThree' | 'threeTopFive'; positiveNt: boolean }[] = [
+    { needle: 'with 10 HCP and a good five-card heart suit', call: '2H',
+      standard: 'threeTopFive', positiveNt: false },
+    { needle: '12 HCP and a good five-card club suit', call: '3C',
+      standard: 'twoTopThree', positiveNt: false },
+    { needle: 'without heart support, the unbalanced opener', call: '2H',
+      standard: 'twoTopThree', positiveNt: true },
+    { needle: '23 balanced HCP and only two hearts', call: '2H',
+      standard: 'twoTopThree', positiveNt: true },
+    { needle: 'an unbalanced opener with four diamonds', call: '3D',
+      standard: 'threeTopFive', positiveNt: true },
+  ];
+  for (const example of suitCases) {
+    checks++;
+    const deal = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
+      item.description.includes(example.needle));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing positive 2C response hand: ${example.needle}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const ruleId = 'respond-to-2c-w/-positive-suit';
+    const rule = result.userCallMatchingRules.find((item) => item.id === ruleId);
+    const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === ruleId);
+    const suit = diagnostic?.callEvidence?.strongTwoCPositiveSuit?.considered.find((item) =>
+      item.call === example.call);
+    const actualHonors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      board.deal.S.cards.some((card) => card.suit === example.call.slice(-1) &&
+        card.rank === rank));
+    const topThree = actualHonors.filter((rank) =>
+      rank === 'A' || rank === 'K' || rank === 'Q').length;
+    const actualStandard = topThree >= 2 ? 'twoTopThree' :
+      actualHonors.length >= 3 ? 'threeTopFive' : null;
+    const ntQualified = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'respond-to-2c-w/-2nt-positive-balanced')
+      ?.candidates.some((item) => item.call === '2NT' && item.ruleApplies) === true;
+    const generated = rule === undefined ? [] : getStrongTwoCResponseLines(result, rule);
+    const handFacts = getHandFacts(board.deal.S);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || suit === undefined || !suit.quality ||
+        suit.qualityStandard !== example.standard || actualStandard !== example.standard ||
+        suit.honors.join(',') !== actualHonors.join(',') ||
+        suit.length !== handFacts.lengths[example.call.slice(-1) as 'C' | 'D' | 'H' | 'S'] ||
+        ntQualified !== example.positiveNt || generated.length === 0 ||
+        generated.some((line) => !matched.includes(line) || !delivered.includes(line)) ||
+        (example.positiveNt && !generated.some((line) => line.includes('2NT')))) {
+      failures++;
+      console.error(`FAIL strong 2C positive suit evidence/delivery: ${example.needle}.`);
+    }
+  }
+  const ntCases = [
+    { needle: 'without heart support, the unbalanced opener', suit: '2H' },
+    { needle: '23 balanced HCP and only two hearts', suit: '2H' },
+    { needle: 'an unbalanced opener with four diamonds', suit: '3D' },
+    { needle: 'an 11-HCP 4-3-3-3 responder', suit: null },
+  ];
+  for (const example of ntCases) {
+    checks++;
+    const deal = RESPONSE_TO_STRONG_2C_TEST_DEALS.find((item) =>
+      item.description.includes(example.needle));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing balanced 2C response hand: ${example.needle}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall('2NT', board, auction, system);
+    const ruleId = 'respond-to-2c-w/-2nt-positive-balanced';
+    const rule = result.userCallMatchingRules.find((item) => item.id === ruleId);
+    const suitCandidates = result.ruleDiagnostics.find((item) =>
+      item.rule.id === 'respond-to-2c-w/-positive-suit')?.candidates ?? [];
+    const supportedSuit = suitCandidates.some((item) =>
+      item.call === example.suit && item.ruleApplies);
+    const generated = rule === undefined ? [] : getStrongTwoCResponseLines(result, rule);
+    const handFacts = getHandFacts(board.deal.S);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: '2NT', result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || supportedSuit !== (example.suit !== null) ||
+        generated.length !== (example.suit === null ? 1 : 2) ||
+        generated.some((line) => !matched.includes(line) || !delivered.includes(line)) ||
+        (example.suit !== null && !generated.some((line) => line.includes(example.suit!)))) {
+      failures++;
+      console.error(`FAIL strong 2C balanced/suit alternative delivery: ${example.needle}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Strong 2C positive-suit evidence: ${checks} checks.\n`);
   return failures;
 }
 
