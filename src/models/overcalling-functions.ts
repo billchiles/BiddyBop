@@ -35,12 +35,24 @@ export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContex
     const good = hasPreemptSuitQuality(context.hand, suit);
     const passed = bid.level === 1 ? length >= 6 || (length >= 5 && good) :
       length >= 5 && good;
-    suitChecks.push({ call, level: bid.level, length, good, passed });
+    suitChecks.push({ call, level: bid.level, length, good, passed,
+      ...getOvercallHonorEvidence(context, suit, good) });
     return passed;
   });
   return { calls: qualifying, telemetryLines: [
     'Keep non-jump suits: good five cards or six-plus at level one; good five-plus at level two.',
   ], callEvidence: { naturalOvercallSuit: suitChecks } };
+}
+
+/// Record which honors were held when the existing suitability check ran.
+/// The caller supplies that result; this helper does not decide whether the suit qualifies.
+function getOvercallHonorEvidence (context: RuleEvalContext, suit: Suit, good: boolean) {
+  const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+    context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+  const topThree = honors.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q').length;
+  const qualityStandard = !good ? null :
+    topThree >= 2 ? 'twoTopThree' as const : 'threeTopFive' as const;
+  return { honors, qualityStandard };
 }
 
 /// A one-level overcall normally shows 8–17 HCP.  Cohen allows an exceptional
@@ -111,7 +123,8 @@ export function refineWeakTwoSuitOvercall (calls: Call[], context: RuleEvalConte
     const length = context.handFacts.lengths[suit];
     const good = hasPreemptSuitQuality(context.hand, suit);
     const passed = isCheapest && requiredLength !== 0 && length >= requiredLength && good;
-    suitChecks.push({ call, length, requiredLength, good, cheapestCall, isCheapest, passed });
+    suitChecks.push({ call, length, requiredLength, good, cheapestCall, isCheapest, passed,
+      ...getOvercallHonorEvidence(context, suit, good) });
     return passed;
   });
   return {
@@ -148,7 +161,8 @@ export function refinePreemptiveJumpOvercall (calls: Call[], context: RuleEvalCo
     const requiredLength = bid.level + 4;
     const good = hasPreemptSuitQuality(context.hand, suit);
     const passed = length === requiredLength && good;
-    suitChecks.push({ call, length, requiredLength, good, passed });
+    suitChecks.push({ call, length, requiredLength, good, passed,
+      ...getOvercallHonorEvidence(context, suit, good) });
     return passed;
   });
   return { calls: qualifying, telemetryLines: [
@@ -1542,11 +1556,14 @@ function getDontTwoSuits (context: RuleEvalContext, lowerSuit: Suit,
 function dontInitialEvidence(context: RuleEvalContext, singleSuit: Suit | null,
                              twoSuits: [Suit, Suit] | null):
     NonNullable<CallEvidence['dontInitial']> {
+  const qualitySuits = SUITS.filter((suit) =>
+    context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit));
   return {
     hcp: context.handFacts.hcp,
     lengths: { ...context.handFacts.lengths },
-    qualitySuits: SUITS.filter((suit) =>
-      context.handFacts.lengths[suit] >= 5 && hasPreemptSuitQuality(context.hand, suit)),
+    qualitySuits,
+    qualityHonors: qualitySuits.map((suit) => ({ suit,
+      ...getOvercallHonorEvidence(context, suit, true) })),
     singleSuit,
     twoSuits,
   };
