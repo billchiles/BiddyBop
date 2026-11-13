@@ -894,6 +894,8 @@ export interface CallEvidence {
     rebidSuit: Suit | null;
     rebidLength: number;
     afterAdvancerAction: boolean;
+    // Evaluated against the shared natural-NT stopper standard, never from HCP alone.
+    opponentStoppers: { suit: Suit; holding: string; passed: boolean }[];
   };
 
   // Responder rebids
