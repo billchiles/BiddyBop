@@ -655,7 +655,7 @@ export function twoNtNaturalMinorForcingApplies (call: Call, context: RuleEvalCo
       (candidate.strain !== 'C' && candidate.strain !== 'D')) {
     return { success: false, telemetryLines: ['FAIL: natural 2NT minor response needs 3C or 3D.'] };
   }
-  const suit = candidate.strain as Suit;
+  const suit = candidate.strain as 'C' | 'D';
   const hcpApplies = context.handFacts.hcp >= 10;
   const lengthApplies = context.handFacts.lengths[suit] >= 5;
   const shapeApplies = ! context.handFacts.balanced;
@@ -670,6 +670,11 @@ export function twoNtNaturalMinorForcingApplies (call: Call, context: RuleEvalCo
       `${shapeApplies ? 'PASS' : 'FAIL'}: balanced hands use the normal notrump response ladder.`,
       `${! hasPreferredMajor ? 'PASS' : 'FAIL'}: no preferred major-suit response takes precedence.`,
     ],
+    callEvidence: { naturalTwoNtMinor: {
+      hcp: context.handFacts.hcp, minHcp: 10, suit,
+      length: context.handFacts.lengths[suit], minLength: 5,
+      unbalanced: shapeApplies, hasPreferredMajor,
+    } },
   };
 }
 
