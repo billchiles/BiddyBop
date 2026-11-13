@@ -33,29 +33,19 @@ be adequately taught by its meaning and shared guidance.
 
 ## Current review plan
 
-1. **Competitive opener rebids — next implementation batch (9B).** Review and
-   explicitly approve only the changes that improve the following cases:
-   - After `1C–(1D)–1H–(1S)–Pass`, explain why the opposing intervention
-     permits opener to Pass despite responder's initially forcing new suit;
-     avoid implying that opener must still bid immediately.
-   - After `1H–(1S)–2C–(Pass)–2NT`, check whether the actual spade holding
-     supporting the notrump stopper requirement is available and useful to
-     report; investigate rejected natural 3NT evidence before promising a
-     hand-specific rejection message.
-   - Correct awkward shortage-point grammar (for example, `1 shortage points`)
-     and repetitive point-range language in competitive Pass/raise feedback.
-   - Verify that changes do not alter qualification, priorities, or force
-     treatment. Review genuine alternatives and judgment boundaries, not
-     hypothetical bids.
-2. **Finish targeted competitive opener-rebid review.** Check Jordan 2NT,
+1. **Finish targeted competitive opener-rebid review.** Check Jordan 2NT,
    cuebids, weak/NT/game-forcing responses, advancer action after interference,
    and jump-overcall continuations. Do not assume a family is cleared merely
-   because it already has a specialized explanation function.
-3. **Review overcaller/Doubler rebids and responder rebids across stages.**
+   because it already has a specialized explanation function. In particular,
+   rejected natural NT calls can be filtered for missing opponent-suit stoppers
+   before a candidate has evidence for a precise failure message; assess
+   whether that warrants a narrow diagnostic change without manufacturing
+   an untested reason.
+2. **Review overcaller/Doubler rebids and responder rebids across stages.**
    Verify forcing obligations, agreement-specific language, evaluated
    hand-constraint evidence, and honest stopping boundaries against recorded
    and relevant rejected calls. Preserve adequate explanations unchanged.
-4. **Final cross-stage quality check.** Look for inconsistent advice across
+3. **Final cross-stage quality check.** Look for inconsistent advice across
    related stages, use only bidder-visible information, and check feedback in
    ordinary entry, recorded-call substitution, and the clipboard Report.
    After the evidence review is complete, run `npm run stats:bidding` and
