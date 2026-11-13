@@ -16,7 +16,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
-         getNaturalAdvanceLines, getStrongTwoCResponseLines,
+         getNaturalAdvanceLines, getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getPreemptOpeningSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
@@ -134,6 +134,7 @@ function runAllRuleTests (): void {
     runCompetitiveOpenerRebidBoundaryTests,
     runAdvancingBoundaryTests,
     runTakeoutAdvanceBoundaryTests,
+    runTakeoutAdvancePassContextTests,
     runSharedOneNtAdvanceBoundaryTests,
     runOneNtLongMinorBoundaryTests,
     runResponderRaiseAdvanceBoundaryTests,
@@ -3782,6 +3783,52 @@ function runAdvancingBoundaryTests (): number {
   console.log('  auctions; checks stoppers, suit quality, and strength requirements.\n');
   return failures;
 }
+/// The obligatory response to a takeout Double applies only when responder Passes.
+/// A raise, natural response or Redouble must not inherit the doubled-contract claim.
+function runTakeoutAdvancePassContextTests (): number {
+  const cases: { deals: RuleTestDeal[]; index: number; opponentPassed: boolean }[] = [
+    { deals: ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, index: 0, opponentPassed: true },
+    { deals: ADVANCER_AFTER_TAKEOUT_DOUBLE_TEST_DEALS, index: 11, opponentPassed: true },
+    { deals: ADVANCER_AFTER_RESPONDER_RAISE_TAKEOUT_DOUBLE_TEST_DEALS,
+      index: 1, opponentPassed: false },
+    { deals: ADVANCER_AFTER_RESPONDER_NATURAL_ACTION_TAKEOUT_DOUBLE_TEST_DEALS,
+      index: 2, opponentPassed: false },
+    { deals: ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
+      index: 0, opponentPassed: false },
+  ];
+  let failures = 0;
+  for (const example of cases) {
+    const deal = example.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 3);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall('Pass', board, auction, system);
+    const minimum = result.ruleDiagnostics.find(({ rule }) =>
+      rule.id === 'advance-takeout-double-minimum-suit');
+    const hasMinimumSelection = minimum?.callEvidence?.takeoutSuitSelection?.jump === 0;
+    const specificReasons = getTakeoutAdvanceFailureLines(result);
+    const seat = getSeatForCallIndex(board.dealer, auction.length);
+    const feedback = getBidExplanationLines({
+      title: 'Review', call: 'Pass', result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 ||
+        hasMinimumSelection !== example.opponentPassed ||
+        (specificReasons.length > 0) !== example.opponentPassed ||
+        specificReasons.some((line) => !feedback.includes(line)) ||
+        (!example.opponentPassed && feedback.length === 0)) {
+      failures++;
+      console.error('FAIL takeout Double Pass context: ' + auction.join(' ') + '.');
+    }
+  }
+  console.log(failures + ' ***FAILURES***. Takeout Double Pass context: ' +
+    cases.length + ' checks.\n');
+  return failures;
+}
+
 /// Guard takeout-double advances against unsupported auctions and check suit-length
 /// fallback behavior independently from the representative practice deals.
 function runTakeoutAdvanceBoundaryTests (): number {
