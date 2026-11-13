@@ -17,6 +17,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
          getNaturalAdvanceLines, getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
+         getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
+         getCompetitiveNaturalAdvanceLines, getJumpAdvanceLines, getJumpAdvanceFailureLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getPreemptOpeningSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
@@ -135,6 +137,7 @@ function runAllRuleTests (): void {
     runAdvancingBoundaryTests,
     runTakeoutAdvanceBoundaryTests,
     runTakeoutAdvancePassContextTests,
+    runAdvancingSuitHonorEvidenceTests,
     runSharedOneNtAdvanceBoundaryTests,
     runOneNtLongMinorBoundaryTests,
     runResponderRaiseAdvanceBoundaryTests,
@@ -3826,6 +3829,113 @@ function runTakeoutAdvancePassContextTests (): number {
   }
   console.log(failures + ' ***FAILURES***. Takeout Double Pass context: ' +
     cases.length + ' checks.\n');
+  return failures;
+}
+
+/// Verify that advancing honors come from evaluated evidence and reach the explanation panel.
+/// Preserve ordinary two-level new suits without a required honor standard.
+function runAdvancingSuitHonorEvidenceTests (): number {
+  const positive: { bucket: string; index: number; ruleId: string;
+    kind: 'natural' | 'raise' | 'response' | 'jump'; noHonorRequirement?: boolean }[] = [
+    { bucket: 'advance-two-level-suit-overcall', index: 6,
+      ruleId: 'advance-two-level-suit-overcall-new-suit-at-three-level', kind: 'natural' },
+    { bucket: 'advance-two-level-suit-overcall', index: 7,
+      ruleId: 'advance-two-level-suit-overcall-new-suit-at-three-level', kind: 'natural' },
+    { bucket: 'advance-after-responder-raise-overcall', index: 5,
+      ruleId: 'advance-one-level-suit-overcall-after-responder-raise-new-suit-three-level', kind: 'raise' },
+    { bucket: 'advance-after-responder-raise-double', index: 2,
+      ruleId: 'advance-takeout-double-after-responder-raise-new-suit-three-level', kind: 'raise' },
+    { bucket: 'advance-after-responder-action-overcall', index: 8,
+      ruleId: 'advance-suit-overcall-after-responder-natural-action-new-suit-three-level', kind: 'response' },
+    { bucket: 'advance-after-responder-action-double', index: 4,
+      ruleId: 'advance-takeout-double-after-responder-natural-action-new-suit-three-level', kind: 'response' },
+    { bucket: 'advance-jump-overcall', index: 12,
+      ruleId: 'advance-jump-overcall-forcing-new-suit', kind: 'jump' },
+    { bucket: 'advance-jump-overcall', index: 13,
+      ruleId: 'advance-jump-overcall-forcing-new-suit', kind: 'jump' },
+    { bucket: 'advance-after-responder-raise-overcall', index: 4,
+      ruleId: 'advance-one-level-suit-overcall-after-responder-raise-new-suit-two-level',
+      kind: 'raise', noHonorRequirement: true },
+  ];
+  let failures = 0;
+  for (const item of positive) {
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === item.bucket)
+      ?.deals[item.index];
+    if (deal === undefined) { failures++; continue; }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 3);
+    const call = deal.practiceAuction[3]!;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((rule) => rule.id === item.ruleId);
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === item.ruleId);
+    const evidence = item.kind === 'natural' ? diagnostic?.callEvidence?.advanceNewSuitQuality
+      ?.considered.find((x) => x.call === call) : item.kind === 'raise' ?
+      diagnostic?.callEvidence?.competitiveRaiseNewSuit?.considered.find((x) => x.call === call) :
+      item.kind === 'response' ? diagnostic?.callEvidence?.competitiveNaturalNewSuit
+        ?.considered.find((x) => x.call === call) :
+        diagnostic?.callEvidence?.jumpAdvance?.considered?.find((x) => x.call === call);
+    const seat = getSeatForCallIndex(board.dealer, 3);
+    const hand = board.deal[seat];
+    const suit = call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      hand.cards.some((card) => card.suit === suit && card.rank === rank));
+    const top = honors.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q').length;
+    const standard = item.noHonorRequirement ? null : top >= 2 ? 'twoTopThree' : 'threeTopFive';
+    const messages = rule === undefined ? [] : item.kind === 'natural'
+      ? getNaturalAdvanceLines(result, rule) : item.kind === 'raise'
+        ? getCompetitiveRaiseAdvanceLines(result, rule) : item.kind === 'response'
+          ? getCompetitiveNaturalAdvanceLines(result, rule) : getJumpAdvanceLines(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Advancer', call, result, status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(hand), auctionLength: 3, previewLines: [],
+      seatLabel: seat, recordedUnjudged: false,
+    });
+    if (rule === undefined || !evidence?.qualityPassed ||
+        evidence.length !== getHandFacts(hand).lengths[suit] ||
+        evidence.honors?.join(',') !== honors.join(',') ||
+        evidence.qualityStandard !== standard || messages.length === 0 ||
+        messages.some((message) => !delivered.includes(message))) {
+      failures++;
+      console.error('FAIL advancing honor evidence: ' + item.bucket + '/' + item.index);
+    }
+  }
+  for (const item of [
+    { bucket: 'advance-after-responder-raise-overcall', index: 0, call: '3C' as Call },
+    { bucket: 'advance-jump-overcall', index: 0, call: '2S' as Call },
+  ]) {
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === item.bucket)
+      ?.deals[item.index];
+    if (deal === undefined) { failures++; continue; }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 3);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(item.call, board, auction, system);
+    const isJump = item.bucket === 'advance-jump-overcall';
+    const ruleId = isJump ? 'advance-jump-overcall-forcing-new-suit' :
+      'advance-one-level-suit-overcall-after-responder-raise-new-suit-three-level';
+    const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
+    const choice = isJump ? diagnostic?.callEvidence?.jumpAdvance?.considered
+      ?.find((x) => x.call === item.call) : diagnostic?.callEvidence?.competitiveRaiseNewSuit
+        ?.considered.find((x) => x.call === item.call);
+    const messages = isJump ? getJumpAdvanceFailureLines(result) :
+      getCompetitiveRaiseAdvanceFailureLines(result);
+    const seat = getSeatForCallIndex(board.dealer, 3);
+    const delivered = getBidExplanationLines({
+      title: 'Advancer', call: item.call, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: 3, previewLines: [],
+      seatLabel: seat, recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 || choice === undefined || choice.qualityPassed ||
+        choice.honors === undefined || messages.length === 0 ||
+        messages.some((message) => !delivered.includes(message))) {
+      failures++;
+      console.error('FAIL rejected advancing suit honors: ' + item.bucket);
+    }
+  }
+  console.log(failures + ' ***FAILURES***. Advancing new-suit honors: ' +
+    (positive.length + 2) + ' checks.\n');
   return failures;
 }
 
