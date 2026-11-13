@@ -518,9 +518,11 @@ export interface CallEvidence {
   naturalTwoNtMinor?: {
     hcp: number;
     minHcp: number;
+    strengthQualified: boolean;
     suit: 'C' | 'D';
     length: number;
     minLength: number;
+    lengthQualified: boolean;
     unbalanced: boolean;
     hasPreferredMajor: boolean;
   };
