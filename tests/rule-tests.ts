@@ -7723,7 +7723,7 @@ function runWeakCompetitiveResponseEvidenceTests (): number {
         weakSuit.length === handFacts.lengths[suit] &&
         weakSuit.honors.every((rank) => board.deal.S.cards.some((card) =>
           card.suit === suit && card.rank === rank))
-        : example.kind === 'jumpShift'
+      : example.kind === 'jumpShift'
         ? jumpShift?.selectedCall === call && jumpShift.hcp === handFacts.hcp &&
           jumpShift.considered.some((item) => item.call === call &&
             item.length === handFacts.lengths[suit] && item.length >= 6)
