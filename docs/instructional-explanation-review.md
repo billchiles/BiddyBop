@@ -126,11 +126,36 @@ The original rejected-call reasons and waiting feedback did not change,
 and neither replay found a rule-match difference. These are comparisons
 against the supplied local snapshot; GitHub CI validates the merged source.
 
-**Next systematic stage:** Responses to weak-two and higher preemptive
-openings (Pass, raises, forcing new suits, 2NT inquiries and scope boundaries),
-then competitive responses. Record explicit family decisions even if adequate.
+### Stage 5 — responses to weak-two and higher preemptive openings
 
-**Remaining:** Continue the family inventory below from weak-two/preempt responses onward,
+| Preempt response family | Disposition | Basis |
+| --- | --- | --- |
+| Weak-two Pass | Adequate | Guideline of 17 and actual support already explained; playing strength remains judgment |
+| Weak-two raise to three | Adequate | Actual three-card support, nine-card fit, weak nonforcing meaning already explained |
+| Weak-two raise to four | Adequate | Actual four-or-more-card support, combined fit, and game-versus-preempt judgment explained |
+| Weak-two forcing 2NT inquiry | Improved for overlapping new suit | Existing HCP/support/Guideline-of-17 explanation retained; now compares qualifying good forcing new suit when available |
+| Weak-two forcing new suit | Improved | Actual honors and qualifying standard reported; the checked 2NT alternative is distinguished by purpose |
+| Three-level preempt Pass | Improved | Actual support against promised seven; structural Pass does not claim game is unlikely; qualifying forcing-suit alternative shown |
+| Three-level preempt raise to four | Improved | Actual support and ten-or-more-card trump fit, nonforcing treatment and possible major-suit game |
+| Three-level preempt forcing new suit | Improved | Actual suit length, honors and three-/four-level minimums; positive Pass comparison and rejected-call causes |
+| Four-/five-level preempt Pass | Adequate; Judgment boundary | No full response system modeled; do not invent high-level game/slam recommendations |
+| Interference after a partner preempt | Judgment boundary | Selected response rules explicitly exclude it; no deterministic treatment inferred |
+
+The pre-change and post-change recorded-call replays contain the same 2,979
+auction calls. Exactly four recorded messages changed, all in the existing
+weak-preempt response bucket (one weak-two forcing suit and three three-level
+preempt responses); rule matches and statuses were identical. A 240-attempt
+comparison of the 12 saved preempt response hands changed 16 feedback outputs,
+all in the four relevant hands; no eligibility differences were found.
+The 2NT-versus-new-suit and Pass-versus-forcing-suit comparisons use actual
+qualified alternatives rather than speculation. Permanent tests check evidence
+and delivery without asserting English wording.
+
+**Next systematic stage:** Competitive responder families after opposing overcalls
+and Doubles. Review the stage inventory in order and record explicit dispositions,
+even where previously developed responses prove adequate.
+
+**Remaining:** Continue the family inventory below from competitive responses onward,
 and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve
