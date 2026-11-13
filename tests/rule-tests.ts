@@ -6092,6 +6092,45 @@ function runOpenerInterferenceTeachingTests (): number {
       console.error('FAIL qualifying DONT continuation lacks two-major explanation.');
     }
   }
+  // The competing suit and actual holding travel as evaluated evidence to the
+  // explanation path; tests verify evidence/delivery without freezing English wording.
+  const forcingNtDeal = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((deal) =>
+    deal.practiceAuction.join(' ') === '1H 1S 2C Pass 2NT');
+  checks++;
+  if (forcingNtDeal === undefined) {
+    failures++;
+    console.error('FAIL missing competitive forcing-response 2NT example.');
+  } else {
+    const { board: forcingNtBoard } = makeRuleTestBoard(forcingNtDeal);
+    const ntAuction: Call[] = ['1H', '1S', '2C', 'Pass'];
+    const evaluated = evaluateUserCall('2NT', forcingNtBoard, ntAuction, defaultBiddingSystem);
+    const match = evaluated.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'opener-rebid-2nt-after-overcall-two-level-new-suit')
+      ?.candidates.find((item) => item.call === '2NT' && item.ruleApplies);
+    const stopper = match?.callEvidence?.openerCompetitiveForcingRebid?.opponentStoppers
+      .find((item) => item.suit === 'S');
+    checks++;
+    if (stopper?.holding !== 'K72' || stopper.passed !== true ||
+        evaluated.userCallMatchingRules.every((rule) =>
+          rule.id !== 'opener-rebid-2nt-after-overcall-two-level-new-suit')) {
+      failures++;
+      console.error('FAIL competitive opener NT stopper evidence is not qualified.');
+    }
+    const seat = getSeatForCallIndex(forcingNtBoard.dealer, ntAuction.length);
+    const delivered = getBidExplanationLines({
+      title: 'Recorded', call: '2NT',
+      status: getBiddingTurnStatus(forcingNtBoard, ntAuction, defaultBiddingSystem),
+      result: evaluated, handFacts: getHandFacts(forcingNtBoard.deal[seat]),
+      auctionLength: ntAuction.length, previewLines: [], seatLabel: seat,
+      recordedUnjudged: false,
+    });
+    checks++;
+    if (! delivered.some((line) =>
+        line.includes('[opener-rebid-2nt-after-overcall-two-level-new-suit]'))) {
+      failures++;
+      console.error('FAIL evaluated competitive stopper explanation not delivered.');
+    }
+  }
   const auctions: { sequence: string; ruleId: string; rejected?: Call }[] = [
     { sequence: '1H 2S 3H Pass Pass',
       ruleId: 'opener-rebid-after-jump-overcall-nonforcing-pass' },

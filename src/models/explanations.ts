@@ -7527,7 +7527,7 @@ export function getOpenerRaiseRebidLines(
   const choices = alternatives.length === 0 ? '' :
     ` Also supported: ${alternatives.slice(0, 3).join(', ')}. The app does not require ` +
     'one unique choice when their conditions overlap.';
-  return [`Your ${valuation}. ${reason}${choices} [${id}]`];
+  return [`Your hand has ${valuation}. ${reason}${choices} [${id}]`];
 }
 
 /// Give a specific failure only when the same auction generated a rejected candidate.
@@ -7556,8 +7556,8 @@ export function getOpenerRaiseRebidFailureLines(
       const contest = rule.id === 'opener-rebid-invite-three-after-major-simple-raise'
         ? ' Without opponent competition, a voluntary three-level raise is an invitation, ' +
           'not a minimum-strength obstructive action.' : '';
-      return [`${call} requires ${required} ${measure}; your hand has ${actual} ` +
-        `(${openerRaiseValue(rule.id, facts)}).${contest} [${rule.id}]`];
+      return [`${call} requires ${required} ${measure}; your hand has ` +
+        `${openerRaiseValue(rule.id, facts)}.${contest} [${rule.id}]`];
     }
     const hcp = limits.hcp;
     if (hcp !== undefined &&
@@ -7599,7 +7599,8 @@ function openerRaiseValue(id: string, facts: HandFacts): string {
   const bonus = majorFit ? facts.shortPoints : facts.lengthPoints;
   const label = majorFit ? 'shortage' : 'length';
   const total = majorFit ? facts.totalPointsWShortage : facts.totalPointsWLength;
-  return `${total} ${label}-adjusted points (${facts.hcp} HCP + ${bonus} ${label} points)`;
+  return `${total} total points with ${label} (${facts.hcp} HCP + ${bonus} ` +
+    `${label} point${bonus === 1 ? '' : 's'})`;
 }
 
 ///
@@ -8029,8 +8030,8 @@ export function getOpenerNegativeDoubleRebidLines(
   if (match === undefined) return [];
   const call = match.call;
   const support = facts.totalPointsWShortage;
-  const supportLine = `${facts.hcp} HCP + ${facts.shortPoints} shortage points = ` +
-    `${support} support points.`;
+  const supportLine = `${facts.hcp} HCP + ${facts.shortPoints} shortage ` +
+    `point${facts.shortPoints === 1 ? '' : 's'} = ${support} support points.`;
   const isSuit = /^[1-7][CDHS]$/.test(call);
   const suit = isSuit ? call.slice(-1) as 'C' | 'D' | 'H' | 'S' : null;
   const length = suit === null ? 0 : facts.lengths[suit];
@@ -8264,8 +8265,8 @@ export function getOpenerWeakCompetitiveRebidLines(
   const isRaise = rule.id.includes('preemptive-three-level-raise') ||
     rule.id.includes('preemptive-raise');
   const pointValue = isRaise
-    ? `${facts.hcp} HCP + ${facts.shortPoints} shortage points = ` +
-      `${facts.totalPointsWShortage} support points`
+    ? `${facts.hcp} HCP + ${facts.shortPoints} shortage ` +
+      `point${facts.shortPoints === 1 ? '' : 's'} = ${facts.totalPointsWShortage} support points`
     : facts.hcp < 12
       ? `${facts.hcp} HCP + ${facts.lengthPoints} length points = ` +
         `${facts.totalPointsWLength} opening points`
@@ -8623,8 +8624,9 @@ export function getOpenerArtificialSupportRebidLines(
       : `Partner's ${info.responderCall} cuebids the opponent's suit artificially: ` +
         `11+ shortage-adjusted support points and at least ${requiredPartnerSupport} ${suit}. ` +
         'This is a limit-or-better raise, not a natural new suit.';
-  const strength = `Your ${facts.hcp} HCP plus ${facts.shortPoints} shortage points give ` +
-    `${points} support points, with ${length} ${suit}.`;
+  const strength = `Your ${facts.hcp} HCP plus ${facts.shortPoints} shortage ` +
+    `point${facts.shortPoints === 1 ? '' : 's'} give ${points} support points, ` +
+    `with ${length} ${suit}.`;
   let decision: string;
   switch (rule.id) {
     case 'opener-rebid-three-of-suit-after-support-cuebid-minimum':
@@ -8747,8 +8749,17 @@ export function getOpenerForcingCompetitionRebidLines(
   const shortageRange = shortageRequirement === undefined ? '' :
     ` meet the ${strengthRange(shortageRequirement, 'shortage')} requirement`;
   const shortageBreakdown = shortageRequirement?.hcp === undefined ? '' :
-    ` (${shortageRequirement.hcp} HCP + ${supportPoints - shortageRequirement.hcp} shortage points)`;
+    ` (${shortageRequirement.hcp} HCP + ${supportPoints - shortageRequirement.hcp} shortage ` +
+      `point${supportPoints - shortageRequirement.hcp === 1 ? '' : 's'})`;
   const supportFit = `${info.responseSupport} cards in responder’s ${suitPlural(`1${info.responseSuit}` as Call)}`;
+  const stopperHoldings = info.opponentStoppers.filter((item) => item.passed).map((item) =>
+    `${suitPlural(`1${item.suit}` as Call)} (${item.holding})`);
+  const stopperEvidence = stopperHoldings.length === 0 ||
+    stopperHoldings.length !== info.opponentStoppers.length
+    ? 'A basic stopper is required in every naturally bid opponent suit.'
+    : `Your ${stopperHoldings.length === 1 ? 'holding' : 'holdings'} in ` +
+      `${stopperHoldings.join(' and ')} ${stopperHoldings.length === 1 ? 'meets' : 'meet'} ` +
+      `the app’s basic stopper standard.`;
   const lengthRequirement = matched.callEvidence?.requirements?.find(
     (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
       item.kind === 'totalPoints' && item.valuation === 'length' && item.passed);
@@ -8797,8 +8808,8 @@ export function getOpenerForcingCompetitionRebidLines(
         'forcing natural reverse rather than an economical minimum rebid.';
       break;
     case 'opener-rebid-2nt-after-overcall-two-level-new-suit':
-      reason = naturalNtStrength + ' A basic stopper in the overcalled suit is ' +
-        'also required; this is a natural opener rebid, not an artificial response.';
+      reason = `${naturalNtStrength} ${stopperEvidence} This is a natural ` +
+        'opener rebid, not an artificial response.';
       break;
     case 'opener-rebid-jump-raise-after-overcall-two-level-new-suit':
       reason = `Your ${supportPoints} total points with shortage${shortageRange}, and your ` +
@@ -8812,9 +8823,9 @@ export function getOpenerForcingCompetitionRebidLines(
         'Four of a major is game, not a below-game invitation.';
       break;
     case 'opener-rebid-3nt-after-overcall-two-level-new-suit':
-      reason = naturalNtStrength + ' The overcalled suit must have a basic stopper. ' +
-        'This reaches game even though responder’s competitive two-level new suit ' +
-        'was forcing for one round, not necessarily to game.';
+      reason = `${naturalNtStrength} ${stopperEvidence} This reaches game even ` +
+        'though responder’s competitive two-level new suit was forcing for one round, ' +
+        'not necessarily to game.';
       break;
     case 'opener-rebid-game-raise-after-overcall-two-level-new-suit':
       reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
@@ -8844,10 +8855,9 @@ export function getOpenerForcingCompetitionRebidLines(
         'is available; the app does not promote a blocked reverse one level higher.';
       break;
     case 'opener-rebid-nt-after-forcing-response-advancer-competition':
-      reason = naturalNtStrength + ' The bid remains at its normal strength-defined ' +
-        'level after advancer competes. A basic stopper is required in each ' +
-        'naturally bid opponent suit; an unavailable NT rebid is not moved ' +
-        'one level higher just because of competition.';
+      reason = `${naturalNtStrength} ${stopperEvidence} The bid remains at its ` +
+        'normal strength-defined level after advancer competes; an unavailable ' +
+        'NT rebid is not moved one level higher just because of competition.';
       break;
     case 'opener-rebid-game-raise-after-forcing-response-advancer-competition':
       reason = `Your ${supportPoints} total points with shortage${shortageBreakdown}${shortageRange}, ` +
@@ -8860,12 +8870,18 @@ export function getOpenerForcingCompetitionRebidLines(
         (item): item is Extract<Requirement, { kind: 'totalPoints' }> =>
           item.kind === 'totalPoints' && item.passed);
       const valuation = minimumPoints?.valuation ?? 'length';
+      const minimumRange = minimumPoints === undefined ? '' :
+        minimumPoints.min !== undefined && minimumPoints.max !== undefined
+          ? `${minimumPoints.min}–${minimumPoints.max}`
+          : minimumPoints.min !== undefined ? `at least ${minimumPoints.min}`
+          : `at most ${minimumPoints.max}`;
       const minimumStrength = minimumPoints === undefined ? 'With minimum values' :
-        `Your ${minimumPoints.actual} total points with ${valuation} meet the ` +
-        `${strengthRange(minimumPoints, valuation)} minimum-Pass requirement`;
-      reason = `${minimumStrength}. Advancer’s action leaves no selected natural ` +
-        'rebid. Pass is permitted here: responder still has another turn, ' +
-        'and the original response remains forcing for one round.';
+        `Your ${minimumPoints.actual} total points with ${valuation} are within ` +
+        `the ${minimumRange} minimum-Pass range`;
+      reason = `${minimumStrength}. Advancer’s competing bid removes opener’s ` +
+        'immediate obligation to rebid when no selected natural continuation ' +
+        'qualifies. Pass does not change what responder originally promised; ' +
+        'responder has another opportunity to act.';
       break;
     }
     default:
@@ -8907,7 +8923,8 @@ export function getOpenerForcingCompetitionRebidFailureLines(result: BidEvalResu
     if (failedPoints !== undefined) {
       const valuation = failedPoints.valuation ?? 'length';
       const breakdown = valuation === 'shortage' && failedPoints.hcp !== undefined
-        ? ` (${failedPoints.hcp} HCP + ${failedPoints.actual - failedPoints.hcp} shortage points)`
+        ? ` (${failedPoints.hcp} HCP + ${failedPoints.actual - failedPoints.hcp} shortage ` +
+          `point${failedPoints.actual - failedPoints.hcp === 1 ? '' : 's'})`
         : '';
       reasons.push(`requires ${strengthRange(failedPoints, valuation)}, but you have ` +
         `${failedPoints.actual} total points with ${valuation}${breakdown}`);
