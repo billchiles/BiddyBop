@@ -278,7 +278,7 @@ These counts measure exercised contexts, not instructional correctness.
 
 | Advancing family | Disposition | Follow-up |
 | --- | --- | --- |
-| Natural 2NT over weak two, systems-on advances (9 declarations) | Adequate, comparison improvement pending | 8C: evaluator-confirmed Jacoby/Texas/direct-game overlaps |
+| Natural 2NT over weak two, systems-on advances (9 declarations) | Improved in 8C | Reciprocal Jacoby/Texas or natural-game comparisons only for verified qualifying rule candidates and enabled agreements |
 | Direct major game after weak-two Double (1) | Adequate | Preserve |
 | DONT pass-or-correct (1) | Adequate | Preserve actual suit lengths and convention meaning |
 | One-level suit overcall, responder Pass (9) | Adequate | Preserve fit, Pass and notrump explanations |
@@ -292,7 +292,7 @@ These counts measure exercised contexts, not instructional correctness.
 | Responder bids naturally after takeout Double (5) | Improved in 8A/8B | Correct Pass context; actual honors in three-level natural new suits |
 | Responder makes negative Double (8) | Adequate | Preserve |
 | Responder Redoubles the takeout Double (1) | Pass-feedback corrected in 8A | Redouble is not an opposing Pass |
-| Partner makes a preemptive jump overcall (5) | Improved honors in 8B; comparison pending 8C | Forcing natural new suits report actual honors and failed-quality evidence; 8C compares Pass versus game |
+| Partner makes a preemptive jump overcall (5) | Improved in 8B/8C | Checked forcing-new-suit honors; reciprocal Pass versus major game at the three-level preempt boundary |
 
 Three natural-2NT-over-weak-two rules were not the recorded call in the
 available hands (weak Pass, spade Jacoby transfer, heart Texas transfer).
@@ -331,19 +331,40 @@ or turn-status changes. These are replay results from the available local
 Stage 8A snapshot; GitHub CI separately validates the actual master-based
 Stage 8B patch. Changes are instructional, not bidding-system changes.
 
-**Batch 8C — next:** Compare only genuine qualifying alternatives.
-One recorded `1D–(3H)–Pass` hand supports both advancer Pass and 4H
-with nine total points with shortage and a ten-card partnership trump fit;
-explain reciprocal descriptions without asserting that game makes, mentioning
-vulnerability and playing-trick judgment. After a natural 2NT overcall of
-a weak two, compare checked Jacoby/Texas or direct-game alternatives only
-under the applicable agreements: the saved `2H–(2NT)–Pass` hand offers
-4H Texas-to-spades versus 3H Jacoby-to-spades; the `2D–(2NT)–Pass`
-hand offers direct natural 4H versus 3D Jacoby-to-hearts. Do not add
-convention rules or practice deals solely for numerical reach.
+**Batch 8C — completed:** The `1D–(3H)–Pass` hand with 9 total points
+with shortage and a ten-card combined heart fit has reciprocal explanations
+of Pass and natural 4H. Both actions must be confirmed qualifying by their
+specific rules. The guidance notes playing-trick judgment and vulnerability
+without treating the point guideline as a guarantee of game.
+
+After a natural 2NT overcall of a weak two, the actually qualified Jacoby
+transfer and Texas transfer (or natural game if Texas is disabled) now receive
+a concise comparison in both directions. The comparison states the correct
+destination of each artificial bid and distinguishes an initial three-level
+transfer from a commitment to four-of-a-major. Agreement settings and the
+exact two qualifying rule IDs determine whether the comparison appears;
+no new conventions or continuations were added.
+
+Local TypeScript compilation and the complete rule suite passed with zero
+failures, including thirteen focused evidence/delivery and agreement-off
+checks. The like-for-like local replay of 2,979 recorded calls found three
+intentional explanatory changes (two weak-two/2NT games and one jump-overcall
+game); 3,524 attempted calls in dedicated advancing buckets found two
+Pass-versus-game message changes. The two weak-two/2NT examples live in a
+separate overcall bucket and are also checked in both directions by focused
+tests. No rule matches, turn statuses or qualifying alternatives changed.
+The local baseline uses the available Stage 8B working snapshot; GitHub CI
+validates the actual current-master branch.
+
+**Stage 8 closeout:** All 83 explicit advancing declarations (81 executable
+and two scope boundaries), along with shared 1NT advance treatments, have
+systematic review dispositions. Stages 8A/8B/8C are finished; the remaining
+work is the cross-stage audit of any still-unreviewed opener/overcaller/
+responder rebid explanation families and final full-auction instructional
+quality. Do not infer completion of a family merely from previous code passes.
 
 **Crash-recovery checkpoint:** GitHub `master` is authoritative. Stages
-1–7 and 8A/8B are complete; Stage 8C is next. After each approved batch,
+1–8 are complete; next review the remaining rebid and cross-stage inventory. After each approved batch,
 update this document's dispositions and next-step plan, delete completed
 punch-list items rather than preserving them in `docs/bidding-roadmap.md`,
 and retain the strict small-batch approval, commit and squash-merge practice. For replay comparisons distinguish
@@ -351,9 +372,9 @@ an older local snapshot from current-master validation, and inspect every
 learner-facing change for instructional intent. Permanent tests cover
 evaluated evidence/delivery, not exact English wording. After the remaining
 systematic evidence passes, regenerate `docs/by-the-numbers.md` with
-`npm run stats:bidding` and review the diff. Next review after 8C is the
-remaining unreviewed advancing/rebid cross-stage inventory; inspect the
-pending review plan instead of assuming an entire family was already cleared.
+`npm run stats:bidding` and review the diff. Next review is the
+remaining rebid and cross-stage inventory; inspect the pending review plan
+rather than assuming any family was cleared merely because it has code.
 
 ## Initial source census and review limitations
 
