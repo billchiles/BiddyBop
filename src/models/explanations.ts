@@ -4490,6 +4490,50 @@ export function getDontAdvanceFailureLines(result: BidEvalResult): string[] {
 
 
 
+/// Compare the supported Pass and major-game advance after a seven-card three-level
+/// jump overcall.  A structural fit and point guideline do not prove ten tricks.
+export function getJumpAdvanceAlternativeLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null ||
+      (rule.id !== 'advance-jump-overcall-pass' &&
+       rule.id !== 'advance-jump-overcall-major-game') ||
+      !result.userCallMatchingRules.some((item) => item.id === rule.id)) return [];
+  const passCandidate = result.ruleDiagnostics.find((item) =>
+    item.rule.id === 'advance-jump-overcall-pass')
+    ?.candidates.find((item) => item.call === 'Pass' && item.ruleApplies);
+  const info = passCandidate?.callEvidence?.jumpAdvance;
+  if (info?.overcallLevel !== 3 || info.passReason !== 'limited-no-fit') return [];
+  const gameCall = `4${info.trumpSuit}` as Call;
+  const gameDiagnostic = rult.ruleDiagnostics.find((item) =>
+    item.rule.id === 'advance-jump-overcall-major-game');
+  const gameCandidate = gameDiagnostic?.candidates.find((item) =>
+    item.call === gameCall && item.ruleApplies);
+  const gameInfo = gameCandidate?.callEvidence?.jumpAdvance ??
+    gameDiagnostic?.callEvidence?.jumpAdvance;
+  const points = gameCandidate === undefined ? undefined :
+    minorRequirement(gameCandidate, 'totalPoints');
+  if (gameInfo?.overcallLevel !== 3 || gameInfo.trumpSuit !== info.trumpSuit ||
+      points?.passed !== true || points.valuation !== 'shortage' ||
+      !getApplicableCandidateCalls(result).some((item) =>
+        item.rule.id === 'advance-jump-overcall-major-game' && item.call == gameCall)) return [];
+  const fit = 7 + gameInfo.support;
+  if (rule.id === 'advance-jump-overcall-pass' && result.normalizedCall === 'Pass') {
+    return [`Natural ${gameCall} also qualifies: your ${points.actual} total points with ` +
+      `shortage and ${gameInfo.support} ${suitPlural(gameCall)} meet the game guideline, ` +
+      `giving at least ${fit} combined trumps. Pass leaves partner's nonforcing preempt ` +
+      `in place. Neither the fit nor the point guideline guarantees ten tricks; ` +
+      `playing strength and vulnerability matter [advance-jump-overcall-major-game].`];
+  }
+  if (rule.id === 'advance-jump-overcall-major-game' &&
+      result.normalizedCall === gameCall) {
+    return [`Pass also qualifies with ${info.hcp} HCP and ${info.support} ` +
+      `${suitPlural(gameCall)} because partner's three-level jump is nonforcing. ` +
+      `${gameCall} commits to game with ${points.actual} total points with shortage ` +
+      `and at least ${fit} trumps. This does not guarantee ten tricks; playing ` +
+      `strength and vulnerability matter [advance-jump-overcall-pass].`];
+  }
+  return [];
+}
+
 /// Positive instructions use the checks and retained choices on the actual selected rule.
 export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!JUMP_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
