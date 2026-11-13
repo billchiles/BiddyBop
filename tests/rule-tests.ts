@@ -3903,12 +3903,11 @@ function runStage8CAlternativeAdvanceTests (): number {
     if (rule === undefined || !confirmed || lines.length === 0 || original.length === 0 ||
         lines.some((line) => !delivered.includes(line) ||
           !line.includes(example.alternativeRuleId)) ||
-        original.some((line) => !delivered.includes(line)) {
+        original.some((line) => !delivered.includes(line))) {
       failures++;
       console.error('FAIL Stage 8C qualifying alternatives: ' + example.bucket +
         '/' + example.index + ' ' + example.call);
     }
-  }
   }
   for (const example of [
     { bucket: 'advance-jump-overcall', index: 9, call: 'Pass' as Call,
@@ -3921,12 +3920,12 @@ function runStage8CAlternativeAdvanceTests (): number {
   ]) {
     checks++;
     const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === example.bucket)
-      ?.deal === undefined) { failures++; continue; }
+      ?.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
     const { board } = makeRuleTestBoard(deal);
-    const auction = deal.practicticeAuction.slice(0, 3);
+    const auction = deal.practiceAuction.slice(0, 3);
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem,
-      ...(example.texas === undefined ? {} : { texasTransfers: example.texas }),
-      ...(example.jacoby === undefined ? {} : { jacobyTransfers: example.jacoby }) };
+      ...('jacoby' in example ? { jacobyTransfers: example.jacoby } : {}) };
     const result = evaluateUserCall(example.call, board, auction, system);
     const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
     const lines = rule === undefined ? [] : example.comparison === 'jump'
