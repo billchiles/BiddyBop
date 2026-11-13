@@ -3700,8 +3700,7 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   if (rule.id === 'respond-to-2nt-w/-3c-natural-forcing' ||
       rule.id === 'respond-to-2nt-w/-3d-natural-forcing') {
     const facts = candidate.callEvidence?.naturalTwoNtMinor;
-    if (facts === undefined || !facts.unbalanced || facts.hasPreferredMajor ||
-        facts.hcp < facts.minHcp || facts.length < facts.minLength) return [];
+    if (facts === undefined) return [];
     const convention = facts.suit === 'C' ? 'Stayman' : 'Jacoby transfers';
     return [`With ${convention} disabled, ${call} is a natural, game-forcing ` +
       `response rather than an artificial convention. Your ${facts.hcp} HCP, ` +
@@ -3752,11 +3751,11 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
       const facts = candidate.callEvidence?.naturalTwoNtMinor;
       if (facts === undefined) continue;
       const id = `[${rule.id}]`;
-      if (facts.hcp < facts.minHcp) {
+      if (!facts.strengthQualified) {
         return [`Natural ${entered} after 2NT requires at least ${facts.minHcp} HCP; ` +
           `you have ${facts.hcp} HCP ${id}.`];
       }
-      if (facts.length < facts.minLength) {
+      if (!facts.lengthQualified) {
         return [`Natural ${entered} after 2NT requires at least ${facts.minLength} ` +
           `${suitPlural(entered)}; you have ${facts.length} ${id}.`];
       }
