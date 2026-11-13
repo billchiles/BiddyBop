@@ -151,20 +151,57 @@ The 2NT-versus-new-suit and Pass-versus-forcing-suit comparisons use actual
 qualified alternatives rather than speculation. Permanent tests check evidence
 and delivery without asserting English wording.
 
-**Next systematic stage:** Competitive responder families after opposing overcalls
-and Doubles. Review the stage inventory in order and record explicit dispositions,
-even where previously developed responses prove adequate.
+### Stage 6 — responses after opposing suit overcalls, Doubles, and 1NT/jump overcalls
 
-**Remaining:** Continue the family inventory below from competitive responses onward,
-and record an Adequate, Improve, Judgment boundary, or Integration issue decision
-after checking each family's actual positive/rejected output. Previously
-developed or Q4-reviewed families are **not** implicitly skipped. Preserve
-student-facing lines verbatim unless a change is deliberate; inspect every
+The systematic review covered 25 executable competitive responder declarations
+and the strong-responder judgment boundary after an opposing natural 1NT overcall,
+using 32 saved response hands and 276 attempted calls. The decisions below
+reflect the family review, with the two implementation batches kept distinct.
+
+| Competitive response family | Disposition | Basis |
+| --- | --- | --- |
+| After suit overcall: negative Double, natural new suits, support cuebid, natural NT | Adequate; select cuebid comparison for 6B | Existing hand-specific promises, suit requirements, stopper checks, and forcing meanings verified |
+| After suit overcall: weak preemptive jump raise | Improved in 6A | Actual support and shortage-adjusted points; specific rejection feedback; existing Pass comparison retained |
+| After takeout Double: strength-showing Redouble, Jordan 2NT, 1-level forcing new suit, natural 1NT | Adequate; select alternative comparisons for 6B | Evaluated support, strength, shape, and reciprocal conventional meanings retained |
+| After takeout Double: weak nonforcing 2-level new suit | Improved in 6A | Existing positive honor and strength evidence kept; failed HCP, length, and honor requirements now explain rejected choices |
+| After takeout Double: weak jump shift | Improved in 6A | Actual HCP and six-card suit; rejected jumps use refiner evidence, including eliminated bids; no new suit-quality requirement |
+| After takeout Double: weak preemptive jump raise | Improved in 6A | Actual trump support, HCP, shortage-adjusted points and specific failure reasons |
+| After opposing natural 1NT: limited Pass | Adequate | Fallback after competing constructive choices, not a blanket recommendation |
+| After opposing natural 1NT: weak natural new suit | Improved in 6A | Actual HCP, suit length, honors, qualifying quality standard and rejected-call requirements |
+| After opposing natural 1NT: weak preemptive jump raise | Improved in 6A | Actual support and strength evidence, with targeted failure reasons |
+| After opposing natural 1NT: strong values without modeled action | Judgment boundary | Penalty-oriented Double not prescribed without further partnership treatment |
+| After jump suit overcall: limited Pass, economical raise, forcing new suits, negative Double, support cuebid, natural NT | Adequate | Positive and rejected response evidence already covers the important checks |
+| After jump suit overcall: constructive four-of-a-major game | Improve in 6B | Add actual support and points, and targeted near-miss feedback |
+| Other high-level competition | Judgment boundary | Keep unsupported penalty actions and four-level jump overcalls out of scope |
+
+**Batch 6A validation:** From the same local project snapshot, all 2,979
+recorded calls retained the original rule matches and statuses; 12 feedback
+outputs changed in the expected weak-response families. Some examples recur
+in later practice buckets, hence 12 occurrences rather than just unique hands.
+Across 276 attempted response calls, 54 feedback outputs changed, all in the
+suit-overcall, takeout-Double and natural-1NT-overcall families. These changes
+are deliberate hand-evidence explanations or more specific rejected-call
+feedback. The rule suite passes, including 12 focused evidence/delivery checks.
+These replays establish output parity outside the deliberate changes; they
+do not establish the optimal bridge choice.
+
+**Next Stage 6 batch:** Constructive major game after jump interference and a
+few evaluator-confirmed alternatives: cuebid versus natural major after a
+suit overcall; one-level new suit versus Jordan 2NT after Double; natural
+1NT versus a simple raise after Double. Preserve qualifications and ensure
+comparison prose refers only to truly supported alternatives.
+
+**Remaining:** Finish Stage 6B before direct overcalling and balancing, then
+advancing; continue recording an Adequate, Improve, Judgment boundary, or
+Integration issue decision after examining each family's positive/rejected
+output. Previously developed or Q4-reviewed families are **not** implicitly
+skipped. Preserve student-facing lines verbatim unless a change is deliberate; inspect every
 changed line in temporary recorded-call replays. Keep the 15,888-case
 refactor comparison separate from the narrower 2,582-context recorded-call
 replay, and do not treat either replay as proof of instructional correctness.
 The roadmap holds only pending work; statistical reach stays in
 `docs/by-the-numbers.md`.
+
 
 ## Initial source census and review limitations
 
@@ -197,7 +234,7 @@ The family groupings collectively cover each stage's executable declarations and
 | Balancing: suit, 1NT, ordinary/strong Double, defensive Pass, judgment boundary | Replay of defensive Pass and nearby Double/1NT failures confirms actual hand facts and separate judgment boundaries | Adequate; do not invent calls at judgment boundaries |
 | Responses to minor/major: suits, raises, limit/strong support, 1NT/2NT/3NT, weak/strong jump shifts | Initial responses checked against competing support and suit routes; a failed weak-Pass test now leaves honest competitive judgment when no constructive call qualifies | Adequate; preserve supported alternatives and scope limits |
 | Responses to 1NT/2NT and strong 2C; to weak and high preempts | Agreement-shifted HCP bounds remain nonnegative; preferred Stayman/transfer choices now give their evaluated reason; 2C waiting explains why stronger unbalanced hands have no qualifying positive response | Adequate after targeted explanation and evidence fixes; cross-stage checks only |
-| Responses after suit overcall, takeout Double, natural 1NT overcall, jump overcall | Reviewed competitive responses and negative-Double suit promises, supported new-suit versus Double, and weak natural versus preemptive alternatives | No family-specific review pending; include in final cross-stage check |
+| Responses after suit overcall, takeout Double, natural 1NT overcall, jump overcall | Stage 6A strengthened weak natural and preemptive explanations using actual hand evidence, with precise rejected-call feedback | Stage 6B pending: constructive game and checked alternatives; then cross-stage audit |
 | Advancing: one-/two-level natural suit overcalls, takeout Double, natural 1NT | Evidence-based teaching for raises, suit advances, notrump, and one-round forces, with explicitly qualified point totals | No family-specific review pending; include in final cross-stage check |
 | Advancing: DONT, preemptive jumps, weak-two 2NT systems-on | Shared conventional meanings, checked compulsory replies and weak/preemptive advances; DONT remains fixed on | Final cross-stage audit of agreement-specific language and honest stopping boundaries |
 | Advancing after responder raise, natural suit, negative Double or Redouble; responsive Doubles, artificial support and escape | Reviewed supported continuations, artificial meanings, forcing obligations, Redouble escapes, and point valuations | No family-specific review pending; include in final cross-stage check |
