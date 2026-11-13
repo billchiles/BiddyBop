@@ -741,7 +741,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
     if (parsed === null || parsed.strain === 'NT' || parsed.strain === opening.strain) return [];
     const suit = parsed.strain as Suit;
     return [{ call, length: context.handFacts.lengths[suit],
-      quality: hasPreemptSuitQuality(context.hand, suit),
+      ...getPreemptResponseSuitQuality(context, suit),
       economical: cheapestBidInStrainAfter(opening, suit) === call }];
   });
 
@@ -787,29 +787,30 @@ export function refineThreeLevelPreemptNewSuitResponse (calls: Call[], context: 
     return { calls: [], telemetryLines: ['A forcing new-suit response needs a three-level preempt.'] };
   }
 
-  const candidates: { call: Call; suit: Suit; length: number }[] = [];
-  for (const call of calls) {
+  const considered = calls.flatMap((call) => {
     const candidate = parseSuitBid(call);
-    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
-        cheapestBidInStrainAfter(opening, candidate.strain) !== call) {
-      continue;
-    }
-    const gameLevel = candidate.strain === 'H' || candidate.strain === 'S' ? 4 : 5;
-    if (candidate.level >= gameLevel) {
-      continue;
-    }
+    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain)
+      return [];
     const suit = candidate.strain as Suit;
-    const minLength = candidate.level === 3 ? 5 : 6;
-    const length = context.handFacts.lengths[suit];
-    if (length < minLength || ! hasPreemptSuitQuality(context.hand, suit)) {
-      continue;
-    }
-    candidates.push({ call, suit, length });
+    const gameLevel = suit === 'H' || suit === 'S' ? 4 : 5;
+    return [{ call, length: context.handFacts.lengths[suit],
+      minLength: candidate.level === 3 ? 5 : 6,
+      ...getPreemptResponseSuitQuality(context, suit),
+      economical: cheapestBidInStrainAfter(opening, suit) === call,
+      belowGame: candidate.level < gameLevel }];
+  });
+
+  const candidates: { call: Call; suit: Suit; length: number }[] = [];
+  for (const choice of considered) {
+    if (!choice.economical || !choice.belowGame ||
+        choice.length < choice.minLength || !choice.quality) continue;
+    candidates.push({ call: choice.call, suit: choice.call.slice(-1) as Suit,
+      length: choice.length });
   }
   if (candidates.length === 0) {
     return { calls: [], telemetryLines: [
       'No sufficiently long good new suit is available below game after the three-level preempt.',
-    ] };
+    ], callEvidence: { threeLevelPreemptNewSuit: { considered, selected: null } } };
   }
 
   const longest = Math.max(...candidates.map((candidate) => candidate.length));
@@ -820,8 +821,20 @@ export function refineThreeLevelPreemptNewSuitResponse (calls: Call[], context: 
     telemetryLines: [
       `Keep the longest good forcing new suit below game; equal lengths use the higher-ranking ` +
         `suit: ${best[0]!.call}.`,
-    ],
+    ], callEvidence: { threeLevelPreemptNewSuit: { considered, selected: best[0]!.call } },
   };
+}
+
+/// Preserve the actual qualifying honors for instructional explanations, while the shared
+/// preempt suit-quality predicate remains the authority for rule eligibility.
+function getPreemptResponseSuitQuality(context: RuleEvalContext, suit: Suit) {
+  const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+    context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+  const quality = hasPreemptSuitQuality(context.hand, suit);
+  const topThree = honors.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q').length;
+  const qualityStandard = !quality ? null :
+    topThree >= 2 ? 'twoTopThree' as const : 'threeTopFive' as const;
+  return { quality, honors, qualityStandard };
 }
 
 /// guidelineOf17Applies uses responder HCP plus support length as a rough game-interest check
@@ -895,7 +908,8 @@ export function threeLevelPreemptPassApplies (_call: Call, context: RuleEvalCont
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: structural Pass candidate needs two or fewer trumps; ` +
       `responder has ${support}.  Game still depends on playing-trick judgment.`,
-  ] };
+  ], callEvidence: { threeLevelPreemptResponse: {
+    openingSuit: opening.strain as Suit, support } } };
 }
 
 /// threeLevelPreemptRaiseApplies further preempts to the four level with three-card-or-longer
@@ -911,7 +925,8 @@ export function threeLevelPreemptRaiseApplies (_call: Call, context: RuleEvalCon
   return { success, telemetryLines: [
     `${success ? 'APPLIES' : 'FAIL'}: four-level raise needs 3+ support opposite opener's ` +
       `seven-card suit; responder has ${support}.`,
-  ] };
+  ], callEvidence: { threeLevelPreemptResponse: {
+    openingSuit: opening.strain as Suit, support } } };
 }
 
 interface WeakTwoGuidelineOf17Info {
