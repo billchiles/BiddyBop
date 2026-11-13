@@ -3957,7 +3957,10 @@ export function getTakeoutAdvanceFailureLines(result: BidEvalResult): string[] {
   if (entered === 'Pass') {
     const minimum = takeoutRules.find(({ rule }) =>
       rule.id === 'advance-takeout-double-minimum-suit');
-    if (minimum === undefined) return [];
+    // The minimum-suit refiner records a selection only when the opponent
+    // actually Passed after partner's Double. In contested auctions this rule
+    // declaration is still present, but the mandatory-response reason is false.
+    if (minimum?.callEvidence?.takeoutSuitSelection?.jump !== 0) return [];
     return [`After partner's takeout Double and the opponent's Pass, you normally must ` +
       `choose an unbid suit, even with zero HCP. Passing instead leaves the opponent ` +
       `playing a doubled contract, a penalty-conversion judgment that this treatment ` +
