@@ -3669,6 +3669,13 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
       `Partner can Pass with a minimum or bid game with extra values.${shape} ${id}`];
   }
   if (call === '3NT') {
+    if (rule.id === 'respond-to-2nt-w/-3nt-4-10') {
+      if (hcp?.passed !== true) return [];
+      return [`Your ${hcp.actual} HCP meet the ${hcpRangeText(hcp)} requirement for ` +
+        `natural 3NT after partner's 20–21 HCP 2NT opening. This places the ` +
+        `partnership in game; balanced distribution is not required under this ` +
+        `treatment ${id}.`];
+    }
     const context = isTwoNtOpening
       ? 'After a 20–21 HCP 2NT opening, this places the partnership in game without requiring opener to choose.'
       : isTwoNt
@@ -3692,9 +3699,13 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   }
   if (rule.id === 'respond-to-2nt-w/-3c-natural-forcing' ||
       rule.id === 'respond-to-2nt-w/-3d-natural-forcing') {
-    return [`With Stayman or Jacoby transfers disabled as appropriate, ${call} shows
-      a natural, unbalanced minor-suit hand with at least 10 HCP and five cards in the suit.
-      This is game forcing, not an artificial conventional response ${id}.`.replace(/\s+/g, ' ')];
+    const facts = candidate.callEvidence?.naturalTwoNtMinor;
+    if (facts === undefined) return [];
+    const convention = facts.suit === 'C' ? 'Stayman' : 'Jacoby transfers';
+    return [`With ${convention} disabled, ${call} is a natural, game-forcing ` +
+      `response rather than an artificial convention. Your ${facts.hcp} HCP, ` +
+      `${facts.length} ${suitPlural(call)}, and unbalanced distribution meet the ` +
+      `requirements for this minor-suit response ${id}.`];
   }
   if (rule.id.endsWith('-4c-gerber')) {
     return [`With ${hcp?.actual} HCP, 4♣ is the specialized Gerber ace inquiry, not ` +
@@ -3735,6 +3746,37 @@ export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): st
         !rule.id.startsWith('advance-weak-two-2nt-') && !afterInterference) continue;
     const candidate = candidates.find(({ call }) => call === entered);
     if (candidate === undefined || candidate.ruleApplies) continue;
+    if (rule.id === 'respond-to-2nt-w/-3c-natural-forcing' ||
+        rule.id === 'respond-to-2nt-w/-3d-natural-forcing') {
+      const facts = candidate.callEvidence?.naturalTwoNtMinor;
+      if (facts === undefined) continue;
+      const id = `[${rule.id}]`;
+      if (!facts.strengthQualified) {
+        return [`Natural ${entered} after 2NT requires at least ${facts.minHcp} HCP; ` +
+          `you have ${facts.hcp} HCP ${id}.`];
+      }
+      if (!facts.lengthQualified) {
+        return [`Natural ${entered} after 2NT requires at least ${facts.minLength} ` +
+          `${suitPlural(entered)}; you have ${facts.length} ${id}.`];
+      }
+      if (!facts.unbalanced) {
+        return [`Natural ${entered} after 2NT requires an unbalanced hand; yours ` +
+          `is balanced ${id}.`];
+      }
+      if (facts.hasPreferredMajor) {
+        const preferred = getApplicableCandidateCalls(result).find((item) =>
+          item.call !== entered && item.rule.id.startsWith('respond-to-2nt-w/-') &&
+          (item.rule.id.includes('stayman') || item.rule.id.includes('transfer') ||
+            item.call.endsWith('H') || item.call.endsWith('S')));
+        if (preferred !== undefined) {
+          return [`Although your ${facts.hcp} HCP and ${facts.length} ` +
+            `${suitPlural(entered)} meet the natural minor requirements, ` +
+            `${preferred.call} also qualifies as a preferred major-suit route ` +
+            `under this treatment ${id}.`];
+        }
+      }
+      continue;
+    }
     const checks = candidate.callEvidence?.requirements;
     if (checks === undefined) continue;
     const id = `[${rule.id}]`;
