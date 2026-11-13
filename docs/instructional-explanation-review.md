@@ -265,6 +265,85 @@ and explicitly record each family's positive and rejected-call disposition.
 Compare every intentional learner-facing change. Regenerate
 `docs/by-the-numbers.md` after all evidence-review passes.
 
+### Stage 8 — advancing, systematic explanation audit
+
+The Stage 8 review covers 83 explicit advancing declarations: 81 executable
+rules and two scope boundaries, plus shared natural-1NT partner rules available
+in advancing. The 11 dedicated advancing practice buckets contain 117 recorded
+advancing decisions; 120 additional advancing decisions occur in other buckets.
+The review evaluated 3,524 legal attempted calls in the dedicated contexts.
+All 117 dedicated recorded calls had hand-specific feedback, and the 284
+explicitly designated rejected calls had diagnostic feedback before this pass.
+These counts measure exercised contexts, not instructional correctness.
+
+| Advancing family | Disposition | Follow-up |
+| --- | --- | --- |
+| Natural 2NT over weak two, systems-on advances (9 declarations) | Adequate, comparison improvement pending | 8C: evaluator-confirmed Jacoby/Texas/direct-game overlaps |
+| Direct major game after weak-two Double (1) | Adequate | Preserve |
+| DONT pass-or-correct (1) | Adequate | Preserve actual suit lengths and convention meaning |
+| One-level suit overcall, responder Pass (9) | Adequate | Preserve fit, Pass and notrump explanations |
+| Two-level suit overcall, responder Pass (7) | Improve | 8B: checked honors in higher-level new suits |
+| Takeout Double, responder Pass (7) | Adequate | 8A: protect actual compulsory minimum-suit response after Pass |
+| Responder preempts or takes a special unsupported action (3) | Adequate / scope boundary | Avoid invented continuations |
+| Natural notrump after responder acts (1) | Adequate | Preserve actual stopper, HCP and balanced facts |
+| Responder raises after natural suit overcall (13) | Improve | 8B: actual honors in three-level natural new suits |
+| Responder raises after takeout Double (5) | Pass-feedback corrected in 8A; otherwise adequate | No false penalty-conversion warning after a raise |
+| Responder bids naturally after suit overcall (8) | Improve | 8B: checked honors in three-level suits |
+| Responder bids naturally after takeout Double (5) | Pass-feedback corrected in 8A; otherwise adequate | No false penalty-conversion warning after a natural bid |
+| Responder makes negative Double (8) | Adequate | Preserve |
+| Responder Redoubles the takeout Double (1) | Pass-feedback corrected in 8A | Redouble is not an opposing Pass |
+| Partner makes a preemptive jump overcall (5) | Improve | 8B actual honors; 8C Pass versus direct game |
+
+Three natural-2NT-over-weak-two rules were not the recorded call in the
+available hands (weak Pass, spade Jacoby transfer, heart Texas transfer).
+The spade transfer qualified as an alternative. Preserve existing scope limits.
+
+**Batch 8A — corrected the contested takeout-Double Pass explanation.**
+The generic takeout-advance rule declaration remains in diagnostics even
+when responder raises, bids naturally or Redoubles. Its minimum-suit refiner,
+however, emits `takeoutSuitSelection` evidence only when responder actually
+Passed. Gate the mandatory-response failure explanation on that evaluated
+evidence; do not infer auction actions from the presence of the rule declaration.
+On a like-for-like local before/after replay, all 2,979 recorded-call explanation
+lines were unchanged; among 3,524 attempted advancing calls, exactly 11
+explanations lost the factually incorrect claim that responder Passed.
+All rule matches and supported alternatives were unchanged. Two uncontested
+takeout-Double Pass examples and three contested examples are protected by
+focused evidence/delivery checks. The local source snapshot is not a full
+current-master checkout; GitHub CI validates the actual master-based patch.
+
+**Batch 8B — still pending:** Report the actual qualifying A/K/Q/J/10 honors
+and checked two-of-A/K/Q versus three-of-A/K/Q/J/10 standard for higher-level
+natural advances. Refine the current `advanceNewSuitQuality`,
+`competitiveRaiseNewSuit` and `jumpAdvance` evidence as necessary; inspect
+positive and rejected reasons. Do not re-evaluate bidding eligibility in
+explanation code or change priorities. Preserve genuine length/quality
+exceptions and existing comparison text.
+
+**Batch 8C — still pending:** Compare only genuine qualifying alternatives.
+One recorded `1D–(3H)–Pass` hand supports both advancer Pass and 4H
+with nine total points with shortage and a ten-card partnership trump fit;
+explain reciprocal descriptions without asserting that game makes, mentioning
+vulnerability and playing-trick judgment. After a natural 2NT overcall of
+a weak two, compare checked Jacoby/Texas or direct-game alternatives only
+under the applicable agreements: the saved `2H–(2NT)–Pass` hand offers
+4H Texas-to-spades versus 3H Jacoby-to-spades; the `2D–(2NT)–Pass`
+hand offers direct natural 4H versus 3D Jacoby-to-hearts. Do not add
+convention rules or practice deals solely for numerical reach.
+
+**Crash-recovery checkpoint:** GitHub `master` is authoritative. After each
+approved batch, update this document's dispositions and next-step plan, delete
+completed punch-list items rather than preserving them in
+`docs/bidding-roadmap.md`, and retain the strict small-batch approval,
+commit and squash-merge practice. For replay comparisons distinguish
+an older local snapshot from current-master validation, and inspect every
+learner-facing change for instructional intent. Permanent tests cover
+evaluated evidence/delivery, not exact English wording. After the remaining
+systematic evidence passes, regenerate `docs/by-the-numbers.md` with
+`npm run stats:bidding` and review the diff. Next review after 8C is the
+remaining unreviewed advancing/rebid cross-stage inventory; inspect the
+pending review plan instead of assuming an entire family was already cleared.
+
 ## Initial source census and review limitations
 
 | Rule declaration module | Executable rule declarations | Scope boundaries | First-pass conclusion |
