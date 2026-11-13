@@ -26,7 +26,10 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getCompetitiveResponseFailureLines, getMajorSupportFailureLines,
          getOpenerConventionalRebidFailureLines, getStrongTwoCResponseFailureLines,
          getDontInitialSupportLine, getDontInitialFailureLines,
-         getNaturalOvercallSupportLine, getJumpOvercallSupportLine,
+         getNaturalOvercallSupportLine, getNaturalOvercallFailureLines,
+         getBalancingCallSupportLine, getBalancingCallFailureLines,
+         getBalancingDoubleSupportLine, getDirectOvercallPassSupportLine,
+         getJumpOvercallSupportLine,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
@@ -170,6 +173,7 @@ function runAllRuleTests (): void {
     runWeakTwoOvercallExplanationTests,
     runDontInitialExplanationTests,
     runStage7ASuitHonorEvidenceTests,
+    runStage7BOvercallAndBalancingExplanationTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1901,6 +1905,130 @@ function runUnmodeledDirectDefenseBoundaryTests (): number {
     `${cases.length + 1} targeted checks.\n`);
   return failures;
 }
+/// Verify evaluated direct Pass, balancing honors, and rejected-suit feedback.
+/// Check hand facts and panel delivery without asserting English wording.
+function runStage7BOvercallAndBalancingExplanationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  for (const example of [
+    { bucket: 'overcall-dont-1nt', index: 0 },
+    { bucket: 'overcall-simple', index: 0 },
+    { bucket: 'overcall-weak-two-defense', index: 0 },
+  ]) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)
+      ?.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 1);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall('Pass', board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) =>
+      item.id === 'overcall-pass-no-qualifying-action');
+    const seat = getSeatForCallIndex(board.dealer, 1);
+    const hcp = result.ruleDiagnostics.find((item) => item.rule.id === rule?.id)
+      ?.candidates.find((item) => item.call === 'Pass')
+      ?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    const line = rule === undefined ? null : getDirectOvercallPassSupportLine(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Review', call: 'Pass', result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: 1,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (rule === undefined || hcp?.kind !== 'hcp' || !hcp.passed ||
+        hcp.actual !== getHandFacts(board.deal[seat]).hcp ||
+        line === null || !delivered.includes(line) ||
+        getApplicableCandidateCalls(result).some((item) => item.call !== 'Pass')) {
+      failures++;
+      console.error('FAIL Stage 7B direct Pass: ' + example.bucket + '/' + example.index);
+    }
+  }
+  for (const [index, ruleId] of [
+    [0, 'balance-natural-one-level-suit'],
+    [1, 'balance-natural-two-level-suit'],
+  ] as const) {
+    checks++;
+    const deal = BALANCING_TEST_DEALS[index]!;
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, 3);
+    const call = deal.practiceAuction[3]!;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === ruleId);
+    const evidence = result.ruleDiagnostics.find((item) => item.rule.id === ruleId)
+      ?.callEvidence?.balancingSuit?.find((item) => item.call === call);
+    const seat = getSeatForCallIndex(board.dealer, 3);
+    const hand = board.deal[seat];
+    const suit = call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      hand.cards.some((card) => card.suit === suit && card.rank === rank));
+    const line = rule === undefined ? null : getBalancingCallSupportLine(result, rule);
+    const delivered = getBidExplanationLines({
+      title: 'Review', call, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(hand), auctionLength: 3,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (rule === undefined || evidence === undefined || !evidence.passed ||
+        evidence.length !== getHandFacts(hand).lengths[suit] ||
+        evidence.honors.join(',') !== honors.join(',') ||
+        evidence.qualityStandard === null || line === null || !delivered.includes(line)) {
+      failures++;
+      console.error('FAIL Stage 7B balancing honors: ' + index);
+    }
+  }
+  for (const example of [
+    { index: 0, call: '1S' as Call, balancing: false },
+    { index: 0, call: '2C' as Call, balancing: false },
+    { index: 0, call: '1H' as Call, balancing: true },
+    { index: 0, call: '2C' as Call, balancing: true },
+  ]) {
+    checks++;
+    const deal = example.balancing ? BALANCING_TEST_DEALS[example.index] :
+      RULE_TEST_DEAL_BUCKETS.find((item) => item.id === 'overcall-simple')
+        ?.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, example.balancing ? 3 : 1);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const evidence = result.ruleDiagnostics.flatMap((item) => example.balancing
+      ? item.callEvidence?.balancingSuit ?? [] : item.callEvidence?.naturalOvercallSuit ?? [])
+      .find((item) => item.call === example.call);
+    const seat = getSeatForCallIndex(board.dealer, auction.length);
+    const suit = example.call.slice(-1) as 'C' | 'D' | 'H' | 'S';
+    const lines = example.balancing ? getBalancingCallFailureLines(result) :
+      getNaturalOvercallFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'Review', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 || evidence === undefined ||
+        evidence.length !== getHandFacts(board.deal[seat]).lengths[suit] ||
+        lines.length === 0 || lines.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error('FAIL Stage 7B rejected natural suit: ' + example.call);
+    }
+  }
+  checks++;
+  const strong = BALANCING_TEST_DEALS[4]!;
+  const board = makeRuleTestBoard(strong).board;
+  const auction = strong.practiceAuction.slice(0, 3);
+  const result = evaluateUserCall('Double', board, auction,
+    { ...defaultBiddingSystem, ...strong.requiredSystem });
+  const rule = result.userCallMatchingRules.find((item) =>
+    item.id === 'balance-strong-double');
+  if (rule === undefined || getBalancingDoubleSupportLine(result, rule) === null) {
+    failures++;
+    console.error('FAIL Stage 7B strong balancing Double.');
+  }
+  console.log(failures + ' ***FAILURES***. Stage 7B evidence/delivery: ' + checks + ' checks.\n');
+  return failures;
+}
+
 /// Keep fourth-seat practice honest: BOTH intervening Passes must be sound according
 /// to the current rules, not merely preloaded calls to reach the balancing lesson.
 function runBalancingAuctionAndDealTests (): number {

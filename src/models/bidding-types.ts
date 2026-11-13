@@ -457,7 +457,11 @@ export interface CallEvidence {
     isCheapest: boolean;
     passed: boolean;
   }[];
-  balancingSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
+  balancingSuit?: {
+    call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean;
+    honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+  }[];
   balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
   dontInitial?: {
     hcp: number;
