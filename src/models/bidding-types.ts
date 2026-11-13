@@ -513,6 +513,17 @@ export interface CallEvidence {
     considered: { call: Call; length: number; quality: boolean; economical: boolean }[];
     selected: Call | null;
   };
+  // Evaluated strength, minor length, shape and major preference for a natural 3C/3D
+  // reply to partner's 2NT when the corresponding artificial convention is off.
+  naturalTwoNtMinor?: {
+    hcp: number;
+    minHcp: number;
+    suit: 'C' | 'D';
+    length: number;
+    minLength: number;
+    unbalanced: boolean;
+    hasPreferredMajor: boolean;
+  };
   // Natural notrump response over an opponent's preemptive jump overcall.
   jumpResponseNotrump?: {
     hcp: number;
