@@ -43,7 +43,9 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
          getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines,
          getOpenerForcingRebidPassFailureLines, getOvercallerForcingAdvancePassFailureLines,
-         getOpenerWeakTwoInquiryRebidLines, getOpenerWeakTwoInquiryRebidFailureLines }
+         getOpenerWeakTwoInquiryRebidLines, getOpenerWeakTwoInquiryRebidFailureLines,
+         getWeakTwoResponseLines, getThreeLevelPreemptResponseLines,
+         getThreeLevelPreemptResponseFailureLines }
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
@@ -112,6 +114,7 @@ function runAllRuleTests (): void {
     runStrongOpenerAfterMajorSimpleRaiseTests,
     runStrongTwoCFourFourFourOneBoundaryTests,
     runStrongTwoCPositiveSuitEvidenceTests,
+    runPreemptResponseEvidenceTests,
     runResponderStrongAndSupportConventionTests,
     runAuctionHelperTests,
     runResponderNtConventionTests,
@@ -1975,6 +1978,119 @@ function runDirectOvercallAlternativeTests (): number {
 /// calls may still be reasonable bridge, but the trainer must not imply that it models a complete
 /// competitive treatment merely because compact partnership-auction matching still sees the
 /// opening.
+/// Check hand-derived preempt response evidence, actual delivery, and genuine alternatives.
+/// Do not snapshot English text: check that the evaluated facts reach the explanation panel.
+function runPreemptResponseEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const findDeal = (prefix: string) => RESPONSE_TO_WEAK_PREEMPT_TEST_DEALS.find((item) =>
+    item.description.startsWith(prefix));
+  const scenarios: { needle: string; call: Call; ruleId: string;
+    kind: 'weakSuit' | 'weakNt' | 'threePass' | 'threeRaise' | 'threeSuit';
+    other?: Call }[] = [
+    { needle: '2D-2S-3S', call: '2S', kind: 'weakSuit',
+      ruleId: 'respond-to-weak-two-w/-new-suit-forcing', other: '2NT' },
+    { needle: '2D-2S-3S', call: '2NT', kind: 'weakNt',
+      ruleId: 'respond-to-weak-two-w/-2nt-inquiry', other: '2S' },
+    { needle: '3H-Pass', call: 'Pass', kind: 'threePass',
+      ruleId: 'respond-to-three-level-preempt-w/-pass' },
+    { needle: '3S-4S', call: '4S', kind: 'threeRaise',
+      ruleId: 'respond-to-three-level-preempt-w/-raise-to-four' },
+    { needle: '3H-3S', call: '3S', kind: 'threeSuit',
+      ruleId: 'respond-to-three-level-preempt-w/-new-suit-forcing', other: 'Pass' },
+    { needle: '3H-3S', call: 'Pass', kind: 'threePass',
+      ruleId: 'respond-to-three-level-preempt-w/-pass', other: '3S' },
+  ];
+  for (const example of scenarios) {
+    checks++;
+    const deal = findDeal(example.needle);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL preempt-response evidence missing hand: ${example.needle}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const result = evaluateUserCall(example.call, board, auction, defaultBiddingSystem);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const entry = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId);
+    const candidate = entry?.candidates.find((item) => item.call === example.call);
+    const evidence = example.kind === 'weakSuit'
+      ? entry?.callEvidence?.weakTwoNewSuit?.considered.find((item) => item.call === example.call)
+      : entry?.callEvidence?.threeLevelPreemptNewSuit?.considered.find((item) => item.call === example.call);
+    const fit = candidate?.callEvidence?.threeLevelPreemptResponse;
+    const expectedHonors = example.call === 'Pass' || example.call === '2NT' ? [] :
+      (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+        board.deal.S.cards.some((card) => card.suit === example.call.slice(-1) &&
+          card.rank === rank));
+    const hcp = getHandFacts(board.deal.S);
+    const fromRule = rule === undefined ? [] : example.kind === 'weakSuit' ||
+      example.kind === 'weakNt' ? getWeakTwoResponseLines(result, rule) :
+      getThreeLevelPreemptResponseLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, hcp, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, defaultBiddingSystem), handFacts: hcp,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    const honorsMatch = evidence === undefined ||
+      (evidence.quality && evidence.qualityStandard !== null &&
+       evidence.honors.join(',') === expectedHonors.join(',') &&
+       evidence.length === hcp.lengths[example.call.slice(-1) as 'C' | 'D' | 'H' | 'S']);
+    const fitMatch = fit === undefined ||
+      fit.support === hcp.lengths[fit.openingSuit];
+    const otherQualified = example.other === undefined ||
+      getApplicableCandidateCalls(result).some((item) => item.call === example.other);
+    if (rule === undefined || fromRule.length === 0 ||
+        fromRule.some((line) => !matched.includes(line) || !delivered.includes(line)) ||
+        (example.other !== undefined && !fromRule.some((line) =>
+          line.includes(example.other!))) || !otherQualified || !honorsMatch || !fitMatch ||
+        ((example.kind === 'weakSuit' || example.kind === 'threeSuit') &&
+          evidence === undefined) ||
+        ((example.kind === 'threePass' || example.kind === 'threeRaise') &&
+          fit === undefined)) {
+      failures++;
+      console.error(`FAIL preempt-response evidence/delivery: ${example.needle} ${example.call}.`);
+    }
+  }
+  const rejected: { needle: string; call: Call; checked: 'support' | 'newSuit' }[] = [
+    { needle: '3S-4S', call: 'Pass', checked: 'support' },
+    { needle: '3H-Pass', call: '4H', checked: 'support' },
+    { needle: '3H-Pass', call: '3S', checked: 'newSuit' },
+  ];
+  for (const item of rejected) {
+    checks++;
+    const deal = findDeal(item.needle);
+    if (deal === undefined) {
+      failures++;
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 2);
+    const result = evaluateUserCall(item.call, board, auction, defaultBiddingSystem);
+    const evidence = result.ruleDiagnostics.find((entry) =>
+      entry.rule.id === 'respond-to-three-level-preempt-w/-new-suit-forcing')
+      ?.callEvidence?.threeLevelPreemptNewSuit?.considered.find((choice) =>
+        choice.call === item.call);
+    const reasons = getThreeLevelPreemptResponseFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: item.call, result,
+      status: getBiddingTurnStatus(board, auction, defaultBiddingSystem),
+      handFacts: getHandFacts(board.deal.S), auctionLength: auction.length,
+      previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (result.userCallMatchingRules.length > 0 || reasons.length === 0 ||
+        reasons.some((line) => !delivered.includes(line)) ||
+        (item.checked === 'newSuit' && evidence === undefined)) {
+      failures++;
+      console.error(`FAIL rejected preempt response: ${item.needle} ${item.call}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Preempt response evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 function runResponderInterferenceScopeBoundaryTests (): number {
   const twoNt = RESPONSE_AFTER_2NT_OPENING_TEST_DEALS[0];
   const strongTwoC = RESPONSE_TO_STRONG_2C_TEST_DEALS[0];
