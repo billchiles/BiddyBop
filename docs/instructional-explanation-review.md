@@ -160,9 +160,9 @@ reflect the family review, with the two implementation batches kept distinct.
 
 | Competitive response family | Disposition | Basis |
 | --- | --- | --- |
-| After suit overcall: negative Double, natural new suits, support cuebid, natural NT | Adequate; select cuebid comparison for 6B | Existing hand-specific promises, suit requirements, stopper checks, and forcing meanings verified |
+| After suit overcall: negative Double, natural new suits, support cuebid, natural NT | Adequate; alternative comparison improved in 6B | Evaluated cuebid-versus-natural-major overlap explained in both directions; existing negative-Double comparisons retained |
 | After suit overcall: weak preemptive jump raise | Improved in 6A | Actual support and shortage-adjusted points; specific rejection feedback; existing Pass comparison retained |
-| After takeout Double: strength-showing Redouble, Jordan 2NT, 1-level forcing new suit, natural 1NT | Adequate; select alternative comparisons for 6B | Evaluated support, strength, shape, and reciprocal conventional meanings retained |
+| After takeout Double: strength-showing Redouble, Jordan 2NT, 1-level forcing new suit, natural 1NT | Alternative comparisons improved in 6B | Added 1S/Jordan 2NT and 1NT/simple-raise comparisons only for qualified calls; preserved Redouble and natural-1S text |
 | After takeout Double: weak nonforcing 2-level new suit | Improved in 6A | Existing positive honor and strength evidence kept; failed HCP, length, and honor requirements now explain rejected choices |
 | After takeout Double: weak jump shift | Improved in 6A | Actual HCP and six-card suit; rejected jumps use refiner evidence, including eliminated bids; no new suit-quality requirement |
 | After takeout Double: weak preemptive jump raise | Improved in 6A | Actual trump support, HCP, shortage-adjusted points and specific failure reasons |
@@ -171,7 +171,7 @@ reflect the family review, with the two implementation batches kept distinct.
 | After opposing natural 1NT: weak preemptive jump raise | Improved in 6A | Actual support and strength evidence, with targeted failure reasons |
 | After opposing natural 1NT: strong values without modeled action | Judgment boundary | Penalty-oriented Double not prescribed without further partnership treatment |
 | After jump suit overcall: limited Pass, economical raise, forcing new suits, negative Double, support cuebid, natural NT | Adequate | Positive and rejected response evidence already covers the important checks |
-| After jump suit overcall: constructive four-of-a-major game | Improve in 6B | Add actual support and points, and targeted near-miss feedback |
+| After jump suit overcall: constructive four-of-a-major game | Improved in 6B | Reports actual support and shortage-adjusted points; rejected games use constructive three-card support and 13-point minimum rather than the weak five-trump requirement |
 | Other high-level competition | Judgment boundary | Keep unsupported penalty actions and four-level jump overcalls out of scope |
 
 **Batch 6A validation:** From the same local project snapshot, all 2,979
@@ -185,20 +185,27 @@ feedback. The rule suite passes, including 12 focused evidence/delivery checks.
 These replays establish output parity outside the deliberate changes; they
 do not establish the optimal bridge choice.
 
-**Next Stage 6 batch:** Constructive major game after jump interference and a
-few evaluator-confirmed alternatives: cuebid versus natural major after a
-suit overcall; one-level new suit versus Jordan 2NT after Double; natural
-1NT versus a simple raise after Double. Preserve qualifications and ensure
-comparison prose refers only to truly supported alternatives.
+**Batch 6B validation:** Constructive 4H/4S now reports the actually checked
+three-card-or-longer fit and 13+ shortage-adjusted points. Attempted games
+that fail use the constructive treatment's actual failed requirements rather
+than the unrelated weak, five-trump game-raise message. Comparisons of
+cuebid versus a qualifying natural major, 1S versus Jordan 2NT, and natural
+1NT versus simple raise are reciprocal where available; existing Redouble and
+three-way jump-overcall explanations remain intact.
 
-**Remaining:** Finish Stage 6B before direct overcalling and balancing, then
-advancing; continue recording an Adequate, Improve, Judgment boundary, or
-Integration issue decision after examining each family's positive/rejected
-output. Previously developed or Q4-reviewed families are **not** implicitly
-skipped. Preserve student-facing lines verbatim unless a change is deliberate; inspect every
-changed line in temporary recorded-call replays. Keep the 15,888-case
-refactor comparison separate from the narrower 2,582-context recorded-call
-replay, and do not treat either replay as proof of instructional correctness.
+A temporary local before/after replay of 2,979 recorded calls found 14 intentional
+feedback changes; 276 attempted competitive responses had 14 feedback changes.
+No rule matches or statuses changed in those replays, which used the older uploaded
+source snapshot with the same Stage 6B functions, rather than a complete
+current-master source replay. GitHub CI separately validates the merged source. Focused permanent tests verify the evaluated evidence and delivery
+without snapshotting learner-facing English.
+
+**Next systematic stage:** Direct overcalling and balancing, followed by
+advancing. Review positive and rejected feedback family by family, including
+already-developed treatments, and record an Adequate, Improve, Judgment boundary,
+or Integration issue decision. Preserve student-facing lines unless changed
+deliberately. The 15,888-case refactor comparison is separate from the narrower
+2,582-context recorded-call replay; neither establishes instructional correctness.
 The roadmap holds only pending work; statistical reach stays in
 `docs/by-the-numbers.md`.
 

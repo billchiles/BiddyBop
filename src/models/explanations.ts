@@ -426,6 +426,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getThreeLevelPreemptResponseLines(result, rule));
   lines.push(...getJumpResponseLines(result, rule));
   lines.push(...getCompetitiveResponseAlternativeLines(result, rule));
+  lines.push(...getStage6BCompetitiveAlternativeLines(result, rule));
   lines.push(...getNaturalAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));
@@ -1886,6 +1887,10 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
       `[${STRONG_MAJOR_NEW_SUIT_IDS[1]}].`);
   }
   for (const ruleId of STRONG_MAJOR_IDS) {
+    // A constructive major-game response after a jump overcall needs only three trumps.
+    // Do not substitute the separate weak game's five-trump failure for this auction.
+    if (ruleId === STRONG_MAJOR_PREEMPT_ID &&
+        findCallDiagnostic(result, CONSTRUCTIVE_MAJOR_GAME_ID).candidate !== undefined) continue;
     const { diagnostic, candidate } = findCallDiagnostic(result, ruleId);
     if (diagnostic === undefined || !diagnostic.rule.calls?.includes(entered)) continue;
     // The narrow 13-point fallback only describes direct 3M, never an unrelated 3M splinter.
@@ -3162,6 +3167,79 @@ export function getCompetitiveResponseAlternativeLines(result: BidEvalResult, ru
   return [];
 }
 
+/// Add only evaluator-confirmed alternatives omitted from existing competitive comparisons.
+/// Keep the earlier Redouble and three-way jump-overcall messages unchanged.
+export function getStage6BCompetitiveAlternativeLines(result: BidEvalResult, rule: BidRule): string[] {
+  const call = result.normalizedCall;
+  if (call === null || !result.userCallMatchingRules.some((item) => item.id === rule.id)) return [];
+  const cueId = 'respond-over-suit-support-cuebid';
+  const suitId = 'respond-over-suit-new-suit-one-level';
+  const jordanId = 'respond-after-double-jordan-2nt-support';
+  const doubledSuitId = 'respond-after-double-new-suit-one-level';
+  const ntId = 'respond-after-double-natural-1nt';
+  const raiseId = 'respond-to-major-w/-support-simple-raise';
+  const supported = getApplicableCandidateCalls(result);
+
+  if (rule.id === cueId) {
+    const majors = (['1H', '1S'] as Call[]).filter((bid) =>
+      qualifiedResponse(result, suitId, bid));
+    if (majors.length > 0) {
+      return [`Natural ${majors.join(' or ')} also ${majors.length === 1 ? 'qualifies' : 'qualify'} ` +
+        `to show ${majors.length === 1 ? 'a major suit' : 'the major suits'} immediately. ` +
+        `${call} instead artificially emphasizes invitational-or-better support ` +
+        `for opener's suit [${suitId}].`];
+    }
+  }
+  if (rule.id === suitId && (call === '1H' || call === '1S')) {
+    const cue = supported.find((item) => item.rule.id === cueId);
+    if (cue !== undefined) {
+      return [`Artificial ${cue.call} also qualifies to show invitational-or-better ` +
+        `support for opener's suit. Natural ${call} instead describes your ` +
+        `${suitPlural(call)} immediately and forces one round [${cueId}].`];
+    }
+  }
+  if (rule.id === doubledSuitId && call === '1S' &&
+      qualifiedResponse(result, jordanId, '2NT')) {
+    const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === jordanId)
+      ?.candidates.find((item) => item.call === '2NT' && item.ruleApplies);
+    const facts = candidate?.callEvidence?.competitiveResponse;
+    if (facts?.partnerSuit !== undefined && facts.partnerSupport !== undefined &&
+        facts.supportPoints !== undefined) {
+      return [`Jordan 2NT also qualifies with ${facts.supportPoints} total points with shortage ` +
+        `and ${facts.partnerSupport} ${suitPlural(`1${facts.partnerSuit}` as Call)}. ` +
+        `It emphasizes opener's fit, whereas natural 1S describes your spades ` +
+        `and forces one round [${jordanId}].`];
+    }
+  }
+  if (rule.id === jordanId && call === '2NT' &&
+      qualifiedResponse(result, doubledSuitId, '1S')) {
+    const candidate = result.ruleDiagnostics.find((entry) => entry.rule.id === doubledSuitId)
+      ?.candidates.find((item) => item.call === '1S' && item.ruleApplies);
+    const length = candidate === undefined ? undefined : minorRequirement(candidate, 'suitLength');
+    if (length?.kind === 'suitLength' && length.actual !== undefined) {
+      return [`Natural 1S also qualifies with your ${length.actual} spades, showing that ` +
+        `suit immediately and forcing one round. Jordan 2NT instead emphasizes ` +
+        `your invitational-or-better support for opener [${doubledSuitId}].`];
+    }
+  }
+  if (rule.id === ntId && call === '1NT') {
+    const raise = supported.find((item) => item.rule.id === raiseId &&
+      (item.call === '2H' || item.call === '2S'));
+    if (raise !== undefined) {
+      return [`${raise.call} also qualifies as a nonforcing simple raise showing ` +
+        `opener's major-suit fit. Natural 1NT instead emphasizes balanced, limited ` +
+        `values; it does not deny three-card support [${raiseId}].`];
+    }
+  }
+  if (rule.id === raiseId && (call === '2H' || call === '2S') &&
+      qualifiedResponse(result, ntId, '1NT')) {
+    return [`Natural 1NT also qualifies to show balanced, limited values and allows ` +
+      `opener to Pass. ${call} instead identifies your major-suit fit; it is also ` +
+      `nonforcing [${ntId}].`];
+  }
+  return [];
+}
+
 export function getCompetitiveResponseFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   if (result.normalizedCall === '1NT') {
@@ -3584,7 +3662,10 @@ export function getThreeLevelPreemptResponseFailureLines(result: BidEvalResult):
 ///
 /// Responder's natural choices when an opponent makes a preemptive jump overcall.
 ///
+const CONSTRUCTIVE_MAJOR_GAME_ID = 'respond-over-jump-major-game-constructive';
+
 const JUMP_RESPONSE_IDS = [
+  CONSTRUCTIVE_MAJOR_GAME_ID,
   'respond-over-jump-raise-cheapest-to-three',
   'respond-over-jump-new-suit-two-level',
   'respond-over-jump-new-suit-three-level',
@@ -3597,6 +3678,17 @@ export function getJumpResponseLines(result: BidEvalResult, rule: BidRule): stri
     ?.candidates.find(({ call }) => call === result.normalizedCall);
   if (candidate?.ruleApplies !== true) return [];
   const id = `[${rule.id}]`;
+  if (rule.id === CONSTRUCTIVE_MAJOR_GAME_ID) {
+    const points = minorRequirement(candidate, 'totalPoints');
+    const support = minorRequirement(candidate, 'partnerSupport');
+    if (points?.kind !== 'totalPoints' || !points.passed || points.min === undefined ||
+        support?.kind !== 'partnerSupport' || !support.passed ||
+        support.actual === undefined || support.min === undefined) return [];
+    return [`Your ${points.actual} total points with shortage meet the ${points.min}-point ` +
+      `minimum, and your ${support.actual} ${suitPlural(result.normalizedCall)} meet the ` +
+      `${support.min}-card support requirement. ${result.normalizedCall} bids game ` +
+      `constructively, rather than as a weak preemptive game raise ${id}.`];
+  }
   if (rule.id.endsWith('natural-notrump')) {
     const facts = candidate.callEvidence?.jumpResponseNotrump;
     if (facts === undefined) return [];
@@ -3631,6 +3723,21 @@ export function getJumpResponseFailureLines(result: BidEvalResult): string[] {
     const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === id)
       ?.candidates.find(({ call }) => call === result.normalizedCall);
     if (candidate === undefined || candidate.ruleApplies) continue;
+    if (id === CONSTRUCTIVE_MAJOR_GAME_ID) {
+      const points = minorRequirement(candidate, 'totalPoints');
+      const support = minorRequirement(candidate, 'partnerSupport');
+      const failed: string[] = [];
+      if (points?.kind === 'totalPoints' && !points.passed && points.min !== undefined) {
+        failed.push(`Constructive ${result.normalizedCall} requires at least ${points.min} ` +
+          `total points with shortage; you have ${points.actual} [${id}].`);
+      }
+      if (support?.kind === 'partnerSupport' && !support.passed && support.min !== undefined) {
+        failed.push(`Constructive ${result.normalizedCall} requires at least ${support.min} ` +
+          `trumps in opener's major; you have ${support.actual} [${id}].`);
+      }
+      if (failed.length > 0) return failed;
+      continue;
+    }
     if (id.endsWith('natural-notrump')) {
       const facts = candidate.callEvidence?.jumpResponseNotrump;
       if (facts === undefined) continue;
