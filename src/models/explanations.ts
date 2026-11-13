@@ -3222,7 +3222,7 @@ export function getCompetitiveResponseFailureLines(result: BidEvalResult): strin
   const jumpId = 'respond-after-double-weak-jump-shift';
   const jump = result.ruleDiagnostics.find((entry) => entry.rule.id === jumpId)
     ?.callEvidence?.jumpShift;
-  const jumpedSuit = jump?.consided.find(item) => item.call === result.normalizedCall);
+  const jumpedSuit = jump?.considered.find((item) => item.call === result.normalizedCall);
   if (jumpedSuit !== undefined) {
     if (jumpedSuit.length < 6) {
       return [`Weak ${jumpedSuit.call} after a takeout Double requires at least six ` +
