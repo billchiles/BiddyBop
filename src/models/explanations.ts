@@ -2748,11 +2748,35 @@ function supportedAdvanceAlternative(result: BidEvalResult): { call: Call; evide
   return { call: candidate.call, evidence: details === '' ? '' : ` Your hand has ${details}.` };
 }
 
+/// Describe only a qualifying honor test preserved by an advancing refiner.
+/// A two-level new suit has no honor requirement under these treatments.
+function advancingHonorText(evidence: { honors?: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard?: 'twoTopThree' | 'threeTopFive' | null } | undefined,
+    call: Call): string | null {
+  if (evidence?.qualityStandard === undefined || evidence.qualityStandard === null ||
+      evidence.honors === undefined) return null;
+  const honors = evidence.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const requirement = evidence.qualityStandard === 'twoTopThree' ?
+    'two of A/K/Q' : 'three of A/K/Q/J/10';
+  return `Your ${suitPlural(call)} contain ${honors}, meeting the requirement for ${requirement}.`;
+}
+
+/// Describe the actual failed honor test without re-testing suit quality.
+function advancingHonorFailureText(evidence: { honors?: ('A' | 'K' | 'Q' | 'J' | 'T')[]; length?: number },
+    call: Call): string {
+  const honors = evidence.honors?.map((rank) => rank === 'T' ? '10' : rank).join('-') ?? '';
+  const held = honors.length === 0 ? 'no A/K/Q/J/10 honors' : honors;
+  const holding = evidence.length === undefined ? suitPlural(call) :
+    `${evidence.length} ${suitPlural(call)}`;
+  return `Your ${holding} contain ${held}; the honor requirement is ` +
+    'two of A/K/Q or three of A/K/Q/J/10';
+}
+
 /// Use the exact qualifying candidate and its evaluated requirements to explain the
 /// particular advance.  Rule meaning/guidance still follows in the ordinary UI path.
 export function getNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!NATURAL_ADVANCE_RULES.includes(rule.id) || result.normalizedCall === null) return [];
-  const { candidate } = findCallDiagnostic(result, rule.id);
+  const { candidate, diagnostic } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const call = result.normalizedCall;
   const id = `[${rule.id}]`;
@@ -2811,11 +2835,13 @@ export function getNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): st
   if (hcp !== undefined && length !== undefined) {
     const forcing = rule.callCategory?.includes('forcing') === true;
     const quality = rule.id.endsWith('-new-suit-at-three-level')
-      ? ` Your suit also satisfies the required honor quality (${PREEMPT_SUIT_QUALITY}).` : '';
+      ? advancingHonorText(diagnostic?.callEvidence?.advanceNewSuitQuality?.considered.find(
+        (item) => item.call === call), call) : null;
+    if (rule.id.endsWith('-new-suit-at-three-level') && quality === null) return [];
     return [`With ${hcp.actual} HCP and ${length.actual} ${suitPlural(call)}, ${call} ` +
       `qualifies as an economical natural new-suit advance. It is ` +
       `${forcing ? 'forcing for one round: partner must bid again' :
-        'nonforcing: partner may Pass'}.${quality} ${id}`];
+        'nonforcing: partner may Pass'}.${quality === null ? '' : ` ${quality}`} ${id}`];
   }
   return [];
 }
@@ -2853,9 +2879,8 @@ export function getNaturalAdvanceFailureLines(result: BidEvalResult): string[] {
           `at least five ${suitPlural(entered)}; you have ${checked.length} [${ruleId}].`];
       }
       if (checked?.economical === true && !checked.qualityPassed) {
-        return [`An economical three-level advance of ${entered} needs a suit containing ` +
-          `${PREEMPT_SUIT_QUALITY}. Your ${suitPlural(entered)} do not meet that ` +
-          `honor requirement [${ruleId}].`];
+        return [`${advancingHonorFailureText(checked, entered)} ` +
+          `[${ruleId}].`];
       }
     }
     if (candidate === undefined || candidate.ruleApplies) continue;
@@ -4441,10 +4466,11 @@ export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): strin
   }
   if (rule.id.endsWith('-forcing-new-suit')) {
     if (hcp === undefined || considered === undefined || !considered.qualityPassed) return [];
+    const honorText = advancingHonorText(considered, call);
+    if (honorText === null) return [];
     return [`With ${hcp.actual} HCP and ${considered.length} ${suitPlural(call)}, ` +
-      `${call} qualifies as an economical new-suit advance. The suit satisfies the honor ` +
-      `requirement (${PREEMPT_SUIT_QUALITY}). It forces partner to bid again; this is not ` +
-      `a weak preference after a preempt ${id}.`];
+      `${call} qualifies as an economical new-suit advance. ${honorText} ` +
+      `It forces partner to bid again; this is not a weak preference after a preempt ${id}.`];
   }
   if (points === undefined || considered === undefined) return [];
   if (rule.id.endsWith('-major-game')) {
@@ -4503,9 +4529,7 @@ export function getJumpAdvanceFailureLines(result: BidEvalResult): string[] {
         `the three level after partner's preempt ${id}.`];
     }
     if (considered.qualityPassed === false) {
-      return [`A forcing new-suit advance of ${entered} requires ` +
-        `${PREEMPT_SUIT_QUALITY}; your ${suitPlural(entered)} do not meet this ` +
-        `honor-quality requirement ${id}.`];
+      return [`${advancingHonorFailureText(considered, entered)} ${id}.`];
     }
   }
   return [];
@@ -4570,7 +4594,7 @@ const COMPETITIVE_NT_ID = 'advance-after-responder-action-natural-notrump';
 export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if ((!competitiveRaiseRule(rule.id) && rule.id !== COMPETITIVE_NT_ID) ||
       result.normalizedCall === null) return [];
-  const { candidate } = findCallDiagnostic(result, rule.id);
+  const { candidate, diagnostic } = findCallDiagnostic(result, rule.id);
   if (candidate?.ruleApplies !== true) return [];
   const id = `[${rule.id}]`;
   const call = result.normalizedCall;
@@ -4641,9 +4665,11 @@ export function getCompetitiveRaiseAdvanceLines(result: BidEvalResult, rule: Bid
     if (strength === null) return [];
     const forcing = rule.callCategory?.includes('forcing') === true;
     const quality = rule.id.endsWith('-three-level') ?
-      ` The suit meets the honor requirement (${PREEMPT_SUIT_QUALITY}).` : '';
+      advancingHonorText(diagnostic?.callEvidence?.competitiveRaiseNewSuit?.considered.find(
+        (item) => item.call === call), call) : null;
+    if (rule.id.endsWith('-three-level') && quality === null) return [];
     return [`With ${strength} and ${length.actual} ${suitPlural(call)}, ${call} ` +
-      `qualifies as an economical natural new-suit advance.${quality} ` +
+      `qualifies as an economical natural new-suit advance.${quality === null ? '' : ` ${quality}`} ` +
       (forcing ? `It forces partner to bid again` : `It is nonforcing: partner may Pass`) +
       ` ${id}.`];
   }
@@ -4716,9 +4742,7 @@ export function getCompetitiveRaiseAdvanceFailureLines(result: BidEvalResult): s
           `${suitPlural(entered)}; you have ${checked.length} [${ruleId}].`];
       }
       if (checked?.economical === true && !checked.qualityPassed) {
-        return [`A three-level new-suit advance to ${entered} requires ` +
-          `${PREEMPT_SUIT_QUALITY}; your ${suitPlural(entered)} do not satisfy that ` +
-          `honor test [${ruleId}].`];
+        return [`${advancingHonorFailureText(checked, entered)} [${ruleId}].`];
       }
     }
     if (candidate === undefined) continue;
@@ -4792,8 +4816,8 @@ const COMPETITIVE_NATURAL_PREFIXES = [
 /// Positive messages rely on the evaluated rule, not independent hand checks.
 export function getCompetitiveNaturalAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
   if (!competitiveNaturalRule(rule.id) || result.normalizedCall === null) return [];
-  const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
-    ?.candidates.find((item) => item.call === result.normalizedCall);
+  const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
+  const candidate = diagnostic?.candidates.find((item) => item.call === result.normalizedCall);
   if (candidate?.ruleApplies !== true) return [];
   const checks = candidate.callEvidence?.requirements ?? [];
   const points = checks.find((item) => item.kind === 'totalPoints');
@@ -4841,10 +4865,12 @@ export function getCompetitiveNaturalAdvanceLines(result: BidEvalResult, rule: B
       points !== undefined ? `${points.actual} total points with length` : null;
     if (strength === null) return [];
     const quality = rule.id.endsWith('-three-level') ?
-      ` The suit meets the honor requirement (${PREEMPT_SUIT_QUALITY}).` : '';
+      advancingHonorText(diagnostic?.callEvidence?.competitiveNaturalNewSuit?.considered.find(
+        (item) => item.call === call), call) : null;
+    if (rule.id.endsWith('-three-level') && quality === null) return [];
     const forcing = rule.callCategory?.includes('forcing') === true;
     return [`With ${strength} and ${length.actual} ${suitPlural(call)}, ${call} ` +
-      `is an economical natural new-suit advance.${quality} ` +
+      `is an economical natural new-suit advance.${quality === null ? '' : ` ${quality}`} ` +
       (forcing ? `It forces partner to bid again` : `It is nonforcing: partner may Pass`) +
       ` ${id}.`];
   }
@@ -4892,9 +4918,7 @@ export function getCompetitiveNaturalAdvanceFailureLines(result: BidEvalResult):
           `at least five ${suitPlural(entered)}; you have ${considered.length} [${ruleId}].`];
       }
       if (considered.qualityPassed === false) {
-        return [`A three-level new-suit advance of ${entered} requires ` +
-          `${PREEMPT_SUIT_QUALITY}; your ${suitPlural(entered)} do not meet ` +
-          `that requirement [${ruleId}].`];
+        return [`${advancingHonorFailureText(considered, entered)} [${ruleId}].`];
       }
       continue;
     }

@@ -169,7 +169,9 @@ export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalC
     const qualityPassed = bid.level !== 3 ||
       hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
-      economical, qualityPassed }];
+      economical, qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
+        bid.level === 3, qualityPassed) }];
   });
   return {
     calls: considered.filter((item) => item.economical && item.qualityPassed)
@@ -510,9 +512,12 @@ function refineAdvancerNewSuitAfterResponderRaiseForLevel (
     const bid = parseSuitBid(call);
     if (bid === null || bid.level !== level || bid.strain === 'NT' ||
         bid.strain === info.opening.strain || bid.strain === info.overcall.strain) return [];
+    const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
       economical: cheapestBidInStrainAfter(info.responderRaise, bid.strain) === call,
-      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+      qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
+        level === 3, qualityPassed) }];
   });
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
@@ -588,9 +593,12 @@ export function refineTakeoutNewSuitAfterResponderRaise (
     const bid = parseSuitBid(call);
     if (bid === null || bid.level !== level || bid.strain === 'NT' ||
         bid.strain === info.opening.strain) return [];
+    const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
       economical: cheapestBidInStrainAfter(info.responderRaise, bid.strain) === call,
-      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+      qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
+        level === 3, qualityPassed) }];
   });
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
@@ -808,9 +816,12 @@ export function refineAdvancerNewSuitAfterResponderNaturalAction (
     if (bid === null || bid.level !== level || bid.strain === 'NT' ||
         bid.strain === info.opening.strain || bid.strain === info.overcall.strain ||
         bid.strain === info.responderAction.strain) return [];
+    const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
       economical: cheapestBidInStrainAfter(info.responderAction, bid.strain) === call,
-      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+      qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
+        level === 3, qualityPassed) }];
   });
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
@@ -849,9 +860,12 @@ export function refineTakeoutNewSuitAfterResponderNaturalAction (
     if (bid === null || bid.level !== level || bid.strain === 'NT' ||
         bid.strain === info.opening.strain || bid.strain === info.responderAction.strain)
       return [];
+    const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
       economical: cheapestBidInStrainAfter(info.responderAction, bid.strain) === call,
-      qualityPassed: level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit) }];
+      qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
+        level === 3, qualityPassed) }];
   });
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
@@ -1405,7 +1419,8 @@ export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalConte
       cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
     const qualityPassed = hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
-      economical, qualityPassed, eligible: economical && qualityPassed }];
+      economical, qualityPassed, eligible: economical && qualityPassed,
+      ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit, true, qualityPassed) }];
   });
   return { calls: considered.filter((item) => item.eligible).map((item) => item.call),
     telemetryLines: [], callEvidence: {
@@ -1415,6 +1430,19 @@ export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalConte
         hcp: context.handFacts.hcp,
         supportPoints: context.handFacts.totalPointsWShortage, considered },
     } };
+}
+
+/// Retain actual honors alongside the existing suit-quality decision. A non-three-level
+/// natural advance does not require concentrated honors, even if it happens to have them.
+/// This helper supplies evidence only; it never changes rule qualification.
+function getAdvancingSuitHonorEvidence (context: RuleEvalContext, suit: Suit,
+    required: boolean, passed: boolean) {
+  const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+    context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+  const topThree = honors.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q').length;
+  const qualityStandard = !required || !passed ? null :
+    topThree >= 2 ? 'twoTopThree' as const : 'threeTopFive' as const;
+  return { honors, qualityStandard };
 }
 
 /// Advances of partner's preemptive jump overcall are restricted to a one-level
