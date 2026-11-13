@@ -2391,25 +2391,48 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
   if (rule.id === 'respond-to-2c-w/-2nt-positive-balanced') {
     const balanced = minorRequirement(candidate, 'balanced');
     if (balanced?.passed !== true) return [];
-    return [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
+    const positiveSuit = result.ruleDiagnostics.find(({ rule: item }) =>
+      item.id === 'respond-to-2c-w/-positive-suit');
+    const otherSuits = positiveSuit?.candidates.filter((item) => item.ruleApplies)
+      .map((item) => item.call) ?? [];
+    const lines = [`With ${hcp.actual} HCP and balanced distribution, 2NT is a natural positive
       response to the strong 2C opening. It forces the partnership to game
       [${rule.id}].`.replace(/\s+/g, ' ')];
+    if (otherSuits.length > 0) {
+      lines.push(`Natural ${otherSuits.join(' or ')} also ${otherSuits.length === 1 ?
+        'qualifies' : 'qualify'}, immediately showing a good five-card-or-longer suit. ` +
+        'This treatment ranks the descriptive suit response higher, while 2NT ' +
+        `emphasizes balanced distribution; both are supported choices ` +
+        '[respond-to-2c-w/-positive-suit].');
+    }
+    return lines;
   }
   const evidence = diagnostic?.callEvidence?.strongTwoCPositiveSuit;
   const suit = evidence?.considered.find(({ call }) => call === result.normalizedCall);
-  if (suit === undefined || suit.length < 5 || !suit.quality) return [];
+  if (suit === undefined || !suit.quality || suit.qualityStandard === null ||
+      hcp.passed !== true) return [];
+  const honors = suit.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const standard = suit.qualityStandard === 'twoTopThree'
+    ? 'two of A/K/Q' : 'three of A/K/Q/J/10';
   const otherPositiveSuits = diagnostic?.candidates.filter(({ call, ruleApplies }) =>
     ruleApplies && call !== result.normalizedCall).map(({ call }) => call) ?? [];
   const alternatives = otherPositiveSuits.length > 0
     ? ` Other positive suit responses also qualify (${otherPositiveSuits.join(', ')}). ` +
       'Choose among these suits using length, quality, and judgment; their ' +
       'listing order does not imply a preference.' : '';
-  return [`With ${hcp.actual} HCP and a good ${suit.length}-card
-    ${suitName(result.normalizedCall)} suit, ${result.normalizedCall} is a natural,
-    game-forcing positive response. The suit satisfies the honor requirement
-    (2 of top 3 honors or 3 of top 5 honors). The artificial 2D waiting
-    response is also available, but does not describe this suit immediately.
-    ${alternatives} [${rule.id}].`.replace(/\s+/g, ' ')];
+  const positiveNt = result.ruleDiagnostics.find(({ rule: item }) =>
+    item.id === 'respond-to-2c-w/-2nt-positive-balanced')
+    ?.candidates.some((item) => item.call === '2NT' && item.ruleApplies);
+  const balancedAlternative = positiveNt === true
+    ? ' Positive 2NT also qualifies with this balanced hand, but the natural suit ' +
+      'response ranks higher because it describes your good suit immediately.' : '';
+  return [`Your ${hcp.actual} HCP meet the ${hcp.min}-HCP minimum, and your
+    ${suit.length} ${suitPlural(result.normalizedCall)} contain ${honors}, satisfying the
+    suit-quality standard of ${standard}. Natural ${result.normalizedCall} is a
+    game-forcing positive response. Artificial 2D waiting also qualifies, but
+    does not describe your suit immediately.${alternatives}${balancedAlternative}
+    [${rule.id}].`.replace(/\s+/g, ' ')];
+
 }
 
 export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
