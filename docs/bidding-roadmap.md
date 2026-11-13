@@ -41,10 +41,9 @@ not a historical progress log or a commitment to model every possible auction.
   learner-facing text in small batches. Keep the broad replay harness temporary;
   retain only focused permanent tests for concrete regression risks. After these
   review passes, regenerate `docs/by-the-numbers.md` with `npm run stats:bidding`
-  and inspect the resulting diff. Pending next: checked honors in advancing new
-  suits (Stage 8B), then evaluator-confirmed preemptive-advance alternatives
-  (Stage 8C); subsequent family reviews are tracked in
-  `docs/instructional-explanation-review.md`.
+  and inspect the resulting diff. Pending next: evaluator-confirmed
+  preemptive-advance alternatives (Stage 8C); subsequent family reviews are
+  tracked in `docs/instructional-explanation-review.md`.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.
