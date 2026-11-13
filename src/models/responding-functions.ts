@@ -1143,11 +1143,15 @@ export function responderWeakTwoLevelNewSuitApplies (call: Call, context: RuleEv
   const enough = length >= 6 && quality && hcp >= 5 && hcp <= 9;
   const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
     context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+  const topThree = honors.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q').length;
+  const qualityStandard = !quality ? null :
+    topThree >= 2 ? 'twoTopThree' as const : 'threeTopFive' as const;
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: nonforcing two-level new suit needs a good six-card ` +
       `${suit} suit and 5-9 HCP (have ${length} cards, ${hcp} HCP).`,
   ], callEvidence: { competitiveTwoLevelNewSuit: {
     hcp, minHcp: 5, maxHcp: 9, suit, length, minLength: 6, quality, honors,
+    qualityStandard,
   } } };
 }
 
@@ -1190,7 +1194,10 @@ export function responderWeakJumpRaiseAfterInterferenceApplies (_call: Call, con
   return { success: enough, telemetryLines: [
     `${enough ? 'PASS' : 'FAIL'}: weak jump raise needs ${minimum}+ ${suit}, ` +
       `0-6 HCP, and no more than 9 support points (have ${support}, ${hcp}, ${points}).`,
-  ] };
+  ], callEvidence: { competitiveResponse: {
+    hcp, maxHcp: 6, supportPoints: points, maxSupportPoints: 9,
+    partnerSuit: suit, partnerSupport: support, minPartnerSupport: minimum,
+  } } };
 }
 
 ///
