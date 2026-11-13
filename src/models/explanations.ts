@@ -431,11 +431,13 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getNaturalAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));
+  lines.push(...getWeakTwoTwoNtAdvanceAlternativeLines(result, rule));
   lines.push(...getResponseSelectionSupportLines(result, rule));
   lines.push(...getStrongTwoCResponseLines(result, rule));
   lines.push(...getResponderPreemptiveAdvanceLines(result, rule));
   lines.push(...getDontAdvanceLines(result, rule));
   lines.push(...getJumpAdvanceLines(result, rule));
+  lines.push(...getJumpAdvanceAlternativeLines(result, rule));
   lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
   lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
   lines.push(...getNegativeDoubleAdvanceLines(result, rule));
@@ -4207,6 +4209,51 @@ export function getNotrumpPartnerResponseLines(result: BidEvalResult, rule: BidR
   return [];
 }
 
+/// Compare the two genuinely qualifying ways to show a major after a natural 2NT
+/// overcall of a weak two.  Texas commits to game; Jacoby initially stops below it.
+/// When Texas is disabled, the natural four-level game is a different available route.
+export function getWeakTwoTwoNtAdvanceAlternativeLines(result: BidEvalResult,
+                                                        rule: BidRule): string[] {
+  if (!rule.id.startsWith('advance-weak-two-2nt-') || result.normalizedCall === null ||
+      !result.userCallMatchingRules.some((item) => item.id === rule.id)) return [];
+  const supported = getApplicableCandidateCalls(result);
+  const pairs: { jacobyId: string; jacobyCall: Call; gameId: string; gameCall: Call;
+    major: 'hearts' | 'spades'; gameStyle: 'Texas' | 'natural' }[] = [
+    { jacobyId: 'advance-weak-two-2nt-transfer-to-hearts', jacobyCall: '3D',
+      gameId: 'advance-weak-two-2nt-texas-to-hearts', gameCall: '4D',
+      major: 'hearts', gameStyle: 'Texas' },
+    { jacobyId: 'advance-weak-two-2nt-transfer-to-spades', jacobyCall: '3H',
+      gameId: 'advance-weak-two-2nt-texas-to-spades', gameCall: '4H',
+      major: 'spades', gameStyle: 'Texas' },
+    { jacobyId: 'advance-weak-two-2nt-transfer-to-hearts', jacobyCall: '3D',
+      gameId: 'advance-weak-two-2nt-natural-major-game', gameCall: '4H',
+      major: 'hearts', gameStyle: 'natural' },
+    { jacobyId: 'advance-weak-two-2nt-transfer-to-spades', jacobyCall: '3H',
+      gameId: 'advance-weak-two-2nt-natural-major-game', gameCall: '4S',
+      major: 'spades', gameStyle: 'natural' },
+  ];
+  for (const pair of pairs) {
+    const selectedJacoby = rule.id === pair.jacobyId &&
+      result.normalizedCall === pair.jacobyCall;
+    const selectedGame = rule.id === pair.gameId &&
+      result.normalizedCall === pair.gameCall;
+    if (!selectedJacoby && !selectedGame) continue;
+    const bothQualify = supported.some((item) =>
+      item.call === pair.jacobyCall && item.rule.id === pair.jacobyId) &&
+      supported.some((item) => item.call === pair.gameCall && item.rule.id === pair.gameId);
+    if (!bothQualify) continue;
+    const target = pair.major === 'hearts' ? 'H' : 'S';
+    const gameAction = pair.gameStyle === 'Texas'
+      ? `${pair.gameCall} is an artificial Texas transfer to 4${target}, committing to game`
+      : `${pair.gameCall} is a natural game signoff in ${pair.major} without Texas`;
+    return [`Both Jacoby ${pair.jacobyCall} and ${pair.gameCall} qualify. ` +
+      `Jacoby ${pair.jacobyCall} first asks partner to bid 3${target}; ` +
+      `${gameAction}. The Jacoby call itself does not commit to game ` +
+      `[${pair.jacobyId}; ${pair.gameId}].`];
+  }
+  return [];
+}
+
 /// Report the tested requirement most useful to the entered call. A call suppressed by a
 /// better descriptive route is not treated as having failed a hand requirement.
 export function getNotrumpPartnerResponseFailureLines(result: BidEvalResult): string[] {
@@ -4442,6 +4489,50 @@ export function getDontAdvanceFailureLines(result: BidEvalResult): string[] {
 }
 
 
+
+/// Compare the supported Pass and major-game advance after a seven-card three-level
+/// jump overcall.  A structural fit and point guideline do not prove ten tricks.
+export function getJumpAdvanceAlternativeLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null ||
+      (rule.id !== 'advance-jump-overcall-pass' &&
+       rule.id !== 'advance-jump-overcall-major-game') ||
+      !result.userCallMatchingRules.some((item) => item.id === rule.id)) return [];
+  const passCandidate = result.ruleDiagnostics.find((item) =>
+    item.rule.id === 'advance-jump-overcall-pass')
+    ?.candidates.find((item) => item.call === 'Pass' && item.ruleApplies);
+  const info = passCandidate?.callEvidence?.jumpAdvance;
+  if (info?.overcallLevel !== 3 || info.passReason !== 'limited-no-fit') return [];
+  const gameCall = `4${info.trumpSuit}` as Call;
+  const gameDiagnostic = result.ruleDiagnostics.find((item) =>
+    item.rule.id === 'advance-jump-overcall-major-game');
+  const gameCandidate = gameDiagnostic?.candidates.find((item) =>
+    item.call === gameCall && item.ruleApplies);
+  const gameInfo = gameCandidate?.callEvidence?.jumpAdvance ??
+    gameDiagnostic?.callEvidence?.jumpAdvance;
+  const points = gameCandidate === undefined ? undefined :
+    minorRequirement(gameCandidate, 'totalPoints');
+  if (gameInfo?.overcallLevel !== 3 || gameInfo.trumpSuit !== info.trumpSuit ||
+      points?.passed !== true || points.valuation !== 'shortage' ||
+      !getApplicableCandidateCalls(result).some((item) =>
+        item.rule.id === 'advance-jump-overcall-major-game' && item.call === gameCall)) return [];
+  const fit = 7 + gameInfo.support;
+  if (rule.id === 'advance-jump-overcall-pass' && result.normalizedCall === 'Pass') {
+    return [`Natural ${gameCall} also qualifies: your ${points.actual} total points with ` +
+      `shortage and ${gameInfo.support} ${suitPlural(gameCall)} meet the game guideline, ` +
+      `giving at least ${fit} combined trumps. Pass leaves partner's nonforcing preempt ` +
+      `in place. Neither the fit nor the point guideline guarantees ten tricks; ` +
+      `playing strength and vulnerability matter [advance-jump-overcall-major-game].`];
+  }
+  if (rule.id === 'advance-jump-overcall-major-game' &&
+      result.normalizedCall === gameCall) {
+    return [`Pass also qualifies with ${info.hcp} HCP and ${info.support} ` +
+      `${suitPlural(gameCall)} because partner's three-level jump is nonforcing. ` +
+      `${gameCall} commits to game with ${points.actual} total points with shortage ` +
+      `and at least ${fit} trumps. This does not guarantee ten tricks; playing ` +
+      `strength and vulnerability matter [advance-jump-overcall-pass].`];
+  }
+  return [];
+}
 
 /// Positive instructions use the checks and retained choices on the actual selected rule.
 export function getJumpAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
