@@ -516,7 +516,17 @@ export interface CallEvidence {
   // Facts checked when responding to partner's weak-two opening. A rejected
   // new suit can be absent from candidates, so keep the refiner's checks separately.
   weakTwoNewSuit?: {
-    considered: { call: Call; length: number; quality: boolean; economical: boolean }[];
+    considered: { call: Call; length: number; quality: boolean; economical: boolean;
+      honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+      qualityStandard: 'twoTopThree' | 'threeTopFive' | null }[];
+    selected: Call | null;
+  };
+  threeLevelPreemptResponse?: { openingSuit: Suit; support: number };
+  threeLevelPreemptNewSuit?: {
+    considered: { call: Call; length: number; minLength: number; quality: boolean;
+      economical: boolean; belowGame: boolean;
+      honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+      qualityStandard: 'twoTopThree' | 'threeTopFive' | null }[];
     selected: Call | null;
   };
   // Evaluated strength, minor length, shape and major preference for a natural 3C/3D
