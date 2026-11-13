@@ -1666,6 +1666,12 @@ function buildOpenerCompetitiveForcingRebidEvidence (
     rebidSuit: bidSuit,
     rebidLength: bidSuit === null ? 0 : context.handFacts.lengths[bidSuit],
     afterAdvancerAction,
+    opponentStoppers: call.endsWith('NT') ? getOpponentNaturallyBidSuitsForOpenerRebid(
+      context.dealer, context.auction).map((suit) => ({
+        suit,
+        holding: getCardsForSuit(context.hand, suit).map((card) => card.rank).join(''),
+        passed: hasBasicSuitStopper(context, suit),
+      })) : [],
   } };
 }
 
