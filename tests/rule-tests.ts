@@ -114,6 +114,7 @@ function runAllRuleTests (): void {
     runResponderStrongAndSupportConventionTests,
     runAuctionHelperTests,
     runResponderNtConventionTests,
+    runTwoNtNaturalResponseEvidenceTests,
     runOpeningPositionAndPassTests,
     runWeakTwoOpeningRangeTests,
     runWeakTwoInquiryExplanationTests,
@@ -2287,6 +2288,108 @@ function runInitialResponseEvidenceTests (): number {
   console.log(`${failures} ***FAILURES***. Initial-response evidence: ${checks} checks.\n`);
   return failures;
 }
+/// Validate facts and delivery for the natural 3NT and convention-off minor responses to 2NT.
+/// Also verify near-miss reasons come from evaluated requirements, not rewritten hand tests.
+function runTwoNtNaturalResponseEvidenceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const cases: { description: string; call: Call; ruleId: string }[] = [
+    { description: '2NT: 4 balanced HCP bid 3NT', call: '3NT',
+      ruleId: 'respond-to-2nt-w/-3nt-4-10' },
+    { description: '2NT: with conventions off, a 5-HCP unbalanced six-club hand', call: '3NT',
+      ruleId: 'respond-to-2nt-w/-3nt-4-10' },
+    { description: '2NT-3C with Stayman off:', call: '3C',
+      ruleId: 'respond-to-2nt-w/-3c-natural-forcing' },
+    { description: '2NT-3D with Jacoby off:', call: '3D',
+      ruleId: 'respond-to-2nt-w/-3d-natural-forcing' },
+  ];
+  for (const example of cases) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === 'nt-2nt')
+      ?.deals.find((item) => item.description.startsWith(example.description));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing 2NT natural-response example: ${example.description}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction: Call[] = ['2NT', 'Pass'];
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const facts = getHandFacts(board.deal.S);
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === example.ruleId)
+      ?.candidates.find((item) => item.call === example.call);
+    const minor = candidate?.callEvidence?.naturalTwoNtMinor;
+    const hcp = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+    const evidenceFits = example.call === '3NT'
+      ? hcp?.kind === 'hcp' && hcp.passed && hcp.actual === facts.hcp
+      : minor !== undefined && minor.hcp === facts.hcp && minor.hcp >= minor.minHcp &&
+        minor.length === facts.lengths[minor.suit] && minor.length >= minor.minLength &&
+        minor.unbalanced === !facts.balanced && minor.unbalanced && !minor.hasPreferredMajor;
+    const lines = rule === undefined ? [] : getNotrumpPartnerResponseLines(result, rule);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, facts, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: facts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (rule === undefined || candidate?.ruleApplies !== true || !evidenceFits ||
+        lines.length === 0 || lines.some((line) =>
+          !matched.includes(line) || !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL 2NT natural-response evidence/delivery: ${example.description}.`);
+    }
+  }
+  const rejections: { description: string; call: Call; system: Partial<BiddingSystem>;
+    problem: 'hcp' | 'length' }[] = [
+    { description: '2NT: with conventions off, a 5-HCP unbalanced six-club hand',
+      call: '3C', system: { stayman: false }, problem: 'hcp' },
+    { description: '2NT-3D with Jacoby off:',
+      call: '3C', system: { stayman: false }, problem: 'length' },
+    { description: '2NT-3C with Stayman off:',
+      call: '3D', system: { jacobyTransfers: false }, problem: 'length' },
+  ];
+  for (const example of rejections) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === 'nt-2nt')
+      ?.deals.find((item) => item.description.startsWith(example.description));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing 2NT natural-minor rejection: ${example.description}.`);
+      continue;
+    }
+    const { board } = makeRuleTestBoard(deal);
+    const auction: Call[] = ['2NT', 'Pass'];
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem, ...example.system };
+    const facts = getHandFacts(board.deal.S);
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const id = example.call === '3C' ? 'respond-to-2nt-w/-3c-natural-forcing' :
+      'respond-to-2nt-w/-3d-natural-forcing';
+    const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
+      ?.candidates.find((item) => item.call === example.call);
+    const minor = candidate?.callEvidence?.naturalTwoNtMinor;
+    const testedFailure = minor !== undefined &&
+      (example.problem === 'hcp' ? minor.hcp < minor.minHcp :
+        minor.length < minor.minLength);
+    const lines = getNotrumpPartnerResponseFailureLines(result);
+    const delivered = getBidExplanationLines({
+      title: 'South responds', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system), handFacts: facts,
+      auctionLength: auction.length, previewLines: [], seatLabel: 'South', recordedUnjudged: false,
+    });
+    if (candidate?.ruleApplies !== false || result.userCallMatchingRules.length !== 0 ||
+        !testedFailure || lines.length === 0 ||
+        lines.some((line) => !delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL 2NT natural-minor rejection: ${example.description}.`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Natural 2NT-response explanation evidence: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Selected, meaningful convention-completion checks, not a new practice-deal bucket.
 /// Exercise the physical three-bid pattern, denomination, agreement shifts, and
 /// the important Texas distinction when a Jacoby transfer is followed by a jump.
