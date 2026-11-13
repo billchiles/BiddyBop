@@ -435,14 +435,24 @@ export interface CallEvidence {
   preemptSuitQuality?: { call: Call; passed: boolean; honors: ('A' | 'K' | 'Q' | 'J' | 'T')[] }[];
 
   // Direct overcalls, defense, and balancing
-  naturalOvercallSuit?: { call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean }[];
+  naturalOvercallSuit?: {
+    call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean;
+    honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+  }[];
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
-  jumpOvercallSuit?: { call: Call; length: number; requiredLength: number; good: boolean; passed: boolean }[];
+  jumpOvercallSuit?: {
+    call: Call; length: number; requiredLength: number; good: boolean; passed: boolean;
+    honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+  }[];
   weakTwoSuit?: {
     call: Call;
     length: number;
     requiredLength: number;
     good: boolean;
+    honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
     cheapestCall: Call | null;
     isCheapest: boolean;
     passed: boolean;
@@ -454,6 +464,11 @@ export interface CallEvidence {
     lengths: Record<Suit, number>;
     // Quality has already been evaluated with the shared honor test, for suits of 5+ cards.
     qualitySuits: Suit[];
+    qualityHonors: {
+      suit: Suit;
+      honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+      qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+    }[];
     singleSuit: Suit | null;
     twoSuits: [Suit, Suit] | null;
   };
