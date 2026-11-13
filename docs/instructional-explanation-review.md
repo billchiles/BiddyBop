@@ -197,8 +197,7 @@ A temporary local before/after replay of 2,979 recorded calls found 14 intention
 feedback changes; 276 attempted competitive responses had 14 feedback changes.
 No rule matches or statuses changed in those replays, which used the older uploaded
 source snapshot with the same Stage 6B functions, rather than a complete
-current-master source replay. The merged GitHub CI separately validates current
-master. Focused permanent tests verify the evaluated evidence and delivery
+current-master source replay. GitHub CI separately validates the merged source. Focused permanent tests verify the evaluated evidence and delivery
 without snapshotting learner-facing English.
 
 **Next systematic stage:** Direct overcalling and balancing, followed by
