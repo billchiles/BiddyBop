@@ -85,11 +85,32 @@ comparison identified 21 deliberately improved rejected 3NT near misses with
 13–15 HCP; other attempted calls were left unchanged. These checks are
 regression comparisons, not proof that the explanation text is optimal.
 
-**Next systematic stage:** Responses to natural 1NT and 2NT openings, then
-strong artificial 2C and weak/preemptive openings, followed by competitive
-responses. Preserve an explicit decision even when the family is adequate.
+### Stage 3 — responses to natural 1NT and 2NT openings
 
-**Remaining:** Continue the family inventory below from natural-notrump responses onward,
+| Natural-notrump response family | Disposition | Basis |
+| --- | --- | --- |
+| 1NT: weak Pass, natural 2NT invitation, direct 3NT | Adequate | Actual HCP, selected ranges, and agreement-dependent shape exceptions explained |
+| 1NT: Stayman, Jacoby/Texas transfers, natural major bids | Adequate | Suit length, forcing obligations and competing conventional routes explained |
+| 1NT: natural minor invitation | Adequate | HCP, long minor and honor quality already explained |
+| 2NT: weak Pass, Stayman, transfers and natural major bids | Adequate | Actual strength, suit length and convention-specific meaning explained |
+| 2NT: natural 3NT with 4–10 HCP | Improved | Corrected false assertion that responder must have balanced distribution |
+| 2NT: natural forcing 3C/3D with conventions disabled | Improved | Retained actual HCP, suit length, unbalanced shape and preferred-major evidence; clarified rejected bids |
+| Quantitative 4NT and other notrump slam actions | Adequate where represented; Judgment boundary beyond scope | Quantitative/Gerber distinction retained; specialized unrepresented actions are not assumed to be certified |
+| Game-going long minor with no modeled descriptive route | Judgment boundary | Avoid presenting an invented bid as mechanically correct |
+
+The temporary full recorded-call replay covered 2,979 practice auction calls:
+only four recorded notrump-response explanations changed (two 3NT, one
+natural 3C, one natural 3D). An expanded 153-attempt comparison after 2NT
+changed 63 targeted outputs: 10 qualifying and 53 rejected responses. Neither
+comparison showed any rule-match changes. The local source snapshot predates
+some explanation-only master merges, so these are regression checks on that
+snapshot; GitHub CI separately validates the merged source.
+
+**Next systematic stage:** Responses to strong artificial 2C openings, then
+responses to weak-two and higher preemptive openings, followed by competitive
+responses. Record an explicit decision even when a family is adequate.
+
+**Remaining:** Continue the family inventory below from strong-2C responses onward,
 and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve
