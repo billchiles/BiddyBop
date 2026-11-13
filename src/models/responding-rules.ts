@@ -997,8 +997,7 @@ export const ResponseBidRules: BidRule[] = [
     priority: { rank: 20, note: 'Prefer a descriptive positive suit response to the waiting bid.' },
     appliesWhen: { hcp: { min: 8 } },
     meaning: 'Positive natural response showing about 8+ HCP and a good five-card-or-longer suit.',
-    guidance: ["Good suit uses the app's shared executable quality test: at least two of A/K/Q " +
-               'or at least three of A/K/Q/J/T.',
+    guidance: ['A good suit contains at least two of A/K/Q or at least three of A/K/Q/J/10.',
                'An immediate positive response commits the partnership to game.'],
   },
   //
