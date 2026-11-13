@@ -1915,7 +1915,8 @@ export function refineBalancingSuitBid (calls: Call[], context: RuleEvalContext)
     const passed = bid.level === 1 ? length >= 6 || (length >= 5 && good) :
       length >= 5 && good;
     if (bid.level === 1 || bid.level === 2) {
-      suitChecks.push({ call, level: bid.level, length, good, passed });
+      suitChecks.push({ call, level: bid.level, length, good, passed,
+        ...getOvercallHonorEvidence(context, suit, good) });
     }
     return passed;
   });
