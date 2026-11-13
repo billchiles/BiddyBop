@@ -106,11 +106,31 @@ comparison showed any rule-match changes. The local source snapshot predates
 some explanation-only master merges, so these are regression checks on that
 snapshot; GitHub CI separately validates the merged source.
 
-**Next systematic stage:** Responses to strong artificial 2C openings, then
-responses to weak-two and higher preemptive openings, followed by competitive
-responses. Record an explicit decision even when a family is adequate.
+### Stage 4 — responses to strong artificial 2C openings
 
-**Remaining:** Continue the family inventory below from strong-2C responses onward,
+| Strong 2C response family | Disposition | Basis |
+| --- | --- | --- |
+| Artificial 2D waiting | Adequate | Any strength/shape may wait; existing feedback explains qualifying positive alternatives and the 4-4-4-1 boundary |
+| Immediate positive natural 2H/2S/3C/3D | Improved | Actual A/K/Q/J/10 honors, qualifying suit-quality standard, strength and game force now explained |
+| Positive balanced 2NT | Improved only when a suit alternative qualifies | The valid but lower-ranked 2NT choice is compared with a checked descriptive suit response; standalone 2NT remains unchanged |
+| Rejected positive suits and 2NT | Adequate | Existing tested length, quality, HCP and shape failures already give specific reasons |
+| Pass after strong 2C | Adequate | Opener's force requires an answer; 2D waiting is always available |
+| Interference after strong artificial 2C | Judgment boundary | Not modeled in selected agreements; do not infer a deterministic response |
+
+A temporary replay of 2,979 recorded calls changed only five intended
+positive-suit responses (three 2H, one 3C and one 3D). The 105-attempt
+comparison across 15 existing strong-2C hands found 30 feedback changes.
+These include the five positive suits, three genuine suit/2NT overlaps,
+and shared quality-guidance wording displayed with nonqualifying attempts.
+The original rejected-call reasons and waiting feedback did not change,
+and neither replay found a rule-match difference. These are comparisons
+against the supplied local snapshot; GitHub CI validates the merged source.
+
+**Next systematic stage:** Responses to weak-two and higher preemptive
+openings (Pass, raises, forcing new suits, 2NT inquiries and scope boundaries),
+then competitive responses. Record explicit family decisions even if adequate.
+
+**Remaining:** Continue the family inventory below from weak-two/preempt responses onward,
 and record an Adequate, Improve, Judgment boundary, or Integration issue decision
 after checking each family's actual positive/rejected output. Previously
 developed or Q4-reviewed families are **not** implicitly skipped. Preserve

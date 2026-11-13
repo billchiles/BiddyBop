@@ -499,7 +499,13 @@ export interface CallEvidence {
     longNewSuits: Suit[];
   };
   strongTwoCPositiveSuit?: {
-    considered: { call: Call; length: number; quality: boolean }[];
+    considered: {
+      call: Call;
+      length: number;
+      quality: boolean;
+      honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+      qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+    }[];
   };
   weakTwoResponse?: {
     openingSuit: Suit;
