@@ -1115,6 +1115,17 @@ const NATURAL_SUIT_OVERCALL_IDS = [
 const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
 const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
 
+/// Show honors actually recorded by a qualifying suit-quality check.
+/// A six-card one-level action may qualify by length alone, with no honor standard.
+function overcallHonorText(evidence: { honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+    qualityStandard: 'twoTopThree' | 'threeTopFive' | null }): string | null {
+  if (evidence.qualityStandard === null) return null;
+  const honors = evidence.honors.map((rank) => rank === 'T' ? '10' : rank).join('-');
+  const standard = evidence.qualityStandard === 'twoTopThree' ?
+    'two of A/K/Q' : 'three of A/K/Q/J/10';
+  return `${honors} meet the ${standard} honor standard`;
+}
+
 /// Explain only the matching natural-overcall rule, never a different meaning of the same call.
 export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
   if (NATURAL_SUIT_OVERCALL_IDS.includes(rule.id)) {
@@ -1136,15 +1147,22 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
         ? `Your ${strength.hcp} HCP qualify under the excellent-suit exception to the normal 8–17 ` +
           'HCP range. '
         : `Your ${strength.hcp} HCP meet the normal 8–17 HCP range. `;
+      const honors = overcallHonorText(check);
+      const qualifyingReason = check.length >= 6
+        ? 'qualifies by length alone, without requiring honor quality' +
+          (honors === null ? '' : `; ${honors} too`)
+        : honors === null ? 'meets the suit-quality requirement' :
+          `qualifies because ${honors}`;
       return strengthText + `Your ${check.length}-card ${suitName(result.normalizedCall ?? check.call)} ` +
-        `suit qualifies${check.good ? ' by honor quality' : ' by having at least six cards'}. ` +
+        `suit ${qualifyingReason}. ` +
         `A one-level overcall does not promise opening strength.${comparison}` +
         `${jumpComparison} [${rule.id}]`;
     }
     if (check.level === 2 && strength?.passed === true) {
-      return `Your ${strength.hcp} HCP and good ${check.length}-card ` +
+      const honors = overcallHonorText(check);
+      return `Your ${strength.hcp} HCP and ${check.length}-card ` +
         `${suitName(result.normalizedCall ?? check.call)} suit meet the ${strength.min}–17 HCP ` +
-        `requirement for this natural two-level overcall.${comparison}${jumpComparison} ` +
+        `requirement for this natural two-level overcall. ${honors}.${comparison}${jumpComparison} ` +
         `[${rule.id}]`;
     }
     return null;
@@ -1266,8 +1284,10 @@ export function getWeakTwoOvercallSupportLine(result: BidEvalResult, rule: BidRu
     const economical = choice.requiredLength === 6
       ? `${choice.call} is the cheapest available ${suitName(choice.call)} bid. ` : '';
     const level = choice.requiredLength === 5 ? 'two' : 'three';
-    return `Your ${choice.length}-card ${suitPlural(choice.call)} meet the ` +
-      `suit-quality requirement (${WEAK_TWO_HONORS}). You have ${hcp.actual} HCP ` +
+    const honors = overcallHonorText(choice);
+    if (honors === null) return null;
+    return `Your ${choice.length}-card ${suitName(choice.call)} suit qualifies because ${honors}. ` +
+      `You have ${hcp.actual} HCP ` +
       `plus ${lengthText}, totaling ${points.actual} points. ` + economical +
       `That meets the ${points.min}-point and ${choice.requiredLength}-card requirements ` +
       `for a natural ${level}-level overcall [${rule.id}].`;
@@ -1398,8 +1418,11 @@ export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule):
   if (candidate?.ruleApplies !== true || info === undefined) return null;
   if (info.singleSuit !== null) {
     const suit = info.singleSuit;
-    const evidence = `Your ${dontNumber(info.lengths[suit])} ${dontSuit(suit)} meet the ` +
-      `suit-quality requirement (${DONT_HONORS}), and you have ${info.hcp} HCP. `;
+    const quality = info.qualityHonors.find((item) => item.suit === suit);
+    const honors = quality === undefined ? null : overcallHonorText(quality);
+    if (honors === null) return null;
+    const evidence = `Your ${dontNumber(info.lengths[suit])} ${dontSuit(suit)} qualify because ` +
+      `${honors}. You have ${info.hcp} HCP. `;
     if (rule.id === 'overcall-dont-single-suit-double') {
       return evidence + 'With one long non-spade suit and no second four-card suit, Double ' +
         `describes this hand. It is artificial, not a penalty Double [${rule.id}].`;
@@ -1413,6 +1436,9 @@ export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule):
     const [lower, higher] = info.twoSuits;
     const quality = info.twoSuits.find((suit) => info.qualitySuits.includes(suit));
     if (quality === undefined) return null;
+    const qualityHonors = info.qualityHonors.find((item) => item.suit === quality);
+    const honors = qualityHonors === undefined ? null : overcallHonorText(qualityHonors);
+    if (honors === null) return null;
     const meaning = rule.id === 'overcall-dont-clubs-plus-higher'
       ? 'Bid 2C to show clubs and an unspecified higher suit.'
       : rule.id === 'overcall-dont-diamonds-plus-major'
@@ -1420,8 +1446,8 @@ export function getDontInitialSupportLine(result: BidEvalResult, rule: BidRule):
       : 'Bid 2H to show both majors.';
     return `Your ${dontNumber(info.lengths[lower])} ${dontSuit(lower)} and ` +
       `${dontNumber(info.lengths[higher])} ${dontSuit(higher)} meet the two-suit shape ` +
-      `requirement. The ${dontSuit(quality)} meet the suit-quality requirement ` +
-      `(${DONT_HONORS}), and your ${info.hcp} HCP satisfy the 7-HCP minimum. ` +
+      `requirement. The ${dontSuit(quality)} qualify because ${honors}. ` +
+      `Your ${info.hcp} HCP satisfy the 7-HCP minimum. ` +
       `${meaning} [${rule.id}]`;
   }
   return null;
@@ -1552,9 +1578,11 @@ export function getJumpOvercallSupportLine(result: BidEvalResult, rule: BidRule)
   const comparison = economical === undefined ? '' :
     ` ${economical.call} also qualifies, showing your ${suitPlural(economical.call)} ` +
     `economically and leaving partner more room to bid.`;
+  const honors = overcallHonorText(check);
+  if (honors === null) return null;
   return `${result.normalizedCall} is a jump overcall: a cheaper bid in that suit was available. ` +
-    `Your ${check.requiredLength}-card ${suitName(result.normalizedCall)} suit has ` +
-    `${JUMP_OVERCALL_HONORS}, and your ${hcp.actual} HCP meet the ${range} ` +
+    `Your ${check.requiredLength}-card ${suitName(result.normalizedCall)} suit qualifies because ${honors}. ` +
+    `Your ${hcp.actual} HCP meet the ${range} ` +
     `requirement. This jump is preemptive, showing limited strength and taking away ` +
     `bidding room from the opponents.${comparison} [${rule.id}]`;
 }
