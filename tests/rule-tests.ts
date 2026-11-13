@@ -19,6 +19,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getNaturalAdvanceLines, getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
          getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
          getCompetitiveNaturalAdvanceLines, getJumpAdvanceLines, getJumpAdvanceFailureLines,
+         getJumpAdvanceAlternativeLines, getWeakTwoTwoNtAdvanceAlternativeLines,
          getOpeningRequirementFailureLines, getOpeningRequirementSupportLine,
          getPreemptOpeningSupportLine,
          getNotrumpPartnerResponseLines, getNotrumpPartnerResponseFailureLines,
@@ -138,6 +139,7 @@ function runAllRuleTests (): void {
     runTakeoutAdvanceBoundaryTests,
     runTakeoutAdvancePassContextTests,
     runAdvancingSuitHonorEvidenceTests,
+    runStage8CAlternativeAdvanceTests,
     runSharedOneNtAdvanceBoundaryTests,
     runOneNtLongMinorBoundaryTests,
     runResponderRaiseAdvanceBoundaryTests,
@@ -3829,6 +3831,115 @@ function runTakeoutAdvancePassContextTests (): number {
   }
   console.log(failures + ' ***FAILURES***. Takeout Double Pass context: ' +
     cases.length + ' checks.\n');
+  return failures;
+}
+
+/// Verify that an alternative comparison is delivered only when both specific
+/// advancing rule candidates qualify, including the agreement-dependent 2NT choices.
+function runStage8CAlternativeAdvanceTests (): number {
+  let failures = 0;
+  let checks = 0;
+  const examples: { bucket: string; index: number; call: Call; ruleId: string;
+    alternative: Call; alternativeRuleId: string; texas?: boolean; jacoby?: boolean;
+    comparison: 'jump' | 'twoNt' }[] = [
+    { bucket: 'advance-jump-overcall', index: 8, call: 'Pass',
+      ruleId: 'advance-jump-overcall-pass', alternative: '4H',
+      alternativeRuleId: 'advance-jump-overcall-major-game', comparison: 'jump' },
+    { bucket: 'advance-jump-overcall', index: 8, call: '4H',
+      ruleId: 'advance-jump-overcall-major-game', alternative: 'Pass',
+      alternativeRuleId: 'advance-jump-overcall-pass', comparison: 'jump' },
+    { bucket: 'overcall-weak-two-2nt', index: 2, call: '4H',
+      ruleId: 'advance-weak-two-2nt-texas-to-spades', alternative: '3H',
+      alternativeRuleId: 'advance-weak-two-2nt-transfer-to-spades', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 2, call: '3H',
+      ruleId: 'advance-weak-two-2nt-transfer-to-spades', alternative: '4H',
+      alternativeRuleId: 'advance-weak-two-2nt-texas-to-spades', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 5, call: '4H',
+      ruleId: 'advance-weak-two-2nt-natural-major-game', alternative: '3D',
+      alternativeRuleId: 'advance-weak-two-2nt-transfer-to-hearts', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 5, call: '3D',
+      ruleId: 'advance-weak-two-2nt-transfer-to-hearts', alternative: '4H',
+      alternativeRuleId: 'advance-weak-two-2nt-natural-major-game', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 2, call: '4S', texas: false,
+      ruleId: 'advance-weak-two-2nt-natural-major-game', alternative: '3H',
+      alternativeRuleId: 'advance-weak-two-2nt-transfer-to-spades', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 2, call: '3H', texas: false,
+      ruleId: 'advance-weak-two-2nt-transfer-to-spades', alternative: '4S',
+      alternativeRuleId: 'advance-weak-two-2nt-natural-major-game', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 5, call: '4D', texas: true,
+      ruleId: 'advance-weak-two-2nt-texas-to-hearts', alternative: '3D',
+      alternativeRuleId: 'advance-weak-two-2nt-transfer-to-hearts', comparison: 'twoNt' },
+    { bucket: 'overcall-weak-two-2nt', index: 5, call: '3D', texas: true,
+      ruleId: 'advance-weak-two-2nt-transfer-to-hearts', alternative: '4D',
+      alternativeRuleId: 'advance-weak-two-2nt-texas-to-hearts', comparison: 'twoNt' },
+  ];
+  for (const example of examples) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === example.bucket)
+      ?.deals[example.index];
+    if (deal === undefined) { failures++; continue; }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practiceAuction.slice(0, 3);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem,
+      ...(example.texas === undefined ? {} : { texasTransfers: example.texas }),
+      ...(example.jacoby === undefined ? {} : { jacobyTransfers: example.jacoby }) };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const qualified = getApplicableCandidateCalls(result);
+    const confirmed = qualified.some((item) => item.call === example.alternative &&
+      item.rule.id === example.alternativeRuleId);
+    const lines = rule === undefined ? [] : example.comparison === 'jump'
+      ? getJumpAdvanceAlternativeLines(result, rule) :
+        getWeakTwoTwoNtAdvanceAlternativeLines(result, rule);
+    const original = rule === undefined ? [] : example.comparison === 'jump'
+      ? getJumpAdvanceLines(result, rule) : getNotrumpPartnerResponseLines(result, rule);
+    const seat = getSeatForCallIndex(board.dealer, auction.length);
+    const delivered = getBidExplanationLines({
+      title: 'Advancer', call: example.call, result,
+      status: getBiddingTurnStatus(board, auction, system),
+      handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    if (rule === undefined || !confirmed || lines.length === 0 || original.length === 0 ||
+        lines.some((line) => !delivered.includes(line) ||
+          !line.includes(example.alternativeRuleId)) ||
+        original.some((line) => !delivered.includes(line)) {
+      failures++;
+      console.error('FAIL Stage 8C qualifying alternatives: ' + example.bucket +
+        '/' + example.index + ' ' + example.call);
+    }
+  }
+  }
+  for (const example of [
+    { bucket: 'advance-jump-overcall', index: 9, call: 'Pass' as Call,
+      ruleId: 'advance-jump-overcall-pass', comparison: 'jump' as const },
+    { bucket: 'overcall-weak-two-2nt', index: 4, call: '3S' as Call,
+      ruleId: 'advance-weak-two-2nt-natural-major-signoff', comparison: 'twoNt' as const },
+    { bucket: 'overcall-weak-two-2nt', index: 2, call: '4H' as Call,
+      ruleId: 'advance-weak-two-2nt-texas-to-spades', jacoby: false,
+      comparison: 'twoNt' as const },
+  ]) {
+    checks++;
+    const deal = RULE_TEST_DEAL_BUCKETS.find((bucket) => bucket.id === example.bucket)
+      ?.deal === undefined) { failures++; continue; }
+    const { board } = makeRuleTestBoard(deal);
+    const auction = deal.practicticeAuction.slice(0, 3);
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem,
+      ...(example.texas === undefined ? {} : { texasTransfers: example.texas }),
+      ...(example.jacoby === undefined ? {} : { jacobyTransfers: example.jacoby }) };
+    const result = evaluateUserCall(example.call, board, auction, system);
+    const rule = result.userCallMatchingRules.find((item) => item.id === example.ruleId);
+    const lines = rule === undefined ? [] : example.comparison === 'jump'
+      ? getJumpAdvanceAlternativeLines(result, rule) :
+        getWeakTwoTwoNtAdvanceAlternativeLines(result, rule);
+    if (rule === undefined || lines.length > 0) {
+      failures++;
+      console.error('FAIL Stage 8C unsupported alternative: ' + example.bucket +
+        '/' + example.index + ' ' + example.call);
+    }
+  }
+  console.log(failures + ' ***FAILURES***. Stage 8C checked alternatives: ' +
+    checks + ' checks.\n');
   return failures;
 }
 
