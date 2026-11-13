@@ -695,8 +695,15 @@ export function refineStrongTwoCPositiveSuitResponse (calls: Call[], context: Ru
     const bid = parseSuitBid(call);
     if (bid === null || bid.strain === 'NT') return [];
     const suit = bid.strain as Suit;
+    const honors = (['A', 'K', 'Q', 'J', 'T'] as const).filter((rank) =>
+      context.hand.cards.some((card) => card.suit === suit && card.rank === rank));
+    const quality = hasPreemptSuitQuality(context.hand, suit);
+    const topThree = honors.filter((rank) =>
+      rank === 'A' || rank === 'K' || rank === 'Q').length;
+    const qualityStandard = !quality ? null :
+      topThree >= 2 ? 'twoTopThree' as const : 'threeTopFive' as const;
     return [{ call, length: context.handFacts.lengths[suit],
-      quality: hasPreemptSuitQuality(context.hand, suit) }];
+      quality, honors, qualityStandard }];
   });
   const refined = calls.filter((call) => {
     const candidate = parseSuitBid(call);
