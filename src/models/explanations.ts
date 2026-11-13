@@ -2432,7 +2432,6 @@ export function getStrongTwoCResponseLines(result: BidEvalResult, rule: BidRule)
     game-forcing positive response. Artificial 2D waiting also qualifies, but
     does not describe your suit immediately.${alternatives}${balancedAlternative}
     [${rule.id}].`.replace(/\s+/g, ' ')];
-
 }
 
 export function getStrongTwoCResponseFailureLines(result: BidEvalResult): string[] {
