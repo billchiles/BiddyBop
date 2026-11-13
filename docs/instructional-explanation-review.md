@@ -1,427 +1,84 @@
 # Instructional Explanation Coverage Review
 
-Initial inventory established October 28, 2026; status updated during the second-pass review. This is a source-based family inventory, not certification that every rule or rendered explanation has been pedagogically approved. It does not change the selected bidding system or require a custom explanation for every rule.
-
-Quantitative rule, practice, test and explanation-reach counts are maintained
-in [`by-the-numbers.md`](by-the-numbers.md); this file records instructional
-review findings rather than duplicate numerical snapshots.
+This is a working plan for reviewing instructional quality, not a history of
+completed implementation batches or a per-rule certification register. Source
+and practice counts, including executable and scope-boundary declarations by
+rule collection, belong in [`by-the-numbers.md`](by-the-numbers.md), generated
+by `tests/stats.ts`. Pending project tasks belong in
+[`bidding-roadmap.md`](bidding-roadmap.md).
 
 ## Purpose and acceptance standard
 
-Assess every **decision family** in the selected model, including its executable rules and nearby scope boundaries. Decide whether the existing rule meaning/guidance and shared display path are sufficient, or whether students would benefit from a specific hand-aware explanation of:
+Review each outstanding **decision family** using actual qualifying calls,
+plausible rejected calls, and the information available to the bidder at that
+turn. Check that the explanation teaches, where useful:
+
 - What partner's bid promises and whether it is forcing.
-- Which evaluated values matter: strength, lengths, fit, shape, stoppers, suit quality, or actual bidding level.
-- Why this call was chosen over a genuinely plausible alternative.
-- Why a plausible rejected bid failed its actual tested requirement, without manufacturing diagnostics or calling an unmodeled judgment "wrong."
-- Why an auction ends at a judgment boundary, especially if a one-round or game force remains unresolved.
+- The evaluated facts that matter: strength, length, fit, shape, stoppers,
+  suit quality, and bidding level. Distinguish HCP, points with length, and
+  points with shortage when the distinction matters.
+- Why a bid fits and how it compares with **genuinely qualifying** alternatives
+  under the selected agreements, without claiming unsupported options qualify.
+- Why a plausible rejected bid fails a tested requirement, without inventing
+  facts or treating an unmodeled judgment as a determinate error.
+- Why an auction stops at a judgment boundary, especially if a forcing
+  obligation appears unresolved.
 
-**Do not target 100% custom-explanation coverage.** A straightforward Pass, compulsory transfer completion, or explicit scope boundary may already be taught sufficiently by its meaning/guidance. Count an alternative legitimately presented in an exercise as represented; do not add practice deals merely to raise a percentage.
+Use these review dispositions: **Adequate** (existing teaching is sufficient),
+**Improve** (a concrete explanation/evidence gap), **Judgment boundary**
+(honest limited guidance), or **Integration issue** (the evaluated explanation
+is not consistently delivered). Do not require a custom explanation for every
+rule. A straightforward Pass, compulsory call, or explicit scope boundary can
+be adequately taught by its meaning and shared guidance.
 
-### Decision labels for completing each subsequent family review
+## Current review plan
 
-- **Adequate:** actual qualifying and relevant near-miss examples make the meaning/guidance and existing shared feedback sufficient. Record that judgment rather than adding code.
-- **Improve:** hand-specific evidence, comparison, force status, or an important rejection reason is missing or misleading. Identify the evaluated fact and minimal explanation change.
-- **Judgment boundary:** deterministic advice is not reliable or is outside our agreements; ensure honest, auction-specific guidance without pretending Pass is recommended.
-- **Integration issue:** useful evidence/explanation exists but does not appear consistently in normal feedback, unsupported-call feedback, recorded-call substitution, or clipboard Report.
+1. **Competitive opener rebids — next implementation batch (9B).** Review and
+   explicitly approve only the changes that improve the following cases:
+   - After `1C–(1D)–1H–(1S)–Pass`, explain why the opposing intervention
+     permits opener to Pass despite responder's initially forcing new suit;
+     avoid implying that opener must still bid immediately.
+   - After `1H–(1S)–2C–(Pass)–2NT`, check whether the actual spade holding
+     supporting the notrump stopper requirement is available and useful to
+     report; investigate rejected natural 3NT evidence before promising a
+     hand-specific rejection message.
+   - Correct awkward shortage-point grammar (for example, `1 shortage points`)
+     and repetitive point-range language in competitive Pass/raise feedback.
+   - Verify that changes do not alter qualification, priorities, or force
+     treatment. Review genuine alternatives and judgment boundaries, not
+     hypothetical bids.
+2. **Finish targeted competitive opener-rebid review.** Check Jordan 2NT,
+   cuebids, weak/NT/game-forcing responses, advancer action after interference,
+   and jump-overcall continuations. Do not assume a family is cleared merely
+   because it already has a specialized explanation function.
+3. **Review overcaller/Doubler rebids and responder rebids across stages.**
+   Verify forcing obligations, agreement-specific language, evaluated
+   hand-constraint evidence, and honest stopping boundaries against recorded
+   and relevant rejected calls. Preserve adequate explanations unchanged.
+4. **Final cross-stage quality check.** Look for inconsistent advice across
+   related stages, use only bidder-visible information, and check feedback in
+   ordinary entry, recorded-call substitution, and the clipboard Report.
+   After the evidence review is complete, run `npm run stats:bidding` and
+   inspect the `by-the-numbers.md` diff. Its static unreached-ID category
+   counts currently need reconciliation with the generated total; do not
+   silently preserve an inconsistent classification.
 
-The provisional statuses below mean **previously developed**, **targeted validation**, or **deep review**. They are **not** the four final decisions above; apply the final labels only after reading representative actual explanations. Avoid using presence/absence of a rule ID in explanations.ts as proof of adequacy.
+### Recovery and change-verification rules
 
-## Post-refactor evidence review (November 2026)
-
-The earlier Q4 review assessed all modeled bidding stages for instructional quality.
-A subsequent hand-constraint-evidence refactor calls for a distinct, systematic
-check that explanations consume the intended evaluated facts and that only
-deliberately approved messages change. Q4 family coverage alone does **not**
-certify a family in this follow-up audit.
-
-| Focused family examined since the refactor | Follow-up decision |
-| --- | --- |
-| Strong 2C opener rebids after positive responses | Improved (hand-specific rebid evidence) |
-| Natural notrump responses after suit overcalls | Improved (positive and rejected checks) |
-| Weak-two opener rebids after forcing 2NT | Improved (strength, feature, solid suit) |
-| Natural new-suit responses after suit overcalls | Improved (levels one, two and three) |
-| Natural responses after takeout Double | Improved (natural 1NT, one- and two-level new suits) |
-
-### Stage-order evidence audit decisions
-
-The focused fixes above were selected as substantive gaps, not as evidence that
-the intervening families were skipped. The systematic audit now follows the
-family inventory in stage order, recording decisions after representative
-positive and rejected-call review.
-
-| Stage 1 — opening decision family | Disposition | Basis |
-| --- | --- | --- |
-| Pass with no qualifying opening | Adequate | Four-seat fallback and boundaries already tested; no extra Pass prose needed |
-| Five-card major and convenient minor | Adequate | Selected suit, length valuation, and meaningful competing openings already explained |
-| Guideline of 20 | Adequate | First-/second-seat alternative hand valuation identified when relevant |
-| Natural 1NT, both ranges, optional five-card-major upgrade | Adequate | HCP, balanced shape, upgrade, and nearby failures have evaluated explanations |
-| Natural 2NT (20–21 HCP) | Adequate | Actual HCP and balanced shape already reported |
-| Strong artificial 2C | Adequate | Actual strength and forcing meaning already explained |
-| Weak-two, three-, four-, and five-level preempts | Improved | Actual qualifying A/K/Q/J/10 holdings now identify the relevant suit-quality standard; strength and length remain evaluated |
-
-For the opening-stage preempt improvement, a temporary 2,582-context
-recorded-call replay changed only the 43 intended preempt examples. A wider
-13,167-attempt opening-call replay changed 46 explanations, all belonging to
-the same four preempt families, with no rule-match changes. The preserved
-15,888-case earlier refactor archive is unavailable and is not claimed here.
-
-### Stage 2 — responses to one-level minor and major openings
-
-| Initial-response decision family | Disposition | Basis |
-| --- | --- | --- |
-| Minor new suits and strong support routes, including Standard versus 2/1 1D–2C | Adequate | Evaluated HCP, suit selection and forcing status already explained |
-| Minor natural 1NT/2NT/3NT and simple/limit raises | Adequate | Shape, support, HCP and relevant alternative paths already covered |
-| Major simple/limit raises, three-card support and support game forces | Adequate | Actual support, shortage valuation, agreements and competing support routes explained |
-| Major new suits and natural 1NT under Standard and 2/1 | Adequate | HCP, length and one-round versus game-force distinctions clear |
-| Major weak/strong jump shifts and splinter/Jacoby treatments | Adequate | Suit quality, shortage and forcing evidence already present |
-| Direct 3NT after a major opening | Improved | Actual 13–15 HCP, 4-3-3-3 shape, exactly three-card support and supported game-forcing alternative; targeted near-miss feedback |
-| Exceptional 13-support-point fallback and rare three-card-minor routes | Judgment boundary | Existing text acknowledges partnership judgment rather than inventing certainty |
-| Direct 4NT ace asking and unmodeled slam continuations | Judgment boundary | Initial action taught; subsequent ace responses/slam decisions deliberately outside the modeled scope |
-
-The direct-3NT change was compared against the 2,582-context recorded-call
-baseline: two intended recorded explanations changed, with no other recorded
-messages or qualified calls altered. An additional 108-attempt major-opening
-comparison identified 21 deliberately improved rejected 3NT near misses with
-13–15 HCP; other attempted calls were left unchanged. These checks are
-regression comparisons, not proof that the explanation text is optimal.
-
-### Stage 3 — responses to natural 1NT and 2NT openings
-
-| Natural-notrump response family | Disposition | Basis |
-| --- | --- | --- |
-| 1NT: weak Pass, natural 2NT invitation, direct 3NT | Adequate | Actual HCP, selected ranges, and agreement-dependent shape exceptions explained |
-| 1NT: Stayman, Jacoby/Texas transfers, natural major bids | Adequate | Suit length, forcing obligations and competing conventional routes explained |
-| 1NT: natural minor invitation | Adequate | HCP, long minor and honor quality already explained |
-| 2NT: weak Pass, Stayman, transfers and natural major bids | Adequate | Actual strength, suit length and convention-specific meaning explained |
-| 2NT: natural 3NT with 4–10 HCP | Improved | Corrected false assertion that responder must have balanced distribution |
-| 2NT: natural forcing 3C/3D with conventions disabled | Improved | Retained actual HCP, suit length, unbalanced shape and preferred-major evidence; clarified rejected bids |
-| Quantitative 4NT and other notrump slam actions | Adequate where represented; Judgment boundary beyond scope | Quantitative/Gerber distinction retained; specialized unrepresented actions are not assumed to be certified |
-| Game-going long minor with no modeled descriptive route | Judgment boundary | Avoid presenting an invented bid as mechanically correct |
-
-The temporary full recorded-call replay covered 2,979 practice auction calls:
-only four recorded notrump-response explanations changed (two 3NT, one
-natural 3C, one natural 3D). An expanded 153-attempt comparison after 2NT
-changed 63 targeted outputs: 10 qualifying and 53 rejected responses. Neither
-comparison showed any rule-match changes. The local source snapshot predates
-some explanation-only master merges, so these are regression checks on that
-snapshot; GitHub CI separately validates the merged source.
-
-### Stage 4 — responses to strong artificial 2C openings
-
-| Strong 2C response family | Disposition | Basis |
-| --- | --- | --- |
-| Artificial 2D waiting | Adequate | Any strength/shape may wait; existing feedback explains qualifying positive alternatives and the 4-4-4-1 boundary |
-| Immediate positive natural 2H/2S/3C/3D | Improved | Actual A/K/Q/J/10 honors, qualifying suit-quality standard, strength and game force now explained |
-| Positive balanced 2NT | Improved only when a suit alternative qualifies | The valid but lower-ranked 2NT choice is compared with a checked descriptive suit response; standalone 2NT remains unchanged |
-| Rejected positive suits and 2NT | Adequate | Existing tested length, quality, HCP and shape failures already give specific reasons |
-| Pass after strong 2C | Adequate | Opener's force requires an answer; 2D waiting is always available |
-| Interference after strong artificial 2C | Judgment boundary | Not modeled in selected agreements; do not infer a deterministic response |
-
-A temporary replay of 2,979 recorded calls changed only five intended
-positive-suit responses (three 2H, one 3C and one 3D). The 105-attempt
-comparison across 15 existing strong-2C hands found 30 feedback changes.
-These include the five positive suits, three genuine suit/2NT overlaps,
-and shared quality-guidance wording displayed with nonqualifying attempts.
-The original rejected-call reasons and waiting feedback did not change,
-and neither replay found a rule-match difference. These are comparisons
-against the supplied local snapshot; GitHub CI validates the merged source.
-
-### Stage 5 — responses to weak-two and higher preemptive openings
-
-| Preempt response family | Disposition | Basis |
-| --- | --- | --- |
-| Weak-two Pass | Adequate | Guideline of 17 and actual support already explained; playing strength remains judgment |
-| Weak-two raise to three | Adequate | Actual three-card support, nine-card fit, weak nonforcing meaning already explained |
-| Weak-two raise to four | Adequate | Actual four-or-more-card support, combined fit, and game-versus-preempt judgment explained |
-| Weak-two forcing 2NT inquiry | Improved for overlapping new suit | Existing HCP/support/Guideline-of-17 explanation retained; now compares qualifying good forcing new suit when available |
-| Weak-two forcing new suit | Improved | Actual honors and qualifying standard reported; the checked 2NT alternative is distinguished by purpose |
-| Three-level preempt Pass | Improved | Actual support against promised seven; structural Pass does not claim game is unlikely; qualifying forcing-suit alternative shown |
-| Three-level preempt raise to four | Improved | Actual support and ten-or-more-card trump fit, nonforcing treatment and possible major-suit game |
-| Three-level preempt forcing new suit | Improved | Actual suit length, honors and three-/four-level minimums; positive Pass comparison and rejected-call causes |
-| Four-/five-level preempt Pass | Adequate; Judgment boundary | No full response system modeled; do not invent high-level game/slam recommendations |
-| Interference after a partner preempt | Judgment boundary | Selected response rules explicitly exclude it; no deterministic treatment inferred |
-
-The pre-change and post-change recorded-call replays contain the same 2,979
-auction calls. Exactly four recorded messages changed, all in the existing
-weak-preempt response bucket (one weak-two forcing suit and three three-level
-preempt responses); rule matches and statuses were identical. A 240-attempt
-comparison of the 12 saved preempt response hands changed 16 feedback outputs,
-all in the four relevant hands; no eligibility differences were found.
-The 2NT-versus-new-suit and Pass-versus-forcing-suit comparisons use actual
-qualified alternatives rather than speculation. Permanent tests check evidence
-and delivery without asserting English wording.
-
-### Stage 6 — responses after opposing suit overcalls, Doubles, and 1NT/jump overcalls
-
-The systematic review covered 25 executable competitive responder declarations
-and the strong-responder judgment boundary after an opposing natural 1NT overcall,
-using 32 saved response hands and 276 attempted calls. The decisions below
-reflect the family review, with the two implementation batches kept distinct.
-
-| Competitive response family | Disposition | Basis |
-| --- | --- | --- |
-| After suit overcall: negative Double, natural new suits, support cuebid, natural NT | Adequate; alternative comparison improved in 6B | Evaluated cuebid-versus-natural-major overlap explained in both directions; existing negative-Double comparisons retained |
-| After suit overcall: weak preemptive jump raise | Improved in 6A | Actual support and shortage-adjusted points; specific rejection feedback; existing Pass comparison retained |
-| After takeout Double: strength-showing Redouble, Jordan 2NT, 1-level forcing new suit, natural 1NT | Alternative comparisons improved in 6B | Added 1S/Jordan 2NT and 1NT/simple-raise comparisons only for qualified calls; preserved Redouble and natural-1S text |
-| After takeout Double: weak nonforcing 2-level new suit | Improved in 6A | Existing positive honor and strength evidence kept; failed HCP, length, and honor requirements now explain rejected choices |
-| After takeout Double: weak jump shift | Improved in 6A | Actual HCP and six-card suit; rejected jumps use refiner evidence, including eliminated bids; no new suit-quality requirement |
-| After takeout Double: weak preemptive jump raise | Improved in 6A | Actual trump support, HCP, shortage-adjusted points and specific failure reasons |
-| After opposing natural 1NT: limited Pass | Adequate | Fallback after competing constructive choices, not a blanket recommendation |
-| After opposing natural 1NT: weak natural new suit | Improved in 6A | Actual HCP, suit length, honors, qualifying quality standard and rejected-call requirements |
-| After opposing natural 1NT: weak preemptive jump raise | Improved in 6A | Actual support and strength evidence, with targeted failure reasons |
-| After opposing natural 1NT: strong values without modeled action | Judgment boundary | Penalty-oriented Double not prescribed without further partnership treatment |
-| After jump suit overcall: limited Pass, economical raise, forcing new suits, negative Double, support cuebid, natural NT | Adequate | Positive and rejected response evidence already covers the important checks |
-| After jump suit overcall: constructive four-of-a-major game | Improved in 6B | Reports actual support and shortage-adjusted points; rejected games use constructive three-card support and 13-point minimum rather than the weak five-trump requirement |
-| Other high-level competition | Judgment boundary | Keep unsupported penalty actions and four-level jump overcalls out of scope |
-
-**Batch 6A validation:** From the same local project snapshot, all 2,979
-recorded calls retained the original rule matches and statuses; 12 feedback
-outputs changed in the expected weak-response families. Some examples recur
-in later practice buckets, hence 12 occurrences rather than just unique hands.
-Across 276 attempted response calls, 54 feedback outputs changed, all in the
-suit-overcall, takeout-Double and natural-1NT-overcall families. These changes
-are deliberate hand-evidence explanations or more specific rejected-call
-feedback. The rule suite passes, including 12 focused evidence/delivery checks.
-These replays establish output parity outside the deliberate changes; they
-do not establish the optimal bridge choice.
-
-**Batch 6B validation:** Constructive 4H/4S now reports the actually checked
-three-card-or-longer fit and 13+ shortage-adjusted points. Attempted games
-that fail use the constructive treatment's actual failed requirements rather
-than the unrelated weak, five-trump game-raise message. Comparisons of
-cuebid versus a qualifying natural major, 1S versus Jordan 2NT, and natural
-1NT versus simple raise are reciprocal where available; existing Redouble and
-three-way jump-overcall explanations remain intact.
-
-A temporary local before/after replay of 2,979 recorded calls found 14 intentional
-feedback changes; 276 attempted competitive responses had 14 feedback changes.
-No rule matches or statuses changed in those replays, which used the older uploaded
-source snapshot with the same Stage 6B functions, rather than a complete
-current-master source replay. GitHub CI separately validates the merged source. Focused permanent tests verify the evaluated evidence and delivery
-without snapshotting learner-facing English.
-
-**Next systematic stage:** Direct overcalling and balancing, followed by
-advancing. Review positive and rejected feedback family by family, including
-already-developed treatments, and record an Adequate, Improve, Judgment boundary,
-or Integration issue decision. Preserve student-facing lines unless changed
-deliberately. The 15,888-case refactor comparison is separate from the narrower
-2,582-context recorded-call replay; neither establishes instructional correctness.
-The roadmap holds only pending work; statistical reach stays in
-`docs/by-the-numbers.md`.
-
-### Stage 7 — direct overcalling and balancing
-
-The systematic Stage 7 review covered 24 direct-overcall declarations and
-seven balancing declarations, including six judgment/scope boundaries.
-The 36 saved Stage 7 decision contexts supplied 648 legal attempted calls.
-All 25 executable families were exercised. The full rule suite passed.
-
-| Direct defense and balancing family | Disposition | Evidence reviewed |
-| --- | --- | --- |
-| Direct Pass when no action qualifies | Improved in 7B | Reports actual HCP and lack of a qualifying evaluated defense without implying that ten HCP is too weak |
-| DONT one-suit artificial Double and natural 2S | Improved in 7A | Actual honors and checked suit-quality standard, distinct conventional meanings |
-| DONT two-suit 2C/2D/2H | Improved in 7A | Identify honors only in a suit that passed the five-card quality check; do not assert both suits qualify |
-| Natural one-level suit overcall | Improved in 7A/7B | Actual honors and length-only exceptions; rejected calls state actual suit length or quality failure |
-| Natural two-level suit overcall | Improved in 7A/7B | Actual honors and length-sensitive HCP; rejected bids distinguish insufficient cards from poor quality |
-| Natural 1NT overcall | Adequate | Balanced shape, 15–18 HCP, stopper and genuine Double alternative already explained |
-| Preemptive jump overcall at levels 2/3/4 | Improved in 7A | Actual honors, checked quality standard and existing exact suit-length requirements |
-| Ordinary and strong takeout Doubles | Adequate | Existing strength, shape and genuine competing actions |
-| Natural suit defenses against weak twos at levels 2/3 | Improved in 7A | Actual quality honors; retain points-with-length, economy and 18-HCP boundaries |
-| Ordinary and strong Doubles of weak twos | Adequate | Shortage-adjusted values and distinct shape requirements |
-| Natural 2NT defense of weak two | Adequate | Balanced 15–18 HCP, stopper and supported Double alternative |
-| Balancing natural suits | Improved in 7B | Actual honors and qualifying standard for five-card suits; six-card length-only case retained; rejected calls state actual length or quality failure |
-| Balancing 1NT, ordinary/strong Double and defensive Pass | Adequate; wording corrected in 7B | Actual evaluated HCP, shape, stopper and lighter fourth-seat standards; corrected strong-Double grammatical agreement |
-| Six direct/balancing scope boundaries | Judgment boundary | Do not invent high-level, penalty-oriented or unsupported defenses |
-
-**Batch 7A validation:** The local TypeScript rule-test compilation and full
-rule suite passed, including 13 focused honor-evidence and explanation-delivery
-checks. A before/after replay of 2,979 recorded calls changed 180 explanation
-occurrences; most are the same early overcall decision appearing in later
-practice buckets. Of 648 Stage 7 attempted calls, 22 explanations changed,
-all for the intended direct suit, jump, weak-two or DONT overcalls. Rule matches
-and turn statuses did not change. This local replay used the available
-Stage 6B working snapshot rather than every updated file from GitHub master;
-GitHub CI validates the actual master-based patch. Neither proves bridge
-judgment correctness.
-
-**Batch 7B validation:** Local TypeScript compilation and the complete rule
-suite pass, including ten focused evidence and explanation-delivery checks.
-A 2,979-call recorded replay showed 286 expected explanation changes,
-predominantly the same direct Pass decision repeated in later practice
-buckets. Across 648 legal Stage 7 attempts, 58 feedback outputs changed,
-all within direct Pass, direct natural-suit rejection, balancing suit
-qualification/rejection, or the strong balancing-Double wording correction.
-No rule matches or turn statuses changed. The local comparison uses the
-available Stage 7A source snapshot rather than a complete current-master
-source checkout. GitHub CI validates the actual master-based patch separately.
-
-**Stage 7 closeout:** All 25 executable families and six scope boundaries have
-explicit dispositions. The remaining changes were instructional only;
-no bidding thresholds, priorities or practice deals were modified.
-
-**Next systematic stage — Stage 8:** Advancing. Review natural suit and
-notrump advances, takeout-Double advances, DONT, jump and weak-two defenses,
-and explicitly record each family's positive and rejected-call disposition.
-Compare every intentional learner-facing change. Regenerate
-`docs/by-the-numbers.md` after all evidence-review passes.
-
-### Stage 8 — advancing, systematic explanation audit
-
-The Stage 8 review covers 83 explicit advancing declarations: 81 executable
-rules and two scope boundaries, plus shared natural-1NT partner rules available
-in advancing. The 11 dedicated advancing practice buckets contain 117 recorded
-advancing decisions; 120 additional advancing decisions occur in other buckets.
-The review evaluated 3,524 legal attempted calls in the dedicated contexts.
-All 117 dedicated recorded calls had hand-specific feedback, and the 284
-explicitly designated rejected calls had diagnostic feedback before this pass.
-These counts measure exercised contexts, not instructional correctness.
-
-| Advancing family | Disposition | Follow-up |
-| --- | --- | --- |
-| Natural 2NT over weak two, systems-on advances (9 declarations) | Improved in 8C | Reciprocal Jacoby/Texas or natural-game comparisons only for verified qualifying rule candidates and enabled agreements |
-| Direct major game after weak-two Double (1) | Adequate | Preserve |
-| DONT pass-or-correct (1) | Adequate | Preserve actual suit lengths and convention meaning |
-| One-level suit overcall, responder Pass (9) | Adequate | Preserve fit, Pass and notrump explanations |
-| Two-level suit overcall, responder Pass (7) | Improved in 8B | Actual honors and evaluated quality standard for economical three-level new suits |
-| Takeout Double, responder Pass (7) | Adequate | 8A: protect actual compulsory minimum-suit response after Pass |
-| Responder preempts or takes a special unsupported action (3) | Adequate / scope boundary | Avoid invented continuations |
-| Natural notrump after responder acts (1) | Adequate | Preserve actual stopper, HCP and balanced facts |
-| Responder raises after natural suit overcall (13) | Improved in 8B | Checked three-level natural new-suit honors and specific rejected quality explanations |
-| Responder raises after takeout Double (5) | Improved in 8A/8B | Correct Pass context; actual honors in three-level new-suit advances |
-| Responder bids naturally after suit overcall (8) | Improved in 8B | Actual honors for natural three-level new suits; existing forcing distinctions retained |
-| Responder bids naturally after takeout Double (5) | Improved in 8A/8B | Correct Pass context; actual honors in three-level natural new suits |
-| Responder makes negative Double (8) | Adequate | Preserve |
-| Responder Redoubles the takeout Double (1) | Pass-feedback corrected in 8A | Redouble is not an opposing Pass |
-| Partner makes a preemptive jump overcall (5) | Improved in 8B/8C | Checked forcing-new-suit honors; reciprocal Pass versus major game at the three-level preempt boundary |
-
-Three natural-2NT-over-weak-two rules were not the recorded call in the
-available hands (weak Pass, spade Jacoby transfer, heart Texas transfer).
-The spade transfer qualified as an alternative. Preserve existing scope limits.
-
-**Batch 8A — corrected the contested takeout-Double Pass explanation.**
-The generic takeout-advance rule declaration remains in diagnostics even
-when responder raises, bids naturally or Redoubles. Its minimum-suit refiner,
-however, emits `takeoutSuitSelection` evidence only when responder actually
-Passed. Gate the mandatory-response failure explanation on that evaluated
-evidence; do not infer auction actions from the presence of the rule declaration.
-On a like-for-like local before/after replay, all 2,979 recorded-call explanation
-lines were unchanged; among 3,524 attempted advancing calls, exactly 11
-explanations lost the factually incorrect claim that responder Passed.
-All rule matches and supported alternatives were unchanged. Two uncontested
-takeout-Double Pass examples and three contested examples are protected by
-focused evidence/delivery checks. The local source snapshot is not a full
-current-master checkout; GitHub CI validates the actual master-based patch.
-
-**Batch 8B — completed:** Refiner evidence now retains actual A/K/Q/J/10
-honors and the qualifying two-of-A/K/Q or three-of-A/K/Q/J/10 standard for
-`advanceNewSuitQuality`, `competitiveRaiseNewSuit`,
-`competitiveNaturalNewSuit`, and forcing-new-suit `jumpAdvance` choices.
-Student explanations distinguish which standard the held cards satisfy.
-Rejected suit-quality explanations identify the actual suit length and honors.
-Two-level natural advances do not acquire an honor requirement, and
-jump-overcall trump raises are unaffected.
-
-Local TypeScript compilation and the full rule suite passed with zero failures,
-including eleven focused evidence/delivery checks. A like-for-like replay of
-all 2,979 recorded auction calls changed exactly twelve explanatory messages,
-all in higher-level natural advancing families, with zero rule-match/status
-changes. Among 3,524 attempted advancing calls, 26 feedback messages changed
-for the same families and rejected honor-quality calls, with no qualifying-call
-or turn-status changes. These are replay results from the available local
-Stage 8A snapshot; GitHub CI separately validates the actual master-based
-Stage 8B patch. Changes are instructional, not bidding-system changes.
-
-**Batch 8C — completed:** The `1D–(3H)–Pass` hand with 9 total points
-with shortage and a ten-card combined heart fit has reciprocal explanations
-of Pass and natural 4H. Both actions must be confirmed qualifying by their
-specific rules. The guidance notes playing-trick judgment and vulnerability
-without treating the point guideline as a guarantee of game.
-
-After a natural 2NT overcall of a weak two, the actually qualified Jacoby
-transfer and Texas transfer (or natural game if Texas is disabled) now receive
-a concise comparison in both directions. The comparison states the correct
-destination of each artificial bid and distinguishes an initial three-level
-transfer from a commitment to four-of-a-major. Agreement settings and the
-exact two qualifying rule IDs determine whether the comparison appears;
-no new conventions or continuations were added.
-
-Local TypeScript compilation and the complete rule suite passed with zero
-failures, including thirteen focused evidence/delivery and agreement-off
-checks. The like-for-like local replay of 2,979 recorded calls found three
-intentional explanatory changes (two weak-two/2NT games and one jump-overcall
-game); 3,524 attempted calls in dedicated advancing buckets found two
-Pass-versus-game message changes. The two weak-two/2NT examples live in a
-separate overcall bucket and are also checked in both directions by focused
-tests. No rule matches, turn statuses or qualifying alternatives changed.
-The local baseline uses the available Stage 8B working snapshot; GitHub CI
-validates the actual current-master branch.
-
-**Stage 8 closeout:** All 83 explicit advancing declarations (81 executable
-and two scope boundaries), along with shared 1NT advance treatments, have
-systematic review dispositions. Stages 8A/8B/8C are finished; the remaining
-work is the cross-stage audit of any still-unreviewed opener/overcaller/
-responder rebid explanation families and final full-auction instructional
-quality. Do not infer completion of a family merely from previous code passes.
-
-**Crash-recovery checkpoint:** GitHub `master` is authoritative. Stages
-1–8 are complete; next review the remaining rebid and cross-stage inventory. After each approved batch,
-update this document's dispositions and next-step plan, delete completed
-punch-list items rather than preserving them in `docs/bidding-roadmap.md`,
-and retain the strict small-batch approval, commit and squash-merge practice. For replay comparisons distinguish
-an older local snapshot from current-master validation, and inspect every
-learner-facing change for instructional intent. Permanent tests cover
-evaluated evidence/delivery, not exact English wording. After the remaining
-systematic evidence passes, regenerate `docs/by-the-numbers.md` with
-`npm run stats:bidding` and review the diff. Next review is the
-remaining rebid and cross-stage inventory; inspect the pending review plan
-rather than assuming any family was cleared merely because it has code.
-
-## Initial source census and review limitations
-
-| Rule declaration module | Executable rule declarations | Scope boundaries | First-pass conclusion |
-| --- | ---: | ---: | --- |
-| opening-rules.ts | 13 | 0 | Earlier explanation batches; validate representative families |
-| responding-rules.ts | 89 | 1 | Earlier batches for primary families; selected gaps below |
-| advancing-rules.ts | 81 | 2 | Earlier B14–B20 batches; selected gaps below |
-| opener-rebidding-rules.ts | 202 | 31 | Substantial recently completed family work; final integration validation pending |
-| overcalling-rules.ts | 114 (25 overcall/balancing + 89 overcaller rebid) | 24 | Direct defenses largely developed; later rebids highest priority |
-| responder-rebidding-rules.ts | 95 | 26 | Many executable families use primarily generic meaning/guidance; high priority |
-| **Total** | **594** | **84** | **678 declarations, not 678 required explanations** |
-
-There are 70 practice buckets in test-deals-registry.ts: 1 opening, 10 responding, 13 overcalling, 11 advancing, 20 opener rebid, and 15 responder rebid. They expose 627 practice selections from 626 distinct deal definitions. A baseline replay of 2,979 recorded calls found 2,479 at supported stages; comparing these with equivalent New Deal auctions yielded identical core explanation lines. Passing rule tests and this parity check establish execution consistency, **not** instructional sufficiency.
-
-Inspection sources: the six stage rule modules above; explanations.ts and BidPanel.tsx for specialized helpers/wiring; biddingEvaluation.ts and bidding-types.ts for evidence; test-deals-registry.ts and the stage deal modules for practice cases. The review is a **structural census and provisional teaching-gap triage**; it is not a per-hand playback or an exhaustive branch audit.
-
-## Family-by-family review inventory
-
-The family groupings collectively cover each stage's executable declarations and scope boundaries. A provisional "previously developed" means a focused explanation batch exists; it **does not** mean every rule in that row passed final review.
-
-| Auction stage and decision families | Present teaching / provisional assessment | Further review or disposition |
-| --- | --- | --- |
-| Opening: Pass, one-level convenient minor/five-card major, 1NT/2NT, strong 2C, weak two/three/four/five | Deep review: light-opening length valuation, truthful 2NT HCP meaning, three-level preempt strength near misses, and alternatives now distinguished using checked requirements | Adequate after targeted opening feedback corrections; revisit only new cross-stage defects |
-| Direct overcall: ordinary/strong takeout Double, including defense to a weak two | Hand-aware strength, shape and weak-two context validated with near-miss examples | Adequate; cross-stage checks only |
-| Direct overcall: natural one-/two-level suit, natural 1NT and its stopper | Stage 7A reports actual honors and preserves six-card length-only qualification; 1NT evidence adequate | Stage 7B pending rejected natural-suit length detail |
-| Direct overcall: preemptive jump at levels two, three, four | Stage 7A reports actual honors satisfying the checked suit-quality standard; exact jump length retained | Adequate after 7A; cross-stage audit only |
-| Direct defense: DONT after opposing strong 1NT | Stage 7A reports checked honor evidence for single-/two-suit meanings; existing rejected-call diagnostics retained | Adequate after 7A; agreement-specific advancing remains in Stage 8 |
-| Direct defense: natural suit/2NT over weak two; defense to strong 2C/2NT, three-level preempts and high openings | Concrete weak-two overcall rules and boundary meanings exist; specialized natural-suit helper focuses on ordinary one-level-opening overcalls | Targeted: whether weak-two natural suit/NT and stopper-quality near misses get sufficient feedback; boundaries are candidates for meaning-only adequacy |
-| Balancing: suit, 1NT, ordinary/strong Double, defensive Pass, judgment boundary | Stage 7B now reports checked suit honors and actual rejected suit lengths, with strong-Double grammar corrected | Adequate after Stage 7; do not invent calls at judgment boundaries |
-| Responses to minor/major: suits, raises, limit/strong support, 1NT/2NT/3NT, weak/strong jump shifts | Initial responses checked against competing support and suit routes; a failed weak-Pass test now leaves honest competitive judgment when no constructive call qualifies | Adequate; preserve supported alternatives and scope limits |
-| Responses to 1NT/2NT and strong 2C; to weak and high preempts | Agreement-shifted HCP bounds remain nonnegative; preferred Stayman/transfer choices now give their evaluated reason; 2C waiting explains why stronger unbalanced hands have no qualifying positive response | Adequate after targeted explanation and evidence fixes; cross-stage checks only |
-| Responses after suit overcall, takeout Double, natural 1NT overcall, jump overcall | Stage 6A/6B completed weak-response evidence, constructive game, and evaluated alternatives | Adequate after Stage 6; cross-stage audit only |
-| Advancing: one-/two-level natural suit overcalls, takeout Double, natural 1NT | Evidence-based teaching for raises, suit advances, notrump, and one-round forces, with explicitly qualified point totals | No family-specific review pending; include in final cross-stage check |
-| Advancing: DONT, preemptive jumps, weak-two 2NT systems-on | Shared conventional meanings, checked compulsory replies and weak/preemptive advances; DONT remains fixed on | Final cross-stage audit of agreement-specific language and honest stopping boundaries |
-| Advancing after responder raise, natural suit, negative Double or Redouble; responsive Doubles, artificial support and escape | Reviewed supported continuations, artificial meanings, forcing obligations, Redouble escapes, and point valuations | No family-specific review pending; include in final cross-stage check |
-| Natural opener rebids after suit openings, 1NT/2NT responses, and one-/two-level new suits | 88 natural opener-rebid examples reviewed with numeric hand evidence, forcing distinctions, and alternative calls | No family-specific review pending; include in final cross-stage check |
-| Conventional opener rebids: Jacoby 2NT, splinters, jump shifts, strong 2C and game responses | Replayed representative hands and nearby rejected calls; forcing Pass, Jacoby quality/shortness, and splinter control selection now retain evaluated evidence | No family-specific review pending; include in final cross-stage check |
-| Opener rebid after suit/NT interference or Double: negative Doubles, forcing suits, artificial support, weak/NT/game-forcing responses, competitive advancer action, jump-overcall continuations | First-pass competitive explanation closeout and two-major DONT stopper boundary complete | Q3/Q4 verify forcing, exceptions, and boundary feedback |
-| Overcaller rebid after natural 1NT overcall: Stayman, Jacoby/Texas, natural signoffs, 2NT/3m/4NT invitations and slam boundary | Convention replies now include evaluated major-length facts; compulsory transfers and invitations retain shared guidance | No family-specific review pending; include in final cross-stage check |
-| Overcaller rebid after natural suit overcall, advancer Pass/raise, cuebid/new suit, NT; both unopposed and contested | Hand-aware natural and contested explanations distinguish forcing continuations and supported alternatives | No family-specific review pending; include in final cross-stage check |
-| Doubler rebid after ordinary takeout Double: minimum/strong cases, jumps, cue, NT, natural advances and competitive runouts | Minimum versus strong rebid feedback uses evaluated strength and qualifying alternatives; multiple supported strains remain judgment calls | No family-specific review pending; include in final cross-stage check |
-| Overcaller/Doubler continuation after weak-two defenses, natural 2NT, suit overcalls and extra competition | Checked ordinary and strong Doubles, compulsory replies, systems-on 2NT continuations, and selected competitive boundaries | No family-specific review pending; include in final cross-stage check |
-| Responder rebid after Stayman/transfers, natural 1NT/2NT rebids, strong 2C, Jacoby 2NT/splinters | Extensive first-pass conventional and natural rebid explanation families exist; 88 recorded responder-rebid endings checked | No pending responder-rebid-specific review; revisit only if the cross-stage quality gate identifies a new issue |
-| Responder rebid after 2/1 versus Standard new suit, major/minor 1NT, simple/limit raises, game tries, repeated suits, economical second suit, reverse/strong jump shift | Hand-aware teaching compares invitations, known fits, and alternative strains; 76 matched rule IDs in the responder-rebid corpus | No pending responder-rebid-specific review; continue cross-stage audit for forcing and agreement consistency |
-| Deliberately unmodeled later auctions | Scope-boundary rule meanings and shared guidance already present | Meaning/guidance can be sufficient. Check honest boundaries; do not turn notes into executable bidding rules |
-
+- GitHub `master` is authoritative. Compare any uploaded ZIP with current
+  master before editing, and fetch recently changed files again if needed.
+- Keep code changes small, review recommendations before implementation, and
+  commit and squash-merge approved batches. Remove completed punch-list items
+  from the roadmap; update this document only for **remaining** review work.
+- Before modifying learner-facing explanation code, capture a temporary
+  **current-master** baseline of recorded-call and relevant attempted-call
+  feedback. Compare rule matches, qualified alternatives, turn statuses,
+  and explanation lines after the change. Inspect every text difference and
+  explicitly distinguish deliberate instructional improvements from drift.
+  Do not claim a comparison against an older local snapshot was performed
+  against current master, and do not assume older raw replay archives exist.
+- Permanent regression tests check evaluated facts and explanation delivery,
+  **not** exact English wording. Keep the broad replay harness temporary.
 
 ## Deferred or intentionally limited
 
