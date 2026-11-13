@@ -7721,15 +7721,15 @@ function runWeakCompetitiveResponseEvidenceTests (): number {
       ? weakSuit !== undefined && weakSuit.quality &&
         weakSuit.qualityStandard !== null && weakSuit.hcp === handFacts.hcp &&
         weakSuit.length === handFacts.lengths[suit] &&
-        weakSuit.honors.every((rank) => board.deal.S.cards.some((card) >
+        weakSuit.honors.every((rank) => board.deal.S.cards.some((card) =>
           card.suit === suit && card.rank === rank))
         : example.kind === 'jumpShift'
         ? jumpShift?.selectedCall === call && jumpShift.hcp === handFacts.hcp &&
           jumpShift.considered.some((item) => item.call === call &&
             item.length === handFacts.lengths[suit] && item.length >= 6)
         : weakRaise !== undefined
-          ? weakRaise.partnerSuit !== undefined&&
-            weakRaise.partnerSupport === handFacts.lengths[weakRaise.partnerSuit]&&
+          ? weakRaise.partnerSuit !== undefined &&
+            weakRaise.partnerSupport === handFacts.lengths[weakRaise.partnerSuit] &&
             weakRaise.supportPoints === handFacts.totalPointsWShortage &&
             weakRaise.hcp === handFacts.hcp
           : support?.kind === 'partnerSupport' && support.passed &&
@@ -7737,7 +7737,8 @@ function runWeakCompetitiveResponseEvidenceTests (): number {
             points?.kind === 'totalPoints' && points.passed &&
             points.actual === handFacts.totalPointsWShortage;
     const generated = rule === undefined ? [] : getCompetitiveResponseLines(result, rule);
-    const matched = rule === undefined ? [] : getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
+    const matched = rule === undefined ? [] :
+      getMatchedCallExplanationLines(result, rule, handFacts, auction.length);
     const delivered = getBidExplanationLines({
       title: 'South responds', call, result,
       status: getBiddingTurnStatus(board, auction, system), handFacts,
@@ -7766,7 +7767,7 @@ function runWeakCompetitiveResponseEvidenceTests (): number {
   ];
   for (const example of rejected) {
     checks++;
-    const deal = families[example.family].find((item) >
+    const deal = families[example.family].find((item) =>
       item.practiceAuction.join(' ') === example.auction);
     if (deal === undefined) {
       failures++;
@@ -7784,7 +7785,8 @@ function runWeakCompetitiveResponseEvidenceTests (): number {
       : example.evidence === 'raise'
         ? candidate?.callEvidence?.competitiveResponse !== undefined ||
           candidate?.callEvidence?.requirements?.some((item) => !item.passed) === true
-        : diagnostic?.callEvidence?.jumpShift?.considered.some((item) => item.call === example.entered) === true;
+        : diagnostic?.callEvidence?.jumpShift?.considered.some((item) =>
+          item.call === example.entered) === true;
     const generated = getCompetitiveResponseFailureLines(result);
     const delivered = getBidExplanationLines({
       title: 'South responds', call: example.entered, result,
