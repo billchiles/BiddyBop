@@ -387,6 +387,17 @@ export type NaturalSuitRebidTreatment = 'raise-pass' | 'raise-invite' | 'raise-g
   'cue-return' | 'cue-invite' | 'cue-game' | 'new-pass' | 'new-support' | 'new-repeat' |
   'new-nt' | 'new-second-suit' | 'nt-pass' | 'nt-invite' | 'nt-game';
 
+/// Evaluated natural new-suit choice shared by several advancing contexts.
+/// Honor requirements are used at the three level, not for ordinary two-level suits.
+interface AdvancingNewSuitChoice {
+  call: Call;
+  length: number;
+  economical: boolean;
+  qualityPassed: boolean;
+  honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+  qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+}
+
 /// Optional evaluation evidence used to explain a particular call. Add fields as rule
 /// families need them; not every rule is required to produce evidence.
 export interface CallEvidence {
@@ -620,7 +631,7 @@ export interface CallEvidence {
     hasNewSuit: boolean;
   };
   advanceNewSuitQuality?: {
-    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
+    considered: AdvancingNewSuitChoice[];
   };
   dontAdvance?: {
     partnerCall: Call;
@@ -646,6 +657,9 @@ export interface CallEvidence {
       requiredLength?: number;
       economical?: boolean;
       qualityPassed?: boolean;
+      // Present for natural forcing new suits; not required by a trump raise.
+      honors?: ('A' | 'K' | 'Q' | 'J' | 'T')[];
+      qualityStandard?: 'twoTopThree' | 'threeTopFive' | null;
       eligible: boolean;
     }[];
   };
@@ -657,7 +671,7 @@ export interface CallEvidence {
     hasNewSuit: boolean;
   };
   competitiveRaiseNewSuit?: {
-    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
+    considered: AdvancingNewSuitChoice[];
   };
   responsiveDouble?: {
     partnerAction: 'overcall' | 'takeoutDouble';
@@ -677,7 +691,7 @@ export interface CallEvidence {
     hasNotrump: boolean;
   };
   competitiveNaturalNewSuit?: {
-    considered: { call: Call; length: number; economical: boolean; qualityPassed: boolean }[];
+    considered: AdvancingNewSuitChoice[];
   };
   competitiveNotrump?: {
     levelAllowed: boolean;
