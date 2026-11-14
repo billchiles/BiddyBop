@@ -1198,6 +1198,11 @@ export function weakTwoDoublerRebidApplies (
     (context.handFacts.lengths[candidate] >= 6 || hasPreemptSuitQuality(context.hand, candidate)) &&
     cheapest(candidate) === call && (parseSuitBid(call)?.level ?? 8) <= 3);
   const stopper = hasBasicSuitStopper(context, info.opening);
+  const gameMinHcp = 16;
+  const strongMinHcp = 18;
+  const strongThreeNtMinHcp = 21;
+  const cueNtMinHcp = 14;
+  const jumpGameMinSupport = 4;
   let success = false;
   if (ordinary || strong) switch (action) {
     case 'minimum-pass':
@@ -1207,12 +1212,12 @@ export function weakTwoDoublerRebidApplies (
       success = ordinary && info.kind === 'jumpSuit' && hcp <= 15 && call === 'Pass';
       break;
     case 'jump-game':
-      success = info.kind === 'jumpSuit' && suit !== null && support >= 4 &&
-        (suit === 'H' || suit === 'S') && (strong || ordinary && hcp >= 16) &&
+      success = info.kind === 'jumpSuit' && suit !== null && support >= jumpGameMinSupport &&
+        (suit === 'H' || suit === 'S') && (strong || ordinary && hcp >= gameMinHcp) &&
         call === `4${suit}`;
       break;
     case 'minimum-raise':
-      success = info.kind === 'minimumSuit' && strong && support >= 4 &&
+      success = info.kind === 'minimumSuit' && strong && support >= jumpGameMinSupport &&
         (suit === 'H' || suit === 'S') && suitRebid === call &&
         (parseSuitBid(call)?.level ?? 8) <= 3;
       break;
@@ -1233,7 +1238,7 @@ export function weakTwoDoublerRebidApplies (
       break;
     case 'cue-nt':
       success = info.kind === 'cuebid' && call === '3NT' &&
-        context.handFacts.balancedOrSemiBalanced && stopper && hcp >= 14;
+        context.handFacts.balancedOrSemiBalanced && stopper && hcp >= cueNtMinHcp;
       break;
     case 'strong-suit':
       success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') && strongSuit;
@@ -1242,17 +1247,17 @@ export function weakTwoDoublerRebidApplies (
       success = strong && (info.kind === 'minimumSuit' || info.kind === 'jumpSuit') &&
         context.handFacts.balanced && stopper &&
         ((call === '2NT' && hcp >= 18 && hcp <= 21 && cheapest('NT') === '2NT') ||
-         (call === '3NT' && hcp >= 21 && cheapest('NT') !== null &&
+         (call === '3NT' && hcp >= strongThreeNtMinHcp && cheapest('NT') !== null &&
           (parseSuitBid(cheapest('NT')!)?.level ?? 8) <= 3));
       break;
   }
   let rejection: 'strength' | 'support' | 'shape' | 'stopper' | undefined;
   if (!success) {
     if (action === 'jump-game' && info.kind === 'jumpSuit' && suit !== null &&
-        call === `4${suit}`) rejection = support < 4 ? 'support' :
-      !strong && hcp < 16 ? 'strength' : undefined;
+        call === `4${suit}`) rejection = support < jumpGameMinSupport ? 'support' :
+      !strong && hcp < gameMinHcp ? 'strength' : undefined;
     else if (action === 'minimum-raise' && info.kind === 'minimumSuit' &&
-             call === suitRebid && suit !== null) rejection = support < 4 ? 'support' :
+             call === suitRebid && suit !== null) rejection = support < jumpGameMinSupport ? 'support' :
       !strong ? 'strength' : undefined;
     else if (action === 'strong-suit' &&
              ['minimumSuit', 'jumpSuit'].includes(info.kind) && !strong && strongSuit)
@@ -1262,7 +1267,7 @@ export function weakTwoDoublerRebidApplies (
       !context.handFacts.balanced ? 'shape' : !stopper ? 'stopper' : 'strength';
     else if (action === 'cue-nt' && info.kind === 'cuebid' && call === '3NT') rejection =
       !context.handFacts.balancedOrSemiBalanced ? 'shape' : !stopper ? 'stopper' :
-      hcp < 14 ? 'strength' : undefined;
+      hcp < cueNtMinHcp ? 'strength' : undefined;
   }
   return { success, telemetryLines: [success ?
     `PASS: ${action} after a ${ordinary ? 'support-oriented' : 'strong'} weak-two Double.` :
@@ -1272,6 +1277,12 @@ export function weakTwoDoublerRebidApplies (
       advanceSuit: suit, hcp, supportPoints: context.handFacts.totalPointsWShortage,
       support, ownLength: 0, ordinary, strong,
       balanced: context.handFacts.balanced, stopped: stopper,
+      minHcp: action === 'jump-game' ? gameMinHcp :
+        action === 'cue-nt' ? cueNtMinHcp :
+        action === 'strong-nt' && call === '3NT' ? strongThreeNtMinHcp :
+        ['minimum-raise', 'strong-suit', 'strong-nt'].includes(action) ? strongMinHcp : undefined,
+      minSupport: action === 'jump-game' || action === 'minimum-raise'
+        ? jumpGameMinSupport : undefined,
       rejection,
     } },
   };
@@ -1296,6 +1307,10 @@ export function weakTwoSuitOvercallerRebidApplies (
   const hcp = context.handFacts.hcp;
   const support = info.advanceSuit === null ? 0 : context.handFacts.lengths[info.advanceSuit];
   const cheapest = (suit: Suit | 'NT') => cheapestBidInStrainAfter(info.lastBid, suit);
+  const gameMinHcp = 16;
+  const ntMinHcp = 15;
+  const gameMinLength = action === 'cue-game' ? 5 : 6;
+  const newSupportMin = 3;
   let success = false;
   switch (action) {
     case 'raise-pass':
@@ -1303,14 +1318,15 @@ export function weakTwoSuitOvercallerRebidApplies (
         (hcp <= 15 || ownLength < 6);
       break;
     case 'raise-game':
-      success = info.kind === 'simpleRaise' && hcp >= 16 && ownLength >= 6 &&
+      success = info.kind === 'simpleRaise' && hcp >= gameMinHcp &&
+        ownLength >= gameMinLength &&
         (ownSuit === 'H' || ownSuit === 'S') && call === `4${ownSuit}`;
       break;
     case 'nt-pass':
       success = info.kind === 'twoNt' && hcp <= 14 && call === 'Pass';
       break;
     case 'nt-game':
-      success = info.kind === 'twoNt' && hcp >= 15 &&
+      success = info.kind === 'twoNt' && hcp >= ntMinHcp &&
         context.handFacts.balancedOrSemiBalanced && call === '3NT';
       break;
     case 'game-pass':
@@ -1322,20 +1338,21 @@ export function weakTwoSuitOvercallerRebidApplies (
       break;
     case 'cue-game':
       // Advancer's cuebid promises a fit; five trumps suffice with upper-range values.
-      success = info.kind === 'cuebid' && hcp >= 16 && ownLength >= 5 &&
+      success = info.kind === 'cuebid' && hcp >= gameMinHcp &&
+        ownLength >= gameMinLength &&
         (ownSuit === 'H' || ownSuit === 'S') && call === `4${ownSuit}`;
       break;
     case 'new-support':
-      success = info.kind === 'forcingNewSuit' && support >= 3 &&
+      success = info.kind === 'forcingNewSuit' && support >= newSupportMin &&
         info.advanceSuit !== null && cheapest(info.advanceSuit) === call &&
         (parseSuitBid(call)?.level ?? 8) <= 3;
       break;
     case 'new-repeat':
-      success = info.kind === 'forcingNewSuit' && ownLength >= 6 &&
+      success = info.kind === 'forcingNewSuit' && ownLength >= gameMinLength &&
         cheapest(ownSuit) === call && (parseSuitBid(call)?.level ?? 8) <= 3;
       break;
     case 'new-nt':
-      success = info.kind === 'forcingNewSuit' && hcp >= 15 &&
+      success = info.kind === 'forcingNewSuit' && hcp >= ntMinHcp &&
         context.handFacts.balancedOrSemiBalanced &&
         hasBasicSuitStopper(context, info.opening) && call === '3NT';
       break;
@@ -1345,16 +1362,16 @@ export function weakTwoSuitOvercallerRebidApplies (
   if (!success) {
     if ((action === 'cue-game' && info.kind === 'cuebid' ||
          action === 'raise-game' && info.kind === 'simpleRaise') && call === `4${ownSuit}`) {
-      rejection = hcp < 16 ? 'strength' :
-        ownLength < (action === 'cue-game' ? 5 : 6) ? 'length' : undefined;
+      rejection = hcp < gameMinHcp ? 'strength' :
+        ownLength < gameMinLength ? 'length' : undefined;
     } else if (action === 'new-support' && info.kind === 'forcingNewSuit' &&
                info.advanceSuit !== null && call === cheapest(info.advanceSuit)) {
-      rejection = support < 3 ? 'support' : undefined;
+      rejection = support < newSupportMin ? 'support' : undefined;
     } else if (action === 'new-repeat' && info.kind === 'forcingNewSuit' &&
                call === cheapest(ownSuit)) {
-      rejection = ownLength < 6 ? 'length' : undefined;
+      rejection = ownLength < gameMinLength ? 'length' : undefined;
     } else if (action === 'new-nt' && info.kind === 'forcingNewSuit' && call === '3NT') {
-      rejection = hcp < 15 ? 'strength' :
+      rejection = hcp < ntMinHcp ? 'strength' :
         !context.handFacts.balancedOrSemiBalanced ? 'shape' : !stopper ? 'stopper' : undefined;
     }
   }
@@ -1367,6 +1384,11 @@ export function weakTwoSuitOvercallerRebidApplies (
       hcp, supportPoints: context.handFacts.totalPointsWShortage,
       support, ownLength, ordinary: false, strong: false,
       balanced: context.handFacts.balancedOrSemiBalanced, stopped: stopper,
+      minHcp: ['raise-game', 'cue-game'].includes(action) ? gameMinHcp :
+        ['nt-game', 'new-nt'].includes(action) ? ntMinHcp : undefined,
+      minSupport: action === 'new-support' ? newSupportMin : undefined,
+      minOwnLength: ['raise-game', 'cue-game', 'new-repeat'].includes(action)
+        ? gameMinLength : undefined,
       rejection,
     } },
   };

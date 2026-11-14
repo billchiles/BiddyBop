@@ -33,10 +33,11 @@ be adequately taught by its meaning and shared guidance.
 
 ## Current review plan
 
-1. **Review overcaller/Doubler rebids, then responder rebids across stages.**
-   Verify forcing obligations, agreement-specific language, evaluated
-   hand-constraint evidence, and honest stopping boundaries against recorded
-   and relevant rejected calls. Preserve adequate explanations unchanged.
+1. **Review responder rebids across stages.** Verify forcing obligations,
+   agreement-specific language, evaluated hand-constraint evidence, and
+   honest stopping boundaries against recorded and relevant rejected calls.
+   Preserve adequate explanations unchanged. Revisit overcaller/Doubler
+   explanations only if the cross-stage review exposes a concrete defect.
 2. **Targeted early-filtered notrump diagnostics.** Some rejected natural NT
    calls lose their opponent-suit stopper context before candidate evidence
    is built. Examine this only if a concrete, learner-facing gap remains after

@@ -1026,6 +1026,9 @@ export interface CallEvidence {
     strong: boolean;
     balanced: boolean;
     stopped: boolean;
+    minHcp?: number;
+    minSupport?: number;
+    minOwnLength?: number;
     rejection?: 'strength' | 'length' | 'support' | 'shape' | 'stopper';
   };
   takeoutDoublerRebid?: {
