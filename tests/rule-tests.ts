@@ -9326,12 +9326,12 @@ function runPracticeContinuationTests (): number {
   // Changing the setting can clear an incompatible exercise instead of allowing it
   // to continue with recorded bids that no longer match its convention.
   // Find a Stayman exercise compatible with the defaults, independent of bucket order.
-  const stayman = getRulesBucketTestDeals('all', defaultBiddingSystem)
+  const stayman = getRulesBucketTestDeals('response-1nt-opening', defaultBiddingSystem)
     .find((deal) => deal.requiredSystem?.stayman === true);
   const noStayman = { ...defaultBiddingSystem, stayman: false };
   if (stayman === undefined || ! isPracticeDealCompatible(stayman, defaultBiddingSystem) ||
       isPracticeDealCompatible(stayman, noStayman) ||
-      getRulesBucketTestDeals('all', noStayman).includes(stayman)) failures += 1;
+      getRulesBucketTestDeals('response-1nt-opening', noStayman).includes(stayman)) failures += 1;
   console.log(`${failures} ***FAILURES***. Practice continuation and settings compatibility: 12 checks.`);
   console.log('  Preserves the recorded exercise after a different bid, but never corrects');
   console.log('  matching calls or diverged auctions; stops only at the recorded endpoint.\n');
