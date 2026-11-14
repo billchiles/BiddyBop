@@ -139,6 +139,10 @@ const byGroup = groups.map(({ name, rules }) => {
     `${count(considered, working)} |`;
 });
 const unseen = [...executable.keys()].filter((id) => ! reached.has(id));
+const overcallerRebidUnseen = unseen.filter((id) => id.startsWith('overcaller-rebid-')).length;
+const initialOvercallUnseen = OvercallRules.filter((rule) =>
+  rule.kind !== 'scopeBoundary' && ! rule.id.startsWith('overcaller-rebid-') &&
+  ! reached.has(rule.id)).length;
 const output = `# BiddyBop by the Numbers
 
 Regenerate this statistical snapshot with \`npm run stats:bidding\`. The command
@@ -171,10 +175,10 @@ ${[
   tableRow('Distinct IDs with nonempty guidance', new Set(groups.flatMap((g) => g.rules.filter((r) => r.guidance?.some((line) => line.trim())).map((r) => r.id))).size),
 ].join('\n')}
 
-The difference between executable declarations and distinct executable IDs comes
-from rules reused in more than one collection, principally responding and
-advancing. Those declarations represent different stage placements of a shared
-rule ID, not necessarily independent bidding treatments.
+A rule ID can occur in more than one collection, principally responding and
+advancing. The difference between declarations and distinct IDs applies to
+both executable rules and scope boundaries; reused IDs do not necessarily
+represent independent bidding treatments.
 
 ## Practice corpus and primary test assertions
 
@@ -235,29 +239,21 @@ cannot be added to obtain the distinct-ID counts above.
 ### Interpretation of unreached executable IDs
 
 The ${number(unseen.length)} distinct executable IDs not reached by a qualifying
-call are **not** scope-boundary declarations. A source review on 5 November 2026
-classified the 111 IDs as follows:
+call are **not** scope-boundary declarations. They include specialized slam
+choices outside the practice priorities, unexercised alternatives in bidding
+families that have qualifying sibling treatments, and other uncovered
+continuations. These are qualitative review categories, not an automatically
+verified partition; no separate numerical category breakdown is maintained.
 
-| Reviewed classification | Distinct IDs |
-|---|---:|
-| Specialized slam treatments that are not a practice priority | 9 |
-| Unreached choices with an exercised sibling in the same bidding family | 53 |
-| Other uncovered choices and continuations | 49 |
-| **Total** | **111** |
+A qualifying sibling does not test an unreached rule's own eligibility or
+explanation. The count is useful context, not a coverage target, and does not
+justify adding practice deals solely to increase the percentage.
 
-These categories do not reduce the **measured** total of 111 unreached rules.
-A sibling rule qualifying on a practice hand does not test the unreached
-rule's own eligibility or explanation. The categories are human-reviewed
-interpretations retained here as static text, not automatically inferred from
-rule names. Revisit them if the corpus or rule set changes materially.
-
-**Overcalling / overcaller rebids:** All 35 unreached IDs in this collection
-belong to **overcaller rebids**, not initial direct overcalls. Of these,
-25 have qualifying sibling treatments, two concern specialized slam choices,
-and eight are other uncovered decisions. This is less concerning than the raw
-35 suggests because many underlying bidding situations are exercised, but it
-is not equivalent to testing all 35 rules. No extra practice deals are needed
-merely to raise coverage counts.
+**Overcalling / overcaller rebids:** Of the collection's unreached
+executable rules, ${number(overcallerRebidUnseen)} concern overcaller rebids and
+${number(initialOvercallUnseen)} concern initial direct overcalls. Many are
+specialized continuations rather than missing basic overcall teaching, but
+each unreached ID remains individually untested by a qualifying call.
 `;
 const destination = resolve('docs/by-the-numbers.md');
 writeFileSync(destination, output, 'utf8');

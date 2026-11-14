@@ -31,16 +31,12 @@ is not consistently delivered). Do not require a custom explanation for every
 rule. A straightforward Pass, compulsory call, or explicit scope boundary can
 be adequately taught by its meaning and shared guidance.
 
-## Current review plan
+## Remaining review work
 
-1. **Regenerate bidding statistics (Batch 10B).** Run `npm run stats:bidding`,
-   inspect `docs/by-the-numbers.md`, and reconcile its static unreached-ID
-   category totals with the generated count rather than preserving an
-   inconsistent classification. Keep the summary concise and generated.
-2. **Conditional rejected-notrump diagnostics.** Some natural NT attempts are
-   filtered before stopper-failure evidence can be produced. Investigate only
-   if a concrete remaining learner-facing error appears in play-through or
-   targeted cross-stage checks; do not invent missing evidence or a rejection.
+**Conditional rejected-notrump diagnostics.** Some natural NT attempts are
+filtered before stopper-failure evidence can be produced. Investigate only
+if a concrete remaining learner-facing error appears in play-through or
+targeted cross-stage checks; do not invent missing evidence or a rejection.
 
 ### Recovery and change-verification rules
 
