@@ -7411,6 +7411,48 @@ function runNaturalResponderRebidTeachingTests (): number {
     failures++;
     console.error('FAIL 2/1 3NT should still require the missing heart stopper.');
   }
+  // A rejected natural NT call after a six-card major repeat must report
+  // the evaluated two-card fit and the genuinely qualifying game alternative.
+  const knownFitDeal = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals)
+    .find((item) => item.practiceAuction.join(' ') ===
+      '1S Pass 2C Pass 2S Pass 4S');
+  checks++;
+  if (knownFitDeal === undefined) {
+    failures++;
+    console.error('FAIL missing known-major-fit 2/1 rebid example.');
+  } else {
+    const knownFitBoard = makeRuleTestBoard(knownFitDeal).board;
+    const fitAuction: Call[] = knownFitDeal.practiceAuction.slice(0, -1);
+    const fitSystem = { ...defaultBiddingSystem, ...knownFitDeal.requiredSystem };
+    for (const attempted of ['2NT', '3NT'] as Call[]) {
+      const rejected = evaluateUserCall(attempted, knownFitBoard, fitAuction, fitSystem);
+      const ruleId = attempted === '2NT' ?
+        'responder-rebid-two-over-one-forcing-2nt' :
+        'responder-rebid-two-over-one-game-3nt';
+      const evidence = rejected.ruleDiagnostics.find((entry) => entry.rule.id === ruleId)
+        ?.candidates.find((candidate) => candidate.call === attempted)
+        ?.callEvidence?.naturalResponderRebid;
+      const supported = getApplicableCandidateCalls(rejected).some((item) =>
+        item.call === '4S' && item.rule.id ===
+          'responder-rebid-two-over-one-opening-major-game');
+      const reason = getNaturalResponderRebidFailureLines(rejected);
+      const status = getBiddingTurnStatus(knownFitBoard, fitAuction, fitSystem);
+      const lines = getBidExplanationLines({ title: 'Responder rebid', call: attempted,
+        status, result: rejected, handFacts: getHandFacts(knownFitBoard.deal.S),
+        auctionLength: fitAuction.length, previewLines: [], seatLabel: 'South',
+        recordedUnjudged: false,
+      });
+      checks++;
+      if (rejected.userCallMatchingRules.length > 0 || !supported ||
+          evidence?.family !== 'twoOverOne' || evidence.openingSuit !== 'S' ||
+          evidence.openingLength !== 2 || evidence.openerRebid !== '2S' ||
+          evidence.success || reason.length === 0 ||
+          !reason.every((line) => lines.includes(line))) {
+        failures++;
+        console.error(`FAIL rejected ${attempted} after the known 2/1 major fit.`);
+      }
+    }
+  }
   const checkback = makeRuleTestBoard({
     description: 'Five-card heart major after opener rebids natural 1NT',
     dealer: 'N', practiceAuction: ['1D', 'Pass', '1H', 'Pass', '1NT', 'Pass', '2NT'],

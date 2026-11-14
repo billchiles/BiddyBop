@@ -33,22 +33,20 @@ be adequately taught by its meaning and shared guidance.
 
 ## Current review plan
 
-1. **Review responder rebids across stages.** Verify forcing obligations,
-   agreement-specific language, evaluated hand-constraint evidence, and
-   honest stopping boundaries against recorded and relevant rejected calls.
-   Preserve adequate explanations unchanged. Revisit overcaller/Doubler
-   explanations only if the cross-stage review exposes a concrete defect.
+1. **Final cross-stage instructional audit.** Compare opening, response,
+   overcall, advance, and rebid explanations for compatible agreement meanings,
+   forcing obligations, fit and stopper evidence, and honest judgment boundaries.
+   Use only information known to the bidder at that turn. Check ordinary entry,
+   recorded-call substitution, and the clipboard Report, and investigate only
+   concrete gaps in qualifying and rejected-call feedback.
 2. **Targeted early-filtered notrump diagnostics.** Some rejected natural NT
    calls lose their opponent-suit stopper context before candidate evidence
    is built. Examine this only if a concrete, learner-facing gap remains after
    the cross-stage review; do not manufacture an untested rejection reason.
-3. **Final cross-stage quality check.** Look for inconsistent advice across
-   related stages, use only bidder-visible information, and check feedback in
-   ordinary entry, recorded-call substitution, and the clipboard Report.
-   After the evidence review is complete, run `npm run stats:bidding` and
-   inspect the `by-the-numbers.md` diff. Its static unreached-ID category
-   counts currently need reconciliation with the generated total; do not
-   silently preserve an inconsistent classification.
+3. **Regenerate bidding statistics after the evidence audit.** Run
+   `npm run stats:bidding`, inspect the `by-the-numbers.md` diff, and
+   reconcile its static unreached-ID category totals with the generated count
+   rather than preserving an inconsistent classification.
 
 ### Recovery and change-verification rules
 

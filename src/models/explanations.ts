@@ -6988,20 +6988,27 @@ function simpleRaiseValuation(facts: HandFacts): string {
       const length = facts.lengths[suit];
       const bonus = length === 0 ? 5 : length === 1 ? 3 : 1;
       const shape = length === 0 ? 'void' : length === 1 ? 'singleton' : 'doubleton';
-      return `${bonus} for a ${shape} in ${suitPlural(`1${suit}` as Call)}`;
-    }).join(', ');
-  return `${facts.hcp} HCP + ${facts.shortPoints} shortage points` +
-    (shortness === '' ? '' : ` (${shortness})`) +
-    ` = ${facts.totalPointsWShortage} support points.`;
+      return { bonus, description: `a ${shape} in ${suitPlural(`1${suit}` as Call)}` };
+    });
+  if (facts.shortPoints === 0) {
+    return `${facts.hcp} HCP give ${facts.totalPointsWShortage} support points.`;
+  }
+  const singleShortness = shortness.length === 1 ? shortness[0] : undefined;
+  const detail = singleShortness !== undefined ? ` for ${singleShortness.description}` :
+    shortness.length > 0 ?
+      ` (${shortness.map((item) => `${item.bonus} for ${item.description}`).join(', ')})` : '';
+  return `${facts.hcp} HCP plus ${facts.shortPoints} shortage ` +
+    `point${facts.shortPoints === 1 ? '' : 's'}${detail} give ` +
+    `${facts.totalPointsWShortage} support points.`;
 }
 
 function simpleRaisePerspective(facts: HandFacts): string {
   const minimum = facts.totalPointsWShortage + 12;
   const maximum = facts.totalPointsWShortage + 16;
-  return `Opener's simple raise describes 12–16 support points, suggesting ` +
-    `about ${minimum}–${maximum} combined support points. Those are not combined HCP, ` +
-    'and the usual roughly 26-point guideline for major game is not a guarantee. ' +
-    'Shortness may be less valuable when it is in opener’s original suit.';
+  return `Opener's simple raise shows 12–16 support points, suggesting about ` +
+    `${minimum}–${maximum} combined support points, not combined HCP. The usual ` +
+    'roughly 26-point guideline for major game is approximate, and shortness in ' +
+    'opener’s original suit may count for less.';
 }
 
 ///
@@ -7169,7 +7176,7 @@ export function getNaturalResponderRebidLines(
     const fiveCardMajor = facts.lengths.H === 5 || facts.lengths.S === 5;
     const base = `Your balanced ${facts.hcp}-HCP hand ${invitation ? 'invites game with 2NT' : 'places game in 3NT'} opposite opener's 12–14 HCP 1NT rebid.`;
     return [base + (fiveCardMajor ?
-      ' A five-card responder major may conceal an eight-card fit; many partnerships use New Minor Forcing to investigate three-card opener support. That convention and its follow-up auction are not included in this trainer.' : '') + ` ${id}`];
+      ' A five-card responder major may conceal an eight-card fit; many partnerships use New Minor Forcing to investigate three-card opener support. That convention and its follow-up auction are not included in the app.' : '') + ` ${id}`];
   }
   if (accepted === 'responder-rebid-three-major-after-strong-2nt') {
     return [`Your five-card major is not yet known to have an eight-card fit. Showing it at the three level asks opener to choose between major game with three-card support and 3NT; this is forcing to game ${id}.`];
@@ -7255,6 +7262,23 @@ export function getNaturalResponderRebidFailureLines(result: BidEvalResult): str
     if (!e.balanced) return [`Natural ${result.normalizedCall} in this 2/1 auction requires a balanced hand ${id}.`];
     if (e.hcp < 13 || e.hcp > 16) {
       return [`This selected 2/1 notrump continuation requires 13–16 HCP; you have ${e.hcp} ${id}.`];
+    }
+    const repeatedMajor = (e.openingSuit === 'H' || e.openingSuit === 'S') &&
+      e.openerRebid === `2${e.openingSuit}` && e.openingLength >= 2;
+    if (repeatedMajor) {
+      const fitCalls = [...new Set(getApplicableCandidateCalls(result).filter((item) =>
+        item.rule.id === 'responder-rebid-two-over-one-opening-major-game' ||
+        item.rule.id === 'responder-rebid-two-over-one-slow-major-raise')
+        .map((item) => item.call))];
+      if (fitCalls.length > 0) {
+        const major = suitPlural(`1${e.openingSuit}` as Call);
+        return [`Opener's ${e.openerRebid} rebid shows at least six ${major}. Your ` +
+          `${e.openingLength} ${major} establish a fit of at least ` +
+          `${6 + e.openingLength} cards, so the selected guidance favors ` +
+          `${fitCalls.join(' or ')} rather than natural ` +
+          `${result.normalizedCall}. The 2/1 game force remains; this preference ` +
+          `does not mean notrump is always wrong ${id}.`];
+      }
     }
     if (e.decision === 'forcingNt') {
       return [`Natural 2NT remains game forcing and does not require an unbid-suit stopper. This selected continuation also requires an appropriate opener rebid and no two-card fit after opener repeats a six-card major ${id}.`];
