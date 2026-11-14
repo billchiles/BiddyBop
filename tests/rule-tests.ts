@@ -175,6 +175,7 @@ function runAllRuleTests (): void {
     runTakeoutDoublerRebidExplanationTests,
     runOvercallerRebidEvidenceTests,
     runOneNtAndWeakTwoRebidExplanationTests,
+    runWeakTwoDefenseRebidRejectionEvidenceTests,
     runJumpOvercallAdvanceBoundaryTests,
     runJumpOvercallForcingAdvanceRebidTests,
     runWeakTwoOvercallExplanationTests,
@@ -8070,6 +8071,108 @@ function runOneNtAndWeakTwoRebidExplanationTests (): number {
     console.error('FAIL minimum five-card weak-two overcall must not bid game.');
   }
   console.log(`${failures} ***FAILURES***. 1NT and weak-two rebid explanations: ${checks} checks.\n`);
+  return failures;
+}
+
+/// Rejected weak-two defensive rebids use the exact qualification thresholds;
+/// even when no selected continuation qualifies, partner's force remains in place.
+function runWeakTwoDefenseRebidRejectionEvidenceTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const scenarios: { description: string; call: Call; ruleId: string;
+    rejection: 'strength' | 'support' | 'length'; minimum: number }[] = [
+    { description: 'Ordinary two-level natural weak-two overcaller Passes',
+      call: '4H', ruleId: 'overcaller-rebid-weak-two-suit-raise-game',
+      rejection: 'strength', minimum: 16 },
+    { description: 'Natural new-suit advance is forcing',
+      call: '3NT', ruleId: 'overcaller-rebid-weak-two-suit-new-nt',
+      rejection: 'strength', minimum: 15 },
+    { description: 'Strong 19-HCP weak-two takeout Doubler',
+      call: '3NT', ruleId: 'overcaller-rebid-weak-two-double-strong-nt',
+      rejection: 'strength', minimum: 21 },
+  ];
+  for (const scenario of scenarios) {
+    checks++;
+    const deal = WEAK_TWO_REBID_TEST_DEALS.find((item) =>
+      item.description.startsWith(scenario.description));
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing weak-two rejection hand: ${scenario.description}`);
+      continue;
+    }
+    const board = makeRuleTestBoard(deal).board;
+    const auction = deal.practiceAuction.slice(0, -1);
+    const result = evaluateUserCall(scenario.call, board, auction, defaultBiddingSystem);
+    const evidence = result.ruleDiagnostics.find((item) => item.rule.id === scenario.ruleId)
+      ?.candidates.find((candidate) => candidate.call === scenario.call)
+      ?.callEvidence?.weakTwoDefenseRebid;
+    const minimum = scenario.rejection === 'strength' ? evidence?.minHcp :
+      scenario.rejection === 'support' ? evidence?.minSupport : evidence?.minOwnLength;
+    const reasons = getWeakTwoDefenseRebidFailureLines(result);
+    const seat = getSeatForCallIndex(board.dealer, auction.length);
+    const lines = getBidExplanationLines({
+      title: 'Attempt', call: scenario.call,
+      status: getBiddingTurnStatus(board, auction, defaultBiddingSystem),
+      result, handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+      previewLines: [], seatLabel: seat, recordedUnjudged: false,
+    });
+    checks++;
+    if (result.userCallMatchingRules.length > 0 ||
+        evidence?.rejection !== scenario.rejection || minimum !== scenario.minimum ||
+        reasons.length === 0 || !reasons.every((reason) => lines.includes(reason))) {
+      failures++;
+      console.error(`FAIL weak-two rejection evidence/delivery: ${scenario.ruleId}`);
+    }
+  }
+  // Exchange one East spade honor for a West club so partner's forcing 2S
+  // has no three-card fit, six-card heart repeat, or qualifying notrump rebid.
+  const source = WEAK_TWO_REBID_TEST_DEALS.find((item) =>
+    item.description.startsWith('Natural new-suit advance is forcing'));
+  checks++;
+  if (source === undefined) {
+    failures++;
+    console.error('FAIL missing weak-two forcing-new-suit hand.');
+  } else {
+    const board = makeRuleTestBoard({ ...source,
+      east: { S: 'A6', H: 'AKT96', D: '4', C: 'J8763' },
+      west: { S: 'KQJ973', H: 'QJ2', D: 'A65', C: '5' },
+    }).board;
+    const auction: Call[] = ['2D', '2H', 'Pass', '2S', 'Pass'];
+    for (const rejected of [
+      { call: '3S' as Call, rule: 'overcaller-rebid-weak-two-suit-new-support',
+        rejection: 'support', minimum: 3 },
+      { call: '3H' as Call, rule: 'overcaller-rebid-weak-two-suit-new-repeat',
+        rejection: 'length', minimum: 6 },
+      { call: 'Pass' as Call, rule: 'overcaller-rebid-weak-two-suit-forcing-boundary',
+        rejection: null, minimum: null },
+    ]) {
+      const result = evaluateUserCall(rejected.call, board, auction, defaultBiddingSystem);
+      const evidence = result.ruleDiagnostics.find((item) => item.rule.id === rejected.rule)
+        ?.candidates.find((item) => item.call === rejected.call)
+        ?.callEvidence?.weakTwoDefenseRebid;
+      const minimum = rejected.rejection === 'support' ? evidence?.minSupport :
+        rejected.rejection === 'length' ? evidence?.minOwnLength : null;
+      const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+      const reasons = getWeakTwoDefenseRebidFailureLines(result);
+      const seat = getSeatForCallIndex(board.dealer, auction.length);
+      const lines = getBidExplanationLines({
+        title: 'Attempt', call: rejected.call, status, result,
+        handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
+        previewLines: [], seatLabel: seat, recordedUnjudged: false,
+      });
+      checks++;
+      if (result.userCallMatchingRules.length > 0 ||
+          getApplicableCandidateCalls(result).length > 0 || reasons.length === 0 ||
+          !reasons.every((line) => lines.includes(line)) ||
+          (rejected.rejection === null
+            ? !result.applicableRules.some((item) => item.id === rejected.rule)
+            : evidence?.rejection !== rejected.rejection || minimum !== rejected.minimum)) {
+        failures++;
+        console.error(`FAIL weak-two forcing boundary/rejection: ${rejected.call}`);
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Weak-two rebid rejection evidence: ${checks} checks.\n`);
   return failures;
 }
 
