@@ -3,7 +3,7 @@ import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, ge
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce,
          type UnfulfilledAuctionForce } from '../models/biddingEvaluation';
-import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
+import { getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
@@ -493,7 +493,7 @@ function getSeatLabel(seat: Seat): string {
 }
 
 function getNextBidLabel(dealer: Seat, auction: Call[], auctionComplete: boolean): string {
-  if (auctionComplete || auctionIsComplete(auction)) {
+  if (auctionComplete) {
     return 'Auction complete';
   }
   return `${getSeatLabel(getNextSeat(dealer, auction))}:`;

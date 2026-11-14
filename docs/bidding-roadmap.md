@@ -35,9 +35,6 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
-  provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
-  a practice exercise distinct from completion of the bridge auction.
 - [ ] **Group practice-deal construction in `cards.ts`.** Keep it in that file,
   under a distinct `////` section; preserve related comments and helper ordering.
 - [ ] **Cross-reference test-stage enumeration.** Add short comments to
