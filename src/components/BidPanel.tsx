@@ -8,8 +8,8 @@ import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '..
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
 import { DealCompass } from './DealCompass';
-import { getBidExplanationLines, getRecordedCallExplanationLines, getRuleExplanationLines }
-  from '../models/explanations';
+import { getBidExplanationLines, getRecordedCallExplanationLines, getRuleExplanationLines,
+         getOutstandingForceGuidance } from '../models/explanations';
 
 const MAX_EXPLANATION_LINES = 1200;
 
@@ -445,31 +445,10 @@ function getNextTurnGuidance(seat: Seat, status: BiddingTurnStatus, practiceComp
       'but partner Passed and the auction ended. The Pass was legal, but it ' +
       'did not fulfill the partnership\'s one-round forcing agreement.');
   }
-  // Completion ends the *lesson*, not the partnership commitment. Never invent
-  // an unmodeled third bid or imply that a forcing call authorizes partner to Pass.
+  // Completion ends the *lesson*, not a force made by either partnership.
+  // A preview can be on an opponent's turn, so attribute the obligation explicitly.
   if (outstandingForce !== null) {
-    if (outstandingForce.lastStage === 'balancing') {
-      lines.push('The balancing Double asks partner to act after the opponents have ' +
-        'had their opportunity. Partner normally selects an unbid suit; ' +
-        'passing for penalties requires exceptional defensive values. ' +
-        'The app does not teach the later continuation.');
-    } else if (outstandingForce.kind === 'gameForce') {
-      lines.push('A game-forcing call commits the partnership to continue toward game, ' +
-        'absent substantive opposing interference. The app does not teach every later ' +
-        'continuation; a practice exercise ending does not cancel the game force.');
-    } else if (outstandingForce.lastStage === 'responding' ||
-               outstandingForce.lastStage === 'responderRebid') {
-      // This is advice for opener's next turn, not an evaluation of the opponent's call.
-      lines.push('', "Opener's next rebid (if the opponents Pass):",
-        "Responder's call is forcing for one round. Opener must bid again. " +
-        'The app does not teach every subsequent call.');
-    } else {
-      const bidder = outstandingForce.lastStage === 'opening' ||
-        outstandingForce.lastStage === 'openerRebid' ? 'Opener' :
-        outstandingForce.lastStage === 'advancing' ? 'Advancer' : 'Overcaller';
-      lines.push('', `${bidder}'s call is forcing for one round. Partner must act if the ` +
-        'opponents do not interfere. The app does not teach every subsequent call.');
-    }
+    lines.push(...getOutstandingForceGuidance(outstandingForce, seat));
   }
   return lines;
 }
