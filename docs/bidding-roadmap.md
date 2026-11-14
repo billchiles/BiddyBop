@@ -35,10 +35,6 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Cross-reference test-stage enumeration.** Add short comments to
-  `getTestedStages` in `tests/rule-tests.ts` and `assertionFields` in `tests/stats.ts`
-  pointing maintainers to the similar function in the other file. Do not
-  introduce a shared test module.
 - [ ] **Analyze removal of the All practice-bucket option.** Review the selector,
   `nextTestDeal`, deal indexing, replay reporting, and registry assumptions before
   deciding the smallest implementation change.
