@@ -77,34 +77,15 @@ export default function App() {
     if (testDeal === undefined) {
       return;
     }
-    const result = makeRuleTestBoard(testDeal);
-    // Preserve both the chosen selector position and a shorter replay route when
-    // the exercise was reached through All. Use bucket order, not deal identity:
-    // a fixture may legitimately appear in more than one grouped collection.
-    const buckets = testBucketId === 'all' ? RULE_TEST_DEAL_BUCKETS :
-      RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.id === testBucketId);
-    let remainingIndex = index;
-    let sourceBucket: typeof RULE_TEST_DEAL_BUCKETS[number] | undefined;
-    let sourceIndex = 0;
-    let sourceTotal = 0;
-    for (const bucket of buckets) {
-      const compatibleDeals = bucket.deals.filter((deal) => isPracticeDealCompatible(deal, biddingSystem));
-      if (remainingIndex < compatibleDeals.length) {
-        sourceBucket = bucket;
-        sourceIndex = remainingIndex;
-        sourceTotal = compatibleDeals.length;
-        break;
-      }
-      remainingIndex -= compatibleDeals.length;
+    const bucket = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === testBucketId);
+    if (bucket === undefined) {
+      return;
     }
-    const chosenBucket = testBucketId === 'all' ? 'All' :
-      (buckets[0]?.label ?? testBucketId);
+    const result = makeRuleTestBoard(testDeal);
     const practiceDealIdentification: PracticeDealIdentification = {
-      selection: `${chosenBucket} [${testBucketId}], deal ${index + 1} of ${testDeals.length}`,
-      replay: sourceBucket === undefined ?
-        `Select ${chosenBucket} and click Test Deal ${index + 1} times.` :
-        `Select ${sourceBucket.label} [${sourceBucket.id}] and click Test Deal ${sourceIndex + 1} ` +
-        `times (${sourceIndex + 1} of ${sourceTotal}), using the same bidding agreements.`,
+      selection: `${bucket.label} [${bucket.id}], deal ${index + 1} of ${testDeals.length}`,
+      replay: `Select ${bucket.label} [${bucket.id}] and click Test Deal ${index + 1} ` +
+        `times (${index + 1} of ${testDeals.length}), using the same bidding agreements.`,
     };
     setState({
       board: result.board,
@@ -152,7 +133,6 @@ export default function App() {
               title="Practice deal bucket"
               value={testBucketId}
               onChange={(event) => selectTestBucket(event.target.value as RuleTestDealBucketId)}>
-              <option value="all">All</option>
               {testBucketGroups.map((group) => (
                 <optgroup key={group} label={group}>
                   {RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.group === group).map((bucket) => (

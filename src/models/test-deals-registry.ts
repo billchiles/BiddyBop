@@ -206,10 +206,10 @@ export {
   OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
 };
 
-/// Bucket order controls the Practice dropdown and the 'all' selection. Present opening,
-/// responding, opener rebids, responder rebids, overcalling, then advancing in that order.
-/// Preserve the order of buckets within each group; 'all' concatenates compatible deals
-/// in the same order. Each authored deal array belongs in one bucket.
+/// Bucket order controls the Practice dropdown. Present opening, responding,
+/// opener rebids, responder rebids, overcalling, then advancing in that order.
+/// Preserve the order of buckets within each group. Each authored deal array
+/// belongs in one bucket.
 export const RULE_TEST_DEAL_BUCKETS = [
   { id: 'opening-bids', group: 'Opening', label: 'Opening selection',
     deals: OPENING_BID_TEST_DEALS },
@@ -383,25 +383,22 @@ export const RULE_TEST_DEAL_BUCKETS = [
     deals: ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS },
 ] as const;
 
-/// RuleTestDealBucketId is 'all' plus every id declared in RULE_TEST_DEAL_BUCKETS.
+/// RuleTestDealBucketId includes every id declared in RULE_TEST_DEAL_BUCKETS.
 /// In `typeof RULE_TEST_DEAL_BUCKETS[number]['id']`, `number` means any numeric array index,
 /// so TypeScript considers every possible bucket element; `['id']` is an indexed property access
 /// that extracts each element's `id` property.  `id` is not a TypeScript keyword: if the bucket
 /// property were named `foo`, this expression would use `['foo']`.  Adding a bucket therefore
 /// automatically adds its id to this type without maintaining a second list.
-export type RuleTestDealBucketId = 'all' | typeof RULE_TEST_DEAL_BUCKETS[number]['id'];
+export type RuleTestDealBucketId = typeof RULE_TEST_DEAL_BUCKETS[number]['id'];
 
 /// Bidding rules are grouped into logical buckets, such as opener rebids after a minor opening
-/// and 1NT response or opener rebids after a major opening and simple raise.  Each bucket owns an
-/// array of test deals chosen to exercise the rules in that group.  'all' means the test deals
-/// from all buckets that are compatible with the active bidding system; it does not mean every
-/// test deal regardless of its required system settings.
+/// and 1NT response or opener rebids after a major opening and simple raise. Each bucket owns
+/// an array of practice deals filtered by the active bidding agreements.
 export function getRulesBucketTestDeals (bucketId: RuleTestDealBucketId,
                                          system: BiddingSystem): RuleTestDeal[] {
-  const buckets = bucketId === 'all'
-    ? RULE_TEST_DEAL_BUCKETS
-    : RULE_TEST_DEAL_BUCKETS.filter((bucket) => bucket.id === bucketId);
-  return buckets.flatMap((bucket) => bucket.deals.filter((deal) => isPracticeDealCompatible(deal, system)));
+  const bucket = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === bucketId);
+  return bucket === undefined ? [] :
+    bucket.deals.filter((deal) => isPracticeDealCompatible(deal, system));
 }
 
 /// Keep active practice exercises under the same required-agreement filter as the deal selector.
