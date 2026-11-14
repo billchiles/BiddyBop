@@ -5822,6 +5822,23 @@ export function getWeakTwoDefenseRebidLines(result: BidEvalResult, rule: BidRule
 export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall === null || result.userCallMatchingRules.length > 0) return [];
   if (result.normalizedCall === 'Pass') {
+    const forcingBoundary = getApplicableCandidateCalls(result).length === 0
+      ? result.applicableRules.find((rule) =>
+        rule.id === 'overcaller-rebid-weak-two-suit-forcing-boundary' ||
+        rule.id === 'overcaller-rebid-weak-two-double-forcing-boundary') : undefined;
+    if (forcingBoundary !== undefined) {
+      const advance = result.ruleDiagnostics.flatMap((item) => item.candidates)
+        .find((item) => item.callEvidence?.weakTwoDefenseRebid !== undefined)
+        ?.callEvidence?.weakTwoDefenseRebid?.advanceKind;
+      const obligation = forcingBoundary.id === 'overcaller-rebid-weak-two-double-forcing-boundary'
+        ? `Advancer's artificial cuebid is forcing after your takeout Double.`
+        : advance === 'forcingNewSuit'
+          ? `Advancer's natural new suit is forcing for one round.`
+          : `Advancer's artificial support cuebid is forcing.`;
+      return [`${obligation} Pass cannot satisfy that force. No selected descriptive ` +
+        `rebid qualifies; choosing another bid requires partnership judgment ` +
+        `[${forcingBoundary.id}].`];
+    }
     const continuation = getApplicableCandidateCalls(result).find((item) => {
       const facts = item.callEvidence?.weakTwoDefenseRebid;
       return item.rule.id.startsWith('overcaller-rebid-weak-two-double-') &&
@@ -5843,15 +5860,25 @@ export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): strin
     if (c === undefined || c.ruleApplies || f?.rejection === undefined) continue;
     const id = `[${diagnostic.rule.id}]`;
     switch (f.rejection) {
-      case 'strength': return [`This ${f.action.replaceAll('-', ' ')} requires more ` +
-        `strength; you have ${f.hcp} HCP ${id}.`];
-      case 'support': return [`This raise needs four cards in partner's suit; ` +
-        `you have ${f.support} ${id}.`];
-      case 'length': return [f.action === 'cue-game' ?
-        `Game after partner's strong support cuebid requires five of your overcalled ` +
-          `major; you have ${f.ownLength} ${id}.` :
-        `This natural repeat or game requires a longer original suit; ` +
-          `you have ${f.ownLength} ${id}.`];
+      case 'strength': {
+        if (f.minHcp === undefined) continue;
+        const length = f.action === 'raise-game' && f.minOwnLength !== undefined &&
+          f.overcallSuit !== undefined
+          ? ` and at least ${f.minOwnLength} ${suitPlural(`1${f.overcallSuit}` as Call)}` : '';
+        return [`${result.normalizedCall} requires at least ${f.minHcp} HCP${length}; ` +
+          `your hand has ${f.hcp} HCP ${id}.`];
+      }
+      case 'support': return [f.minSupport === undefined
+        ? `This raise requires support in partner's suit; you have ${f.support} ${id}.`
+        : `This raise requires at least ${f.minSupport} cards in partner's suit; ` +
+          `you have ${f.support} ${id}.`];
+      case 'length': {
+        if (f.minOwnLength === undefined) continue;
+        const ownSuit = f.overcallSuit === undefined ? 'your original suit' :
+          suitPlural(`1${f.overcallSuit}` as Call);
+        return [`${result.normalizedCall} requires at least ${f.minOwnLength} ` +
+          `cards in ${ownSuit}; you have ${f.ownLength} ${id}.`];
+      }
       case 'shape': return [`Natural notrump here needs balanced or semi-balanced ` +
         `distribution ${id}.`];
       case 'stopper': return [`This natural notrump rebid requires a stopper in ` +
