@@ -10,7 +10,7 @@ import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleE
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
-         getRuleExplanationLines, getCompetitiveResponseAlternativeLines,
+         getRuleExplanationLines, getOutstandingForceGuidance, getCompetitiveResponseAlternativeLines,
          getCompetitiveResponseLines, getStage6BCompetitiveAlternativeLines,
          getJumpResponseLines, getJumpResponseFailureLines,
          getNaturalNewSuitOvercallLines,
@@ -203,6 +203,7 @@ function runAllRuleTests (): void {
     runContinuousAuctionFeedbackTests,
     runUnmodeledDirectDefenseBoundaryTests,
     runLaterStageTerminationGuidanceTests,
+    runCrossStageExplanationIntegrationTests,
     runCrossStageForceTests,
     runEndingAndScopeStatusTests,
     runStrongMinorArtificialSupportTests,
@@ -9812,6 +9813,78 @@ function runForcingContinuationPassTests (): number {
 /// Distinguish game placement from artificial game-level calls using the
 /// existing, fully specified convention deals. Natural game must still discharge
 /// a game force, including when the next turn has no dedicated evaluation rule.
+/// An unmodeled preview can be shown during an opponent's turn; preserve the
+/// evaluated forcing partnership and deliver correctly attributed guidance.
+/// Unsupported-call descriptions are unjudged, not rejection decisions.
+function runCrossStageExplanationIntegrationTests (): number {
+  let checks = 0;
+  let failures = 0;
+  const deal = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) => bucket.deals).find((item) =>
+    item.practiceAuction.join(' ') === '1S Pass 2C Pass 2S Pass 4S');
+  checks++;
+  if (deal === undefined) {
+    failures++;
+    console.error('FAIL missing cross-stage 2/1 game-force deal.');
+  } else {
+    const board = makeRuleTestBoard(deal).board;
+    const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
+    const opponentTurn: Call[] = ['1S', 'Pass', '2C'];
+    const partnerTurn: Call[] = [...opponentTurn, 'Pass'];
+    const opposing = getUnmodeledContinuationForce(board, opponentTurn, system);
+    const own = getUnmodeledContinuationForce(board, partnerTurn, system);
+    const opposingGuidance = opposing === null ? [] :
+      getOutstandingForceGuidance(opposing, 'W');
+    const ownGuidance = own === null ? [] : getOutstandingForceGuidance(own, 'N');
+    checks++;
+    if (getBiddingTurnStatus(board, opponentTurn, system).kind !== 'noModeledStage' ||
+        opposing?.kind !== 'gameForce' || opposing.forcingSeat !== 'S' ||
+        own?.kind !== 'gameForce' || own.forcingSeat !== 'S' ||
+        opposingGuidance.length < 3 || ownGuidance.length < 3 ||
+        opposingGuidance[1] === ownGuidance[1]) {
+      failures++;
+      console.error("FAIL cross-stage force attribution at the opponents' turn.");
+    }
+    // Normal entry and a practice substitution use the same unjudged-call builder
+    // when no previous explanation preview was available.
+    const otherStatuses: ReturnType<typeof getBiddingTurnStatus>[] = [
+      getBiddingTurnStatus(board, opponentTurn, system),
+      { kind: 'noApplicableRule', stage: 'responding', hasAuctionTreatment: false },
+      { kind: 'noApplicableRule', stage: 'responding', hasAuctionTreatment: true },
+    ];
+    for (const status of otherStatuses) {
+      const delivered = getBidExplanationLines({ title: 'Unjudged call', call: 'Pass',
+        status, result: null, handFacts: getHandFacts(board.deal.W),
+        auctionLength: opponentTurn.length, previewLines: [],
+        seatLabel: 'West', recordedUnjudged: false,
+      });
+      checks++;
+      if (delivered[0] !== 'Unjudged call' || delivered.length < 2) {
+        failures++;
+        console.error(`FAIL unjudged-call delivery at ${status.kind}.`);
+      }
+    }
+    const scope = getBiddingTurnStatus(board, ['2NT'], system);
+    checks++;
+    if (scope.kind !== 'scopeBoundary') {
+      failures++;
+      console.error('FAIL missing scope boundary for unjudged-call delivery.');
+    } else {
+      const delivered = getBidExplanationLines({ title: 'Boundary call', call: 'Pass',
+        status: scope, result: null, handFacts: getHandFacts(board.deal.E),
+        auctionLength: 1, previewLines: [], seatLabel: 'East', recordedUnjudged: false,
+      });
+      const specific = getRuleExplanationLines(scope.rule);
+      checks++;
+      if (delivered.length < 3 || specific.length === 0 ||
+          !specific.every((line) => delivered.includes(line))) {
+        failures++;
+        console.error('FAIL cross-stage scope boundary explanation delivery.');
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Cross-stage explanation integration: ${checks} checks.\n`);
+  return failures;
+}
 function runCrossStageForceTests (): number {
   let failures = 0;
   let checks = 0;
