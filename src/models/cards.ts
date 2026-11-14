@@ -173,48 +173,6 @@ export function generateBoard (options: GenerateBoardOptions): BoardWTelemetry {
   }
 }
 
-/// Build a deterministic rule-practice board without changing the active bidding system.  The
-/// intended auction and positive candidate expectations are displayed in telemetry, not auto-bid.
-export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
-  const telemetryLines = [
-    `Rule test: ${testDeal.description}`,
-    `Practice auction: ${testDeal.practiceAuction.join(' ')}`,
-  ];
-  if (testDeal.requiredSystem !== undefined) {
-    const settings = Object.entries(testDeal.requiredSystem)
-      .map(([name, value]) => `${name}=${value}`).join(', ');
-    telemetryLines.push(`Required system: ${settings}.`);
-  }
-  // Report each stage's positive assertions so manual practice can check the candidate set.
-  if (testDeal.expectedBalancingCalls !== undefined) {
-    telemetryLines.push(`Expected balancing: ${formatExpectedCalls(testDeal.expectedBalancingCalls)}.`);
-  }
-  if (testDeal.expectedOvercallCalls !== undefined) {
-    telemetryLines.push(`Expected overcall: ${formatExpectedCalls(testDeal.expectedOvercallCalls)}.`);
-  }
-  if (testDeal.expectedAdvanceCalls !== undefined) {
-    telemetryLines.push(`Expected advance: ${formatExpectedCalls(testDeal.expectedAdvanceCalls)}.`);
-  }
-  if (testDeal.expectedOvercallerRebidCalls !== undefined) {
-    telemetryLines.push(`Expected overcaller rebid: ` +
-      `${formatExpectedCalls(testDeal.expectedOvercallerRebidCalls)}.`);
-  }
-  if (testDeal.expectedOpeningCalls !== undefined) {
-    telemetryLines.push(`Expected opening: ${formatExpectedCalls(testDeal.expectedOpeningCalls)}.`);
-  }
-  if (testDeal.expectedResponseCalls !== undefined) {
-    telemetryLines.push(`Expected response: ${formatExpectedCalls(testDeal.expectedResponseCalls)}.`);
-  }
-  if (testDeal.expectedOpenerRebidCalls !== undefined) {
-    telemetryLines.push(`Expected opener rebid: ${formatExpectedCalls(testDeal.expectedOpenerRebidCalls)}.`);
-  }
-  return { board: { deal: makeRuleTestDeal(testDeal), dealer: testDeal.dealer ?? 'N' }, telemetryLines };
-}
-
-function formatExpectedCalls (expectedCalls: RuleTestExpectedCall[]): string {
-  return expectedCalls.map(({ call, ruleIds }) => `${call} (${ruleIds.join(', ')})`).join('; ');
-}
-
 /// isPracticeOpeningHand keeps random deal generation from waiting only for a 12-HCP hand.  The
 /// actual evaluator remains authoritative about which opening calls match.
 function isPracticeOpeningHand (hand: Hand): boolean {
@@ -263,6 +221,130 @@ export function hasSolidWeakTwoSuit (hand: Hand, suit: Suit): boolean {
 
 function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): number {
   return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
+}
+
+/// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a
+/// dealPracticeHands that chooses deals with hands that have judgment call point values or hand
+/// characteristics.
+///
+function dealRandomHands (): Deal {
+  // Make a deck
+  const cards: Card[] = [];
+  for (const suit of SUITS) {
+    for (const rank of RANKS) {
+      cards.push({ suit, rank });
+    }
+  }
+  // Shuffle
+  for (let index = cards.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const originalCard = cards[index];
+    const swapCard = cards[swapIndex];
+    if (originalCard === undefined || swapCard === undefined) {
+      throw new Error('Shuffle attempted to access a missing card.');
+    }
+    cards[index] = swapCard;
+    cards[swapIndex] = originalCard;
+  }
+  return {
+    N: { cards: cards.slice(0, 13).sort(compareCards) },
+    E: { cards: cards.slice(13, 26).sort(compareCards) },
+    S: { cards: cards.slice(26, 39).sort(compareCards) },
+    W: { cards: cards.slice(39, 52).sort(compareCards) },
+  };
+}
+
+/// compareCards used with array.sort to totally order hands.
+///
+function compareCards (left: Card, right: Card): number {
+  const suitCompare = SUITS.indexOf(left.suit) - SUITS.indexOf(right.suit);
+  return suitCompare !== 0 ? suitCompare : (RANKS.indexOf(left.rank) - RANKS.indexOf(right.rank));
+}
+
+function getHcpBySeat(deal: Deal): Record<Seat, number> {
+  return {
+    N: getHcp(deal.N),
+    E: getHcp(deal.E),
+    S: getHcp(deal.S),
+    W: getHcp(deal.W),
+  };
+}
+
+function getHcp (hand: Hand): number {
+  let total = 0;
+  for (const card of hand.cards) {
+    if (card.rank === 'A') {
+      total += 4;
+    } else if (card.rank === 'K') {
+      total += 3;
+    } else if (card.rank === 'Q') {
+      total += 2;
+    } else if (card.rank === 'J') {
+      total += 1;
+    }
+  }
+  return total;
+}
+
+/// rotateSeatTo rotates a deal so the hand currently at sourceSeat moves to targetSeat while
+/// preserving the clockwise relationship among all four hands.
+///
+function rotateSeatTo (deal: Deal, sourceSeat: Seat, targetSeat: Seat): Deal {
+  const sourceIndex = SEATS.indexOf(sourceSeat);
+  const targetIndex = SEATS.indexOf(targetSeat);
+  const offset = (sourceIndex - targetIndex + SEATS.length) % SEATS.length;
+  return {
+    N: deal[SEATS[offset]],
+    E: deal[SEATS[(1 + offset) % SEATS.length]],
+    S: deal[SEATS[(2 + offset) % SEATS.length]],
+    W: deal[SEATS[(3 + offset) % SEATS.length]],
+  };
+}
+
+///
+//// Practice Deal Construction
+///
+
+/// Build a deterministic rule-practice board without changing the active bidding system.  The
+/// intended auction and positive candidate expectations are displayed in telemetry, not auto-bid.
+export function makeRuleTestBoard (testDeal: RuleTestDeal): BoardWTelemetry {
+  const telemetryLines = [
+    `Rule test: ${testDeal.description}`,
+    `Practice auction: ${testDeal.practiceAuction.join(' ')}`,
+  ];
+  if (testDeal.requiredSystem !== undefined) {
+    const settings = Object.entries(testDeal.requiredSystem)
+      .map(([name, value]) => `${name}=${value}`).join(', ');
+    telemetryLines.push(`Required system: ${settings}.`);
+  }
+  // Report each stage's positive assertions so manual practice can check the candidate set.
+  if (testDeal.expectedBalancingCalls !== undefined) {
+    telemetryLines.push(`Expected balancing: ${formatExpectedCalls(testDeal.expectedBalancingCalls)}.`);
+  }
+  if (testDeal.expectedOvercallCalls !== undefined) {
+    telemetryLines.push(`Expected overcall: ${formatExpectedCalls(testDeal.expectedOvercallCalls)}.`);
+  }
+  if (testDeal.expectedAdvanceCalls !== undefined) {
+    telemetryLines.push(`Expected advance: ${formatExpectedCalls(testDeal.expectedAdvanceCalls)}.`);
+  }
+  if (testDeal.expectedOvercallerRebidCalls !== undefined) {
+    telemetryLines.push(`Expected overcaller rebid: ` +
+      `${formatExpectedCalls(testDeal.expectedOvercallerRebidCalls)}.`);
+  }
+  if (testDeal.expectedOpeningCalls !== undefined) {
+    telemetryLines.push(`Expected opening: ${formatExpectedCalls(testDeal.expectedOpeningCalls)}.`);
+  }
+  if (testDeal.expectedResponseCalls !== undefined) {
+    telemetryLines.push(`Expected response: ${formatExpectedCalls(testDeal.expectedResponseCalls)}.`);
+  }
+  if (testDeal.expectedOpenerRebidCalls !== undefined) {
+    telemetryLines.push(`Expected opener rebid: ${formatExpectedCalls(testDeal.expectedOpenerRebidCalls)}.`);
+  }
+  return { board: { deal: makeRuleTestDeal(testDeal), dealer: testDeal.dealer ?? 'N' }, telemetryLines };
+}
+
+function formatExpectedCalls (expectedCalls: RuleTestExpectedCall[]): string {
+  return expectedCalls.map(({ call, ruleIds }) => `${call} (${ruleIds.join(', ')})`).join('; ');
 }
 
 /// Complete the hands specified by the practice fixture. Unspecified opponents get shuffled
@@ -351,83 +433,4 @@ function makeTestHand (suits: Record<Suit, string>): Hand {
 function cardKey (card: Card): string {
   return `${card.suit}${card.rank}`;
 }
-
-/// dealRandomHands returns a totally ordered hand for each seat.  Later there will likely be a
-/// dealPracticeHands that chooses deals with hands that have judgment call point values or hand
-/// characteristics.
-///
-function dealRandomHands (): Deal {
-  // Make a deck
-  const cards: Card[] = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      cards.push({ suit, rank });
-    }
-  }
-  // Shuffle
-  for (let index = cards.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    const originalCard = cards[index];
-    const swapCard = cards[swapIndex];
-    if (originalCard === undefined || swapCard === undefined) {
-      throw new Error('Shuffle attempted to access a missing card.');
-    }
-    cards[index] = swapCard;
-    cards[swapIndex] = originalCard;
-  }
-  return {
-    N: { cards: cards.slice(0, 13).sort(compareCards) },
-    E: { cards: cards.slice(13, 26).sort(compareCards) },
-    S: { cards: cards.slice(26, 39).sort(compareCards) },
-    W: { cards: cards.slice(39, 52).sort(compareCards) },
-  };
-}
-
-/// compareCards used with array.sort to totally order hands.
-///
-function compareCards (left: Card, right: Card): number {
-  const suitCompare = SUITS.indexOf(left.suit) - SUITS.indexOf(right.suit);
-  return suitCompare !== 0 ? suitCompare : (RANKS.indexOf(left.rank) - RANKS.indexOf(right.rank));
-}
-
-function getHcpBySeat(deal: Deal): Record<Seat, number> {
-  return {
-    N: getHcp(deal.N),
-    E: getHcp(deal.E),
-    S: getHcp(deal.S),
-    W: getHcp(deal.W),
-  };
-}
-
-function getHcp (hand: Hand): number {
-  let total = 0;
-  for (const card of hand.cards) {
-    if (card.rank === 'A') {
-      total += 4;
-    } else if (card.rank === 'K') {
-      total += 3;
-    } else if (card.rank === 'Q') {
-      total += 2;
-    } else if (card.rank === 'J') {
-      total += 1;
-    }
-  }
-  return total;
-}
-
-/// rotateSeatTo rotates a deal so the hand currently at sourceSeat moves to targetSeat while
-/// preserving the clockwise relationship among all four hands.
-///
-function rotateSeatTo (deal: Deal, sourceSeat: Seat, targetSeat: Seat): Deal {
-  const sourceIndex = SEATS.indexOf(sourceSeat);
-  const targetIndex = SEATS.indexOf(targetSeat);
-  const offset = (sourceIndex - targetIndex + SEATS.length) % SEATS.length;
-  return {
-    N: deal[SEATS[offset]],
-    E: deal[SEATS[(1 + offset) % SEATS.length]],
-    S: deal[SEATS[(2 + offset) % SEATS.length]],
-    W: deal[SEATS[(3 + offset) % SEATS.length]],
-  };
-}
-
 
