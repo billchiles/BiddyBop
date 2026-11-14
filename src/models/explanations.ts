@@ -3,8 +3,8 @@
 
 import type { CallEvidence, BidRule, Call } from './bidding-types';
 import { getApplicableCandidateCalls, type BidEvalResult, type BiddingTurnStatus,
-         type CandidateCallMatch } from './biddingEvaluation';
-import type { HandFacts } from './cards';
+         type CandidateCallMatch, type UnmodeledContinuationForce } from './biddingEvaluation';
+import type { HandFacts, Seat } from './cards';
 
 ///
 //// Call feedback assembly
@@ -380,22 +380,68 @@ function failureHeading(status: BiddingTurnStatus, call: Call): string {
 
 function buildUnjudgedCallExplanation(title: string, call: Call,
                                       status: BiddingTurnStatus): string[] {
-  const lines = [title, `The trainer cannot evaluate ${call} at this turn.`];
-  if (status.kind === 'scopeBoundary') {
-    appendRuleExplanation(lines, status.rule);
-    lines.push('The auction may continue; this explanation does not recommend Pass.');
-  } else if (status.kind === 'noApplicableRule') {
-    lines.push(status.hasAuctionTreatment
-      ? 'The app has no bidding rule that identifies an appropriate call for your hand. ' +
-        'This is a limitation of the bidding guidance, not an indication that you should Pass.'
-      : 'The app does not evaluate bids in this auction context. Your call has not ' +
-        'been judged. The absence of an applicable rule does not mean you should Pass, ' +
-        'but it also does not mean Pass is wrong.');
-  } else {
-    lines.push('This part of the auction is not covered by the trainer. ' +
-      'You may continue bidding, and later calls may be evaluated.');
+  const lines = [title];
+  switch (status.kind) {
+    case 'scopeBoundary':
+      lines.push(`The app cannot judge ${call} at this auction-specific decision boundary.`);
+      appendRuleExplanation(lines, status.rule);
+      lines.push('This explanation does not recommend Pass or another particular call.');
+      break;
+    case 'noApplicableRule':
+      lines.push(status.hasAuctionTreatment
+        ? 'The app has no bidding rule that identifies an appropriate call for your hand. ' +
+          'This is a limitation of the bidding guidance, not an indication that you should Pass.'
+        : 'The app does not teach bids in this auction context. Your call was not judged. ' +
+          'The absence of a rule does not recommend Pass or another call.');
+      break;
+    case 'noModeledStage':
+      lines.push(`No bidding guidance for this turn. The app did not judge ${call}. ` +
+        'A later turn may still have guidance.');
+      break;
+    case 'auctionComplete':
+      lines.push('The bridge auction is complete; no further calls are evaluated.');
+      break;
+    case 'supported':
+      lines.push(`The app did not evaluate ${call} at this turn.`);
+      break;
   }
   return lines;
+}
+
+/// Attribute an outstanding force to the partnership that made it. A next-seat
+/// prompt may appear while the opponents are deciding their own call.
+/// This is advisory feedback, not a new eligibility or forcing test.
+export function getOutstandingForceGuidance(
+    force: UnmodeledContinuationForce, nextSeat: Seat): string[] {
+  const northSouth = force.forcingSeat === 'N' || force.forcingSeat === 'S';
+  const nextIsNorthSouth = nextSeat === 'N' || nextSeat === 'S';
+  const partnership = northSouth ? 'North–South' : 'East–West';
+  const nextName = nextSeat === 'N' ? 'North' : nextSeat === 'E' ? 'East' :
+    nextSeat === 'S' ? 'South' : 'West';
+  const attribution = nextIsNorthSouth === northSouth
+    ? `${partnership} has an outstanding forcing obligation:`
+    : `${partnership} has an outstanding forcing obligation; it does not ` +
+      `require ${nextName} to bid:`;
+  if (force.lastStage === 'balancing') {
+    return ['', attribution, 'The balancing Double asks partner to act after the opponents ' +
+      'have had their opportunity. Partner normally selects an unbid suit; ' +
+      'passing for penalties requires exceptional defensive values. ' +
+      'The app does not teach the later continuation.'];
+  }
+  if (force.kind === 'gameForce') {
+    return ['', attribution, 'A game-forcing call commits that partnership to continue toward ' +
+      'game, absent substantive opposing interference. The app does not teach every later ' +
+      'continuation; a practice exercise ending does not cancel the game force.'];
+  }
+  if (force.lastStage === 'responding' || force.lastStage === 'responderRebid') {
+    return ['', attribution, "Opener's next rebid (if the opponents Pass):",
+      "Responder's call is forcing for one round. Opener must bid again. " +
+      'The app does not teach every subsequent call.'];
+  }
+  const bidder = force.lastStage === 'opening' || force.lastStage === 'openerRebid'
+    ? 'Opener' : force.lastStage === 'advancing' ? 'Advancer' : 'Overcaller';
+  return ['', attribution, `${bidder}'s call is forcing for one round. Partner must act if the ` +
+    'opponents do not interfere. The app does not teach every subsequent call.'];
 }
 
 function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, rule: BidRule,

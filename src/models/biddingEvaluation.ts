@@ -7,7 +7,7 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type CallRefinementResult,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
-import { getHandFacts, type Board, type HandFacts, type Suit } from './cards';
+import { getHandFacts, type Board, type HandFacts, type Suit, type Seat } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
@@ -272,6 +272,8 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
 export type UnmodeledContinuationForce = {
   kind: 'gameForce' | 'oneRoundForce';
   lastStage: BidStage;
+  // The seat making the forcing call; the obligation belongs to this partnership.
+  forcingSeat: Seat;
 };
 
 function isGameContract(call: Call): boolean {
@@ -357,7 +359,7 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
               rule.callCategory?.includes('natural') === true);
         });
       });
-      if (! reachedGame) return { kind: 'gameForce', lastStage: stage };
+      if (! reachedGame) return { kind: 'gameForce', lastStage: stage, forcingSeat: forceSeat };
     }
     // Only the last call (or one following opponent Pass) can carry a one-round
     // obligation. Once partner has acted, the individual force has been satisfied.
@@ -365,7 +367,7 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
         (index === lastIndex - 1 && auction[lastIndex] === 'Pass' &&
           getSeatForCallIndex(board.dealer, lastIndex) !== partner)) &&
         matches.some((rule) => rule.callCategory?.includes('forcing'))) {
-      oneRound = { kind: 'oneRoundForce', lastStage: stage };
+      oneRound = { kind: 'oneRoundForce', lastStage: stage, forcingSeat: forceSeat };
     }
   }
   return oneRound;

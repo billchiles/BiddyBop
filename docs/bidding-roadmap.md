@@ -35,16 +35,12 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Review instructional use of hand-constraint evidence.** Examine each explanation
-  generator and its evidence selectors against the temporary replay samples. Make
-  explicit, educationally useful evidence choices, reviewing proposed changes to
-  learner-facing text in small batches. Keep the broad replay harness temporary;
-  retain only focused permanent tests for concrete regression risks. After these
-  review passes, regenerate `docs/by-the-numbers.md` with `npm run stats:bidding`
-  and inspect the resulting diff. Pending next: finish the systematic
-  cross-stage rebid and instructional-quality audit, then regenerate statistics.
-  Family-by-family review disposition and recovery notes are tracked in
-  `docs/instructional-explanation-review.md`.
+- [ ] **Regenerate bidding statistics after the instructional audit.** Run
+  `npm run stats:bidding`, inspect the resulting `docs/by-the-numbers.md`
+  diff, and reconcile the static unreached-ID category counts with the generated
+  totals. Preserve the short high-level interpretation without adding a
+  per-rule classification register. Outstanding conditional explanation
+  diagnostics remain in `docs/instructional-explanation-review.md`.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.
