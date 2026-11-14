@@ -33,20 +33,14 @@ be adequately taught by its meaning and shared guidance.
 
 ## Current review plan
 
-1. **Final cross-stage instructional audit.** Compare opening, response,
-   overcall, advance, and rebid explanations for compatible agreement meanings,
-   forcing obligations, fit and stopper evidence, and honest judgment boundaries.
-   Use only information known to the bidder at that turn. Check ordinary entry,
-   recorded-call substitution, and the clipboard Report, and investigate only
-   concrete gaps in qualifying and rejected-call feedback.
-2. **Targeted early-filtered notrump diagnostics.** Some rejected natural NT
-   calls lose their opponent-suit stopper context before candidate evidence
-   is built. Examine this only if a concrete, learner-facing gap remains after
-   the cross-stage review; do not manufacture an untested rejection reason.
-3. **Regenerate bidding statistics after the evidence audit.** Run
-   `npm run stats:bidding`, inspect the `by-the-numbers.md` diff, and
-   reconcile its static unreached-ID category totals with the generated count
-   rather than preserving an inconsistent classification.
+1. **Regenerate bidding statistics (Batch 10B).** Run `npm run stats:bidding`,
+   inspect `docs/by-the-numbers.md`, and reconcile its static unreached-ID
+   category totals with the generated count rather than preserving an
+   inconsistent classification. Keep the summary concise and generated.
+2. **Conditional rejected-notrump diagnostics.** Some natural NT attempts are
+   filtered before stopper-failure evidence can be produced. Investigate only
+   if a concrete remaining learner-facing error appears in play-through or
+   targeted cross-stage checks; do not invent missing evidence or a rejection.
 
 ### Recovery and change-verification rules
 
