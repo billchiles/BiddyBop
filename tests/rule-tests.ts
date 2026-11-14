@@ -48,6 +48,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getOpenerCompetitiveNaturalNtRebidLines, getOpenerCompetitiveNaturalNtRebidFailureLines,
          getOpenerOneNtInterferenceLines, getOpenerOneNtInterferenceFailureLines,
          getOpenerJumpOvercallRebidLines, getOpenerJumpOvercallRebidFailureLines,
+         getOpenerNegativeDoubleRebidFailureLines,
          getOpenerWeakCompetitiveRebidLines, getOpenerWeakCompetitiveRebidFailureLines,
          getOpenerThreeLevelGameForceRebidLines, getOpenerThreeLevelGameForceRebidFailureLines,
          getOpenerForcingRebidPassFailureLines, getOvercallerForcingAdvancePassFailureLines,
@@ -6169,6 +6170,56 @@ function runOpenerInterferenceTeachingTests (): number {
         failures++;
         console.error(`FAIL forcing rejection after ${test.sequence}.`);
       }
+    }
+  }
+  // Check the three rejected-call contexts through their actual evaluated evidence.
+  // The test also checks delivery without asserting learner-facing English wording.
+  const rejectionCases: { sequence: string; attempt: Call; selected: Call;
+    kind: 'negativeDouble' | 'supportCuebid' | 'notrumpTwo' }[] = [
+    { sequence: '1D 1S Double Pass 3H', attempt: 'Pass', selected: '3H',
+      kind: 'negativeDouble' },
+    { sequence: '1H 2S 3S Pass 4H', attempt: '3NT', selected: '4H',
+      kind: 'supportCuebid' },
+    { sequence: '1H 2S 2NT Pass Pass', attempt: '3NT', selected: 'Pass',
+      kind: 'notrumpTwo' },
+  ];
+  for (const scenario of rejectionCases) {
+    checks++;
+    const deal = OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS.find((item) =>
+      item.practiceAuction.join(' ') === scenario.sequence);
+    if (deal === undefined) {
+      failures++;
+      console.error(`FAIL missing competitive opener rejection ${scenario.sequence}.`);
+      continue;
+    }
+    const { board: caseBoard } = makeRuleTestBoard(deal);
+    const prefix = deal.practiceAuction.slice(0, -1);
+    const rejected = evaluateUserCall(scenario.attempt, caseBoard, prefix, defaultBiddingSystem);
+    const selected = getApplicableCandidateCalls(rejected).some((item) =>
+      item.call === scenario.selected);
+    const seat = getSeatForCallIndex(caseBoard.dealer, prefix.length);
+    const handFacts = getHandFacts(caseBoard.deal[seat]);
+    const jumpEvidence = rejected.ruleDiagnostics.find((entry) =>
+      entry.callEvidence?.openerJumpOvercallRebid?.kind === scenario.kind)
+      ?.callEvidence?.openerJumpOvercallRebid;
+    const evidenceFits = scenario.kind === 'negativeDouble' ? selected :
+      jumpEvidence?.selectedCall === scenario.selected &&
+      (scenario.kind === 'supportCuebid' ? jumpEvidence.stopped === false :
+        jumpEvidence.hcp === 13);
+    const reasons = scenario.kind === 'negativeDouble'
+      ? getOpenerNegativeDoubleRebidFailureLines(rejected, handFacts)
+      : getOpenerJumpOvercallRebidFailureLines(rejected);
+    const delivered = getBidExplanationLines({
+      title: 'Attempt', call: scenario.attempt,
+      status: getBiddingTurnStatus(caseBoard, prefix, defaultBiddingSystem),
+      result: rejected, handFacts, auctionLength: prefix.length, previewLines: [],
+      seatLabel: seat, recordedUnjudged: false,
+    });
+    checks++;
+    if (rejected.userCallMatchingRules.length !== 0 || !selected || !evidenceFits ||
+        reasons.length === 0 || !reasons.every((line) => delivered.includes(line))) {
+      failures++;
+      console.error(`FAIL competitive opener rejection evidence or delivery: ${scenario.sequence}.`);
     }
   }
   console.log(`${failures} ***FAILURES***. Opener interference teaching: ${checks} checks.\n`);

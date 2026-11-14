@@ -8104,9 +8104,19 @@ export function getOpenerNegativeDoubleRebidFailureLines(
   if (call === 'Pass' && result.ruleDiagnostics.some((entry) =>
       entry.rule.id === 'opener-rebid-scope-boundary-after-negative-double-advancer-pass' ||
       entry.rule.id === 'opener-rebid-implied-suit-after-negative-double-minimum')) {
+    const selected = getApplicableCandidateCalls(result).filter((item) =>
+      item.call !== 'Pass' && OPENER_NEGATIVE_DOUBLE_IDS.includes(item.rule.id));
+    const first = selected[0];
+    if (first !== undefined) {
+      const calls = [...new Set(selected.map((item) => item.call))];
+      return ['Responder’s negative Double is takeout, not penalty. With advancer ' +
+        `Passing, opener must respond. ${calls.join(' or ')} ${calls.length === 1 ? 'is a' : 'are'} ` +
+        `qualifying descriptive ${calls.length === 1 ? 'bid' : 'bids'} for this hand; ` +
+        `Pass does not satisfy the force. [${first.rule.id}]`];
+    }
     return ['Responder’s negative Double is takeout, not penalty. With advancer ' +
-      'Passing, opener must respond if a selected description is available. ' +
-      'Where none applies, the specific choice needs further judgment.'];
+      'Passing, opener must respond, but no selected descriptive rebid qualifies. ' +
+      'Choosing the continuation needs further partnership judgment.'];
   }
   for (const entry of negativeDoubleRules) {
     const limits = entry.rule.appliesWhen;
@@ -8979,7 +8989,7 @@ export function getOpenerJumpOvercallRebidLines(result: BidEvalResult, rule: Bid
     return [`Responder's three-level ${own} raise is nonforcing. Your ${e.supportPoints} support points ${candidate.call === 'Pass' ? 'allow Pass rather than pushing to game' : 'support bidding major game'} ${id}.`];
   }
   if (e.kind === 'notrumpTwo') {
-    return [`Responder's natural 2NT is invitational and already promises a ${opponent} stopper. Your ${e.hcp} HCP ${candidate.call === 'Pass' ? 'decline' : 'accept'} the invitation ${id}.`];
+    return [`Responder's natural 2NT is invitational and already promises a ${opponent} stopper. With ${e.hcp} HCP, you ${candidate.call === 'Pass' ? 'decline' : 'accept'} the invitation ${id}.`];
   }
   if (e.kind === 'notrumpThree') {
     return [`Responder has already bid natural 3NT. Your ${e.hcp} HCP do not require further bidding over this game signoff ${id}.`];
@@ -9036,8 +9046,25 @@ export function getOpenerJumpOvercallRebidFailureLines(result: BidEvalResult): s
     return [`Responder's ${e.kind === 'negativeDouble' ? 'negative Double' :
       `${e.responseCall} ${e.kind === 'supportCuebid' ? 'artificial support cuebid' : 'natural new suit'}`} is ${e.kind === 'newSuitThree' || e.kind === 'supportCuebid' ? 'game forcing' : 'forcing for one round'}. Pass does not satisfy the force; ${e.selectedCall === null ? 'a further bid needs partnership judgment' : `${e.selectedCall} is a selected descriptive reply`}${id}.`];
   }
+  if (call === '3NT' && e.kind === 'supportCuebid' &&
+      e.selectedCall === `4${e.openingSuit}` &&
+      getApplicableCandidateCalls(result).some((item) => item.call === e.selectedCall)) {
+    return [`Responder's ${e.responseCall} is an artificial, game-forcing cuebid ` +
+      `showing support for your ${suitPlural(`1${e.openingSuit}` as Call)}. ` +
+      `${e.selectedCall} is the selected major-suit game; ${call} does not describe ` +
+      `that agreed fit${id}.`];
+  }
+  if (call === '3NT' && e.kind === 'notrumpTwo' && e.selectedCall === 'Pass' &&
+      e.hcp <= 13 && getApplicableCandidateCalls(result).some((item) =>
+        item.call === 'Pass' && item.rule.id ===
+          'opener-rebid-after-jump-overcall-nonforcing-pass')) {
+    return [`Responder's natural 2NT invites game. With ${e.hcp} HCP, you are below ` +
+      `the 14-HCP minimum for accepting with 3NT; Pass declines the invitation${id}.`];
+  }
   if (call === '3NT' && forcing && !e.stopped) {
-    return [`A natural 3NT response to ${e.responseCall} requires a stopper in the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)}; your hand has no such stopper${id}.`];
+    return [`A natural 3NT opener rebid after ${e.responseCall} requires a stopper ` +
+      `in the opponent's ${suitPlural(`1${e.opponentSuit}` as Call)}; ` +
+      `your hand has no such stopper${id}.`];
   }
   if (e.kind === 'supportCuebid' && e.selectedCall !== null &&
       call === `4${e.opponentSuit}`) {

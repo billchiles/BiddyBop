@@ -33,18 +33,14 @@ be adequately taught by its meaning and shared guidance.
 
 ## Current review plan
 
-1. **Finish targeted competitive opener-rebid review.** Check Jordan 2NT,
-   cuebids, weak/NT/game-forcing responses, advancer action after interference,
-   and jump-overcall continuations. Do not assume a family is cleared merely
-   because it already has a specialized explanation function. In particular,
-   rejected natural NT calls can be filtered for missing opponent-suit stoppers
-   before a candidate has evidence for a precise failure message; assess
-   whether that warrants a narrow diagnostic change without manufacturing
-   an untested reason.
-2. **Review overcaller/Doubler rebids and responder rebids across stages.**
+1. **Review overcaller/Doubler rebids, then responder rebids across stages.**
    Verify forcing obligations, agreement-specific language, evaluated
    hand-constraint evidence, and honest stopping boundaries against recorded
    and relevant rejected calls. Preserve adequate explanations unchanged.
+2. **Targeted early-filtered notrump diagnostics.** Some rejected natural NT
+   calls lose their opponent-suit stopper context before candidate evidence
+   is built. Examine this only if a concrete, learner-facing gap remains after
+   the cross-stage review; do not manufacture an untested rejection reason.
 3. **Final cross-stage quality check.** Look for inconsistent advice across
    related stages, use only bidder-visible information, and check feedback in
    ordinary entry, recorded-call substitution, and the clipboard Report.
