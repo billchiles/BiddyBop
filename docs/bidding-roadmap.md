@@ -35,9 +35,6 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Analyze removal of the All practice-bucket option.** Review the selector,
-  `nextTestDeal`, deal indexing, replay reporting, and registry assumptions before
-  deciding the smallest implementation change.
 - [ ] **Final source and test cleanup before the owner reviews the code.**
   Continue deliberate, separately tested organization passes with the rule-order
   audit completed. Keep intentional spacing and substantive manually written
