@@ -35,12 +35,6 @@ not a historical progress log or a commitment to model every possible auction.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
   and any interactions between revised deals and existing rule tests.
 
-- [ ] **Regenerate bidding statistics after the instructional audit.** Run
-  `npm run stats:bidding`, inspect the resulting `docs/by-the-numbers.md`
-  diff, and reconcile the static unreached-ID category counts with the generated
-  totals. Preserve the short high-level interpretation without adding a
-  per-rule classification register. Outstanding conditional explanation
-  diagnostics remain in `docs/instructional-explanation-review.md`.
 - [ ] **Remove the redundant auction-completion check in `BidPanel.tsx`.** Trust the
   provided derived `auctionComplete` status in `getNextBidLabel`; keep the end of
   a practice exercise distinct from completion of the bridge auction.
