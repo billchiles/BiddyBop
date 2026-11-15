@@ -155,7 +155,7 @@ export const RESPONDER_REBID_AFTER_MAJOR_RAISE_TEST_DEALS: RuleTestDeal[] = [
     rejectedResponderRebidCalls: ['4S', '4H'],
   },
   {
-    description: 'After 1H-1S-3S, responder accepts the game invitation with 8 points.',
+    description: 'After 1H-1S-3S, responder accepts the game invitation with 8 HCP and 9 support points.',
     practiceAuction: ['1H', 'Pass', '1S', 'Pass', '3S', 'Pass', '4S'],
     north: { S: 'AJ84', H: 'QJ875', D: 'KJ', C: 'A3' },
     south: { S: 'KQ62', H: 'K3', D: 'T823', C: 'T94' },
