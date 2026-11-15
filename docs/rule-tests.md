@@ -50,12 +50,13 @@ with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 
 for simple suit overcalls even when length-adjusted points exceed 17, while 18+ HCP hands are
 reserved for the strong-double treatment. Two `overcall-takeout-double` deals distinguish the
 ordinary 13+ shortage-point double with three cards in every unbid suit from the 18+ HCP exception
-that does not require that shape. These are informational doubles only; later responses and
-penalty doubles are not modeled. The bucket supplies the recorded opening as setup. Shared
-call-availability checks occur before refinement; 153 competitive-boundary checks protect
+that does not require that shape. These are takeout rather than penalty doubles;
+follow-on advances and selected doubler rebids are covered in separate families.
+General penalty doubles are not modeled. The bucket supplies the recorded opening as setup.
+Shared call-availability checks occur before refinement; 153 competitive-boundary checks protect
 stage assignment after suit overcalls or Doubles and an eight-point responder whose one-level
-heart response is obstructed. The new negative Double and stopper-qualified 1NT
-now supply alternatives in that example; other intervention families remain pending.
+heart response is obstructed. A negative Double and stopper-qualified 1NT
+provide alternatives in that example.
 
 Two natural `1NT` overcall deals require 15-18 HCP, balanced shape, and a stopper in the
 opponent's suit (A, Kx, Qxx, or Jxxx approximation); a separate boundary check excludes
@@ -239,8 +240,8 @@ condition inside each rule or refiner.
 | Weak jump-shift response and opener Pass | `response-minor-opening`, `response-major-opening`, and `jump-shift` | A weak single jump uses a 6+ suit with 4-7 HCP; after a major opening, three-card support suppresses the weak jump shift. In the opener-rebid bucket the normal continuation is Pass. |
 | Strong jump-shift one-suiter versus 5-5 fallback | `response-minor-opening`, `response-major-opening`, and `jump-shift` | A strong jump shift requires 17+ HCP, a 5+ new suit with at least 5 suit HCP, and no second 5+ new suit. With a 5-5 heart-diamond hand after `1S`, natural `2H` precedes `2D` and the strong jump calls are eliminated. |
 | Opener after a strong jump shift | `jump-shift`, four opener-rebid deals | Game is already forced. Three-card support raises responder economically and ranks first; otherwise opener can repeat a 6+ opening suit, show a four-card second suit, or rebid notrump with balanced/semi-balanced shape at the cheapest legal level. |
-| Weak-two opening and non-forcing raises | `opening-bids` and `response-weak-preempt` | Weak twos use 5-10 HCP, exactly six cards, and the shared good-suit test. With no game investigation, two or fewer trumps Pass; three-card support raises one level; four-card support raises to the four level. Vulnerability and direct game placement remain judgment guidance. |
-| Weak-two forcing inquiry and features | `response-weak-preempt`, three 2NT inquiry deals | Guideline of 17 is the rough executable game-interest trigger. A 5-7 minimum repeats the suit; an 8-10 maximum shows the cheapest side ace/king feature; AKQJ in the six-card suit triggers the special solid-suit 3NT message. |
+| Weak-two opening and non-forcing raises | `opening-bids` and `response-weak-preempt` | Weak twos use 5-11 HCP, exactly six cards, and the shared good-suit test. With no game investigation, two or fewer trumps Pass; three-card support raises one level; four-card support raises to the four level. Vulnerability and direct game placement remain judgment guidance. |
+| Weak-two forcing inquiry and features | `response-weak-preempt`, three 2NT inquiry deals | Guideline of 17 is the rough executable game-interest trigger. A 5-8 minimum repeats the suit; a 9-11 maximum with a side ace/king shows the cheapest such feature; AKQJ in the six-card suit triggers the special solid-suit 3NT message. |
 | Forcing new suit after a weak preempt | `response-weak-preempt`, weak-two and three-level-preempt new-suit deals | A good natural new suit below the modeled game boundary is forcing. Opener raises with 3+ support and otherwise returns economically to the preempt suit. |
 | Three-level preempt structure | `opening-bids` and `response-weak-preempt` | Three-level preempts use exactly seven cards, the shared good-suit test, and less than ordinary one-level opening values. Responder can Pass with no fit, further the preempt with 3+ support, or show a qualifying forcing new suit; playing-trick-only game calls remain guidance. |
 | Strong artificial 2C responses | `response-strong-2c`, immediate positive and waiting-response deals | `2D` is an artificial waiting response with no minimum strength or shape requirement. With about 8+ HCP, a good 5+ suit can be shown immediately and a balanced hand can respond `2NT`; the descriptive positive responses rank ahead of waiting while `2D` remains available. |

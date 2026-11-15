@@ -38,6 +38,11 @@ should distinguish the app's chosen treatment from broader partnership judgment.
 Do not create additional SAYC-versus-modern settings or classification properties
 merely to document these differences.
 
+Bidding instruction emphasizes openings, responses, opener rebids, selected responder
+rebids, overcalls and takeout Doubles, advances, and selected overcaller/Doubler
+rebids. Later judgment-heavy decisions may end with auction-specific scope-boundary
+guidance rather than a prescribed call.
+
 ## Rules of Engagement
 
 - Use suit letters in code, rule declarations, and documentation: C, D, H, S, NT.
@@ -82,6 +87,8 @@ declarations from distinct rule IDs reused in more than one collection.
 - There is no required flattened `BiddingRules` array.
 - Keep rule declarations in the stage-specific `*-rules.ts` files and their refiners and applicability checks in the corresponding `*-functions.ts` files. The evaluator imports stage arrays directly; `common-rule-helpers.ts` contains only helpers needed across stages.
 - `BiddingSystem` is the configurable set of bidding agreements for the current practice session.
+  Apply the same agreements and fixed teaching assumptions to all four seats, including
+  opponents; do not reinterpret opponents' calls under a different partnership system.
 - A rule's optional `agreement` selects whether the whole rule is active in the current `BiddingSystem`.
 - Declarative `appliesWhen` values should remain concrete and literal. Prefer representing bidding
   variations as alternative declared rules rather than hiding applicability logic inside
@@ -172,6 +179,11 @@ and deliberate judgment boundaries. Report which distinctions already have evide
 which need a small addition at the actual decision point, and which are not reliably
 modeled. Do this analysis even when the family appears small; counting covered rule IDs
 or implementing one line per treatment is not a measure of instructional completeness.
+Review outcomes may be **Adequate** (existing teaching is sufficient), **Improve**
+(a concrete explanation or evidence gap), **Judgment boundary** (limited guidance
+without a reliable bid recommendation), or **Integration issue** (evaluated guidance
+not delivered consistently). A straightforward Pass, compulsory call, or explicit
+scope boundary does not need a custom explanation when shared guidance is sufficient.
 
 For a qualifying bid, teach the *decisive reasoning*: partner's promise and forcing
 status; the tested strength, suit length, support, shape, stopper, or suit quality; and
@@ -195,6 +207,9 @@ engine evaluated it. Do not present unrelated failed rules, invent reasons from 
 absent candidate, equate "not modeled" with "wrong," or turn a judgment boundary into
 a Pass recommendation. If an auction established a one-round or game force, say why
 Pass cannot discharge that obligation even when a specific rebid is outside scope.
+Some natural NT attempts are filtered before stopper-failure evidence is available;
+do not invent a stopper failure or other rejection reason. Investigate only when a
+concrete learner-facing problem can be reproduced.
 
 Keep eligibility, thresholds, suppression, and selection in the evaluator and rule
 functions; collect the small amount of structured evidence needed when those decisions
@@ -230,6 +245,15 @@ rule suite protects bidding behavior; no generic test can certify instructional
 quality, and exact-prose regression tests should not be added merely to enforce
 editorial choices. Prefer human review of the teaching trace, with focused behavioral
 tests only when executable qualification or integration could regress.
+
+Before changing learner-facing explanations, capture a temporary **current-master**
+baseline of relevant recorded-call and attempted-call feedback. After the change,
+compare rule matches, qualifying alternatives, turn statuses, and every changed
+explanation line. Identify deliberate instructional improvements separately from
+accidental drift. Do not assume old replay archives still exist or describe an old
+local snapshot as a current-master comparison. Keep broad replay tooling temporary;
+permanent regression tests should validate evaluated facts and explanation delivery,
+not exact wording.
 
 ## Constraint Semantics
 
@@ -283,6 +307,9 @@ tests only when executable qualification or integration could regress.
   recorded continuation to keep teaching the remaining lesson. State that the recorded call
   is the exercise's chosen path, not necessarily the only sound bid.
 - Show matching rules, suggested calls, and guidance.
+- The Report button copies diagnostic information to the clipboard, not instructional
+  feedback. Preserve the auction, all four hands, selected agreements, rule IDs,
+  explanations, and optional telemetry for debugging.
 - The trainer excludes DDS, simulation, scoring, penalty-double/redouble evaluation, and full
   auction judgment. Leave meanings outside the selected bidding system unresolved rather than
   inventing deterministic rules for them.
@@ -304,6 +331,9 @@ tests only when executable qualification or integration could regress.
   how a student would understand the auction.
 - Keep recorded auction calls consistent with the stated lesson and required system.
   Avoid unnecessary setup calls that create stronger alternative actions elsewhere.
+- Preserve the two practice exercises whose final recorded Pass completes an actual
+  auction with three Passes. Those final Passes are the tested balancing or
+  overcaller-rebid decisions, not filler to complete an auction.
 - Prefer a few useful contrasting examples over exhaustive deal-specific regression
   assertions. Do not add regression tests simply to police the editorial choice of hands.
 - Optional `practiceGuidance` supplements the normal rule explanation only when the
@@ -315,8 +345,10 @@ tests only when executable qualification or integration could regress.
 
 ## Continuing Development Guidance
 
-- Treat the latest provided source as authoritative. Inspect existing rules, auction routing,
-  practice deals, documentation, and explicit omissions before extending a bidding family.
+- GitHub `master` is authoritative for committed changes; compare any supplied ZIP
+  with current master before editing, and re-fetch files when the user reports
+  additional commits. Inspect existing rules, auction routing, practice deals,
+  documentation, and explicit omissions before extending a bidding family.
   Favor instructional continuity and partner promises over maximizing executable rule counts.
 - Follow `docs/code-style.md` when changing code. Retain the standalone `//` separators
   between bidding rule declarations.
@@ -327,9 +359,8 @@ tests only when executable qualification or integration could regress.
   recorded calls. Prefer selected instructional contrasts and targeted tests for risky rule
   interactions, not mechanical exhaustive regression matrices. Add per-deal guidance only
   when it teaches something beyond the ordinary rule explanation.
-- Delete completed roadmap tasks rather than preserving checked-off items. For source patches,
-  provide a unified `.patch` and identical `.txt`, with verification details. Do not generate
-  downloadable test-output files unless explicitly requested.
+- For source patches, provide a unified `.patch` and identical `.txt`, with verification
+  details. Do not generate downloadable test-output files unless explicitly requested.
 
 ## Practice-System Decisions
 
