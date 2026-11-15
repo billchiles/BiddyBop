@@ -26,10 +26,6 @@ not a historical progress log or a commitment to model every possible auction.
 
 ## Remaining project quality work
 
-- [ ] **Revisit borderline support-point judgment if play-throughs warrant it.**
-  In particular, Pass versus game after a simple major raise may depend on whether
-  responder's shortness is in opener's original suit; the current point thresholds
-  remain unchanged, although the explanation now acknowledges the limitation.
 - [ ] **Final quality checks.** Review remaining substantive full-auction concerns
   using information available to the bidder at each turn, not the unseen hands.
   Check dealer orientation when it materially affects the lesson, guidance accuracy,
