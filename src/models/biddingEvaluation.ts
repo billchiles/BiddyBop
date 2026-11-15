@@ -524,6 +524,54 @@ function evaluateRule (rule: BidRule, context: RuleEvalContext,
 }
 
 
+/// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
+/// then refines the remaining candidates.  Refiners never have to select an illegal or
+/// semantically repurposed call before alternative calls are considered.
+///
+function getRuleCalls (rule: BidRule, context: RuleEvalContext,
+                       system: BiddingSystem): CallRefinementResult {
+  if (rule.calls === undefined) {
+    return { calls: [], telemetryLines: [] };
+  }
+  const mechanicallyAvailable = rule.calls.filter((call) =>
+    isCallAvailableInAuction(call, context.auction));
+  const removed = rule.calls.filter((call) => ! mechanicallyAvailable.includes(call));
+  const telemetryLines = removed.length === 0 ? [] :
+    [`Unavailable in this auction: ${removed.join(', ')}.`];
+  const available = filterReusedOpenerRebidCalls(rule, mechanicallyAvailable, context);
+  if (rule.callRefinement === undefined || available.length === 0) {
+    return { calls: available, telemetryLines };
+  }
+  const refined = rule.callRefinement(available, context, system);
+  // A refiner should select from the offered candidates, not introduce new or illegal calls.
+  return {
+    calls: refined.calls.filter((call) => available.includes(call)),
+    telemetryLines: [...telemetryLines, ...refined.telemetryLines],
+    callEvidence: refined.callEvidence,
+  };
+}
+
+/// filterReusedOpenerRebidCalls protects meanings that change when ordinary natural opener
+/// rules are reused in competition.  A natural opponent suit is now a cuebid rather than opener's
+/// second/help suit, and a natural notrump rebid requires a basic stopper in that suit.
+function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
+                                       context: RuleEvalContext): Call[] {
+  if (context.stage !== 'openerRebid' ||
+      rule.auctionContext?.openerRebidAfterInterference !== true) {
+    return calls;
+  }
+  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  if (opponentSuits.length === 0) {
+    return calls;
+  }
+  return calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null) return true;
+    if (bid.strain !== 'NT' && opponentSuits.includes(bid.strain)) return false;
+    return bid.strain !== 'NT' || opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+  });
+}
+
 //// Agreement filtering
 /// Returns the rules enabled by the current bidding agreements.  Rules without an agreement are
 /// always enabled.  The bidding evaluator should receive this active rule set rather than decide
@@ -1314,7 +1362,7 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
 }
 
 ///
-//// Rule Testing Utilities -- interpreting rule declarations in context of actual hands, etc.
+//// Auction context matching -- interpreting rule declarations against the actual auction
 ///
 
 /// auctionContextMatches decides only whether a rule belongs to the current auction; hand qualification and call refinement are separate responsibilities.
@@ -1582,54 +1630,4 @@ function openerStrainMatches(openerStrain: AuctionContext['openerStrain'], call:
   }
 
   return callSuit === openerStrain;
-}
-
-
-/// filterReusedOpenerRebidCalls protects meanings that change when ordinary natural opener
-/// rules are reused in competition.  A natural opponent suit is now a cuebid rather than opener's
-/// second/help suit, and a natural notrump rebid requires a basic stopper in that suit.
-function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
-                                       context: RuleEvalContext): Call[] {
-  if (context.stage !== 'openerRebid' ||
-      rule.auctionContext?.openerRebidAfterInterference !== true) {
-    return calls;
-  }
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
-  if (opponentSuits.length === 0) {
-    return calls;
-  }
-  return calls.filter((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null) return true;
-    if (bid.strain !== 'NT' && opponentSuits.includes(bid.strain)) return false;
-    return bid.strain !== 'NT' || opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
-  });
-}
-
-//// Candidate call filtering and refinement
-/// getRuleCalls first removes mechanically unavailable calls and context-level reuse exclusions,
-/// then refines the remaining candidates.  Refiners never have to select an illegal or
-/// semantically repurposed call before alternative calls are considered.
-///
-function getRuleCalls (rule: BidRule, context: RuleEvalContext,
-                       system: BiddingSystem): CallRefinementResult {
-  if (rule.calls === undefined) {
-    return { calls: [], telemetryLines: [] };
-  }
-  const mechanicallyAvailable = rule.calls.filter((call) =>
-    isCallAvailableInAuction(call, context.auction));
-  const removed = rule.calls.filter((call) => ! mechanicallyAvailable.includes(call));
-  const telemetryLines = removed.length === 0 ? [] :
-    [`Unavailable in this auction: ${removed.join(', ')}.`];
-  const available = filterReusedOpenerRebidCalls(rule, mechanicallyAvailable, context);
-  if (rule.callRefinement === undefined || available.length === 0) {
-    return { calls: available, telemetryLines };
-  }
-  const refined = rule.callRefinement(available, context, system);
-  // A refiner should select from the offered candidates, not introduce new or illegal calls.
-  return {
-    calls: refined.calls.filter((call) => available.includes(call)),
-    telemetryLines: [...telemetryLines, ...refined.telemetryLines],
-    callEvidence: refined.callEvidence,
-  };
 }
