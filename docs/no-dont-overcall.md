@@ -10,6 +10,28 @@
 - Rule meaning, evidence, explanations, qualification, priority, and scope boundaries must agree with the chosen DONT setting. Prefer declarative agreement gating and focused auction helpers; no large evaluator conditionals, accidental rule order, or candidate order dependence.
 - Follow `docs/spec.md` and `docs/code-style.md`. Before learner-facing explanation edits, capture a temporary current-master comparison baseline (matched rule IDs, alternatives, ranking, statuses and explanation text), review every difference, and avoid permanent wording regression tests. Use reviewed batches and GitHub branch/commit/squash-merge process.
 
+## Current advancer agreements and pending quality review — 16 Nov 2026
+
+**Status:** The user approved the advancing design direction in the prior discussion, with an important correction to what it means for advancer to introduce a new suit. The **call meanings and scoped teaching approach below are agreed**, but numerical eligibility tests, especially the strength of advancer's independently playable suit, are **not yet fully approved for implementation**. This section supersedes earlier provisional advancer thresholds later in the file.
+
+### Agreed treatment of the quiet auction `1NT – natural 2X – Pass – ?`
+
+- **Pass:** Legitimate when advancer lacks a sufficiently good action, even with 11–12 HCP and poor fit; no inherited 10-HCP ceiling. The existing question of Pass as a lower-priority *qualifying alternative* versus a judgment explanation remains open; preserve DONT-on behavior.
+- **Competitive raise to `3X`:** Nonforcing, **not a routine game invitation**. A three-card raise with roughly 7–10 *total points with shortage* is the leading candidate; a weaker four-card raise with roughly 4–6 *total points with shortage* and at least some real HCP (first candidate: 4+) is also worth supporting. Do not use shortage points alone to justify nearly honorless raises. Two-card support normally does not justify a raise. These numeric cutoffs and actual four-hand practice examples still need verification, not automatic implementation.
+- **Economical new suit at the two level:** Natural, nonforcing, and a **serious offer to play in advancer's own suit**, not just a way to show six cards. Advancer must have a *genuinely strong, long suit*—at least six cards, often seven or eight—that advancer believes makes a better partscore than partner's known 6+ card suit **even if overcaller has zero cards in advancer's suit**. This expresses the student's partnership choice, not a mathematically provable comparison of contracts with the unknown partner hand. Normally require little support (0–1 cards) for the overcalled suit. There is no approved five-card exception. The call is legal only when the new suit can be bid at level two: after 2C, 2D/2H/2S; after 2D, 2H/2S; after 2H, 2S; after 2S, none.
+- **New-suit eligibility is specifically NOT yet solved by** `6+ cards && 7+ HCP && hasPreemptSuitQuality`. That helper is acceptable for **initial overcalling**, but by itself it may admit a six-card suit that is not strong enough to choose as trump opposite a possible void (e.g., AQ8765, even with 7+ HCP elsewhere). Assess whether a stronger, small, transparent suit-quality test based on honors/sequence and length can adequately teach the decision. Do **not** add a large playing-trick simulation or rule-scoring machinery. If a hand's choice remains too judgment-dependent, teach Pass or an explicit scope boundary rather than certify a weak new suit.
+- **Overcaller continuation:** Normally Pass a nonforcing 3X competitive raise or an economical nonforcing new suit; do not automatically correct to the three level because of a spade misfit or bid game based only on HCP. For genuine exceptional game/prospect or difficult misfit decisions, use a judgment boundary.
+- **Defer:** Three-level new suits, 2NT inquiry, routine natural 3NT, direct games without sound evidence, and broader later competitive auctions. Review responder's intervening Double/action as a separate subfamily after the quiet auction.
+
+### Still to resolve before coding
+
+1. Verify **three-card versus weaker four-card competitive raises** through plausible complete deals, accounting for the opposing 15–17/16–18 1NT, total HCP availability, vulnerability omitted from the app, and the existing shortage valuation. Check strong-support boundaries and fallback Pass suppression.
+2. Define a **deliberately strict independently playable new-suit test**: how strong must six cards be relative to seven or eight; what honor concentration or touching honors are needed; whether a 7-HCP floor helps or wrongly excludes exceptionally good long suits; how to explain an offered suit versus Pass. Test concrete hands where the existing preempt-quality helper is too loose. Keep the meaning nonforcing and the ordinary overcaller response Pass.
+3. Inspect how the student choosing **Pass** is evaluated when a marginal aggressive advance also qualifies, and how a strong-fit judgment boundary avoids being suppressed by fallback Pass.
+4. Only after the above, inspect selected games, opener/responder continuations, intervening responder action, compatible practice deals, and explanation-evidence baseline comparisons. No new bidding code is yet authorized.
+
+Relevant teaching: ACBL District 16's Meckwell teaching sheet specifies that advancer needs a six-card-or-longer suit strong enough to play opposite a singleton when choosing their own suit (https://www.d16acbl.org/Teaching_Material/Meckwell.pdf). David Loeb's Meckwell discussion calls 2S after natural 2H a natural offer to play (https://www.loebbridge.com/index.php/bridge-articles/meckwell-defense-to-1nt). These are analogies, not an agreement to implement Meckwell.
+
 ## Agreed/provisionally accepted natural overcalling treatment
 
 At the **direct overcaller's turn immediately after opponent's 1NT** when DONT is off:
@@ -59,7 +81,7 @@ Analyze actual cases such as `1NT – 2H – Pass – ?` for all four suits. Pri
 
 **Status:** No bidding code changes or final advancement agreement authorized by this checkpoint. Discussion and design first.
 
-## Advancer research checkpoint — 16 Nov 2026 (proposals, not yet approved)
+## Advancer research checkpoint — 16 Nov 2026 (historical proposals; superseded where clarified above)
 
 The direct-seat auction `1NT – 2X – Pass – ?` is the first advancer case to model. Research checked:
 
@@ -82,7 +104,7 @@ Observations:
 
 **Review before implementing**: (1) 3X raise length/shortage thresholds and whether to include weak four-trump raises, (2) new-suit nonforcing semantics and exact length/HCP tests, (3) Pass coexistence and strong-misfit boundaries, (4) whether any 2NT inquiry or direct major game is important enough to model, (5) overcaller's next-turn reply, (6) any responder intervention cases. These proposals are not yet agreed or coded.
 
-## Advancer design direction accepted — 16 Nov 2026
+## Earlier advancer checkpoint — 16 Nov 2026 (see current agreements above)
 
 The user approved the **general direction** of the advancing analysis. The rules below are a proposed teaching design, **not yet permission to generate bidding code or final approval of numerical thresholds**. Preserve this distinction in future discussions.
 
@@ -95,7 +117,7 @@ The user approved the **general direction** of the advancing analysis. The rules
 - **Defer for now:** Three-level new suits, an artificial 2NT game inquiry, natural 3NT, automatic direct game jumps, comprehensive competitive auctions, and detailed intervening responder sequences. Reconsider a narrow, instructive exception only if the source/rule review supports it.
 - **Exercises:** Choose credible four-hand practice deals for important calls and meaningful rejected alternatives, with recorded calls consistent with the active agreement; don't manufacture deals solely for coverage numbers.
 
-### Two priority design questions for the next review
+### Earlier design questions (see updated unresolved issues above)
 
 1. **Competitive three-level raises.** Should `3X` require at least three-card support and approximately 7–10 *total points with shortage*, or should four trumps permit a weaker competitive raise? Assess the absence of vulnerability/scoring, the strength and fit implied by a 7-HCP overcaller, and whether some two-trump cases merit Pass rather than a raise. Review concrete plausible hands, not just abstract thresholds.
 2. **Two-level new-suit advances.** Confirm whether an economical new suit should be **nonforcing** rather than the forcing treatment used in some other BiddyBop advancing families. Decide the minimum six-card suit/quality/7-HCP test, possible five-card exceptions, partner-suit support limitations, and precisely which overcaller Pass or correction is safe and teachable. Ensure an explanatory boundary for other continuations.
