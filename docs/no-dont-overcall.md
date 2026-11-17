@@ -87,6 +87,31 @@ For `1NT – natural 2X – Pass – ?` when DONT is off:
 
 **Relationship to DONT-off work:** This gap occurs over a **suit opening**, regardless of DONT being on or off; keep its future rules independent of the DONT setting. Preserve this workstream here to avoid losing it during chat resets, then move it into a dedicated plan or `docs/spec.md` when the sandwich review begins. **Immediate next task remains analysis of natural DONT-off overcaller's rebids after the agreed nonforcing advances**, not sandwich-seat code generation.
 
+## Approved quiet-auction natural overcaller rebids — 17 Nov 2026
+
+The user approved the proposed rebid meanings on 17 Nov 2026. These apply **only when DONT is off** and the auction began with an opposing strong `1NT` opening and a natural two-level suit overcall. The positive rebid treatment is settled; **exceptional game-prospect judgment thresholds remain to be analyzed before coding**.
+
+### Quiet auctions and rebid meanings
+
+- **After a competitive nonforcing raise:** `1NT – natural 2X – Pass – 3X – Pass – ?` (any of 2C/2D/2H/2S), overcaller **normally Passes**. Advancer's `3X` is competitive and less than invitational; the overcaller does not treat it as requiring another bid or a routine game invitation.
+- **After an economical, independent, natural new suit:** `1NT – natural 2X – Pass – 2Y – Pass – ?`, with `Y` different from `X` and legally available at the two level, overcaller **normally Passes**, **even with no cards in advancer's suit**. Advancer explicitly offered a long, independently strong, playable trump suit rather than requesting a forced correction or a game try. Do not require overcaller to have spade/new-suit support in order to Pass, and do not automatically correct to three of the original long suit.
+- **Available economical advances:** 2C → 2D/2H/2S; 2D → 2H/2S; 2H → 2S; 2S → none. Across four same-suit raises and six economical new-suit auctions, validate ten basic auction shapes; the rule design need not declare ten independent rules.
+- **Exceptional boundaries not yet finalized:** An unusually powerful overcaller with genuine game prospects after the `3X` raise, or substantial extra strength and support for advancer's independent new suit, may need a *judgment/scope boundary* instead of automatic Pass. Do **not** automatically recommend game, apply a 16-HCP cutoff from an unrelated weak-two family, or assert a particular HCP threshold without a narrow hand/playing-strength review. Stronger HCP alone need not create an exception; preserve the nonforcing meanings.
+- **If the original 1NT opener competes instead of passing** (e.g., `1NT – 2H – Pass – 2S – 3C – ?`), this is *not* a quiet auction. Neither automatic Pass rule should apply. Evaluate this auction family separately, with a deliberate scope explanation in the interim.
+
+### Existing code, agreement differences, and test safeguards
+
+- `src/models/auction.ts` already recognizes the physical fifth-turn `overcallerRebid` stage for these auction shapes. The missing piece is the **DONT-off rule family**, not a broad stage-selector rewrite.
+- In `src/models/overcalling-rules.ts`, existing `overcaller-rebid-dont-pass-or-correct` handles conventional DONT continuations. Gate it to **DONT on** and add separate DONT-off natural rebid rules/eligibility and suitable explanation evidence; reuse auction parsing where meanings truly coincide.
+- These identical call sequences carry **different meanings**: `1NT–2C–Pass–2D–Pass` is a DONT relay when enabled, but natural diamonds offered as trumps when disabled; similarly `1NT–2D–Pass–2H–Pass` and `1NT–2H–Pass–2S–Pass`. The eventual Pass might be the same, but qualifications, explanation text, alternative calls, and active agreement must remain correct.
+- Overcaller may infer only what advancer's bid **promised**; do **not** inspect advancer's hidden hand to judge whether Pass or a correction qualifies, despite all four hands being represented internally.
+- Use two focused positive families: Pass after a competitive raise; Pass after a nonforcing independent new suit. Make strong-hand boundaries mutually exclusive with routine Pass, preserving the current evaluator's boundary-suppression behavior.
+- Verify DONT-on rule IDs, qualifying calls, alternatives, ranking, scope statuses, and full learner-facing explanations against the temporary master baseline. Add focused DONT-off tests for all quiet shapes and paired agreement tests for same-auction/different-meaning relays.
+
+### Next analysis, before code generation
+
+**First:** Review whether exceptional overcaller game prospects after a competitive `3X` raise or independently strong new-suit advance can be identified with a *small and reliable* criterion, or whether the best design is simply normal Pass with a note that exceptional judgment is outside scope. Avoid raising complexity just to cover rare hands. **Then:** Analyze the advancer's turn when the original 1NT responder Doubles or bids a suit instead of Passing (`1NT – natural 2X – Double/2Y/... – ?`), keeping the interaction with both partnerships' later turns bounded. Follow with opening-1NT-side responding/opener continuations, selected second turns, practice coverage, and implementation batches.
+
 ## Agreed/provisionally accepted natural overcalling treatment
 
 At the **direct overcaller's turn immediately after opponent's 1NT** when DONT is off:
