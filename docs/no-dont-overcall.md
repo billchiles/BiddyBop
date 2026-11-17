@@ -53,6 +53,28 @@ These principles were reviewed and approved for DONT-off. They are *design agree
 
 Relevant teaching: ACBL District 16's Meckwell teaching sheet specifies that advancer needs a six-card-or-longer suit strong enough to play opposite a singleton when choosing their own suit (https://www.d16acbl.org/Teaching_Material/Meckwell.pdf). David Loeb's Meckwell discussion calls 2S after natural 2H a natural offer to play (https://www.loebbridge.com/index.php/bridge-articles/meckwell-defense-to-1nt). These are analogies, not an agreement to implement Meckwell. Further source for the agreed independently strong suit test: Ron Klinger, *The Suit Quality Test* (https://csbnews.org/en/the-suit-quality-test-by-ron-klinger/); ACBL Unit 390 teaching examples (https://www.acblunit390.org/Simon/ltc.htm).
 
+## Competitive raise and exceptional-advancer recommendations — 17 Nov 2026 (pending approval)
+
+This records the latest *recommendations* from the final quiet-auction advancing review. The user asked that they be preserved, **not yet treated as accepted numerical agreements or bidding-code authorization**. Their suitability still needs the user's review after the separate auction issue below is analyzed.
+
+For `1NT – natural 2X – Pass – ?` when DONT is off:
+
+- **Three-card support competitive raise `3X`:** candidate 7–10 *total points with shortage*, with **at least 6 actual HCP**; remain under 10 actual HCP. The added HCP floor avoids qualifying barely honorable hands from shortage points alone. This is competitive/nonforcing, not invitational.
+- **Four-plus-card support weaker competitive raise `3X`:** candidate 4–6 *total points with shortage* with **at least 4 HCP**. At 7–10 support points, the ordinary band applies, subject to the strong-support boundary. Four cards guarantee at least ten combined trumps because natural 2X promises 6+; no mechanical rule that the LAW requires raising when the opponents have passed. Vulnerability and actual playing tricks remain unmodeled.
+- **Strong-support judgment boundary:** with 3+ trumps, candidate **11+ total points with shortage OR 10+ actual HCP**. This is not a claim that the hand is game-going; the app should avoid suggesting a purely competitive 3X, indiscriminate Pass, or automatic game on such a hand. Avoid conflicts where a boundary and qualifying concrete call coexist.
+- **Strong misfit judgment boundary:** with poor fit, no qualifying independent economical new suit, and candidate **13+ HCP**, review whether guidance should stop rather than treating all such hands as fallback Pass. Poor-fit 11–12 HCP can still normally Pass. A 13+ cutoff is only a proposed instructional simplification.
+- **Pass and evaluators:** As already agreed, do not introduce general evaluator suppression changes or label all marginal passes as equal qualifying alternatives; explain legal/conservative Pass where useful. Keep DONT-on output unchanged.
+- **Practice feasibility:** Check all 52 unique cards, 40 HCP, and whether the 1NT responder's recorded Pass is plausible. Illustrative deals should not be converted into rules merely because the HCP totals work.
+
+### New immediate review priority — scope gaps outside DONT-off
+
+Before analyzing the *natural defense overcaller's rebid* or coding the new DONT-off family, inspect this actual user-generated auction:
+
+- North ♠ A Q 9, ♥ A Q J 9, ♦ 7 5, ♣ J 8 7 4; East ♠ 8 4 3, ♥ 10, ♦ A J 10 9, ♣ Q 10 6 5 3; South ♠ 2, ♥ K 8 7 4 2, ♦ 6 4 3 2, ♣ A 9 2; West ♠ K J 10 7 6 5, ♥ 6 5 3, ♦ K Q 8, ♣ K.
+- Auction `1C – Pass – 1H – 1S – ?`: the report has no guidance for West's fourth-seat 1S or North's next call; user asks why a natural 1S interference cannot be taught and whether North's cheap 2H support (four hearts opposite responder's five) should be supported.
+- This is **not** the DONT-off `1NT – natural 2X` auction and should be analyzed independently. Determine whether the lack of a stage is an intentional scope boundary or a worthwhile, narrow gap in natural overcalling/opener rebidding. Trace the actual auction-stage gates, rule applicability, and comments before recommending code. Do not broaden the DONT project automatically.
+- Return to limited natural-defense overcaller rebids, intervening responder action, and the opening-side continuations only after agreeing on the separate example's significance.
+
 ## Agreed/provisionally accepted natural overcalling treatment
 
 At the **direct overcaller's turn immediately after opponent's 1NT** when DONT is off:
