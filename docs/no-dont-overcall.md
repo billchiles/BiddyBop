@@ -66,14 +66,26 @@ For `1NT – natural 2X – Pass – ?` when DONT is off:
 - **Pass and evaluators:** As already agreed, do not introduce general evaluator suppression changes or label all marginal passes as equal qualifying alternatives; explain legal/conservative Pass where useful. Keep DONT-on output unchanged.
 - **Practice feasibility:** Check all 52 unique cards, 40 HCP, and whether the 1NT responder's recorded Pass is plausible. Illustrative deals should not be converted into rules merely because the HCP totals work.
 
-### New immediate review priority — scope gaps outside DONT-off
+### Separate workstream after DONT — systematic sandwich-seat bidding review
 
-Before analyzing the *natural defense overcaller's rebid* or coding the new DONT-off family, inspect this actual user-generated auction:
+**Decision, 17 Nov 2026:** The uncovered auction is evidence of a *material coverage gap*, likely arising from the order in which the existing rules were developed, rather than a consciously chosen narrow exception to avoid. Do not describe it as merely one missing `1S` rule or limit the future solution to one-level bids. Complete the current optional-DONT analysis and, if practical, its implementation first; then undertake a **full, stage-by-stage sandwich-seat design and implementation review** as a distinct workstream. The user expects this auction to arise frequently in New Deal mode.
+
+**Triggering complete deal and auction** (from a New Deal report):
 
 - North ♠ A Q 9, ♥ A Q J 9, ♦ 7 5, ♣ J 8 7 4; East ♠ 8 4 3, ♥ 10, ♦ A J 10 9, ♣ Q 10 6 5 3; South ♠ 2, ♥ K 8 7 4 2, ♦ 6 4 3 2, ♣ A 9 2; West ♠ K J 10 7 6 5, ♥ 6 5 3, ♦ K Q 8, ♣ K.
-- Auction `1C – Pass – 1H – 1S – ?`: the report has no guidance for West's fourth-seat 1S or North's next call; user asks why a natural 1S interference cannot be taught and whether North's cheap 2H support (four hearts opposite responder's five) should be supported.
-- This is **not** the DONT-off `1NT – natural 2X` auction and should be analyzed independently. Determine whether the lack of a stage is an intentional scope boundary or a worthwhile, narrow gap in natural overcalling/opener rebidding. Trace the actual auction-stage gates, rule applicability, and comments before recommending code. Do not broaden the DONT project automatically.
-- Return to limited natural-defense overcaller rebids, intervening responder action, and the opening-side continuations only after agreeing on the separate example's significance.
+- `1C – Pass – 1H – 1S – ?`: West has a natural, well-supported **sandwich-seat** `1S` with 12 HCP and six spades headed K-J-T. North has 14 HCP, four hearts headed A-Q-J, and 15 *total points with shortage*, enough to consider economical `2H` support opposite South's 1H response. Both turns currently receive **no bidding guidance**, `stage: null`.
+- These are natural, teachable decisions; the absence of guidance results from the auction-stage/supported-auction coverage, not from West's or North's hand failing the ordinary suit-quality/support criteria.
+- Sandwich seat is **not balancing**: the auction `1C – Pass – 1H – ?` follows an actual response by the opening partnership, whereas balancing follows two Passes after opening.
+
+**Future analysis must be systematic, not a patch for this single example:**
+
+1. Inventory all `1-suit opening – Pass – response – sandwich action` entry auctions, with a meaningful distinction between responder's one-level and two-level calls, strength, forcing status, and what has been shown; do not silently extend direct-overcall meanings to this later position.
+2. Analyze sandwich player's **Pass, natural one- and two-level overcalls, Double, and selected other actions** using bridge references and practical priorities, explicitly deciding what to model or leave at a judgment boundary. Include hand conditions, agreement meanings, and evidence/explanation requirements.
+3. For the opening partnership, systematically review **opener's rebids after sandwich interference**, including simple raises, other natural rebids, Doubles where relevant, forcing obligations, and the distinction between ordinary support and support-Double partnership agreements. Do not blindly enable all uncontested opener rules.
+4. Review **subsequent responder, advancer, sandwich-overcaller rebids, and continuing competitive auctions**, selecting coherent, common and teachable cases; make deliberate scope decisions only after the end-to-end coverage audit. Reuse or parameterize the existing advancing, overcalling, and opener-rebid calculations where meanings genuinely align, and create dedicated rules/evidence when they do not.
+5. Add credible four-hand practice deals, focused stage/rule/explanation-delivery tests, and temporary before/after matched-rule/alternative/status/explanation comparisons; preserve currently covered auctions and agreed code style. Document specific *remaining* scope limitations in `docs/spec.md` rather than assuming this auction must stop.
+
+**Relationship to DONT-off work:** This gap occurs over a **suit opening**, regardless of DONT being on or off; keep its future rules independent of the DONT setting. Preserve this workstream here to avoid losing it during chat resets, then move it into a dedicated plan or `docs/spec.md` when the sandwich review begins. **Immediate next task remains analysis of natural DONT-off overcaller's rebids after the agreed nonforcing advances**, not sandwich-seat code generation.
 
 ## Agreed/provisionally accepted natural overcalling treatment
 
