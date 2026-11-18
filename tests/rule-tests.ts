@@ -1530,6 +1530,44 @@ function runDontBoundaryTests (): number {
     console.error('FAIL DONT relay correction survived opener competition.');
   }
 
+  // Agreement gating must remove conventional DONT candidates and their practice deals
+  // without changing the default-on DONT rule matches.
+  const dontOff = { ...defaultBiddingSystem, dont: false };
+  const majorsDeal = DONT_1NT_DEFENSE_TEST_DEALS[5];
+  checks++;
+  if (majorsDeal === undefined) {
+    failures++;
+    console.error('FAIL missing DONT two-major practice deal.');
+  } else {
+    const majorsBoard = makeRuleTestBoard(majorsDeal).board;
+    const enabled = evaluateUserCall('2H', majorsBoard, ['1NT'], defaultBiddingSystem);
+    const disabled = evaluateUserCall('2H', majorsBoard, ['1NT'], dontOff);
+    if (!enabled.userCallMatchingRules.some((rule) => rule.id === 'overcall-dont-majors') ||
+        disabled.applicableRules.some((rule) => rule.id.startsWith('overcall-dont-'))) {
+      failures++;
+      console.error('FAIL DONT direct overcalls were not gated by the active agreement.');
+    }
+  }
+
+  checks++;
+  if (getRulesBucketTestDeals('overcall-dont-1nt', dontOff).length !== 0 ||
+      getRulesBucketTestDeals('overcall-dont-1nt', defaultBiddingSystem).length !==
+        DONT_1NT_DEFENSE_TEST_DEALS.length) {
+    failures++;
+    console.error('FAIL DONT practice deals did not follow the selected agreement.');
+  }
+
+  const dontResponderDeal = RESPONSE_AFTER_1NT_OPENING_TEST_DEALS.find((deal) =>
+    deal.expectedResponseCalls?.some((item) => item.ruleIds.includes(
+      'respond-after-dont-majors-natural-minor')) === true);
+  checks++;
+  if (dontResponderDeal === undefined ||
+      isPracticeDealCompatible(dontResponderDeal, dontOff) ||
+      !isPracticeDealCompatible(dontResponderDeal, defaultBiddingSystem)) {
+    failures++;
+    console.error('FAIL DONT-only responder practice was not agreement gated.');
+  }
+
   console.log(`${failures} ***FAILURES***. DONT boundaries: ${checks} checks.`);
   console.log('  Keeps compact DONT in the direct strong-1NT auction, enforces the modeled');
   console.log('  shape/strength floor, and stops the pass-or-correct path after interference.\n');

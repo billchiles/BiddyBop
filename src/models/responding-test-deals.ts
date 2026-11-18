@@ -817,6 +817,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     description: 'After 1NT-(DONT 2H showing both majors), a good long club suit ' +
                  'with 10+ HCP permits a natural 3C response.',
     practiceAuction: ['1NT', '2H', '3C'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },
@@ -834,6 +835,7 @@ export const RESPONSE_AFTER_1NT_OPENING_TEST_DEALS: RuleTestDeal[] = [
     description: 'After 1NT-(DONT 2H), 3D is a natural good five-card minor; ' +
                  "2S is a bid of an opponent's suit, not a natural spade response.",
     practiceAuction: ['1NT', '2H', '3D'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [
       { call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] },

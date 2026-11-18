@@ -225,6 +225,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-2NT-(Pass)-3NT: a maximum 1NT opener accepts responder’s natural ' +
                  'invitation with both DONT majors stopped.',
     practiceAuction: ['1NT', '2H', '2NT', 'Pass', '3NT'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [
@@ -242,6 +243,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3NT-(Pass)-Pass: responder’s natural game signoff keeps its ordinary ' +
                  'meaning after the selected interference.',
     practiceAuction: ['1NT', '2H', '3NT', 'Pass', 'Pass'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [
@@ -710,6 +712,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3C-(Pass)-3NT: a constructive club suit, not a ' +
                  'spade takeout Double, leads opener to game with both major stoppers.',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3C', ruleIds: [
@@ -727,6 +730,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3D-(Pass)-3NT: a good long minor and 10+ HCP ' +
                  'allow a constructive natural response; opener stops both majors.',
     practiceAuction: ['1NT', '2H', '3D', 'Pass', '3NT'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3D', ruleIds: [
@@ -744,6 +748,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3C-(Pass)-Pass: constructive natural clubs ' +
                  'can be passed by a minimum opener missing the heart stopper.',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', 'Pass'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3C', ruleIds: [
@@ -761,6 +766,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3D-(Pass)-3NT: a maximum opener ' +
                  'with both major stoppers chooses game after a good natural minor.',
     practiceAuction: ['1NT', '2H', '3D', 'Pass', '3NT'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3D', ruleIds: [
@@ -778,6 +784,7 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     description: '1NT-(DONT 2H)-3C-(Pass)-3NT: responder is constructive with good clubs ' +
                  'and 10+ HCP, and opener has the stoppers in both DONT majors.',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-dont-majors'] }],
     expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
     expectedResponseCalls: [{ call: '3C', ruleIds: [

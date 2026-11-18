@@ -255,6 +255,7 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Pass weakly when DONT 2H shows both majors',
     auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     calls: ['Pass'],
     callCategory: ['signoff'],
     appliesWhen: (_call, context, system) => ({
@@ -269,6 +270,7 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Natural 2NT invitation with both majors stopped over DONT',
     auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     calls: ['2NT'],
     callCategory: ['natural', 'invitational'],
     appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 8, 9),
@@ -279,6 +281,7 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Natural 3NT game with both majors stopped over DONT',
     auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     calls: ['3NT'],
     callCategory: ['natural', 'signoff'],
     appliesWhen: (_call, context, system) => dontMajorsNaturalNt(context, system, 10, 15),
@@ -289,6 +292,7 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Bid a strong natural minor at the three level over DONT majors',
     auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     calls: ['3C', '3D'],
     callCategory: ['natural'],
     appliesWhen: dontMajorsNaturalMinor,
@@ -302,6 +306,7 @@ export const DontTwoMajorInterferenceResponseRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Other continuations after an opposing artificial DONT overcall',
     auctionContext: { stage: 'responding', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     scopeBoundaryWhen: (context) => ({
       success: (() => {
         const first = context.auction.findIndex((call) => call !== 'Pass');

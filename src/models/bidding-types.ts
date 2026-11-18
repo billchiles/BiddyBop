@@ -66,6 +66,8 @@ export interface BiddingSystem {
   splinters: boolean;
   // Texas transfers use 4D/4H to transfer to 4H/4S.
   texasTransfers: boolean;
+  // DONT is the conventional defense to an opposing strong 1NT; off means natural overcalls.
+  dont: boolean;
 }
 
 export const defaultBiddingSystem: BiddingSystem = {
@@ -79,6 +81,7 @@ export const defaultBiddingSystem: BiddingSystem = {
   jacobyTransfers: true,
   splinters: true,
   texasTransfers: true,
+  dont: true,
 };
 
 /// BiddingAgreement is a convention agreement and a value for it, sometimes just a boolean yes/no.
@@ -96,7 +99,8 @@ export type BiddingAgreement =
   | { setting: 'stayman'; value: boolean; note?: string }
   | { setting: 'jacobyTransfers'; value: boolean; note?: string }
   | { setting: 'splinters'; value: boolean; note?: string }
-  | { setting: 'texasTransfers'; value: boolean; note?: string };
+  | { setting: 'texasTransfers'; value: boolean; note?: string }
+  | { setting: 'dont'; value: boolean; note?: string };
 
 /// Our selected 16-18 opening range lowers the 1NT bidder's partner's ordinary response
 /// thresholds by one. The same range setting applies after a natural 1NT overcall; do not also
@@ -132,8 +136,6 @@ export function oneNtResponseHcpShift (system: BiddingSystem): number {
 //   fourNtAfterNotrumpIsQuantitative: true,
 //   // Blackwood 4NT asks for aces after a suit auction.
 //   blackwoodAfterSuitBid: true,
-//   // Fixed competitive defense
-//   dontAgainstStrongOneNt: true,
 //   // Basic responding principles
 //   oneSuitMinResponsePoints: 6,
 //   oneSuitMinResponseNewSuitLength: 4,
