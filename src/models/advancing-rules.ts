@@ -33,7 +33,8 @@ import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies
          refineAdvancerRaiseAfterNegativeDouble, refineAdvancerCuebidAfterNegativeDouble,
          naturalNotrumpAfterNegativeDoubleApplies, refineSelectedNewSuitAfterNegativeDouble,
          strengthRedoubleAfterNegativeDoubleApplies, refineTakeoutEscapeAfterResponderRedouble,
-         jumpOvercallPassApplies, refineDontAdvance, refineJumpOvercallRaise,
+         jumpOvercallPassApplies, refineDontAdvance, refineNaturalOneNtAdvance,
+         naturalOneNtAdvanceApplies, naturalOneNtAdvanceBoundary, refineJumpOvercallRaise,
          refineJumpOvercallMajorGame, refineJumpOvercallNewSuit } from './advancing-functions';
 
 
@@ -189,6 +190,82 @@ export const AdvanceRules: BidRule[] = [
     guidance: ['After Double, relay to 2C. After 2C or 2D, pass with a fit or bid the next suit ' +
                'to ask partner to pass or correct. After 2H, choose the preferred major.',
                'Game inquiries and continuations after responder competes are not modeled.'],
+  },
+  //// Natural defense of strong 1NT -- Quiet advances
+  // A natural two-level overcall shows six or more cards in the named suit.
+  // These actions are nonforcing, not ordinary advances after a suit opening.
+  {
+    id: 'advance-natural-vs-1nt-pass',
+    kind: 'advance',
+    title: 'Pass without a suitable natural advance over 1NT',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) => naturalOneNtAdvanceApplies(call, context, 'pass'),
+    meaning: 'Pass partner’s nonforcing natural two-level overcall when no constructive ' +
+             'advance qualifies and no strong-hand judgment boundary applies.',
+    guidance: ['Poor fit alone does not impose a 10-HCP ceiling on Pass. ' +
+               'A conservative Pass with a marginal constructive possibility can still ' +
+               'be reasonable depending on vulnerability and other judgment.'],
+  },
+  //
+  {
+    id: 'advance-natural-vs-1nt-competitive-raise',
+    kind: 'advance',
+    title: 'Raise the natural overcall competitively to three',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['3C', '3D', '3H', '3S'],
+    callRefinement: (calls, context) => refineNaturalOneNtAdvance(calls, context, 'raise'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => naturalOneNtAdvanceApplies(call, context, 'raise'),
+    meaning: 'A competitive nonforcing raise, not a routine game invitation.',
+    guidance: ['With exactly three trumps, require 7–10 total points with shortage, ' +
+               '6–9 actual HCP. With four or more trumps, require 4–10 total points ' +
+               'with shortage, 4–9 actual HCP. Two-card support is insufficient.'],
+  },
+  //
+  {
+    id: 'advance-natural-vs-1nt-independent-new-suit',
+    kind: 'advance',
+    title: 'Offer an independently playable new suit at the two level',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['2D', '2H', '2S'],
+    callRefinement: (calls, context) => refineNaturalOneNtAdvance(calls, context, 'newSuit'),
+    callCategory: ['natural', 'signoff'],
+    appliesWhen: (call, context) => naturalOneNtAdvanceApplies(call, context, 'newSuit'),
+    meaning: 'Natural, nonforcing offer to play in advancer’s independent six-card-or-longer suit.',
+    guidance: ['Requires at least 7 actual HCP, six cards in the suit, Klinger suit-quality ' +
+               'score of at least 10, the existing preempt-honor-quality test, and at most ' +
+               'one card in partner’s overcalled suit. It is not a relay or a game try.'],
+  },
+  //
+  {
+    id: 'advance-natural-vs-1nt-strong-support-boundary',
+    kind: 'scopeBoundary',
+    title: 'Strong fit over a natural 1NT defense requires judgment',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: (context) => naturalOneNtAdvanceBoundary(context, 'strongSupport'),
+    meaning: 'Three or more trumps with 11+ total points with shortage or 10+ actual ' +
+             'HCP require judgment beyond the routine competitive three-level raise.',
+    guidance: ['Game prospects depend on fit, playing strength, honor location and ' +
+               'vulnerability. The app does not automatically recommend Pass or game.'],
+  },
+  //
+  {
+    id: 'advance-natural-vs-1nt-strong-misfit-boundary',
+    kind: 'scopeBoundary',
+    title: 'Strong misfit over a natural 1NT defense requires judgment',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: (context) => naturalOneNtAdvanceBoundary(context, 'strongMisfit'),
+    meaning: 'With at least 13 HCP, little support, and no independently playable ' +
+             'economical new suit, defending, competing or other action needs judgment.',
+    guidance: ['Ordinary 11–12-HCP poor-fit hands can still Pass. The app does not ' +
+               'infer a penalty Double or automatic Pass for a much stronger misfit.'],
   },
   //// Natural one-level suit overcall -- Advances after responder Pass
   // First family: advance partner's natural one-level suit overcall when responder passes.

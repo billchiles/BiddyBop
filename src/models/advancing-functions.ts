@@ -5,7 +5,7 @@ import { type AppliesWhenResult, type Call, type CallEvidence, type CallRefineme
 import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
          parseSuitBid, isCallAvailableInAuction, type ParsedSuitBid } from './auction';
 import { getNegativeDoubleImpliedSuits, hasBasicSuitStopper } from './common-rule-helpers';
-import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 
 
 //// DONT advances after the opponents pass
@@ -46,6 +46,131 @@ export function refineDontAdvance (calls: Call[], context: RuleEvalContext): Cal
         clubLength: lengths.C, diamondLength: lengths.D,
         heartLength: lengths.H, spadeLength: lengths.S },
     } };
+}
+
+
+
+//// Natural advances of a strong 1NT overcall -- Responder Pass
+
+/// This family recognizes only 1NT - natural 2X - Pass - ?. The fourth-seat hand
+/// offers a competitive raise, an independently playable *economical* two-level suit,
+/// or Pass. The opponents' 1NT has no known suit to cuebid or promise a stopper in.
+interface NaturalOneNtAdvanceDecision {
+  partnerSuit: Suit;
+  overcall: ParsedSuitBid;
+  hcp: number;
+  support: number;
+  supportPoints: number;
+  raise: boolean;
+  newSuits: Call[];
+  strongSupport: boolean;
+  strongMisfit: boolean;
+}
+
+/// Keep only partner's three-level suit for a raise, or economical two-level
+/// alternatives different from partner's suit. Hand eligibility is checked later.
+export function refineNaturalOneNtAdvance(calls: Call[], context: RuleEvalContext,
+    kind: 'raise' | 'newSuit'): CallRefinementResult {
+  const decision = getNaturalOneNtAdvanceDecision(context);
+  if (decision === null) return { calls: [], telemetryLines: [] };
+  return { calls: calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    if (bid === null || bid.strain === 'NT') return false;
+    if (kind === 'raise') return bid.level === 3 && bid.strain === decision.partnerSuit;
+    return bid.level === 2 && bid.strain !== decision.partnerSuit &&
+      cheapestBidInStrainAfter(decision.overcall, bid.strain) === call;
+  }), telemetryLines: [] };
+}
+
+/// The same assessment determines the constructive choices, fallback Pass, and
+/// non-overlapping exceptional-hand boundaries. A qualifying bid never inherits Pass.
+export function naturalOneNtAdvanceApplies(call: Call, context: RuleEvalContext,
+    kind: 'pass' | 'raise' | 'newSuit'): AppliesWhenResult {
+  const decision = getNaturalOneNtAdvanceDecision(context);
+  if (decision === null) return { success: false, telemetryLines: [] };
+  const bid = parseSuitBid(call);
+  const newSuit = kind === 'newSuit' && bid !== null && bid.strain !== 'NT' &&
+    bid.strain !== decision.partnerSuit && bid.level === 2 &&
+    cheapestBidInStrainAfter(decision.overcall, bid.strain) === call;
+  const offeredSuit = newSuit && bid !== null ? bid.strain as Suit : null;
+  const suitQuality = offeredSuit === null ? null : getIndependentSuitQuality(context, offeredSuit);
+  const length = offeredSuit === null ? 0 : context.handFacts.lengths[offeredSuit];
+  const independent = newSuit && offeredSuit !== null && decision.support <= 1 &&
+    decision.hcp >= 7 && length >= 6 && suitQuality !== null && suitQuality.suitable;
+  const raise = kind === 'raise' && bid !== null && bid.level === 3 &&
+    bid.strain === decision.partnerSuit && decision.raise;
+  const pass = kind === 'pass' && call === 'Pass' && !decision.raise &&
+    decision.newSuits.length === 0 && !decision.strongSupport && !decision.strongMisfit;
+  const success = raise || independent || pass;
+  const evidence: NonNullable<CallEvidence['naturalOneNtAdvance']> = {
+    kind, partnerSuit: decision.partnerSuit, support: decision.support,
+    hcp: decision.hcp, supportPoints: decision.supportPoints,
+    offeredSuit: offeredSuit ?? undefined, offeredLength: offeredSuit === null ? undefined : length,
+    suitQuality: suitQuality?.score, preemptQuality: suitQuality?.preemptQuality,
+  };
+  return { success, callEvidence: { naturalOneNtAdvance: evidence },
+    telemetryLines: [`${success ? 'PASS' : 'FAIL'}: natural advance ${kind}; ` +
+      `${decision.hcp} HCP, ${decision.supportPoints} total points with shortage, ` +
+      `${decision.support} partner trumps${suitQuality === null ? '' :
+        `, independent-suit quality ${suitQuality.score}`}.`] };
+}
+
+/// The judgment boundaries cannot coexist with a positive bid or fallback Pass.
+/// A strong fit is not automatically a game invitation; a 13+ HCP misfit is
+/// beyond the limited quiet-Pass treatment when no independent new suit qualifies.
+export function naturalOneNtAdvanceBoundary(context: RuleEvalContext,
+    kind: 'strongSupport' | 'strongMisfit'): AppliesWhenResult {
+  const decision = getNaturalOneNtAdvanceDecision(context);
+  const success = decision !== null && (kind === 'strongSupport' ?
+    decision.strongSupport : decision.strongMisfit);
+  return { success, telemetryLines: [success ?
+    'PASS: hand requires competitive judgment beyond a quiet natural advance.' :
+    'FAIL: no exceptional natural advance boundary.'] };
+}
+
+/// Read the actual physical fourth turn, not a compact partnership auction.
+/// Reuse a single decision for all three quiet advance call meanings.
+function getNaturalOneNtAdvanceDecision(context: RuleEvalContext): NaturalOneNtAdvanceDecision | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'advancing' || opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 3 ||
+      context.auction[opening.index + 2] !== 'Pass') return null;
+  const overcallCall = context.auction[opening.index + 1];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT') return null;
+  const partnerSuit = overcall.strain as Suit;
+  const support = context.handFacts.lengths[partnerSuit];
+  const hcp = context.handFacts.hcp;
+  const supportPoints = context.handFacts.totalPointsWShortage;
+  const raise = hcp < 10 && (support === 3 ?
+    hcp >= 6 && supportPoints >= 7 && supportPoints <= 10 :
+    support >= 4 && hcp >= 4 && supportPoints >= 4 && supportPoints <= 10);
+  const newSuits = SUITS.flatMap((suit) => {
+    if (suit === partnerSuit || support > 1 || hcp < 7 ||
+        context.handFacts.lengths[suit] < 6 || !getIndependentSuitQuality(context, suit).suitable) {
+      return [];
+    }
+    const next = cheapestBidInStrainAfter(overcall, suit);
+    return next !== null && parseSuitBid(next)?.level === 2 ? [next] : [];
+  });
+  const strongSupport = support >= 3 && (supportPoints >= 11 || hcp >= 10);
+  const strongMisfit = support < 3 && hcp >= 13 && newSuits.length === 0;
+  return { partnerSuit, overcall, hcp, support, supportPoints, raise,
+    newSuits, strongSupport, strongMisfit };
+}
+
+/// Klinger's suit-quality score counts length plus A/K/Q, and counts J or 10
+/// only if a higher honor is in that suit. Also require existing preempt quality;
+/// neither score nor length alone replaces the independent 7-HCP hand minimum.
+function getIndependentSuitQuality(context: RuleEvalContext, suit: Suit):
+    { score: number; preemptQuality: boolean; suitable: boolean } {
+  const ranks = getCardsForSuit(context.hand, suit).map((card) => card.rank);
+  const honors = ranks.filter((rank) => rank === 'A' || rank === 'K' || rank === 'Q');
+  const jack = ranks.includes('J') && honors.length > 0 ? 1 : 0;
+  const ten = ranks.includes('T') && (honors.length > 0 || ranks.includes('J')) ? 1 : 0;
+  const score = ranks.length + honors.length + jack + ten;
+  const preemptQuality = hasPreemptSuitQuality(context.hand, suit);
+  return { score, preemptQuality, suitable: score >= 10 && preemptQuality };
 }
 
 
