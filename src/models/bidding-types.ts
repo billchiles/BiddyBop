@@ -476,6 +476,8 @@ export interface CallEvidence {
     qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
   }[];
   balancingPass?: { hcp: number; openerSuitLength: number; reason: 'weak' | 'defend' | null };
+  // Optional comparison with an actually qualifying conventional DONT call, never an active candidate.
+  dontComparison?: { call: Call; suits: Suit[] };
   dontInitial?: {
     hcp: number;
     lengths: Record<Suit, number>;

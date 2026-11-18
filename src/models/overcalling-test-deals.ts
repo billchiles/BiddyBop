@@ -214,6 +214,62 @@ export const PREEMPTIVE_JUMP_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Natural overcalls after an opposing strong 1NT, with DONT disabled
+/// These selected exercises stop at the initial direct overcall. Later advances and opener-side
+/// continuations are added in their own families, rather than inventing follow-up calls here.
+export const NATURAL_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Natural 2C: six good clubs, 10 HCP, with DONT disabled.',
+    dealer: 'N', practiceAuction: ['1NT', '2C'], requiredSystem: { dont: false },
+    expectedOvercallCalls: [{ call: '2C', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    rejectedOvercallCalls: ['Double', '2D', '2H', '2S'],
+    north: { S: 'AKQJ', H: 'J98', D: 'JT9', C: 'A84' },
+    east: { S: '84', H: '73', D: 'A52', C: 'KQJT96' },
+    west: { S: 'T975', H: 'AT65', D: 'Q84', C: '75' },
+    south: { S: '632', H: 'KQ42', D: 'K763', C: '32' },
+  },
+  {
+    description: 'Natural 2D: six good diamonds, 10 HCP, with DONT disabled.',
+    dealer: 'N', practiceAuction: ['1NT', '2D'], requiredSystem: { dont: false },
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    rejectedOvercallCalls: ['Double', '2C', '2H', '2S'],
+    north: { S: 'AKQJ', H: 'JT9', D: 'A84', C: 'J98' },
+    east: { S: '84', H: 'A52', D: 'KQJT96', C: '73' },
+    west: { S: 'T975', H: 'Q84', D: '75', C: 'AT65' },
+    south: { S: '632', H: 'K763', D: '32', C: 'KQ42' },
+  },
+  {
+    description: 'Natural 2H: six good hearts, 10 HCP, without a DONT relay.',
+    dealer: 'N', practiceAuction: ['1NT', '2H'], requiredSystem: { dont: false },
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    rejectedOvercallCalls: ['Double', '2C', '2D', '2S'],
+    north: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' },
+    east: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    west: { S: 'T975', H: '75', D: 'Q84', C: 'AT65' },
+    south: { S: '632', H: '32', D: 'K763', C: 'KQ42' },
+  },
+  {
+    description: 'Natural 2S: six good spades, 14 HCP, without a strength ceiling.',
+    dealer: 'N', practiceAuction: ['1NT', '2S'], requiredSystem: { dont: false },
+    expectedOvercallCalls: [{ call: '2S', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    rejectedOvercallCalls: ['Double', '2C', '2D', '2H'],
+    north: { S: 'K743', H: 'AKJ', D: 'AJT', C: '984' },
+    east: { S: 'AQJT96', H: '63', D: 'K52', C: 'A7' },
+    west: { S: '85', H: 'Q752', D: 'Q84', C: 'JT65' },
+    south: { S: '2', H: 'T984', D: '9763', C: 'KQ32' },
+  },
+  {
+    description: 'Natural Pass with 5-4 majors: DONT would have allowed a two-suit bid.',
+    dealer: 'N', practiceAuction: ['1NT', 'Pass'], requiredSystem: { dont: false },
+    expectedOvercallCalls: [{ call: 'Pass', ruleIds: ['overcall-pass-natural-vs-1nt'] }],
+    rejectedOvercallCalls: ['Double', '2C', '2D', '2H', '2S'],
+    north: { S: '6543', H: 'KT7', D: 'AT7', C: 'AKQ' },
+    east: { S: 'K987', H: 'AQJ65', D: '84', C: '72' },
+    west: { S: 'AQJT', H: '98', D: 'J965', C: 'T96' },
+    south: { S: '2', H: '432', D: 'KQ32', C: 'J8543' },
+  },
+];
+
 //// Direct defenses to weak-two openings
 /// Direct defenses to opposing weak 2D/2H/2S openings.  This first batch stops after the
 /// overcaller's action; advancer continuations are modeled separately.
