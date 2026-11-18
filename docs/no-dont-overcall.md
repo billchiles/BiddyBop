@@ -4,11 +4,63 @@
 
 ## Purpose and guardrails
 
-- Add an optional `dontAgainstStrongOneNt` setting, default **on**, while preserving present DONT-on behavior unless a specific instructional correction is approved.
+- Add an optional `dont: boolean` setting, ultimately default **off**. When explicitly enabled, preserve existing DONT-on behavior unless a particular instructional correction is approved. An interim on default is acceptable during incremental development.
 - When off, teach a coherent natural direct-seat defense of an opposing strong 1NT, selected advances, overcaller rebids, and the original 1NT partnership's useful responding/opener continuations. Selected responder second turns may be worth adding, subject to analysis; no requirement to model every auction.
 - The end user bids **all four hands**, which share the selected bidding agreements, including `oneNtOpening` (`15-17` or `16-18`). Do not add a separate assumption or setting for the opponents' 1NT range.
 - Rule meaning, evidence, explanations, qualification, priority, and scope boundaries must agree with the chosen DONT setting. Prefer declarative agreement gating and focused auction helpers; no large evaluator conditionals, accidental rule order, or candidate order dependence.
 - Follow `docs/spec.md` and `docs/code-style.md`. Before learner-facing explanation edits, capture a temporary current-master comparison baseline (matched rule IDs, alternatives, ranking, statuses and explanation text), review every difference, and avoid permanent wording regression tests. Use reviewed batches and GitHub branch/commit/squash-merge process.
+
+
+## Final DONT-off decisions and implementation batches — 18 Nov 2026
+
+**Status:** Approved final bounded review, with the setting name, final default, commit-message and verification scope adjustments made on 18 Nov. This section supersedes earlier provisional questions and prior handoff tasks below. This document update does **not** authorize executable code generation.
+
+### Setting and existing-behavior protection
+
+- Name the `BiddingSystem` boolean **`dont`**, with a user-facing **DONT** checkbox. The short name is preferred to a convention-expanded identifier.
+- The **final default must be off** (natural defense against an opposing strong 1NT). An interim on default is acceptable while code generation is incomplete, but avoid an unnecessary later default change if the first working batch can safely default off.
+- When `dont: true`, retain the existing DONT bidding meanings for both sides; when `dont: false`, use the agreed natural 2C/2D/2H/2S defense. All four seats share this setting. Do not change the unrelated natural 1NT **overcall**-of-a-suit-opening response context.
+- Baseline comparisons must explicitly enable DONT on both old and new revisions, **regardless of the new UI default**. Preserve old DONT-on rule IDs, qualifying calls, alternatives, rankings, turn statuses and full explanations except for separately agreed corrections.
+
+### Final bidding-meaning decisions
+
+1. **Negative Double:** over our opening 1NT followed by a DONT-off natural 2C/2D, require 4+ hearts **and** 4+ spades; after 2H require 4+ spades; after 2S require 4+ hearts. In each case require **no more than two cards in the overcalled natural suit** and the existing constructive response HCP floor (8+ under 15–17, 7+ under 16–18). The shortness addition is restricted to DONT-off natural interference over a 1NT *opening*; retain the current DONT-on and natural 1NT *overcall* treatments. Double remains negative/takeout, never an automatic penalty Double.
+2. **Quiet advancer's exceptional misfit:** choose a focused **13+ HCP** judgment boundary when no supported independent new suit or competitive raise qualifies; 11–12 HCP with a poor fit can still Pass. Preserve the approved strong-support judgment boundary at 3+ trumps and either 11+ total points with shortage or 10+ actual HCP. No global changes to Pass suppression, boundary suppression, ranking or candidate evaluation.
+3. **Overcaller after responder action:** a qualifying nonforcing 3X raise or independent economical 2Y from advancer can still be **Passed** when responder earlier Doubled or made a selected natural suit bid and opener subsequently **Passes**. Never apply that automatic Pass merely because advancer Passed after a Double (the contract might still be doubled), or when opener competes; use a selected scope/judgment boundary for unmodeled competition.
+4. **Opening-side continuation:** the approved natural two-/three-level responder suit actions are nonforcing. Reuse the shared natural-1NT response family; generalize existing opener fit/stopper helpers using the actual opposing suit(s), Double-promised majors, and cheapest *legal* level. With a natural three-level minor response and appropriate minimum, opener may Pass. After a natural suit response followed by advancer's raise, recognize only the reviewed physical opener turn and use a judgment boundary rather than inventing a new bid.
+5. **Responder second turn:** defer the optional narrow Pass/invitation-acceptance family until after the core DONT-off feature. End corresponding practice at its last interesting supported call, with the existing scope wording.
+6. **Sandwich-seat review:** defer the independent systematic workstream until DONT is completed; its complete deal and stage-by-stage scope remain recorded below.
+
+### Source reuse and organization
+
+- Route `dont` through `bidding-types.ts`, `BiddingSystemControls.tsx`, `App.tsx`, and the existing declarative rule-activation path.
+- Parameterize `auction.ts`'s `getPartnerOneNtSuitInterference` and related narrow stage recognition, and thread the active `BiddingSystem` into `biddingEvaluation.ts`'s `auctionContextMatches`. Do not create a separate stage or candidate evaluator.
+- Extend the existing `overcalling-rules.ts`/`overcalling-functions.ts` and `advancing-rules.ts`/`advancing-functions.ts` domains. Reuse shared card and bidding predicates; provide a small independent-suit-quality helper without changing `hasPreemptSuitQuality`. Do not import suit-opening advance cuebid/forcing meanings into a defense of 1NT.
+- Reuse `natural-1nt-interference-partner-calls.ts`, `getOneNtInterferenceContinuation`, `getOneNtDoubleFit`, `refineOneNtInterferenceDoubleFit`, existing natural Pass/3NT refiners, and explanation evidence builders. Different DONT-on versus DONT-off meanings may warrant different **rule declarations**, but not duplicate copies of the same underlying helper.
+- **Code style is mandatory:** callers before callees; types immediately before their dependents; preserve `////` sections and substantive comments; prefer modest parameterization over duplicate functions; avoid greenfield frameworks, ID-based evaluator conditionals and unrelated cleanup. Inspect all existing call sites before editing shared functions, especially the independent natural 1NT overcall context.
+
+### Nine incremental batches — proposed commit subjects
+
+For **each** batch: announce its exact commit subject before changing files, branch from current master, use narrow source diffs and focused checks, then commit, PR and squash-merge. **Every batch's final subject must explicitly say DONT or DONT-off.**
+
+1. Agreement, UI/default and existing-rule/deal gates — **`Made DONT optional with off as the default`**.
+2. Natural direct 2C/2D/2H/2S, Pass, strong-hand boundary and counterfactual note — **`Added DONT-off natural overcalls of strong 1NT`**.
+3. Quiet natural advances: Pass, competitive raises, independent 2-level suits, fit/misfit boundaries — **`Added DONT-off natural advances of 1NT overcalls`**.
+4. Same advance rules after responder negative Double or natural suit bid — **`Extended DONT-off advances after responder interference`**.
+5. Nonforcing overcaller Pass, selected intervened Pass and judgment boundaries — **`Added DONT-off overcaller rebids after natural advances`**.
+6. Shared opening-1NT responder meanings, auction detection and negative-Double shape/shortness — **`Reused natural responder rules after DONT-off interference`**.
+7. Opener fit/NT continuations after negative Double, using existing parameterized helpers — **`Extended DONT-off opener rebids after negative Double`**.
+8. Opener Pass/fit/NT and bounded judgment after natural responder suits — **`Extended DONT-off opener rebids after natural responses`**.
+9. Lean practice/tests, docs and refreshed project statistics if changed — **`Completed DONT-off integration and documentation`**.
+
+### Lean tests, practice deals and temporary comparison
+
+- **Keep additions deliberately small.** Existing build and complete rule-test commands still run after each batch, but only add essential semantic tests and enough complete, realistic practice deals to exercise the basic natural actions and representative continued bidding. Do not pursue exhaustive family, suit, rank, rejected-call or auction permutation coverage.
+- Prefer reuse of existing deals/tests. Include meaningful variation across the four direct suit overcalls, quiet raise versus independent new suit, at least one responder Double and one natural-suit intervention, and representative overcaller/opener follow-up; reuse deals for multiple checks where appropriate. **Do not create one practice deal or permanent test for each of the ten legal quiet-auction rebid shapes.**
+- Focus a handful of regression tests on agreement-dependent meaning for the *same auction*, correct negative-Double shortness and actual opponent suit, Pass/boundary coexistence, legality after competition, and at least one selected opening-side continuation. Avoid broad new infrastructure and **permanent explanation-wording snapshots**.
+- Capture a **temporary, bounded representative baseline** on current master with DONT explicitly on: rule IDs, qualifying and rejected calls, alternatives, presentation order/rank, statuses/scope boundaries and complete learner-facing explanations. Compare the same representative cases after every batch and investigate all unexpected differences; do not permanently commit the baseline harness or output.
+- Every new *complete* practice deal must still have four thirteen-card hands, 52 distinct cards, 40 HCP, plausible actions under the shared chosen 1NT opening range and no ceremonial closing Passes.
+- This planning update alone makes no changes to executable bidding behavior.
 
 ## Current advancing agreements — updated 17 Nov 2026
 
@@ -44,7 +96,7 @@ These principles were reviewed and approved for DONT-off. They are *design agree
 
 **Next design analysis (now in progress):** verify the provisional three-card 7–10 *total points with shortage* and four-card 4–6 *total points with shortage* (with an HCP floor) competitive raises; investigate stronger-fit boundaries and high-HCP misfits. Only after agreement, review a small 2NT/game-interest scope, responder intervention, overcaller rebids, and opening-side continuations.
 
-### Remaining integration checks before coding
+### Earlier integration checklist (superseded where resolved by final review)
 
 1. Validate the **approved three-card versus four-or-more-card competitive raise bands** with credible complete deals, accounting for opposing 15–17/16–18 1NT, available HCP, vulnerability omitted from the app, and existing shortage valuation. Check strong-support judgment boundaries and the no-fallback-Pass invariant.
 2. **Next priority: Pass coexistence and scope boundaries.** Trace the selected student calling Pass when a marginal natural overcall or advance qualifies; inspect `maybeSuppressPassWithoutOtherAction`, qualifying alternatives, rejected-call explanations, strong-fit/game-interest boundaries, and whether Pass or a concrete bid inadvertently suppresses necessary judgment guidance. Decide on minimal, agreement-gated behavior before any code generation, preserving DONT-on results.
@@ -121,11 +173,11 @@ The opening 1NT responder/opener continuation analysis has now been reviewed and
 - **Top-down source order:** Put higher-level callers *before* callees; keep related types immediately ahead of their users. Honor existing `//// Descriptive section` organization; make new enduring `////` sections only where a genuinely distinct bidding family requires one. Keep purpose-specific `///` top-level and `//` inline comments, including original substantive comments. No random (batch/week) work-unit section tags, ceremonial wrappers, or unrelated style rewrites.
 - **Prefer parameterizing existing code:** If an existing coherent helper can accept one or two extra parameters or a few explicit branches for agreement-sensitive meanings, **extend it** rather than copy most of it into a `DontOff*` variant. Use existing data shapes, candidate refiners, rules, shared hand facts and evidence builders. Do not create a duplicated natural-1NT response family, second stage evaluator, rule-matching framework, or large ID-based conditionals. Parameterize only where the concepts truly share meaning; preserve distinct rule declarations/explanations where DONT-on relay semantics and DONT-off natural semantics actually differ.
 - **Inspect all call sites and siblings before a shared-helper edit.** In particular, the existing natural 1NT-interference helper serves *both* our 1NT opening and our natural 1NT overcall of a suit; changes to the former must not alter the latter. Audit agreement propagation, stage matching, rule categories, legal calls, scope-boundary suppression, practice deal selection, explanations, and tests before choosing where a parameter belongs.
-- **No accidental behavior changes:** DONT remains the default **on**; preserve all current DONT-on supported call IDs, rankings, candidate alternatives, stage and scope statuses, and explanation text unless a specific instructional correction is discussed and approved. Before code edits, capture *temporary* comparison output from a known GitHub master baseline and review every difference; don't add permanent wording snapshots.
+- **No accidental behavior changes:** The intended final default is DONT **off**, but preserve all existing DONT-on supported call IDs, rankings, candidate alternatives, stage and scope statuses, and explanation text when DONT is **explicitly enabled**, unless a specific instructional correction is discussed and approved. Before code edits, capture *temporary* comparison output from a known GitHub master baseline and review every difference; don't add permanent wording snapshots.
 - **Incremental coding only after approval:** Outline small batches with narrow file lists, semantic goal, shared-function diff/ordering risks, focused high-value tests, and a single proposed past-tense commit subject **shown before each code generation**. Run the build and complete rule tests; use branch/commit/PR/squash merge. Avoid extra permanent testing infrastructure or broad refactors.
 - **Practice-exercise integrity:** Verify all four 13-card hands, 52 unique cards and 40 total HCP; opponent actions should be plausible under the same selected 1NT range. Add representative quiet and intervened advances, paired agreement cases, and follow-ups; stop at the last teachable decision without unnecessary closing Passes.
 
-### Next chat — close design/integration questions before first code batch
+### Earlier next-chat handoff (superseded by final review and batches above)
 
 1. **Final bounded bidding-meaning review:** Confirm the newly agreed 1NT negative-Double shortness/shape details, natural two-/three-level nonforcing response distinctions, opener's cheap fit bids when advancer competes, and whether the narrow responder Pass/invitation-acceptance rebid is worth implementing now or deferred. Find any forcing/meaning conflicts or missing legal auction case; do **not** expand into a complete new NT competitive system.
 2. **Full cross-file integration review:** Map setting UI/types/default, opening and 1NT-overcall parsing, DONT-on/DONT-off rule activation, direct overcalls, advancing (quiet/competition), overcaller rebids, responder initial actions, opener continuations, selected responder second turns, explanations, rule tests, and practice buckets. Identify shared helpers to **parameterize** instead of duplicate. Confirm exact code style and maintain coherent caller-before-callee order/`////` sections.
@@ -151,7 +203,7 @@ The opening 1NT responder/opener continuation analysis has now been reviewed and
 4. Review **subsequent responder, advancer, sandwich-overcaller rebids, and continuing competitive auctions**, selecting coherent, common and teachable cases; make deliberate scope decisions only after the end-to-end coverage audit. Reuse or parameterize the existing advancing, overcalling, and opener-rebid calculations where meanings genuinely align, and create dedicated rules/evidence when they do not.
 5. Add credible four-hand practice deals, focused stage/rule/explanation-delivery tests, and temporary before/after matched-rule/alternative/status/explanation comparisons; preserve currently covered auctions and agreed code style. Document specific *remaining* scope limitations in `docs/spec.md` rather than assuming this auction must stop.
 
-**Relationship to DONT-off work:** This gap occurs over a **suit opening**, regardless of DONT being on or off; keep its future rules independent of the DONT setting. Preserve this workstream here to avoid losing it during chat resets, then move it into a dedicated plan or `docs/spec.md` when the sandwich review begins. **Immediate next task remains analysis of natural DONT-off overcaller's rebids after the agreed nonforcing advances**, not sandwich-seat code generation.
+**Relationship to DONT-off work:** This gap occurs over a **suit opening**, regardless of DONT being on or off; keep its future rules independent of the DONT setting. Preserve this workstream here to avoid losing it during chat resets, then move it into a dedicated plan or `docs/spec.md` when the sandwich review begins. **The DONT-off implementation plan is recorded above; sandwich-seat implementation remains deferred.**
 
 ## Approved quiet-auction natural overcaller rebids — 17 Nov 2026
 
@@ -161,7 +213,7 @@ The user approved the rebid meanings and closed the exceptional-game question on
 
 - **After a competitive nonforcing raise:** `1NT – natural 2X – Pass – 3X – Pass – ?` (any of 2C/2D/2H/2S), overcaller **Passes**. Advancer's `3X` is competitive and less than invitational; overcaller has no further bidding obligation and no game-acceptance test is applied.
 - **After an economical, independent, natural new suit:** `1NT – natural 2X – Pass – 2Y – Pass – ?`, with `Y` different from `X` and legally available at the two level, overcaller **Passes, even with zero cards in advancer's suit**. Advancer offered a long, independently strong, playable suit—not a relay, forcing bid, or game try. Do not require support for the new suit, force a three-level correction, or test HCP to authorize Pass.
-- **Available economical advances:** 2C → 2D/2H/2S; 2D → 2H/2S; 2H → 2S; 2S → none. Across four same-suit raises and six economical new-suit auctions, validate ten basic auction shapes; the rule design need not declare ten independent rules.
+- **Available economical advances:** 2C → 2D/2H/2S; 2D → 2H/2S; 2H → 2S; 2S → none. Across four same-suit raises and six economical new-suit auctions, reason through the ten legal shapes, but add only representative tests and practice deals; the rule design need not declare ten independent rules.
 - **Exceptional game-prospect investigation CLOSED — no extra rules:** Rare exceptionally strong overcallers may reasonably consider game, but HCP, suit length, and fit alone are not reliable enough to identify those decisions. For these **quiet auctions**, always support Pass independent of overcaller's HCP, suit length, or fit; do **not** add special game bids, an exceptional-game scope boundary, or a strength threshold borrowed from weak-two defenses. Explanation may briefly say unusual hands can require additional judgment, without making that judgment an executable requirement. This is a deliberate simplified teaching choice, not a claim that Pass is uniquely best on every possible hand.
 - **If the original 1NT opener competes instead of passing** (e.g., `1NT – 2H – Pass – 2S – 3C – ?`), this is *not* a quiet auction. Neither automatic Pass rule should apply. Evaluate this auction family separately, with a deliberate scope explanation in the interim.
 
@@ -172,7 +224,7 @@ The user approved the rebid meanings and closed the exceptional-game question on
 - These identical call sequences carry **different meanings**: `1NT–2C–Pass–2D–Pass` is a DONT relay when enabled, but natural diamonds offered as trumps when disabled; similarly `1NT–2D–Pass–2H–Pass` and `1NT–2H–Pass–2S–Pass`. The eventual Pass might be the same, but qualifications, explanation text, alternative calls, and active agreement must remain correct.
 - Overcaller may infer only what advancer's bid **promised**; do **not** inspect advancer's hidden hand to judge whether Pass or a correction qualifies, despite all four hands being represented internally.
 - Use two focused positive families: Pass after a competitive raise; Pass after a nonforcing independent new suit. **No overcaller strength/fit exclusions or exceptional-game boundary** in these quiet auctions. Preserve the current evaluator's behavior; the separate **advancer** strong-support/misfit boundary proposals still apply at advancer's earlier turn.
-- Verify DONT-on rule IDs, qualifying calls, alternatives, ranking, scope statuses, and full learner-facing explanations against the temporary master baseline. Add focused DONT-off tests for all quiet shapes and paired agreement tests for same-auction/different-meaning relays.
+- Verify DONT-on rule IDs, qualifying calls, alternatives, ranking, scope statuses, and full learner-facing explanations against the temporary master baseline. Add focused DONT-off tests for representative quiet shapes and a small number of paired agreement tests for same-auction/different-meaning relays.
 
 ### Next analysis, before code generation
 
