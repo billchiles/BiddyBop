@@ -149,6 +149,8 @@ export function getRulesForCurrentContext (board: Board, auction: Call[],
   if (context.stage === 'overcalling') {
     ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'overcall-pass-no-qualifying-action');
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
+      'overcall-pass-natural-vs-1nt');
   }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
   // only a fallback bid.  Derive partner's opening only for this response-stage behavior.

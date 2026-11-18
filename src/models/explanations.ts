@@ -214,6 +214,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getBalancingDoubleFailureLines(result),
     ...getBalancingCallFailureLines(result),
     ...getNaturalOvercallFailureLines(result),
+    ...getNaturalOneNtDefensePassFailureLines(result),
     ...getWeakTwoOvercallFailureLines(result),
     ...getDontInitialFailureLines(result),
     ...getJumpOvercallFailureLines(result),
@@ -462,6 +463,8 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
     getNaturalOvercallSupportLine(result, rule) ??
     getJumpOvercallSupportLine(result, rule);
   if (callEvidenceLine !== null) lines.push(callEvidenceLine);
+  const dontComparison = getNaturalOneNtDefenseDontComparisonLine(result, rule);
+  if (dontComparison !== null) lines.push(dontComparison);
   lines.push(...getMinorResponseSupportLines(result, rule));
   lines.push(...getMajorSupportLines(result, rule));
   lines.push(...getMajorNoSupportLines(result, rule));
@@ -1168,11 +1171,14 @@ function balancingNtEvidence(result: BidEvalResult) {
 ///
 
 const DIRECT_OVERCALL_PASS_ID = 'overcall-pass-no-qualifying-action';
+const NATURAL_ONE_NT_DEFENSE_PASS_ID = 'overcall-pass-natural-vs-1nt';
+const NATURAL_ONE_NT_DEFENSE_SUIT_ID = 'overcall-natural-suit-vs-1nt';
 
 /// A direct Pass is a fallback when no evaluated competitive action qualifies.
 /// Strength alone is not sufficient reason to bid or sufficient evidence of weakness.
 export function getDirectOvercallPassSupportLine(result: BidEvalResult, rule: BidRule): string | null {
-  if (rule.id !== DIRECT_OVERCALL_PASS_ID || result.normalizedCall !== 'Pass') return null;
+  if ((rule.id !== DIRECT_OVERCALL_PASS_ID &&
+       rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID) || result.normalizedCall !== 'Pass') return null;
   const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
     ?.candidates.find(({ call }) => call === 'Pass');
   if (candidate?.ruleApplies !== true || getApplicableCandidateCalls(result).some(
@@ -1184,12 +1190,46 @@ export function getDirectOvercallPassSupportLine(result: BidEvalResult, rule: Bi
     `to compete [${rule.id}].`;
 }
 
+/// When a natural two-level suit overcall qualifies, a student's conservative Pass
+/// remains a legal judgment choice, even though it is not a qualifying equal alternative.
+export function getNaturalOneNtDefensePassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0) return [];
+  const natural = getApplicableCandidateCalls(result).find((item) =>
+    item.rule.id === NATURAL_ONE_NT_DEFENSE_SUIT_ID);
+  if (natural === undefined) return [];
+  return [`Your hand qualifies for natural ${natural.call} over the opposing strong 1NT. ` +
+    `A cautious Pass can be reasonable with vulnerability or defensive considerations ` +
+    `the app does not model [${natural.rule.id}].`];
+}
+
+//// DONT-off natural defense comparisons
+///
+
+/// Show a conventional call only when the existing DONT predicate actually qualified
+/// and it differs from the selected natural-defense call. This is explanatory, not an offer.
+export function getNaturalOneNtDefenseDontComparisonLine(result: BidEvalResult, rule: BidRule):
+    string | null {
+  if (rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID &&
+      rule.id !== NATURAL_ONE_NT_DEFENSE_SUIT_ID) return null;
+  const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return null;
+  const comparison = candidate.callEvidence?.dontComparison;
+  if (comparison === undefined) return null;
+  const suits = comparison.suits.map((suit) => `1${suit}` as Call);
+  const showing = suits.length === 1 ? `one good long ${suitName(suits[0])} suit` :
+    `${suitPlural(suits[0])} and ${suitPlural(suits[1])}`;
+  return `With DONT enabled, this hand would qualify for ${comparison.call}, showing ` +
+    `${showing}. This is a comparison, not an available call with DONT off [${rule.id}].`;
+}
+
 ///
 //// Natural suit and 1NT overcall explanations
 ///
 
 const NATURAL_SUIT_OVERCALL_IDS = [
   'overcall-simple-suit-at-one-level', 'overcall-simple-suit-at-two-level',
+  NATURAL_ONE_NT_DEFENSE_SUIT_ID,
 ];
 const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
 const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
@@ -1210,6 +1250,14 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
   if (NATURAL_SUIT_OVERCALL_IDS.includes(rule.id)) {
     const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
     if (check === undefined || candidate?.ruleApplies !== true) return null;
+    if (rule.id === NATURAL_ONE_NT_DEFENSE_SUIT_ID && strength?.passed === true) {
+      const honors = overcallHonorText(check);
+      if (honors === null) return null;
+      return `Your ${strength.hcp} HCP meet the 7-HCP minimum. Your ${check.length}-card ` +
+        `${suitName(result.normalizedCall ?? check.call)} suit has the required length; ${honors}. ` +
+        `This natural two-level overcall offers the named suit as trumps; it does not ` +
+        `promise another suit [${rule.id}].`;
+    }
     const double = qualifyingOvercallAlternative(result, [ORDINARY_IDS[0]],
       result.normalizedCall ?? check.call);
     const jump = getApplicableCandidateCalls(result).find((item) =>
@@ -1287,6 +1335,21 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
     const { check, candidate, strength } = naturalSuitOvercallEvidence(result, ruleId);
     if (check === undefined) continue;
     const lines: string[] = [];
+    if (ruleId === NATURAL_ONE_NT_DEFENSE_SUIT_ID) {
+      if (check.length < 6) {
+        lines.push(`A natural ${entered} overcall of strong 1NT requires six cards in ` +
+          `the suit; you have ${check.length} [${ruleId}].`);
+      }
+      if (!check.good) {
+        lines.push(`Your ${suitPlural(entered)} do not meet the sound-suit standard ` +
+          `(${SIMPLE_OVERCALL_SUIT_QUALITY}) [${ruleId}].`);
+      }
+      if (strength?.passed === false) {
+        lines.push(`This natural defense requires at least 7 HCP; you have ` +
+          `${strength.hcp} [${ruleId}].`);
+      }
+      return lines;
+    }
     if (!check.passed) {
       if (check.length < 5) {
         lines.push(`Your ${check.length} ${suitPlural(entered)} fall short of the five-card ` +
@@ -1320,9 +1383,11 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
 
 function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
   const diagnostic = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId);
-  const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
-    (item) => item.call === result.normalizedCall);
   const candidate = diagnostic?.candidates.find(({ call }) => call === result.normalizedCall);
+  const check = diagnostic?.callEvidence?.naturalOvercallSuit?.find(
+    (item) => item.call === result.normalizedCall) ??
+    candidate?.callEvidence?.naturalOvercallSuit?.find(
+      (item) => item.call === result.normalizedCall);
   return { check, candidate, strength: candidate?.callEvidence?.naturalOvercallStrength };
 }
 

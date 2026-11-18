@@ -9,6 +9,70 @@ import { cheapestBidInStrainAfter, getOpeningCallInfo, parseSuitBid } from './au
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
 ///
+//// Direct overcall Pass
+///
+
+/// The shared direct Pass retains its unchanged DONT-on evidence and wording, but the
+/// DONT-off defense of a 1NT opening uses its own natural Pass declaration instead.
+export function refineSharedDirectOvercallPass (calls: Call[], context: RuleEvalContext,
+                                                system: BiddingSystem): CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const naturalOneNt = opening?.call === '1NT' && !system.dont;
+  return { calls: naturalOneNt ? [] : calls, telemetryLines: [] };
+}
+
+//// Natural defense to an opposing strong 1NT
+///
+
+/// A natural direct 2X over opposing 1NT promises the named suit, not a DONT relay or
+/// second suit. A suit must satisfy both the HCP floor and the shared honor standard.
+export function naturalOneNtDefenseSuitApplies (call: Call, context: RuleEvalContext):
+    AppliesWhenResult {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.level !== 2 || bid.strain === 'NT') {
+    return { success: false, telemetryLines: ['FAIL: requires a natural two-level suit call.'] };
+  }
+  const suit = bid.strain as Suit;
+  const length = context.handFacts.lengths[suit];
+  const hcp = context.handFacts.hcp;
+  const good = hasPreemptSuitQuality(context.hand, suit);
+  const soundSuit = length >= 6 && good;
+  const enoughHcp = hcp >= 7;
+  const passed = soundSuit && enoughHcp;
+  return {
+    success: passed,
+    telemetryLines: [`${passed ? 'PASS' : 'FAIL'}: natural defense of 1NT requires ` +
+      `7+ HCP (actual ${hcp}), 6+ ${suit} (actual ${length}), and sound honors ` +
+      `(${good ? 'met' : 'not met'}).`],
+    callEvidence: {
+      naturalOvercallSuit: [{ call, level: 2, length, good, passed: soundSuit,
+        ...getOvercallHonorEvidence(context, suit, good) }],
+      naturalOvercallStrength: { hcp, passed: enoughHcp, exceptionalSeven: false, min: 7 },
+    },
+  };
+}
+
+/// The counterfactual DONT note comes from the existing DONT predicates, not an
+/// independent explanation-side evaluator or an active DONT alternative.
+export function naturalOneNtDefenseComparisonEvidence (call: Call, context: RuleEvalContext):
+    CallEvidence | undefined {
+  const dontCalls: Call[] = ['Double', '2C', '2D', '2H', '2S'];
+  for (const dontCall of dontCalls) {
+    if (dontCall === call) continue;
+    const check = dontCall === 'Double' ? dontSingleSuitDoubleApplies(dontCall, context)
+      : dontCall === '2S' ? dontSpadeOvercallApplies(dontCall, context)
+      : dontTwoSuitOvercallApplies(dontCall, context);
+    if (!check.success) continue;
+    const shape = check.callEvidence?.dontInitial;
+    const suits = shape?.twoSuits ?? (shape?.singleSuit === null ||
+      shape?.singleSuit === undefined ? [] : [shape.singleSuit]);
+    if (suits.length === 0) continue;
+    return { dontComparison: { call: dontCall, suits } };
+  }
+  return undefined;
+}
+
+
 //// Natural Suit Overcalls
 ///
 

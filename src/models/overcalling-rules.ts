@@ -3,6 +3,8 @@
 import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
+  naturalOneNtDefenseSuitApplies, naturalOneNtDefenseComparisonEvidence,
+  refineSharedDirectOvercallPass,
   naturalNotrumpOvercallApplies, naturalOneLevelSuitOvercallApplies, naturalTwoLevelSuitOvercallApplies, naturalOneNtOvercallerInvitationApplies,
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
@@ -37,6 +39,7 @@ export const OvercallRules: BidRule[] = [
     auctionContext: { stage: 'overcalling',
                       openerCalls: ['1C', '1D', '1H', '1S', '1NT', '2D', '2H', '2S'] },
     calls: ['Pass'],
+    callRefinement: refineSharedDirectOvercallPass,
     callCategory: ['signoff'],
     appliesWhen: { hcp: { max: 17 } },
     meaning: 'Pass when the hand does not qualify for a direct overcall, takeout Double, ' +
@@ -44,6 +47,24 @@ export const OvercallRules: BidRule[] = [
     guidance: ['Partner has not bid, so you are not obliged to act over an opposing opening. ' +
                'Passing with a marginal hand may also be reasonable, but vulnerability and ' +
                'scoring judgment are outside this treatment.'],
+  },
+  //
+  // A natural defense to 1NT has its own Pass meaning; the shared Pass rule above retains
+  // its existing wording and ID for DONT-on and for all other opening calls.
+  {
+    id: 'overcall-pass-natural-vs-1nt',
+    kind: 'overcall',
+    title: 'Pass an opposing strong 1NT without a sound natural overcall',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: { hcp: { max: 17 } },
+    callEvidenceBuilder: naturalOneNtDefenseComparisonEvidence,
+    meaning: 'Pass when no sound natural two-level suit overcall qualifies against 1NT.',
+    guidance: ['A six-card-or-longer good suit and at least 7 HCP are needed for the ' +
+               'modeled natural overcall. A conservative Pass can also be sensible with ' +
+               'marginal values; vulnerability and defensive tricks require judgment.'],
   },
   //
   //// Direct defenses intentionally outside the selected bidding treatment
@@ -110,6 +131,46 @@ export const OvercallRules: BidRule[] = [
     guidance: ['The app’s DONT Double is artificial and promises a long one-suited hand, ' +
                'not a penalty hand.  When no DONT call qualifies, penalty-oriented choices ' +
                'and other partnership methods require judgment outside the app’s treatment.'],
+  },
+  //
+  // When DONT is disabled, 18+ HCP without a sound natural suit requires defensive
+  // judgment, not an automatic penalty Double or a default Pass.
+  {
+    id: 'overcall-boundary-strong-natural-vs-1nt',
+    kind: 'scopeBoundary',
+    title: 'Strong hand without a reliable natural defense of 1NT',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: (context) => ({
+      success: context.handFacts.hcp >= 18,
+      telemetryLines: ['18+ HCP: defending or doubling 1NT may require judgment ' +
+                       'rather than an unsupported natural suit bid.'],
+    }),
+    meaning: 'A strong hand without a sound natural suit needs a competitive decision ' +
+             'that the app does not calculate automatically.',
+    guidance: ['Penalty Double might be considered with defensive tricks, but the app ' +
+               'does not model a reliable penalty-Double test. A good six-card suit may ' +
+               'qualify for a natural overcall even with more than 17 HCP.'],
+  },
+  //
+  //// Natural defense to an opposing strong 1NT
+  // The bid names the actual six-card-or-longer suit. Unlike DONT, it does not
+  // promise a second suit or introduce a one-suit relay.
+  {
+    id: 'overcall-natural-suit-vs-1nt',
+    kind: 'overcall',
+    title: 'Overcall a strong 1NT naturally with a good long suit',
+    auctionContext: { stage: 'overcalling', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['2C', '2D', '2H', '2S'],
+    callCategory: ['natural'],
+    appliesWhen: naturalOneNtDefenseSuitApplies,
+    callEvidenceBuilder: naturalOneNtDefenseComparisonEvidence,
+    meaning: 'Natural, nonforcing two-level suit overcall: six or more cards in the ' +
+             'bid suit, 7+ HCP, and sound suit honors.',
+    guidance: ['Suit quality requires at least two of A/K/Q or three of A/K/Q/J/10. ' +
+               'The bid promises the named suit, not a second suit; a five-card suit ' +
+               'alone does not qualify. High HCP does not rule it out.'],
   },
   //
   //// DONT against a strong 1NT

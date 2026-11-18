@@ -73,6 +73,7 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          ADVANCER_AFTER_NEGATIVE_DOUBLE_TEST_DEALS,
          ADVANCER_AFTER_TAKEOUT_REDOUBLE_TEST_DEALS,
          ADVANCER_AFTER_JUMP_OVERCALL_TEST_DEALS, DONT_1NT_DEFENSE_TEST_DEALS,
+         NATURAL_1NT_DEFENSE_TEST_DEALS,
          WEAK_TWO_2NT_CONTINUATION_TEST_DEALS, WEAK_TWO_DEFENSE_TEST_DEALS,
          RESPONSE_AFTER_1NT_OPENING_TEST_DEALS,
          RESPONSE_AFTER_2NT_OPENING_TEST_DEALS,
@@ -182,6 +183,7 @@ function runAllRuleTests (): void {
     runDontInitialExplanationTests,
     runStage7ASuitHonorEvidenceTests,
     runStage7BOvercallAndBalancingExplanationTests,
+    runDontOffNaturalOvercallTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1458,6 +1460,99 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// A few natural-defense checks complement the complete practice hands; later-round
+/// advances and responder continuations are tested in their own families.
+function runDontOffNaturalOvercallTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  let checks = 0;
+  let failures = 0;
+
+  // Practice selection must never mix DONT and its natural alternative.
+  checks++;
+  if (getRulesBucketTestDeals('overcall-natural-1nt', off).length !== 5 ||
+      getRulesBucketTestDeals('overcall-natural-1nt', defaultBiddingSystem).length !== 0) {
+    failures++;
+    console.error('FAIL DONT-off natural-defense practice agreement gating.');
+  }
+
+  // A hand with a natural long-suit action may not also qualify for fallback Pass.
+  const heartDeal = NATURAL_1NT_DEFENSE_TEST_DEALS[2];
+  if (heartDeal === undefined) throw new Error('Missing natural 2H practice hand.');
+  const heartBoard = makeRuleTestBoard(heartDeal).board;
+  const heart = evaluateUserCall('2H', heartBoard, ['1NT'], off);
+  checks++;
+  if (!heart.userCallMatchingRules.some((rule) => rule.id === 'overcall-natural-suit-vs-1nt') ||
+      getApplicableCandidateCalls(heart).some((item) => item.call === 'Pass') ||
+      heart.ruleDiagnostics.some((item) => item.rule.id.startsWith('overcall-dont-'))) {
+    failures++;
+    console.error('FAIL natural 2H was not preferred over fallback Pass with DONT off.');
+  }
+  // The active rule must also deliver its own hand evidence and rejected-call reasons.
+  checks++;
+  const heartRule = heart.userCallMatchingRules.find((rule) =>
+    rule.id === 'overcall-natural-suit-vs-1nt');
+  const rejectedClub = evaluateUserCall('2C', heartBoard, ['1NT'], off);
+  if (heartRule === undefined || getNaturalOvercallSupportLine(heart, heartRule) === null ||
+      getNaturalOvercallFailureLines(rejectedClub).length === 0) {
+    failures++;
+    console.error('FAIL DONT-off natural defense explanation evidence.');
+  }
+  checks++;
+  const pass = evaluateUserCall('Pass', heartBoard, ['1NT'], off);
+  if (pass.userCallMatchingRules.length > 0) {
+    failures++;
+    console.error('FAIL qualifying natural 2H also accepted fallback Pass.');
+  }
+
+  // A 5-4 two-suit DONT hand has no executable natural call, but can compare agreements.
+  const misfitDeal = NATURAL_1NT_DEFENSE_TEST_DEALS[4];
+  if (misfitDeal === undefined) throw new Error('Missing natural Pass practice hand.');
+  const misfitBoard = makeRuleTestBoard(misfitDeal).board;
+  const misfit = evaluateUserCall('Pass', misfitBoard, ['1NT'], off);
+  checks++;
+  const passCandidate = misfit.ruleDiagnostics.find((item) =>
+    item.rule.id === 'overcall-pass-natural-vs-1nt')?.candidates[0];
+  if (!misfit.userCallMatchingRules.some((rule) => rule.id === 'overcall-pass-natural-vs-1nt') ||
+      passCandidate?.callEvidence?.dontComparison?.call !== '2H') {
+    failures++;
+    console.error('FAIL natural Pass or its actual DONT comparison.');
+  }
+
+  // A sound six-card suit is not enough when the entire hand has fewer than 7 HCP.
+  const { board: weakBoard } = makeRuleTestBoard({
+    description: 'Six good hearts but only six HCP with DONT disabled.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: '84', H: 'KJT986', D: 'Q52', C: '73' },
+    south: { S: 'T975', H: '753', D: '864', C: 'T65' },
+  });
+  checks++;
+  if (evaluateUserCall('2H', weakBoard, ['1NT'], off).userCallMatchingRules.some(
+      (rule) => rule.id === 'overcall-natural-suit-vs-1nt')) {
+    failures++;
+    console.error('FAIL DONT-off natural defense accepted only six HCP.');
+  }
+
+  // A strong balanced 19-HCP defender has no automatic Pass or penalty Double.
+  const { board: strongBoard } = makeRuleTestBoard({
+    description: 'Strong DONT-off defender with no six-card suit.',
+    dealer: 'W', practiceAuction: ['1NT', 'Pass'],
+    north: { S: 'AKQ4', H: 'AJ94', D: 'K83', C: 'Q5' },
+    south: { S: '876', H: '876', D: '765', C: '8764' },
+  });
+  const strong = getBiddingTurnStatus(strongBoard, ['1NT'], off);
+  checks++;
+  if (strong.kind !== 'scopeBoundary' ||
+      strong.rule.id !== 'overcall-boundary-strong-natural-vs-1nt' ||
+      getApplicableCandidateCalls(evaluateUserCall('Pass', strongBoard, ['1NT'], off))
+        .some((item) => item.call === 'Pass')) {
+    failures++;
+    console.error('FAIL strong DONT-off hand without a natural suit should reach a boundary.');
+  }
+
+  console.log(`${failures} ***FAILURES***. Natural DONT-off direct defense: ${checks} checks.`);
+  return failures;
+}
+
 /// DONT checks protect the family boundary rather than duplicating every practice deal.
 /// The convention is direct-seat only here, requires the modeled shape/strength, and stops when
 /// responder or opener competes instead of passing through the basic relay.
