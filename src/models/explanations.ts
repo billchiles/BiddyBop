@@ -228,6 +228,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getThreeLevelPreemptResponseFailureLines(result),
     ...getJumpResponseFailureLines(result),
     ...getNaturalAdvanceFailureLines(result),
+    ...getNaturalOneNtAdvanceFailureLines(result),
     ...getTakeoutAdvanceFailureLines(result),
     ...getNotrumpPartnerResponseFailureLines(result),
     ...getResponseSelectionFailureLines(result),
@@ -478,6 +479,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveResponseAlternativeLines(result, rule));
   lines.push(...getStage6BCompetitiveAlternativeLines(result, rule));
   lines.push(...getNaturalAdvanceLines(result, rule));
+  lines.push(...getNaturalOneNtAdvanceLines(result, rule));
   lines.push(...getTakeoutAdvanceLines(result, rule));
   lines.push(...getNotrumpPartnerResponseLines(result, rule));
   lines.push(...getWeakTwoTwoNtAdvanceAlternativeLines(result, rule));
@@ -2804,6 +2806,84 @@ function jumpShiftDiagnostic(result: BidEvalResult, ruleId: string) {
 }
 
 ///
+//// Natural defense of 1NT -- Quiet natural advance explanations
+
+/// Explain the exact selected evidence. The Rule of 10 is an independent-suit
+/// quality test, not an HCP substitute or an invitation to game.
+export function getNaturalOneNtAdvanceLines(result: BidEvalResult, rule: BidRule): string[] {
+  if (result.normalizedCall === null || !rule.id.startsWith('advance-natural-vs-1nt-')) return [];
+  const candidate = findCallDiagnostic(result, rule.id).candidate;
+  if (candidate?.ruleApplies !== true) return [];
+  const evidence = candidate.callEvidence?.naturalOneNtAdvance;
+  if (evidence === undefined) return [];
+  const id = `[${rule.id}]`;
+  if (evidence.kind === 'pass') {
+    return [`Partner's natural 2${evidence.partnerSuit} overcall is nonforcing. Your ` +
+      `${evidence.hcp} HCP and ${evidence.support} trumps offer no qualifying ` +
+      `competitive raise or independent economical new suit, so Pass is supported ${id}.`];
+  }
+  if (evidence.kind === 'raise') {
+    return [`You hold ${evidence.support} ${suitPlural(`1${evidence.partnerSuit}` as Call)} ` +
+      `and ${evidence.hcp} HCP, giving ${evidence.supportPoints} total points with shortage. ` +
+      `Your ${result.normalizedCall} raise is competitive and nonforcing, not an invitation ` +
+      `to game; partner may Pass ${id}.`];
+  }
+  if (evidence.offeredLength === undefined || evidence.suitQuality === undefined) return [];
+  return [`Your ${evidence.hcp} HCP meet the 7-HCP minimum. Your ` +
+    `${evidence.offeredLength} ${suitPlural(result.normalizedCall)} have suit-quality score ` +
+    `${evidence.suitQuality} and meet the preempt-honor test, while you have only ` +
+    `${evidence.support} ${evidence.support === 1 ? 'card' : 'cards'} in partner's suit. ` +
+    `${result.normalizedCall} is a natural, ` +
+    `nonforcing offer to play in your independent suit, not a relay or game try ${id}.`];
+}
+
+/// A rejected concrete advance reports the actually tested failure. Pass can still
+/// be a reasonable judgment call even when the model identifies a constructive bid.
+export function getNaturalOneNtAdvanceFailureLines(result: BidEvalResult): string[] {
+  const entered = result.normalizedCall;
+  if (entered === null || result.userCallMatchingRules.length > 0) return [];
+  const ids = ['advance-natural-vs-1nt-pass', 'advance-natural-vs-1nt-competitive-raise',
+               'advance-natural-vs-1nt-independent-new-suit'];
+  for (const id of ids) {
+    const candidate = findCallDiagnostic(result, id).candidate;
+    const e = candidate?.callEvidence?.naturalOneNtAdvance;
+    if (e === undefined || candidate?.ruleApplies !== false) continue;
+    if (entered === 'Pass' && e.kind === 'pass') {
+      const alternative = getApplicableCandidateCalls(result).find((item) =>
+        item.rule.id.startsWith('advance-natural-vs-1nt-') && item.call !== 'Pass');
+      if (alternative !== undefined) {
+        return [`Passing a natural overcall can be reasonable, but your hand meets the ` +
+          `selected conditions for ${alternative.call}. The fallback Pass rule does not ` +
+          `qualify when a constructive advance applies [${id}].`];
+      }
+      return [`Your ${e.hcp} HCP and ${e.support} trumps call for further competitive ` +
+        `judgment beyond the app's ordinary Pass treatment [${id}].`];
+    }
+    if (e.kind === 'raise' && entered[0] === '3') {
+      return [`Your ${e.support} trumps, ${e.hcp} HCP and ${e.supportPoints} total points ` +
+        `with shortage do not meet the selected competitive raise: exactly three trumps ` +
+        `need 6–9 HCP and 7–10 points with shortage; four or more trumps need 4–9 HCP ` +
+        `and 4–10 points with shortage [${id}].`];
+    }
+    if (e.kind === 'newSuit' && e.offeredSuit !== undefined &&
+        e.offeredLength !== undefined && e.suitQuality !== undefined) {
+      const failed = [
+        ...(e.hcp < 7 ? [`at least 7 HCP (you have ${e.hcp})`] : []),
+        ...(e.offeredLength < 6 ? [`six cards (you have ${e.offeredLength})`] : []),
+        ...(e.suitQuality < 10 ? [`suit-quality score 10 (you have ${e.suitQuality})`] : []),
+        ...(e.preemptQuality === false ? ['the preempt-honor-quality test'] : []),
+        ...(e.support > 1 ? [`at most one ${suitPlural(`1${e.partnerSuit}` as Call)} ` +
+          `in support of partner (you have ${e.support})`] : []),
+      ];
+      if (failed.length > 0) {
+        return [`The independent nonforcing ${entered} offer requires ${failed.join(', ')} ` +
+          `[${id}].`];
+      }
+    }
+  }
+  return [];
+}
+
 //// Advancing natural suit overcalls after responder Pass
 ///
 

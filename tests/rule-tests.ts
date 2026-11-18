@@ -184,6 +184,7 @@ function runAllRuleTests (): void {
     runStage7ASuitHonorEvidenceTests,
     runStage7BOvercallAndBalancingExplanationTests,
     runDontOffNaturalOvercallTests,
+    runDontOffQuietAdvanceTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1460,6 +1461,83 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// Focused direct rule tests, not new practice-deal fixtures. Construct complete
+/// four-hand auctions at the advancing stage; longer practice will be added after rebids.
+function runDontOffQuietAdvanceTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  const north = { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' };
+  const east = { S: '84', H: 'KQJT96', D: 'A52', C: '73' };
+  const independentNorth = { S: 'KQ4', H: 'A83', D: 'KJ9', C: 'QJ83' };
+  const independentEast = { S: '82', H: 'KQJT96', D: 'A5', C: '764' };
+  const cases = [
+    { name: 'three-card raise', south: { S: '63', H: '2', D: 'K763', C: 'KQ42T5' },
+      west: { S: 'T9752', H: '753', D: 'Q84', C: 'A6' }, call: '3H' as Call,
+      rule: 'advance-natural-vs-1nt-competitive-raise' },
+    { name: 'four-card competitive raise', south: { S: '632', H: '', D: 'K763', C: 'KQ42T5' },
+      west: { S: 'T975', H: '7532', D: 'Q84', C: 'A6' }, call: '3H' as Call,
+      rule: 'advance-natural-vs-1nt-competitive-raise' },
+    { name: '12-HCP misfit Pass', south: { S: '632', H: '32', D: '8763', C: 'QT42' },
+      west: { S: 'T975', H: '75', D: 'KQ4', C: 'AK65' }, call: 'Pass' as Call,
+      rule: 'advance-natural-vs-1nt-pass' },
+    { name: 'strong support boundary', south: { S: '639', H: '2', D: '8763', C: 'Q42T5' },
+      west: { S: 'T752', H: '753', D: 'KQ4', C: 'AK6' }, call: 'Pass' as Call,
+      rule: 'advance-natural-vs-1nt-strong-support-boundary' },
+    { name: 'strong misfit boundary', south: { S: '632', H: '32', D: '8763', C: 'T642' },
+      west: { S: 'T975', H: '75', D: 'KQ4', C: 'AKQ5' }, call: 'Pass' as Call,
+      rule: 'advance-natural-vs-1nt-strong-misfit-boundary' },
+    { name: 'independent seven-card spade offer',
+      north: independentNorth, east: independentEast,
+      south: { S: '3', H: '742', D: 'T7643', C: 'AK52' },
+      west: { S: 'AJT9765', H: '5', D: 'Q82', C: 'T9' }, call: '2S' as Call,
+      rule: 'advance-natural-vs-1nt-independent-new-suit' },
+    { name: 'six-card suit fails Klinger score',
+      north: independentNorth, east: independentEast,
+      south: { S: '53', H: '742', D: 'T7643', C: 'AK2' },
+      west: { S: 'AJT976', H: '5', D: 'Q82', C: 'T95' }, call: 'Pass' as Call,
+      rule: 'advance-natural-vs-1nt-pass' },
+  ];
+  let failures = 0;
+  let checks = 0;
+  for (const item of cases) {
+    const board = makeRuleTestBoard({ description: item.name, dealer: 'N',
+      practiceAuction: ['1NT', '2H', 'Pass'], north: item.north ?? north,
+      east: item.east ?? east, south: item.south, west: item.west }).board;
+    const auction: Call[] = ['1NT', '2H', 'Pass'];
+    const status = getBiddingTurnStatus(board, auction, off);
+    const result = evaluateUserCall(item.call, board, auction, off);
+    const matches = status.kind === 'scopeBoundary' ? status.rule.id === item.rule :
+      result.userCallMatchingRules.some((rule) => rule.id === item.rule);
+    checks++;
+    if (!matches || getApplicableCandidateCalls(result).some((candidate) =>
+        candidate.call === 'Pass' && status.kind === 'scopeBoundary')) {
+      failures++;
+      console.error(`FAIL DONT-off quiet advance: ${item.name}.`);
+    }
+    // The independent suit's exact score must be delivered as hand-specific guidance.
+    if (item.name === 'independent seven-card spade offer') {
+      const lines = getBidExplanationLines({ title: 'Review', call: item.call,
+        status, result, handFacts: getHandFacts(board.deal.W), auctionLength: auction.length,
+        previewLines: [], seatLabel: 'West', recordedUnjudged: false });
+      checks++;
+      if (!lines.some((line) => line.includes('suit-quality score 10') &&
+                                   line.includes('nonforcing'))) {
+        failures++;
+        console.error('FAIL DONT-off independent-suit explanation delivery.');
+      }
+    }
+    if (item.name === 'six-card suit fails Klinger score') {
+      checks++;
+      if (getApplicableCandidateCalls(evaluateUserCall('2S', board, auction, off))
+        .some((candidate) => candidate.call === '2S')) {
+        failures++;
+        console.error('FAIL DONT-off weak independent suit was accepted.');
+      }
+    }
+  }
+  console.log(`${failures} ***FAILURES***. DONT-off quiet advances: ${checks} checks.`);
+  return failures;
+}
+
 /// A few natural-defense checks complement the complete practice hands; later-round
 /// advances and responder continuations are tested in their own families.
 function runDontOffNaturalOvercallTests (): number {

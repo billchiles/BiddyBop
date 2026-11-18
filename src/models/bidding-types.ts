@@ -637,6 +637,17 @@ export interface CallEvidence {
   advanceNewSuitQuality?: {
     considered: AdvancingNewSuitChoice[];
   };
+  naturalOneNtAdvance?: {
+    kind: 'pass' | 'raise' | 'newSuit';
+    partnerSuit: Suit;
+    hcp: number;
+    support: number;
+    supportPoints: number;
+    offeredSuit?: Suit;
+    offeredLength?: number;
+    suitQuality?: number;
+    preemptQuality?: boolean;
+  };
   dontAdvance?: {
     partnerCall: Call;
     selectedCall: Call;
