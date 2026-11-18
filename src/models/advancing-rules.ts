@@ -180,6 +180,7 @@ export const AdvanceRules: BidRule[] = [
     kind: 'advance',
     title: 'Use the basic DONT pass-or-correct advance',
     auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: true },
     calls: ['Pass', '2C', '2D', '2H', '2S'],
     callRefinement: refineDontAdvance,
     callCategory: ['conventional'],

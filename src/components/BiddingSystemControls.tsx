@@ -122,6 +122,11 @@ export function BiddingSystemControls({ biddingSystem, onChange }: BiddingSystem
           <input type="checkbox" checked={biddingSystem.texasTransfers}
             onChange={(event) => onChange({ ...biddingSystem, texasTransfers: event.target.checked })} />
         </label>
+        <label className="biddingSystemField">
+          <span>DONT (over opposing 1NT)</span>
+          <input type="checkbox" checked={biddingSystem.dont}
+            onChange={(event) => onChange({ ...biddingSystem, dont: event.target.checked })} />
+        </label>
       </div>
     </details>
   );

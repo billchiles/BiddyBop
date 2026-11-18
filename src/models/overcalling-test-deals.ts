@@ -748,6 +748,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
   {
     description: 'No DONT one- or two-suited shape: Pass after an opposing 1NT opening.',
     dealer: 'N', practiceAuction: ['1NT', 'Pass'],
+    requiredSystem: { dont: true },
     north: { S: 'AQ4', H: 'KJ2', D: 'K83', C: 'QT95' },
     east: { S: '8763', H: 'T974', D: 'AJ', C: 'K64' },
     west: { S: 'JT95', H: 'A863', D: 'Q76', C: 'J7' },
@@ -759,6 +760,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'One-suited hearts: DONT Double, 2C relay, then reveal 2H.',
     dealer: 'N',
     practiceAuction: ['1NT', 'Double', 'Pass', '2C', 'Pass', '2H'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: 'Double', ruleIds: ['overcall-dont-single-suit-double'] },
     ],
@@ -777,6 +779,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Clubs plus hearts: 2C, 2D asks for the higher suit, then 2H.',
     dealer: 'N',
     practiceAuction: ['1NT', '2C', 'Pass', '2D', 'Pass', '2H'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: '2C', ruleIds: ['overcall-dont-clubs-plus-higher'] },
     ],
@@ -795,6 +798,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Clubs plus spades: advancer has three clubs and accepts 2C.',
     dealer: 'N',
     practiceAuction: ['1NT', '2C', 'Pass', 'Pass'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: '2C', ruleIds: ['overcall-dont-clubs-plus-higher'] },
     ],
@@ -810,6 +814,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Diamonds plus spades: 2H asks for the major, then partner corrects to 2S.',
     dealer: 'N',
     practiceAuction: ['1NT', '2D', 'Pass', '2H', 'Pass', '2S'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: '2D', ruleIds: ['overcall-dont-diamonds-plus-major'] },
     ],
@@ -828,6 +833,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'Both majors: advancer prefers spades and the DONT bidder accepts 2S.',
     dealer: 'N',
     practiceAuction: ['1NT', '2H', 'Pass', '2S', 'Pass', 'Pass'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: '2H', ruleIds: ['overcall-dont-majors'] },
     ],
@@ -846,6 +852,7 @@ export const DONT_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
     description: 'One-suited spades: direct natural DONT 2S and advancer Pass.',
     dealer: 'N',
     practiceAuction: ['1NT', '2S', 'Pass', 'Pass'],
+    requiredSystem: { dont: true },
     expectedOvercallCalls: [
       { call: '2S', ruleIds: ['overcall-dont-natural-spades'] },
     ],
