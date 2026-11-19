@@ -158,6 +158,7 @@ function runAllRuleTests (): void {
     runConventionalResponderTeachingTests,
     runOpenerInterferenceTeachingTests,
     runOneNtInterferenceDoubleContinuityTests,
+    runDontOffOpenerNegativeDoubleTests,
     runBidExplanationDeliveryTests,
     runMajorSupportNewSuitRejectionTests,
     runRecordedCallFeedbackTests,
@@ -4069,6 +4070,136 @@ function runOneNtInterferenceExplanationTests (): number {
   console.log(`${failures} ***FAILURES***. Natural 1NT interference explanations: ${cases.length + 3} checks.\n`);
   return failures;
 }
+/// Focused physical-auction tests for DONT-off opener replies to responder's
+/// negative Double. Construct temporary hands instead of permanent practice deals.
+function runDontOffOpenerNegativeDoubleTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  const doubleFit = {
+    north: { S: 'AKQJ', H: 'AQ76', D: 'J97', C: '84' },
+    east: { S: '82', H: 'T3', D: 'A52', C: 'KQJT96' },
+    south: { S: 'T975', H: 'KJ85', D: 'KQ8', C: '75' },
+  };
+  const swapMinors = (hand: { S: string; H: string; D: string; C: string }) =>
+    ({ S: hand.S, H: hand.H, D: hand.C, C: hand.D });
+  const diamondFit = {
+    north: swapMinors(doubleFit.north),
+    east: swapMinors(doubleFit.east),
+    south: swapMinors(doubleFit.south),
+  };
+  const heartFit = {
+    north: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' },
+    east: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    south: { S: 'T975', H: '32', D: 'KQ8', C: 'KQ42' },
+  };
+  const spadeFit = {
+    north: { S: 'K84', H: 'AQ76', D: 'AJ9', C: 'Q85' },
+    east: { S: 'AQJT96', H: 'T3', D: '752', C: '96' },
+    south: { S: '75', H: 'KJ85', D: 'KQ8', C: 'KJ42' },
+  };
+  const stoppedMin = {
+    north: { S: 'AK4', H: 'Q87', D: 'QJ9', C: 'K854' },
+    east: { S: '82', H: 'T3', D: 'A52', C: 'AQJT96' },
+    south: { S: 'QJ97', H: 'KJ96', D: 'KT8', C: '73' },
+  };
+  const stoppedMax = {
+    north: { S: 'AK4', H: 'Q87', D: 'AJ9', C: 'K854' },
+    east: { S: '82', H: 'T3', D: '752', C: 'AQJT96' },
+    south: { S: 'QJ97', H: 'KJ96', D: 'KQ8', C: '73' },
+  };
+  const noClubStopper = {
+    north: { S: 'AK4', H: 'Q87', D: 'AK9', C: 'T854' },
+    east: { S: '82', H: 'T3', D: '752', C: 'AKQJ96' },
+    south: { S: 'QJ97', H: 'KJ96', D: 'QT8', C: '73' },
+  };
+  const cases = [
+    { name: '2C Double shows hearts up the line', hands: doubleFit,
+      overcall: '2C' as Call, call: '2H' as Call,
+      id: 'opener-rebid-dont-off-fit-after-1nt-interference-double' },
+    { name: '2D Double shows hearts before spades', hands: diamondFit,
+      overcall: '2D' as Call, call: '2H' as Call,
+      id: 'opener-rebid-dont-off-fit-after-1nt-interference-double' },
+    { name: '2H Double shows spades', hands: heartFit,
+      overcall: '2H' as Call, call: '2S' as Call,
+      id: 'opener-rebid-dont-off-fit-after-1nt-interference-double' },
+    { name: '2S Double shows hearts', hands: spadeFit,
+      overcall: '2S' as Call, call: '3H' as Call,
+      id: 'opener-rebid-dont-off-fit-after-1nt-interference-double' },
+    { name: 'no major fit, stopped minimum', hands: stoppedMin,
+      overcall: '2C' as Call, call: '2NT' as Call,
+      id: 'opener-rebid-dont-off-2nt-after-1nt-interference-double' },
+    { name: 'no major fit, stopped maximum', hands: stoppedMax,
+      overcall: '2C' as Call, call: '3NT' as Call,
+      id: 'opener-rebid-dont-off-3nt-after-1nt-interference-double' },
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const item of cases) {
+    const auction: Call[] = ['1NT', item.overcall, 'Double', 'Pass'];
+    const { board } = makeRuleTestBoard({ description: item.name, dealer: 'N',
+      practiceAuction: [...auction, item.call], ...item.hands });
+    const result = evaluateUserCall(item.call, board, auction, off);
+    const rule = result.userCallMatchingRules.find((entry) => entry.id === item.id);
+    const diagnostic = result.ruleDiagnostics.find((entry) => entry.rule.id === item.id);
+    const selected = diagnostic?.candidates.find((entry) => entry.call === item.call);
+    const evidence = (selected?.callEvidence ?? diagnostic?.callEvidence)?.openerOneNtInterference;
+    const explanation = rule === undefined ? [] : getOpenerOneNtInterferenceLines(result, rule);
+    checks++;
+    if (rule === undefined || evidence?.dontDefense !== false ||
+        explanation.length === 0 || explanation.some((line) => line.includes('DONT 2H shows')) ||
+        getBiddingTurnStatus(board, auction, off).kind !== 'supported') {
+      failures++;
+      console.error(`FAIL DONT-off opener negative Double: ${item.name}.`);
+    }
+    if (item.call === '2H' && item.overcall === '2C') {
+      checks++;
+      const spades = evaluateUserCall('2S', board, auction, off);
+      if (spades.userCallMatchingRules.some((entry) => entry.id === item.id) ||
+          getOpenerOneNtInterferenceFailureLines(
+            evaluateUserCall('Pass', board, auction, off)).length === 0) {
+        failures++;
+        console.error('FAIL hearts must be selected before spades; Pass is not a fit reply.');
+      }
+    }
+  }
+
+  const unstoppedAuction: Call[] = ['1NT', '2C', 'Double', 'Pass'];
+  const unstoppedBoard = makeRuleTestBoard({ description: 'No major fit or club stopper',
+    dealer: 'N', practiceAuction: [...unstoppedAuction, 'Pass'],
+    ...noClubStopper }).board;
+  checks++;
+  const unstopped = getBiddingTurnStatus(unstoppedBoard, unstoppedAuction, off);
+  if (unstopped.kind !== 'scopeBoundary' ||
+      unstopped.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') {
+    failures++;
+    console.error('FAIL DONT-off missing natural-suit stopper should reach judgment boundary.');
+  }
+
+  const raisedAuction: Call[] = ['1NT', '2S', 'Double', '3S'];
+  const raisedBoard = makeRuleTestBoard({ description: 'Advancer raises after negative Double',
+    dealer: 'N', practiceAuction: [...raisedAuction, 'Pass'],
+    ...spadeFit }).board;
+  checks++;
+  const raised = getBiddingTurnStatus(raisedBoard, raisedAuction, off);
+  if (raised.kind !== 'scopeBoundary' ||
+      raised.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') {
+    failures++;
+    console.error('FAIL DONT-off opposing raise must not automatically force game.');
+  }
+
+  checks++;
+  const conventional = evaluateUserCall('2H',
+    makeRuleTestBoard({ description: 'DONT-on artificial 2C', dealer: 'N',
+      practiceAuction: ['1NT', '2C', 'Double', 'Pass', '2H'], ...doubleFit }).board,
+    ['1NT', '2C', 'Double', 'Pass'], defaultBiddingSystem);
+  if (conventional.ruleDiagnostics.some((entry) =>
+      entry.rule.id.startsWith('opener-rebid-dont-off-'))) {
+    failures++;
+    console.error('FAIL DONT-off opener rules leaked into DONT-on.');
+  }
+  console.log(`${failures} ***FAILURES***. DONT-off opener negative Double: ${checks} checks.`);
+  return failures;
+}
+
 /// Test the partnership promise across 1NT interference, opener's next call,
 /// and the delivered explanation. Construct hands, not new practice selections.
 function runOneNtInterferenceDoubleContinuityTests (): number {

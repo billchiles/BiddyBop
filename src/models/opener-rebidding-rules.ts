@@ -458,9 +458,9 @@ export const OpenerRebidRules: BidRule[] = [
                'machinery is not modeled in this treatment.'],
   },
   //// 1NT opening -- Opener after responder's takeout Double
-  // After a natural DONT 2S over our 1NT, responder's takeout Double promises
-  // four or more hearts. It is not a penalty Double; opener shows a heart fit
-  // or a stopped NT hand rather than passing the Double.
+  // The existing DONT-on 2S Double promises hearts. When DONT is disabled,
+  // natural two-level interference allows a negative Double showing the unbid
+  // major(s). Both treatments reuse the same fit and stopped-NT decisions.
   {
     id: 'opener-rebid-fit-after-1nt-interference-double',
     kind: 'openerRebid',
@@ -468,6 +468,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: true },
     calls: ['3H'],
     callRefinement: refineOneNtInterferenceDoubleFit,
     callCategory: ['natural'],
@@ -484,6 +485,7 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: true },
     calls: ['2NT'],
     callCategory: ['natural'],
     appliesWhen: oneNtInterferenceDoubleNtApplies,
@@ -497,11 +499,61 @@ export const OpenerRebidRules: BidRule[] = [
     auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: true },
     calls: ['3NT'],
     callCategory: ['natural'],
     appliesWhen: oneNtInterferenceDoubleNtApplies,
     meaning: 'Maximum 1NT values, a spade stopper, and no four-card heart fit ' +
              'for responder’s takeout Double.',
+  },
+  //// 1NT opening -- DONT-off negative-Double opener continuations
+  // This reuses the DONT-on evaluators. The actual natural 2X suit determines
+  // which four-card major(s) responder promised and which stoppers are needed.
+  {
+    id: 'opener-rebid-dont-off-fit-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show the cheapest major fit after a negative Double of natural 2X',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: false },
+    calls: ['2H', '2S', '3H'],
+    callRefinement: refineOneNtInterferenceDoubleFit,
+    callCategory: ['natural'],
+    meaning: 'Show a four-card major fit in the cheapest legal strain promised by the ' +
+             'negative Double of a natural 2X overcall.',
+    guidance: ['After natural 2C or 2D, responder promises four cards in both majors; ' +
+               'show hearts before spades if opener has both fits.',
+               'After natural 2H show a spade fit with 2S; after natural 2S show a ' +
+               'heart fit with 3H. Do not jump to game automatically if advancer competes.'],
+  },
+  {
+    id: 'opener-rebid-dont-off-2nt-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show stopped minimum/middle 1NT values with no negative-Double major fit',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: false },
+    calls: ['2NT'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceDoubleNtApplies,
+    meaning: 'No four-card major fit for responder’s negative Double; minimum or middle ' +
+             '1NT opening values and a basic stopper in the natural opposing suit.',
+  },
+  {
+    id: 'opener-rebid-dont-off-3nt-after-1nt-interference-double',
+    kind: 'openerRebid',
+    title: 'Show stopped maximum 1NT values with no negative-Double major fit',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' } },
+    agreement: { setting: 'dont', value: false },
+    calls: ['3NT'],
+    callCategory: ['natural'],
+    appliesWhen: oneNtInterferenceDoubleNtApplies,
+    meaning: 'Maximum 1NT opening values, a basic stopper in the natural opposing ' +
+             'suit, and no four-card fit in a major promised by responder’s Double.',
   },
   //// 1NT opening -- Natural suit responses after interference
   // Responder\'s natural suit calls are nonforcing; partner has 8+ at the two level

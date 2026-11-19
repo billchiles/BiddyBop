@@ -8818,8 +8818,9 @@ export function getOpenerCompetitiveNaturalNtRebidFailureLines(
 //// Opener after interference over a 1NT opening
 ///
 
-/// The candidate's own qualification supplies the decision; its evidence supplies the
-/// actual stopper, fit and strength facts. Artificial DONT 2H shows *both* majors.
+/// The candidate's own qualification supplies the decision; its evidence supplies
+/// the actual stopper, fit and strength facts. Preserve DONT-on explanations,
+/// while a DONT-off negative Double uses the natural opposing suit's meaning.
 export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: BidRule): string[] {
   const diagnostic = result.ruleDiagnostics.find((item) => item.rule.id === rule.id);
   const candidate = diagnostic?.candidates.find((item) =>
@@ -8832,8 +8833,25 @@ export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: Bid
   const id = `[${rule.id}]`;
   switch (e.treatment) {
     case 'doubleFit':
+      if (!e.dontDefense && e.fitSuit !== null) {
+        const naturalSuit = e.opponentSuits[0];
+        const fit = suitPlural(`1${e.fitSuit}` as Call);
+        const promised = naturalSuit === 'C' || naturalSuit === 'D'
+          ? 'at least four cards in both majors' : `at least four ${fit}`;
+        return [`Responder's negative Double of the natural 2${naturalSuit} overcall ` +
+          `promises ${promised}. Your ${e.fitLength} ${fit} provide the required fit, ` +
+          `so ${candidate.call} shows that major economically ${id}.`];
+      }
       return [`Responder's takeout Double of the natural spade overcall promises at least four hearts. Your ${e.fitLength} hearts establish an eight-card fit; show it with ${candidate.call} ${id}.`];
     case 'doubleNt':
+      if (!e.dontDefense) {
+        const naturalSuit = e.opponentSuits[0];
+        return [`Responder's negative Double after the natural 2${naturalSuit} overcall ` +
+          `shows support in the unbid major(s). You have no four-card fit in a promised ` +
+          `major. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ` +
+          `${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} ` +
+          `notrump opening ${id}.`];
+      }
       return [`Responder's takeout Double promises at least four hearts, but you have fewer than four. With ${e.hcp} HCP and a stopper in the opposing ${opponents}, ${candidate.call} describes your ${candidate.call === '2NT' ? 'minimum or middle' : 'maximum'} notrump opening ${id}.`];
     case 'naturalPass':
       return [`Responder's ${e.response} is natural and nonforcing. With ${e.hcp} HCP${e.responseLevel === 3 ? ` and no complete set of stoppers in ${opponents}` : ''}, Pass accepts partner's ${responseSuit} rather than inventing a game bid ${id}.`];
@@ -8867,7 +8885,8 @@ export function getOpenerOneNtInterferenceFailureLines(result: BidEvalResult): s
   }
   if (call === 'Pass') {
     const fit = result.ruleDiagnostics.find((item) =>
-      item.rule.id === 'opener-rebid-fit-after-1nt-interference-double');
+      item.rule.id === 'opener-rebid-fit-after-1nt-interference-double' ||
+      item.rule.id === 'opener-rebid-dont-off-fit-after-1nt-interference-double');
     const e = fit?.callEvidence?.openerOneNtInterference;
     if (e?.treatment === 'doubleFit' && e.fitSuit !== null) {
       return [`Responder's Double is a takeout request, not penalty. You have a four-card ${suitPlural(`1${e.fitSuit}` as Call)} fit and must respond; Pass does not describe it [${fit!.rule.id}].`];
