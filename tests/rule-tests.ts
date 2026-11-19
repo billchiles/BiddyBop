@@ -16,7 +16,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getNaturalNewSuitOvercallLines,
          getMinorResponseSupportLines, getMajorNoSupportLines,
          getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
-         getNaturalAdvanceLines, getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
+         getNaturalAdvanceLines, getNaturalOneNtAdvanceLines,
+         getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
          getCompetitiveRaiseAdvanceLines, getCompetitiveRaiseAdvanceFailureLines,
          getCompetitiveNaturalAdvanceLines, getJumpAdvanceLines, getJumpAdvanceFailureLines,
          getJumpAdvanceAlternativeLines, getWeakTwoTwoNtAdvanceAlternativeLines,
@@ -185,6 +186,7 @@ function runAllRuleTests (): void {
     runStage7BOvercallAndBalancingExplanationTests,
     runDontOffNaturalOvercallTests,
     runDontOffQuietAdvanceTests,
+    runDontOffResponderInterferenceAdvanceTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1461,6 +1463,86 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// Verify selected intervening responder calls with complete temporary hands. These are
+/// not permanent practice deals: longer natural-defense exercises follow after rebids.
+function runDontOffResponderInterferenceAdvanceTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  const north = { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' };
+  const east = { S: '84', H: 'KQJT96', D: 'A52', C: '73' };
+  const raised = makeRuleTestBoard({ description: 'DONT-off raise after negative Double',
+    dealer: 'N', practiceAuction: ['1NT', '2H', 'Double'],
+    north, east,
+    south: { S: '632T', H: '', D: 'K763', C: 'KQ42T' },
+    west: { S: '975', H: '7532', D: 'Q84', C: 'A65' } }).board;
+  const passed = makeRuleTestBoard({ description: 'DONT-off Pass after negative Double',
+    dealer: 'N', practiceAuction: ['1NT', '2H', 'Double'],
+    north, east,
+    south: { S: '632T', H: '32', D: 'K763', C: 'KQ2' },
+    west: { S: '975', H: '75', D: 'Q84', C: 'AT654' } }).board;
+  const natural = makeRuleTestBoard({ description: 'DONT-off independent suit after natural response',
+    dealer: 'N', practiceAuction: ['1NT', '2C', '2H'],
+    north: { S: 'KQ4', H: 'QJ83', D: 'KJ9', C: 'A83' },
+    east: { S: '82', H: '764', D: 'A5', C: 'KQ4T96' },
+    south: { S: '3', H: 'AK529', D: 'T764', C: '7J2' },
+    west: { S: 'AJT9765', H: 'T', D: 'Q823', C: '5' } }).board;
+  const cases: { name: string; board: ReturnType<typeof makeRuleTestBoard>['board'];
+    auction: Call[]; call: Call; ruleId: string }[] = [
+    { name: 'negative Double with four-trump competitive raise', board: raised,
+      auction: ['1NT', '2H', 'Double'], call: '3H',
+      ruleId: 'advance-natural-vs-1nt-competitive-raise' },
+    { name: 'negative Double with poor-fit Pass', board: passed,
+      auction: ['1NT', '2H', 'Double'], call: 'Pass',
+      ruleId: 'advance-natural-vs-1nt-pass' },
+    { name: 'natural responder suit with independent economical new suit', board: natural,
+      auction: ['1NT', '2C', '2H'], call: '2S',
+      ruleId: 'advance-natural-vs-1nt-independent-new-suit' },
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const item of cases) {
+    const result = evaluateUserCall(item.call, item.board, item.auction, off);
+    const matching = result.userCallMatchingRules.find((rule) => rule.id === item.ruleId);
+    checks++;
+    if (matching === undefined || getNaturalOneNtAdvanceLines(result, matching).length === 0 ||
+        (item.call !== 'Pass' && getApplicableCandidateCalls(result)
+          .some((candidate) => candidate.call === 'Pass'))) {
+      failures++;
+      console.error(`FAIL DONT-off responder interference: ${item.name}.`);
+    }
+  }
+
+  // Responder's 2H consumes the space needed for 2D; no three-level new-suit
+  // offer is inferred merely because the original two-level option is gone.
+  checks++;
+  const restricted = getApplicableCandidateCalls(
+    evaluateUserCall('2S', natural, ['1NT', '2C', '2H'], off));
+  if (restricted.some((item) => item.call === '2D' || item.call === '3D' ||
+      item.call === 'Double' || item.call === 'Redouble')) {
+    failures++;
+    console.error('FAIL DONT-off new suit used the wrong bidding space or invented Double.');
+  }
+
+  // Natural 2NT responder actions await separate analysis, not quiet-auction Pass.
+  checks++;
+  const unsupportedStatus = getBiddingTurnStatus(natural, ['1NT', '2C', '2NT'], off);
+  if (unsupportedStatus.kind !== 'scopeBoundary' ||
+      unsupportedStatus.rule.id !== 'advance-natural-vs-1nt-unsupported-responder-boundary') {
+    failures++;
+    console.error('FAIL DONT-off unreviewed responder action lacked a scope boundary.');
+  }
+
+  // Under conventional DONT, these new natural-advance meanings must be inactive.
+  checks++;
+  const conventional = evaluateUserCall('3H', raised, ['1NT', '2H', 'Double'],
+    defaultBiddingSystem);
+  if (conventional.applicableRules.some((rule) => rule.id.startsWith('advance-natural-vs-1nt-'))) {
+    failures++;
+    console.error('FAIL natural DONT-off advances leaked into DONT-on mode.');
+  }
+  console.log(`${failures} ***FAILURES***. DONT-off intervened advances: ${checks} checks.`);
+  return failures;
+}
+
 /// Focused direct rule tests, not new practice-deal fixtures. Construct complete
 /// four-hand auctions at the advancing stage; longer practice will be added after rebids.
 function runDontOffQuietAdvanceTests (): number {

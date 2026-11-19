@@ -34,7 +34,8 @@ import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies
          naturalNotrumpAfterNegativeDoubleApplies, refineSelectedNewSuitAfterNegativeDouble,
          strengthRedoubleAfterNegativeDoubleApplies, refineTakeoutEscapeAfterResponderRedouble,
          jumpOvercallPassApplies, refineDontAdvance, refineNaturalOneNtAdvance,
-         naturalOneNtAdvanceApplies, naturalOneNtAdvanceBoundary, refineJumpOvercallRaise,
+         naturalOneNtAdvanceApplies, naturalOneNtAdvanceBoundary,
+         naturalOneNtAdvanceUnsupportedResponderBoundary, refineJumpOvercallRaise,
          refineJumpOvercallMajorGame, refineJumpOvercallNewSuit } from './advancing-functions';
 
 
@@ -191,9 +192,10 @@ export const AdvanceRules: BidRule[] = [
                'to ask partner to pass or correct. After 2H, choose the preferred major.',
                'Game inquiries and continuations after responder competes are not modeled.'],
   },
-  //// Natural defense of strong 1NT -- Quiet advances
+  //// Natural defense of strong 1NT -- Selected advances
   // A natural two-level overcall shows six or more cards in the named suit.
-  // These actions are nonforcing, not ordinary advances after a suit opening.
+  // The same nonforcing meanings apply after responder Pass, negative Double, or
+  // a legal natural two-level suit; other actions remain a judgment boundary.
   {
     id: 'advance-natural-vs-1nt-pass',
     kind: 'advance',
@@ -207,7 +209,9 @@ export const AdvanceRules: BidRule[] = [
              'advance qualifies and no strong-hand judgment boundary applies.',
     guidance: ['Poor fit alone does not impose a 10-HCP ceiling on Pass. ' +
                'A conservative Pass with a marginal constructive possibility can still ' +
-               'be reasonable depending on vulnerability and other judgment.'],
+               'be reasonable depending on vulnerability and other judgment.',
+               'After responder’s negative Double, Pass may leave partner playing a ' +
+               'doubled contract if opener also Passes.'],
   },
   //
   {
@@ -266,6 +270,20 @@ export const AdvanceRules: BidRule[] = [
              'economical new suit, defending, competing or other action needs judgment.',
     guidance: ['Ordinary 11–12-HCP poor-fit hands can still Pass. The app does not ' +
                'infer a penalty Double or automatic Pass for a much stronger misfit.'],
+  },
+  //
+  {
+    id: 'advance-natural-vs-1nt-unsupported-responder-boundary',
+    kind: 'scopeBoundary',
+    title: 'Unreviewed responder action after a natural defense of 1NT',
+    auctionContext: { stage: 'advancing', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: naturalOneNtAdvanceUnsupportedResponderBoundary,
+    meaning: 'Responder has taken an action beyond the selected Pass, negative Double, ' +
+             'or natural two-level suit response to the opposing natural overcall.',
+    guidance: ['The app does not assign an automatic Pass, Double, Redouble, or higher ' +
+               'competitive bid here. The appropriate action depends on the actual ' +
+               'auction, fit, playing strength, and partnership agreements.'],
   },
   //// Natural one-level suit overcall -- Advances after responder Pass
   // First family: advance partner's natural one-level suit overcall when responder passes.
