@@ -625,7 +625,7 @@ export const OpenerRebidRules: BidRule[] = [
                       advancerCall: { kind: 'other' } },
     agreement: { setting: 'dont', value: false },
     scopeBoundaryWhen: oneNtInterferenceScopeBoundaryApplies,
-    meaning: 'Advancer has raised the naturally bid suit after responder's takeout ' +
+    meaning: 'Advancer has raised the naturally bid suit after responder’s takeout ' +
              'Double. Competing higher requires judgment, not a forced game bid.',
     guidance: ['Even with a major fit, opener should not automatically bid game over ' +
                'the opposing 3X raise. Fit, level and defensive prospects need judgment.'],
