@@ -2818,9 +2818,12 @@ export function getNaturalOneNtAdvanceLines(result: BidEvalResult, rule: BidRule
   if (evidence === undefined) return [];
   const id = `[${rule.id}]`;
   if (evidence.kind === 'pass') {
+    const doubled = evidence.responderAction === 'negativeDouble' ?
+      ` Responder's negative Double may leave partner's overcall doubled if opener Passes.` : '';
     return [`Partner's natural 2${evidence.partnerSuit} overcall is nonforcing. Your ` +
       `${evidence.hcp} HCP and ${evidence.support} trumps offer no qualifying ` +
-      `competitive raise or independent economical new suit, so Pass is supported ${id}.`];
+      `competitive raise or independent economical new suit, so Pass is supported ${id}.` +
+      doubled];
   }
   if (evidence.kind === 'raise') {
     return [`You hold ${evidence.support} ${suitPlural(`1${evidence.partnerSuit}` as Call)} ` +
@@ -2829,12 +2832,16 @@ export function getNaturalOneNtAdvanceLines(result: BidEvalResult, rule: BidRule
       `to game; partner may Pass ${id}.`];
   }
   if (evidence.offeredLength === undefined || evidence.suitQuality === undefined) return [];
+  const responderSuit = evidence.responderSuit === undefined ? '' :
+    ` Responder's natural ${suitPlural(`1${evidence.responderSuit}` as Call)} are ` +
+    `not a suit to bid as your own new suit.`;
   return [`Your ${evidence.hcp} HCP meet the 7-HCP minimum. Your ` +
     `${evidence.offeredLength} ${suitPlural(result.normalizedCall)} have suit-quality score ` +
     `${evidence.suitQuality} and meet the preempt-honor test, while you have only ` +
     `${evidence.support} ${evidence.support === 1 ? 'card' : 'cards'} in partner's suit. ` +
     `${result.normalizedCall} is a natural, ` +
-    `nonforcing offer to play in your independent suit, not a relay or game try ${id}.`];
+    `nonforcing offer to play in your independent suit, not a relay or game try ${id}.` +
+    responderSuit];
 }
 
 /// A rejected concrete advance reports the actually tested failure. Pass can still

@@ -50,14 +50,16 @@ export function refineDontAdvance (calls: Call[], context: RuleEvalContext): Cal
 
 
 
-//// Natural advances of a strong 1NT overcall -- Responder Pass
+//// Natural advances of a strong 1NT overcall -- Selected responder actions
 
-/// This family recognizes only 1NT - natural 2X - Pass - ?. The fourth-seat hand
-/// offers a competitive raise, an independently playable *economical* two-level suit,
-/// or Pass. The opponents' 1NT has no known suit to cuebid or promise a stopper in.
+/// After natural 2X, responder may Pass, make a negative Double, or bid a legal
+/// natural two-level suit. Reuse the quiet advance's hand thresholds, respecting
+/// the bidding space and the suit responder has actually shown.
 interface NaturalOneNtAdvanceDecision {
   partnerSuit: Suit;
-  overcall: ParsedSuitBid;
+  lastContract: ParsedSuitBid;
+  responderAction: 'pass' | 'negativeDouble' | 'naturalSuit';
+  responderSuit?: Suit;
   hcp: number;
   support: number;
   supportPoints: number;
@@ -76,9 +78,11 @@ export function refineNaturalOneNtAdvance(calls: Call[], context: RuleEvalContex
   return { calls: calls.filter((call) => {
     const bid = parseSuitBid(call);
     if (bid === null || bid.strain === 'NT') return false;
+    if (!isCallAvailableInAuction(call, context.auction)) return false;
     if (kind === 'raise') return bid.level === 3 && bid.strain === decision.partnerSuit;
     return bid.level === 2 && bid.strain !== decision.partnerSuit &&
-      cheapestBidInStrainAfter(decision.overcall, bid.strain) === call;
+      bid.strain !== decision.responderSuit &&
+      cheapestBidInStrainAfter(decision.lastContract, bid.strain) === call;
   }), telemetryLines: [] };
 }
 
@@ -90,21 +94,24 @@ export function naturalOneNtAdvanceApplies(call: Call, context: RuleEvalContext,
   if (decision === null) return { success: false, telemetryLines: [] };
   const bid = parseSuitBid(call);
   const newSuit = kind === 'newSuit' && bid !== null && bid.strain !== 'NT' &&
-    bid.strain !== decision.partnerSuit && bid.level === 2 &&
-    cheapestBidInStrainAfter(decision.overcall, bid.strain) === call;
+    bid.strain !== decision.partnerSuit && bid.strain !== decision.responderSuit &&
+    bid.level === 2 && isCallAvailableInAuction(call, context.auction) &&
+    cheapestBidInStrainAfter(decision.lastContract, bid.strain) === call;
   const offeredSuit = newSuit && bid !== null ? bid.strain as Suit : null;
   const suitQuality = offeredSuit === null ? null : getIndependentSuitQuality(context, offeredSuit);
   const length = offeredSuit === null ? 0 : context.handFacts.lengths[offeredSuit];
   const independent = newSuit && offeredSuit !== null && decision.support <= 1 &&
     decision.hcp >= 7 && length >= 6 && suitQuality !== null && suitQuality.suitable;
   const raise = kind === 'raise' && bid !== null && bid.level === 3 &&
-    bid.strain === decision.partnerSuit && decision.raise;
+    bid.strain === decision.partnerSuit && decision.raise &&
+    isCallAvailableInAuction(call, context.auction);
   const pass = kind === 'pass' && call === 'Pass' && !decision.raise &&
     decision.newSuits.length === 0 && !decision.strongSupport && !decision.strongMisfit;
   const success = raise || independent || pass;
   const evidence: NonNullable<CallEvidence['naturalOneNtAdvance']> = {
     kind, partnerSuit: decision.partnerSuit, support: decision.support,
     hcp: decision.hcp, supportPoints: decision.supportPoints,
+    responderAction: decision.responderAction, responderSuit: decision.responderSuit,
     offeredSuit: offeredSuit ?? undefined, offeredLength: offeredSuit === null ? undefined : length,
     suitQuality: suitQuality?.score, preemptQuality: suitQuality?.preemptQuality,
   };
@@ -128,16 +135,41 @@ export function naturalOneNtAdvanceBoundary(context: RuleEvalContext,
     'FAIL: no exceptional natural advance boundary.'] };
 }
 
-/// Read the actual physical fourth turn, not a compact partnership auction.
-/// Reuse a single decision for all three quiet advance call meanings.
+/// A higher responder call or unreviewed artificial action does not acquire a
+/// Pass, Double, or new-suit meaning merely from its place in the auction.
+export function naturalOneNtAdvanceUnsupportedResponderBoundary(context: RuleEvalContext):
+    AppliesWhenResult {
+  const auction = getNaturalOneNtAdvanceAuction(context);
+  const success = auction !== null && getNaturalOneNtAdvanceDecision(context) === null;
+  return { success, telemetryLines: [success ?
+    'PASS: the responder action has no selected natural advance treatment.' :
+    'FAIL: responder action is within the selected natural advance treatment.'] };
+}
+
+/// Read the physical fourth turn, not a compact partnership auction. Double
+/// consumes no bidding level; a natural suit response changes the last contract.
 function getNaturalOneNtAdvanceDecision(context: RuleEvalContext): NaturalOneNtAdvanceDecision | null {
-  const opening = getOpeningCallInfo(context.dealer, context.auction);
-  if (context.stage !== 'advancing' || opening === null || opening.call !== '1NT' ||
-      context.auction.length !== opening.index + 3 ||
-      context.auction[opening.index + 2] !== 'Pass') return null;
-  const overcallCall = context.auction[opening.index + 1];
-  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
-  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT') return null;
+  const auction = getNaturalOneNtAdvanceAuction(context);
+  if (auction === null) return null;
+  const { overcall, responderCall, responseIndex } = auction;
+  let responderAction: NaturalOneNtAdvanceDecision['responderAction'];
+  let responderSuit: Suit | undefined;
+  let lastContract = overcall;
+  if (responderCall === 'Pass') {
+    responderAction = 'pass';
+  } else if (responderCall === 'Double') {
+    responderAction = 'negativeDouble';
+  } else {
+    const response = parseSuitBid(responderCall);
+    if (response === null || response.level !== 2 || response.strain === 'NT' ||
+        !isCallAvailableInAuction(responderCall, context.auction.slice(0, responseIndex))) {
+      return null;
+    }
+    responderAction = 'naturalSuit';
+    responderSuit = response.strain as Suit;
+    lastContract = response;
+  }
+
   const partnerSuit = overcall.strain as Suit;
   const support = context.handFacts.lengths[partnerSuit];
   const hcp = context.handFacts.hcp;
@@ -146,17 +178,34 @@ function getNaturalOneNtAdvanceDecision(context: RuleEvalContext): NaturalOneNtA
     hcp >= 6 && supportPoints >= 7 && supportPoints <= 10 :
     support >= 4 && hcp >= 4 && supportPoints >= 4 && supportPoints <= 10);
   const newSuits = SUITS.flatMap((suit) => {
-    if (suit === partnerSuit || support > 1 || hcp < 7 ||
+    if (suit === partnerSuit || suit === responderSuit || support > 1 || hcp < 7 ||
         context.handFacts.lengths[suit] < 6 || !getIndependentSuitQuality(context, suit).suitable) {
       return [];
     }
-    const next = cheapestBidInStrainAfter(overcall, suit);
-    return next !== null && parseSuitBid(next)?.level === 2 ? [next] : [];
+    const next = cheapestBidInStrainAfter(lastContract, suit);
+    return next !== null && parseSuitBid(next)?.level === 2 &&
+      isCallAvailableInAuction(next, context.auction) ? [next] : [];
   });
   const strongSupport = support >= 3 && (supportPoints >= 11 || hcp >= 10);
-  const strongMisfit = support < 3 && hcp >= 13 && newSuits.length === 0;
-  return { partnerSuit, overcall, hcp, support, supportPoints, raise,
-    newSuits, strongSupport, strongMisfit };
+  const strongMisfit = responderAction === 'pass' && support < 3 &&
+    hcp >= 13 && newSuits.length === 0;
+  return { partnerSuit, lastContract, responderAction, responderSuit, hcp, support,
+    supportPoints, raise, newSuits, strongSupport, strongMisfit };
+}
+
+/// Identify the natural 1NT defense independently of responder's subsequent
+/// action. Agreement gating belongs to the declaring rules, not this helper.
+function getNaturalOneNtAdvanceAuction(context: RuleEvalContext):
+    { overcall: ParsedSuitBid; responderCall: Call; responseIndex: number } | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'advancing' || opening === null || opening.call !== '1NT' ||
+      context.auction.length !== opening.index + 3) return null;
+  const overcallCall = context.auction[opening.index + 1];
+  const responderCall = context.auction[opening.index + 2];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT' ||
+      responderCall === undefined) return null;
+  return { overcall, responderCall, responseIndex: opening.index + 2 };
 }
 
 /// Klinger's suit-quality score counts length plus A/K/Q, and counts J or 10

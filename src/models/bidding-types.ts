@@ -640,6 +640,9 @@ export interface CallEvidence {
   naturalOneNtAdvance?: {
     kind: 'pass' | 'raise' | 'newSuit';
     partnerSuit: Suit;
+    // The first responder action changes available calls, not the natural advance's meaning.
+    responderAction: 'pass' | 'negativeDouble' | 'naturalSuit';
+    responderSuit?: Suit;
     hcp: number;
     support: number;
     supportPoints: number;
