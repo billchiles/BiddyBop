@@ -288,14 +288,16 @@ export function openerNtQuantitativeInvitationApplies (_call: Call, context: Rul
 }
 
 ///
-//// Notrump Rebids After Opposing DONT Interference
+//// Notrump Rebids After Opposing DONT or Natural Interference
 ///
 
-/// The first four physical calls identify the selected continuation after an opposing
-/// natural DONT 2S or a DONT 2H showing both majors. With 2H, only natural minor
-/// responses are modeled; DONT 2C/2D and unagreed doubles/cuebids are excluded.
+/// After DONT-on 2S, responder's Double promises hearts; DONT-on 2H instead
+/// shows both opposing majors and supports selected natural minor responses.
+/// DONT-off natural 2X accepts negative Doubles promising the unbid major(s).
+/// Natural DONT-off responder-suit continuations are handled in the next batch.
 interface OneNtInterferenceContinuation {
   opposingSuit: Suit;
+  opponentSuits: Suit[];
   response: Call;
   advance: Call;
   naturalSuit: Suit | null;
@@ -305,11 +307,11 @@ interface OneNtInterferenceContinuation {
 export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEvalContext,
     system: BiddingSystem):
     CallRefinementResult {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
-  const fit = getOneNtDoubleFit(context, info.opposingSuit);
-  // Over a 2S overcall and Pass, 3H is the economical heart-fit reply.
-  // An opposing raise to 3S requires further judgment rather than a forced game bid.
+  const fit = getOneNtDoubleFit(context, info, system);
+  // Show the cheapest four-card major fit. An opposing raise requires
+  // judgment, not a forced game bid when the two-level space is gone.
   const bid = fit !== null && info.advance === 'Pass' ?
     cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) : null;
   const wanted = bid as Call | null;
@@ -323,10 +325,10 @@ export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEv
 
 export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalContext,
                                                    system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   const min = system.oneNtOpening === '15-17' ? 15 : 16;
   const hcp = context.handFacts.hcp;
-  const fit = info === null ? null : getOneNtDoubleFit(context, info.opposingSuit);
+  const fit = info === null ? null : getOneNtDoubleFit(context, info, system);
   const stopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit);
   const success = info !== null && info.response === 'Double' && info.advance === 'Pass' &&
     fit === null && stopped && ((call === '2NT' && hcp <= min + 1) ||
@@ -339,7 +341,7 @@ export function oneNtInterferenceDoubleNtApplies (call: Call, context: RuleEvalC
 
 export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleEvalContext,
                                                       system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   const min = system.oneNtOpening === '15-17' ? 15 : 16;
   const suit = info?.naturalSuit;
   const hcp = context.handFacts.hcp;
@@ -362,7 +364,7 @@ export function oneNtInterferenceNaturalPassApplies (_call: Call, context: RuleE
 
 export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
     context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   const suit = info?.naturalSuit;
   const min = system.oneNtOpening === '15-17' ? 15 : 16;
   const hcp = context.handFacts.hcp;
@@ -382,7 +384,7 @@ export function oneNtInterferenceNaturalMajorRaiseApplies (call: Call,
 
 export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
     context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   const suit = info?.naturalSuit;
   const majorFit = (suit === 'H' || suit === 'S') && context.handFacts.lengths[suit] >= 3;
   const bothStopped = info !== null && hasBasicSuitStopper(context, info.opposingSuit) &&
@@ -396,10 +398,10 @@ export function oneNtInterferenceNaturalThreeNtApplies (_call: Call,
 }
 
 export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
-    _system: BiddingSystem): AppliesWhenResult {
-  const info = getOneNtInterferenceContinuation(context);
+    system: BiddingSystem): AppliesWhenResult {
+  const info = getOneNtInterferenceContinuation(context, system);
   if (info === null) return { success: false, telemetryLines: [] };
-  const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info.opposingSuit) : null;
+  const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info, system) : null;
   let success = false;
   if (info.response === 'Double') {
     // An opposing raise needs additional judgment, even with a heart fit.
@@ -408,8 +410,9 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
   } else if (info.naturalLevel === 3 && info.naturalSuit !== null) {
     const majorFit = (info.naturalSuit === 'H' || info.naturalSuit === 'S') &&
       context.handFacts.lengths[info.naturalSuit] >= 3;
-    // DONT 2H shows both majors: missing either stopper leaves strain judgment unresolved.
-    const requiredSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+    // An artificial DONT 2H names both majors; a natural 2X names only its
+    // bid suit. Check exactly the opponent suits promised in the auction.
+    const requiredSuits = info.opponentSuits;
     success = ! majorFit && requiredSuits.some((suit) => !hasBasicSuitStopper(context, suit));
   }
   return { success, telemetryLines: [success ? 'No deterministic natural strain or stopper.' :
@@ -419,57 +422,71 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
 function oneNtInterferenceEvidence(context: RuleEvalContext, system: BiddingSystem,
     treatment: NonNullable<CallEvidence['openerOneNtInterference']>['treatment']):
     CallEvidence | undefined {
-  const info = getOneNtInterferenceContinuation(context);
+  const info = getOneNtInterferenceContinuation(context, system);
   if (info === null) return undefined;
-  const opponentSuits: Suit[] = info.opposingSuit === 'H' ? ['H', 'S'] : ['S'];
+  const opponentSuits = info.opponentSuits;
   const missingStoppers = opponentSuits.filter((suit) => !hasBasicSuitStopper(context, suit));
   const responseSuit = info.naturalSuit;
   const fitSuit = info.response === 'Double'
-    ? getOneNtDoubleFit(context, info.opposingSuit)
+    ? getOneNtDoubleFit(context, info, system)
     : responseSuit === 'H' || responseSuit === 'S' ? responseSuit : null;
   return { openerOneNtInterference: {
     treatment, hcp: context.handFacts.hcp,
     minimumHcp: system.oneNtOpening === '15-17' ? 15 : 16,
     response: info.response, opponentSuits, missingStoppers,
+    dontDefense: system.dont,
     responseSuit, responseLevel: info.naturalLevel,
     support: responseSuit === null ? 0 : context.handFacts.lengths[responseSuit],
     fitSuit, fitLength: fitSuit === null ? 0 : context.handFacts.lengths[fitSuit],
   } };
 }
 
-/// After a natural DONT 2S, responder's takeout Double promises four hearts.
-/// Opener needs four hearts too before describing an eight-card heart fit.
-function getOneNtDoubleFit (context: RuleEvalContext, opposingSuit: Suit): Suit | null {
-  return opposingSuit === 'S' && context.handFacts.lengths.H >= 4 ? 'H' : null;
+/// Choose the cheapest four-card major consistent with responder's
+/// negative Double. Over natural minor interference, show hearts before
+/// spades. The DONT-on 2S/Double treatment remains hearts-only.
+function getOneNtDoubleFit (context: RuleEvalContext, info: OneNtInterferenceContinuation,
+    system: BiddingSystem): Suit | null {
+  if (system.dont) {
+    return info.opposingSuit === 'S' && context.handFacts.lengths.H >= 4 ? 'H' : null;
+  }
+  const majors: Suit[] = info.opposingSuit === 'C' || info.opposingSuit === 'D'
+    ? ['H', 'S'] : info.opposingSuit === 'H' ? ['S'] : ['H'];
+  return majors.find((suit) => context.handFacts.lengths[suit] >= 4) ?? null;
 }
 
 
-function getOneNtInterferenceContinuation (context: RuleEvalContext):
-    OneNtInterferenceContinuation | null {
+/// Recognize the physical four-call opener turn after a 1NT opening.
+/// The natural DONT-off suit responses are deliberately handled in Batch 8.
+function getOneNtInterferenceContinuation (context: RuleEvalContext,
+    system: BiddingSystem): OneNtInterferenceContinuation | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   if (opening === null || opening.call !== '1NT' ||
       context.auction.length !== opening.index + 4) return null;
   const overcall = parseSuitBid(context.auction[opening.index + 1] ?? 'Pass');
   const response = context.auction[opening.index + 2];
   const advance = context.auction[opening.index + 3];
-  if (overcall === null || overcall.level !== 2 ||
-      (overcall.strain !== 'H' && overcall.strain !== 'S') ||
+  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT' ||
+      (system.dont && overcall.strain !== 'H' && overcall.strain !== 'S') ||
       response === undefined || advance === undefined) return null;
   const responseBid = parseSuitBid(response);
   const naturalSuit = responseBid !== null && responseBid.strain !== 'NT' &&
     responseBid.strain !== overcall.strain ? responseBid.strain as Suit : null;
-  const isDontMajors = overcall.strain === 'H';
-  const responseIsSupported = (! isDontMajors && response === 'Double') ||
-    (naturalSuit !== null && (responseBid?.level === 2 || responseBid?.level === 3) &&
-     (! isDontMajors || (responseBid?.level === 3 &&
-                         (naturalSuit === 'C' || naturalSuit === 'D'))) &&
+  const isDontMajors = system.dont && overcall.strain === 'H';
+  const responseIsSupported = (response === 'Double' &&
+      (!system.dont || overcall.strain === 'S')) ||
+    (system.dont && naturalSuit !== null &&
+     (responseBid?.level === 2 || responseBid?.level === 3) &&
+     (!isDontMajors || (responseBid?.level === 3 &&
+                       (naturalSuit === 'C' || naturalSuit === 'D'))) &&
      cheapestBidInStrainAfter(overcall, naturalSuit) === response);
-  if (! responseIsSupported) return null;
+  if (!responseIsSupported) return null;
   if (advance !== 'Pass' &&
-      ! (response === 'Double' && advance === `3${overcall.strain}`)) return null;
-  return { opposingSuit: overcall.strain as Suit, response, advance, naturalSuit,
+      !(response === 'Double' && advance === `3${overcall.strain}`)) return null;
+  const opponentSuits: Suit[] = isDontMajors ? ['H', 'S'] : [overcall.strain as Suit];
+  return { opposingSuit: overcall.strain as Suit, opponentSuits, response, advance, naturalSuit,
     naturalLevel: naturalSuit === null ? null : responseBid!.level };
 }
+
 
 ///
 //// Opener Rebids After One-Level Suit Openings

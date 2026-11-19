@@ -867,6 +867,8 @@ export interface CallEvidence {
     response: Call;
     opponentSuits: Suit[];
     missingStoppers: Suit[];
+    // Distinguish the old artificial DONT meanings from natural DONT-off interference.
+    dontDefense: boolean;
     responseSuit: Suit | null;
     responseLevel: number | null;
     support: number;
