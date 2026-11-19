@@ -5,7 +5,8 @@ import {
   type RuleEvalContext, type NaturalSuitRebidTreatment
 } from './bidding-types';
 import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
-import { cheapestBidInStrainAfter, getOpeningCallInfo, parseSuitBid } from './auction';
+import { cheapestBidInStrainAfter, getOpeningCallInfo, isCallAvailableInAuction,
+         parseSuitBid } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
 ///
@@ -1526,6 +1527,107 @@ function getWeakTwoDefenseAdvance (context: RuleEvalContext): WeakTwoDefenseAdva
 }
 
 ///
+////
+//// DONT-off natural defense -- Overcaller continuations
+///
+
+/// A competitive raise and an independently playable new suit are nonforcing
+/// offers to play after a natural two-level overcall of strong 1NT. Read only
+/// the calls and their selected meanings, never advancer's hidden hand.
+interface NaturalOneNtDefenseRebid {
+  overcallSuit: Suit;
+  advance: Call;
+  advanceKind: 'competitiveRaise' | 'independentNewSuit' | 'pass' | 'other';
+  responderAction: 'pass' | 'negativeDouble' | 'naturalSuit';
+  openerCompeted: boolean;
+}
+
+/// Pass after either modeled nonforcing advance whenever opener also Passes.
+/// No extra HCP, suit-support, or exceptional-game test applies.
+export function naturalOneNtDefenseRebidPassApplies(call: Call, context: RuleEvalContext,
+    kind: 'competitiveRaise' | 'independentNewSuit'): AppliesWhenResult {
+  const continuation = getNaturalOneNtDefenseRebid(context);
+  const success = call === 'Pass' && continuation !== null &&
+    continuation.advanceKind === kind && !continuation.openerCompeted;
+  return { success,
+    telemetryLines: [success ?
+      'PASS: advancer made a nonforcing natural action and opener passed.' :
+      'FAIL: requires the selected nonforcing advance and opener Pass.'],
+    callEvidence: !success || continuation === null ? undefined : {
+      naturalOneNtDefenseRebid: {
+        overcallSuit: continuation.overcallSuit, advance: continuation.advance,
+        advanceKind: kind, responderAction: continuation.responderAction,
+      },
+    },
+  };
+}
+
+/// When opener competes, or advancer Passed/used an unmodeled call, choosing
+/// whether to bid, defend, or Pass requires judgment. In particular, Pass after
+/// responder's Double may leave the original overcall doubled.
+export function naturalOneNtDefenseRebidBoundaryApplies(context: RuleEvalContext):
+    AppliesWhenResult {
+  const continuation = getNaturalOneNtDefenseRebid(context);
+  const success = continuation !== null && (continuation.openerCompeted ||
+    continuation.advanceKind === 'pass' || continuation.advanceKind === 'other');
+  return { success, telemetryLines: [success ?
+    'PASS: overcaller faces later competition or an unmodeled advancer action.' :
+    'FAIL: no selected DONT-off overcaller judgment boundary.'] };
+}
+
+/// Classify the physical five-call round. Responder's negative Double consumes
+/// no level; a natural two-level suit changes the cheapest legal new-suit call.
+function getNaturalOneNtDefenseRebid(context: RuleEvalContext):
+    NaturalOneNtDefenseRebid | null {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  if (context.stage !== 'overcallerRebid' || opening === null ||
+      opening.call !== '1NT' || context.auction.length !== opening.index + 5) return null;
+  const overcallCall = context.auction[opening.index + 1];
+  const responderCall = context.auction[opening.index + 2];
+  const advanceCall = context.auction[opening.index + 3];
+  const openerCall = context.auction[opening.index + 4];
+  const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
+  if (overcall === null || overcall.level !== 2 || overcall.strain === 'NT' ||
+      responderCall === undefined || advanceCall === undefined || openerCall === undefined) {
+    return null;
+  }
+
+  let responderAction: NaturalOneNtDefenseRebid['responderAction'];
+  let responderSuit: Suit | null = null;
+  let lastContract = overcall;
+  if (responderCall === 'Pass') {
+    responderAction = 'pass';
+  } else if (responderCall === 'Double') {
+    responderAction = 'negativeDouble';
+  } else {
+    const response = parseSuitBid(responderCall);
+    if (response === null || response.level !== 2 || response.strain === 'NT' ||
+        !isCallAvailableInAuction(responderCall,
+          context.auction.slice(0, opening.index + 2))) return null;
+    responderAction = 'naturalSuit';
+    responderSuit = response.strain as Suit;
+    lastContract = response;
+  }
+
+  if (!isCallAvailableInAuction(advanceCall, context.auction.slice(0, opening.index + 3))) {
+    return null;
+  }
+  const advance = parseSuitBid(advanceCall);
+  const suit = overcall.strain as Suit;
+  let advanceKind: NaturalOneNtDefenseRebid['advanceKind'] = 'other';
+  if (advanceCall === 'Pass') {
+    advanceKind = 'pass';
+  } else if (advance !== null && advance.strain === suit && advance.level === 3) {
+    advanceKind = 'competitiveRaise';
+  } else if (advance !== null && advance.strain !== 'NT' && advance.strain !== suit &&
+             advance.strain !== responderSuit && advance.level === 2 &&
+             cheapestBidInStrainAfter(lastContract, advance.strain) === advanceCall) {
+    advanceKind = 'independentNewSuit';
+  }
+  return { overcallSuit: suit, advance: advanceCall, advanceKind,
+    responderAction, openerCompeted: openerCall !== 'Pass' };
+}
+
 //// DONT over a Strong 1NT
 ///
 

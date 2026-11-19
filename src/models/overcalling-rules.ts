@@ -14,7 +14,8 @@ import {
   contestedOneNtOvercallerRebidApplies, contestedOneNtOvercallerBoundaryApplies,
   ordinaryTakeoutDoubleApplies, takeoutDoublerRebidApplies, takeoutDoublerBoundaryApplies,
   takeoutDoublerFurtherCompetitionBoundaryApplies,
-  refineDontOvercallerCorrection,
+  refineDontOvercallerCorrection, naturalOneNtDefenseRebidPassApplies,
+  naturalOneNtDefenseRebidBoundaryApplies,
   refineNaturalOneNtOvercallJacoby, refineNaturalOneNtOvercallStayman,
   refineNaturalOneNtOvercallTexas,
   refinePreemptiveJumpOvercall, refineSimpleSuitOvercall, refineWeakTwoSuitOvercall,
@@ -1507,6 +1508,54 @@ export const OvercallRules: BidRule[] = [
              'other constructive continuations need judgment.',
   },
   //
+  //// DONT-off natural defense -- Overcaller rebids
+  // Advancer's competitive raise or independently playable new suit is nonforcing.
+  // The overcaller accepts either after opener Pass, regardless of HCP or suit fit.
+  {
+    id: 'overcaller-rebid-natural-1nt-defense-raise-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass partner’s competitive raise after natural defense of 1NT',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) =>
+      naturalOneNtDefenseRebidPassApplies(call, context, 'competitiveRaise'),
+    meaning: 'Pass a nonforcing competitive three-level raise of your natural overcall.',
+    guidance: ['Advancer’s 3X raise is to compete, not an invitation to game. ' +
+               'No strength or special support test is required of overcaller to Pass.'],
+  },
+  //
+  {
+    id: 'overcaller-rebid-natural-1nt-defense-new-suit-pass',
+    kind: 'overcallerRebid',
+    title: 'Pass partner’s independently playable natural new suit',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    calls: ['Pass'],
+    callCategory: ['signoff'],
+    appliesWhen: (call, context) =>
+      naturalOneNtDefenseRebidPassApplies(call, context, 'independentNewSuit'),
+    meaning: 'Pass a nonforcing economical two-level new-suit advance.',
+    guidance: ['Advancer offered an independent suit as a place to play, not a DONT relay ' +
+               'or a game try. Overcaller may Pass even without support for that suit.'],
+  },
+  //
+  {
+    id: 'overcaller-rebid-natural-1nt-defense-judgment-boundary',
+    kind: 'scopeBoundary',
+    title: 'Further competition after a natural defense of strong 1NT',
+    auctionContext: { stage: 'overcallerRebid', openerCalls: ['1NT'] },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: naturalOneNtDefenseRebidBoundaryApplies,
+    meaning: 'A further competitive decision requires judgment rather than an automatic ' +
+             'Pass or suit correction.',
+    guidance: ['If advancer Passed after responder’s negative Double, passing again ' +
+               'might leave your original suit contract doubled. If opener competed ' +
+               'after a nonforcing advance, the best contract is not determined here.',
+               'The app does not invent a penalty Double, correction, or game bid ' +
+               'from HCP or suit fit alone.'],
+  },
   //// DONT overcaller continuations
   // Basic DONT relay corrections are the first modeled overcaller rebids.  They apply only when
   // responder and opener both pass after the DONT action and advancer makes the expected relay.

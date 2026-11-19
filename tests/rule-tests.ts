@@ -35,6 +35,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getBalancingDoubleSupportLine, getDirectOvercallPassSupportLine,
          getJumpOvercallSupportLine,
          getWeakTwoOvercallSupportLine, getWeakTwoOvercallFailureLines,
+         getNaturalOneNtDefenseRebidLines,
          getNaturalSuitOvercallerRebidLines, getNaturalSuitOvercallerRebidFailureLines,
          getNaturalResponderRebidLines, getNaturalResponderRebidFailureLines,
          getOpenerOneLevelNewSuitRebidLines, getOpenerOneLevelNewSuitRebidFailureLines,
@@ -187,6 +188,7 @@ function runAllRuleTests (): void {
     runDontOffNaturalOvercallTests,
     runDontOffQuietAdvanceTests,
     runDontOffResponderInterferenceAdvanceTests,
+    runDontOffNaturalOvercallerRebidTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1463,6 +1465,112 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// Selected DONT-off overcaller continuations use advancer's public bidding promise.
+/// Keep these as temporary teaching checks; longer practice deals follow in final integration.
+function runDontOffNaturalOvercallerRebidTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  const quietRaise = makeRuleTestBoard({
+    description: 'Natural 2H competitive raise, opponents Pass', dealer: 'N',
+    practiceAuction: ['1NT', '2H', 'Pass', '3H', 'Pass'],
+    north: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'Q98' },
+    east: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    south: { S: '632T', H: '', D: 'K763', C: 'KJ42T' },
+    west: { S: '975', H: '7532', D: 'Q84', C: 'A65' },
+  }).board;
+  const quietNewSuit = makeRuleTestBoard({
+    description: 'Independent 2S offer after natural 2C, overcaller spade void',
+    dealer: 'N', practiceAuction: ['1NT', '2C', 'Pass', '2S', 'Pass'],
+    north: { S: 'KQ4', H: 'QJ83', D: 'KJ9', C: 'AJ3' },
+    east: { S: '', H: '764', D: 'AT75', C: 'KQ4T96' },
+    south: { S: '382', H: 'AK529', D: '64', C: '782' },
+    west: { S: 'AJT9765', H: 'T', D: 'Q823', C: '5' },
+  }).board;
+  const afterDouble = makeRuleTestBoard({
+    description: 'Advancer competitive 3H after negative Double',
+    dealer: 'N', practiceAuction: ['1NT', '2H', 'Double', '3H', 'Pass'],
+    north: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' },
+    east: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    south: { S: '632T', H: '', D: 'K763', C: 'KQ42T' },
+    west: { S: '975', H: '7532', D: 'Q84', C: 'A65' },
+  }).board;
+  const afterNaturalSuit = makeRuleTestBoard({
+    description: 'Advancer independent 2S after responder natural 2H',
+    dealer: 'N', practiceAuction: ['1NT', '2C', '2H', '2S', 'Pass'],
+    north: { S: 'KQ4', H: 'QJ83', D: 'KJ9', C: 'A83' },
+    east: { S: '82', H: '764', D: 'A5', C: 'KQ4T96' },
+    south: { S: '3', H: 'AK529', D: 'T764', C: '7J2' },
+    west: { S: 'AJT9765', H: 'T', D: 'Q823', C: '5' },
+  }).board;
+  const examples = [
+    { name: 'quiet competitive raise', board: quietRaise,
+      auction: ['1NT', '2H', 'Pass', '3H', 'Pass'] as Call[],
+      rule: 'overcaller-rebid-natural-1nt-defense-raise-pass', kind: 'competitiveRaise',
+      responder: 'pass' },
+    { name: 'quiet independent new suit, no spade support', board: quietNewSuit,
+      auction: ['1NT', '2C', 'Pass', '2S', 'Pass'] as Call[],
+      rule: 'overcaller-rebid-natural-1nt-defense-new-suit-pass', kind: 'independentNewSuit',
+      responder: 'pass' },
+    { name: 'raise after negative Double', board: afterDouble,
+      auction: ['1NT', '2H', 'Double', '3H', 'Pass'] as Call[],
+      rule: 'overcaller-rebid-natural-1nt-defense-raise-pass', kind: 'competitiveRaise',
+      responder: 'negativeDouble' },
+    { name: 'new suit after natural responder action', board: afterNaturalSuit,
+      auction: ['1NT', '2C', '2H', '2S', 'Pass'] as Call[],
+      rule: 'overcaller-rebid-natural-1nt-defense-new-suit-pass', kind: 'independentNewSuit',
+      responder: 'naturalSuit' },
+  ] as const;
+  let checks = 0;
+  let failures = 0;
+  for (const item of examples) {
+    const result = evaluateUserCall('Pass', item.board, [...item.auction], off);
+    const match = result.userCallMatchingRules.find((rule) => rule.id === item.rule);
+    const evidence = result.ruleDiagnostics.find(({ rule }) => rule.id === item.rule)
+      ?.candidates.find(({ call }) => call === 'Pass')?.callEvidence?.naturalOneNtDefenseRebid;
+    checks++;
+    if (match === undefined || evidence?.advanceKind !== item.kind ||
+        evidence.responderAction !== item.responder ||
+        getNaturalOneNtDefenseRebidLines(result, match).length === 0 ||
+        getApplicableCandidateCalls(result).some(({ call }) => call !== 'Pass')) {
+      failures++;
+      console.error(`FAIL DONT-off overcaller rebid: ${item.name}.`);
+    }
+  }
+
+  // An earlier negative Double followed by advancer Pass is not a nonforcing
+  // positive advance; a further Pass could leave overcaller's contract doubled.
+  checks++;
+  const doubled = getBiddingTurnStatus(afterDouble,
+    ['1NT', '2H', 'Double', 'Pass', 'Pass'], off);
+  if (doubled.kind !== 'scopeBoundary' ||
+      doubled.rule.id !== 'overcaller-rebid-natural-1nt-defense-judgment-boundary') {
+    failures++;
+    console.error('FAIL DONT-off doubled-overcall Pass needs judgment boundary.');
+  }
+
+  // Opener competing after an independent offer is not the quiet landing auction.
+  checks++;
+  const competitive = getBiddingTurnStatus(quietNewSuit,
+    ['1NT', '2C', 'Pass', '2S', 'Double'], off);
+  if (competitive.kind !== 'scopeBoundary' ||
+      competitive.rule.id !== 'overcaller-rebid-natural-1nt-defense-judgment-boundary') {
+    failures++;
+    console.error('FAIL DONT-off opener competition needs judgment boundary.');
+  }
+
+  // A DONT relay on the same physical auction must not inherit a natural Pass meaning.
+  checks++;
+  const conventional = evaluateUserCall('Pass', quietNewSuit,
+    ['1NT', '2C', 'Pass', '2S', 'Pass'], defaultBiddingSystem);
+  if (conventional.ruleDiagnostics.some(({ rule }) =>
+    rule.id.startsWith('overcaller-rebid-natural-1nt-defense-'))) {
+    failures++;
+    console.error('FAIL DONT-on overcaller inherited DONT-off rebid meanings.');
+  }
+
+  console.log(`${failures} ***FAILURES***. DONT-off natural overcaller rebids: ${checks} checks.`);
+  return failures;
+}
+
 /// Verify selected intervening responder calls with complete temporary hands. These are
 /// not permanent practice deals: longer natural-defense exercises follow after rebids.
 function runDontOffResponderInterferenceAdvanceTests (): number {
