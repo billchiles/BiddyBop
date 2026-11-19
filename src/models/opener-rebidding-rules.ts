@@ -612,6 +612,24 @@ export const OpenerRebidRules: BidRule[] = [
                'A constructive three-level response often suggests game, but without a stopper ' +
                'or agreed trump fit the exact strain requires additional bidding methods.'],
   },
+  // A fourth-seat suit action after an opening 1NT is classified as 'other'
+  // by the general advancer-kind helper. The scope predicate below further
+  // restricts this boundary to the selected raise 3X after responder's Double.
+  {
+    id: 'opener-rebid-dont-off-boundary-after-1nt-double-raise',
+    kind: 'scopeBoundary',
+    title: 'Judgment after advancer raises the natural 1NT overcall',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'double' },
+                      advancerCall: { kind: 'other' } },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: oneNtInterferenceScopeBoundaryApplies,
+    meaning: 'Advancer has raised the naturally bid suit after responder's takeout ' +
+             'Double. Competing higher requires judgment, not a forced game bid.',
+    guidance: ['Even with a major fit, opener should not automatically bid game over ' +
+               'the opposing 3X raise. Fit, level and defensive prospects need judgment.'],
+  },
   //// Notrump openings -- Natural and quantitative invitations
   // Natural invitations are not signoffs: minimums decline, maximums accept, and
   // the middle strength deliberately offers both choices with judgment guidance.

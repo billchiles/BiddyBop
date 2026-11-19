@@ -4181,7 +4181,7 @@ function runDontOffOpenerNegativeDoubleTests (): number {
   checks++;
   const raised = getBiddingTurnStatus(raisedBoard, raisedAuction, off);
   if (raised.kind !== 'scopeBoundary' ||
-      raised.rule.id !== 'opener-rebid-scope-boundary-after-1nt-interference') {
+      raised.rule.id !== 'opener-rebid-dont-off-boundary-after-1nt-double-raise') {
     failures++;
     console.error('FAIL DONT-off opposing raise must not automatically force game.');
   }
