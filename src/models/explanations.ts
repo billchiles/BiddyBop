@@ -492,6 +492,7 @@ function appendMatchedCallExplanation(lines: string[], result: BidEvalResult, ru
   lines.push(...getCompetitiveRaiseAdvanceLines(result, rule));
   lines.push(...getCompetitiveNaturalAdvanceLines(result, rule));
   lines.push(...getNegativeDoubleAdvanceLines(result, rule));
+  lines.push(...getNaturalOneNtDefenseRebidLines(result, rule));
   lines.push(...getNaturalSuitOvercallerRebidLines(result, rule));
   lines.push(...getContestedSuitOvercallerRebidLines(result, rule));
   lines.push(...getTakeoutDoublerRebidLines(result, rule));
@@ -6084,6 +6085,34 @@ export function getWeakTwoDefenseRebidFailureLines(result: BidEvalResult): strin
     }
   }
   return [];
+}
+
+///
+//// DONT-off natural 1NT defense -- Overcaller rebid explanations
+///
+
+/// The positive Pass rests on advancer's nonforcing promise and opener's Pass.
+/// It does not require overcaller to inspect advancer's cards or discover a fit.
+export function getNaturalOneNtDefenseRebidLines(result: BidEvalResult, rule: BidRule): string[] {
+  const candidate = result.ruleDiagnostics.find((item) => item.rule.id === rule.id)
+    ?.candidates.find((item) => item.call === result.normalizedCall);
+  if (candidate?.ruleApplies !== true) return [];
+  const evidence = candidate.callEvidence?.naturalOneNtDefenseRebid;
+  if (evidence === undefined) return [];
+  const previous = evidence.responderAction === 'negativeDouble' ?
+    ' Responder previously made a negative Double, but advancer’s new bid is nonforcing.' :
+    evidence.responderAction === 'naturalSuit' ?
+    ' Responder also bid a natural suit, but advancer’s bid remains nonforcing.' : '';
+  if (evidence.advanceKind === 'competitiveRaise') {
+    return [`Your natural 2${evidence.overcallSuit} overcall was raised to ${evidence.advance}. ` +
+      `This is a competitive, nonforcing raise, not a game invitation. ` +
+      `Opener Passed, so you may Pass without any additional HCP or fit test.${previous} ` +
+      `[${rule.id}]`];
+  }
+  return [`After your natural 2${evidence.overcallSuit} overcall, advancer offered ` +
+    `${evidence.advance} as an independently playable, nonforcing suit. ` +
+    `This is not a DONT relay or forcing correction. With opener Passed, you may Pass ` +
+    `even without cards in advancer's suit.${previous} [${rule.id}]`];
 }
 
 ///

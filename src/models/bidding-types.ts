@@ -959,6 +959,14 @@ export interface CallEvidence {
   };
 
   // Overcaller and takeout Doubler rebids
+  // The DONT-off continuation relies on the promised nonforcing advance,
+  // not on the actual (unseen) cards in advancer's hand.
+  naturalOneNtDefenseRebid?: {
+    overcallSuit: Suit;
+    advance: Call;
+    advanceKind: 'competitiveRaise' | 'independentNewSuit';
+    responderAction: 'pass' | 'negativeDouble' | 'naturalSuit';
+  };
   // The Stayman refiner evaluated both major lengths before selecting its reply.
   overcallerStaymanReply?: {
     heartsLength: number;
