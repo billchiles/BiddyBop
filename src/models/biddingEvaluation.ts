@@ -479,7 +479,7 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
 export function evaluateRules (rules: BidRule[], context: RuleEvalContext,
                                system: BiddingSystem): RuleEvalResult[] {
   return rules
-    .filter((rule) => auctionContextMatches(rule.auctionContext, context))
+    .filter((rule) => auctionContextMatches(rule.auctionContext, context, system))
     .map((rule) => evaluateRule(rule, context, system));
 }
 
@@ -1371,7 +1371,8 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
 /// Exact auction declarations stay literal, while opener/responder fields provide explicit semantic constraints.
 ///
 function auctionContextMatches (ruleContext: AuctionContext | undefined,
-                               evalContext: RuleEvalContext): boolean {
+                               evalContext: RuleEvalContext,
+                               system: BiddingSystem): boolean {
   if (ruleContext === undefined) {
     return true;
   }
@@ -1379,7 +1380,8 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
     return matchesPartnerNaturalOneNt(evalContext);
   }
   if (ruleContext.partnerNaturalOneNtAfterSuitInterference === true) {
-    return getPartnerOneNtSuitInterference(evalContext.dealer, evalContext.auction) !== null;
+    return getPartnerOneNtSuitInterference(evalContext.dealer, evalContext.auction,
+      system) !== null;
   }
   if (ruleContext.partnerNaturalTwoNtOverWeakTwo === true) {
     return matchesPartnerNaturalTwoNtOverWeakTwo(evalContext);

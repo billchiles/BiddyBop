@@ -3,7 +3,8 @@
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
 import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
-         getInterferenceAfterOpening, getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
+         getInterferenceAfterOpening, getPartnerOneNtSuitInterference,
+         getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
 import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
@@ -189,6 +190,7 @@ function runAllRuleTests (): void {
     runDontOffQuietAdvanceTests,
     runDontOffResponderInterferenceAdvanceTests,
     runDontOffNaturalOvercallerRebidTests,
+    runDontOffNaturalResponderTests,
     runDontBoundaryTests,
     runResponderRebidContextTests,
     runResponderMajorRaiseContextTests,
@@ -1465,6 +1467,112 @@ function runCompetitionBoundaryTests (): number {
   console.log('  eligibility of competitive bids, including calls pre-set in test deals.\n');
   return failures;
 }
+/// The same 1NT response rules must switch the meaning of natural interference
+/// without changing DONT-on 2H or responses to a natural 1NT overcall of a suit.
+function runDontOffNaturalResponderTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  let checks = 0;
+  let failures = 0;
+
+  for (const suit of ['C', 'D', 'H', 'S'] as const) {
+    const auction: Call[] = ['1NT', `2${suit}` as Call];
+    const natural = getPartnerOneNtSuitInterference('N', auction, off);
+    const conventional = getPartnerOneNtSuitInterference('N', auction, defaultBiddingSystem);
+    checks++;
+    if (natural?.interference.strain !== suit || natural.opponentOpening !== null ||
+        (conventional !== null) !== (suit === 'S')) {
+      failures++;
+      console.error(`FAIL DONT-off natural 1NT responder interference: 2${suit}.`);
+    }
+  }
+
+  const openOvercall: Call[] = ['1H', '1NT', '2S'];
+  checks++;
+  const oldMeaning = getPartnerOneNtSuitInterference('N', openOvercall, defaultBiddingSystem);
+  const newMeaning = getPartnerOneNtSuitInterference('N', openOvercall, off);
+  if (oldMeaning?.interference.strain !== 'S' ||
+      oldMeaning.opponentOpening?.strain !== 'H' ||
+      newMeaning?.interference.strain !== 'S' ||
+      newMeaning.opponentOpening?.strain !== 'H') {
+    failures++;
+    console.error('FAIL natural 1NT overcall response changed with DONT setting.');
+  }
+
+  const opening = { S: 'AKQJ', H: 'J98', D: 'JT9', C: 'A84' };
+  const overcaller = { S: '84', H: '73', D: 'A52', C: 'KQJT96' };
+  const qualifying = makeRuleTestBoard({
+    description: 'Both majors and short clubs over natural 2C',
+    dealer: 'N', practiceAuction: ['1NT', '2C', 'Double'],
+    north: opening, east: overcaller,
+    south: { S: 'T753', H: 'AKT5', D: 'K43', C: '35' },
+  }).board;
+  const heldThreeClubs = makeRuleTestBoard({
+    description: 'Both majors but three clubs over natural 2C',
+    dealer: 'N', practiceAuction: ['1NT', '2C', 'Double'],
+    north: opening, east: overcaller,
+    south: { S: 'T753', H: 'AKT5', D: 'K3', C: '357' },
+  }).board;
+
+  const selected = evaluateUserCall('Double', qualifying, ['1NT', '2C'], off);
+  const acceptedRule = selected.userCallMatchingRules.find((item) =>
+    item.id === 'partner-of-1nt-after-interference-negative-double');
+  const positive = selected.ruleDiagnostics.find((item) => item.rule.id === acceptedRule?.id)
+    ?.candidates.find((item) => item.call === 'Double');
+  checks++;
+  const checksForSuits = positive?.callEvidence?.requirements?.filter((item) =>
+    item.kind === 'suitLength') ?? [];
+  if (acceptedRule === undefined || checksForSuits.length !== 3 ||
+      !checksForSuits.some((item) => item.suit === 'C' && item.max === 2 && item.passed) ||
+      getNotrumpPartnerResponseLines(selected, acceptedRule).length === 0) {
+    failures++;
+    console.error('FAIL DONT-off negative Double over 2C needs two majors and short clubs.');
+  }
+
+  checks++;
+  const rejected = evaluateUserCall('Double', heldThreeClubs, ['1NT', '2C'], off);
+  const rejection = getNotrumpPartnerResponseFailureLines(rejected);
+  if (rejected.userCallMatchingRules.some((item) =>
+        item.id === 'partner-of-1nt-after-interference-negative-double') ||
+      !rejection.some((line) => line.includes('at most 2 clubs'))) {
+    failures++;
+    console.error('FAIL DONT-off negative Double accepted three cards in opponents suit.');
+  }
+
+  const majorInterference = makeRuleTestBoard({
+    description: 'Four spades, zero hearts, eight HCP after natural 2H',
+    dealer: 'N', practiceAuction: ['1NT', '2H', 'Double'],
+    north: { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' },
+    east: { S: '84', H: 'KQJT96', D: 'A52', C: '73' },
+    south: { S: '632T', H: '', D: 'K763', C: 'KQ42T' },
+  }).board;
+  checks++;
+  const hearts = evaluateUserCall('Double', majorInterference, ['1NT', '2H'], off);
+  const heartsOn = evaluateUserCall('Double', majorInterference, ['1NT', '2H'],
+    defaultBiddingSystem);
+  if (!hearts.userCallMatchingRules.some((item) =>
+        item.id === 'partner-of-1nt-after-interference-negative-double') ||
+      heartsOn.ruleDiagnostics.some((item) =>
+        item.rule.id === 'partner-of-1nt-after-interference-negative-double')) {
+    failures++;
+    console.error('FAIL DONT-off major interference inherited artificial DONT 2H meaning.');
+  }
+
+  checks++;
+  const shifted = evaluateUserCall('Double', qualifying, ['1NT', '2C'],
+    { ...off, oneNtOpening: '16-18' });
+  const shiftedHcp = shifted.ruleDiagnostics.find((item) =>
+    item.rule.id === 'partner-of-1nt-after-interference-negative-double')
+    ?.candidates.find((item) => item.call === 'Double')
+    ?.callEvidence?.requirements?.find((item) => item.kind === 'hcp');
+  if (shiftedHcp?.kind !== 'hcp' || shiftedHcp.min !== 7) {
+    failures++;
+    console.error('FAIL DONT-off negative Double did not honor configured 1NT HCP shift.');
+  }
+
+  console.log(`${failures} ***FAILURES***. DONT-off natural 1NT responses: ${checks} checks.`);
+  return failures;
+}
+
 /// Selected DONT-off overcaller continuations use advancer's public bidding promise.
 /// Keep these as temporary teaching checks; longer practice deals follow in final integration.
 function runDontOffNaturalOvercallerRebidTests (): number {

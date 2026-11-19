@@ -1,7 +1,7 @@
 /// Shared bridge-auction parsing, seat navigation, and auction-shape helpers.
 
-import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type Call, type DirectInterference,
-         type Strain, type SuitBid } from './bidding-types';
+import { STRAIN_ORDER, type AdvancerCallKind, type BidStage, type BiddingSystem,
+         type Call, type DirectInterference, type Strain, type SuitBid } from './bidding-types';
 import { SEATS, type Seat, type Suit } from './cards';
 
 /// OpeningCallInfo identifies the auction's first contract bid.
@@ -385,10 +385,12 @@ export function getOpponentNaturallyBidSuitsForOpenerRebid (dealer: Seat, auctio
 }
 
 /// getPartnerOneNtSuitInterference recognizes natural two-level interference:
-/// after our 1NT opening only a direct DONT 2S is natural; after our natural
-/// 1NT overcall a responder suit bid is natural. DONT 2C/2D/2H are artificial.
+/// after our 1NT opening DONT-on treats only direct 2S as natural, while
+/// DONT-off treats all four direct 2X overcalls as natural. After our natural
+/// 1NT overcall of a suit opening, responder's suit bid is natural in either mode.
 ///
-export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
+export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[],
+                                                  system: BiddingSystem):
     PartnerOneNtSuitInterference | null {
   const openingInfo = getOpeningCallInfo(dealer, auction);
   if (openingInfo === null) {
@@ -398,9 +400,10 @@ export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[]):
   if (stage === 'responding' && openingInfo.call === '1NT' &&
       auction.length === openingInfo.index + 2) {
     const interference = parseSuitBid(auction[openingInfo.index + 1] ?? 'Pass');
-    // Our agreed DONT means direct 2C/2D/2H are artificial. Only 2S is
-    // one-suited and natural; do not recycle natural-overcall responses for DONT.
-    return interference?.level === 2 && interference.strain === 'S'
+    // DONT-on 2C/2D/2H show two suits. DONT-off natural 2X shows the named suit.
+    // Do not change the separate natural-1NT-overcall context below.
+    return interference !== null && interference.level === 2 &&
+      interference.strain !== 'NT' && (!system.dont || interference.strain === 'S')
       ? { interference, opponentOpening: null }
       : null;
   }
