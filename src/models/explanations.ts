@@ -2060,7 +2060,7 @@ function strongMajorSupportFailureLines(result: BidEvalResult): string[] {
   if (entered === '2NT' && opener !== null &&
       result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_NEW_SUIT_IDS[1]) &&
       !result.ruleDiagnostics.some(({ rule }) => rule.id === STRONG_MAJOR_JACOBY_ID)) {
-    lines.push(`Jacoby 2NT is not the selected strong-major-support agreement. ` +
+    lines.push(`You appear to have bid Jacoby 2NT, but it is not your game-force major-support agreement. ` +
       `With game-forcing support, the agreed route is to bid a qualifying new suit ` +
       `and later raise opener's ${majorSuitName(opener[1] as 'H' | 'S')} to game ` +
       `[${STRONG_MAJOR_NEW_SUIT_IDS[1]}].`);
