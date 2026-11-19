@@ -4596,9 +4596,14 @@ function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): st
   if (call === 'Double') {
     const lengths = candidate.callEvidence?.requirements?.filter(
       (item) => item.kind === 'suitLength') ?? [];
-    const holdings = lengths.flatMap((item) => item.suit === undefined ? [] :
+    const holdings = lengths.flatMap((item) =>
+      item.suit === undefined || item.min === undefined ? [] :
       [`${item.actual} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[item.suit]}`]);
     if (holdings.length === 0) return [];
+    const shortness = lengths.find((item) => item.max === 2 && item.suit !== undefined);
+    const shortnessLine = shortness?.suit === undefined ? '' :
+      ` You have ${shortness.actual} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' })[shortness.suit]}, ` +
+      `meeting the two-card maximum in the opponent's suit.`;
     const alternative = result.ruleDiagnostics.flatMap((item) => item.candidates)
       .find((item) => item.ruleApplies && item.call !== 'Double' &&
         item.rule.id.startsWith('partner-of-1nt-after-interference-') &&
@@ -4608,7 +4613,8 @@ function oneNtInterferencePartnerLines(result: BidEvalResult, rule: BidRule): st
     return [`With ${hcp.actual} HCP and ${holdings.join(' and ')}, Double shows ` +
       `takeout support of at least four cards in the requested unbid ` +
       `${holdings.length === 1 ? 'suit' : 'suits'}. This takeout Double asks partner to ` +
-      `bid again and help choose a strain; it is not a penalty Double.${preference} ${id}`];
+      `bid again and help choose a strain; it is not a penalty Double.${shortnessLine}` +
+      `${preference} ${id}`];
   }
   if (call === '2NT' || call === '3NT') {
     const balanced = minorRequirement(candidate, 'balanced');

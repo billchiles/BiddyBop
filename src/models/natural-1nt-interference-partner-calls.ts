@@ -1,6 +1,7 @@
 /// Shared natural calls after two-level natural suit interference over partner's natural 1NT.
-/// After a 1NT opening, this means the natural one-suited DONT 2S; after a
-/// natural 1NT overcall, the opponent's suit response remains natural.
+/// After our 1NT opening, this means natural 2S with DONT enabled, or any
+/// natural two-level overcall when DONT is disabled. After our natural 1NT
+/// overcall of a suit opening, responder's suit bid remains natural in both modes.
 /// Stayman, Jacoby, and Texas remain off once the opponent makes the natural suit bid.
 /// BidRule has no neutral partner-call kind, so these shared declarations use responseBid.
 
@@ -33,7 +34,8 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     title: 'Bid a good natural suit economically at the two level after 1NT interference',
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['2C', '2D', '2H', '2S'],
-    callRefinement: (calls, context) => refineNaturalSuitAfterOneNtInterference(calls, context, 2),
+    callRefinement: (calls, context, system) =>
+      refineNaturalSuitAfterOneNtInterference(calls, context, system, 2),
     callCategory: ['natural'],
     appliesWhen: (call, context, system) =>
       naturalSuitAfterOneNtInterferenceApplies(call, context, system, 8),
@@ -50,7 +52,8 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     title: 'Bid a good natural suit economically at the three level after 1NT interference',
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['3C', '3D', '3H', '3S'],
-    callRefinement: (calls, context) => refineNaturalSuitAfterOneNtInterference(calls, context, 3),
+    callRefinement: (calls, context, system) =>
+      refineNaturalSuitAfterOneNtInterference(calls, context, system, 3),
     callCategory: ['natural'],
     appliesWhen: (call, context, system) =>
       naturalSuitAfterOneNtInterferenceApplies(call, context, system, 10),
@@ -113,8 +116,9 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
 
 
 function refineNaturalSuitAfterOneNtInterference (calls: Call[], context: RuleEvalContext,
+                                                  system: BiddingSystem,
                                                   level: number): CallRefinementResult {
-  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction);
+  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction, system);
   if (info === null) {
     return { calls: [], telemetryLines: [
       'No supported natural interference over partner\'s 1NT.',
@@ -161,7 +165,7 @@ function naturalSuitAfterOneNtInterferenceApplies (call: Call, context: RuleEval
 function naturalNotrumpAfterOneNtInterferenceApplies (context: RuleEvalContext,
                                                        system: BiddingSystem, baseMin: number,
                                                        baseMax: number): AppliesWhenResult {
-  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction);
+  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction, system);
   if (info === null || info.interference.strain === 'NT') {
     return { success: false, telemetryLines: ['No supported natural suit interference.'] };
   }
@@ -183,7 +187,7 @@ function naturalNotrumpAfterOneNtInterferenceApplies (context: RuleEvalContext,
 
 function negativeDoubleAfterOneNtInterferenceApplies (_call: Call, context: RuleEvalContext,
                                                        system: BiddingSystem): AppliesWhenResult {
-  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction);
+  const info = getPartnerOneNtSuitInterference(context.dealer, context.auction, system);
   if (info === null || info.interference.strain === 'NT') {
     return { success: false, telemetryLines: ['No supported natural suit interference.'] };
   }
@@ -201,14 +205,23 @@ function negativeDoubleAfterOneNtInterferenceApplies (_call: Call, context: Rule
   }));
   const shapeFits = (availableMajors.length > 0 || available.length >= 2) &&
     suitChecks.every((check) => check.passed);
+  // Requiring shortness in the opponent's natural suit is a DONT-off choice
+  // after our 1NT opening only, not after our natural 1NT overcall.
+  const opponentSuit = info.interference.strain as Suit;
+  const requireShortness = info.opponentOpening === null && !system.dont;
+  const opponentLength = context.handFacts.lengths[opponentSuit];
+  const shortEnough = !requireShortness || opponentLength <= 2;
   const hcp = context.handFacts.hcp;
-  const success = hcp >= minimum && shapeFits;
+  const success = hcp >= minimum && shapeFits && shortEnough;
   return { success, callEvidence: { requirements: [
     { kind: 'hcp', actual: hcp, min: minimum, passed: hcp >= minimum },
     ...suitChecks,
+    ...(requireShortness ? [{ kind: 'suitLength' as const, suit: opponentSuit,
+      actual: opponentLength, max: 2, passed: shortEnough }] : []),
   ] }, telemetryLines: [
     `${success ? 'PASS' : 'FAIL'}: negative Double needs ${minimum}+ HCP and takeout shape ` +
-      `in the available suits (have ${context.handFacts.hcp} HCP).`,
+      `in the available suits (have ${context.handFacts.hcp} HCP)` +
+      (requireShortness ? `, with at most two cards in opponents' ${opponentSuit}` : '') + '.',
   ] };
 }
 
