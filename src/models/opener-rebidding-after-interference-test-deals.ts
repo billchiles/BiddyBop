@@ -901,4 +901,59 @@ export const OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'Q64', H: 'A3', D: 'AQT4', C: 'AJ93' },
     west: { S: 'T92', H: 'K4', D: 'J9852', C: '865' },
   },
+  //// Opening 1NT -- Natural defense continuations with DONT disabled
+  {
+    description: 'After natural 2H, responder Doubles for spades and advancer raises 3H; ' +
+                 'the 1NT opener can still show the known spade fit at 3S.',
+    dealer: 'N', requiredSystem: { dont: false },
+    practiceAuction: ['1NT', '2H', 'Double', '3H', '3S'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedOvercallCalls: [{ call: '2H', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: [
+      'partner-of-1nt-after-interference-negative-double'] }],
+    expectedAdvanceCalls: [{ call: '3H', ruleIds: [
+      'advance-natural-vs-1nt-competitive-raise'] }],
+    expectedOpenerRebidCalls: [{ call: '3S', ruleIds: [
+      'opener-rebid-dont-off-fit-after-1nt-interference-double'] }],
+    north: { S: 'AK63', H: '73', D: 'A43', C: 'A975' },
+    east: { S: '94', H: 'KQJT96', D: 'KT6', C: '82' },
+    south: { S: 'QJ52', H: 'A5', D: 'Q752', C: 'T43' },
+    west: { S: 'T87', H: '842', D: 'J98', C: 'KQJ6' },
+  },
+  {
+    description: 'After natural 2C, responder bids a nonforcing 2H; the middle 1NT opener ' +
+                 'can invite with three-card heart support at 3H.',
+    dealer: 'N', requiredSystem: { dont: false },
+    practiceAuction: ['1NT', '2C', '2H', 'Pass', '3H'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedOvercallCalls: [{ call: '2C', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    expectedResponseCalls: [{ call: '2H', ruleIds: [
+      'partner-of-1nt-after-interference-natural-suit-two-level'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-natural-vs-1nt-pass'] }],
+    expectedOpenerRebidCalls: [{ call: '3H', ruleIds: [
+      'opener-rebid-raise-major-after-1nt-interference-natural-suit'] }],
+    north: { S: 'K976', H: 'K86', D: 'AQ6', C: 'A42' },
+    east: { S: 'Q8', H: '53', D: '985', C: 'KQJT96' },
+    south: { S: 'T543', H: 'AQJT9', D: 'KJ7', C: '8' },
+    west: { S: 'AJ2', H: '742', D: 'T432', C: '753' },
+  },
+  {
+    description: 'After natural 2S and responder negative Double promising hearts, ' +
+                 'advancer Passes and the opener shows four hearts economically at 3H.',
+    dealer: 'N', requiredSystem: { dont: false },
+    practiceAuction: ['1NT', '2S', 'Double', 'Pass', '3H'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedOvercallCalls: [{ call: '2S', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    expectedResponseCalls: [{ call: 'Double', ruleIds: [
+      'partner-of-1nt-after-interference-negative-double'] }],
+    expectedAdvanceCalls: [{ call: 'Pass', ruleIds: [
+      'advance-natural-vs-1nt-pass'] }],
+    expectedOpenerRebidCalls: [{ call: '3H', ruleIds: [
+      'opener-rebid-dont-off-fit-after-1nt-interference-double'] }],
+    north: { S: 'AT6', H: 'A652', D: 'A64', C: 'K73' },
+    east: { S: 'KQJ742', H: 'KJ', D: '52', C: 'J64' },
+    south: { S: '95', H: 'Q873', D: 'KQT8', C: 'Q92' },
+    west: { S: '83', H: 'T94', D: 'J973', C: 'AT85' },
+  },
 ];
