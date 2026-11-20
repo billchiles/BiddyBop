@@ -56,6 +56,18 @@ helpers where reasonable. Complete deals must contain 52 distinct cards, four
 13-card hands, 40 HCP, and plausible decisions for every seat under the shared 1NT
 range. Keep the test additions targeted rather than multiplying permutations.
 
+**Batch 9B completion checkpoint (20 Nov 2026):** Five complete multistage natural-defense
+practice deals were added in the existing overcaller-continuation and opener-after-interference
+buckets (natural club raise and overcaller Pass, independent heart advance after 2D and
+nonforcing overcaller Pass, economical 3S fit after 2H/Double/3H, opener invitation after
+natural responder 2H over 2C, and opener's 3H fit after 2S/Double/Pass). All seven older
+DONT-on direct-defense exercises were redistributed by their final interesting stage into
+ordinary overcalling, advancing and overcaller-continuation buckets. The DONT-specific dropdown
+bucket was removed; a neutral “Defense to strong 1NT” direct-overcalling bucket now includes
+both agreement-gated variants. No new convention-specific bucket was introduced.
+Primary suite after 9B: **637 deals, 1,534 positive-call assertions, zero failures**;
+representative explicit-DONT-on before/after snapshots remained identical.
+
 **9C — Change the final DONT default to off, reconcile docs and statistics,
 and verify regression.** Proposed commit subject:
 **`Completed DONT-off integration and documentation`**. Set

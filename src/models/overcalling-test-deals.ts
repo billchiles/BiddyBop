@@ -270,6 +270,48 @@ export const NATURAL_1NT_DEFENSE_TEST_DEALS: RuleTestDeal[] = [
   },
 ];
 
+//// Selected natural-defense continuations after an opposing strong 1NT
+/// These complete hands finish with the overcaller's nonforcing Pass. The opening side's
+/// intervening Pass after the advance is necessary for the physical turn but is not taught.
+export const NATURAL_1NT_DEFENSE_REBID_TEST_DEALS: RuleTestDeal[] = [
+  {
+    description: 'Natural 2C over 1NT: advancer competitively raises to 3C and overcaller ' +
+                 'Passes the nonforcing raise.',
+    dealer: 'N', requiredSystem: { dont: false },
+    practiceAuction: ['1NT', '2C', 'Pass', '3C', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedOvercallCalls: [{ call: '2C', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    expectedResponseCalls: [{ call: 'Pass', ruleIds: [
+      'partner-of-1nt-after-interference-pass'] }],
+    expectedAdvanceCalls: [{ call: '3C', ruleIds: [
+      'advance-natural-vs-1nt-competitive-raise'] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-natural-1nt-defense-raise-pass'] }],
+    north: { S: 'AQT6', H: 'AT2', D: 'KQ63', C: '74' },
+    east: { S: 'KJ', H: '983', D: '82', C: 'KQJT96' },
+    south: { S: '8542', H: 'J654', D: 'AJ4', C: '52' },
+    west: { S: '973', H: 'KQ7', D: 'T975', C: 'A83' },
+  },
+  {
+    description: 'Natural 2D over 1NT: advancer offers a strong independent heart suit ' +
+                 'at 2H, which overcaller can Pass nonforcing.',
+    dealer: 'N', requiredSystem: { dont: false },
+    practiceAuction: ['1NT', '2D', 'Pass', '2H', 'Pass', 'Pass'],
+    expectedOpeningCalls: [{ call: '1NT', ruleIds: ['open-1nt-balanced-15-17'] }],
+    expectedOvercallCalls: [{ call: '2D', ruleIds: ['overcall-natural-suit-vs-1nt'] }],
+    expectedResponseCalls: [{ call: 'Pass', ruleIds: [
+      'partner-of-1nt-after-interference-pass'] }],
+    expectedAdvanceCalls: [{ call: '2H', ruleIds: [
+      'advance-natural-vs-1nt-independent-new-suit'] }],
+    expectedOvercallerRebidCalls: [{ call: 'Pass', ruleIds: [
+      'overcaller-rebid-natural-1nt-defense-new-suit-pass'] }],
+    north: { S: 'AQ62', H: '874', D: 'A32', C: 'AQ6' },
+    east: { S: 'T95', H: '5', D: 'KQJT96', C: 'J74' },
+    south: { S: 'K874', H: '632', D: '874', C: 'T83' },
+    west: { S: 'J3', H: 'AKQJT9', D: '5', C: 'K952' },
+  },
+];
+
 //// Direct defenses to weak-two openings
 /// Direct defenses to opposing weak 2D/2H/2S openings.  This first batch stops after the
 /// overcaller's action; advancer continuations are modeled separately.

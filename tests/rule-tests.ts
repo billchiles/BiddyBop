@@ -1847,8 +1847,10 @@ function runDontOffNaturalOvercallTests (): number {
 
   // Practice selection must never mix DONT and its natural alternative.
   checks++;
-  if (getRulesBucketTestDeals('overcall-natural-1nt', off).length !== 5 ||
-      getRulesBucketTestDeals('overcall-natural-1nt', defaultBiddingSystem).length !== 0) {
+  if (getRulesBucketTestDeals('overcall-natural-1nt', off).length !==
+        NATURAL_1NT_DEFENSE_TEST_DEALS.length ||
+      getRulesBucketTestDeals('overcall-natural-1nt',
+        { ...defaultBiddingSystem, dont: true }).length !== 1) {
     failures++;
     console.error('FAIL DONT-off natural-defense practice agreement gating.');
   }
@@ -2023,9 +2025,13 @@ function runDontBoundaryTests (): number {
   }
 
   checks++;
-  if (getRulesBucketTestDeals('overcall-dont-1nt', dontOff).length !== 0 ||
-      getRulesBucketTestDeals('overcall-dont-1nt', defaultBiddingSystem).length !==
-        DONT_1NT_DEFENSE_TEST_DEALS.length) {
+  const on = { ...defaultBiddingSystem, dont: true };
+  const routedDontDeals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) =>
+    bucket.deals.filter((deal) => DONT_1NT_DEFENSE_TEST_DEALS.includes(deal)));
+  if (routedDontDeals.length !== DONT_1NT_DEFENSE_TEST_DEALS.length ||
+      !routedDontDeals.every((deal) => isPracticeDealCompatible(deal, on) &&
+                                      !isPracticeDealCompatible(deal, dontOff)) ||
+      RULE_TEST_DEAL_BUCKETS.some((bucket) => bucket.id.includes('dont'))) {
     failures++;
     console.error('FAIL DONT practice deals did not follow the selected agreement.');
   }
@@ -2154,21 +2160,21 @@ function runStage7ASuitHonorEvidenceTests (): number {
       ruleId: 'overcall-preemptive-jump-at-three-level', kind: 'jump' },
     { bucket: 'overcall-preemptive-jump', index: 3,
       ruleId: 'overcall-preemptive-jump-at-four-level', kind: 'jump' },
-    { bucket: 'overcall-dont-1nt', index: 1,
+    { bucket: 'dont-source', index: 1,
       ruleId: 'overcall-dont-single-suit-double', kind: 'dont' },
-    { bucket: 'overcall-dont-1nt', index: 2,
+    { bucket: 'dont-source', index: 2,
       ruleId: 'overcall-dont-clubs-plus-higher', kind: 'dont' },
-    { bucket: 'overcall-dont-1nt', index: 4,
+    { bucket: 'dont-source', index: 4,
       ruleId: 'overcall-dont-diamonds-plus-major', kind: 'dont' },
-    { bucket: 'overcall-dont-1nt', index: 5,
+    { bucket: 'dont-source', index: 5,
       ruleId: 'overcall-dont-majors', kind: 'dont' },
-    { bucket: 'overcall-dont-1nt', index: 6,
+    { bucket: 'dont-source', index: 6,
       ruleId: 'overcall-dont-natural-spades', kind: 'dont' },
   ];
   let failures = 0;
   for (const example of cases) {
-    const deal = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)
-      ?.deals[example.index];
+    const deal = example.bucket === 'dont-source' ? DONT_1NT_DEFENSE_TEST_DEALS[example.index] :
+      RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)?.deals[example.index];
     if (deal === undefined) { failures++; continue; }
     const board = makeRuleTestBoard(deal).board;
     const auction = deal.practiceAuction.slice(0, 1);
@@ -2431,13 +2437,13 @@ function runStage7BOvercallAndBalancingExplanationTests (): number {
   let failures = 0;
   let checks = 0;
   for (const example of [
-    { bucket: 'overcall-dont-1nt', index: 0 },
+    { bucket: 'dont-source', index: 0 },
     { bucket: 'overcall-simple', index: 0 },
     { bucket: 'overcall-weak-two-defense', index: 0 },
   ]) {
     checks++;
-    const deal = RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)
-      ?.deals[example.index];
+    const deal = example.bucket === 'dont-source' ? DONT_1NT_DEFENSE_TEST_DEALS[example.index] :
+      RULE_TEST_DEAL_BUCKETS.find((item) => item.id === example.bucket)?.deals[example.index];
     if (deal === undefined) { failures++; continue; }
     const board = makeRuleTestBoard(deal).board;
     const auction = deal.practiceAuction.slice(0, 1);
