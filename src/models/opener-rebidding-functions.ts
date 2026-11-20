@@ -310,11 +310,12 @@ export function refineOneNtInterferenceDoubleFit (calls: Call[], context: RuleEv
   const info = getOneNtInterferenceContinuation(context, system);
   if (info === null || info.response !== 'Double') return { calls: [], telemetryLines: [] };
   const fit = getOneNtDoubleFit(context, info, system);
-  // Show the cheapest four-card major fit. An opposing raise requires
-  // judgment, not a forced game bid when the two-level space is gone.
-  const bid = fit !== null && info.advance === 'Pass' ?
-    cheapestBidInStrainAfter({ level: 2, strain: info.opposingSuit }, fit) : null;
-  const wanted = bid as Call | null;
+  // A natural opposing 3X raise still permits a known fit at the three level.
+  // Do not turn a four-level bid into an automatic game recommendation.
+  const raised = !system.dont && info.advance === `3${info.opposingSuit}`;
+  const bid = fit !== null && (info.advance === 'Pass' || raised) ?
+    cheapestBidInStrainAfter({ level: raised ? 3 : 2, strain: info.opposingSuit }, fit) : null;
+  const wanted = bid !== null && (info.advance === 'Pass' || bid.startsWith('3')) ? bid : null;
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted &&
     isCallAvailableInAuction(call, context.auction)), telemetryLines: [
       fit === null ? 'No four-card fit for responder\'s takeout Double.' :
@@ -405,7 +406,7 @@ export function oneNtInterferenceScopeBoundaryApplies (context: RuleEvalContext,
   const fit = info.response === 'Double' ? getOneNtDoubleFit(context, info, system) : null;
   let success = false;
   if (info.response === 'Double') {
-    // An opposing raise needs additional judgment, even with a heart fit.
+    // A concrete economical fit suppresses the opposing-raise judgment boundary.
     success = info.advance !== 'Pass' ||
       (fit === null && ! hasBasicSuitStopper(context, info.opposingSuit));
   } else if (info.naturalSuit !== null && info.advance !== 'Pass') {
