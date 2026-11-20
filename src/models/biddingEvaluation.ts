@@ -132,7 +132,7 @@ export function getApplicableCandidateCalls (result: CurrentContextRules): Candi
 /// getBiddingTurnStatus uses it to identify supported calls, boundaries, and missing treatments.
 export function getRulesForCurrentContext (board: Board, auction: Call[],
                                            system: BiddingSystem): CurrentContextRules {
-  const context = makeRuleEvalContext(board, auction);
+  const context = makeRuleEvalContext(board, auction, system);
   const telemetryLines: string[] = [];
   telemetryLines.push(`getRulesForCurrentContext: ${context.seat}; stage=${context.stage}.`);
   // Select the rule bucket from the model-derived bidding stage, then apply partnership agreements.
@@ -209,7 +209,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
   }
   const boundary = currentRules.applicableRules.find((rule) => rule.kind === 'scopeBoundary');
   const telemetryLines = [
-    `evaluateUserCall: ${inputCall}; stage=${getNextBiddingRuleStage(board.dealer, auction)}.`,
+    `evaluateUserCall: ${inputCall}; stage=${getNextBiddingRuleStage(board.dealer, auction, system)}.`,
     ...currentRules.telemetryLines,
     matchingRulesForUserCall.length === 0
       ? boundary === undefined
@@ -218,7 +218,7 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
       : `User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`,
   ];
   const responderPassForce = inputCall === 'Pass' && matchingRulesForUserCall.length === 0 &&
-    getNextBiddingRuleStage(board.dealer, auction) === 'responderRebid'
+    getNextBiddingRuleStage(board.dealer, auction, system) === 'responderRebid'
       ? getUnmodeledContinuationForce(board, auction, system) : null;
   return {
     ...currentRules,
@@ -256,7 +256,7 @@ export type BiddingTurnStatus =
 export function getBiddingTurnStatus (board: Board, auction: Call[],
                                       system: BiddingSystem): BiddingTurnStatus {
   if (auctionIsComplete(auction)) return { kind: 'auctionComplete' };
-  const stage = getNextBiddingRuleStage(board.dealer, auction);
+  const stage = getNextBiddingRuleStage(board.dealer, auction, system);
   if (stage === null) return { kind: 'noModeledStage' };
 
   const currentRules = getRulesForCurrentContext(board, auction, system);
@@ -317,7 +317,7 @@ export function getUnmodeledContinuationForce (board: Board, auction: Call[],
       getSeatForCallIndex(board.dealer, index + offset + 1) !== forceSeat &&
       getSeatForCallIndex(board.dealer, index + offset + 1) !== partner);
     if (opponentActed && !includeOpposingCompetition) continue;
-    const stage = getNextBiddingRuleStage(board.dealer, auction.slice(0, index));
+    const stage = getNextBiddingRuleStage(board.dealer, auction.slice(0, index), system);
     if (stage === null) continue;
     const matches = evaluateUserCall(call, board, auction.slice(0, index), system)
       .userCallMatchingRules;
@@ -436,13 +436,14 @@ export function getUnfulfilledForceAtAuctionEnd (board: Board, auction: Call[],
 /// More specific auction facts are queried from auction.ts only by rules/evaluator code that needs
 /// them rather than being precomputed into every RuleEvalContext.
 ///
-export function makeRuleEvalContext (board: Board, auction: Call[]): RuleEvalContext {
+export function makeRuleEvalContext (board: Board, auction: Call[],
+                                     system?: BiddingSystem): RuleEvalContext {
   const seat = getNextSeat(board.dealer, auction);
   const hand = board.deal[seat];
   return {
     dealer: board.dealer,
     seat,
-    stage: getNextBiddingRuleStage(board.dealer, auction),
+    stage: getNextBiddingRuleStage(board.dealer, auction, system),
     auction,
     hand,
     handFacts: getHandFacts(hand),
