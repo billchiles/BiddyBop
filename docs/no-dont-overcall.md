@@ -1,6 +1,8 @@
 # BiddyBop — Natural overcalling when DONT is disabled
 
-> Design checkpoint, 16 Nov 2026. Analysis and agreed direction only; **not a code specification to implement without further review**. Baseline GitHub `billchiles/BiddyBop` master commit `4007c98`, with `dont.zip` as the supplied source snapshot. This document is intended to be carried into a new chat if needed.
+> Completed implementation reference (20 Nov 2026). Earlier sections retain historical design
+> reasoning and provisional checkpoints. The first pre-option baseline was `4007c98`; completed
+> feature scope and deferred work are summarized in the integration handoff below.
 
 ## Purpose and guardrails
 
@@ -78,6 +80,16 @@ compatibility, update `README.md` and `docs/spec.md` to describe natural
 `docs/by-the-numbers.md` using the established stats tooling if counts change.
 Update this planning file with completion and residual bounded scope, preserving
 the full separate sandwich-seat workstream below.
+
+**Batch 9C completion checkpoint (20 Nov 2026):** DONT now defaults **off**.
+Existing DONT-on regression tests use an explicit enabled-agreement system.
+The README and spec now distinguish the default natural direct 2X defense, selected
+advances/opening-side continuations, and optional compact conventional DONT.
+The statistics document was regenerated from source using the existing stats runner.
+Full rule tests, GitHub CI and temporary explicit-DONT-on before/after comparisons
+are required for the final squash merge. This finishes the bounded DONT work;
+the separate focused README/spec code-versus-document noise review below is still
+outstanding, as is the independent sandwich-seat workstream.
 
 **Additional focused documentation review after DONT integration (explicit user
 request, 20 Nov):** inspect `docs/spec.md` and `README.md` *against the actual

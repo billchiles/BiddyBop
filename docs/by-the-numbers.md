@@ -18,15 +18,15 @@ and prints a short summary. It is not part of the normal build or test commands.
 
 | Measurement | Count |
 |---|---:|
-| Executable rule declarations | **646** |
-| Distinct executable rule IDs | **622** |
+| Executable rule declarations | **656** |
+| Distinct executable rule IDs | **632** |
 | Extra executable declarations from reused IDs | **24** |
-| Scope-boundary declarations | **87** |
-| Distinct scope-boundary IDs | **86** |
-| Combined executable plus scope declarations | **733** |
-| Distinct IDs including scope boundaries | **708** |
-| Distinct IDs with a nonempty meaning | **701** |
-| Distinct IDs with nonempty guidance | **434** |
+| Scope-boundary declarations | **94** |
+| Distinct scope-boundary IDs | **93** |
+| Combined executable plus scope declarations | **750** |
+| Distinct IDs including scope boundaries | **725** |
+| Distinct IDs with a nonempty meaning | **718** |
+| Distinct IDs with nonempty guidance | **449** |
 
 A rule ID can occur in more than one collection, principally responding and
 advancing. The difference between declarations and distinct IDs applies to
@@ -38,16 +38,16 @@ represent independent bidding treatments.
 | Measurement | Count |
 |---|---:|
 | Practice buckets | **70** |
-| Distinct practice-deal definitions | **627** |
-| Practice selections | **627** |
-| Recorded auction calls across practice selections | **2,979** |
-| Calls at supported evaluator stages | **2,479** |
-| Calls without a supported-stage classification | **500** |
+| Distinct practice-deal definitions | **637** |
+| Practice selections | **637** |
+| Recorded auction calls across practice selections | **3,016** |
+| Calls at supported evaluator stages | **2,514** |
+| Calls without a supported-stage classification | **502** |
 | Practice-guidance notes across selections | **32** |
-| Primary positive call/rule assertions | **1,504** |
-| Primary elimination assertions | **750** |
+| Primary positive call/rule assertions | **1,534** |
+| Primary elimination assertions | **771** |
 | Primary call-order assertions | **31** |
-| Primary recorded-call checks | **1,421** |
+| Primary recorded-call checks | **1,451** |
 
 Primary assertion counts use the declared expected calls and rule IDs,
 rejected calls, ordering pairs, and tested auction positions from the practice
@@ -59,12 +59,12 @@ also runs separate regression and agreement-compatibility checks.
 
 | Distinct executable rule IDs | Count |
 |---|---:|
-| Qualified a recorded call | **494** |
-| Qualified recorded call or a different alternative | **512** |
-| Considered in evaluator diagnostics | **601** |
-| Cited in generated core feedback | **512** |
-| Cited when not qualifying the entered call | **114** |
-| Not represented by a qualifying call or alternative | **110** |
+| Qualified a recorded call | **505** |
+| Qualified recorded call or a different alternative | **523** |
+| Considered in evaluator diagnostics | **611** |
+| Cited in generated core feedback | **523** |
+| Cited when not qualifying the entered call | **116** |
+| Not represented by a qualifying call or alternative | **109** |
 
 Unrepresented executable IDs are distinct from the separate scope boundaries.
 A rule considered in diagnostics may have failed an eligibility requirement;
@@ -76,10 +76,10 @@ Neither statistic alone establishes the instructional quality of a rule.
 | Collection | Executable declarations | Scope boundaries | Matched recorded call | Matched recorded or alternative | Unreached | Considered in diagnostics |
 |---|---:|---:|---:|---:|---:|---:|
 | Opening | 13 | 0 | 12 | 12 | 1 | 13 |
-| Responding | 117 | 3 | 103 | 105 | 12 | 117 |
-| Overcalling / overcaller rebids | 114 | 24 | 79 | 79 | 35 | 112 |
-| Advancing | 105 | 3 | 95 | 96 | 9 | 105 |
-| Opener rebids | 202 | 31 | 145 | 159 | 43 | 185 |
+| Responding | 117 | 3 | 105 | 107 | 10 | 117 |
+| Overcalling / overcaller rebids | 118 | 26 | 83 | 83 | 35 | 116 |
+| Advancing | 108 | 6 | 100 | 101 | 7 | 108 |
+| Opener rebids | 205 | 33 | 147 | 161 | 44 | 188 |
 | Responder rebids | 95 | 26 | 77 | 78 | 17 | 93 |
 
 **Considered in diagnostics** means that during replay of a recorded decision,
@@ -92,7 +92,7 @@ cannot be added to obtain the distinct-ID counts above.
 
 ### Interpretation of unreached executable IDs
 
-The 110 distinct executable IDs not reached by a qualifying
+The 109 distinct executable IDs not reached by a qualifying
 call are **not** scope-boundary declarations. They include specialized slam
 choices outside the practice priorities, unexercised alternatives in bidding
 families that have qualifying sibling treatments, and other uncovered
