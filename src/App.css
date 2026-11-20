@@ -375,10 +375,51 @@ textarea {
 
 .bidForm {
   display: grid;
-  grid-template-columns: 88px minmax(80px, 1fr) auto auto;
+  grid-template-columns: 88px minmax(80px, 1fr) auto auto auto;
   gap: 8px;
   align-items: center;
   padding: 12px;
+}
+
+/* The modal stays outside the document layout, so opening Help does not move the workspace. */
+.helpDialog {
+  box-sizing: border-box;
+  width: min(640px, calc(100vw - 32px));
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid #aab5c3;
+  border-radius: 14px;
+  padding: 20px 24px;
+  color: #172033;
+  background: white;
+  box-shadow: 0 12px 36px rgba(23, 32, 51, 0.25);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.helpDialog::backdrop {
+  background: rgba(23, 32, 51, 0.42);
+}
+
+.helpDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.helpDialogHeader h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.helpDialog p {
+  margin: 0 0 12px;
+}
+
+.helpDialog p:last-child {
+  margin-bottom: 0;
 }
 
 .auctionGrid {
@@ -515,12 +556,17 @@ textarea {
   }
 
   .bidForm {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .bidLabel,
   .bidInput {
-    grid-column: span 2;
+    grid-column: 1 / -1;
+  }
+
+  .bidForm .bidButton {
+    padding-right: 8px;
+    padding-left: 8px;
   }
 }
 

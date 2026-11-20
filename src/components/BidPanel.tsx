@@ -39,6 +39,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
   const [bidText, setBidText] = useState('');
   const [showAllHands, setShowAllHands] = useState(false);
   const bidInputRef = useRef<HTMLInputElement | null>(null);
+  const helpDialogRef = useRef<HTMLDialogElement | null>(null);
   const [auction, setAuction] = useState<Call[]>([]);
   const [explanationLines, setExplanationLines] = useState<string[]>(() =>
     getInitialExplanationLines(testDeal, practiceDealIdentification));
@@ -248,9 +249,64 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
             />
             <button className="bidButton" type="submit" disabled={inputDisabled}>Commit</button>
             <button className="bidButton" type="button"
+              onClick={() => helpDialogRef.current?.showModal()}>Help</button>
+            <button className="bidButton" type="button"
               title="Copy deal and explanations; Command-click to include telemetry"
               onClick={(event) => reportState(event.metaKey)}>Report</button>
           </form>
+          <dialog ref={helpDialogRef} className="helpDialog" aria-labelledby="helpDialogTitle"
+            onClose={() => {
+              if (!inputDisabled) bidInputRef.current?.focus();
+            }}>
+            <div className="helpDialogHeader">
+              <h2 id="helpDialogTitle">BiddyBop Help</h2>
+              <button className="bidButton" type="button"
+                onClick={() => helpDialogRef.current?.close()}>Close</button>
+            </div>
+            <p>
+              BiddyBop is a contract bridge bidding practice app. You can practice with
+              random deals or prepared practice auctions, choose calls for all four seats,
+              and learn why bids do or do not fit the hand, auction, and partnership
+              agreements. The app teaches common decisions it can explain reliably and
+              explains when a decision calls for more judgment and experience.
+            </p>
+            <p>
+              BiddyBop blends SAYC-based treatments with selected modern treatments
+              (such as splinters and invitational 2NT responses to minor openings)
+              and a few teaching simplifications. It is neither strict SAYC nor a
+              complete 2/1 system.
+            </p>
+            <p>
+              Choose <strong>New Deal</strong> for a random deal or choose a practice
+              topic and select <strong>Test Deal</strong> for a prepared auction exercise.
+            </p>
+            <p>
+              Enter each call, including Pass, for all four seats to get more practice
+              and feedback. Decide using only the current bidder's hand, the auction,
+              and the selected agreements—even when other hands are visible. Read the
+              explanations to see which calls fit, why they qualify, and which
+              alternatives the app recognizes or prefers.
+            </p>
+            <p>
+              <strong>New Deal</strong> uses North as dealer. <strong>North Opens</strong>
+              ensures North has a hand that qualifies for an opening. The
+              <strong> Show hands</strong> selector lets you see only the hand currently
+              bidding or all four hands.
+            </p>
+            <p>
+              <strong>Test Deal</strong> follows a preset teaching auction. If you enter
+              a different call, the app explains your choice but uses the preset call to
+              continue the lesson. The preset call is not necessarily the only reasonable
+              choice. An exercise ends at its intended final call, which may be before
+              the bridge auction ends. You can select New Deal or Test Deal at any time.
+            </p>
+            <p>
+              To report bidding feedback that seems incomplete or incorrect, click
+              <strong> Report</strong> to copy the deal and explanations. Email
+              bill_chiles@hotmail.com with your observations and paste the copied
+              report into your message.
+            </p>
+          </dialog>
         </section>
 
         <section className="trainerRightColumn">
