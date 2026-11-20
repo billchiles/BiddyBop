@@ -11,6 +11,87 @@
 - Follow `docs/spec.md` and `docs/code-style.md`. Before learner-facing explanation edits, capture a temporary current-master comparison baseline (matched rule IDs, alternatives, ranking, statuses and explanation text), review every difference, and avoid permanent wording regression tests. Use reviewed batches and GitHub branch/commit/squash-merge process.
 
 
+## Final integration implementation handoff — 20 Nov 2026
+
+**Current master before Batch 9A:** `a4f5f608` (PR #145). The uploaded `wrappingdont.zip`
+was checked against GitHub `master` for the files in scope. The baseline rule suite
+passed: **632 practice deals, 1,509 positive-call assertions, zero failures**.
+Batches **1–8** are squash-merged in PRs **#138–#145** respectively. Their completed
+work covers setting/gating, natural 1NT defense, quiet/interfered advances, overcaller
+rebids, 1NT responder actions, and opener rebids after negative Double and natural
+responder suits. The historical design analysis below is retained for decisions,
+not as a list of unfinished implementation work.
+
+### Remaining Batch 9 plan (approved 20 Nov 2026)
+
+**9A — Complete the narrowly supported known-fit continuation after an opposing
+competitive raise.** Commit subject: **`Completed DONT-off opener fit after competitive raises`**.
+Use the existing `refineOneNtInterferenceDoubleFit` and DONT-off rule declaration to
+allow the cheapest **legal three-level** fit after `1NT – natural 2X – Double – 3X`
+(e.g. `1NT – 2H – Double – 3H – 3S`). Preserve the judgment boundary where the
+fit would require a four-level contract (e.g. `1NT – 2S – Double – 3S – ?`), and
+preserve DONT-on behavior explicitly. Do not duplicate helpers. Add a focused
+four-hand test verifying qualification, explanation delivery, boundary suppression,
+and agreement gating. Batch 9A source scope: `opener-rebidding-functions.ts`,
+`opener-rebidding-rules.ts`, `tests/rule-tests.ts`, and this document. **This PR
+implements 9A; the following batches must remain separate.**
+
+**9B — Add a lean set of realistic multistage DONT-off practice auctions.**
+Proposed commit subject: **`Added DONT-off multistage practice deals and tests`**.
+Prefer about four to six complete, credible, longer four-hand auctions, including
+quiet 3X raises and two-level independent new-suit advances with overcaller rebids;
+negative Double with an intervening 3X raise and an economical opener fit; and
+natural responder suits with selected opener follow-ups or the approved judgment
+boundary. Use all four natural 2X suits across existing and new practice coverage.
+Keep shorter exercises only where they teach a distinct decision; finish at the
+last interesting supported call, without ceremonial final Passes.
+
+**Practice buckets: no DONT-on or DONT-off buckets.** New exercises requiring
+`dont: false` must go into the **same established, stage-based practice buckets**
+as existing DONT-on exercises, according to where the important decision lives:
+overcalling, advancing, responding, opener rebids, overcaller rebids, etc. Gate
+individual deals by agreement as already done for DONT-on; do not introduce a
+separate setting-specific bucket or registry hierarchy. Reuse existing deals and
+helpers where reasonable. Complete deals must contain 52 distinct cards, four
+13-card hands, 40 HCP, and plausible decisions for every seat under the shared 1NT
+range. Keep the test additions targeted rather than multiplying permutations.
+
+**9C — Change the final DONT default to off, reconcile docs and statistics,
+and verify regression.** Proposed commit subject:
+**`Completed DONT-off integration and documentation`**. Set
+`defaultBiddingSystem.dont = false`, make existing DONT-on tests explicit rather
+than relying on the former default, audit agreement-specific practice
+compatibility, update `README.md` and `docs/spec.md` to describe natural
+1NT defense as default and optional DONT accurately, and regenerate
+`docs/by-the-numbers.md` using the established stats tooling if counts change.
+Update this planning file with completion and residual bounded scope, preserving
+the full separate sandwich-seat workstream below.
+
+**Additional focused documentation review after DONT integration (explicit user
+request, 20 Nov):** inspect `docs/spec.md` and `README.md` *against the actual
+implemented code* for inaccuracies, unnecessary elaboration, accumulated
+feature-creep descriptions, and general noisiness; simplify selectively while
+preserving real agreements, intentional scope boundaries, and useful onboarding
+information. Do not conflate this broader document-quality pass with the targeted
+DONT wording corrections required for 9C. Discuss findings and proposed edits
+before the separate doc-cleanup code generation.
+
+**Regression baseline:** Original pre-option reference `4007c98` and Batch-8 master
+`a4f5f608`. Explicitly enable DONT on both sides of the representative comparison;
+compare rule IDs, qualifying and rejected calls, alternatives, ranking/order,
+turn statuses, scope boundaries and **full** learner-facing explanation text.
+Retain temporary comparison reports outside the repository; do not install
+permanent explanation-wording snapshots. Verify build and complete rule tests,
+plus focused same-auction/different-agreement cases, for every batch. Use a fresh
+feature branch from current master, show the commit subject before edits, create
+a PR, and squash-merge only after verification. Respect `docs/code-style.md`:
+callers before callees, types before dependents, existing `////` sections,
+important comments and small parameterized edits; no greenfield duplication.
+
+**Defer until later:** the narrow responder second-turn possibility remains
+outside DONT integration; the separate systematic sandwich-seat analysis and
+its motivating deal remain in the section below, unmodified.
+
 ## Final DONT-off decisions and implementation batches — 18 Nov 2026
 
 **Status:** Approved final bounded review, with the setting name, final default, commit-message and verification scope adjustments made on 18 Nov. This section supersedes earlier provisional questions and prior handoff tasks below. This document update does **not** authorize executable code generation.

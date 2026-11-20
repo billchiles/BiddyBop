@@ -517,15 +517,17 @@ export const OpenerRebidRules: BidRule[] = [
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: false },
-    calls: ['2H', '2S', '3H'],
+    calls: ['2H', '2S', '3H', '3S'],
     callRefinement: refineOneNtInterferenceDoubleFit,
     callCategory: ['natural'],
     meaning: 'Show a four-card major fit in the cheapest legal strain promised by the ' +
              'negative Double of a natural 2X overcall.',
     guidance: ['After natural 2C or 2D, responder promises four cards in both majors; ' +
                'show hearts before spades if opener has both fits.',
-               'After natural 2H show a spade fit with 2S; after natural 2S show a ' +
-               'heart fit with 3H. Do not jump to game automatically if advancer competes.'],
+               'After natural 2H show a spade fit with 2S when advancer Passes, or with ' +
+               '3S after a 3H raise; after natural 2S show a heart fit with 3H if legal.',
+               'After an opposing 3X raise, show only a legal three-level major fit. ' +
+               'A required four-level bid remains a judgment decision.'],
   },
   {
     id: 'opener-rebid-dont-off-2nt-after-1nt-interference-double',

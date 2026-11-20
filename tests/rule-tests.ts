@@ -4187,6 +4187,38 @@ function runDontOffOpenerNegativeDoubleTests (): number {
     console.error('FAIL DONT-off opposing raise must not automatically force game.');
   }
 
+  // A six-heart natural overcall, negative Double showing spades and 3H
+  // competitive raise still leave room for opener to show a known 4-4 fit at 3S.
+  const cheapFitAuction: Call[] = ['1NT', '2H', 'Double', '3H'];
+  const cheapFitBoard = makeRuleTestBoard({
+    description: 'Known spade fit remains economical after a natural 3H raise',
+    dealer: 'N', practiceAuction: [...cheapFitAuction, '3S'],
+    north: { S: 'AK63', H: '73', D: 'A43', C: 'A975' },
+    east: { S: '94', H: 'KQJT96', D: 'KT6', C: '82' },
+    south: { S: 'QJ52', H: 'A5', D: 'Q752', C: 'T43' },
+    west: { S: 'T87', H: '842', D: 'J98', C: 'KQJ6' },
+  }).board;
+  const cheapFit = evaluateUserCall('3S', cheapFitBoard, cheapFitAuction, off);
+  const cheapFitRule = cheapFit.userCallMatchingRules.find((rule) =>
+    rule.id === 'opener-rebid-dont-off-fit-after-1nt-interference-double');
+  const cheapFitLines = cheapFitRule === undefined ? [] :
+    getOpenerOneNtInterferenceLines(cheapFit, cheapFitRule);
+  checks++;
+  if (cheapFitRule === undefined || cheapFitLines.length === 0 ||
+      getBiddingTurnStatus(cheapFitBoard, cheapFitAuction, off).kind !== 'supported' ||
+      cheapFit.applicableRules.some((rule) => rule.kind === 'scopeBoundary')) {
+    failures++;
+    console.error('FAIL cheap natural 3S fit must take precedence over opposing-raise boundary.');
+  }
+  const cheapFitOn = evaluateUserCall('3S', cheapFitBoard, cheapFitAuction,
+    { ...defaultBiddingSystem, dont: true });
+  checks++;
+  if (cheapFitOn.userCallMatchingRules.some((rule) => rule.id ===
+      'opener-rebid-dont-off-fit-after-1nt-interference-double')) {
+    failures++;
+    console.error('FAIL competitive DONT-off fit rule must not apply with DONT enabled.');
+  }
+
   checks++;
   const conventional = evaluateUserCall('2H',
     makeRuleTestBoard({ description: 'DONT-on artificial 2C', dealer: 'N',
