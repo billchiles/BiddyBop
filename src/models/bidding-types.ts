@@ -81,7 +81,7 @@ export const defaultBiddingSystem: BiddingSystem = {
   jacobyTransfers: true,
   splinters: true,
   texasTransfers: true,
-  dont: true,
+  dont: false,
 };
 
 /// BiddingAgreement is a convention agreement and a value for it, sometimes just a boolean yes/no.

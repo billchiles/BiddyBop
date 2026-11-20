@@ -114,10 +114,14 @@ const CONVENTION_CONFIGURATIONS: { name: string; settings: ConventionValues }[] 
 ];
 const CONVENTION_SETTINGS: ConventionSetting[] = ['stayman', 'jacobyTransfers', 'texasTransfers'];
 
+/// Existing convention-specific regression checks explicitly enable DONT; the app default is off.
+const dontOnSystem: BiddingSystem = { ...defaultBiddingSystem, dont: true };
+
 //// Test execution
 /// Continue running independent test groups after an unexpected exception. Individual
 /// assertion failures are already counted within their groups; preserve those counts.
 function runAllRuleTests (): void {
+  if (defaultBiddingSystem.dont) throw new Error('Natural 1NT defense must be the default.');
   const testGroups: (() => number)[] = [
     runMajorNoSupportAgreementTests,
     runBasicOpeningExplanationTests,
@@ -1472,14 +1476,14 @@ function runCompetitionBoundaryTests (): number {
 /// The same 1NT response rules must switch the meaning of natural interference
 /// without changing DONT-on 2H or responses to a natural 1NT overcall of a suit.
 function runDontOffNaturalResponderTests (): number {
-  const off = { ...defaultBiddingSystem, dont: false };
+  const off = { ...dontOnSystem, dont: false };
   let checks = 0;
   let failures = 0;
 
   for (const suit of ['C', 'D', 'H', 'S'] as const) {
     const auction: Call[] = ['1NT', `2${suit}` as Call];
     const natural = getPartnerOneNtSuitInterference('N', auction, off);
-    const conventional = getPartnerOneNtSuitInterference('N', auction, defaultBiddingSystem);
+    const conventional = getPartnerOneNtSuitInterference('N', auction, dontOnSystem);
     checks++;
     if (natural?.interference.strain !== suit || natural.opponentOpening !== null ||
         (conventional !== null) !== (suit === 'S')) {
@@ -1490,7 +1494,7 @@ function runDontOffNaturalResponderTests (): number {
 
   const openOvercall: Call[] = ['1H', '1NT', '2S'];
   checks++;
-  const oldMeaning = getPartnerOneNtSuitInterference('N', openOvercall, defaultBiddingSystem);
+  const oldMeaning = getPartnerOneNtSuitInterference('N', openOvercall, dontOnSystem);
   const newMeaning = getPartnerOneNtSuitInterference('N', openOvercall, off);
   if (oldMeaning?.interference.strain !== 'S' ||
       oldMeaning.opponentOpening?.strain !== 'H' ||
@@ -1550,7 +1554,7 @@ function runDontOffNaturalResponderTests (): number {
   checks++;
   const hearts = evaluateUserCall('Double', majorInterference, ['1NT', '2H'], off);
   const heartsOn = evaluateUserCall('Double', majorInterference, ['1NT', '2H'],
-    defaultBiddingSystem);
+    dontOnSystem);
   if (!hearts.userCallMatchingRules.some((item) =>
         item.id === 'partner-of-1nt-after-interference-negative-double') ||
       heartsOn.ruleDiagnostics.some((item) =>
@@ -1578,7 +1582,7 @@ function runDontOffNaturalResponderTests (): number {
 /// Selected DONT-off overcaller continuations use advancer's public bidding promise.
 /// Keep these as temporary teaching checks; longer practice deals follow in final integration.
 function runDontOffNaturalOvercallerRebidTests (): number {
-  const off = { ...defaultBiddingSystem, dont: false };
+  const off = { ...dontOnSystem, dont: false };
   const quietRaise = makeRuleTestBoard({
     description: 'Natural 2H competitive raise, opponents Pass', dealer: 'N',
     practiceAuction: ['1NT', '2H', 'Pass', '3H', 'Pass'],
@@ -1670,7 +1674,7 @@ function runDontOffNaturalOvercallerRebidTests (): number {
   // A DONT relay on the same physical auction must not inherit a natural Pass meaning.
   checks++;
   const conventional = evaluateUserCall('Pass', quietNewSuit,
-    ['1NT', '2C', 'Pass', '2S', 'Pass'], defaultBiddingSystem);
+    ['1NT', '2C', 'Pass', '2S', 'Pass'], dontOnSystem);
   if (conventional.ruleDiagnostics.some(({ rule }) =>
     rule.id.startsWith('overcaller-rebid-natural-1nt-defense-'))) {
     failures++;
@@ -1684,7 +1688,7 @@ function runDontOffNaturalOvercallerRebidTests (): number {
 /// Verify selected intervening responder calls with complete temporary hands. These are
 /// not permanent practice deals: longer natural-defense exercises follow after rebids.
 function runDontOffResponderInterferenceAdvanceTests (): number {
-  const off = { ...defaultBiddingSystem, dont: false };
+  const off = { ...dontOnSystem, dont: false };
   const north = { S: 'AKQJ', H: 'A84', D: 'JT9', C: 'J98' };
   const east = { S: '84', H: 'KQJT96', D: 'A52', C: '73' };
   const raised = makeRuleTestBoard({ description: 'DONT-off raise after negative Double',
@@ -1752,7 +1756,7 @@ function runDontOffResponderInterferenceAdvanceTests (): number {
   // Under conventional DONT, these new natural-advance meanings must be inactive.
   checks++;
   const conventional = evaluateUserCall('3H', raised, ['1NT', '2H', 'Double'],
-    defaultBiddingSystem);
+    dontOnSystem);
   if (conventional.applicableRules.some((rule) => rule.id.startsWith('advance-natural-vs-1nt-'))) {
     failures++;
     console.error('FAIL natural DONT-off advances leaked into DONT-on mode.');
@@ -1955,7 +1959,7 @@ function runDontBoundaryTests (): number {
 
   checks += 1;
   const suitOpeningCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', board, ['1D'], defaultBiddingSystem));
+    'Double', board, ['1D'], dontOnSystem));
   if (suitOpeningCandidates.some(({ rule }) => rule.id.startsWith('overcall-dont-'))) {
     failures += 1;
     console.error('FAIL DONT direct rules leaked into a suit opening.');
@@ -1969,7 +1973,7 @@ function runDontBoundaryTests (): number {
   });
   checks += 1;
   const weakCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', weakBoard, ['1NT'], defaultBiddingSystem));
+    'Double', weakBoard, ['1NT'], dontOnSystem));
   if (weakCandidates.some(({ rule }) => rule.id === 'overcall-dont-single-suit-double')) {
     failures += 1;
     console.error('FAIL DONT one-suit Double survived below 7 HCP.');
@@ -1983,7 +1987,7 @@ function runDontBoundaryTests (): number {
   });
   checks += 1;
   const fourFourCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2C', fourFourBoard, ['1NT'], defaultBiddingSystem));
+    '2C', fourFourBoard, ['1NT'], dontOnSystem));
   if (fourFourCandidates.some(({ rule }) => rule.id === 'overcall-dont-clubs-plus-higher')) {
     failures += 1;
     console.error('FAIL DONT 2C survived with only 4-4 shape.');
@@ -1991,7 +1995,7 @@ function runDontBoundaryTests (): number {
 
   checks += 1;
   const interferenceCandidates = getApplicableCandidateCalls(evaluateUserCall(
-    '2C', board, ['1NT', 'Double', '2C'], defaultBiddingSystem));
+    '2C', board, ['1NT', 'Double', '2C'], dontOnSystem));
   if (interferenceCandidates.some(({ rule }) => rule.id === 'advance-dont-pass-or-correct')) {
     failures += 1;
     console.error('FAIL DONT advance survived responder interference.');
@@ -1999,7 +2003,7 @@ function runDontBoundaryTests (): number {
 
   checks += 1;
   const openerCompetes = getApplicableCandidateCalls(evaluateUserCall(
-    '2H', board, ['1NT', 'Double', 'Pass', '2C', '2D'], defaultBiddingSystem));
+    '2H', board, ['1NT', 'Double', 'Pass', '2C', '2D'], dontOnSystem));
   if (openerCompetes.some(({ rule }) => rule.id === 'overcaller-rebid-dont-pass-or-correct')) {
     failures += 1;
     console.error('FAIL DONT relay correction survived opener competition.');
@@ -2007,7 +2011,7 @@ function runDontBoundaryTests (): number {
 
   // Agreement gating must remove conventional DONT candidates and their practice deals
   // without changing the default-on DONT rule matches.
-  const dontOff = { ...defaultBiddingSystem, dont: false };
+  const dontOff = { ...dontOnSystem, dont: false };
   const majorsDeal = DONT_1NT_DEFENSE_TEST_DEALS[5];
   checks++;
   if (majorsDeal === undefined) {
@@ -2015,7 +2019,7 @@ function runDontBoundaryTests (): number {
     console.error('FAIL missing DONT two-major practice deal.');
   } else {
     const majorsBoard = makeRuleTestBoard(majorsDeal).board;
-    const enabled = evaluateUserCall('2H', majorsBoard, ['1NT'], defaultBiddingSystem);
+    const enabled = evaluateUserCall('2H', majorsBoard, ['1NT'], dontOnSystem);
     const disabled = evaluateUserCall('2H', majorsBoard, ['1NT'], dontOff);
     if (!enabled.userCallMatchingRules.some((rule) => rule.id === 'overcall-dont-majors') ||
         disabled.applicableRules.some((rule) => rule.id.startsWith('overcall-dont-'))) {
@@ -2025,7 +2029,7 @@ function runDontBoundaryTests (): number {
   }
 
   checks++;
-  const on = { ...defaultBiddingSystem, dont: true };
+  const on = { ...dontOnSystem, dont: true };
   const routedDontDeals = RULE_TEST_DEAL_BUCKETS.flatMap((bucket) =>
     bucket.deals.filter((deal) => DONT_1NT_DEFENSE_TEST_DEALS.includes(deal)));
   if (routedDontDeals.length !== DONT_1NT_DEFENSE_TEST_DEALS.length ||
@@ -2042,7 +2046,7 @@ function runDontBoundaryTests (): number {
   checks++;
   if (dontResponderDeal === undefined ||
       isPracticeDealCompatible(dontResponderDeal, dontOff) ||
-      !isPracticeDealCompatible(dontResponderDeal, defaultBiddingSystem)) {
+      !isPracticeDealCompatible(dontResponderDeal, dontOnSystem)) {
     failures++;
     console.error('FAIL DONT-only responder practice was not agreement gated.');
   }
@@ -2062,7 +2066,7 @@ function runDontInitialExplanationTests (): number {
     const expected = deal.expectedOvercallCalls?.[0];
     if (expected === undefined || expected.call === 'Pass') continue;
     const board = makeRuleTestBoard(deal).board;
-    const result = evaluateUserCall(expected.call, board, ['1NT'], defaultBiddingSystem);
+    const result = evaluateUserCall(expected.call, board, ['1NT'], dontOnSystem);
     const rule = result.userCallMatchingRules.find((item) => expected.ruleIds.includes(item.id));
     const candidate = result.ruleDiagnostics.find(({ rule: item }) => item.id === rule?.id)
       ?.candidates.find(({ call }) => call === expected.call);
@@ -2086,7 +2090,7 @@ function runDontInitialExplanationTests (): number {
     const deal = deals[test.dealIndex];
     if (deal === undefined) continue;
     const board = makeRuleTestBoard(deal).board;
-    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const result = evaluateUserCall(test.call, board, ['1NT'], dontOnSystem);
     const negative = getDontInitialFailureLines(result);
     checks += 1;
     if (result.userCallMatchingRules.length > 0 || negative.length === 0) {
@@ -2117,7 +2121,7 @@ function runDontInitialExplanationTests (): number {
       south: { S: unused('S', 4), H: unused('H', 3),
                D: unused('D', 3), C: unused('C', 3) },
     }).board;
-    const result = evaluateUserCall(test.call, board, ['1NT'], defaultBiddingSystem);
+    const result = evaluateUserCall(test.call, board, ['1NT'], dontOnSystem);
     const lines = getDontInitialFailureLines(result);
     checks += 1;
     if (result.userCallMatchingRules.length !== 0 || lines.length === 0) {
@@ -2129,7 +2133,7 @@ function runDontInitialExplanationTests (): number {
   const sample = deals[1];
   if (sample !== undefined) {
     const board = makeRuleTestBoard(sample).board;
-    const unrelated = evaluateUserCall('2H', board, ['1D'], defaultBiddingSystem);
+    const unrelated = evaluateUserCall('2H', board, ['1D'], dontOnSystem);
     checks += 1;
     if (getDontInitialFailureLines(unrelated).length !== 0 ||
         unrelated.userCallMatchingRules.some((rule) =>
@@ -2399,9 +2403,9 @@ function runUnmodeledDirectDefenseBoundaryTests (): number {
   let failures = 0;
   for (const test of cases) {
     const { board } = makeBoard(test.name, test.east, test.auction, test.dealer ?? 'N');
-    const status = getBiddingTurnStatus(board, test.auction, defaultBiddingSystem);
+    const status = getBiddingTurnStatus(board, test.auction, dontOnSystem);
     const candidates = getApplicableCandidateCalls(evaluateUserCall('Pass', board,
-      test.auction, defaultBiddingSystem));
+      test.auction, dontOnSystem));
     const boundary = status.kind === 'scopeBoundary' ? status.rule.id : null;
     const expectedAction = candidates.some(({ call, rule }) =>
       call === test.expectedCall && rule.id === test.expectedRule);
@@ -2421,7 +2425,7 @@ function runUnmodeledDirectDefenseBoundaryTests (): number {
   const { board: balancingBoard } = makeBoard('C3 balancing stays separate',
     strongBalanced, ['1H', 'Pass', 'Pass']);
   const balancing = getBiddingTurnStatus(balancingBoard,
-    ['1H', 'Pass', 'Pass'], defaultBiddingSystem);
+    ['1H', 'Pass', 'Pass'], dontOnSystem);
   if (balancing.kind === 'scopeBoundary' &&
       balancing.rule.id.startsWith('overcall-boundary-')) {
     failures++;
@@ -3888,7 +3892,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   let failures = 0;
 
   const { board: responseBoard } = makeRuleTestBoard(responseDeal);
-  const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], defaultBiddingSystem);
+  const responseResult = evaluateUserCall('2S', responseBoard, ['1NT', '2H'], dontOnSystem);
   const responseCandidates = getApplicableCandidateCalls(responseResult);
   checks += 1;
   if (responseCandidates.some((candidate) =>
@@ -3899,7 +3903,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
   // DONT 2H shows both majors, so neither 2S nor a natural-heart takeout
   // Double may inherit the rules for a one-suited natural 2H overcall.
   const doubleAfterDont = getApplicableCandidateCalls(evaluateUserCall(
-    'Double', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+    'Double', responseBoard, ['1NT', '2H'], dontOnSystem));
   checks += 1;
   if (doubleAfterDont.some(({ rule }) =>
       rule.id === 'partner-of-1nt-after-interference-negative-double')) {
@@ -3907,7 +3911,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL natural-heart takeout Double was admitted over artificial DONT 2H.');
   }
   const naturalMinorAfterDont = getApplicableCandidateCalls(evaluateUserCall(
-    '3D', responseBoard, ['1NT', '2H'], defaultBiddingSystem));
+    '3D', responseBoard, ['1NT', '2H'], dontOnSystem));
   checks += 1;
   if (! naturalMinorAfterDont.some(({ rule }) =>
       rule.id === 'respond-after-dont-majors-natural-minor')) {
@@ -3919,7 +3923,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     south: { S: 'T94', H: 'JT98', D: 'K98', C: 'KJ7' },
   });
   const noSpadeStopperCalls = getApplicableCandidateCalls(evaluateUserCall(
-    '2NT', noSpadeStopperBoard, ['1NT', '2H'], defaultBiddingSystem));
+    '2NT', noSpadeStopperBoard, ['1NT', '2H'], dontOnSystem));
   checks += 1;
   if (noSpadeStopperCalls.some(({ rule }) => rule.id === 'respond-after-dont-majors-2nt')) {
     failures += 1;
@@ -3946,7 +3950,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     south: { S: 'Q85', H: 'T72', D: 'A83', C: 'Q542' },
   });
   const noStopperCandidates = getApplicableCandidateCalls(
-    evaluateUserCall('2NT', advanceBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+    evaluateUserCall('2NT', advanceBoard, ['1D', '1NT', '2H'], dontOnSystem));
   checks += 1;
   if (noStopperCandidates.some((candidate) =>
       candidate.rule.id === 'partner-of-1nt-after-interference-2nt')) {
@@ -3954,7 +3958,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     console.error('FAIL natural 2NT survived without a stopper in the interference suit.');
   }
 
-  const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], defaultBiddingSystem);
+  const unsupportedResult = evaluateUserCall('Pass', responseBoard, ['1NT', '3H'], dontOnSystem);
   checks += 1;
   if (unsupportedResult.ruleDiagnostics.some((result) =>
       result.rule.auctionContext?.partnerNaturalOneNtAfterSuitInterference === true)) {
@@ -3967,7 +3971,7 @@ function runOneNtInterferencePartnerBoundaryTests (): number {
     south: { S: 'QJ85', H: 'T72', D: 'A32', C: 'Q43' },
   });
   const doubleCandidates = getApplicableCandidateCalls(
-    evaluateUserCall('Double', doubleBoard, ['1D', '1NT', '2H'], defaultBiddingSystem));
+    evaluateUserCall('Double', doubleBoard, ['1D', '1NT', '2H'], dontOnSystem));
   checks += 1;
   if (! doubleCandidates.some((candidate) =>
       candidate.rule.id === 'partner-of-1nt-after-interference-negative-double')) {
@@ -4036,7 +4040,7 @@ function runOneNtInterferenceExplanationTests (): number {
   ];
   for (const test of cases) {
     const board = make(test.hand);
-    const system = { ...defaultBiddingSystem, oneNtOpening: test.range ?? '15-17' };
+    const system = { ...dontOnSystem, oneNtOpening: test.range ?? '15-17' };
     const result = evaluateUserCall(test.call, board, test.auction ?? ['1D', '1NT', '2H'], system);
     const id = prefix + test.suffix;
     const candidate = result.ruleDiagnostics.find((item) => item.rule.id === id)
@@ -4060,14 +4064,14 @@ function runOneNtInterferenceExplanationTests (): number {
   // The shared response path receives the same instruction after a natural DONT 2S,
   // while artificial DONT 2H and higher interference must not inherit these explanations.
   const responseBoard = { ...make(invitation), dealer: 'S' as const };
-  const response = evaluateUserCall('2NT', responseBoard, ['1NT', '2S'], defaultBiddingSystem);
+  const response = evaluateUserCall('2NT', responseBoard, ['1NT', '2S'], dontOnSystem);
   const responseRule = response.userCallMatchingRules.find((rule) => rule.id === prefix + '2nt');
   if (responseRule === undefined || getNotrumpPartnerResponseLines(response, responseRule).length === 0) {
     failures += 1;
     console.error('FAIL shared natural 1NT interference response explanation.');
   }
   for (const auction of [['1NT', '2H'], ['1NT', '3S']] as Call[][]) {
-    const result = evaluateUserCall('2NT', responseBoard, auction, defaultBiddingSystem);
+    const result = evaluateUserCall('2NT', responseBoard, auction, dontOnSystem);
     if (getNotrumpPartnerResponseFailureLines(result).length !== 0 ||
         result.applicableRules.some((rule) => getNotrumpPartnerResponseLines(result, rule).length > 0)) {
       failures += 1;
@@ -4080,7 +4084,7 @@ function runOneNtInterferenceExplanationTests (): number {
 /// Focused physical-auction tests for DONT-off opener replies to responder's
 /// negative Double. Construct temporary hands instead of permanent practice deals.
 function runDontOffOpenerNegativeDoubleTests (): number {
-  const off = { ...defaultBiddingSystem, dont: false };
+  const off = { ...dontOnSystem, dont: false };
   const doubleFit = {
     north: { S: 'AKQJ', H: 'AQ76', D: 'J97', C: '84' },
     east: { S: '82', H: 'T3', D: 'A52', C: 'KQJT96' },
@@ -4217,7 +4221,7 @@ function runDontOffOpenerNegativeDoubleTests (): number {
     console.error('FAIL cheap natural 3S fit must take precedence over opposing-raise boundary.');
   }
   const cheapFitOn = evaluateUserCall('3S', cheapFitBoard, cheapFitAuction,
-    { ...defaultBiddingSystem, dont: true });
+    { ...dontOnSystem, dont: true });
   checks++;
   if (cheapFitOn.userCallMatchingRules.some((rule) => rule.id ===
       'opener-rebid-dont-off-fit-after-1nt-interference-double')) {
@@ -4229,7 +4233,7 @@ function runDontOffOpenerNegativeDoubleTests (): number {
   const conventional = evaluateUserCall('2H',
     makeRuleTestBoard({ description: 'DONT-on artificial 2C', dealer: 'N',
       practiceAuction: ['1NT', '2C', 'Double', 'Pass', '2H'], ...doubleFit }).board,
-    ['1NT', '2C', 'Double', 'Pass'], defaultBiddingSystem);
+    ['1NT', '2C', 'Double', 'Pass'], dontOnSystem);
   if (conventional.ruleDiagnostics.some((entry) =>
       entry.rule.id.startsWith('opener-rebid-dont-off-'))) {
     failures++;
@@ -4242,7 +4246,7 @@ function runDontOffOpenerNegativeDoubleTests (): number {
 /// Focused DONT-off opener continuations after nonforcing natural responses.
 /// These temporary hands test the physical auction; permanent exercises are deferred.
 function runDontOffOpenerNaturalResponseTests (): number {
-  const off = { ...defaultBiddingSystem, dont: false };
+  const off = { ...dontOnSystem, dont: false };
   const cases = [
     {
       name: 'Minimum opener Passes a two-level natural heart response',
@@ -4319,7 +4323,7 @@ function runDontOffOpenerNaturalResponseTests (): number {
   const board = makeRuleTestBoard({ description: 'Advancer raised after natural response',
     dealer: 'N', practiceAuction: [...auction, 'Pass'], ...raised }).board;
   const boundary = getBiddingTurnStatus(board, auction, off);
-  const conventional = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+  const conventional = getBiddingTurnStatus(board, auction, dontOnSystem);
   checks++;
   if (boundary.kind !== 'scopeBoundary' ||
       boundary.rule.id !==
@@ -4355,9 +4359,9 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
       description: 'DONT natural spades and four-heart takeout Double',
       practiceAuction: [...prefix, test.call], north: test.north, south, east,
     });
-    const opening = evaluateUserCall('1NT', board, [], defaultBiddingSystem);
-    const overcall = evaluateUserCall('2S', board, prefix.slice(0, 1), defaultBiddingSystem);
-    const response = evaluateUserCall('Double', board, prefix.slice(0, 2), defaultBiddingSystem);
+    const opening = evaluateUserCall('1NT', board, [], dontOnSystem);
+    const overcall = evaluateUserCall('2S', board, prefix.slice(0, 1), dontOnSystem);
+    const response = evaluateUserCall('Double', board, prefix.slice(0, 2), dontOnSystem);
     const doubleEvidence = response.ruleDiagnostics.find(({ rule }) =>
       rule.id === 'partner-of-1nt-after-interference-negative-double')
       ?.candidates.find(({ call }) => call === 'Double')?.callEvidence?.requirements;
@@ -4372,12 +4376,12 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
       failures++;
       console.error('FAIL responder Double must promise four hearts after DONT 2S.');
     }
-    const result = evaluateUserCall(test.call, board, prefix, defaultBiddingSystem);
+    const result = evaluateUserCall(test.call, board, prefix, dontOnSystem);
     const selected = result.userCallMatchingRules.find(({ id }) => id === test.ruleId);
     const lines = selected === undefined ? [] : getOpenerOneNtInterferenceLines(result, selected);
     const delivered = getBidExplanationLines({
       title: 'Opener rebid', call: test.call,
-      status: getBiddingTurnStatus(board, prefix, defaultBiddingSystem), result,
+      status: getBiddingTurnStatus(board, prefix, dontOnSystem), result,
       handFacts: getHandFacts(board.deal.N), auctionLength: prefix.length,
       previewLines: [], seatLabel: 'North', recordedUnjudged: false,
     });
@@ -4389,10 +4393,10 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
     }
     checks++;
     const wrongFitCall: Call = test.call === '3H' ? '3C' : '3H';
-    if (evaluateUserCall(wrongFitCall, board, prefix, defaultBiddingSystem)
+    if (evaluateUserCall(wrongFitCall, board, prefix, dontOnSystem)
           .userCallMatchingRules.some(({ id }) =>
             id === 'opener-rebid-fit-after-1nt-interference-double') ||
-        (test.call === '3H' && evaluateUserCall('3NT', board, prefix, defaultBiddingSystem)
+        (test.call === '3H' && evaluateUserCall('3NT', board, prefix, dontOnSystem)
           .userCallMatchingRules.some(({ id }) =>
             id === 'opener-rebid-3nt-after-1nt-interference-double'))) {
       failures++;
@@ -4406,8 +4410,8 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
     north: cases[0]!.north, south, east,
   }).board;
   const raised: Call[] = ['1NT', '2S', 'Double', '3S'];
-  const raisedResult = evaluateUserCall('4H', raisedBoard, raised, defaultBiddingSystem);
-  if (getBiddingTurnStatus(raisedBoard, raised, defaultBiddingSystem).kind === 'supported' ||
+  const raisedResult = evaluateUserCall('4H', raisedBoard, raised, dontOnSystem);
+  if (getBiddingTurnStatus(raisedBoard, raised, dontOnSystem).kind === 'supported' ||
       getApplicableCandidateCalls(raisedResult).length > 0) {
     failures++;
     console.error('FAIL opposing 3S raise must remain outside selected continuations.');
@@ -4420,7 +4424,7 @@ function runOneNtInterferenceDoubleContinuityTests (): number {
   } else {
     const { board } = makeRuleTestBoard(stayman);
     const auction: Call[] = [...stayman.practiceAuction, 'Pass'];
-    const system = { ...defaultBiddingSystem, ...stayman.requiredSystem };
+    const system = { ...dontOnSystem, ...stayman.requiredSystem };
     const result = evaluateUserCall('3NT', board, auction, system);
     const rule = result.userCallMatchingRules.find(({ id }) =>
       id === 'responder-rebid-2nt-stayman-game-3nt');
@@ -6838,8 +6842,8 @@ function runOpenerInterferenceTeachingTests (): number {
     south: { S: 'Q85', H: 'T72', D: 'K8', C: 'AQJ74' },
   });
   const auction: Call[] = ['1NT', '2H', '3C', 'Pass'];
-  const failed = evaluateUserCall('3NT', board, auction, defaultBiddingSystem);
-  const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+  const failed = evaluateUserCall('3NT', board, auction, dontOnSystem);
+  const status = getBiddingTurnStatus(board, auction, dontOnSystem);
   checks++;
   if (failed.userCallMatchingRules.some(({ id }) =>
         id === 'opener-rebid-3nt-after-1nt-interference-natural-suit') ||
@@ -6859,7 +6863,7 @@ function runOpenerInterferenceTeachingTests (): number {
     console.error('FAIL no existing DONT natural 3C to 3NT practice example.');
   } else {
     const accepted = evaluateUserCall('3NT', makeRuleTestBoard(goodNt).board,
-      goodNt.practiceAuction.slice(0, 4), defaultBiddingSystem);
+      goodNt.practiceAuction.slice(0, 4), dontOnSystem);
     const rule = accepted.userCallMatchingRules.find(({ id }) =>
       id === 'opener-rebid-3nt-after-1nt-interference-natural-suit');
     if (rule === undefined ||
@@ -6880,7 +6884,7 @@ function runOpenerInterferenceTeachingTests (): number {
   } else {
     const { board: forcingNtBoard } = makeRuleTestBoard(forcingNtDeal);
     const ntAuction: Call[] = ['1H', '1S', '2C', 'Pass'];
-    const evaluated = evaluateUserCall('2NT', forcingNtBoard, ntAuction, defaultBiddingSystem);
+    const evaluated = evaluateUserCall('2NT', forcingNtBoard, ntAuction, dontOnSystem);
     const match = evaluated.ruleDiagnostics.find((entry) =>
       entry.rule.id === 'opener-rebid-2nt-after-overcall-two-level-new-suit')
       ?.candidates.find((item) => item.call === '2NT' && item.ruleApplies);
@@ -6896,7 +6900,7 @@ function runOpenerInterferenceTeachingTests (): number {
     const seat = getSeatForCallIndex(forcingNtBoard.dealer, ntAuction.length);
     const delivered = getBidExplanationLines({
       title: 'Recorded', call: '2NT',
-      status: getBiddingTurnStatus(forcingNtBoard, ntAuction, defaultBiddingSystem),
+      status: getBiddingTurnStatus(forcingNtBoard, ntAuction, dontOnSystem),
       result: evaluated, handFacts: getHandFacts(forcingNtBoard.deal[seat]),
       auctionLength: ntAuction.length, previewLines: [], seatLabel: seat,
       recordedUnjudged: false,
@@ -6932,14 +6936,14 @@ function runOpenerInterferenceTeachingTests (): number {
     const { board: jumpBoard } = makeRuleTestBoard(deal);
     const prefix = deal.practiceAuction.slice(0, 4);
     const call = deal.practiceAuction[4]!;
-    const accepted = evaluateUserCall(call, jumpBoard, prefix, defaultBiddingSystem);
+    const accepted = evaluateUserCall(call, jumpBoard, prefix, dontOnSystem);
     const rule = accepted.userCallMatchingRules.find(({ id }) => id === test.ruleId);
     if (rule === undefined || getOpenerJumpOvercallRebidLines(accepted, rule).length === 0) {
       failures++;
       console.error(`FAIL jump-overcall explanation ${test.sequence}.`);
     }
     if (test.rejected !== undefined) {
-      const rejection = evaluateUserCall(test.rejected, jumpBoard, prefix, defaultBiddingSystem);
+      const rejection = evaluateUserCall(test.rejected, jumpBoard, prefix, dontOnSystem);
       checks++;
       if (rejection.userCallMatchingRules.length > 0 ||
           getOpenerJumpOvercallRebidFailureLines(rejection).length === 0) {
@@ -6970,7 +6974,7 @@ function runOpenerInterferenceTeachingTests (): number {
     }
     const { board: caseBoard } = makeRuleTestBoard(deal);
     const prefix = deal.practiceAuction.slice(0, -1);
-    const rejected = evaluateUserCall(scenario.attempt, caseBoard, prefix, defaultBiddingSystem);
+    const rejected = evaluateUserCall(scenario.attempt, caseBoard, prefix, dontOnSystem);
     const selected = getApplicableCandidateCalls(rejected).some((item) =>
       item.call === scenario.selected);
     const seat = getSeatForCallIndex(caseBoard.dealer, prefix.length);
@@ -6987,7 +6991,7 @@ function runOpenerInterferenceTeachingTests (): number {
       : getOpenerJumpOvercallRebidFailureLines(rejected);
     const delivered = getBidExplanationLines({
       title: 'Attempt', call: scenario.attempt,
-      status: getBiddingTurnStatus(caseBoard, prefix, defaultBiddingSystem),
+      status: getBiddingTurnStatus(caseBoard, prefix, dontOnSystem),
       result: rejected, handFacts, auctionLength: prefix.length, previewLines: [],
       seatLabel: seat, recordedUnjudged: false,
     });
@@ -9001,7 +9005,7 @@ function runWeakTwoDefenseRebidRejectionEvidenceTests (): number {
 function runBidExplanationDeliveryTests (): number {
   let failures = 0;
   let checks = 0;
-  const system = defaultBiddingSystem;
+  const system = dontOnSystem;
   const board = makeRuleTestBoard({
     description: 'DONT two-major stopper explanation reaches the student',
     practiceAuction: ['1NT', '2H', '3C', 'Pass', '3NT'],
@@ -10351,7 +10355,7 @@ function runContinuousAuctionFeedbackTests (): number {
   for (const test of sequences) {
     const auction: Call[] = [];
     for (const call of test.calls) {
-      const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+      const status = getBiddingTurnStatus(board, auction, dontOnSystem);
       checked++;
       if (status.kind === 'auctionComplete' || !isCallAvailableInAuction(call, auction)) {
         failures++;
@@ -10382,7 +10386,7 @@ function runContinuousAuctionFeedbackTests (): number {
     const { board: fixtureBoard } = makeRuleTestBoard(test.deal);
     const auction: Call[] = [];
     for (const kind of test.stages) {
-      const status = getBiddingTurnStatus(fixtureBoard, auction, defaultBiddingSystem);
+      const status = getBiddingTurnStatus(fixtureBoard, auction, dontOnSystem);
       checked++;
       if (status.kind !== kind) {
         failures++;
@@ -10401,7 +10405,7 @@ function runContinuousAuctionFeedbackTests (): number {
   // Non-dealer opening and a scope boundary retain their status but cannot block Pass.
   for (const auction of [['Pass', '1S', 'Pass', '2S'], ['2NT'], ['1NT', 'Double']] as Call[][]) {
     checked++;
-    const status = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+    const status = getBiddingTurnStatus(board, auction, dontOnSystem);
     if (status.kind === 'auctionComplete' || !isCallAvailableInAuction('Pass', auction)) {
       failures++;
       console.error(`FAIL continuous: Pass blocked after ${auction.join(' ')}.`);
@@ -10430,7 +10434,7 @@ function runContinuousAuctionFeedbackTests (): number {
     south: { S: 'KT6', H: 'Q852', D: 'KQJ64', C: 'A' },
     practiceAuction: forceAuction,
   });
-  const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
+  const system = { ...dontOnSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
   const forceNow = getUnmodeledContinuationForce(forcingBoard, forceAuction, system);
   const forceAfterPass = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass'], system);
   const forceAfterReply = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass', '4S'], system);

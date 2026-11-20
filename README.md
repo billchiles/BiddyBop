@@ -4,9 +4,9 @@ BiddyBop is a practice app for learning and practicing contract bridge bidding.
 It teaches a practical blend of SAYC-based Standard American bidding and widely used modern
 treatments (such as splinters and invitational 2NT responses to minor openings), with a small
 number of fixed teaching simplifications (such as requiring exactly six cards for weak-two
-openings). It is neither strict SAYC (for example, it uses DONT against opposing strong 1NT
-openings) nor a complete modern 2/1 system (2/1 game forcing is optional, and inverted minor
-raises are not taught).
+openings). It is neither strict SAYC (for example, it offers optional DONT against opposing
+strong 1NT openings) nor a complete modern 2/1 system (2/1 game forcing is optional,
+and inverted minor raises are not taught).
 
 The bidding approach draws on the ACBL SAYC booklet and teaching materials by Larry Cohen,
 Audrey Grant, and Karen Walker, without attempting to reproduce any one of their complete
@@ -77,10 +77,9 @@ the app teaches; they are not switches that can be changed by editing a setting.
 - **Hand valuation:** Length points supplement HCP for ordinary total-point evaluation;
   shortage points supplement HCP when evaluating support for partner's suit. The relevant
   measure depends on the bidding situation.
-- **Selected conventions and competitive treatments:** Jordan 2NT after a takeout Double
-  of partner's one-level suit opening, strength-showing Redouble, and a compact **DONT**
-  defense against an opposing strong 1NT are fixed treatments. DONT is on, not a settings
-  option; it includes basic pass-or-correct continuations but not all DONT extensions.
+- **Selected competitive treatments:** Jordan 2NT after a takeout Double of partner's
+  one-level suit opening and strength-showing Redouble are fixed. Against an opposing
+  strong 1NT, the default is a natural defense; compact DONT is optional.
 - **Slam-related calls:** Gerber 4C after a notrump opening and Blackwood 4NT after a suit
   auction are selected ace-asking treatments; direct 4NT over a natural notrump opening
   is quantitative rather than Blackwood. The app does not teach a complete slam system
@@ -103,6 +102,7 @@ identify which auction families and later continuations are supported or omitted
 | Jacoby transfers | On or off | On |
 | Splinters | On or off | On |
 | Texas transfers | On or off | On |
+| DONT defense over an opposing strong 1NT | On (compact DONT) or off (natural 2-level suit overcalls) | Off |
 
 Changing an agreement can change both the recommended bids and which prepared rule-practice
 deals are available. Some practice groups may have no compatible deals under particular settings.
@@ -182,16 +182,23 @@ Many responder rebids are covered, but the app stops trying to cover all bids du
 | Opponent's opening | Our direct defense | Advancer after responder passes | Advancer after responder acts | Overcaller continuation |
 | --- | --- | --- | --- | --- |
 | 1C / 1D / 1H / 1S | Done | Done | Partial (done): selected common actions | Partial (done): selected natural suit, 1NT, and takeout-Doubler rebids |
-| Strong 1NT | Partial (done): core DONT defense | Done: basic responses to DONT | Omitted | Done: basic DONT pass-or-correct follow-ups |
+| Strong 1NT | Natural 2-level suits (default) or compact DONT | Selected natural advances or DONT pass-or-correct | Selected advances after negative Double/natural response (DONT off) | Selected nonforcing rebids; further competition bounded |
 | Weak 2D / 2H / 2S | Done | Partial (done): selected common continuations | Omitted | Partial (done): selected natural suit, 2NT, and takeout-Double continuations |
 | Three-level preempt | Omitted | Omitted | Omitted | Omitted |
 | Strong 2C / 2NT | Omitted | Omitted | Omitted | Omitted |
 
-Against a strong 1NT opening, the app teaches the basic compact DONT interference but stops before
-later competitive continuations.  Double shows a good six-card-or-longer club, diamond, or heart suit;
-2C shows clubs and a higher suit, 2D shows diamonds and a major, 2H shows both majors,
-and 2S naturally shows a long spade suit.  Advancer's basic relay and pass-or-correct
-responses are supported.
+Against an opposing strong 1NT opening, the default defense is natural: 2C, 2D, 2H,
+and 2S each show a good six-card-or-longer suit with at least 7 HCP. Advancer can
+Pass, make a suitable competitive raise, or offer an independently playable economical
+two-level new suit. The overcaller may Pass those nonforcing advances. After a natural
+suit overcall, the opening 1NT partnership has selected natural responses, negative
+Doubles, and opener continuations. Further competition may reach a judgment boundary;
+the app does not assign an automatic penalty Double.
+
+With **DONT enabled**, Double shows a good six-card-or-longer club, diamond, or heart
+suit; 2C shows clubs and a higher suit, 2D shows diamonds and a major, 2H shows both
+majors, and 2S naturally shows a long spade suit. Advancer's basic relay and
+pass-or-correct replies are supported. More elaborate DONT continuations remain omitted.
 
 **The app omits these three optional DONT extensions:**
 
@@ -200,13 +207,13 @@ responses are supported.
 - **A stronger spade hand shown by Double followed by 2S:** some full DONT methods use
   this delayed route to distinguish strong spades from a direct 2S.  Our compact version
   uses direct 2S for the one-suited spade hand without that extra strength distinction.
-- **Continuations after the 1NT responder competes:** once responder bids or
-  Doubles, simple pass-or-correct sequences may no longer apply, and further calls
-  require additional competitive agreements.
+- **DONT pass-or-correct continuations after responder competes:** once responder
+  bids or Doubles, the basic DONT relays may no longer apply. Selected natural-defense
+  actions when DONT is off are separate treatments, not DONT extensions.
 
 We deliberately omitted these more elaborate and judgment-heavy continuations
-so the chosen DONT treatment remains compact and teachable.  These omissions do
-not change the meanings of the supported DONT calls.  In an unmodeled continuation,
+so optional DONT remains compact and teachable. These omissions do not change the
+meanings of its supported calls.  In an unmodeled continuation,
 the app gives guidance rather than inventing a conventional call or
 treating an unsupported Pass as necessarily wrong.
 

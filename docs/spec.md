@@ -22,8 +22,8 @@ specification or an exhaustive catalogue of the app's rules.
   explicitly selected conventions. These are not necessarily in the ACBL SAYC booklet.
 - **Partnership choices:** direct major game-forcing support defaults to a new suit
   followed by a raise, while Jacoby 2NT is selectable under
-  `majorGameForceWithSupport`. Conventional DONT defense to a strong opposing 1NT
-  is currently fixed on; 2/1 game forcing is optional.
+  `majorGameForceWithSupport`. Against a strong opposing 1NT, natural 2-level
+  suit overcalls are the default; compact DONT is optional. 2/1 game forcing is optional.
 - **Fixed teaching thresholds:** a weak-two opening currently requires exactly six
   cards and 5–11 HCP; strong artificial 2C requires 22+ HCP without a playing-trick
   exception; three-level preempts use an explicit seven-card and point cutoff.
@@ -684,14 +684,37 @@ one-level and weak-two openings.  An available concrete overcall or informationa
 suppresses that fallback Pass.  For an opposing artificial strong `2C`, strong `2NT`,
 three-level suit preempt, `3NT`, or a four-level-or-higher opening, the app instead
 explains that no dependable defensive recommendation is modeled.  It does not automatically
-recommend Pass for these openings.  After an opposing `1NT`, 18+ HCP with no qualifying
-compact DONT action leads to a separate scope boundary: the DONT Double is artificial, not
-a penalty Double.  Concrete DONT actions still take priority over that boundary.  Fourth-seat
-balancing remains a separate bidding stage and is unaffected by these direct-seat rules.
+recommend Pass for these openings. After an opposing `1NT`, DONT-on hands with 18+ HCP
+and no qualifying conventional action reach a separate scope boundary: DONT Double is
+artificial, not penalty. With DONT off, a natural 2C/2D/2H/2S overcall requires six
+sound cards and 7+ HCP; an unsuitable strong hand reaches a natural-defense judgment
+boundary rather than a presumed penalty Double. Concrete qualified actions suppress
+those boundaries. Fourth-seat balancing remains separate and unaffected.
 
 `responding` is the stage after the opponent's first call following an opening. The competitive
 rule model does not infer Pass merely because no candidate remains.
 Double is evaluated only for specifically declared informational treatments, never penalties.
+
+### Optional defense over an opposing strong 1NT
+
+`BiddingSystem.dont` defaults to `false`. All four seats share the same choice.
+With DONT disabled, direct 2C/2D/2H/2S are natural, six-card-or-longer sound
+suits with 7+ HCP, not relays or two-suit announcements. Advancer's selected
+natural Pass, competitive 3X raise, and economical independent two-level new
+suit are nonforcing; the overcaller can Pass. After responder's selected negative
+Double or natural-suit action, advancer can also take suitable natural actions,
+but unsupported further competition has an explicit judgment boundary.
+
+For the opening 1NT partnership, a negative Double promises the unbid major(s)
+and shortness in the opposing natural suit; selected natural two-/three-level
+responses are nonforcing. Opener can show an economical four-card fit, select
+an appropriate notrump contract with the actual opposing-suit stopper, Pass
+selected nonforcing responses, or reach an explicit boundary. The same apparent
+2H or Double has different instructional meaning when DONT is on. DONT-on
+retains the existing artificial conventional meanings, basic advancer relays,
+and selected pass-or-correct overcaller rebids, without general later competition.
+Neither choice models penalty Doubles as a universal fallback. The unrelated
+natural 1NT *overcall of a suit opening* retains its existing responses.
 
 ### Fourth-seat balancing after a one-level suit opening
 
