@@ -32,7 +32,8 @@ export interface PartnerOneNtSuitInterference {
 /// Stages identify rule buckets, not recommended bids or which individual rules will qualify.
 /// Return null when the next turn's auction context maps to no modeled bidding-rule stage; this
 /// does not imply the real bridge auction or recorded practice exercise has ended.
-export function getNextBiddingRuleStage (dealer: Seat, auction: Call[]): BidStage | null {
+export function getNextBiddingRuleStage (dealer: Seat, auction: Call[],
+                                         system?: BiddingSystem): BidStage | null {
   if (auctionIsComplete(auction)) return null;
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
@@ -82,7 +83,8 @@ export function getNextBiddingRuleStage (dealer: Seat, auction: Call[]): BidStag
     // responder Pass that is intentionally absent from partnershipCalls.  The competitive gate
     // still admits only reviewed responder/advancer patterns.
     if (opponentsBid) {
-      return isSupportedCompetitiveOpenerRebid(dealer, auction, opening) ? 'openerRebid' : null;
+      return isSupportedCompetitiveOpenerRebid(dealer, auction, opening, system)
+        ? 'openerRebid' : null;
     }
     if (partnershipCalls.length === 2) {
       return 'openerRebid';
@@ -101,7 +103,7 @@ export function getNextBiddingRuleStage (dealer: Seat, auction: Call[]): BidStag
 /// pattern has an explicitly modeled opener continuation.  Passing advancer cases remain the broad
 /// selected base; natural advancer competition is admitted only for reviewed families below.
 function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
-                                             opening: OpeningBidInfo): boolean {
+    opening: OpeningBidInfo, system?: BiddingSystem): boolean {
   if (auction.length !== opening.index + 4) {
     return false;
   }
@@ -285,9 +287,9 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
     return false;
   }
 
-  // A natural two-level intervention over our 1NT has selected continuations after
-  // responder's takeout Double, natural suit, 2NT invitation, or 3NT signoff.
-  // An opposing raise is admitted only after Double; other late competition stays out of scope.
+  // Natural two-level interference over our 1NT has selected continuations after
+  // Double, a natural suit, 2NT invitation, or 3NT signoff. An opposing raise
+  // after a natural suit is recognized only in DONT-off, to reach judgment guidance.
   if (opening.call === '1NT') {
     const overcallBid = parseSuitBid(overcall);
     if (overcallBid === null || overcallBid.level !== 2 || overcallBid.strain === 'NT') {
@@ -301,10 +303,17 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
         (responseBid.level === 2 || responseBid.level === 3) &&
         cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
     }
-    // One selected competitive continuation: opponents raise their natural overcall
-    // one level after responder's takeout Double.
-    return response === 'Double' &&
-      advance === `3${overcallBid.strain}`;
+    // After a negative Double, retain the existing reviewed opposing raise.
+    if (response === 'Double' && advance === `3${overcallBid.strain}`) return true;
+    // After a natural suit response, DONT-off also recognizes the opposing
+    // three-level raise, but offers judgment guidance rather than a forced bid.
+    if (system?.dont !== false || advance !== `3${overcallBid.strain}` ||
+        !isCallAvailableInAuction(advance, auction.slice(0, opening.index + 3))) return false;
+    const responseBid = parseSuitBid(response);
+    return responseBid !== null && responseBid.strain !== 'NT' &&
+      responseBid.strain !== overcallBid.strain &&
+      (responseBid.level === 2 || responseBid.level === 3) &&
+      cheapestBidInStrainAfter(overcallBid, responseBid.strain) === response;
   }
   return false;
 }
@@ -396,7 +405,7 @@ export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[],
   if (openingInfo === null) {
     return null;
   }
-  const stage = getNextBiddingRuleStage(dealer, auction);
+  const stage = getNextBiddingRuleStage(dealer, auction, system);
   if (stage === 'responding' && openingInfo.call === '1NT' &&
       auction.length === openingInfo.index + 2) {
     const interference = parseSuitBid(auction[openingInfo.index + 1] ?? 'Pass');

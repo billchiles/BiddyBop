@@ -556,8 +556,10 @@ export const OpenerRebidRules: BidRule[] = [
              'suit, and no four-card fit in a major promised by responder’s Double.',
   },
   //// 1NT opening -- Natural suit responses after interference
-  // Responder\'s natural suit calls are nonforcing; partner has 8+ at the two level
-  // or 10+ at the three level, so use a conservative signoff/invitation/game ladder.
+  // The existing Pass/raise/3NT rules apply to natural 2X interference with
+  // DONT off, as well as the already-supported DONT-on natural continuations.
+  // Responder's suits are nonforcing (8+ HCP at two, 10+ at three); use the
+  // same conservative signoff/invitation/game ladder with actual opponent suits.
   {
     id: 'opener-rebid-pass-after-1nt-interference-natural-suit',
     kind: 'openerRebid',
@@ -629,6 +631,24 @@ export const OpenerRebidRules: BidRule[] = [
              'Double. Competing higher requires judgment, not a forced game bid.',
     guidance: ['Even with a major fit, opener should not automatically bid game over ' +
                'the opposing 3X raise. Fit, level and defensive prospects need judgment.'],
+  },
+  // After a DONT-off natural response, advancer's competitive 3X raise
+  // changes opener's decision; do not inherit uncontested Pass or game choices.
+  {
+    id: 'opener-rebid-dont-off-boundary-after-1nt-natural-response-raise',
+    kind: 'scopeBoundary',
+    title: 'Judgment after advancer raises over a natural responder suit',
+    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+                      interference: 'other',
+                      responderCall: { kind: 'newSuit' },
+                      advancerCall: { kind: 'other' } },
+    agreement: { setting: 'dont', value: false },
+    scopeBoundaryWhen: oneNtInterferenceScopeBoundaryApplies,
+    meaning: 'Responder bid a natural, nonforcing suit and advancer then raised ' +
+             'the natural overcall. Further competition requires judgment.',
+    guidance: ['Do not automatically Pass, raise responder, or bid 3NT over the ' +
+               'opposing raise. The appropriate contract depends on fit, playing ' +
+               'strength, and the level already reached.'],
   },
   //// Notrump openings -- Natural and quantitative invitations
   // Natural invitations are not signoffs: minimums decline, maximums accept, and

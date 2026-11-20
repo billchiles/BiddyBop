@@ -8858,6 +8858,12 @@ export function getOpenerOneNtInterferenceLines(result: BidEvalResult, rule: Bid
     case 'majorRaise':
       return [`Responder's ${e.response} shows ${responseSuit} naturally. Your ${e.support}-card support and ${e.hcp} HCP permit ${candidate.call === `3${e.responseSuit}` ? 'an invitation' : 'game'} in the agreed major ${id}.`];
     case 'naturalThreeNt':
+      if (!e.dontDefense) {
+        return [`Responder's ${e.response} is a constructive, nonforcing natural ` +
+          `${responseSuit} bid after the opponent's natural suit overcall. ` +
+          `Your hand stops the opposing ${opponents}; without a preferred major fit, ` +
+          `3NT is supported ${id}.`];
+      }
       return [`Responder's ${e.response} is a constructive natural ${responseSuit} bid. The opponent's ${e.opponentSuits.length === 2 ? 'DONT 2H shows both majors' : '2S shows spades'}, and your hand has stoppers in ${opponents}; with no preferred major fit, 3NT is supported ${id}.`];
   }
 }

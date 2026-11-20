@@ -159,6 +159,7 @@ function runAllRuleTests (): void {
     runOpenerInterferenceTeachingTests,
     runOneNtInterferenceDoubleContinuityTests,
     runDontOffOpenerNegativeDoubleTests,
+    runDontOffOpenerNaturalResponseTests,
     runBidExplanationDeliveryTests,
     runMajorSupportNewSuitRejectionTests,
     runRecordedCallFeedbackTests,
@@ -4197,6 +4198,101 @@ function runDontOffOpenerNegativeDoubleTests (): number {
     console.error('FAIL DONT-off opener rules leaked into DONT-on.');
   }
   console.log(`${failures} ***FAILURES***. DONT-off opener negative Double: ${checks} checks.`);
+  return failures;
+}
+
+/// Focused DONT-off opener continuations after nonforcing natural responses.
+/// These temporary hands test the physical auction; permanent exercises are deferred.
+function runDontOffOpenerNaturalResponseTests (): number {
+  const off = { ...defaultBiddingSystem, dont: false };
+  const cases = [
+    {
+      name: 'Minimum opener Passes a two-level natural heart response',
+      north: { S: 'AKQJ', H: 'T98', D: 'JT9', C: 'A84' },
+      east: { S: '84', H: '73', D: 'A52', C: 'KQJT96' },
+      south: { S: '632', H: 'KQ642', D: 'K76', C: '32' },
+      auction: ['1NT', '2C', '2H', 'Pass'] as Call[],
+      call: 'Pass' as Call,
+      ruleId: 'opener-rebid-pass-after-1nt-interference-natural-suit',
+    },
+    {
+      name: 'Middle opener invites with three-card major support',
+      north: { S: 'AKQJ', H: 'J98', D: 'JT9', C: 'A84' },
+      east: { S: '84', H: '73', D: 'A52', C: 'KQJT96' },
+      south: { S: '632', H: 'KQ642', D: 'K76', C: '32' },
+      auction: ['1NT', '2C', '2H', 'Pass'] as Call[],
+      call: '3H' as Call,
+      ruleId: 'opener-rebid-raise-major-after-1nt-interference-natural-suit',
+    },
+    {
+      name: 'Maximum opener bids major game with four-card support',
+      north: { S: 'AQ73', H: 'AJ98', D: 'Q94', C: 'A8' },
+      east: { S: '82', H: '74', D: 'A52', C: 'KQJT96' },
+      south: { S: '965', H: 'KQ652', D: 'KJ73', C: '3' },
+      auction: ['1NT', '2C', '2H', 'Pass'] as Call[],
+      call: '4H' as Call,
+      ruleId: 'opener-rebid-raise-major-after-1nt-interference-natural-suit',
+    },
+    {
+      name: 'Minimum opener may Pass a nonforcing natural three-level minor',
+      north: { S: '75', H: 'AKQ7', D: 'J94', C: 'KQ83' },
+      east: { S: 'AQJT96', H: 'T3', D: '752', C: '96' },
+      south: { S: '82', H: 'J986', D: 'AKQ63', C: '74' },
+      auction: ['1NT', '2S', '3D', 'Pass'] as Call[],
+      call: 'Pass' as Call,
+      ruleId: 'opener-rebid-pass-after-1nt-interference-natural-suit',
+    },
+    {
+      name: 'Stopped three-level natural minor response reaches 3NT',
+      north: { S: 'K5', H: 'AK75', D: 'J94', C: 'KQ83' },
+      east: { S: 'AQJT96', H: 'T3', D: '752', C: '96' },
+      south: { S: '82', H: 'J986', D: 'AKQ63', C: '74' },
+      auction: ['1NT', '2S', '3D', 'Pass'] as Call[],
+      call: '3NT' as Call,
+      ruleId: 'opener-rebid-3nt-after-1nt-interference-natural-suit',
+    },
+  ];
+  let checks = 0;
+  let failures = 0;
+  for (const item of cases) {
+    const board = makeRuleTestBoard({ description: item.name, dealer: 'N',
+      practiceAuction: [...item.auction, item.call],
+      north: item.north, east: item.east, south: item.south }).board;
+    const result = evaluateUserCall(item.call, board, item.auction, off);
+    const rule = result.userCallMatchingRules.find((entry) => entry.id === item.ruleId);
+    const lines = rule === undefined ? [] : getOpenerOneNtInterferenceLines(result, rule);
+    const status = getBiddingTurnStatus(board, item.auction, off);
+    checks++;
+    if (rule === undefined || status.kind !== 'supported' || lines.length === 0 ||
+        lines.some((line) => line.includes('DONT 2H shows both majors'))) {
+      failures++;
+      console.error('FAIL DONT-off opener natural response: ' + item.name + '.');
+    }
+  }
+
+  // Responder's natural 2H and advancer's competitive 3C are distinct from a
+  // DONT-on 2C relay. The DONT-off turn is recognized but no bid is invented.
+  const raised = {
+    north: { S: 'AQ73', H: 'AJ98', D: 'Q94', C: 'A8' },
+    east: { S: '82', H: '74', D: 'A52', C: 'KQJT96' },
+    south: { S: '965', H: 'KQ652', D: 'KJ73', C: '3' },
+  };
+  const auction: Call[] = ['1NT', '2C', '2H', '3C'];
+  const board = makeRuleTestBoard({ description: 'Advancer raised after natural response',
+    dealer: 'N', practiceAuction: [...auction, 'Pass'], ...raised }).board;
+  const boundary = getBiddingTurnStatus(board, auction, off);
+  const conventional = getBiddingTurnStatus(board, auction, defaultBiddingSystem);
+  checks++;
+  if (boundary.kind !== 'scopeBoundary' ||
+      boundary.rule.id !==
+        'opener-rebid-dont-off-boundary-after-1nt-natural-response-raise' ||
+      conventional.kind !== 'noModeledStage') {
+    failures++;
+    console.error('FAIL DONT-off natural response followed by advancer raise boundary.');
+  }
+
+  console.log(failures + ' ***FAILURES***. DONT-off opener natural responses: ' +
+    checks + ' checks.');
   return failures;
 }
 
