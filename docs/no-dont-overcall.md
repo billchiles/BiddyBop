@@ -175,6 +175,36 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 **Implementation reuse/hazards:** Existing simple-raise, competitive `3M`, fit/shortage, takeout, Pass, NT-stopper and explanation evidence are reusable when semantics match. `auction.ts` currently classifies physical fourth-seat direct *advancer* actions at the same index as Family D's **initial sandwich overcall**; never interpret that intervention as a direct advance. Explicit stage and physical context protection is required to avoid uncontested invitation/leakage. Keep standard formatting, explanation audit, DONT independence and focused temporary before/after regression comparisons.
 
+## Family E — invitational, preemptive, game-going, and artificial responses (review accepted 21 Nov 2026)
+
+**Status:** User accepts Family E analysis and recommendations as design direction, not approval of exact strength bands, particular special bids, or executable batches. All A–E families are now reviewed individually; **next task is integrated A–E design, audit and decisions**, before coding.
+
+**Responder's public meaning must be classified before applying sandwich rules.** The same printed bid can have markedly different meanings under current agreements. In particular:
+- `1M–Pass–3M`: natural **limit raise**, usually 11–12 total points with shortage, 4+ support; nonforcing. `1m–Pass–3m`: natural minor limit raise, 11–12 HCP and the agreed minor support; nonforcing.
+- `1m–Pass–2NT`: **natural** 11–12 HCP balanced invitation with no four-card major; nonforcing. `1m–Pass–3NT`: natural balanced 13–15 HCP game placement. `1M–Pass–3NT`: BiddyBop's direct natural 13–15 HCP very-flat 4-3-3-3 response, **exactly three-card** major support, game placement.
+- `1M–Pass–4M`: *weak preemptive* raise to game, 5+ major support and fewer than 10 shortage-adjusted support points; not a strong slam force.
+- `1M–Pass–2NT` under the **Jacoby 2NT** support agreement: **artificial**, game forcing, 4+ major support and 13+ support points. Not a natural NT invitation. Opener's subsequent Jacoby `3NT` can be an **artificial strength description**, not a proposed NT contract.
+- `1M–Pass–(double-jump splinter)`: **artificial** game-forcing major support, 4+ fit, 13–15 shortage-adjusted support points, singleton/void in the *bid* suit. That bid **does not mean responder has shown a natural long suit**.
+- Single-jump new suit: `jumpShift: weak` means 4–7 HCP, natural 6+ suit, nonforcing/preemptive; `jumpShift: strong` means 17+ HCP, good 5+ suit, **game forcing**. Evaluate the configured agreement, not bid text alone.
+- Specialized direct Blackwood, splinter-control sequences, and slam responses are not an invitation to expand sandwich coverage into a complete high-level convention system.
+
+**Prioritize ordinary interference where it adds instructional value:**
+- After a *natural limit raise*, West can often Pass; consider selected **sound natural** new-suit overcalls. E.g. `1H–Pass–3H–3S` is a three-level overcall; `1S–Pass–3S–4H` requires the **four level**, with much higher risk. Minor limit raises can leave economical three-level major overcalls. A narrow takeout Double may merit study but not universal reuse of Family D's light OBAR treatment.
+- After a **natural 2NT invitation** over a minor, West usually Passes or shows an unusually sound long suit; opener can decline with Pass or accept in natural `3NT` with adequate actual values and a stopper in West's naturally bid suit. Do not conflate this with Jacoby 2NT.
+- After a **weak jump shift**, the opening side has not shown a game force; selected natural sandwich overcalls and perhaps an appropriate takeout Double merit review. Opener's and responder's later Passes can be genuine.
+- After an established **game force** (strong jump shift or Jacoby), West generally Passes; exceptional very strong natural suit intervention might be informative/lead-directing, but normal A/D thresholds are not suitable. Once West acts, preserve the game force; do **not** silently treat a forcing Pass below game as a signoff or create unmodeled penalty/control continuations.
+- After **natural direct 3NT**, **weak preemptive 4M game raise**, or a **splinter**, West's usual supported action is Pass. Exceptional natural high-level actions are normally **judgment boundaries** (vulnerability, sacrifices, controls and likely tricks), not routine executable bids. Do **not** include lead-directing Double of an artificial splinter or generic penalty Double merely for completeness.
+
+**Continuations after competition:**
+- After `1H–Pass–3H–3S`, North's Pass is not “accept the 3H partscore” because West now owns `3S`; `4H` is a real competitive game decision, not automatic uncontested limit-raise acceptance. With a minor limit raise, natural `3NT` needs the actual opponent-suit stopper. Responder's later actions preserve the original invitation and present contract, not the quiet-auction text.
+- After a Jacoby or splinter intervention, retain the **agreed major and established game force**. Teach a legal natural `4M` when appropriate, plus boundaries for unavailable Jacoby steps, forcing Pass, control-bid and slam decisions; do not manufacture an artificial replacement. When West Passes, the **existing** uncontested Jacoby/splinter machinery must remain unchanged.
+- After weak/strong jump shifts, obey opposite obligations: weak is **passable**; strong is **game forcing**. Reuse genuine opener fit/suit/NT descriptions only if legal and contextually sound; later specialist forcing-Pass or penalty-defense choices get accurate boundary guidance.
+- Sandwich advancer may ordinarily Pass a sound nonforcing natural intervention, with only selected economical support where justified. Avoid a new artificial raise/advance tree after a high-level game-force action. Sandwich overcaller typically accepts an advancer's nonforcing contract with Pass; high-level repeated competition is not deterministic.
+
+**Non-negotiable architectural checks:** Physical stage selection must distinguish sandwich *first* action from direct advancer; resolve responder's actual **natural/artificial** meaning and forcing state before computing unbid suits, opponent stoppers, or candidate matches. A splinter's suit is shortness, not a natural suit; Jacoby `2NT` and later artificial `3NT` are not ordinary NT contracts. An opponent's interference does not cancel a prior game force. Make no duplicated Jacoby/splinter/strong-jump-shift subsystems; favor narrow legal natural decisions and explicit scope boundaries.
+
+**Cross-family work next:** Integrate A–E into a shared auction-meaning/physical-stage plan; audit actual source helpers and explanation evidence, forcing obligations and role turns; decide the smallest ordinary natural rule inventory. Resolve outstanding Double meanings (including Family C's **approved takeout direction**, Family D's reopening-Double **consistency policy**), HCP/shape thresholds, practical Pass vs judgment, and per-stage follow-up coverage. Then present implementation batches for user approval, without generating executable code yet.
+
 ## Implementation audit and safeguards
 
 - Current entry over `1x – Pass – one-level response` and next opener/advancer turns were unmodeled. Stage detection is **physical-auction dependent**: direct-seat helpers may assume an overcall at `opening.index + 1` or responder Pass. Do not quietly apply them to the fourth-position sandwich intervention.
@@ -186,7 +216,7 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 ## Next analysis and decisions
 
-1. Complete **Family E** with the same authority-based, end-to-end bidding review as Family A; revisit Family A where a shared meaning or simplification becomes clearer.
+1. Perform the **integrated A–E design review**: cross-family rule meanings, explicit physical-stage and auction-context gates, forcing obligations, reusable evidence/explanations, and follow-up continuity.
 2. Separate clearly **agreed**, **recommended but not approved**, **requires another partnership agreement**, and **deliberately omitted** treatments. Resolve useful Pass, Double/NT shape, forcing and ranked alternatives, especially responder's reopening Double, Family B's forcing obligations, and Family C's takeout Double shape/advances.
 3. After cross-family review, propose the smallest coherent rule inventory, limited stage/context changes, implementation batches, representative practice auctions, and final judgments for user approval. **No executable code changes until that approval.**
 4. Move finalized bidding meanings and scope into `docs/spec.md` as they become implemented, leaving this file only as the active sandwich work plan.
