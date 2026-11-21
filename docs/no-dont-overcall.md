@@ -85,6 +85,67 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 - After takeout Double, handle advancer's economical suit choice and only well-supported stronger continuations. After natural sandwich 1NT, evaluate selected ordinary **systems-on** responses and compulsory completions when quiet; do not inherit opening-1NT HCP assumptions or convention use after competition without review.
 - Continue while ordinary fit, signoff, invitation or game actions remain teachable. Higher competitive sacrifices, penalty decisions and repeated raises often need scope guidance rather than manufactured certainty.
 
+## Family B — natural two-level new-suit response (review accepted 21 Nov 2026)
+
+**Status:** User accepted the practical-bidding analysis and recommendations as the direction for design. Numeric eligibility, advanced forcing-Pass rules, and exact executable inventories are **not yet approved**; defer those decisions until the A–E cross-family review. Family B should be **more conservative than Family A**, especially when an established 2/1 game force already exists.
+
+**Entry auctions:** `1D–Pass–2C`, `1H–Pass–2C`, `1H–Pass–2D`, `1S–Pass–2C`, `1S–Pass–2D`, `1S–Pass–2H`. Not `1C–Pass–2D`: a jump shift in Family E. The current rules' responder promises and overlap with major-support new-suit-then-raise routes must be preserved. In these six natural responses `1D–2C` and `1S–2H` promise 5+ cards; the other normal new-suit routes promise 4+. The Standard response is normally 11+ HCP and forcing one round; the configured 2/1 route normally requires 13+ HCP by an **unpassed** responder and establishes a game force. The *public meaning of the call* must not be inferred from the actual hidden hand or a special support route that happened to qualify.
+
+**Sandwich bidder and initial priority**
+
+- Pass is common and important. Use selectively stronger natural overcalls than in Family A, principally a strong six-card suit or exceptionally good five-card suit; their value may be lead direction as much as finding a contract, so do not demand an arbitrary opening-HCP hand. Determine the exact level, jump status and suit quality from the actual last bid. A three-level economical call over a high two-level response can require much more judgment than a two-level intervention. Do not extend every Family A positive option mechanically.
+- A takeout Double, if included, still concerns the two genuinely unbid suits, not the existing direct takeout-Double three-suit shape. Under Standard consider a particularly sound two-suit hand and appropriate values. Under an established 2/1 game force, be notably more conservative; whether a positively recommended Double exists here remains open. **Do not** copy a universal 12+ HCP/4–4 test across both response agreements.
+- Do not assign an unreviewed natural or artificial meaning to sandwich `2NT`, unusual cuebids, jump overcalls or higher specialized actions. They can receive a scope/judgment boundary where appropriate.
+
+**Opener and responder: Standard vs established 2/1 force**
+
+- **Standard:** Opposing intervention disrupts the ordinary uncontested one-round response obligation. A minimum opener without a sound description can make a real Pass; selected natural repeats, raises, second suits, reverse, NT with the opponent-suit stopper and sensible game calls remain valid when their actual levels/strength permit. Responder can subsequently Pass or make supported natural continuation without being mechanically forced to game.
+- **2/1 game forcing:** Once genuinely established, substantive competition does **not** silently turn it into a weak nonforcing response. A Pass below game may be a *forcing Pass*, not a signoff, and could require penalty/defensive decisions BiddyBop does not model. Initially favor positive natural descriptions and explicit guidance/boundary where a forcing-Pass or penalty-Double system would be necessary; do **not** implement such a system merely to close the auction. Preserve the game-force explanation at later turns, including when a 3NT route is obstructed.
+- Existing `1D–2C` Standard reverses such as opener `2S` (extra strength) differ from 2/1's shape-first `2S` at comparable levels. Reuse calculations only if the precise current agreement and forcing meaning align. Do not mechanically promote an unavailable uncontested rebid.
+- After opener raises responder's suit, responder's minimum Pass under Standard may be right; under 2/1 an otherwise identical printed raise cannot be described as a nonforcing signoff.
+
+**Sandwich advancer and overcaller follow-up**
+
+- After West's natural nonforcing overcall, East usually Passes with little reason to compete; consider only a sound economical natural fit raise. Avoid automatic independent new suits, NT invitations, cuebids or routine game tries in this strong-opponents auction.
+- If a genuine takeout Double is taught and opener Passes with the contract still doubled, East ordinarily selects a sound economical unbid suit; penalty Pass is exceptional judgment. If opener instead bids, East has a free competitive decision rather than an identical compulsory advance.
+- After a nonforcing raise or partner's takeout suit choice, West's minimum Pass is ordinary when the opening side is quiet. Stronger/higher competition usually needs a boundary, not extra automatic rules.
+
+**Audit:** A direct-interference two-level new-suit response is **not** this Family B: here South responded *before* West acted. Check compact partnership-auction helpers, `getResponderTwoOverOne`, opener/responding-family overlap, actual physical stages, hand-evidence, Pass eligibility and game-force continuation independently of candidate/rule order.
+
+## Family C — natural 1NT response (review accepted 21 Nov 2026)
+
+**Status:** User accepted Family C recommendations and explicitly favors **including a takeout Double over responder's 1NT** in bidding guidance. Its precise point, shape and subsequent bidding tests remain to be reviewed. Not an artificial strong-1NT defense and **independent of DONT**.
+
+**Entry auctions:** `1C–Pass–1NT`, `1D–Pass–1NT`, `1H–Pass–1NT`, `1S–Pass–1NT`. Responder has **not named another natural suit**, so all three suits other than opener's remain unbid. Cheapest natural unbid-suit interventions are two-level; natural sandwich 1NT is unavailable after responder bid it. Avoid automatically assigning `2NT` an artificial or natural meaning.
+
+**Existing 1NT response promises, including overlapping support routes**
+
+- Minor `1m–1NT`: **6–10 HCP, balanced, no four-card major, nonforcing**.
+- Major `1M–1NT` Standard: normally **6–10 HCP, nonforcing**. With 2/1 selected and the nonforcing 1NT setting, the **semi-forcing** treatment normally shows 6–12 and opener may Pass. With forcing 1NT and unpassed responder, normally **6–12, forcing one round if opponents do not interfere**. A previously passed responder cannot establish that force.
+- A major-opening 1NT response can be an **11–12-shortage-support-point three-card limit-raise route** when a one-level new suit cannot be bid first, under either forcing/nonforcing setting. Thus major 1NT does not universally promise balanced shape, denies support, or cap support points at the normal no-fit HCP range; what partner can infer must use the public partnership agreement, not hidden hand information.
+
+**Sandwich bidder's recommended calls**
+
+- Support a meaningful Pass and sound natural **two-level** unbid-suit overcalls, generally a good six-card suit or selected exceptional five-card suit with sufficient strength; exact thresholds should be reviewed beside Families A/B, not invented separately.
+- **Approved direction: include an informational/takeout Double of opener's suit over responder's 1NT**. The Double is not a promise to play NT or a simple penalty Double of responder's 1NT; it asks sandwich advancer to consider the **three suits other than opener's suit**. The fact that the current contract is literally `1NT doubled` must be explained accurately, and East can sometimes Pass exceptionally for penalties (unmodeled expert decision). Do not imply it is the same two-unbid-suit Double as Family A/B or the existing direct-seat Double. Determine actual shape/support, HCP floor, positive alternatives and priority, and safe advancer continuations in the cross-family review. User finds the intended takeout meaning intuitive in context.
+- Avoid initial artificial `2NT`, cuebids of opener's suit, routine jumps and specialized penalty/runout systems without separate instructional value.
+
+**Opener after a natural suit or Double**
+
+- After natural sandwich `2X`, opener may make a genuine minimum Pass whether responder's 1NT was nonforcing, semi-forcing or originally forcing: **substantive opposition has intervened, so do not mechanically manufacture the ordinary forcing-1NT minor fallback**. Reuse legitimate natural opener-suit repeats (usually 6+), genuinely natural second suits, fit/game choices and appropriate NT with opposing-suit stopper at their actual legal levels. If `2H` is no longer legal, `3H` does not automatically carry minimum `2H` requirements.
+- After West's takeout Double, the actual outstanding contract is `1NT doubled`; opener's Pass is not the same unopposed undoubled 1NT signoff. Consider selected natural escape bids and boundaries for defend/penalty or Redouble judgment, but do not invent a comprehensive penalty-defense system.
+- Current `buildOpenerOneNtRebidEvidence` and related `forcingOneNt` classification examine the agreement and previous Pass; after natural sandwich interference that information needs the actual physical opponent action so explanations do not falsely claim a mandatory manufactured rebid.
+
+**Sandwich advancer, responder second turn, sandwich overcaller rebid**
+
+- East after West's nonforcing natural `2X`: selected Pass, sound economical raise/fit, perhaps only independently compelling natural side-suit exception; avoid gratuitous game, NT and cuebid conventions.
+- East after West's takeout Double and opener Pass: normally choose economical natural unbid suit with little strength. If opener bids, East is acting freely and may Pass; distinguish that from an outstanding-double obligation. If East passes the Double for penalties, that is a judgment boundary, not an HCP-only rule.
+- Responder after opener Pass and East Pass: generally Pass with a minimum. A concealed three-card **major limit-raise route** may instead justify carefully selected competitive support at the actual legal level. Once opener naturally repeats a suit, responder can consider minimum Pass, legitimate invitation/game or delayed support; don't import an uncontested invitational meaning into an involuntary competitive higher raise.
+- A responder's reopening Double after `1M–Pass–1NT–2X–Pass–Pass–?` could be **penalty-oriented in some methods**, not the cooperative/takeout Double we are separately considering in Family A. Do not introduce a generic responder-reopening Double that conflates these.
+- After a nonforcing East raise and quiet opponents, West may Pass the competitive contract; repeated higher competition needs selected evidence or a boundary.
+
+**Explanations file checkpoint:** As of 21 Nov 2026, `src/models/explanations.ts` has about **9,440 lines, 50 `////` topical sections and 526 KiB**. User favors keeping a coherent, organized single explanation file rather than arbitrary 15–20-file splits. Analysis agrees **no size-only refactor**; monitor evidence-driven explanation quality, direct rule-ID coupling, duplication and genuinely independent concerns. Extend current sections or add appropriate `////` sandwich groups, keeping callers before callees. No separate split workstream approved.
+
 ## Implementation audit and safeguards
 
 - Current entry over `1x – Pass – one-level response` and next opener/advancer turns were unmodeled. Stage detection is **physical-auction dependent**: direct-seat helpers may assume an overcall at `opening.index + 1` or responder Pass. Do not quietly apply them to the fourth-position sandwich intervention.
@@ -96,7 +157,7 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 ## Next analysis and decisions
 
-1. Complete **Families B–E** with the same authority-based, end-to-end bidding review as Family A; revisit Family A where a shared meaning or simplification becomes clearer.
-2. Separate clearly **agreed**, **recommended but not approved**, **requires another partnership agreement**, and **deliberately omitted** treatments. Resolve useful Pass, Double/NT shape, forcing and ranked alternatives, especially responder's reopening Double and the natural 1NT continuations.
+1. Complete **Families D–E** with the same authority-based, end-to-end bidding review as Family A; revisit Family A where a shared meaning or simplification becomes clearer.
+2. Separate clearly **agreed**, **recommended but not approved**, **requires another partnership agreement**, and **deliberately omitted** treatments. Resolve useful Pass, Double/NT shape, forcing and ranked alternatives, especially responder's reopening Double, Family B's forcing obligations, and Family C's takeout Double shape/advances.
 3. After cross-family review, propose the smallest coherent rule inventory, limited stage/context changes, implementation batches, representative practice auctions, and final judgments for user approval. **No executable code changes until that approval.**
 4. Move finalized bidding meanings and scope into `docs/spec.md` as they become implemented, leaving this file only as the active sandwich work plan.
