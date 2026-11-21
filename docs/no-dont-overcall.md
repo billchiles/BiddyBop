@@ -146,6 +146,35 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 **Explanations file checkpoint:** As of 21 Nov 2026, `src/models/explanations.ts` has about **9,440 lines, 50 `////` topical sections and 526 KiB**. User favors keeping a coherent, organized single explanation file rather than arbitrary 15–20-file splits. Analysis agrees **no size-only refactor**; monitor evidence-driven explanation quality, direct rule-ID coupling, duplication and genuinely independent concerns. Extend current sections or add appropriate `////` sandwich groups, keeping callers before callees. No separate split workstream approved.
 
+## Family D — responder's natural simple raise (review accepted 21 Nov 2026)
+
+**Status:** User accepts the overall analysis and recommendations. Reserve decisions **1–3** (how light an economical two-level OBAR-style overcall may be, Double strength/shape over 2H vs 2S, and competitive three-level minor-raise requirements) for the **pre-code-generation detailed design**. No executable code authorized; exact thresholds are proposals, not approved rules.
+
+**Core auctions and publicly known fit:**
+- `1C–Pass–2C–?`: responder shows 6–10 HCP, at least five clubs (opener may have three): known **8+ clubs**.
+- `1D–Pass–2D–?`: responder shows 6–10 HCP, at least four diamonds (opener may have three): **possibly seven**, not guaranteed eight.
+- `1H–Pass–2H–?` / `1S–Pass–2S–?`: responder shows 6–10 *total points with shortage* and three or more major support opposite five-card major: known **8+ major fit**.
+- **Higher/invitational/preemptive raises** to 3m, 3M, 4M, plus artificial raises, belong with Family E, not the ordinary simple-raise rules.
+
+**Practical bridge principle:** After opener and responder have found a relatively weak **fit**, competing can be attractive with less HCP than in a constructive two-level-new-suit auction. Larry Cohen's *OBAR BIDS* principle is useful instructional context, **not** a mandate to overcall every weak hand or introduce vulnerability-based sacrifice simulations. Hand suitability and actual legal bidding level are crucial: `1H–Pass–2H–2S` is economical at two; `1S–Pass–2S–3H` forces the partnership to three and needs more caution.
+
+**Proposed initial sandwich actions:** Support a genuine Pass, suitable natural unbid-suit overcall (a good five-card two-level major can sometimes be reasonable with less strength than in Family A; three-level actions generally need extra length/quality), and takeout Double of **opener's suit** with support for the other **three** suits. For Double, consider shortness in opener's suit, three-plus cards in unbid suits and especially four in an unbid major; apply level-sensitive strength because advancer often has to answer at three after `2S`. **Do not** apply Family A's Double promising *two* unbid suits, and do not mechanically import direct-seat HCP. Ordinary Pass may be justified even with 13 balanced HCP and unsuitable suit/shape; do not apply Cohen's advice as an always-bid mandate. Omit initial specialized `2NT`, unusual two-suited cuebids, jumps and general penalty/Redouble continuations.
+
+**Opener's first rebid:**
+- After `1H–Pass–2H–2S–?`, a natural `3H` may be **competitive, not invitational**. Share relevant existing opener competitive simple-major-raise hand criteria (often six trumps, 12–16 total points with shortage) without reusing **direct-overcall physical context** or importing the uncontested 17–18-point voluntary invitation. Retain minimum Pass and clear natural `4H` where warranted; do not blindly reuse game tries after active competition.
+- With `1D–Pass–2D–2H–?`, `3D` may be competitive rather than the uncontested 17–18-point invitation; use conservative **actual fit** tests, noting the possible seven-card diamond fit. After minor raises, natural 3NT needs appropriate opponent-suit stopper and strength. Do not auto-promote bids to a higher level because an economical one is consumed.
+- After sandwich Double, `2M` is literally **doubled** pending further action. Opener can Pass and allow sandwich advancer the next choice, or make an appropriately qualified natural contract bid; don't silently use specialized opener Doubles, Redoubles, penalty/runout agreements.
+
+**Sandwich advancer, responder, and sandwich overcaller:**
+- After a **natural nonforcing** sandwich overcall, advancer can normally Pass or make a genuinely warranted **competitive support raise**. Independent forcing new suits, cuebids, NT inquiries and automatic game tries are not a priority. Remember sandwich overcaller may have entered somewhat light.
+- After West's **takeout Double** and opener Pass, East should ordinarily choose an economical suit from the three unbid suits, sometimes at level three. After opener instead bids, East has a free competitive decision and may Pass. Share takeout-choice calculations with other families after supplying the correct unbid suits and actual doubled-contract state.
+- Responder after `1H–Pass–2H–2S–Pass–Pass–?` may Pass or compete to `3H` with sufficient longer fit, shortage and playing strength; **no automatic rise** merely because an eight-card fit is known. If opener bids competitive `3H` and East Passes, responder's Pass is usually an ordinary signoff, **not** a refusal of game invitation. If East raises to `3S`, responder's `4H` is not automatic; apply exceptional clear qualification or a judgment boundary.
+- West may Pass East's nonforcing competitive raise or economical takeout choice. Further sacrifice/penalty/competitive decisions generally require judgment, not invented precision.
+
+**Responder reopening Double (user consistency preference):** Treat `1H–Pass–2H–2S–Pass–Pass–Double` consistently **in coverage policy** with the corresponding A/C reopenings: if our deeper shared review establishes an ordinary, useful, teachable reopening Double and its follow-up, evaluate that treatment here; **if we omit/punt the earlier family**, likewise omit this one with a suitable boundary. Do **not** make Family D an independent specialized exception. Still examine actual meaning before sharing a predicate: after an established raise it may be cooperative-penalty, not necessarily the same takeout meaning as after a one-level new suit or the potential penalty orientation after 1NT. Consistency of whether to model the action is **not permission to conflate distinct meanings**.
+
+**Implementation reuse/hazards:** Existing simple-raise, competitive `3M`, fit/shortage, takeout, Pass, NT-stopper and explanation evidence are reusable when semantics match. `auction.ts` currently classifies physical fourth-seat direct *advancer* actions at the same index as Family D's **initial sandwich overcall**; never interpret that intervention as a direct advance. Explicit stage and physical context protection is required to avoid uncontested invitation/leakage. Keep standard formatting, explanation audit, DONT independence and focused temporary before/after regression comparisons.
+
 ## Implementation audit and safeguards
 
 - Current entry over `1x – Pass – one-level response` and next opener/advancer turns were unmodeled. Stage detection is **physical-auction dependent**: direct-seat helpers may assume an overcall at `opening.index + 1` or responder Pass. Do not quietly apply them to the fourth-position sandwich intervention.
@@ -157,7 +186,7 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 ## Next analysis and decisions
 
-1. Complete **Families D–E** with the same authority-based, end-to-end bidding review as Family A; revisit Family A where a shared meaning or simplification becomes clearer.
+1. Complete **Family E** with the same authority-based, end-to-end bidding review as Family A; revisit Family A where a shared meaning or simplification becomes clearer.
 2. Separate clearly **agreed**, **recommended but not approved**, **requires another partnership agreement**, and **deliberately omitted** treatments. Resolve useful Pass, Double/NT shape, forcing and ranked alternatives, especially responder's reopening Double, Family B's forcing obligations, and Family C's takeout Double shape/advances.
 3. After cross-family review, propose the smallest coherent rule inventory, limited stage/context changes, implementation batches, representative practice auctions, and final judgments for user approval. **No executable code changes until that approval.**
 4. Move finalized bidding meanings and scope into `docs/spec.md` as they become implemented, leaving this file only as the active sandwich work plan.
