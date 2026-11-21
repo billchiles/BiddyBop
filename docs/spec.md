@@ -793,7 +793,7 @@ The economical independent new-suit advance after a natural 2X overcall is a
 nonforcing offer to play, requiring 7+ actual HCP, a six-card-or-longer new suit,
 at most one card in the overcalled suit, Klinger's suit-quality score of at least
 10, and the existing preemptive honor-quality test. The quality score is suit
-length plus A/K/Q, with J/10 counted only with supporting higher honors. These
+length plus A/K/Q; J counts with A/K/Q present, and 10 counts with A/K/Q or J. These
 Pass, raise and new-suit advance treatments are also selected after responder's
 negative Double or an economical natural two-level suit response when legal; no
 general advancer Double or Redouble is supplied. When responder interferes
