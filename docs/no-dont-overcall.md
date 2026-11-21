@@ -310,6 +310,54 @@ The opening 1NT responder/opener continuation analysis has now been reviewed and
 
 **Relationship to DONT-off work:** This gap occurs over a **suit opening**, regardless of DONT being on or off; keep its future rules independent of the DONT setting. Preserve this workstream here to avoid losing it during chat resets, then move it into a dedicated plan or `docs/spec.md` when the sandwich review begins. **The DONT-off implementation plan is recorded above; sandwich-seat implementation remains deferred.**
 
+#### Sandwich-seat terminology and A–E analysis handoff — 20 Nov 2026
+
+**Status:** Analysis decisions recorded; no executable bidding rules, source-code changes, new practice deals, or implementation batches are approved yet. This handoff supplements the original deal and five-part mandate above. The DONT-on/off implementation is complete; sandwich bidding is a separate suit-opening workstream and must not depend on `BiddingSystem.dont`.
+
+**Precise roles and physical positions**
+
+- Preserve existing `overcaller` and `advancer` names for the **direct-overcall** family: the opponent who acts immediately over opener's bid and that opponent's partner. Do not silently broaden these role names to the sandwich family.
+- Use `sandwichOvercaller` for the opponent who intervenes **after** the sequence `one-level suit opening – Pass – responder action`, and `sandwichAdvancer` for that bidder's partner. These roles are not the opening partnership's opener or responder. In the motivating North-East-South-West sequence, West is the sandwich overcaller, North remains opener, South remains responder, and East (who initially passed directly over North's opening) is sandwich advancer.
+- Keep `balancing` separate: after `1x – Pass – Pass – ?`, the fourth-position opponent is balancing, *not* sandwich overcalling. Physical "fourth seat" is not a permanent bidding role.
+- In `auction.ts` where current local variables `overcaller` and `advancer` identify positions even when no overcall occurred, prefer the neutral positional names **`seatAfterOpener`** and **`seatAfterResponder`**. Shorter `afterOpener`/`afterResponder` are acceptable if type information and local code make the meaning clearer. Do not introduce `directSeat`, `fourthSeat`, `directOvercaller`, or `directAdvancer` as routine replacements. Limit renames to locations that actually need clarity, not repository-wide churn.
+- The sandwich advancer necessarily passed **immediately over this opening**, but neither partnership should be presumed to have passed or not passed *before* the opening. Previously passed sandwich-bidder exceptions are a lower-priority question, not the basis for a second 1NT treatment now.
+
+**Provisional stage/auction architecture, subject to full call-site audit**
+
+- Favor the distinct stage labels `sandwichOvercalling`, `sandwichAdvancing`, and `sandwichOvercallerRebid`. Opener and responder retain `openerRebid`/`responderRebid`, with explicit sandwich-interference auction matching. Before deciding exact TypeScript union and routing, trace stage-dependent evaluator behavior, rule activation, candidate suppressors/ranks, forcing checks, evidence/explanations, practice tests, and all callers.
+- Do not simply return `openerRebid` after a sandwich suit intervention: existing context checks might see *no direct-seat interference* and accidentally activate ordinary uncontested opener rules. Preserve existing direct-seat, balancing, and DONT behaviors.
+- Reuse the existing stage-specific rule arrays, `auction.ts` physical-auction helpers, independent evaluator, legal-bid logic, structured evidence, explanation functions, and practice buckets. Prefer adding a parameter or a few checks to a genuinely shared helper over duplicating most of a function. Keep distinct auction-context recognition and rule declarations where the *meaning* actually changes. A direct-overcall or direct-advance helper that assumes the overcall is at `opening.index + 1` or that responder passed **cannot** be reused unchanged for sandwich intervention.
+- Respect code-style ordering (callers before callees, types before dependents, established `////` sections and significant comments) and rule/candidate-order independence. No parallel evaluator, broad cleanup, accidental rule leakage, or new setting-specific practice bucket.
+
+**Agreed direction versus matters still requiring analysis**
+
+- **Agreed direction:** Teach **natural**, not artificial Sandwich NT; leave the special previously-passed sandwich-1NT convention low priority. Sandwich Double is informational/takeout oriented toward the **two naturally unbid suits**, not a penalty Double or the existing direct-seat three-unbid-suit shape. Evaluate the ordinary four-four support case plus suitable stronger/unequal shapes; do not yet lock exact HCP thresholds or a four-three exception.
+- **To decide using authorities and current rule semantics:** Natural one- and two-level sandwich overcall quality, HCP/length ranges, rank and competing Double decisions; strong natural 1NT point range, balanced shape and stoppers in both known opponent suits; strong/awkward-hand treatment; Pass as supported action, marginal alternative, or judgment boundary; and fit, forcing and honor-location evidence.
+- **Separate question:** Opener's `Double` after a sandwich overcall is **not** the sandwich bidder's takeout Double. Compare selected informational opener Doubles with optional partnership-specific support Doubles/Redoubles rather than assigning either meaning automatically.
+- Maintain the true meaning of responder's first action under configured agreements; never treat response bids as interchangeable, infer Pass from no applicable rule, turn an unmodeled action into a rejection, or mechanically raise an unavailable uncontested rebid to a higher level.
+
+**Systematic response-family review before implementation**
+
+The existing practice-deal collection is neither complete nor exhaustive and must **not** set the design scope, rule inventory, or number of implementation batches/deals. Review instructional authorities (including applicable ACBL/SAYC, Larry Cohen, Audrey Grant, Karen Walker and other relevant material) against the current BiddyBop agreements and implementation. Examine **every useful stage** after responder acts, not only the few recorded practice auctions. For each family, analyze sandwich Pass/natural suits/Double/NT, opener's responses, sandwich advancer's first and later actions, responder's next turns, sandwich overcaller's rebids, and additional ordinary competition where useful. Identify common principles, explicit partnership treatments, teaching simplifications, legality, ranges, stoppers, suits/fit, prior passes, forcing obligations, priorities/suppressors, alternatives, evidence and instruction, and honest judgment boundaries.
+
+A. **Natural one-level new-suit response**, e.g. `1C – Pass – 1H – ?`: highest-priority routine family; review the full competitive path, not just West's initial `1S` and North's `2H`.
+
+B. **Natural two-level new-suit response**, e.g. `1S – Pass – 2H – ?`: account for actual Standard versus 2/1 game-forcing meaning, responder suit length, higher level, and subsequent obligations; only legal illustrative calls.
+
+C. **Natural notrump response**, e.g. `1H – Pass – 1NT – ?`: responder has not named a second natural suit. Reassess sandwich Double/NT meanings and the configured forcing versus nonforcing 1NT response.
+
+D. **Responder raises opener**, e.g. `1H – Pass – 2H – ?`: the opening partnership has shown a fit; reconsider sandwich Pass, Double, natural competition and all following actions in that light.
+
+E. **Invitational, game-going, jump-shift, or artificial response**, e.g. `1S – Pass – 2NT – ?`: preserve actual treatment under BiddyBop settings (Jacoby, splinters, jump shifts, etc.); select sensible natural actions or explicit boundaries rather than inventing agreements.
+
+**Deliverables and development process**
+
+1. Complete the current-master code/auction-context audit and an authority-grounded **bidding-treatment matrix for A–E** before committing to a final rule inventory or implementation sequence. Identify meaningful omissions, all follow-up turns, and which existing helpers truly share semantics.
+2. Present exact recommended meanings, competing alternatives, Pass treatment, scope limits, reuse/parameterization, and any unresolved partnership choices **for user discussion and approval**. No executable code until approved.
+3. Only then define small implementation batches and representative complete four-hand practice auctions in existing **stage-appropriate** buckets, not a predetermined fixed count of exercises. Keep the final interesting call rather than ceremonial passes.
+4. Before each executable batch, capture temporary **latest-master** results for affected and neighboring auctions (matched/rejected rule IDs, alternatives, ranks, statuses/boundaries, full instructional text); review after-batch differences. Add selective eligibility, role/stage and explanation-delivery tests; account for sandwich actions at physical call indices different from direct-overcall test assumptions. Preserve old behavior, run build/full tests/CI, and use feature branch, approved concise past-tense commit subject, PR and squash merge.
+5. When the analysis is settled, record agreed bidding decisions and actual remaining limitations in `docs/spec.md`. This planning file is the handoff for the ongoing review, not evidence that the proposed thresholds or rule inventory were already approved.
+
 ## Approved quiet-auction natural overcaller rebids — 17 Nov 2026
 
 The user approved the rebid meanings and closed the exceptional-game question on 17 Nov 2026. They apply **only when DONT is off** and the auction began with an opposing strong `1NT` opening and a natural two-level suit overcall. **The two quiet-auction rebids are fully designed: Pass without an HCP/shape exception.** No bidding-code changes are authorized by this documentation decision.
