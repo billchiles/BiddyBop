@@ -298,6 +298,19 @@ For each family distinguish ordinary bridge principles, optional partnership agr
 
 **Next analysis:** Examine the **minimal natural initial action inventory and exact source helper reuse** across Families A–E (Pass, suit, takeout Double, natural NT, and scope boundaries); separate accepted direction from still-unapproved strengths, shape, call preferences and force-dependent meanings. Do not generate code before approval.
 
+## Code-generation comment safeguards — 21 Nov 2026 (user requirement)
+
+When implementation is approved, **preserve and add focused source comments that explain nonobvious invariants and shared-purpose code** rather than relying on type names or distant documentation:
+
+- Beside the `OvercallRules` array, explicitly explain that it contains **both direct and sandwich overcall rules** (including relevant rebids), differentiated by `auctionContext.stage`; explain the same for `AdvanceRules` if both direct and sandwich advancing declarations live there. Do not rename a longstanding shared array merely because it now has more than one stage.
+- Beside any special **physical Pass inspection**, explain that `getOpeningPartnershipCalls()` is purposefully a **compact, non-Pass list of the opening partnership's calls**. Its count/order only describes that compact shape: it cannot tell whether the opener **actually Passed** at physical +4, or whether a Pass was simply an incidental intermediate call. The distinction matters for responder's reopening or competitive decisions; use the physical auction position and document why. Do not modify the helper's original contract or imply that every Pass is equally important.
+- Explain locally why +3 after `1x–Pass–response` is the **initial sandwich overcall**, not direct advancer's call; document intentional physical-seat variables, stage guards, and direct-specific helpers where their assumptions are not obvious.
+- Comment beside `AuctionContext.interference` and `sandwichInterference` and beside the corresponding matcher gate: exact physical call positions, omitted and `'none'` behavior by stage, `'present'`/`'either'`, concrete kinds, and why old opener/responder rules must not leak into sandwich auctions.
+- Where an existing natural suit/NT/takeout/Pass helper receives a modest new parameter, briefly explain what direct versus sandwich call the parameter describes and why the latest **actual contract** or opponent's **naturally bid** suit matters. Document any deliberately different continuation meaning without inventing a new model.
+- Follow `docs/code-style.md`: maintain meaningful existing comments and `////` grouping; types before dependents, callers before callees, no broad source reorganization, no duplicated large functions or rule-order/candidate-order dependence.
+
+These are documentation/design requirements, **not** authorization to change executable code yet.
+
 ## Next analysis and decisions
 
 1. In a **new chat with a fresh ZIP**, review concrete source-level `getDirectInterference` rename, specific sandwich rule-context kinds and omitted/none/present/either semantics, physical stage/matcher gating, public response meaning, and force tracking; present design decisions for approval before code generation.
