@@ -1,5 +1,5 @@
 /// Natural responder-rebid refinements and selected suit-quality checks.
-import type { AppliesWhenResult, Call, CallEvidence, CallRefinementResult, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
+import type { AppliesWhenResult, Call, CallEvidence, CallRefinementResult, AuctionEvalContext, RuleEvalContext, BiddingSystem, SuitBid } from './bidding-types';
 import { oneNtResponseHcpShift } from './bidding-types';
 import { hasPreemptSuitQuality } from './cards';
 import { cheapestBidInStrainAfter, compareSuitBids, getOpeningCallInfo, getOpeningPartnershipCalls,
@@ -11,7 +11,7 @@ import type { Suit } from './cards';
 //// Other natural responder rebids after one-level suit responses
 
 /// Repeat only the natural suit responder actually showed at the one level.
-export function refineResponderOriginalOneLevelSuit (calls: Call[], context: RuleEvalContext):
+export function refineResponderOriginalOneLevelSuit (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const response = getResponderCall(context.dealer, context.auction);
   const suit = response !== null && /^1[CDHS]$/.test(response) ? response[1] : null;
@@ -104,7 +104,7 @@ export function responderStrongTwoNtThreeNtApplies (_call: Call, context: RuleEv
 
 /// Keep the natural suit and level implied by the preceding auction. In particular, prefer
 /// opener's *first* suit only with a credible fit; a convenient club opening may be three cards.
-export function refineResponderEconomicalSuit (calls: Call[], context: RuleEvalContext,
+export function refineResponderEconomicalSuit (calls: Call[], context: AuctionEvalContext,
     role: 'opening' | 'response' | 'second', level: 2 | 3 | 4): CallRefinementResult {
   const info = getResponderEconomicalSecondSuit(context);
   if (info === null) return { calls: [], telemetryLines: ['Not an economical second-suit auction.'] };
@@ -173,7 +173,7 @@ export function responderEconomicalDecisionApplies (_call: Call, context: RuleEv
 /// This identifies the *meaning* of the first three partnership bids, not a printed example
 /// auction. Reverses, jumps, one-notrump responses and two-level forcing responses need their
 /// own treatments; an economical second suit can show 12-18 points and only four cards in it.
-export function getResponderEconomicalSecondSuit (context: RuleEvalContext):
+export function getResponderEconomicalSecondSuit (context: AuctionEvalContext):
     { opening: Suit; response: Suit; second: Suit; secondLevel: number } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -240,7 +240,7 @@ export function responderStrongSecondSuitGameApplies (call: Call, context: RuleE
 /// Classify the first three partnership bids by their established meanings. A reverse is a
 /// cheapest forcing new suit; a strong jump shift jumps one level beyond an economical new suit.
 /// Neither the printed suit combination nor the opponent's intervening Passes define the family.
-export function getResponderStrongSecondSuit (context: RuleEvalContext):
+export function getResponderStrongSecondSuit (context: AuctionEvalContext):
     { kind: 'reverse' | 'jumpShift'; opening: Suit; response: Suit; second: Suit } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -269,7 +269,7 @@ export function getResponderStrongSecondSuit (context: RuleEvalContext):
 //// Responder after a natural 1NT response to a major opening
 
 /// Name opener's major, not an unbid major, when an invitation is accepted in game.
-export function refineResponderAfterMajorOneNtStrongGame (calls: Call[], context: RuleEvalContext,
+export function refineResponderAfterMajorOneNtStrongGame (calls: Call[], context: AuctionEvalContext,
     kind: 'ntInvite' | 'jumpRepeat'): CallRefinementResult {
   const info = getResponderAfterMajorOneNtStrong(context);
   const wanted = info?.kind === kind ? `4${info.opening}` : null;
@@ -333,7 +333,7 @@ export function responderAfterMajorOneNtStrongApplies (call: Call, context: Rule
 /// Stronger opener rebids after a major-opening 1NT response have different meanings
 /// from an economical two-level suit rebid. Keep this classification separate so
 /// ordinary signoffs and limit raises cannot leak into a reverse or jump shift.
-export function getResponderAfterMajorOneNtStrong (context: RuleEvalContext):
+export function getResponderAfterMajorOneNtStrong (context: AuctionEvalContext):
     { opening: 'H' | 'S'; kind: 'reverse' | 'ntInvite' | 'jumpRepeat' | 'jumpShift' } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -353,7 +353,7 @@ export function getResponderAfterMajorOneNtStrong (context: RuleEvalContext):
 }
 
 /// Select the suit and level from opener's real auction, not a hardcoded major.
-export function refineResponderAfterMajorOneNt (calls: Call[], context: RuleEvalContext,
+export function refineResponderAfterMajorOneNt (calls: Call[], context: AuctionEvalContext,
     choice: 'twoMajor' | 'threeMajor' | 'ownMinor'): CallRefinementResult {
   const info = getResponderAfterMajorOneNt(context);
   if (info === null) return { calls: [], telemetryLines: ['Not a natural 1NT-major continuation.'] };
@@ -436,7 +436,7 @@ export function responderAfterMajorOneNtApplies (call: Call, context: RuleEvalCo
 /// A 1NT response can be forcing, nonforcing, or a three-card limit-raise route.
 /// Classify opener's ordinary two-level rebid without claiming a manufactured minor
 /// necessarily contains four cards. Reverses, jump rebids, and strong 2NT are separate.
-export function getResponderAfterMajorOneNt (context: RuleEvalContext):
+export function getResponderAfterMajorOneNt (context: AuctionEvalContext):
     { opening: Suit; rebid: Suit; kind: 'repeat' | 'second' } | null {
   if (context.stage !== 'responderRebid') return null;
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -496,7 +496,7 @@ export function responderAfterMinorOneNtApplies (_call: Call, context: RuleEvalC
 
 /// The response denied a four-card major and was nonforcing. Distinguish the natural
 /// minimum descriptions and invitations from reverse/jump-shift forcing obligations.
-export function getResponderAfterMinorOneNt (context: RuleEvalContext):
+export function getResponderAfterMinorOneNt (context: AuctionEvalContext):
     { opening: 'C' | 'D'; kind: 'repeat' | 'second' | 'jumpRepeat' | 'ntInvite' |
                            'gameNt' | 'gameMinor' } | null {
   if (context.stage !== 'responderRebid') return null;
@@ -545,7 +545,7 @@ export function responderAfterMinorJumpRepeatApplies (_call: Call, context: Rule
 /// Recognize exactly the uncontested 1m–1M–3m invitation.  Physical opponent Passes
 /// matter: a superficially similar competitive auction has different meanings.  Passes
 /// before the opening (including a non-dealer opener) are harmless.
-export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
+export function getResponderAfterMinorJumpRepeat (context: AuctionEvalContext):
     { opening: 'C' | 'D'; response: 'H' | 'S' } | null {
   if (context.stage !== 'responderRebid') return null;
   const opening = getOpeningCallInfo(context.dealer, context.auction);
@@ -566,7 +566,7 @@ export function getResponderAfterMinorJumpRepeat (context: RuleEvalContext):
 /// Only the suit known from the auction may be chosen. A direct 4M may use two-card
 /// support when opener has repeated a six-card major; a slower 3M shows three-card
 /// support and extra strength, preserving bidding space for possible slam interest.
-export function refineResponderTwoOverOneSuit (calls: Call[], context: RuleEvalContext,
+export function refineResponderTwoOverOneSuit (calls: Call[], context: AuctionEvalContext,
     choice: 'openingGame' | 'openingSlowRaise' | 'secondMajorGame' | 'repeatResponse'):
     CallRefinementResult {
   const info = getResponderTwoOverOne(context);
@@ -660,7 +660,7 @@ export function responderTwoOverOneApplies (call: Call, context: RuleEvalContext
 /// Only natural games in a previously shown partnership suit (or 3NT) complete this
 /// 2/1 obligation here. A jump to game in an unbid suit could be artificial, and 4NT
 /// can be ace-asking; neither is treated as a routine Pass without further agreements.
-export function responderTwoOverOneReachedGame (context: RuleEvalContext): boolean {
+export function responderTwoOverOneReachedGame (context: AuctionEvalContext): boolean {
   const info = getResponderTwoOverOne(context);
   if (info === null) return false;
   return info.rebid === '3NT' ||
@@ -673,7 +673,7 @@ export function responderTwoOverOneReachedGame (context: RuleEvalContext): boole
 /// Identify the original game force by the first three partnership bids, not by the
 /// particular suit letters or the opponents' intervening Passes. The original minor
 /// might have been a three-card suit on the separate game-forcing major-support route.
-export function getResponderTwoOverOne (context: RuleEvalContext):
+export function getResponderTwoOverOne (context: AuctionEvalContext):
     { opening: Suit; response: Suit; rebid: string;
       kind: 'repeatOpening' | 'raiseResponse' | 'secondSuit' | 'twoNt' | 'other';
       second: Suit | null } | null {
@@ -701,7 +701,7 @@ export function getResponderTwoOverOne (context: RuleEvalContext):
 //// Standard two-level new-suit responder continuations
 
 /// The bid chosen must follow from opener's actual rebid, not merely the opening suit.
-export function refineResponderStandardTwoLevel (calls: Call[], context: RuleEvalContext,
+export function refineResponderStandardTwoLevel (calls: Call[], context: AuctionEvalContext,
     choice: 'repeatResponse' | 'majorGame'): CallRefinementResult {
   const info = getResponderStandardTwoLevel(context);
   if (info === null) return { calls: [], telemetryLines: ['Not a Standard two-level new-suit auction.'] };
@@ -751,7 +751,7 @@ export function responderStandardTwoLevelApplies (_call: Call, context: RuleEval
 /// The first two partnership bids establish a one-round force. Only ordinary natural
 /// Standard responses qualify; the same printed auction under 2/1 is game forcing.
 /// An opener repeat at the two level may be a restricted five-card major fallback.
-export function getResponderStandardTwoLevel (context: RuleEvalContext):
+export function getResponderStandardTwoLevel (context: AuctionEvalContext):
     { opening: Suit; response: Suit; rebid: string;
       kind: 'repeat' | 'raise' | 'minorRepeat' | 'minimumNt' | 'gameNt' | 'other' } | null {
   if (context.stage !== 'responderRebid') return null;
@@ -989,7 +989,7 @@ function hasGameTrySuitHelp (context: RuleEvalContext, suit: Suit): boolean {
 /// Read the first three partnership calls only when all three intervening opponents Passed.
 /// This prevents competitive auctions from inheriting uncontested game-try or convention meanings.
 /// Also used by later splinter, jump-shift, strong-2C, and major-support continuations.
-function getUncontestedThreeCallContinuation (context: RuleEvalContext):
+function getUncontestedThreeCallContinuation (context: AuctionEvalContext):
     { opening: Call; response: Call; rebid: Call } | null {
   if (context.stage !== 'responderRebid') return null;
   const opening = getOpeningCallInfo(context.dealer, context.auction);
@@ -1034,7 +1034,7 @@ export function responderOpenerSplinterMajorGameApplies (call: Call, context: Ru
 
 /// A splinter in support of responder's *major* always returns to that major for
 /// ordinary game placement; do not bid opener's short side suit as a natural contract.
-export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: RuleEvalContext):
+export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const info = getResponderAfterOpenerSplinter(context);
   const game = info !== null && (info.agreedSuit === 'H' || info.agreedSuit === 'S')
@@ -1051,7 +1051,7 @@ export function refineResponderOpenerSplinterMajorGame (calls: Call[], context: 
 /// In both cases the opening bidder promises four-card support for responder's new suit
 /// (five-card trump support after the simple raise).  This helper recognizes the actual
 /// auction, not the student's strength or any unannounced shortness in their hand.
-export function getResponderAfterOpenerSplinter (context: RuleEvalContext):
+export function getResponderAfterOpenerSplinter (context: AuctionEvalContext):
     { agreedSuit: Suit; shortSuit: Suit; responseKind: 'newSuit' | 'simpleMajorRaise' } | null {
   const seq = getUncontestedThreeCallContinuation(context);
   if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
@@ -1131,7 +1131,7 @@ export function responderAfterStrongJumpShiftGameApplies (call: Call, context: R
 /// this forcing response: an economical raise, repeat, second suit, or notrump rebid.
 /// All intervening opponent calls must have been Pass.  The agreement setting is
 /// checked by the rules that use this helper.
-export function getResponderAfterStrongJumpShift (context: RuleEvalContext):
+export function getResponderAfterStrongJumpShift (context: AuctionEvalContext):
     { opening: Suit; response: Suit; rebid: Call; kind: 'raise' | 'repeat' | 'secondSuit' | 'notrump' } | null {
   const seq = getUncontestedThreeCallContinuation(context);
   if (seq === null || ! /^1[CDHS]$/.test(seq.opening)) return null;
@@ -1198,7 +1198,7 @@ export function responderStrongTwoCDecisionApplies (_call: Call, context: RuleEv
   } } };
 }
 
-export function refineResponderStrongTwoCMajorGame (calls: Call[], context: RuleEvalContext):
+export function refineResponderStrongTwoCMajorGame (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const info = getResponderStrongTwoC(context);
   const suit = info !== null && (info.response === '2H' || info.response === '2S')
@@ -1208,7 +1208,7 @@ export function refineResponderStrongTwoCMajorGame (calls: Call[], context: Rule
       `Keep four of the positive ${suit} major.`] };
 }
 
-export function getResponderStrongTwoC (context: RuleEvalContext):
+export function getResponderStrongTwoC (context: AuctionEvalContext):
     { response: Call; rebid: Call; positive: boolean } | null {
   const seq = getUncontestedThreeCallContinuation(context);
   if (seq === null || seq.opening !== '2C' ||
@@ -1241,7 +1241,7 @@ export function responderMajorSupportConventionApplies (call: Call, context: Rul
   } } };
 }
 
-export function refineResponderSupportMajorGame (calls: Call[], context: RuleEvalContext,
+export function refineResponderSupportMajorGame (calls: Call[], context: AuctionEvalContext,
     system: BiddingSystem): CallRefinementResult {
   const info = getResponderMajorSupportConvention(context, system);
   return { calls: info === null ? [] : calls.filter((call) => call === `4${info.major}`),
@@ -1249,7 +1249,7 @@ export function refineResponderSupportMajorGame (calls: Call[], context: RuleEva
       `Only game in the agreed ${info.major} major is considered.`] };
 }
 
-export function getResponderMajorSupportConvention (context: RuleEvalContext,
+export function getResponderMajorSupportConvention (context: AuctionEvalContext,
     system: BiddingSystem):
     { kind: 'jacoby2NT' | 'splinter'; major: Suit; rebid: Call } | null {
   const seq = getUncontestedThreeCallContinuation(context);

@@ -2,7 +2,7 @@
 
 import {
   type AppliesWhenResult, type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult,
-  type RuleEvalContext, type NaturalSuitRebidTreatment
+  type AuctionEvalContext, type RuleEvalContext, type NaturalSuitRebidTreatment
 } from './bidding-types';
 import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, isCallAvailableInAuction,
@@ -616,7 +616,7 @@ export function naturalSuitOvercallerRebidBoundaryApplies (
     `No ${kind} boundary in this natural suit-overcall auction.`] };
 }
 
-function getSuitOvercallerAdvance (context: RuleEvalContext): SuitOvercallerAdvance | null {
+function getSuitOvercallerAdvance (context: AuctionEvalContext): SuitOvercallerAdvance | null {
   const info = getOpeningCallInfo(context.dealer, context.auction);
   if (context.stage !== 'overcallerRebid' || info === null ||
       context.auction.length !== info.index + 5 ||
@@ -889,7 +889,7 @@ export function contestedSuitOvercallerBoundaryApplies (
     'Not a selected competitive overcaller judgment boundary.'] };
 }
 
-function getContestedSuitAdvance (context: RuleEvalContext): ContestedSuitAdvance | null {
+function getContestedSuitAdvance (context: AuctionEvalContext): ContestedSuitAdvance | null {
   const info = getOpeningCallInfo(context.dealer, context.auction);
   if (context.stage !== 'overcallerRebid' || info === null ||
       context.auction.length !== info.index + 5) return null;
@@ -1041,7 +1041,7 @@ export function refineNaturalOneNtOvercallStayman (calls: Call[], context: RuleE
 }
 
 /// Transfers are compulsory regardless of the overcaller's strength; superaccepts are not modeled.
-export function refineNaturalOneNtOvercallJacoby (calls: Call[], context: RuleEvalContext):
+export function refineNaturalOneNtOvercallJacoby (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const advance = getNaturalOneNtOvercallAdvance(context);
   const wanted: Call | null = advance === '2D' ? '2H' : advance === '2H' ? '2S' : null;
@@ -1049,7 +1049,7 @@ export function refineNaturalOneNtOvercallJacoby (calls: Call[], context: RuleEv
            telemetryLines: [] };
 }
 
-export function refineNaturalOneNtOvercallTexas (calls: Call[], context: RuleEvalContext):
+export function refineNaturalOneNtOvercallTexas (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const advance = getNaturalOneNtOvercallAdvance(context);
   const wanted: Call | null = advance === '4D' ? '4H' : advance === '4H' ? '4S' : null;
@@ -1139,7 +1139,7 @@ export function naturalOneNtOvercallerSlamBoundaryApplies (
     'No unsupported ace inquiry or forcing 5NT response in this auction.'] };
 }
 /// Return advancer's first call after the uncontested natural 1NT overcall.
-function getNaturalOneNtOvercallAdvance (context: RuleEvalContext): Call | null {
+function getNaturalOneNtOvercallAdvance (context: AuctionEvalContext): Call | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   const bid = opening === null ? null : parseSuitBid(opening.call);
   if (context.stage !== 'overcallerRebid' || opening === null || bid === null ||
@@ -1172,7 +1172,7 @@ export function refineWeakTwoTwoNtStaymanReply (calls: Call[], context: RuleEval
 }
 
 /// Complete the basic 3D/3H Jacoby transfer after a natural 2NT overcall of a weak two.
-export function refineWeakTwoTwoNtJacobyCompletion (calls: Call[], context: RuleEvalContext):
+export function refineWeakTwoTwoNtJacobyCompletion (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const response = getWeakTwoTwoNtConventionCall(context);
   const wanted: Call | null = response === '3D' ? '3H' : response === '3H' ? '3S' : null;
@@ -1181,7 +1181,7 @@ export function refineWeakTwoTwoNtJacobyCompletion (calls: Call[], context: Rule
 }
 
 /// Complete the basic 4D/4H Texas transfer after a natural 2NT overcall of a weak two.
-export function refineWeakTwoTwoNtTexasCompletion (calls: Call[], context: RuleEvalContext):
+export function refineWeakTwoTwoNtTexasCompletion (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const response = getWeakTwoTwoNtConventionCall(context);
   const wanted: Call | null = response === '4D' ? '4H' : response === '4H' ? '4S' : null;
@@ -1206,7 +1206,7 @@ export function weakTwoTwoNtNaturalSignoffApplies (
 
 /// getWeakTwoTwoNtConventionCall identifies advancer's call after partner's natural 2NT
 /// overcall of a weak two, provided responder and opener both pass as expected.
-function getWeakTwoTwoNtConventionCall (context: RuleEvalContext): Call | null {
+function getWeakTwoTwoNtConventionCall (context: AuctionEvalContext): Call | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   if (context.stage !== 'overcallerRebid' || opening === null ||
       ! ['2D', '2H', '2S'].includes(opening.call) ||

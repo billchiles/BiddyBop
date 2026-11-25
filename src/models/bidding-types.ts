@@ -367,15 +367,18 @@ export interface CallRefinementResult {
   callEvidence?: CallEvidence;
 }
 
-/// RuleEvalContext contains model-derived auction/hand state available to rule functions.
-/// React supplies the board and full auction; the bidding model derives seat, stage, and hand.
-export interface RuleEvalContext {
+/// AuctionEvalContext contains model-derived information knowable to everyone at the table.
+export interface AuctionEvalContext {
   dealer: Seat;
   seat: Seat;
   // Null when this physical turn has no modeled bidding-rule stage.  This alone does not
   // indicate that the bridge auction or recorded practice sequence has ended.
   stage: BidStage | null;
   auction: Call[];
+}
+
+/// RuleEvalContext adds the acting bidder's private hand information for rule evaluation.
+export interface RuleEvalContext extends AuctionEvalContext {
   hand: Hand;
   handFacts: HandFacts;
 }

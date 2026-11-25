@@ -3,7 +3,7 @@
 import {
   STRAIN_ORDER, type AdvancerCallKind, type AppliesWhenResult, type BiddingSystem, type Call,
   type CallEvidence,
-  type CallRefinementResult, type RuleEvalContext, type SuitBid
+  type CallRefinementResult, type AuctionEvalContext, type RuleEvalContext, type SuitBid
 } from './bidding-types';
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
 import {
@@ -25,7 +25,7 @@ import { getNegativeDoubleImpliedSuits, getOpenerOpeningBid, getResponderBid,
 
 /// refineNtStaymanReply selects the reply one level above a natural 1NT or 2NT opening.
 /// Separate declarative rules decide whether opener has no four-card major, hearts, or spades.
-export function refineNtStaymanReply (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+export function refineNtStaymanReply (calls: Call[], context: AuctionEvalContext): CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
   if (opening === null || response === null || opening.strain !== 'NT' ||
@@ -41,7 +41,7 @@ export function refineNtStaymanReply (calls: Call[], context: RuleEvalContext): 
 }
 
 /// Normal Jacoby completion is compulsory; this first treatment does not model superaccepts.
-export function refineNtJacobyCompletion (calls: Call[], context: RuleEvalContext):
+export function refineNtJacobyCompletion (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -60,7 +60,7 @@ export function refineNtJacobyCompletion (calls: Call[], context: RuleEvalContex
 }
 
 /// Texas over either natural notrump opening always completes at the four level.
-export function refineNtTexasCompletion (calls: Call[], context: RuleEvalContext):
+export function refineNtTexasCompletion (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -79,7 +79,7 @@ export function refineNtTexasCompletion (calls: Call[], context: RuleEvalContext
 
 /// refineOpenerNtResponderMajorToGame keeps four of responder's natural three-level major
 /// after a 1NT or 2NT opening.
-export function refineOpenerNtResponderMajorToGame (calls: Call[], context: RuleEvalContext):
+export function refineOpenerNtResponderMajorToGame (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -648,7 +648,7 @@ function buildOpenerConventionalRebidFacts (
 /// After 1C there is no lower-ranking suit; after 1D this resolves to 2C.  Higher-ranking
 /// two-level calls are reverses and are deliberately left for the separate reverse rule.
 ///
-export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context: RuleEvalContext):
+export function refineOpenerLowerRankingSecondSuitRebid (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   if (opening === null || opening.strain === 'NT') {
@@ -744,7 +744,7 @@ export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEval
 /// opener's first suit to give simple preference.  The rule's appliesWhen separately enforces the
 /// strength promised by the configured treatment.
 ///
-export function refineOpenerReverseRebid (calls: Call[], context: RuleEvalContext):
+export function refineOpenerReverseRebid (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -814,7 +814,7 @@ export function refineOpenerFiveCardMajorFallback (calls: Call[], context: RuleE
 /// not reverses.  Unlike a rank-only test, this correctly keeps 1C-1H-1S while rejecting
 /// 1C-1H-2D, and it can also keep a lower-ranking two-level suit such as 1D-1H-2C.
 ///
-export function refineOpenerNonReverseNewSuitRebid (calls: Call[], context: RuleEvalContext):
+export function refineOpenerNonReverseNewSuitRebid (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -840,7 +840,7 @@ export function refineOpenerNonReverseNewSuitRebid (calls: Call[], context: Rule
 /// corresponding non-jump bid is not already a reverse.  For example 1C-1H-2S is a natural
 /// maximum jump shift, while 1C-1H-3D is left to partnership agreement because 2D is a reverse.
 ///
-export function refineOpenerNaturalJumpShiftRebid (calls: Call[], context: RuleEvalContext):
+export function refineOpenerNaturalJumpShiftRebid (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -867,7 +867,7 @@ export function refineOpenerNaturalJumpShiftRebid (calls: Call[], context: RuleE
   };
 }
 
-export function refineOpenerOpeningSuitToLevel (calls: Call[], context: RuleEvalContext,
+export function refineOpenerOpeningSuitToLevel (calls: Call[], context: AuctionEvalContext,
                                                 targetLevel: number): CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   if (opening === null || opening.strain === 'NT') {
@@ -884,7 +884,7 @@ export function refineOpenerOpeningSuitToLevel (calls: Call[], context: RuleEval
 /// responder's actual call.
 ///
 export function refineOpenerOpeningSuitAtCheapestLevel (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+    calls: Call[], context: AuctionEvalContext): CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
   if (opening === null || response === null || opening.strain === 'NT') {
@@ -902,7 +902,7 @@ export function refineOpenerOpeningSuitAtCheapestLevel (
 /// refineOpenerNotrumpAtCheapestLevel keeps the cheapest legal notrump rebid after responder.
 ///
 export function refineOpenerNotrumpAtCheapestLevel (
-    calls: Call[], context: RuleEvalContext): CallRefinementResult {
+    calls: Call[], context: AuctionEvalContext): CallRefinementResult {
   const response = getResponderBid(context);
   if (response === null) {
     return { calls: [], telemetryLines: ['No responder bid is available for a notrump rebid.'] };
@@ -1053,7 +1053,7 @@ export function refineOpenerFourCardMajorUpTheLine (calls: Call[], context: Rule
 /// rules.
 ///
 export function refineOpenerNewSuitAtCheapestLevel (
-    calls: Call[], context: RuleEvalContext, suitOrder: 'any' | 'lower' | 'higher' = 'any'):
+    calls: Call[], context: AuctionEvalContext, suitOrder: 'any' | 'lower' | 'higher' = 'any'):
     CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -1086,7 +1086,7 @@ export function refineOpenerNewSuitAtCheapestLevel (
 /// cheapest legal call after responder.  This covers strong jump shifts and opener-side splinters.
 ///
 export function refineOpenerNewSuitByExtraLevels (
-    calls: Call[], context: RuleEvalContext, extraLevels: number,
+    calls: Call[], context: AuctionEvalContext, extraLevels: number,
     suitOrder: 'any' | 'lower' | 'higher', label: string): CallRefinementResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
