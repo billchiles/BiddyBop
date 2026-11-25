@@ -8,10 +8,10 @@ import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
 import { ResponderRebidRules } from '../src/models/responder-rebidding-rules';
 import { OvercallRules } from '../src/models/overcalling-rules';
 import { AdvanceRules } from '../src/models/advancing-rules';
-import type { BidRule, Call } from '../src/models/bidding-types';
+import type { BidRule, BidStage, Call } from '../src/models/bidding-types';
 import { defaultBiddingSystem } from '../src/models/bidding-types';
 import { RULE_TEST_DEAL_BUCKETS, type RuleTestDeal } from '../src/models/test-deals-registry';
-import { getBiddingTurnStatus, evaluateUserCall, getApplicableCandidateCalls }
+import { getBiddingTurnStatus, evaluateUserCall, getApplicableCandidateCalls, getRulesForStage }
   from '../src/models/biddingEvaluation';
 import { getSeatForCallIndex } from '../src/models/auction';
 import { makeRuleTestBoard, getHandFacts } from '../src/models/cards';
@@ -58,6 +58,10 @@ function assertionFields(deal: RuleTestDeal) {
   ];
 }
 
+// A shared rule can qualify in one bidding stage without being reached in another.
+const reachedInStage = new Set<string>();
+const applicableBoundaries = new Set<string>();
+const boundariesInStage = new Set<string>();
 const recorded = new Set<string>();
 const alternatives = new Set<string>();
 const considered = new Set<string>();
@@ -103,6 +107,12 @@ for (const bucket of RULE_TEST_DEAL_BUCKETS) {
         for (const rule of result.userCallMatchingRules) recorded.add(rule.id);
         for (const candidate of getApplicableCandidateCalls(result)) {
           if (candidate.call !== call) alternatives.add(candidate.rule.id);
+          if ('stage' in status) reachedInStage.add(`${status.stage}:${candidate.rule.id}`);
+        }
+        for (const rule of result.applicableRules) {
+          if (rule.kind !== 'scopeBoundary') continue;
+          applicableBoundaries.add(rule.id);
+          if ('stage' in status) boundariesInStage.add(`${status.stage}:${rule.id}`);
         }
         for (const item of result.ruleDiagnostics) considered.add(item.rule.id);
       }
@@ -130,6 +140,8 @@ const count = (ids: Set<string>, rules: BidRule[]) =>
 const uniqueCount = (ids: Set<string>, inMap: Map<string, BidRule>) =>
   [...ids].filter((id) => inMap.has(id)).length;
 const number = (value: number) => value.toLocaleString('en-US');
+const coverage = (reachedCount: number, total: number) =>
+  total === 0 ? '—' : `${(100 * reachedCount / total).toFixed(1)}%`;
 const tableRow = (label: string, value: number) => `| ${label} | **${number(value)}** |`;
 const byGroup = groups.map(({ name, rules }) => {
   const working = rules.filter((rule) => rule.kind !== 'scopeBoundary');
@@ -139,10 +151,22 @@ const byGroup = groups.map(({ name, rules }) => {
     `${count(considered, working)} |`;
 });
 const unseen = [...executable.keys()].filter((id) => ! reached.has(id));
-const overcallerRebidUnseen = unseen.filter((id) => id.startsWith('overcaller-rebid-')).length;
-const initialOvercallUnseen = OvercallRules.filter((rule) =>
-  rule.kind !== 'scopeBoundary' && ! rule.id.startsWith('overcaller-rebid-') &&
-  ! reached.has(rule.id)).length;
+const stages: BidStage[] = [
+  'opening', 'responding', 'openerRebid', 'responderRebid',
+  'overcalling', 'balancing', 'advancing', 'overcallerRebid',
+];
+// Use the evaluator's topical arrays and explicit stage constraints. Shared declarations
+// without a stage constraint are counted separately in each stage that uses their array.
+const byStage = stages.map((stage) => {
+  const rules = getRulesForStage(stage).filter((rule) =>
+    rule.auctionContext?.stage === undefined || rule.auctionContext.stage === stage);
+  const ids = [...new Set(rules.filter((rule) => rule.kind !== 'scopeBoundary').map((rule) => rule.id))];
+  const boundaryIds = [...new Set(rules.filter((rule) => rule.kind === 'scopeBoundary').map((rule) => rule.id))];
+  const unreached = ids.filter((id) => ! reachedInStage.has(`${stage}:${id}`)).sort();
+  const reachedCount = ids.length - unreached.length;
+  const boundaryCount = boundaryIds.filter((id) => boundariesInStage.has(`${stage}:${id}`)).length;
+  return { stage, total: ids.length, reachedCount, unreached, boundaryCount, boundaryTotal: boundaryIds.length };
+});
 const output = `# BiddyBop by the Numbers
 
 Regenerate this statistical snapshot with \`npm run stats:bidding\`. The command
@@ -217,6 +241,10 @@ ${[
   tableRow('Not represented by a qualifying call or alternative', unseen.length),
 ].join('\n')}
 
+**Executable rule coverage:** ${coverage(uniqueCount(reached, executable), executable.size)}.
+**Applicable scope-boundary IDs:** ${number(applicableBoundaries.size)} of ${number(boundaries.size)}
+(${coverage(applicableBoundaries.size, boundaries.size)}). Scope boundaries are not qualifying calls.
+
 Unrepresented executable IDs are distinct from the separate scope boundaries.
 A rule considered in diagnostics may have failed an eligibility requirement;
 a rule cited in feedback may only appear in an automatically generated list.
@@ -236,6 +264,20 @@ is **not** a count of qualified bids or explanations actually displayed.
 responding and advancing). The reach columns therefore overlap; their totals
 cannot be added to obtain the distinct-ID counts above.
 
+### By actual bidding stage
+
+| Stage | Executable IDs | Qualified | Coverage | Unreached | Applicable scope boundaries / total |
+|---|---:|---:|---:|---:|---:|
+${byStage.map(({ stage, total, reachedCount, unreached, boundaryCount, boundaryTotal }) =>
+  `| ${stage} | ${total} | ${reachedCount} | ${coverage(reachedCount, total)} | ` +
+  `${unreached.length} | ${boundaryCount} / ${boundaryTotal} |`).join('\n')}
+
+Shared rule IDs count separately in each stage; a response does not establish
+reach as an advance. A scope boundary counts when it remains applicable after
+candidate suppression, not necessarily when selected for display.
+To list the exact unreached executable IDs by stage, run
+\`npm run stats:bidding -- --unreached\`.
+
 ### Interpretation of unreached executable IDs
 
 The ${number(unseen.length)} distinct executable IDs not reached by a qualifying
@@ -249,18 +291,20 @@ A qualifying sibling does not test an unreached rule's own eligibility or
 explanation. The count is useful context, not a coverage target, and does not
 justify adding practice deals solely to increase the percentage.
 
-**Overcalling / overcaller rebids:** Of the collection's unreached
-executable rules, ${number(overcallerRebidUnseen)} concern overcaller rebids and
-${number(initialOvercallUnseen)} concern initial direct overcalls. Many are
-specialized continuations rather than missing basic overcall teaching, but
-each unreached ID remains individually untested by a qualifying call.
 `;
 const destination = resolve('docs/by-the-numbers.md');
 writeFileSync(destination, output, 'utf8');
 console.log(`Updated ${destination}`);
 console.log(`Rules: ${number(executable.size)} distinct executable IDs; ` +
   `${number(reached.size)} qualified as recorded calls or alternatives; ` +
-  `${number(unseen.length)} not reached.`);
+  `${number(unseen.length)} not reached (${coverage(uniqueCount(reached, executable), executable.size)} coverage).`);
+for (const { stage, total, reachedCount, unreached } of byStage) {
+  console.log(`  ${stage}: ${reachedCount}/${total} qualified (${coverage(reachedCount, total)}); ` +
+    `${unreached.length} unreached.`);
+  if (process.argv.includes('--unreached')) {
+    for (const id of unreached) console.log(`    ${id}`);
+  }
+}
 console.log(`Practice: ${number(selections)} selections, ${number(calls)} recorded calls; ` +
   `primary tests: ${number(primaryPositive)} positive, ${number(primaryEliminated)} eliminated, ` +
   `${number(primaryOrder)} ordered, ${number(primaryRecorded)} recorded-call checks.`);
