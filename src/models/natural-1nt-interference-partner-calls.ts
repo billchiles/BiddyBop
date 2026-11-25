@@ -6,7 +6,7 @@
 /// BidRule has no neutral partner-call kind, so these shared declarations use responseBid.
 
 import { oneNtResponseHcpShift, type AppliesWhenResult, type BidRule, type BiddingSystem,
-         type Call, type CallRefinementResult, type RuleEvalContext } from './bidding-types';
+         type Call, type CallRefinementResult, type AuctionEvalContext, type RuleEvalContext } from './bidding-types';
 import { hasTwoOfTopThreeHonors, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getPartnerOneNtSuitInterference, parseSuitBid } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
@@ -115,7 +115,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
 ];
 
 
-function refineNaturalSuitAfterOneNtInterference (calls: Call[], context: RuleEvalContext,
+function refineNaturalSuitAfterOneNtInterference (calls: Call[], context: AuctionEvalContext,
                                                   system: BiddingSystem,
                                                   level: number): CallRefinementResult {
   const info = getPartnerOneNtSuitInterference(context.dealer, context.auction, system);
@@ -230,7 +230,7 @@ function negativeDoubleAfterOneNtInterferenceApplies (_call: Call, context: Rule
 /// fixed DONT agreement it shows both majors. Use selected natural continuations
 /// that respect both opposing suits. More complex defenses (including Double and
 /// cuebids of a shown suit) remain unjudged rather than assigned false meanings.
-function isDontMajorsAfterOneNt (context: RuleEvalContext): boolean {
+function isDontMajorsAfterOneNt (context: AuctionEvalContext): boolean {
   const opening = context.auction.findIndex((call) => call !== 'Pass');
   return opening >= 0 && context.auction[opening] === '1NT' &&
     context.auction.length === opening + 2 && context.auction[opening + 1] === '2H';

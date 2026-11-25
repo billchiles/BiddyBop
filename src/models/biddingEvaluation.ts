@@ -3,7 +3,7 @@
 
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
-         type BiddingSystem, type HandShapeConstraint, type RuleEvalContext,
+         type BiddingSystem, type HandShapeConstraint, type AuctionEvalContext, type RuleEvalContext,
          type CallRefinementResult,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
@@ -438,16 +438,17 @@ export function getUnfulfilledForceAtAuctionEnd (board: Board, auction: Call[],
 ///
 export function makeRuleEvalContext (board: Board, auction: Call[],
                                      system?: BiddingSystem): RuleEvalContext {
-  const seat = getNextSeat(board.dealer, auction);
-  const hand = board.deal[seat];
-  return {
-    dealer: board.dealer,
-    seat,
-    stage: getNextBiddingRuleStage(board.dealer, auction, system),
-    auction,
-    hand,
-    handFacts: getHandFacts(hand),
-  };
+  const context = makeAuctionPublicContext(board.dealer, auction, system);
+  const hand = board.deal[context.seat];
+  return { ...context, hand, handFacts: getHandFacts(hand) };
+}
+
+/// Derive the acting seat and modeled stage from public auction information alone.
+/// This also supports interpreting an earlier call without access to its bidder's hand.
+export function makeAuctionPublicContext (dealer: Seat, auction: Call[],
+                                          system?: BiddingSystem): AuctionEvalContext {
+  return { dealer, seat: getNextSeat(dealer, auction),
+    stage: getNextBiddingRuleStage(dealer, auction, system), auction };
 }
 
 /// getRulesForStage chooses the relevant rule bucket before hand evaluation. A missing stage
@@ -559,19 +560,33 @@ function getRuleCalls (rule: BidRule, context: RuleEvalContext,
 /// second/help suit, and a natural notrump rebid requires a basic stopper in that suit.
 function filterReusedOpenerRebidCalls (rule: BidRule, calls: Call[],
                                        context: RuleEvalContext): Call[] {
-  if (context.stage !== 'openerRebid' ||
-      rule.auctionContext?.openerRebidAfterInterference !== true) {
-    return calls;
-  }
-  const opponentSuits = getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+  const opponentSuits = getReusedOpenerRebidOpponentSuits(rule, context);
   if (opponentSuits.length === 0) {
     return calls;
   }
+  return filterReusedOpenerRebidPublicCalls(calls, opponentSuits).filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid === null || bid.strain !== 'NT' ||
+      opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+  });
+}
+
+/// Identify the opposing natural suits only when ordinary opener-rebid rules are reused.
+function getReusedOpenerRebidOpponentSuits (rule: BidRule, context: AuctionEvalContext): Suit[] {
+  if (context.stage !== 'openerRebid' ||
+      rule.auctionContext?.openerRebidAfterInterference !== true) {
+    return [];
+  }
+  return getOpponentNaturallyBidSuitsForOpenerRebid(context.dealer, context.auction);
+}
+
+/// Natural opener rebids cannot name an opposing natural suit; that would be a cuebid.
+/// Natural NT remains publicly interpretable even when the actual bidder lacks a stopper.
+function filterReusedOpenerRebidPublicCalls (calls: Call[], opponentSuits: Suit[]): Call[] {
+  if (opponentSuits.length === 0) return calls;
   return calls.filter((call) => {
     const bid = parseSuitBid(call);
-    if (bid === null) return true;
-    if (bid.strain !== 'NT' && opponentSuits.includes(bid.strain)) return false;
-    return bid.strain !== 'NT' || opponentSuits.every((suit) => hasBasicSuitStopper(context, suit));
+    return bid === null || bid.strain === 'NT' || !opponentSuits.includes(bid.strain);
   });
 }
 
@@ -1332,7 +1347,7 @@ function testSupportLength (supportLength: PointRange, context: RuleEvalContext)
                         `${supportSuit} support length`);
 }
 
-function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
+function getSupportSuitForStage (context: AuctionEvalContext): Suit | null {
   if (context.stage === 'responding') {
     const opening = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
     if (opening === null) {
@@ -1372,7 +1387,7 @@ function getSupportSuitForStage (context: RuleEvalContext): Suit | null {
 /// Exact auction declarations stay literal, while opener/responder fields provide explicit semantic constraints.
 ///
 function auctionContextMatches (ruleContext: AuctionContext | undefined,
-                               evalContext: RuleEvalContext,
+                               evalContext: AuctionEvalContext,
                                system: BiddingSystem): boolean {
   if (ruleContext === undefined) {
     return true;
@@ -1490,7 +1505,7 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
 /// matchesPartnerNaturalOneNt recognizes the two genuine auctions that use shared 1NT calls.
 /// It requires the opening side's responder to pass after a direct 1NT overcall.
 ///
-function matchesPartnerNaturalOneNt (context: RuleEvalContext): boolean {
+function matchesPartnerNaturalOneNt (context: AuctionEvalContext): boolean {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   if (opening === null) {
     return false;
@@ -1511,7 +1526,7 @@ function matchesPartnerNaturalOneNt (context: RuleEvalContext): boolean {
 
 /// matchesPartnerNaturalTwoNtOverWeakTwo identifies the compact systems-on context after a
 /// natural 2NT overcall of an opposing weak 2D/2H/2S opening and responder's Pass.
-function matchesPartnerNaturalTwoNtOverWeakTwo (context: RuleEvalContext): boolean {
+function matchesPartnerNaturalTwoNtOverWeakTwo (context: AuctionEvalContext): boolean {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   return context.stage === 'advancing' && opening !== null &&
     ['2D', '2H', '2S'].includes(opening.call) &&
@@ -1521,7 +1536,7 @@ function matchesPartnerNaturalTwoNtOverWeakTwo (context: RuleEvalContext): boole
 }
 
 function responderCallMatches (constraint: ResponderCallContext, openingCall: Call,
-                               responseCall: Call, context: RuleEvalContext): boolean {
+                               responseCall: Call, context: AuctionEvalContext): boolean {
   if (! isContractBid(openingCall)) {
     return false;
   }
@@ -1581,7 +1596,7 @@ function responderCallMatches (constraint: ResponderCallContext, openingCall: Ca
 }
 
 function advancerCallMatches (constraint: AdvancerCallContext,
-                              context: RuleEvalContext): boolean {
+                              context: AuctionEvalContext): boolean {
   const kind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
   if (kind === null) return false;
   if (constraint.kind !== undefined) {
@@ -1600,7 +1615,7 @@ function advancerCallMatches (constraint: AdvancerCallContext,
 /// getRuleAuction derives the compact uncontested partnership auction from the authoritative physical auction.
 /// Opponent passes stay in context.auction; an AuctionContext.auction declaration matches this compact sequence literally.
 ///
-function getRuleAuction (context: RuleEvalContext): Call[] {
+function getRuleAuction (context: AuctionEvalContext): Call[] {
   if (context.stage === 'opening') {
     return [];
   }

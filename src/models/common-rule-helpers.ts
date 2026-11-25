@@ -1,6 +1,6 @@
 /// Shared Auction and Valuation Helpers: refiners, applicability checks, and related helpers.
 
-import { type RuleEvalContext } from './bidding-types';
+import { type AuctionEvalContext, type RuleEvalContext } from './bidding-types';
 import { getCardsForSuit, SUITS, type Suit } from './cards';
 import { getOpeningCallInfo, getPartnerOpeningCall, getResponderCall, parseSuitBid, 
          type ParsedSuitBid } from './auction';
@@ -17,7 +17,7 @@ export function getNegativeDoubleImpliedSuits (opening: ParsedSuitBid,
   return unbidMajors.length > 0 ? unbidMajors : unbidSuits;
 }
 
-export function getWeakTwoOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+export function getWeakTwoOpeningBid (context: AuctionEvalContext): ParsedSuitBid | null {
   const opening = getOpenerOpeningBid(context);
   if (opening === null || opening.level !== 2 || opening.strain === 'C' || opening.strain === 'NT') {
     return null;
@@ -25,7 +25,7 @@ export function getWeakTwoOpeningBid (context: RuleEvalContext): ParsedSuitBid |
   return opening;
 }
 
-export function getThreeLevelPreemptOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+export function getThreeLevelPreemptOpeningBid (context: AuctionEvalContext): ParsedSuitBid | null {
   const opening = getOpenerOpeningBid(context);
   if (opening === null || opening.level !== 3 || opening.strain === 'NT') {
     return null;
@@ -33,21 +33,21 @@ export function getThreeLevelPreemptOpeningBid (context: RuleEvalContext): Parse
   return opening;
 }
 
-export function getResponderBid (context: RuleEvalContext): ParsedSuitBid | null {
+export function getResponderBid (context: AuctionEvalContext): ParsedSuitBid | null {
   const call = getResponderCall(context.dealer, context.auction);
   return call === null ? null : parseSuitBid(call);
 }
 
 /// getOpenerOpeningBid parses the auction's opening contract bid for rule refiners.
 ///
-export function getOpenerOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+export function getOpenerOpeningBid (context: AuctionEvalContext): ParsedSuitBid | null {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   return opening === null ? null : parseSuitBid(opening.call);
 }
 
 /// getPartnerOpeningBid parses partner's opening contract bid when a response rule needs it.
 ///
-export function getPartnerOpeningBid (context: RuleEvalContext): ParsedSuitBid | null {
+export function getPartnerOpeningBid (context: AuctionEvalContext): ParsedSuitBid | null {
   const opening = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
   return opening === null ? null : parseSuitBid(opening);
 }

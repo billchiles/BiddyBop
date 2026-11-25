@@ -1,7 +1,7 @@
 /// Responder Bid Functions: refiners, applicability checks, and related helpers.
 
 import {STRAIN_ORDER, type AppliesWhenResult,
-        type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult, type RuleEvalContext, 
+        type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult, type AuctionEvalContext, type RuleEvalContext, 
         type SuitBid} from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, responderPreviouslyPassed,
@@ -19,7 +19,7 @@ import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningB
 /// refineRaisePartnerSuitBy1 returns a simple raise one level above opening in the same suit.  Resolve the
 /// 2H/2S or 2C/2D declaration to the one call matching the actual opening.
 ///
-export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalContext)
+export function refineRaisePartnerSuitBy1 (calls: Call[], context: AuctionEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
   return refineRaiseToLevel(calls, context, opening.level + 1);
@@ -28,7 +28,7 @@ export function refineRaisePartnerSuitBy1 (calls: Call[], context: RuleEvalConte
 /// refineRaisePartnerSuitBy2 chooses a bid two levels above partner's one-level suit opening.  Resolve
 /// the several declared raise calls to the suit the partner actually opened.
 ///
-export function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvalContext)
+export function refineRaisePartnerSuitBy2 (calls: Call[], context: AuctionEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
   return refineRaiseToLevel(calls, context, opening.level + 2);
@@ -37,7 +37,7 @@ export function refineRaisePartnerSuitBy2 (calls: Call[], context: RuleEvalConte
 /// refineRaiseToLevel chooses the call that raises partner's bid suit to targetLevel.  This is the
 /// shared mechanism used by simple, jump, and direct game raises.
 ///
-export function refineRaiseToLevel (calls: Call[], context: RuleEvalContext,
+export function refineRaiseToLevel (calls: Call[], context: AuctionEvalContext,
                              targetLevel: number): CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
   const wantedCall = `${targetLevel}${opening.strain}` as SuitBid;
@@ -210,7 +210,7 @@ export function refineMajorTwoLevelNewSuitByLength (
 /// eligible suits by hand length or up-the-line/down-the-line preference; candidate hand
 /// constraints do that only partially.
 ///
-export function refineToCheapestNewSuitBids (calls: Call[], context: RuleEvalContext)
+export function refineToCheapestNewSuitBids (calls: Call[], context: AuctionEvalContext)
     : CallRefinementResult {
   const opening = getPartnerOpeningBid(context);
   // If the partner opening is unavailable, no new-suit response can be selected.
@@ -456,7 +456,7 @@ export function refineStrongJumpShift (calls: Call[], context: RuleEvalContext):
 /// refineNewSuitByExtraLevels chooses new-suit calls that are extraLevels above the cheapest legal
 /// bid in that suit.  A value of one represents a jump shift; two represents a double-jump
 /// splinter.
-export function refineNewSuitByExtraLevels (calls: Call[], context: RuleEvalContext,
+export function refineNewSuitByExtraLevels (calls: Call[], context: AuctionEvalContext,
                                             extraLevels: number, label: string) :
       CallRefinementResult {
   const opening = getPartnerOpeningBid(context)!;
@@ -584,29 +584,26 @@ export function majorDirectThreeNtApplies (_call: Call, context: RuleEvalContext
 ///
 export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContext,
                                              minHcp: number, label: string): AppliesWhenResult {
-  const candidate = parseSuitBid(call);
-  const opening = getPartnerOpeningBid(context);
-  if (candidate === null || opening === null || candidate.strain === 'NT' || opening.strain === 'NT') {
+  const requirements = getMajorTwoLevelNewSuitRequirements(call, context, label);
+  if (requirements === null) {
     return { success: false, telemetryLines: [`FAIL: ${label} two-level new-suit rule needs suit bids.`] };
   }
-  const supportLength = context.handFacts.lengths[opening.strain as 'C' | 'D' | 'H' | 'S'];
-  const candidateLength = context.handFacts.lengths[candidate.strain as 'C' | 'D' | 'H' | 'S'];
-  const minSuitLength = candidate.strain === 'H' && opening.strain === 'S' ? 5 : 4;
+  const { openingSuit, candidateSuit, minSuitLength, unpassed, needsUnpassed } = requirements;
+  const supportLength = context.handFacts.lengths[openingSuit];
+  const candidateLength = context.handFacts.lengths[candidateSuit];
   const hcp = context.handFacts.hcp;
-  const unpassed = !responderPreviouslyPassed(context.dealer, context.auction);
-  const needsUnpassed = label === '2/1';
   const success = hcp >= minHcp && supportLength <= 2 &&
     candidateLength >= minSuitLength && (!needsUnpassed || unpassed);
   return {
     success,
     telemetryLines: [
       `${success ? 'APPLIES' : 'FAIL'}: ${label} two-level new-suit response requires ${minHcp}+ HCP, ` +
-      `no major support, and ${minSuitLength}+ cards in ${candidate.strain}.`,
+      `no major support, and ${minSuitLength}+ cards in ${candidateSuit}.`,
       ...(needsUnpassed && !unpassed ? ['FAIL: a previously passed responder cannot establish a 2/1 game force.'] : []),
     ],
     callEvidence: { requirements: [
       { kind: 'hcp', actual: hcp, min: minHcp, passed: hcp >= minHcp },
-      { kind: 'partnerSupport', suit: opening.strain as Suit, actual: supportLength, max: 2,
+      { kind: 'partnerSupport', suit: openingSuit, actual: supportLength, max: 2,
         passed: supportLength <= 2 },
       { kind: 'suitLength', actual: candidateLength, min: minSuitLength,
         passed: candidateLength >= minSuitLength },
@@ -614,6 +611,20 @@ export function majorTwoLevelNewSuitApplies (call: Call, context: RuleEvalContex
         required: false, passed: unpassed }] : []),
     ] },
   };
+}
+
+/// Derive the public suit requirements and passed-hand condition; private qualification and
+/// its failure evidence remain the responsibility of majorTwoLevelNewSuitApplies.
+export function getMajorTwoLevelNewSuitRequirements (call: Call, context: AuctionEvalContext,
+                                                     label: string) {
+  const candidate = parseSuitBid(call);
+  const opening = getPartnerOpeningBid(context);
+  if (candidate === null || opening === null || candidate.strain === 'NT' || opening.strain === 'NT') {
+    return null;
+  }
+  return { openingSuit: opening.strain, candidateSuit: candidate.strain,
+    minSuitLength: candidate.strain === 'H' && opening.strain === 'S' ? 5 : 4,
+    unpassed: !responderPreviouslyPassed(context.dealer, context.auction), needsUnpassed: label === '2/1' };
 }
 
 ///
@@ -989,7 +1000,7 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
 /// refineResponderRaiseAfterOvercall selects responder's raise of opener's suit at the
 /// specified level, distinguishing the cheapest available raise from a jump raise.
 ///
-export function refineResponderRaiseAfterOvercall (calls: Call[], context: RuleEvalContext,
+export function refineResponderRaiseAfterOvercall (calls: Call[], context: AuctionEvalContext,
                                           level: number, jump: boolean): CallRefinementResult {
   const auction = getOpenerCallAndOvercallForResponder(context);
   if (auction === null) {
@@ -1009,7 +1020,7 @@ export function refineResponderRaiseAfterOvercall (calls: Call[], context: RuleE
 /// refineResponderCuebidAfterOvercall selects responder's cheapest legal cuebid in
 /// the opponent's overcalled suit (an artificial support bid, not a natural suit bid).
 ///
-export function refineResponderCuebidAfterOvercall (calls: Call[], context: RuleEvalContext): CallRefinementResult {
+export function refineResponderCuebidAfterOvercall (calls: Call[], context: AuctionEvalContext): CallRefinementResult {
   const auction = getOpenerCallAndOvercallForResponder(context);
   const wanted = auction === null ? null :
     cheapestBidInStrainAfter(auction.overcall, auction.overcall.strain);
@@ -1106,7 +1117,7 @@ export function responderNotrumpAfterOvercallApplies (call: Call, context: RuleE
 /// null unless the opening is at the one level and the overcall is the cheapest natural bid
 /// in a different suit. This helper identifies the auction; it does not choose a bid.
 ///
-function getOpenerCallAndOvercallForResponder (context: RuleEvalContext):
+function getOpenerCallAndOvercallForResponder (context: AuctionEvalContext):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   if (openingInfo === null) {
@@ -1207,7 +1218,7 @@ export function responderWeakJumpRaiseAfterInterferenceApplies (_call: Call, con
 /// refineResponderNewSuitAfterNotrumpOvercall measures the cheapest natural new-suit response
 /// from the opposing 1NT contract, not from partner's earlier one-level opening.
 ///
-export function refineResponderNewSuitAfterNotrumpOvercall (calls: Call[], context: RuleEvalContext):
+export function refineResponderNewSuitAfterNotrumpOvercall (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction);
   const parsedOpening = opening === null ? null : parseSuitBid(opening.call);
@@ -1230,7 +1241,7 @@ export function refineResponderNewSuitAfterNotrumpOvercall (calls: Call[], conte
 /// refineResponderPreemptiveMajorGameRaise preserves the ordinary weak four-of-a-major
 /// response except after a four-level jump overcall, where continuations are not modeled.
 ///
-export function refineResponderPreemptiveMajorGameRaise (calls: Call[], context: RuleEvalContext):
+export function refineResponderPreemptiveMajorGameRaise (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   const overcall = openingInfo === null ? null : parseSuitBid(context.auction[openingInfo.index + 1] ?? 'Pass');
@@ -1261,7 +1272,7 @@ export function refineResponderRaiseAfterJumpOvercall (calls: Call[], context: R
 /// refineResponderNewSuitAfterJumpOvercall retains only an economical natural new suit
 /// above the preempt, excluding both opener's strain and the opponent's cuebid strain.
 ///
-export function refineResponderNewSuitAfterJumpOvercall (calls: Call[], context: RuleEvalContext):
+export function refineResponderNewSuitAfterJumpOvercall (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const auction = getJumpOvercallForResponder(context);
   return { calls: auction === null ? [] : calls.filter((call) => {
@@ -1275,7 +1286,7 @@ export function refineResponderNewSuitAfterJumpOvercall (calls: Call[], context:
 /// refineResponderCuebidAfterJumpOvercall restricts the artificial three-level opponent-suit
 /// cuebid to a two-level jump overcall after a major-suit opening.
 ///
-export function refineResponderCuebidAfterJumpOvercall (calls: Call[], context: RuleEvalContext):
+export function refineResponderCuebidAfterJumpOvercall (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const auction = getJumpOvercallForResponder(context);
   if (auction === null || auction.overcall.level !== 2 ||
@@ -1381,7 +1392,7 @@ export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: R
 /// getJumpOvercallForResponder identifies an opposing two- or three-level jump suit
 /// overcall of partner's one-level opening; four-level interference stays unmodeled.
 ///
-function getJumpOvercallForResponder (context: RuleEvalContext):
+function getJumpOvercallForResponder (context: AuctionEvalContext):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
     return null;
