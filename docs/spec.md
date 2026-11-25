@@ -779,6 +779,40 @@ suit are nonforcing; the overcaller can Pass. After responder's selected negativ
 Double or natural-suit action, advancer can also take suitable natural actions,
 but unsupported further competition has an explicit judgment boundary.
 
+With DONT disabled, the selected three-level raise of a natural 2X overcall is
+competitive and nonforcing, not a game invitation. With exactly three trumps it
+requires 7–10 total points with shortage and 6–9 actual HCP; with four or more
+trumps it requires 4–10 total points with shortage and 4–9 actual HCP. Two-card
+support does not qualify. Strong support (three or more trumps and either 11+
+total points with shortage or 10+ HCP) reaches a judgment boundary. A quiet
+13+-HCP misfit without a suitable economical new suit also reaches a boundary;
+a poor-fit 11–12-HCP hand may still Pass. These are selected teaching thresholds,
+not a general law of competitive bidding.
+
+The economical independent new-suit advance after a natural 2X overcall is a
+nonforcing offer to play, requiring 7+ actual HCP, a six-card-or-longer new suit,
+at most one card in the overcalled suit, Klinger's suit-quality score of at least
+10, and the existing preemptive honor-quality test. The quality score is suit
+length plus A/K/Q; J counts with A/K/Q present, and 10 counts with A/K/Q or J. These
+Pass, raise and new-suit advance treatments are also selected after responder's
+negative Double or an economical natural two-level suit response when legal; no
+general advancer Double or Redouble is supplied. When responder interferes
+naturally, the opponent's actual suit restricts available new suits. After a
+nonforcing raise or independent suit advance and the original 1NT opener Passes,
+the overcaller may Pass regardless of HCP or support for advancer's suit. That
+automatic Pass does not extend to opener's renewed competition or to an
+advancer Pass that would leave the overcall doubled.
+
+A negative Double by the original 1NT responder after DONT-off natural 2C/2D
+requires both majors to be at least four cards; after 2H it requires four
+spades, and after 2S four hearts. All require no more than two cards in the
+overcalled natural suit and at least 8 HCP under a 15–17 opening (7 HCP under
+16–18). This shortness constraint applies after a natural overcall of our
+**1NT opening**, not after our natural 1NT overcall of a suit opening or when
+DONT is on. The natural-defense direct Double of an opposing strong 1NT has
+a penalty-oriented possible partnership interpretation, but the app does not
+recommend it from HCP alone or implement general penalty/rescue continuations.
+
 For the opening 1NT partnership, a negative Double promises the unbid major(s)
 and shortness in the opposing natural suit; selected natural two-/three-level
 responses are nonforcing. Opener can show an economical four-card fit, select
