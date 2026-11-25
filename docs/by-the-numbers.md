@@ -66,6 +66,10 @@ also runs separate regression and agreement-compatibility checks.
 | Cited when not qualifying the entered call | **116** |
 | Not represented by a qualifying call or alternative | **109** |
 
+**Executable rule coverage:** 82.8%.
+**Applicable scope-boundary IDs:** 5 of 93
+(5.4%). Scope boundaries are not qualifying calls.
+
 Unrepresented executable IDs are distinct from the separate scope boundaries.
 A rule considered in diagnostics may have failed an eligibility requirement;
 a rule cited in feedback may only appear in an automatically generated list.
@@ -90,6 +94,25 @@ is **not** a count of qualified bids or explanations actually displayed.
 responding and advancing). The reach columns therefore overlap; their totals
 cannot be added to obtain the distinct-ID counts above.
 
+### By actual bidding stage
+
+| Stage | Executable IDs | Qualified | Coverage | Unreached | Applicable scope boundaries / total |
+|---|---:|---:|---:|---:|---:|
+| opening | 13 | 12 | 92.3% | 1 | 0 / 0 |
+| responding | 117 | 107 | 91.5% | 10 | 1 / 3 |
+| openerRebid | 205 | 161 | 78.5% | 44 | 0 / 33 |
+| responderRebid | 95 | 78 | 82.1% | 17 | 0 / 26 |
+| overcalling | 21 | 21 | 100.0% | 0 | 4 / 6 |
+| balancing | 6 | 6 | 100.0% | 0 | 0 / 1 |
+| advancing | 108 | 94 | 87.0% | 14 | 0 / 6 |
+| overcallerRebid | 91 | 56 | 61.5% | 35 | 0 / 19 |
+
+Shared rule IDs count separately in each stage; a response does not establish
+reach as an advance. A scope boundary counts when it remains applicable after
+candidate suppression, not necessarily when selected for display.
+To list the exact unreached executable IDs by stage, run
+`npm run stats:bidding -- --unreached`.
+
 ### Interpretation of unreached executable IDs
 
 The 109 distinct executable IDs not reached by a qualifying
@@ -103,8 +126,3 @@ A qualifying sibling does not test an unreached rule's own eligibility or
 explanation. The count is useful context, not a coverage target, and does not
 justify adding practice deals solely to increase the percentage.
 
-**Overcalling / overcaller rebids:** Of the collection's unreached
-executable rules, 35 concern overcaller rebids and
-0 concern initial direct overcalls. Many are
-specialized continuations rather than missing basic overcall teaching, but
-each unreached ID remains individually untested by a qualifying call.
