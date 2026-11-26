@@ -5,6 +5,8 @@ import {
 } from './bidding-types';
 import {
   guidelineOf17Applies, majorDirectThreeNtApplies, majorTwoLevelNewSuitApplies, minorRaiseApplies,
+  majorTwoLevelNewSuitPublicMeaning, responderNewSuitAfterOvercallPublicMeaning,
+  jumpOvercallNegativeDoublePublicMeaning, preemptNewSuitPublicMeaning,
   minorSupportNewSuitApplies, refineLongMajorSupportLimitRaiseFallback,
   refineMajorSupportNewSuitFirst, refineMajorTwoLevelNewSuitByLength,
   refineNaturalMajorGameOver2Nt, refineNewSuitByExtraLevels, refineOneLevelNewSuitAfterMinor,
@@ -25,7 +27,8 @@ import {
   threeLevelPreemptPassApplies, threeLevelPreemptRaiseApplies, twoNtNaturalMinorForcingApplies,
   weakTwoFourLevelRaiseApplies, weakTwoPassApplies, weakTwoSimpleRaiseApplies
 } from './responding-functions';
-import { getOpeningCallInfo, responderPreviouslyPassed } from './auction';
+import { declaredCallsPublicMeaning } from './common-rule-helpers';
+import { getOpeningCallInfo, responderPreviouslyPassed, isMajorOneNtForcing } from './auction';
 import { NaturalOneNtPartnerCallRules } from './natural-1nt-partner-calls';
 import { NaturalOneNtInterferencePartnerCallRules,
          DontTwoMajorInterferenceResponseRules } from './natural-1nt-interference-partner-calls';
@@ -48,7 +51,8 @@ export const ResponseBidRules: BidRule[] = [
     // Candidate suit length is owned by the refiner because it must compare the actual suit lengths
     // to choose and order the surviving calls.
     callRefinement: refineOneLevelNewSuitAfterMinor, // chooses according to guidance below
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineToCheapestNewSuitBids,
     priority: { rank: 100, note: 'Responder priority with 6+ points.' },
     appliesWhen: { hcp: { min: 6 }, }, // suitLengths: [{ min: 4 }]}, don't need this due to refiner
     meaning: 'New suit at the one level; forcing.',
@@ -66,7 +70,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1D, respond 2C with Standard two-level new-suit values',
     auctionContext: { stage: 'responding', interference: 'none', auction: ['1D'] },
     calls: ['2C'],
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
                  note: 'Standard: 11+ and forcing, but not forcing to game.' },
     appliesWhen: { hcp: { min: 11 }, suitLengths: [{ suit: 'C', min: 5 }] },
@@ -80,7 +84,8 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1D, respond 2C as a 2/1 game force',
     auctionContext: { stage: 'responding', interference: 'none', auction: ['1D'] },
     calls: ['2C'],
-    callCategory: ['gameForcing'],
+    callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => ({ calls: responderPreviouslyPassed(context.dealer, context.auction) ? [] : calls }),
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
                  note: '2/1 treatment: 13+ and game forcing.' },
     appliesWhen: (_call, context): AppliesWhenResult => {
@@ -111,6 +116,7 @@ export const ResponseBidRules: BidRule[] = [
     kind: 'responseBid',
     title: 'After 1C or 1D, respond 1NT with minimum balanced values and no four-card major',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'minor' },
+    callCategory: ['natural'],
     calls: ['1NT'],
     priority: { rank: 60 },
     appliesWhen: { hcp: { min: 6, max: 10 }, shape: { balanced: true, noFourCardMajor: true } },
@@ -124,7 +130,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'After 1C or 1D, respond 2NT with invitational balanced values and no four-card major',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'minor' },
     calls: ['2NT'],
-    callCategory: ['invitational'],
+    callCategory: ['invitational', 'natural'],
     priority: { rank: 65 },
     appliesWhen: { hcp: { min: 11, max: 12 }, shape: { balanced: true, noFourCardMajor: true } },
     meaning: 'Balanced invitational response with no four-card major.',
@@ -151,6 +157,8 @@ export const ResponseBidRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Raise opener minor to two with 6-10 and support',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'minor' },
+    callCategory: ['natural'],
+    deriveCallPublicMeaning: refineRaisePartnerSuitBy1,
     calls: ['2C', '2D'],
     callRefinement: refineRaisePartnerSuitBy1, // need to choose based on actual auction
     priority: { rank: 40 },
@@ -172,7 +180,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'minor' },
     calls: ['3C', '3D'],
     callRefinement: refineRaisePartnerSuitBy2, // chooses the right suit from actual auction
-    callCategory: ['invitational'],
+    callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: refineRaisePartnerSuitBy2,
     priority: { rank: 45 },
     appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult => {
       return minorRaiseApplies(call, context, 11, 12, 'minor limit raise');
@@ -208,6 +217,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 1, 'jump-shift'),
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
@@ -226,6 +236,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3C'],
     callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 1, 'jump-shift'),
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
@@ -314,6 +325,8 @@ export const ResponseBidRules: BidRule[] = [
     kind: 'responseBid',
     title: 'Simple raise with 6-10 and major support',
     auctionContext: { stage: 'responding', openerLevel: 1, openerStrain: 'major' },
+    callCategory: ['natural'],
+    deriveCallPublicMeaning: refineRaisePartnerSuitBy1,
     calls: ['2H', '2S'],
     callRefinement: refineRaisePartnerSuitBy1, // choose opener's suit
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
@@ -329,7 +342,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['3H', '3S'],
     callRefinement: refineRaisePartnerSuitBy2, // chooses opener's suit
-    callCategory: ['invitational'],
+    callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: refineRaisePartnerSuitBy2,
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: 'Invitational jump raise with four-card or longer support; ' +
@@ -345,7 +359,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['3H', '3S'],
     callRefinement: refineLongMajorSupportLimitRaiseFallback,
-    callCategory: ['invitational'],
+    callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: refineRaisePartnerSuitBy2,
     agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise' },
     appliesWhen: { totalPoints: { min: 13, max: 13, valuation: 'shortage' },
                    supportLength: { min: 6 } },
@@ -363,12 +378,11 @@ export const ResponseBidRules: BidRule[] = [
     // one-level new suit is available first; later make the invitational raise.
     kind: 'responseBid',
     title: 'Three-card support, 11-12: bid forcing 1NT then raise',
-    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
+    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major',
+                      majorOneNtForcing: true },
     calls: ['1NT'],
     callRefinement: refineThreeCardLimitRaiseOneNtFallback,
     callCategory: ['forcing'],
-    agreement: { setting: 'majorOneNtResponse', value: 'forcing',
-                 note: 'Forcing 1NT guarantees responder another turn to show the limit raise.' },
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
                    supportLength: { min: 3, max: 3 } },
     guidance: ['After 1H, show four or more spades with 1S before raising hearts later.',
@@ -383,11 +397,10 @@ export const ResponseBidRules: BidRule[] = [
     // suit can start the three-card limit raise.  Opener may occasionally pass a flat minimum.
     kind: 'responseBid',
     title: 'Three-card support, 11-12: use non-forcing 1NT as the fallback',
-    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
+    auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major',
+                      majorOneNtForcing: false },
     calls: ['1NT'],
     callRefinement: refineThreeCardLimitRaiseOneNtFallback,
-    agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
-                 note: 'Semi-forcing fallback: opener may pass a flat minimum.' },
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' },
                    supportLength: { min: 3, max: 3 } },
     guidance: ['After 1H, show four or more spades with 1S before raising hearts later.',
@@ -479,6 +492,7 @@ export const ResponseBidRules: BidRule[] = [
       return refineNewSuitByExtraLevels(calls, context, 2, 'double-jump');
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 2, 'double-jump'),
     agreement: { setting: 'splinters', value: true,
                  note: 'Double-jump new suit: 4+ support plus singleton/void in the bid suit.' },
     appliesWhen: { totalPoints: { min: 13, max: 15, valuation: 'shortage' },
@@ -498,6 +512,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineResponderPreemptiveMajorGameRaise,
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: refineResponderPreemptiveMajorGameRaise,
     appliesWhen: { totalPoints: { max: 9, valuation: 'shortage' }, supportLength: { min: 5 } },
     meaning: 'Non-forcing preemptive raise to game w/ long support and fewer than 10 total points.',
   },
@@ -511,7 +526,7 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Without support, bid a new suit at the one level with 6+',
     auctionContext: { stage: 'responding', interference: 'none', auction: ['1H'], },
     calls: ['1S'],
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
     priority: { rank: 100 },
     appliesWhen: { hcp: { min: 6 }, supportLength: { max: 2 },
                    suitLengths: [{ suit: 'S', min: 4 }] },
@@ -527,7 +542,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
     callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: majorTwoLevelNewSuitPublicMeaning,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard',
                  note: 'Standard: 11+ and forcing, but not forcing to game.' },
     priority: { rank: 90 },
@@ -546,7 +562,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['2C', '2D', '2H', ],
     callRefinement: refineMajorTwoLevelNewSuitByLength, // order natural two-level suit choices
-    callCategory: ['gameForcing'],
+    callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: majorTwoLevelNewSuitPublicMeaning,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
                  note: '2/1 treatment: 13+ and game forcing.' },
     priority: { rank: 90 },
@@ -564,7 +581,8 @@ export const ResponseBidRules: BidRule[] = [
     title: 'Without support, respond 1NT with 6-12',
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context, system) => ({ calls: isMajorOneNtForcing(context.dealer, context.auction, system) ? calls : [] }),
     agreement: { setting: 'majorOneNtResponse', value: 'forcing',
                  note: 'Forcing/semi-forcing 1NT response, commonly paired with 2/1 methods.' },
     appliesWhen: (_call, context) => {
@@ -598,6 +616,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['1NT'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => ({ calls: responderPreviouslyPassed(context.dealer, context.auction) ? calls : [] }),
     appliesWhen: (_call, context) => {
       const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
       const major = opening?.slice(-1) as 'H' | 'S' | undefined;
@@ -628,6 +647,7 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1NT'],
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     agreement: { setting: 'majorOneNtResponse', value: 'nonForcing',
                  note: 'Nonforcing under Standard; semi-forcing under 2/1.' },
     appliesWhen: (_call, context, system) => {
@@ -658,6 +678,7 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: majorDirectThreeNtApplies,
     guidance: ['This is a partnership treatment for very flat game-going values.',
                'With more control-rich values, starting a forcing support route may be preferable.'],
@@ -675,6 +696,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2S', '3C', '3D', '3H'],
     callRefinement: refineWeakJumpShift, // choose longest 6+ jump suit; ties higher-ranking
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 1, 'jump-shift'),
     agreement: { setting: 'jumpShift', value: 'weak',
                  note: 'Modern weak jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
@@ -693,6 +715,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2S', '3C', '3D', '3H'],
     callRefinement: refineStrongJumpShift, // only a good one-suited 5+ hand; not a 5-5 two-suiter
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 1, 'jump-shift'),
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic Standard strong jump-shift treatment.' },
     priority: { rank: 110, note: 'Configured jump-shift treatment outranks the generic response.' },
@@ -765,6 +788,7 @@ export const ResponseBidRules: BidRule[] = [
     agreement: { setting: 'stayman', value: false,
                  note: 'Without Stayman, 3C is available as a natural forcing club response.' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     priority: { rank: 25 },
     appliesWhen: twoNtNaturalMinorForcingApplies,
     meaning: 'Natural 5+ clubs with 10+ HCP and an unbalanced hand; forcing to game.',
@@ -782,6 +806,7 @@ export const ResponseBidRules: BidRule[] = [
     agreement: { setting: 'jacobyTransfers', value: false,
                  note: 'Without Jacoby transfers, 3D is available as a natural forcing diamond response.' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     priority: { rank: 25 },
     appliesWhen: twoNtNaturalMinorForcingApplies,
     meaning: 'Natural 5+ diamonds with 10+ HCP and an unbalanced hand; forcing to game.',
@@ -800,7 +825,8 @@ export const ResponseBidRules: BidRule[] = [
     callRefinement: refineNaturalMajorGameOver2Nt,
     agreement: { setting: 'texasTransfers', value: false,
                  note: 'Without Texas transfers, bid the long major naturally at game.' },
-    callCategory: ['signoff'],
+    callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: { hcp: { min: 4, max: 10 }, suitLengths: [{ suit: 'major', min: 6 }],
                    shape: { noFourCardOtherMajor: true } },
     meaning: 'Natural game signoff with a six-card or longer major.',
@@ -961,7 +987,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3H', '3S'],
     agreement: { setting: 'jacobyTransfers', value: false,
                  note: 'Without Jacoby transfers, a direct 3H or 3S is natural and game forcing.' },
-    callCategory: ['gameForcing'],
+    callCategory: ['gameForcing', 'natural'],
     appliesWhen: { hcp: { min: 4 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural game-forcing major-suit response.',
   },
@@ -994,6 +1020,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2H', '2S', '3C', '3D'],
     callRefinement: refineStrongTwoCPositiveSuitResponse,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     priority: { rank: 20, note: 'Prefer a descriptive positive suit response to the waiting bid.' },
     appliesWhen: { hcp: { min: 8 } },
     meaning: 'Positive natural response showing about 8+ HCP and a good five-card-or-longer suit.',
@@ -1064,6 +1091,7 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerCalls: ['2D', '2H', '2S'] },
     calls: ['2NT'],
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: guidelineOf17Applies, // HCP + cards in opener's suit >= 17 is the rough game-interest test
     meaning: 'Artificial inquiry asking opener to describe minimum/maximum strength and features.',
     guidance: ['The Guideline of 17 (your HCP plus cards in opener’s suit) is a rough trigger for investigating game, not a playing-trick ' +
@@ -1077,6 +1105,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineWeakTwoNewSuitResponse, // good 5+ suit at the cheapest legal level
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: preemptNewSuitPublicMeaning,
     appliesWhen: guidelineOf17Applies, // use the same rough game-interest check as the 2NT inquiry
     meaning: 'Natural new suit, forcing one round, showing a good five-card-or-longer suit.',
     guidance: ['Use only with game interest; the Guideline of 17 (your HCP plus cards in opener’s suit) is a rough guide rather ' +
@@ -1122,6 +1151,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3D', '3H', '3S', '4C', '4D'],
     callRefinement: refineThreeLevelPreemptNewSuitResponse, // cheapest good 5+/6+ suit below game
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: preemptNewSuitPublicMeaning,
     meaning: 'Natural new suit below game, forcing one round and showing game interest.',
     guidance: ['The app checks suit length and quality but does not estimate the playing tricks ' +
                'needed to decide whether the hand truly has game interest.'],
@@ -1167,6 +1197,7 @@ export const ResponseBidRules: BidRule[] = [
                       interference: 'suitOvercall' },
     calls: ['Double'],
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: responderNegativeDoubleAfterOvercallApplies,
     priority: { rank: 100 },
     meaning: 'Informational negative Double: enough strength and the specified unbid-major holding, ' +
@@ -1184,6 +1215,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['1D', '1H', '1S'],
     callRefinement: refineResponderNewSuitAfterOvercall,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: responderNewSuitAfterOvercallPublicMeaning,
     appliesWhen: { hcp: { min: 6 } },
     priority: { rank: 90 },
     meaning: 'Natural one-level new suit, forcing one round: normally five cards, except after ' +
@@ -1199,6 +1231,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineResponderNewSuitAfterOvercall,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: responderNewSuitAfterOvercallPublicMeaning,
     appliesWhen: { hcp: { min: 10 } },
     priority: { rank: 85 },
     meaning: 'Five-card or longer new suit with 10+ HCP; forcing one round, not automatically ' +
@@ -1214,6 +1247,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineResponderNewSuitAfterOvercall,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: responderNewSuitAfterOvercallPublicMeaning,
     appliesWhen: { hcp: { min: 13 } },
     meaning: 'Five-card or longer new suit at three level, when that is the cheapest available ' +
              'bid in the strain, showing game-going values.',
@@ -1244,6 +1278,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineResponderCuebidAfterOvercall,
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: refineResponderCuebidAfterOvercall,
     appliesWhen: responderCuebidAfterOvercallApplies,
     priority: { rank: 100 },
     meaning: 'Artificial cuebid in opponent suit shows a limit raise or stronger support.',
@@ -1257,6 +1292,7 @@ export const ResponseBidRules: BidRule[] = [
                       interference: 'suitOvercall' },
     calls: ['1NT', '2NT', '3NT'],
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: responderNotrumpAfterOvercallApplies,
     meaning: 'Natural balanced 1NT (6-10), 2NT (11-12), or 3NT (13-15), with a stopper ' +
              'in the opponent suit.  Not Jacoby or forcing 1NT.',
@@ -1302,6 +1338,7 @@ export const ResponseBidRules: BidRule[] = [
                       interference: 'takeoutDouble' },
     calls: ['2NT'],
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: responderJordanTwoNtAfterDoubleApplies,
     priority: { rank: 95 },
     meaning: 'Artificial Jordan 2NT, showing limit-raise-or-better support: 10+ shortage-adjusted ' +
@@ -1322,6 +1359,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['1D', '1H', '1S'],
     callRefinement: refineToCheapestNewSuitBids,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineToCheapestNewSuitBids,
     appliesWhen: { hcp: { min: 6 }, suitLengths: [{ min: 4 }] },
     priority: { rank: 100 },
     meaning: 'A natural four-card-or-longer new suit at the one level, forcing one round; ' +
@@ -1337,6 +1375,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineToCheapestNewSuitBids,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineToCheapestNewSuitBids,
     appliesWhen: responderWeakTwoLevelNewSuitApplies,
     priority: { rank: 65 },
     meaning: 'Nonforcing new suit at two level: 5-9 HCP and a good six-card suit, ' +
@@ -1352,6 +1391,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineWeakJumpShift,
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineNewSuitByExtraLevels(calls, context, 1, 'jump-shift'),
     appliesWhen: { hcp: { min: 4, max: 7 } },
     priority: { rank: 60 },
     meaning: 'Weak, nonforcing jump into a six-card-or-longer new suit; not the ' +
@@ -1503,6 +1543,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['2H', '2S'],
     callRefinement: refineResponderNewSuitAfterJumpOvercall,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineResponderNewSuitAfterJumpOvercall,
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     priority: { rank: 80 },
     meaning: 'Natural five-card-or-longer new suit with 10+ HCP, forcing one round.',
@@ -1517,6 +1558,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineResponderNewSuitAfterJumpOvercall,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: refineResponderNewSuitAfterJumpOvercall,
     appliesWhen: { hcp: { min: 13 }, suitLengths: [{ min: 5 }] },
     priority: { rank: 85 },
     meaning: 'Natural five-card-or-longer new suit with 13+ HCP, forcing to game; ' +
@@ -1531,6 +1573,7 @@ export const ResponseBidRules: BidRule[] = [
                       interference: 'jumpSuitOvercall' },
     calls: ['Double'],
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: jumpOvercallNegativeDoublePublicMeaning,
     appliesWhen: responderNegativeDoubleAfterJumpOvercallApplies,
     priority: { rank: 100 },
     meaning: 'Negative double with 10+ HCP over a two-level jump or 12+ HCP over a ' +
@@ -1548,6 +1591,7 @@ export const ResponseBidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineResponderCuebidAfterJumpOvercall,
     callCategory: ['forcing', 'conventional'],
+    deriveCallPublicMeaning: refineResponderCuebidAfterJumpOvercall,
     appliesWhen: responderCuebidAfterJumpOvercallApplies,
     priority: { rank: 95 },
     meaning: 'Artificial cuebid in the opponent suit showing 3+ major support and 13+ ' +

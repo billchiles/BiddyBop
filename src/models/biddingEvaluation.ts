@@ -4,7 +4,7 @@
 import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type HandShapeConstraint, type AuctionEvalContext, type RuleEvalContext,
-         type CallRefinementResult,
+         type CallRefinementResult, type CallCategory,
          type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit, type Seat } from './cards';
@@ -13,7 +13,7 @@ import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCall
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
          getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
-         getSeatForCallIndex, getPartnerSeat }
+         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed, isMajorOneNtForcing }
   from './auction';
 import { OpeningBidRules } from './opening-rules';
 import { ResponseBidRules } from './responding-rules';
@@ -472,6 +472,62 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
     case null:
       return [];
   }
+}
+
+//// Public call meaning
+
+export type CallPublicMeaning =
+  | { status: 'known'; categories: CallCategory[] }
+  | { status: 'unknown' | 'ambiguous'; categories: [] };
+
+/// Interpret an actual call from the public context immediately preceding it. Do not evaluate
+/// private hand requirements, candidate preferences, suppressors or evidence. A rule containing
+/// executable qualification/refinement must explicitly identify its reviewed public calculation.
+export function getCallPublicMeaning (call: Call, context: AuctionEvalContext,
+                                      system: BiddingSystem): CallPublicMeaning {
+  if (!isCallAvailableInAuction(call, context.auction)) {
+    return { status: 'unknown', categories: [] };
+  }
+  const rules = getActiveBiddingRules(getRulesForStage(context.stage), system);
+  const meanings: CallCategory[][] = [];
+  for (const rule of rules) {
+    if (rule.kind === 'scopeBoundary' || rule.calls === undefined ||
+        rule.callCategory === undefined || !rule.calls.includes(call) ||
+        !auctionContextMatches(rule.auctionContext, context, system)) {
+      continue;
+    }
+    const mechanicallyAvailable = rule.calls.filter((candidate) =>
+      isCallAvailableInAuction(candidate, context.auction));
+    const available = filterReusedOpenerRebidPublicCalls(mechanicallyAvailable,
+      getReusedOpenerRebidOpponentSuits(rule, context));
+    if (!available.includes(call)) continue;
+    const derive = rule.deriveCallPublicMeaning;
+    if (derive !== undefined) {
+      if (!derive(available, context, system).calls.includes(call)) continue;
+    } else if (rule.callRefinement !== undefined || typeof rule.appliesWhen === 'function') {
+      continue;
+    }
+    meanings.push(rule.callCategory);
+  }
+  if (meanings.length === 0) return { status: 'unknown', categories: [] };
+  return combinePublicCallCategories(meanings);
+}
+
+/// A missing natural/conventional tag is incomplete rather than a contradictory meaning.
+/// Forcing status, however, must agree; private plans cannot resolve public disagreement.
+function combinePublicCallCategories (meanings: CallCategory[][]): CallPublicMeaning {
+  const force = (categories: CallCategory[]) => categories.includes('gameForcing') ? 'gameForcing' :
+    categories.includes('forcing') ? 'forcing' : 'none';
+  const first = meanings[0]!;
+  const categories = [...new Set(meanings.flat())];
+  if (meanings.some((meaning) => force(meaning) !== force(first)) ||
+      (categories.includes('natural') && categories.includes('conventional')) ||
+      (categories.includes('invitational') && categories.includes('signoff')) ||
+      (categories.includes('gamePlacement') && meanings.some((meaning) =>
+        !meaning.includes('gamePlacement')))) {
+    return { status: 'ambiguous', categories: [] };
+  }
+  return { status: 'known', categories };
 }
 
 //// Individual rule and candidate evaluation
@@ -1493,6 +1549,16 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
         ! responderCallMatches(ruleContext.responderCall, actualOpening, actualResponse, evalContext)) {
       return false;
     }
+  }
+  if (ruleContext.responderPreviouslyPassed !== undefined &&
+      ruleContext.responderPreviouslyPassed !==
+        responderPreviouslyPassed(evalContext.dealer, evalContext.auction)) {
+    return false;
+  }
+  if (ruleContext.majorOneNtForcing !== undefined &&
+      ruleContext.majorOneNtForcing !==
+        isMajorOneNtForcing(evalContext.dealer, evalContext.auction, system)) {
+    return false;
   }
   if (ruleContext.advancerCall !== undefined &&
       ! advancerCallMatches(ruleContext.advancerCall, evalContext)) {

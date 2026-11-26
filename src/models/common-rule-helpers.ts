@@ -1,6 +1,6 @@
 /// Shared Auction and Valuation Helpers: refiners, applicability checks, and related helpers.
 
-import { type AuctionEvalContext, type RuleEvalContext } from './bidding-types';
+import { type AuctionEvalContext, type RuleEvalContext, type Call } from './bidding-types';
 import { getCardsForSuit, SUITS, type Suit } from './cards';
 import { getOpeningCallInfo, getPartnerOpeningCall, getResponderCall, parseSuitBid, 
          type ParsedSuitBid } from './auction';
@@ -78,4 +78,10 @@ export function orderMajorSuitCandidates<T extends { suit: Suit; length: number 
   }
   const wantedFirst = first.length === 4 ? 'H' : 'S';
   return first.suit === wantedFirst ? majors : [second, first];
+}
+
+/// The rule's auction context and declared calls fully determine public meaning; its
+/// executable refinement or applicability only qualifies the private hand.
+export function declaredCallsPublicMeaning (calls: Call[]): { calls: Call[] } {
+  return { calls };
 }

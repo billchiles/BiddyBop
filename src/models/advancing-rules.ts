@@ -36,7 +36,10 @@ import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies
          jumpOvercallPassApplies, refineDontAdvance, refineNaturalOneNtAdvance,
          naturalOneNtAdvanceApplies, naturalOneNtAdvanceBoundary,
          naturalOneNtAdvanceUnsupportedResponderBoundary, refineJumpOvercallRaise,
-         refineJumpOvercallMajorGame, refineJumpOvercallNewSuit } from './advancing-functions';
+         refineJumpOvercallMajorGame, refineJumpOvercallNewSuit,
+         twoLevelOvercallNewSuitPublicMeaning, advanceNewSuitAfterResponderRaisePublicMeaning,
+         responsiveDoublePublicMeaning, advanceNewSuitAfterNaturalActionPublicMeaning,
+         advanceNewSuitAfterNegativeDoublePublicMeaning, jumpOvercallNewSuitPublicMeaning } from './advancing-functions';
 
 
 export const AdvanceRules: BidRule[] = [
@@ -312,6 +315,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineAdvancerRaise,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineAdvancerRaise,
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -329,6 +333,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerRaise,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineAdvancerRaise,
     priority: { rank: 15 },
     appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
                    supportLength: { min: 4 } },
@@ -346,6 +351,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineAdvancerCuebid,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerCuebid,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -391,6 +397,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['1D', '1H', '1S'],
     callRefinement: refineAdvancerNewSuit,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineAdvancerNewSuit,
     appliesWhen: { hcp: { min: 8, max: 13 }, suitLengths: [{ min: 5 }] },
     meaning: 'A constructive, nonforcing new-suit advance: 5+ cards and 8-13 HCP.',
     guidance: ['New suits by advancer are not automatically forcing as they would be ' +
@@ -406,6 +413,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineAdvancerNewSuit,
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerNewSuit,
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'A non-jump, new-suit advance at the two level: 5+ cards, 10+ HCP, ' +
              'forcing one round.',
@@ -451,6 +459,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelRaise,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineAdvancerTwoLevelRaise,
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -466,6 +475,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelCuebid,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerTwoLevelCuebid,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -493,6 +503,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callRefinement: refineAdvancerTwoLevelNewSuit,
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: twoLevelOvercallNewSuitPublicMeaning,
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'An economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['The suit must differ from both the opener’s suit and partner’s overcall.'],
@@ -506,6 +517,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelNewSuit,
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: twoLevelOvercallNewSuitPublicMeaning,
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Non-jump three-level new suit: 12+ HCP, a good 5+ card suit, ' +
              'forcing one round.',
@@ -568,6 +580,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3D', '3H', '3S'],
     callRefinement: refineTakeoutDoubleCuebid,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineTakeoutDoubleCuebid,
     priority: { rank: 15 },
     appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
     meaning: 'A strong, forcing cuebid with 12+ length-adjusted points; ' +
@@ -745,6 +758,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: (calls, context) => refineAdvancerRaiseAfterResponderRaise(calls, context, 0),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => refineAdvancerRaiseAfterResponderRaise(calls, context, 0),
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -761,6 +775,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
     callRefinement: (calls, context) => refineAdvancerRaiseAfterResponderRaise(calls, context, 1),
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) => refineAdvancerRaiseAfterResponderRaise(calls, context, 1),
     priority: { rank: 15 },
     appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
                    supportLength: { min: 4 } },
@@ -777,6 +792,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerCuebidAfterResponderRaise,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerCuebidAfterResponderRaise,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -794,6 +810,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: (calls, context) => refineAdvancerNewSuitAfterResponderRaise(calls, context, 2),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterResponderRaisePublicMeaning(calls, context, 2, 1),
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['A clear five-card suit is bid naturally instead of using a responsive Double.'],
@@ -808,6 +825,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: (calls, context) => refineAdvancerNewSuitAfterResponderRaise(calls, context, 3),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterResponderRaisePublicMeaning(calls, context, 3, 1),
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
@@ -821,6 +839,7 @@ export const AdvanceRules: BidRule[] = [
                       interference: 'suitOvercall' },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => responsiveDoublePublicMeaning(calls, context, 1),
     appliesWhen: responsiveDoubleAfterOvercallRaiseApplies,
     priority: { rank: 20 },
     meaning: 'Takeout-oriented responsive Double with 7+ length points and both unbid suits.',
@@ -854,6 +873,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelRaiseAfterResponderRaise,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineAdvancerTwoLevelRaiseAfterResponderRaise,
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -871,6 +891,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3D', '3H', '3S'],
     callRefinement: refineAdvancerTwoLevelCuebidAfterResponderRaise,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerTwoLevelCuebidAfterResponderRaise,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -888,6 +909,7 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerTwoLevelNewSuitAfterResponderRaise(calls, context, 2),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterResponderRaisePublicMeaning(calls, context, 2, 2),
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['A clear five-card suit is more descriptive than a responsive Double.'],
@@ -903,6 +925,7 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerTwoLevelNewSuitAfterResponderRaise(calls, context, 3),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterResponderRaisePublicMeaning(calls, context, 3, 2),
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
@@ -916,6 +939,7 @@ export const AdvanceRules: BidRule[] = [
                       interference: 'suitOvercall' },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => responsiveDoublePublicMeaning(calls, context, 2),
     appliesWhen: responsiveDoubleAfterTwoLevelOvercallRaiseApplies,
     priority: { rank: 20 },
     meaning: 'Takeout-oriented responsive Double with 9+ length points and both unbid suits.',
@@ -976,6 +1000,7 @@ export const AdvanceRules: BidRule[] = [
                       interference: 'takeoutDouble' },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => responsiveDoublePublicMeaning(calls, context, null),
     appliesWhen: responsiveDoubleAfterTakeoutRaiseApplies,
     priority: { rank: 20 },
     meaning: 'Takeout-oriented responsive Double with 6-11 length points and multiple unbid suits.',
@@ -992,6 +1017,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineTakeoutCuebidAfterResponderRaise,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineTakeoutCuebidAfterResponderRaise,
     priority: { rank: 25 },
     appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
     meaning: 'Strong artificial cuebid with 12+ length-adjusted points, forcing one round.',
@@ -1026,6 +1052,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 0),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 0),
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1043,6 +1071,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 1),
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 1, 1),
     priority: { rank: 15 },
     appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
                    supportLength: { min: 4 } },
@@ -1060,6 +1090,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 2, 0),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterResponderNaturalAction(calls, context, 2, 0),
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1076,6 +1108,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerCuebidAfterResponderNaturalAction,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerCuebidAfterResponderNaturalAction,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1093,6 +1126,7 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 1),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterNaturalActionPublicMeaning(calls, context, 1),
     appliesWhen: { hcp: { min: 8 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural one-level new suit with 5+ cards and 8+ HCP.',
     guidance: ['Bid only a suit still unbid by either opponent or by partner.'],
@@ -1108,6 +1142,7 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 2),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterNaturalActionPublicMeaning(calls, context, 2),
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical new-suit advance: 5+ cards and 10+ HCP, forcing one round.',
     guidance: ['The suit must remain unbid and the call must be economical in that strain.'],
@@ -1123,6 +1158,7 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerNewSuitAfterResponderNaturalAction(calls, context, 3),
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: (calls, context) => advanceNewSuitAfterNaturalActionPublicMeaning(calls, context, 3),
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'Economical three-level new suit: 12+ HCP and a good 5+ card suit, forcing one round.',
     guidance: ['At the three level, require concentrated suit honors as well as strength.'],
@@ -1200,6 +1236,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineTakeoutCuebidAfterResponderNaturalAction,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineTakeoutCuebidAfterResponderNaturalAction,
     priority: { rank: 25 },
     appliesWhen: { totalPoints: { min: 12, valuation: 'length' } },
     meaning: 'Strong artificial cuebid with 12+ length-adjusted points, forcing one round.',
@@ -1231,6 +1268,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterNegativeDouble(calls, context, 1, 0),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterNegativeDouble(calls, context, 1, 0),
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1247,6 +1286,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterNegativeDouble(calls, context, 1, 1),
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterNegativeDouble(calls, context, 1, 1),
     priority: { rank: 15 },
     appliesWhen: { totalPoints: { max: 6, valuation: 'shortage' },
                    supportLength: { min: 4 } },
@@ -1263,6 +1304,8 @@ export const AdvanceRules: BidRule[] = [
     callRefinement: (calls, context) =>
       refineAdvancerRaiseAfterNegativeDouble(calls, context, 2, 0),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) =>
+      refineAdvancerRaiseAfterNegativeDouble(calls, context, 2, 0),
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 7, max: 10, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1278,6 +1321,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineAdvancerCuebidAfterNegativeDouble,
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: refineAdvancerCuebidAfterNegativeDouble,
     priority: { rank: 20 },
     appliesWhen: { totalPoints: { min: 11, valuation: 'shortage' },
                    supportLength: { min: 3 } },
@@ -1309,6 +1353,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S'],
     callRefinement: refineSelectedNewSuitAfterNegativeDouble,
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: advanceNewSuitAfterNegativeDoublePublicMeaning,
     priority: { rank: 20 },
     appliesWhen: { hcp: { min: 10 }, suitLengths: [{ min: 5 }] },
     meaning: 'Natural economical side suit with 5+ cards and 10+ HCP, forcing one round.',
@@ -1427,6 +1472,7 @@ export const AdvanceRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineJumpOvercallNewSuit,
     callCategory: ['natural', 'forcing'],
+    deriveCallPublicMeaning: jumpOvercallNewSuitPublicMeaning,
     appliesWhen: { hcp: { min: 12 }, suitLengths: [{ min: 5 }] },
     meaning: 'A non-jump, forcing new suit with 12+ HCP and a good five-card-or-longer suit.',
     guidance: ['A new suit over a preempt is not a casual signoff. ' +

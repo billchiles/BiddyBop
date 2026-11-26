@@ -547,6 +547,11 @@ export function getOpeningCallInfo (dealer: Seat, auction: Call[]): OpeningBidIn
   return null;
 }
 
+/// The forcing-1NT agreement applies only to a responder who has not already passed.
+export function isMajorOneNtForcing (dealer: Seat, auction: Call[], system: BiddingSystem): boolean {
+  return system.majorOneNtResponse === 'forcing' && !responderPreviouslyPassed(dealer, auction);
+}
+
 /// A responder who Passed before partner opened cannot give a forcing 1NT response.
 /// Test the physical seat and the history before the opening, not simply auction length.
 export function responderPreviouslyPassed (dealer: Seat, auction: Call[]): boolean {

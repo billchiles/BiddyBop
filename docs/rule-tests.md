@@ -45,6 +45,12 @@ from the rule and practice sources with `npm run stats:bidding`; the normal
 `test:rules` command separately reports assertion results and failures.
 
 
+Public call-meaning checks use auction prefixes and agreements without a board. They distinguish
+Standard and 2/1 responses, forcing and previously passed-hand 1NT, weak and strong jump shifts,
+reverses, artificial Jacoby descriptions, natural game placements, all three Texas completion
+contexts, and unknown or conflicting meanings. Two ordinary eligibility checks protect the
+previously passed responder’s nonforcing 1NT support route and the unpassed 2/1 opener continuation.
+
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
 for simple suit overcalls even when length-adjusted points exceed 17, while 18+ HCP hands are

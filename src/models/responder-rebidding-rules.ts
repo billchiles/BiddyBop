@@ -4,14 +4,14 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          responderRepeatedSuitThreeNtApplies, responderSevenSpadeGameApplies,
          getResponderEconomicalSecondSuit, refineResponderEconomicalSuit,
          responderEconomicalDecisionApplies, getResponderStrongSecondSuit,
-         responderStrongSecondSuitGameApplies, responderStrongTwoNtThreeNtApplies,
+         responderStrongSecondSuitGameApplies, responderStrongSecondSuitGamePublicMeaning, responderStrongTwoNtThreeNtApplies,
          getResponderAfterMajorOneNt, refineResponderAfterMajorOneNt,
          responderAfterMajorOneNtApplies, getResponderAfterMajorOneNtStrong,
          responderAfterMajorOneNtStrongApplies, refineResponderAfterMajorOneNtStrongGame,
          responderAfterMinorOneNtApplies, getResponderAfterMinorJumpRepeat,
          responderAfterMinorJumpRepeatApplies, getResponderStandardTwoLevel,
          refineResponderStandardTwoLevel, responderStandardTwoLevelApplies, getResponderTwoOverOne,
-         refineResponderTwoOverOneSuit, responderTwoOverOneApplies,
+         refineResponderTwoOverOneSuit, responderTwoOverOneApplies, responderTwoOverOneGamePublicMeaning,
          responderTwoOverOneReachedGame, getResponderNtConvention,
          refineResponderNtConventionalMajor, responderNtConventionApplies, getResponderStrongTwoC,
          responderStrongTwoCDecisionApplies, refineResponderStrongTwoCMajorGame,
@@ -20,7 +20,7 @@ import { refineResponderOriginalOneLevelSuit, responderMinimumRepeatedSuitPassAp
          refineResponderMajorGameTry, responderMajorGameTryApplies,
          getResponderAfterOpenerSplinter, refineResponderOpenerSplinterMajorGame,
          responderOpenerSplinterMajorGameApplies, getResponderAfterStrongJumpShift,
-         responderAfterStrongJumpShiftGameApplies, responderAfterOneNtMajorSlamControl } from './responder-rebidding-functions';
+         responderAfterStrongJumpShiftGameApplies, responderStrongJumpShiftGamePublicMeaning, responderAfterOneNtMajorSlamControl } from './responder-rebidding-functions';
 
 export const ResponderRebidRules: BidRule[] = [
   //// Selected strong 2C responder continuations (no slam bidding system)
@@ -97,6 +97,9 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
     calls: ['4H', '4S'], callRefinement: refineResponderSupportMajorGame,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context, system) =>
+      getResponderMajorSupportConvention(context, system)?.kind === 'jacoby2NT' ?
+        refineResponderSupportMajorGame(calls, context, system) : { calls: [] },
     appliesWhen: (call, context, system) =>
       responderMajorSupportConventionApplies(call, context, system, 'returnToGame', 'jacoby2NT'),
     meaning: 'Choose game in the agreed major with an ordinary minimum game-force raise.',
@@ -137,6 +140,9 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'splinters', value: true },
     calls: ['4H', '4S'], callRefinement: refineResponderSupportMajorGame,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context, system) =>
+      getResponderMajorSupportConvention(context, system)?.kind === 'splinter' ?
+        refineResponderSupportMajorGame(calls, context, system) : { calls: [] },
     appliesWhen: (call, context, system) =>
       responderMajorSupportConventionApplies(call, context, system, 'returnToGame', 'splinter'),
     meaning: 'Responder’s splinter established the fit and game force; returning to 4M declines further slam exploration.',
@@ -178,6 +184,7 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'splinters', value: true },
     calls: ['4H', '4S'], callRefinement: refineResponderOpenerSplinterMajorGame,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOpenerSplinterMajorGame,
     appliesWhen: responderOpenerSplinterMajorGameApplies,
     meaning: "Opener's splinter shows a strong game-forcing raise of responder's major " +
              'and shortness in the side suit.  Ordinary responder values place game in the agreed major.',
@@ -405,6 +412,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'openingGame'),
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) => responderTwoOverOneGamePublicMeaning(calls, context, 'openingGame'),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingGame'),
     meaning: "With a known eight-card fit, choose game in opener's six-card major; the two-card preference is enough.",
   },
@@ -419,6 +427,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3H', '3S'],
     callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'openingSlowRaise'),
     callCategory: ['natural', 'gameForcing'],
+    deriveCallPublicMeaning: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'openingSlowRaise'),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'openingSlowRaise'),
     meaning: "With three or more of opener's major and extras, a slow 3M raise remains forcing and leaves room to investigate slam.",
     guidance: ['Opener must continue toward game. With the fit established, assess working controls ' +
@@ -435,6 +444,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'secondMajorGame'),
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) => responderTwoOverOneGamePublicMeaning(calls, context, 'secondMajorGame'),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'secondMajorGame'),
     meaning: 'After opener naturally shows four cards in a new major, four-card responder support establishes game.',
   },
@@ -449,6 +459,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3C', '3D', '3H'],
     callRefinement: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'repeatResponse'),
     callCategory: ['natural', 'gameForcing'],
+    deriveCallPublicMeaning: (calls, context) => refineResponderTwoOverOneSuit(calls, context, 'repeatResponse'),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'repeatResponse'),
     meaning: 'Natural six-card suit; unlike Standard, a 3-level repetition is forcing to game.',
     guidance: ['Opener must not Pass below game. Support the long suit when suitable or ' +
@@ -463,6 +474,7 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     calls: ['3NT'], callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: (calls, context) => ({ calls: getResponderTwoOverOne(context) === null ? [] : calls }),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'gameNt'),
     meaning: 'With suitable balanced game values, stoppers, and no known major fit, choose 3NT.',
   },
@@ -475,6 +487,7 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 2, jump: 0 } },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     calls: ['2NT'], callCategory: ['natural', 'gameForcing'],
+    deriveCallPublicMeaning: (calls, context) => ({ calls: getResponderTwoOverOne(context) === null ? [] : calls }),
     appliesWhen: (call, context) => responderTwoOverOneApplies(call, context, 'forcingNt'),
     meaning: 'A natural 2NT rebid describes a balanced hand and remains game forcing; ' +
              'no unbid-suit stopper is promised and opener must continue.',
@@ -1022,6 +1035,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['2H', '2S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { hcp: { min: 6, max: 10 }, suitLengths: [{ min: 6 }] },
     meaning: 'A nonforcing preference for the six-card major already shown.',
     guidance: ['Opener usually passes this signoff; it is not a new-suit force.'],
@@ -1055,6 +1069,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3H', '3S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'invitational'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { hcp: { min: 11, max: 12 }, suitLengths: [{ min: 6 }] },
     meaning: "Invite game in responder's six-card major without forcing game.",
     guidance: ['Opener can pass or accept the invitation with sufficient strength and fit.'],
@@ -1085,6 +1100,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { hcp: { min: 13, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: "Place the contract in responder's six-card major with enough values for game.",
     guidance: ['The balanced opener has at least two cards in the major. Further slam exploration ' +
@@ -1149,6 +1165,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3H', '3S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'gameForcing'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { hcp: { min: 7, max: 12 }, suitLengths: [{ min: 5, max: 5 }] },
     meaning: "Show exactly five cards in responder's major, asking opener to choose a game.",
     guidance: ['With three cards in the major, opener ordinarily bids 4M; with only two, ' +
@@ -1165,6 +1182,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { hcp: { min: 7, max: 12 }, suitLengths: [{ min: 6 }] },
     meaning: "Six cards in responder's major ensure an eight-card fit opposite balanced opener.",
     guidance: ['The strength and known major fit favor bidding game directly.'],
@@ -1263,6 +1281,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3H', '3S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'invitational'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'shortage' } },
     meaning: 'Invite game with 11-12 support points opposite opener\'s minimum raise.',
     guidance: ['Opener may Pass with a minimum, or bid four of the major with a ' +
@@ -1279,6 +1298,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { totalPoints: { min: 13, max: 16, valuation: 'shortage' } },
     meaning: 'Choose game in the agreed major with ordinary game-going responder values.',
   },
@@ -1306,6 +1326,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { totalPoints: { min: 8, max: 14, valuation: 'shortage' } },
     meaning: 'Accept game with enough support points opposite opener\'s stronger jump raise.',
   },
@@ -1395,6 +1416,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     appliesWhen: { totalPoints: { min: 6, max: 10, valuation: 'length' },
                    suitLengths: [{ min: 6 }] },
     meaning: 'Prefer responder\'s six-card original suit without inviting game.',
@@ -1439,6 +1461,7 @@ export const ResponderRebidRules: BidRule[] = [
     calls: ['3D', '3H', '3S'],
     callRefinement: refineResponderOriginalOneLevelSuit,
     callCategory: ['natural', 'invitational'],
+    deriveCallPublicMeaning: refineResponderOriginalOneLevelSuit,
     priority: { rank: 5, note: 'An independent long responder suit can take priority over supporting opener.' },
     appliesWhen: { totalPoints: { min: 11, max: 12, valuation: 'length' },
                    suitLengths: [{ min: 6 }] },
@@ -1668,6 +1691,7 @@ export const ResponderRebidRules: BidRule[] = [
     agreement: { setting: 'jumpShift', value: 'strong' },
     calls: ['Pass', '3NT', '4H', '4S'],
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: responderStrongJumpShiftGamePublicMeaning,
     appliesWhen: responderAfterStrongJumpShiftGameApplies,
     meaning: 'The original strong jump shift already forced game. With minimum strong values, ' +
              'choose a known major fit or balanced notrump game; Pass only when game is reached.',
@@ -1706,6 +1730,7 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
     calls: ['4H', '4S'],
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: responderStrongSecondSuitGamePublicMeaning,
     priority: { rank: 5, note: 'An established major fit generally favors the major-suit game.' },
     appliesWhen: responderStrongSecondSuitGameApplies,
     meaning: 'Place game in a major shown by opener when responder provides enough support. ' +
@@ -1720,6 +1745,7 @@ export const ResponderRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 1, jump: 0 } },
     calls: ['3NT'],
     callCategory: ['natural', 'signoff'],
+    deriveCallPublicMeaning: responderStrongSecondSuitGamePublicMeaning,
     appliesWhen: responderStrongSecondSuitGameApplies,
     meaning: 'Balanced values and a stopper in the unbid suit make notrump game a reasonable choice.',
     guidance: ['An eight-card major fit may be preferable when responder can support it.'],

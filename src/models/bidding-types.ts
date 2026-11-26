@@ -170,7 +170,11 @@ export interface BidRule {
   agreement?: BiddingAgreement;
   calls?: Call[];
   callRefinement?: CallRefinementFunction;
+  // Public bidding meaning, distinct from the actual bidder's private plan and qualification.
   callCategory?: CallCategory[];
+  // For interpreting an actual earlier call under this rule's auction context and agreements.
+  // Use only information knowable to everyone at the table, even if the bidder did not qualify.
+  deriveCallPublicMeaning?: CallPublicMeaningFunction;
   priority?: {
     // Higher rank expresses greater preference among qualifying rules without suppressing
     // lower-ranked alternatives. Equal ranks (and unranked alternatives) imply no preference
@@ -196,6 +200,7 @@ export type CallCategory =
   | 'forcing' // partner needs to bid if there was no intervening bid
   | 'gameForcing' // must keep bidding until game
   | 'invitational' // partner can bid or pass
+  | 'gamePlacement' // a conventional completion that places the contract at game
   | 'signoff' // asks partner to pass/stop bidding absent interference
   | 'conventional' // stayman, jacoby, etc., often forcing, but if so, 'forcing' will be explicit
   | 'natural'; // face value bid rather than an artificial convention meaning
@@ -328,6 +333,10 @@ export interface AuctionContext {
   openerRaiseResponderMajorTo?: 2 | 3 | 4;
   // responderCall constrains responder's actual call by semantic properties derived from the auction.
   responderCall?: ResponderCallContext;
+  // The initial responder's physical Pass before partner opened, not a later Pass.
+  responderPreviouslyPassed?: boolean;
+  // The effective forcing-1NT agreement for this responder (a passed hand is nonforcing).
+  majorOneNtForcing?: boolean;
   // advancerCall constrains the fourth physical call by its competitive meaning.  This is separate
   // from responderCall because the same text can be a raise, cuebid, or natural new suit.
   advancerCall?: AdvancerCallContext;
@@ -357,6 +366,14 @@ export type CallRefinementFunction = (
   context: RuleEvalContext,
   system: BiddingSystem,
 ) => CallRefinementResult;
+
+/// Select the declared calls that have this rule's public meaning in the actual auction.
+/// Public-only refiners can supply this directly; private qualification is never run here.
+export type CallPublicMeaningFunction = (
+  calls: Call[],
+  context: AuctionEvalContext,
+  system: BiddingSystem,
+) => { calls: Call[] };
 
 export interface CallRefinementResult {
   // Candidate calls after auction and hand facts constraints applied.  Preserve meaningful
@@ -511,7 +528,8 @@ export interface CallEvidence {
       'equal-long-majors' | 'longer-major' | 'longest-suit';
     longerDiamondAlternative: boolean;
   };
-  majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number };
+  majorSupportRoute?: { reason: 'spades-first' | 'one-nt-fallback'; spadeLength: number;
+    responderPreviouslyPassed?: boolean };
   majorGameForceNewSuit?: {
     reason: 'normal' | 'three-card-minor-fallback' | 'unavailable';
     considered: { call: Call; length: number; requiredLength: number }[];
