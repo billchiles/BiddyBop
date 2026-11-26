@@ -221,6 +221,7 @@ function runAllRuleTests (): void {
     runLaterStageTerminationGuidanceTests,
     runCrossStageExplanationIntegrationTests,
     runCrossStageForceTests,
+    runPublicForceIsolationTests,
     runEndingAndScopeStatusTests,
     runStrongMinorArtificialSupportTests,
     runBalancingAuctionAndDealTests,
@@ -10308,7 +10309,7 @@ function runLaterStageTerminationGuidanceTests (): number {
     const previous = test.auction.slice(0,-1);
     const matches = evaluateUserCall(last, board, previous, test.system).userCallMatchingRules;
     const status = getBiddingTurnStatus(board, test.auction, test.system);
-    const obligation = getUnmodeledContinuationForce(board, test.auction, test.system);
+    const obligation = getUnmodeledContinuationForce(board.dealer, test.auction, test.system);
     if (matches.length === 0 || status.kind !== 'noModeledStage' ||
         (obligation?.kind ?? null) !== test.expected) {
       failures++;
@@ -10341,7 +10342,7 @@ function runLaterStageTerminationGuidanceTests (): number {
       continue;
     }
     const { board } = makeRuleTestBoard(example);
-    const force = getUnmodeledContinuationForce(board, test.auction,
+    const force = getUnmodeledContinuationForce(board.dealer, test.auction,
       { ...defaultBiddingSystem, ...example.requiredSystem });
     if (force?.kind !== test.kind || force.lastStage !== test.stage) {
       failures++;
@@ -10363,7 +10364,7 @@ function runLaterStageTerminationGuidanceTests (): number {
   ];
   for (const test of prefixes) {
     checks++;
-    const kind = getUnmodeledContinuationForce(gameBoard, test.auction, gameSystem)?.kind ?? null;
+    const kind = getUnmodeledContinuationForce(gameBoard.dealer, test.auction, gameSystem)?.kind ?? null;
     if (kind !== test.expected) {
       failures++;
       console.error(`FAIL continuing 2/1 game force after ${test.auction.join(' ')}: ` +
@@ -10374,7 +10375,7 @@ function runLaterStageTerminationGuidanceTests (): number {
     deal.expectedBalancingCalls?.some((expected) => expected.ruleIds.includes('balance-takeout-double')))!;
   const { board: balancingBoard } = makeRuleTestBoard(balancing);
   checks++;
-  const balancingForce = getUnmodeledContinuationForce(balancingBoard,
+  const balancingForce = getUnmodeledContinuationForce(balancingBoard.dealer,
     balancing.practiceAuction, defaultBiddingSystem);
   if (balancingForce?.kind !== 'oneRoundForce' || balancingForce.lastStage !== 'balancing') {
     failures++;
@@ -10541,9 +10542,9 @@ function runContinuousAuctionFeedbackTests (): number {
     practiceAuction: forceAuction,
   });
   const system = { ...dontOnSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
-  const forceNow = getUnmodeledContinuationForce(forcingBoard, forceAuction, system);
-  const forceAfterPass = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass'], system);
-  const forceAfterReply = getUnmodeledContinuationForce(forcingBoard, [...forceAuction, 'Pass', '4S'], system);
+  const forceNow = getUnmodeledContinuationForce(forcingBoard.dealer, forceAuction, system);
+  const forceAfterPass = getUnmodeledContinuationForce(forcingBoard.dealer, [...forceAuction, 'Pass'], system);
+  const forceAfterReply = getUnmodeledContinuationForce(forcingBoard.dealer, [...forceAuction, 'Pass', '4S'], system);
   checked += 3;
   if (forceNow?.kind !== 'gameForce' || forceAfterPass?.kind !== 'gameForce' ||
       forceAfterReply !== null) {
@@ -10714,8 +10715,8 @@ function runCrossStageExplanationIntegrationTests (): number {
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
     const opponentTurn: Call[] = ['1S', 'Pass', '2C'];
     const partnerTurn: Call[] = [...opponentTurn, 'Pass'];
-    const opposing = getUnmodeledContinuationForce(board, opponentTurn, system);
-    const own = getUnmodeledContinuationForce(board, partnerTurn, system);
+    const opposing = getUnmodeledContinuationForce(board.dealer, opponentTurn, system);
+    const own = getUnmodeledContinuationForce(board.dealer, partnerTurn, system);
     const opposingGuidance = opposing === null ? [] :
       getOutstandingForceGuidance(opposing, 'W');
     const ownGuidance = own === null ? [] : getOutstandingForceGuidance(own, 'N');
@@ -10794,9 +10795,9 @@ function runCrossStageForceTests (): number {
     }
     const { board } = makeRuleTestBoard(deal);
     const system = { ...defaultBiddingSystem, ...deal.requiredSystem };
-    const before = getUnmodeledContinuationForce(board,
+    const before = getUnmodeledContinuationForce(board.dealer,
       test.auction.slice(0, test.before), system);
-    const after = getUnmodeledContinuationForce(board,
+    const after = getUnmodeledContinuationForce(board.dealer,
       test.auction.slice(0, test.after), system);
     if (before?.kind !== 'gameForce' || after !== null) {
       failures++;
@@ -10814,8 +10815,8 @@ function runCrossStageForceTests (): number {
     const { board } = makeRuleTestBoard(natural);
     const system = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' as const };
     const continued = [...natural.practiceAuction, 'Pass', '4S'] as Call[];
-    if (getUnmodeledContinuationForce(board, continued.slice(0, 7), system)?.kind !==
-          'gameForce' || getUnmodeledContinuationForce(board, continued, system) !== null) {
+    if (getUnmodeledContinuationForce(board.dealer, continued.slice(0, 7), system)?.kind !==
+          'gameForce' || getUnmodeledContinuationForce(board.dealer, continued, system) !== null) {
       failures++;
       console.error('FAIL natural game after unsupported continuation.');
     }
@@ -10840,6 +10841,168 @@ function runCrossStageForceTests (): number {
     `${checks} checks.\n`);
   return failures;
 }
+/// Keep the acting hand fixed while changing the earlier bidder's hand. A public force and
+/// current feedback must be identical, but retrospective assessment of that earlier bid need not be.
+function runPublicForceIsolationTests (): number {
+  let failures = 0;
+  let checks = 0;
+  // Both responders have 11 HCP, but only the first privately intends to raise to game.
+  const support: RuleTestDeal = {
+    description: 'Private game-going support route', practiceAuction: ['1H', 'Pass', '1S', 'Pass'],
+    north: { S: 'K8', H: 'AQJ72', D: 'AJ92', C: 'T8' },
+    east: { S: 'Q753', H: '53', D: '54', C: 'KQJ96' },
+    south: { S: 'J962', H: 'K986', D: 'K763', C: 'A' },
+    west: { S: 'AT4', H: 'T4', D: 'QT8', C: '75432' },
+  };
+  const limit: RuleTestDeal = {
+    ...support, description: 'Private limit-raise route instead',
+    east: { S: 'Q753', H: '53', D: '754', C: 'KQJ6' },
+    south: { S: 'J9642', H: 'K98', D: 'K63', C: 'A9' },
+    west: { S: 'AT', H: 'T64', D: 'QT8', C: '75432' },
+  };
+  // A 13-HCP natural 2/1 response qualifies, while the 11-HCP response does not.
+  const twoOverOne: RuleTestDeal = {
+    description: 'Qualifying 2/1 response', practiceAuction: ['1S', 'Pass', '2C', 'Pass'],
+    north: { S: 'AKJ85', H: '72', D: 'KQ94', C: '63' },
+    east: { S: 'Q7', H: 'J964', D: '832', C: 'T954' },
+    south: { S: '63', H: 'AQT3', D: 'A75', C: 'QJ82' },
+    west: { S: 'T942', H: 'K85', D: 'JT6', C: 'AK7' },
+  };
+  const understrength: RuleTestDeal = {
+    ...twoOverOne, description: 'Understrength 2/1 response',
+    east: { S: '7', H: 'AJ964', D: 'A83', C: '9854' },
+    south: { S: 'Q', H: 'QT3', D: 'T752', C: 'AQTJ2' },
+    west: { S: 'T96432', H: 'K85', D: 'J6', C: 'K7' },
+  };
+  // Reverse with 17 HCP versus 14 HCP, holding the responder's entire hand fixed.
+  const reverse: RuleTestDeal = {
+    description: 'Qualifying reverse', practiceAuction: ['1C', 'Pass', '1H', 'Pass', '2D', 'Pass'],
+    north: { S: 'AK', H: 'Q2', D: 'AKJ2', C: 'T8752' },
+    east: { S: 'QJ76', H: 'AT3', D: '973', C: 'KJ4' },
+    south: { S: '83', H: 'KJ76', D: 'Q854', C: '963' },
+    west: { S: 'T9542', H: '9854', D: 'T6', C: 'AQ' },
+  };
+  const weakReverse: RuleTestDeal = {
+    ...reverse, description: 'Understrength reverse',
+    north: { ...reverse.north, S: 'A6' },
+    east: { ...reverse.east!, S: 'KQJ7' },
+  };
+  const cases: { first: RuleTestDeal; second: RuleTestDeal; system: BiddingSystem;
+    kind: 'gameForce' | 'oneRoundForce'; firstRule: string; secondRule: string | null }[] = [
+    { first: support, second: limit, system: defaultBiddingSystem, kind: 'oneRoundForce',
+      firstRule: 'respond-to-major-w/-four-card-support-13plus-bid-new-suit-then-raise',
+      secondRule: 'respond-to-major-w/-support-limit-raise-three-card-new-suit-first' },
+    { first: twoOverOne, second: understrength,
+      system: { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' }, kind: 'gameForce',
+      firstRule: 'respond-to-major-w/o-support-new-suit-two-level-two-over-one', secondRule: null },
+    { first: reverse, second: weakReverse, system: defaultBiddingSystem, kind: 'oneRoundForce',
+      firstRule: 'opener-rebid-reverse-after-minor-one-level-new-suit', secondRule: null },
+  ];
+  for (const test of cases) {
+    const first = makeRuleTestBoard(test.first).board;
+    const second = makeRuleTestBoard(test.second).board;
+    const auction = test.first.practiceAuction;
+    const seat = getNextSeat(first.dealer, auction);
+    const system = test.system;
+    const prefix = auction.slice(0, -2);
+    const priorCall = auction[auction.length - 2]!;
+    const firstPrior = evaluateUserCall(priorCall, first, prefix, system).userCallMatchingRules;
+    const secondPrior = evaluateUserCall(priorCall, second, prefix, system).userCallMatchingRules;
+    checks++;
+    if (!firstPrior.some((rule) => rule.id === test.firstRule) ||
+        (test.secondRule === null ? secondPrior.length !== 0 :
+          !secondPrior.some((rule) => rule.id === test.secondRule)) ||
+        secondPrior.some((rule) => rule.id === test.firstRule)) {
+      failures++;
+      console.error(`FAIL retrospective qualification contrast: ${test.first.description}.`);
+    }
+    const firstPass = evaluateUserCall('Pass', first, auction, system);
+    const secondPass = evaluateUserCall('Pass', second, auction, system);
+    const firstStatus = getBiddingTurnStatus(first, auction, system);
+    const secondStatus = getBiddingTurnStatus(second, auction, system);
+    checks++;
+    if (JSON.stringify(first.deal[seat]) !== JSON.stringify(second.deal[seat]) ||
+        JSON.stringify(firstPass) !== JSON.stringify(secondPass) ||
+        JSON.stringify(firstStatus) !== JSON.stringify(secondStatus)) {
+      failures++;
+      console.error(`FAIL current assessment depends on earlier bidder's hand: ${test.first.description}.`);
+    }
+    const firstForce = getUnmodeledContinuationForce(first.dealer, auction, system);
+    const secondForce = getUnmodeledContinuationForce(second.dealer, auction, system);
+    checks++;
+    if (firstForce === null || secondForce === null || firstForce.kind !== test.kind ||
+        secondForce.kind !== test.kind ||
+        JSON.stringify(getOutstandingForceGuidance(firstForce, seat)) !==
+          JSON.stringify(getOutstandingForceGuidance(secondForce, seat))) {
+      failures++;
+      console.error(`FAIL public force or current guidance: ${test.first.description}.`);
+    }
+    const ended: Call[] = [...auction, 'Pass', 'Pass'];
+    const firstEnd = getUnfulfilledForceAtAuctionEnd(first.dealer, ended, system);
+    const secondEnd = getUnfulfilledForceAtAuctionEnd(second.dealer, ended, system);
+    checks++;
+    if (firstEnd?.kind !== test.kind || secondEnd?.kind !== test.kind ||
+        firstEnd.interveningCompetition || secondEnd.interveningCompetition) {
+      failures++;
+      console.error(`FAIL public auction-end force: ${test.first.description}.`);
+    }
+    if (test.first === reverse) {
+      const firstLines = getResponderForcingPassFailureLines(firstPass);
+      const secondLines = getResponderForcingPassFailureLines(secondPass);
+      checks++;
+      if (firstPass.responderPassForce?.kind !== test.kind || firstLines.length === 0 ||
+          JSON.stringify(firstLines) !== JSON.stringify(secondLines)) {
+        failures++;
+        console.error('FAIL responder Pass feedback depends on opener qualifying for the reverse.');
+      }
+    }
+    // The exercise can substitute a recorded call even when the bidder did not qualify for it.
+    const recorded = getRecordedPracticeCorrection(prefix, 'Pass', auction);
+    checks++;
+    if (recorded !== priorCall ||
+        getUnmodeledContinuationForce(second.dealer, [...prefix, recorded, 'Pass'], system)?.kind !== test.kind) {
+      failures++;
+      console.error(`FAIL public force after recorded call substitution: ${test.first.description}.`);
+    }
+  }
+  // The same printed response establishes different obligations only when agreements or actual
+  // auction history change, not because earlier private qualification changes.
+  const publicCases: { auction: Call[]; settings?: Partial<BiddingSystem>;
+    kind: 'gameForce' | 'oneRoundForce' | null }[] = [
+    { auction: ['1S', 'Pass', '2C', 'Pass'], kind: 'oneRoundForce' },
+    { auction: ['Pass', 'Pass', '1S', 'Pass', '2C', 'Pass'],
+      settings: { twoLevelNewSuitResponse: 'twoOverOne' }, kind: null },
+    { auction: ['1S', 'Pass', '1NT', 'Pass'], settings: { majorOneNtResponse: 'forcing' },
+      kind: 'oneRoundForce' },
+    { auction: ['Pass', 'Pass', '1S', 'Pass', '1NT', 'Pass'], settings: { majorOneNtResponse: 'forcing' },
+      kind: null },
+    { auction: ['1C', 'Pass', '2H', 'Pass'], settings: { jumpShift: 'weak' }, kind: null },
+    { auction: ['1C', 'Pass', '2H', 'Pass'], settings: { jumpShift: 'strong' }, kind: 'gameForce' },
+    { auction: ['1H', '1S', 'Double', 'Pass', '3C', 'Pass'], kind: null },
+    { auction: ['1NT', 'Pass', '4D', 'Pass'], settings: { texasTransfers: false }, kind: null },
+    { auction: ['2H', '2NT', 'Pass', '4H', 'Pass'], kind: 'gameForce' },
+    { auction: ['2H', '2NT', 'Pass', '4H', 'Pass', '4S'], kind: null },
+    { auction: ['2H', '2NT', 'Pass', '4H', 'Pass', '4S'], settings: { texasTransfers: false }, kind: null },
+    { auction: ['1D', 'Double', 'Pass', 'Pass', 'Pass'], kind: null },
+  ];
+  for (const test of publicCases) {
+    const system = { ...defaultBiddingSystem, ...test.settings };
+    checks++;
+    if ((getUnmodeledContinuationForce('N', test.auction, system)?.kind ?? null) !== test.kind) {
+      failures++;
+      console.error(`FAIL public force agreement/context ${test.auction.join(' ')}.`);
+    }
+  }
+  checks++;
+  if (getUnfulfilledForceAtAuctionEnd('N', ['1D', 'Double', 'Pass', 'Pass', 'Pass'],
+      defaultBiddingSystem) !== null) {
+    failures++;
+    console.error('FAIL doubled contract left for penalties is not an unmet one-round force.');
+  }
+  console.log(`${failures} ***FAILURES***. Public historical force isolation: ${checks} checks.\n`);
+  return failures;
+}
+
 /// Verify actual auction context, not rendered sentence wording, for force endings
 /// and for the distinction between unhandled auctions and unqualified hands.
 function runEndingAndScopeStatusTests (): number {
@@ -10856,13 +11019,13 @@ function runEndingAndScopeStatusTests (): number {
     checks++;
     const { board, system, deal } = lookup('responder-rebid-after-two-over-one', 6);
     const naturalNt = [...deal.practiceAuction, 'Pass', '3NT'] as Call[];
-    if (getUnmodeledContinuationForce(board, deal.practiceAuction, system)?.kind !==
-          'gameForce' || getUnmodeledContinuationForce(board, naturalNt, system) !== null) {
+    if (getUnmodeledContinuationForce(board.dealer, deal.practiceAuction, system)?.kind !==
+          'gameForce' || getUnmodeledContinuationForce(board.dealer, naturalNt, system) !== null) {
       failures++;
       console.error('FAIL natural 3NT after 2/1 natural 2NT should reach game.');
     }
     checks++;
-    if (getUnfulfilledGameForceAtAuctionEnd(board,
+    if (getUnfulfilledGameForceAtAuctionEnd(board.dealer,
           [...naturalNt, 'Pass', 'Pass', 'Pass'], system)) {
       failures++;
       console.error('FAIL natural 3NT completed auction must honor game force.');
@@ -10871,13 +11034,13 @@ function runEndingAndScopeStatusTests (): number {
   {
     const { board, system, deal } = lookup('responder-rebid-after-two-over-one', 2);
     checks++;
-    if (!getUnfulfilledGameForceAtAuctionEnd(board,
+    if (!getUnfulfilledGameForceAtAuctionEnd(board.dealer,
           [...deal.practiceAuction, 'Pass', 'Pass', 'Pass'], system)) {
       failures++;
       console.error('FAIL game force ended below game must remain visible.');
     }
     checks++;
-    if (getUnfulfilledGameForceAtAuctionEnd(board,
+    if (getUnfulfilledGameForceAtAuctionEnd(board.dealer,
           [...deal.practiceAuction, 'Pass', '4S', 'Pass', 'Pass', 'Pass'], system)) {
       failures++;
       console.error('FAIL natural four-spade game must satisfy game force.');
@@ -10887,7 +11050,7 @@ function runEndingAndScopeStatusTests (): number {
     checks++;
     const { board, system } = lookup('major-jacoby-2nt', 1);
     const artificial = ['1S', 'Pass', '2NT', 'Pass', '3NT', 'Pass', 'Pass', 'Pass'] as Call[];
-    if (!getUnfulfilledGameForceAtAuctionEnd(board, artificial, system)) {
+    if (!getUnfulfilledGameForceAtAuctionEnd(board.dealer, artificial, system)) {
       failures++;
       console.error('FAIL artificial Jacoby 3NT must not satisfy game force.');
     }
@@ -10924,32 +11087,32 @@ function runEndingAndScopeStatusTests (): number {
     }
     const competed: Call[] = [...starting, '2H', 'Pass', 'Pass', 'Pass'];
     checks++;
-    const warning = getUnfulfilledForceAtAuctionEnd(board, competed, system);
+    const warning = getUnfulfilledForceAtAuctionEnd(board.dealer, competed, system);
     if (warning?.kind !== 'gameForce' || !warning.interveningCompetition ||
-        !getUnfulfilledGameForceAtAuctionEnd(board, competed, system)) {
+        !getUnfulfilledGameForceAtAuctionEnd(board.dealer, competed, system)) {
       failures++;
       console.error('FAIL historical 2/1 force lost after opposing 2H.');
     }
     checks++;
-    if (getUnfulfilledForceAtAuctionEnd(board,
+    if (getUnfulfilledForceAtAuctionEnd(board.dealer,
           [...starting, '2H', 'Double', 'Pass', 'Pass', 'Pass'], system) !== null) {
       failures++;
       console.error('FAIL doubled competitive partscore needs judgment, not a game warning.');
     }
     checks++;
-    if (getUnfulfilledForceAtAuctionEnd(board,
+    if (getUnfulfilledForceAtAuctionEnd(board.dealer,
           [...starting, '4H', 'Pass', 'Pass', 'Pass'], system) !== null) {
       failures++;
       console.error('FAIL opposing game should not be labeled an unmet game force.');
     }
     checks++;
-    if (getUnfulfilledForceAtAuctionEnd(board,
+    if (getUnfulfilledForceAtAuctionEnd(board.dealer,
           [...starting, 'Pass', '4S', 'Pass', 'Pass', 'Pass'], system) !== null) {
       failures++;
       console.error('FAIL natural major game satisfies the prior 2/1 force.');
     }
     checks++;
-    if (getUnfulfilledForceAtAuctionEnd(board,
+    if (getUnfulfilledForceAtAuctionEnd(board.dealer,
           [...starting, '2H', 'Pass', 'Pass'], system) !== null) {
       failures++;
       console.error('FAIL do not report an auction-end violation before completion.');
@@ -10975,16 +11138,16 @@ function runEndingAndScopeStatusTests (): number {
       }
       checks++;
       const ended: Call[] = ['1D', 'Double', '2NT', 'Pass', 'Pass', 'Pass'];
-      const warning = getUnfulfilledForceAtAuctionEnd(board, ended, defaultBiddingSystem);
+      const warning = getUnfulfilledForceAtAuctionEnd(board.dealer, ended, defaultBiddingSystem);
       if (warning?.kind !== 'oneRoundForce' || warning.interveningCompetition ||
-          getUnfulfilledGameForceAtAuctionEnd(board, ended, defaultBiddingSystem)) {
+          getUnfulfilledGameForceAtAuctionEnd(board.dealer, ended, defaultBiddingSystem)) {
         failures++;
         console.error('FAIL one-round Jordan force was dropped on auction completion.');
       }
       checks++;
       const answered: Call[] = ['1D', 'Double', '2NT', 'Pass',
         '3D', 'Pass', 'Pass', 'Pass'];
-      if (getUnfulfilledForceAtAuctionEnd(board, answered, defaultBiddingSystem) !== null) {
+      if (getUnfulfilledForceAtAuctionEnd(board.dealer, answered, defaultBiddingSystem) !== null) {
         failures++;
         console.error('FAIL a Jordan force already answered by opener must not warn.');
       }
