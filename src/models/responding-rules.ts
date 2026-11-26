@@ -199,7 +199,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'minor' },
     calls: ['1D', '1H', '1S', '2C'],
     callRefinement: refineToCheapestNewSuitBids, // chooses best suit for minimum response
-    callCategory: ['forcing'],
+    // Public force comes from the ordinary new-suit response under the active agreements.
+    callCategory: ['natural'],
     priority: { rank: 95 },
     appliesWhen: minorSupportNewSuitApplies,
     guidance: ['Five clubs support 1C; four diamonds support 1D.',
@@ -434,7 +435,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
     callRefinement: refineMajorSupportNewSuitFirst, // choose the descriptive new-suit route
-    callCategory: ['gameForcing'],
+    // Public force comes from the ordinary new-suit response under the active agreements.
+    callCategory: ['natural'],
     // supportLength: [{ min: 4 }] almost captures normal cases declaratively, but it cannot also
     // express the 5+ heart requirement for 1S-2H and the sometimes three-card-minor fallback when
     // no good 4 or 5 card suit can be bid.  The call refiner therefore owns the candidate-suit
@@ -453,7 +455,8 @@ export const ResponseBidRules: BidRule[] = [
     auctionContext: { stage: 'responding', interference: 'none', openerLevel: 1, openerStrain: 'major' },
     calls: ['1S', '2C', '2D', '2H'],
     callRefinement: refineMajorSupportNewSuitFirst, // choose the descriptive new-suit route
-    callCategory: ['gameForcing'],
+    // Public force comes from the ordinary new-suit response under the active agreements.
+    callCategory: ['natural'],
     agreement: { setting: 'majorGameForceWithSupport', value: 'newSuitThenRaise',
                  note: 'Show game-forcing support by bidding a new suit first, then raising.' },
     // Call refiner checks call candidate suit lengths, possibly falling back to the exceptional

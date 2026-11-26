@@ -62,13 +62,22 @@ export interface CurrentContextRules {
   telemetryLines: string[];
 }
 
+/// Public interpretation of an actual call; categories are usable only when declarations agree.
+export type CallPublicMeaning =
+  // Reviewed public declarations establish a consistent meaning.
+  | { status: 'known'; categories: CallCategory[] }
+  // No reviewed declaration establishes a meaning; this is not a nonforcing interpretation.
+  | { status: 'unknown'; categories: [] }
+  // Public declarations conflict; private hand qualification cannot resolve the conflict.
+  | { status: 'ambiguous'; categories: [] };
+
 /// Student-call assessment adds the actual submitted call and the rules whose qualifying
 /// candidate calls match it. No single 'best bid' is imposed on the student.
 export interface BidEvalResult extends CurrentContextRules {
   normalizedCall: Call | null;
   // Applicable concrete-call rules matching the submitted call; excludes scope boundaries.
   userCallMatchingRules: BidRule[];
-  // An outstanding obligation is checked for an unsupported responder-rebid Pass.
+  // An outstanding obligation of responder's partnership is checked for an unsupported rebid Pass.
   responderPassForce?: UnmodeledContinuationForce | null;
 }
 
@@ -217,9 +226,14 @@ export function evaluateUserCall (inputCall: Call, board: Board, auction: Call[]
         : `Scope boundary ${boundary.id} applies; ${inputCall} is not judged by a candidate rule.`
       : `User call ${inputCall} satisfied ${matchingRulesForUserCall.length} rule(s).`,
   ];
-  const responderPassForce = inputCall === 'Pass' && matchingRulesForUserCall.length === 0 &&
+  const outstandingForce = inputCall === 'Pass' && matchingRulesForUserCall.length === 0 &&
     getNextBiddingRuleStage(board.dealer, auction, system) === 'responderRebid'
-      ? getUnmodeledContinuationForce(board, auction, system) : null;
+      ? getUnmodeledContinuationForce(board.dealer, auction, system) : null;
+  // An opponent's outstanding force must not be attributed to responder.
+  const seat = getNextSeat(board.dealer, auction);
+  const responderPassForce = outstandingForce !== null &&
+    (outstandingForce.forcingSeat === seat || getPartnerSeat(outstandingForce.forcingSeat) === seat)
+      ? outstandingForce : null;
   return {
     ...currentRules,
     normalizedCall: inputCall,
@@ -268,145 +282,114 @@ export function getBiddingTurnStatus (board: Board, auction: Call[],
 }
 
 
+//// Historical forcing obligations
+
 /// Explain an outstanding force at an unmodeled turn or the end of a practice exercise.
-/// This does not recommend a concrete continuation or change call eligibility. Only
-/// qualifying rules in the actual auction and system can establish an obligation.
+/// This does not recommend a concrete continuation or change call eligibility. A reviewed
+/// public meaning establishes the obligation even if the actual bidder did not qualify.
 export type UnmodeledContinuationForce = {
   kind: 'gameForce' | 'oneRoundForce';
+  // Modeled stage in which the outstanding forcing call was made.
   lastStage: BidStage;
   // The seat making the forcing call; the obligation belongs to this partnership.
   forcingSeat: Seat;
 };
 
-function isGameContract(call: Call): boolean {
-  const bid = parseSuitBid(call);
-  return bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
-    bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
-}
-
-/// Reaching the level of game does not necessarily place a contract there.
-/// Texas transfers, conventional 3NT strength descriptions, and control bids
-/// keep the game force alive; a completed Texas transfer places actual game.
-function isGamePlacement(call: Call, matchingRules: BidRule[]): boolean {
-  if (!isGameContract(call)) return false;
-  return matchingRules.some((rule) =>
-    rule.callCategory?.includes('natural') === true ||
-    rule.callCategory?.includes('signoff') === true ||
-    rule.id === 'opener-rebid-complete-texas-after-nt' ||
-    rule.id === 'overcaller-rebid-1nt-texas');
-}
+/// Completed auctions can leave a publicly established force unanswered.
+/// Competition may require judgment; this information never grades or blocks
+/// a legal competitive Pass, Double, or bid.
+export type UnfulfilledAuctionForce =
+  // With intervening competition, report historical commitment rather than a required action.
+  | { kind: 'gameForce'; interveningCompetition: boolean }
+  | { kind: 'oneRoundForce'; interveningCompetition: false };
 
 /// One-round forces require partner's next response (possibly after an opponent Pass).
-/// Game forces can persist through further partnership bids, until game is reached.
+/// Game forces can persist through further partnership bids, until game is placed.
 /// After substantive opposing action, next-turn guidance does not presume the
 /// obligation survives unchanged. Auction-end feedback can separately review
-/// an earlier evaluated game force without prescribing a competitive call.
-export function getUnmodeledContinuationForce (board: Board, auction: Call[],
+/// an earlier public game force without prescribing a competitive call.
+export function getUnmodeledContinuationForce (dealer: Seat, auction: Call[],
                                               system: BiddingSystem,
                                               includeOpposingCompetition = false): UnmodeledContinuationForce | null {
   if (auction.length === 0 || auctionIsComplete(auction)) return null;
   const lastIndex = auction.length - 1;
   let oneRound: UnmodeledContinuationForce | null = null;
+  // Cache by physical call index for this traversal only, including subsequent game-placement
+  // checks. The prefix before each call determines its original public context and meaning.
+  const meanings = new Map<number, { context: AuctionEvalContext; meaning: CallPublicMeaning }>();
   for (let index = lastIndex; index >= 0; index -= 1) {
     const call = auction[index];
     if (call === undefined || call === 'Pass') continue;
-    const forceSeat = getSeatForCallIndex(board.dealer, index);
+    const forceSeat = getSeatForCallIndex(dealer, index);
     const partner = getPartnerSeat(forceSeat);
     const subsequent = auction.slice(index + 1);
     const opponentActed = subsequent.some((later, offset) => later !== 'Pass' &&
-      getSeatForCallIndex(board.dealer, index + offset + 1) !== forceSeat &&
-      getSeatForCallIndex(board.dealer, index + offset + 1) !== partner);
+      getSeatForCallIndex(dealer, index + offset + 1) !== forceSeat &&
+      getSeatForCallIndex(dealer, index + offset + 1) !== partner);
     if (opponentActed && !includeOpposingCompetition) continue;
-    const stage = getNextBiddingRuleStage(board.dealer, auction.slice(0, index), system);
-    if (stage === null) continue;
-    const matches = evaluateUserCall(call, board, auction.slice(0, index), system)
-      .userCallMatchingRules;
-    if (matches.length === 0) continue;
-    if (isGamePlacement(call, matches)) continue;
-    if (matches.some((rule) => rule.callCategory?.includes('gameForcing'))) {
-      // Only a qualifying natural game placement, not an artificial game-level
-      // bid, satisfies the partnership's game commitment.
+    const { context, meaning } = getHistoricalMeaning(index);
+    if (context.stage === null || meaning.status !== 'known' || isGamePlacement(call, meaning)) continue;
+    if (meaning.categories.includes('gameForcing')) {
+      // Only our partnership's public game placement satisfies its game commitment.
       const reachedGame = subsequent.some((later, offset) => {
-        const seat = getSeatForCallIndex(board.dealer, index + offset + 1);
-        if (seat !== forceSeat && seat !== partner) return false;
         const laterIndex = index + offset + 1;
-        const laterMatches = evaluateUserCall(later, board,
-          auction.slice(0, laterIndex), system).userCallMatchingRules;
-        if (isGamePlacement(later, laterMatches)) return true;
-        if (laterMatches.length !== 0) return false;
-        // A natural 3NT after our evaluated natural 2NT places game. Do not
-        // infer this from Jacoby 2NT, an artificial 3NT, or an unsupported bid.
-        if (later === '3NT') {
-          return auction.slice(0, laterIndex).some((previous, previousIndex) => {
-            if (previous !== '2NT') return false;
-            const previousSeat = getSeatForCallIndex(board.dealer, previousIndex);
-            if (previousSeat !== forceSeat && previousSeat !== partner) return false;
-            return evaluateUserCall(previous, board, auction.slice(0, previousIndex), system)
-              .userCallMatchingRules.some((rule) =>
-                rule.callCategory?.includes('natural') === true);
-          });
-        }
-        // An unsupported 4M can still place an agreed natural major game.
-        // Require a previously evaluated natural bid in that suit by our side;
-        // never infer a contract from an unsupported artificial-looking call.
-        const game = parseSuitBid(later);
-        if (game === null || game.level !== 4 ||
-            (game.strain !== 'H' && game.strain !== 'S')) return false;
-        return auction.slice(0, laterIndex).some((previous, previousIndex) => {
-          if (parseSuitBid(previous)?.strain !== game.strain) return false;
-          const previousSeat = getSeatForCallIndex(board.dealer, previousIndex);
-          if (previousSeat !== forceSeat && previousSeat !== partner) return false;
-          return evaluateUserCall(previous, board, auction.slice(0, previousIndex), system)
-            .userCallMatchingRules.some((rule) =>
-              rule.callCategory?.includes('natural') === true);
-        });
+        const seat = getSeatForCallIndex(dealer, laterIndex);
+        if ((seat !== forceSeat && seat !== partner) || !isGameContract(later)) return false;
+        const laterInfo = getHistoricalMeaning(laterIndex);
+        if (isGamePlacement(later, laterInfo.meaning)) return true;
+        // A known conventional or ambiguous call cannot use the unsupported-game fallback.
+        // A modeled stage can also lack a rule for this specific continuation; the narrow
+        // fallback uses a prior public natural denomination, not the absence of a rule alone.
+        if (laterInfo.meaning.status !== 'unknown') return false;
+        return placesUnsupportedNaturalGame(later, laterIndex, dealer, auction,
+          getHistoricalMeaning);
       });
-      if (! reachedGame) return { kind: 'gameForce', lastStage: stage, forcingSeat: forceSeat };
+      if (!reachedGame) return { kind: 'gameForce', lastStage: context.stage, forcingSeat: forceSeat };
     }
     // Only the last call (or one following opponent Pass) can carry a one-round
     // obligation. Once partner has acted, the individual force has been satisfied.
     if (oneRound === null && (index === lastIndex ||
         (index === lastIndex - 1 && auction[lastIndex] === 'Pass' &&
-          getSeatForCallIndex(board.dealer, lastIndex) !== partner)) &&
-        matches.some((rule) => rule.callCategory?.includes('forcing'))) {
-      oneRound = { kind: 'oneRoundForce', lastStage: stage, forcingSeat: forceSeat };
+          getSeatForCallIndex(dealer, lastIndex) !== partner)) &&
+        meaning.categories.includes('forcing')) {
+      oneRound = { kind: 'oneRoundForce', lastStage: context.stage, forcingSeat: forceSeat };
     }
   }
   return oneRound;
-}
 
-/// Completed auctions can leave a previously evaluated force unanswered.
-/// Competition may require judgment; this information never grades or blocks
-/// a legal competitive Pass, Double, or bid.
-export type UnfulfilledAuctionForce =
-  | { kind: 'gameForce'; interveningCompetition: boolean }
-  | { kind: 'oneRoundForce'; interveningCompetition: false };
+  function getHistoricalMeaning (index: number): { context: AuctionEvalContext; meaning: CallPublicMeaning } {
+    const cached = meanings.get(index);
+    if (cached !== undefined) return cached;
+    const context = makeAuctionPublicContext(dealer, auction.slice(0, index), system);
+    const info = { context, meaning: getCallPublicMeaning(auction[index]!, context, system) };
+    meanings.set(index, info);
+    return info;
+  }
+}
 
 /// Keep the existing game-force predicate available to callers and regression tests.
-export function getUnfulfilledGameForceAtAuctionEnd (board: Board, auction: Call[],
+export function getUnfulfilledGameForceAtAuctionEnd (dealer: Seat, auction: Call[],
                                                       system: BiddingSystem): boolean {
-  return getUnfulfilledForceAtAuctionEnd(board, auction, system)?.kind === 'gameForce';
+  return getUnfulfilledForceAtAuctionEnd(dealer, auction, system)?.kind === 'gameForce';
 }
 
-/// Review only verifiable forcing commitments when the legal auction is over.
+/// Review only publicly established forcing commitments when the legal auction is over.
 /// Do not infer a required bid after interference or treat a doubled competing
 /// contract as evidence that the partnership should have bid higher.
-export function getUnfulfilledForceAtAuctionEnd (board: Board, auction: Call[],
+export function getUnfulfilledForceAtAuctionEnd (dealer: Seat, auction: Call[],
                                                   system: BiddingSystem): UnfulfilledAuctionForce | null {
   if (!auctionIsComplete(auction) || auction.length < 4) return null;
   const lastCallIndex = auction.findLastIndex((call) => call !== 'Pass');
   if (lastCallIndex < 0) return null;
-
   const beforeLastPass = auction.slice(0, -1);
-  if (getUnmodeledContinuationForce(board, beforeLastPass, system)?.kind === 'gameForce') {
+  if (getUnmodeledContinuationForce(dealer, beforeLastPass, system)?.kind === 'gameForce') {
     return { kind: 'gameForce', interveningCompetition: false };
   }
-
   // Opponent interference suspends a recommendation, not the historical
   // game-forcing promise. Warn conservatively only when the final contract
   // is an undoubled partscore, rather than guessing about competitive games
   // or whether defending a doubled contract was preferable.
-  if (getUnmodeledContinuationForce(board, beforeLastPass, system, true)?.kind === 'gameForce') {
+  if (getUnmodeledContinuationForce(dealer, beforeLastPass, system, true)?.kind === 'gameForce') {
     const lastBidIndex = auction.findLastIndex((call) => parseSuitBid(call) !== null);
     if (lastBidIndex >= 0 && lastCallIndex === lastBidIndex &&
         !isGameContract(auction[lastBidIndex]!)) {
@@ -414,20 +397,54 @@ export function getUnfulfilledForceAtAuctionEnd (board: Board, auction: Call[],
     }
     return null;
   }
-
   // A one-round forcing bid followed by three Passes was unanswered by
   // partner. Do not treat a takeout Double left in for penalties as a broken
   // forcing bid; opponent competition after a force requires separate judgment.
   if (lastCallIndex !== auction.length - 4) return null;
   const lastCall = auction[lastCallIndex];
   if (lastCall === undefined || parseSuitBid(lastCall) === null) return null;
-  const matches = evaluateUserCall(lastCall, board, auction.slice(0, lastCallIndex), system)
-    .userCallMatchingRules;
-  if (matches.some((rule) => rule.callCategory?.includes('forcing') === true &&
-        rule.callCategory?.includes('gameForcing') !== true)) {
+  const context = makeAuctionPublicContext(dealer, auction.slice(0, lastCallIndex), system);
+  const meaning = getCallPublicMeaning(lastCall, context, system);
+  if (meaning.status === 'known' && meaning.categories.includes('forcing') &&
+      !meaning.categories.includes('gameForcing')) {
     return { kind: 'oneRoundForce', interveningCompetition: false };
   }
   return null;
+}
+
+/// Reaching the level of game does not necessarily place a contract there.
+/// Texas requests, conventional 3NT strength descriptions, and control bids
+/// keep the game force alive; a completed Texas transfer places actual game.
+function isGamePlacement (call: Call, meaning: CallPublicMeaning): boolean {
+  if (!isGameContract(call) || meaning.status !== 'known') return false;
+  return meaning.categories.includes('natural') || meaning.categories.includes('signoff') ||
+    meaning.categories.includes('gamePlacement');
+}
+
+/// Actual contract level, irrespective of whether the bid was a natural game placement.
+function isGameContract (call: Call): boolean {
+  const bid = parseSuitBid(call);
+  return bid !== null && (bid.strain === 'NT' ? bid.level >= 3 :
+    bid.strain === 'H' || bid.strain === 'S' ? bid.level >= 4 : bid.level >= 5);
+}
+
+/// For an unsupported continuation, recognize only a 3NT after our natural 2NT or game in a
+/// previously shown natural major. The caller has already excluded known/ambiguous meanings.
+/// These are limited contract-placement inferences, not additional public rule meanings.
+function placesUnsupportedNaturalGame (call: Call, index: number, dealer: Seat, auction: Call[],
+    getHistoricalMeaning: (index: number) => { context: AuctionEvalContext; meaning: CallPublicMeaning }): boolean {
+  const game = parseSuitBid(call);
+  if (game === null || (call !== '3NT' &&
+      (game.level !== 4 || (game.strain !== 'H' && game.strain !== 'S')))) return false;
+  const seat = getSeatForCallIndex(dealer, index);
+  const partner = getPartnerSeat(seat);
+  return auction.slice(0, index).some((previous, previousIndex) => {
+    if (call === '3NT' ? previous !== '2NT' : parseSuitBid(previous)?.strain !== game.strain) return false;
+    const previousSeat = getSeatForCallIndex(dealer, previousIndex);
+    if (previousSeat !== seat && previousSeat !== partner) return false;
+    const { meaning } = getHistoricalMeaning(previousIndex);
+    return meaning.status === 'known' && meaning.categories.includes('natural');
+  });
 }
 
 //// Evaluation context and stage rule selection
@@ -475,10 +492,6 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
 }
 
 //// Public call meaning
-
-export type CallPublicMeaning =
-  | { status: 'known'; categories: CallCategory[] }
-  | { status: 'unknown' | 'ambiguous'; categories: [] };
 
 /// Interpret an actual call from the public context immediately preceding it. Do not evaluate
 /// private hand requirements, candidate preferences, suppressors or evidence. A rule containing

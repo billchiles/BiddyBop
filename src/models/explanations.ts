@@ -7526,14 +7526,14 @@ export function getNaturalResponderRebidFailureLines(result: BidEvalResult): str
   return [];
 }
 
-/// An evaluated responder Pass can break a previously established force even when
+/// An evaluated responder Pass can break a publicly established force even when
 /// the available natural rebids require further judgment.
 export function getResponderForcingPassFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
       result.responderPassForce === null || result.responderPassForce === undefined) return [];
   if (result.responderPassForce.kind === 'gameForce') {
-    return ['The partnership remains committed to game. ' +
-      'Opener has not yet bid game, so responder cannot Pass here.'];
+    return ['The partnership has established a game force but has not yet placed the contract ' +
+      'at game, so responder cannot Pass here.'];
   }
   return ["Opener's preceding forcing rebid requires responder to bid again. " +
     'Pass cannot satisfy the one-round force.'];

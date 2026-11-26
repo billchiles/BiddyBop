@@ -51,12 +51,12 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     [board, auction, biddingSystem]);
   const auctionComplete = biddingTurnStatus.kind === 'auctionComplete';
   const unfulfilledAuctionForce = useMemo(() => auctionComplete ?
-    getUnfulfilledForceAtAuctionEnd(board, auction, biddingSystem) : null,
-    [board, auction, biddingSystem, auctionComplete]);
+    getUnfulfilledForceAtAuctionEnd(board.dealer, auction, biddingSystem) : null,
+    [board.dealer, auction, biddingSystem, auctionComplete]);
   const outstandingForce = useMemo(() => biddingTurnStatus.kind === 'auctionComplete' ||
     (biddingTurnStatus.kind === 'supported' && !practiceComplete) ? null :
-    getUnmodeledContinuationForce(board, auction, biddingSystem),
-    [board, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
+    getUnmodeledContinuationForce(board.dealer, auction, biddingSystem),
+    [board.dealer, auction, biddingSystem, biddingTurnStatus, practiceComplete]);
   // At an unjudged practice turn, show the recorded continuation without
   // implying its alternatives have been evaluated.
   const practiceRecordedCall = testDeal?.practiceAuction[auction.length];

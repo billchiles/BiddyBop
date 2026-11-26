@@ -51,6 +51,16 @@ reverses, artificial Jacoby descriptions, natural game placements, all three Tex
 contexts, and unknown or conflicting meanings. Two ordinary eligibility checks protect the
 previously passed responder’s nonforcing 1NT support route and the unpassed 2/1 opener continuation.
 
+Historical public-force isolation checks use three pairs of fully specified boards with the
+same acting hand, auction and agreements: the private game-going versus limit-support new-suit
+route, a qualifying versus understrength 2/1 response, and a qualifying versus understrength
+reverse. They require identical current evaluation, outstanding obligation, guidance and
+auction-end feedback while allowing retrospective qualification to differ. The reverse pair also
+checks responder-Pass feedback; all pairs check recorded-call substitution. Additional public
+auction checks protect passed-hand and jump-shift agreement distinctions, the ambiguous implied-minor
+rebid after a negative Double, weak-two 2NT Texas request/completion and disabled Texas, and the
+penalty-conversion exception to auction-end guidance.
+
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
 for simple suit overcalls even when length-adjusted points exceed 17, while 18+ HCP hands are
