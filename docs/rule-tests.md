@@ -73,7 +73,20 @@ pre-opening Passes and rotated dealers; natural versus artificial/unsupported in
 Standard versus 2/1, weak versus strong jump shifts, and forcing 1NT. They also check DONT
 independence, explicit `none`/`present`/`ignored`/concrete constraints and omission, and that
 special NT matching cannot bypass declared constraints. Existing direct and quiet rules do
-not leak into unimplemented sandwich turns. No new practice deals are needed for routing alone.
+not leak into sandwich turns; stages and response families without a selected treatment remain unjudged.
+
+Initial sandwich one-level new-suit competition tests cover all six entry auctions, the
+public economical suit inventory (including rejection of cuebids/jumps), natural 1NT and
+forcing takeout Double, and DONT independence. Fixed complete synthetic deals check
+actual HCP and shape thresholds, exceptional five versus good six, both unbid-suit lengths,
+both stoppers, both opening NT ranges, uncapped constructive strength, Pass suppression,
+and the strong boundary. Redistributing the earlier bidders' cards leaves the current
+hand's evaluation unchanged. Both overlapping natural/Double alternatives are protected
+by practice expectations, and each of the eight new practice auctions is replayed through
+all preceding calls. The outstanding sandwich Double force is independent of the hand,
+is displaced by substantive opener competition, and does not warn of a broken force
+when the doubled contract is left in for penalties. The new practice selections use the
+existing simple-suit, takeout-Double and natural-1NT buckets.
 
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum

@@ -303,6 +303,12 @@ export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
 export type SandwichInterference = 'none' | 'present' | 'ignored' | 'suitOvercall' |
   'ntOvercall' | 'takeoutDouble' | 'other';
 
+/// Public response families after a one-level suit opening and an initial opposing Pass.
+/// A higher response includes invitations, jump shifts, and artificial higher responses;
+/// it does not imply a natural strain or permission to compete.
+export type SandwichResponseFamily = 'oneLevelNewSuit' | 'twoLevelNewSuit' | 'oneNt' |
+  'simpleRaise' | 'higherResponse';
+
 /// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
   // stage selects the bidding phase in which the rule can apply.
@@ -331,6 +337,8 @@ export interface AuctionContext {
   // Fourth physical call after a one-level suit opening and an initial opposing Pass.
   // Omitted or ignored is unconstrained; none excludes interference, present includes other.
   sandwichInterference?: SandwichInterference;
+  // Requires the public response family, even before the sandwich overcaller has acted.
+  sandwichResponseFamily?: SandwichResponseFamily;
   // Ordinary opener-rebid rules must opt in before they can be reused after opponent interference.
   // Explicit competitive opener-rebid rules instead declare their interference context directly.
   openerRebidAfterInterference?: boolean;
@@ -455,7 +463,9 @@ export interface CallEvidence {
         required: boolean | number; passed: boolean }
     | { kind: 'fourCardMajor'; passed: boolean }
     | { kind: 'topThreeHonors'; suit: Suit; passed: boolean }
-    | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[]; passed: boolean }
+    // Tested lengths are retained when the public takeout promise is a specific set of suits.
+    | { kind: 'unbidSuitSupport'; min: number; shortSuits: Suit[];
+        testedLengths?: { suit: Suit; actual: number }[]; passed: boolean }
     | { kind: 'openerSuitLength'; actual: number; max: number; passed: boolean }
     | { kind: 'stopper'; suit?: Suit; passed: boolean }
     | { kind: 'minorSupport'; suit: 'C' | 'D'; actual: number; min: number; passed: boolean }
@@ -483,8 +493,13 @@ export interface CallEvidence {
     call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean;
     honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
     qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
+    // True if the exceptional-five honor standard is met; actual length is checked separately.
+    exceptionalFive?: boolean;
+    // Minimum length for this treatment given the recorded honor quality.
+    requiredLength?: number;
   }[];
-  naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven: boolean; min: number };
+  // exceptionalSeven is specific to the direct one-level overcall policy.
+  naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven?: boolean; min: number };
   jumpOvercallSuit?: {
     call: Call; length: number; requiredLength: number; good: boolean; passed: boolean;
     honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];

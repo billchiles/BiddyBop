@@ -215,6 +215,7 @@ function collectBidFailureLines(result: BidEvalResult, handFacts: HandFacts): st
     ...getBalancingCallFailureLines(result),
     ...getNaturalOvercallFailureLines(result),
     ...getNaturalOneNtDefensePassFailureLines(result),
+    ...getSandwichPassFailureLines(result),
     ...getWeakTwoOvercallFailureLines(result),
     ...getDontInitialFailureLines(result),
     ...getJumpOvercallFailureLines(result),
@@ -432,6 +433,11 @@ export function getOutstandingForceGuidance(
       'have had their opportunity. Partner normally selects an unbid suit; ' +
       'passing for penalties requires exceptional defensive values. ' +
       'The app does not teach the later continuation.'];
+  }
+  if (force.lastStage === 'sandwichOvercalling' && force.kind === 'oneRoundForce') {
+    return ['', attribution, 'The sandwich takeout Double asks partner to choose an unbid ' +
+      'suit if the opponents Pass. Leaving the Double in for penalties requires exceptional ' +
+      'defensive judgment; the app does not teach that decision.'];
   }
   if (force.kind === 'gameForce') {
     return ['', attribution, 'A game-forcing call commits that partnership to continue toward ' +
@@ -837,6 +843,7 @@ function openingSelectionText(selection: NonNullable<CallEvidence['openingSelect
 //// Takeout Double explanations
 ///
 
+const SANDWICH_DOUBLE_ID = 'sandwich-overcall-takeout-double-two-unbid-suits';
 const ORDINARY_IDS = [
   'overcall-takeout-double-with-unbid-suit-support',
   'overcall-weak-two-takeout-double-with-unbid-suit-support',
@@ -861,6 +868,30 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
   const candidate = doubleCandidate(result, rule.id);
   if (candidate?.ruleApplies !== true) return null;
   const requirements = candidate.callEvidence?.requirements ?? [];
+  if (rule.id === SANDWICH_DOUBLE_ID) {
+    const hcp = requirements.find((item) => item.kind === 'hcp');
+    const support = requirements.find((item) => item.kind === 'unbidSuitSupport');
+    if (hcp?.kind !== 'hcp' || support?.kind !== 'unbidSuitSupport' ||
+        !hcp.passed || !support.passed || support.testedLengths === undefined) return null;
+    const testedLengths = support.testedLengths;
+    const lengths = testedLengths.map(({ suit, actual }) =>
+      `${actual} ${suitPlural(`1${suit}` as Call)}`).join(' and ');
+    const alternatives = getApplicableCandidateCalls(result).filter((item) =>
+      SANDWICH_SUIT_OVERCALL_IDS.includes(item.rule.id));
+    const comparisons = alternatives.map(({ call }) => {
+      const isMajor = call.endsWith('H') || call.endsWith('S');
+      const otherMajor = testedLengths.some(({ suit }) =>
+        (suit === 'H' || suit === 'S') && !call.endsWith(suit));
+      return `${call} also qualifies and shows your own ${suitPlural(call)}. ` +
+        (isMajor ? 'Showing a good long major economically can be especially descriptive.' :
+          otherMajor ? 'Double is attractive because partner can show a fit in the unbid major.' :
+            'Double lets partner choose either unbid suit.');
+    });
+    const nt = qualifyingOvercallAlternative(result, [SANDWICH_NT_OVERCALL_ID], 'Double');
+    if (nt !== null) comparisons.push('1NT also qualifies and describes the balanced hand with two stoppers.');
+    return `Your ${hcp.actual} HCP meet the ${hcp.min}-HCP minimum, and you have ${lengths}. ` +
+      `Double asks partner to choose an unbid suit.${comparisons.length === 0 ? '' : ' ' + comparisons.join(' ')} [${rule.id}]`;
+  }
   if (ORDINARY_IDS.includes(rule.id)) {
     const points = requirements.find((item) => item.kind === 'totalPoints');
     const hcp = requirements.find((item) => item.kind === 'hcp');
@@ -907,6 +938,19 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
 /// in the current auction. An unsupported Double in some other context is not this treatment.
 export function getTakeoutDoubleFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall !== 'Double' || result.userCallMatchingRules.length !== 0) return [];
+  const sandwich = doubleCandidate(result, SANDWICH_DOUBLE_ID);
+  if (sandwich !== undefined) {
+    const checks = sandwich.callEvidence?.requirements ?? [];
+    const hcp = checks.find((item) => item.kind === 'hcp');
+    const support = checks.find((item) => item.kind === 'unbidSuitSupport');
+    const lines: string[] = [];
+    if (hcp?.kind === 'hcp' && !hcp.passed) lines.push(`A sandwich takeout Double requires ` +
+      `${hcp.min}+ actual HCP; you have ${hcp.actual} [${SANDWICH_DOUBLE_ID}].`);
+    if (support?.kind === 'unbidSuitSupport' && !support.passed) lines.push(`A sandwich takeout ` +
+      `Double requires four cards in both unbid suits; you are short in ${suitNames(support.shortSuits)} ` +
+      `[${SANDWICH_DOUBLE_ID}].`);
+    return lines;
+  }
   const ordinary = ORDINARY_IDS.map((id) => doubleCandidate(result, id))
     .find((candidate) => candidate !== undefined);
   const strong = STRONG_IDS.map((id) => doubleCandidate(result, id))
@@ -1177,6 +1221,7 @@ function balancingNtEvidence(result: BidEvalResult) {
 ///
 
 const DIRECT_OVERCALL_PASS_ID = 'overcall-pass-no-qualifying-action';
+const SANDWICH_PASS_ID = 'sandwich-overcall-pass-after-one-level-new-suit';
 const NATURAL_ONE_NT_DEFENSE_PASS_ID = 'overcall-pass-natural-vs-1nt';
 const NATURAL_ONE_NT_DEFENSE_SUIT_ID = 'overcall-natural-suit-vs-1nt';
 
@@ -1184,7 +1229,8 @@ const NATURAL_ONE_NT_DEFENSE_SUIT_ID = 'overcall-natural-suit-vs-1nt';
 /// Strength alone is not sufficient reason to bid or sufficient evidence of weakness.
 export function getDirectOvercallPassSupportLine(result: BidEvalResult, rule: BidRule): string | null {
   if ((rule.id !== DIRECT_OVERCALL_PASS_ID &&
-       rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID) || result.normalizedCall !== 'Pass') return null;
+       rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID && rule.id !== SANDWICH_PASS_ID) ||
+      result.normalizedCall !== 'Pass') return null;
   const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
     ?.candidates.find(({ call }) => call === 'Pass');
   if (candidate?.ruleApplies !== true || getApplicableCandidateCalls(result).some(
@@ -1206,6 +1252,18 @@ export function getNaturalOneNtDefensePassFailureLines(result: BidEvalResult): s
   return [`Your hand qualifies for natural ${natural.call} over the opposing strong 1NT. ` +
     `A cautious Pass can be reasonable with vulnerability or defensive considerations ` +
     `the app does not model [${natural.rule.id}].`];
+}
+
+/// The fallback Pass is not an independently qualifying alternative once competition qualifies.
+function getSandwichPassFailureLines(result: BidEvalResult): string[] {
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
+      !result.ruleDiagnostics.some(({ rule }) => rule.id === SANDWICH_PASS_ID)) return [];
+  const alternatives = [...new Set(getApplicableCandidateCalls(result).map(({ call }) => call)
+    .filter((call) => call !== 'Pass'))];
+  if (alternatives.length === 0) return [];
+  return [`Your hand qualifies for ${alternatives.join(' or ')} in the sandwich seat. ` +
+    `Experienced players may still choose a cautious Pass based on vulnerability and other ` +
+    `competitive judgment the app does not model [${SANDWICH_PASS_ID}].`];
 }
 
 //// DONT-off natural defense comparisons
@@ -1238,6 +1296,10 @@ const NATURAL_SUIT_OVERCALL_IDS = [
   NATURAL_ONE_NT_DEFENSE_SUIT_ID,
 ];
 const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
+const SANDWICH_NT_OVERCALL_ID = 'sandwich-overcall-natural-1nt-with-stoppers';
+const SANDWICH_SUIT_OVERCALL_IDS = [
+  'sandwich-overcall-simple-suit-at-one-level', 'sandwich-overcall-simple-suit-at-two-level',
+];
 const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
 
 /// Show honors actually recorded by a qualifying suit-quality check.
@@ -1253,6 +1315,36 @@ function overcallHonorText(evidence: { honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
 
 /// Explain only the matching natural-overcall rule, never a different meaning of the same call.
 export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRule): string | null {
+  if (SANDWICH_SUIT_OVERCALL_IDS.includes(rule.id)) {
+    const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
+    if (check === undefined || candidate?.ruleApplies !== true || strength === undefined) return null;
+    const honors = overcallHonorText(check);
+    const quality = check.level === 2 && check.length === 5
+      ? `${check.honors.join(', ')} meet the exceptional-five standard (three of A/K/Q/J, including two of A/K/Q)`
+      : honors ?? 'the suit meets the good-honor standard';
+    const double = doubleCandidate(result, SANDWICH_DOUBLE_ID);
+    const support = double?.callEvidence?.requirements?.find((item) => item.kind === 'unbidSuitSupport');
+    const otherMajor = support?.kind === 'unbidSuitSupport' && support.testedLengths?.some(({ suit }) =>
+      (suit === 'H' || suit === 'S') && !check.call.endsWith(suit)) === true;
+    const comparison = double?.ruleApplies === true ? ' Takeout Double also qualifies, giving partner a ' +
+      'choice between the unbid suits.' + (check.call.endsWith('H') || check.call.endsWith('S')
+        ? ' Showing your good long major economically is particularly descriptive.'
+        : otherMajor ? ' Double may help locate a major-suit fit instead of committing to your minor.' : '') : '';
+    return `Your ${strength.hcp} HCP meet the ${strength.min}-HCP minimum, and your ` +
+      `${check.length}-card ${suitName(check.call)} suit qualifies: ${quality}. ` +
+      `This economical natural overcall is nonforcing.${comparison} [${rule.id}]`;
+  }
+  if (rule.id === SANDWICH_NT_OVERCALL_ID) {
+    const { candidate, hcp, balanced, stoppers } = naturalOneNtOvercallEvidence(result, rule.id);
+    if (candidate?.ruleApplies !== true || hcp === undefined || balanced?.passed !== true ||
+        stoppers.length !== 2 || !stoppers.every((stopper) => stopper.passed)) return null;
+    const double = qualifyingOvercallAlternative(result, [SANDWICH_DOUBLE_ID], '1NT');
+    const comparison = double === 'Double' ? ' Double also qualifies, asking partner to choose ' +
+      'an unbid suit instead of describing your balanced hand and both stoppers.' : '';
+    return `Your ${hcp.actual} HCP and balanced distribution meet the 16–18 HCP requirement. ` +
+      `You have basic stoppers in ${stoppers.map(namedStopperSuit).join(' and ')}. ` +
+      `This natural 1NT overcall uses a fixed range.${comparison} [${rule.id}]`;
+  }
   if (NATURAL_SUIT_OVERCALL_IDS.includes(rule.id)) {
     const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
     if (check === undefined || candidate?.ruleApplies !== true) return null;
@@ -1322,6 +1414,20 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
   if (result.userCallMatchingRules.length > 0 || result.normalizedCall === null) return [];
   const entered = result.normalizedCall;
   if (entered === '1NT') {
+    const sandwich = naturalOneNtOvercallEvidence(result, SANDWICH_NT_OVERCALL_ID);
+    if (sandwich.candidate !== undefined) {
+      const lines: string[] = [];
+      const { hcp, balanced, stoppers } = sandwich;
+      if (hcp?.passed === false) lines.push(`Natural sandwich 1NT requires 16–18 HCP; ` +
+        `you have ${hcp.actual} [${SANDWICH_NT_OVERCALL_ID}].`);
+      if (balanced?.passed === false) lines.push(`Natural sandwich 1NT requires balanced distribution ` +
+        `[${SANDWICH_NT_OVERCALL_ID}].`);
+      for (const stopper of stoppers.filter((item) => !item.passed)) {
+        lines.push(`Natural sandwich 1NT requires a stopper in both opposing suits; ` +
+          `you lack one in ${namedStopperSuit(stopper)} [${SANDWICH_NT_OVERCALL_ID}].`);
+      }
+      return lines;
+    }
     const { candidate, hcp, balanced, stopper } = naturalOneNtOvercallEvidence(result);
     if (candidate === undefined || candidate.ruleApplies || hcp === undefined ||
         balanced === undefined || stopper === undefined) return [];
@@ -1333,6 +1439,20 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
     if (!stopper.passed) lines.push(`A natural 1NT overcall requires a stopper in ` +
       `${namedStopperSuit(stopper)}; your hand lacks one ` +
       `[${NATURAL_ONE_NT_OVERCALL_ID}].`);
+    return lines;
+  }
+  for (const ruleId of SANDWICH_SUIT_OVERCALL_IDS) {
+    const { check, strength } = naturalSuitOvercallEvidence(result, ruleId);
+    if (check === undefined) continue;
+    const lines: string[] = [];
+    if (!check.passed) {
+      const standard = check.level === 1 ? `a good five-card or longer suit (${SIMPLE_OVERCALL_SUIT_QUALITY})` :
+        `a good six-card or longer suit, or an exceptional five-card suit with three of A/K/Q/J including two of A/K/Q`;
+      lines.push(`Natural sandwich ${entered} requires ${standard}; your suit has ${check.length} ` +
+        `cards and honors ${check.honors.length === 0 ? 'none of A/K/Q/J/10' : check.honors.join(', ')} [${ruleId}].`);
+    }
+    if (strength?.passed === false) lines.push(`Natural sandwich ${entered} requires ` +
+      `${strength.min}+ HCP with this suit length; you have ${strength.hcp} [${ruleId}].`);
     return lines;
   }
   for (const ruleId of NATURAL_SUIT_OVERCALL_IDS) {
@@ -1397,8 +1517,8 @@ function naturalSuitOvercallEvidence(result: BidEvalResult, ruleId: string) {
   return { check, candidate, strength: candidate?.callEvidence?.naturalOvercallStrength };
 }
 
-function naturalOneNtOvercallEvidence(result: BidEvalResult) {
-  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === NATURAL_ONE_NT_OVERCALL_ID)
+function naturalOneNtOvercallEvidence(result: BidEvalResult, ruleId = NATURAL_ONE_NT_OVERCALL_ID) {
+  const candidate = result.ruleDiagnostics.find(({ rule }) => rule.id === ruleId)
     ?.candidates.find(({ call }) => call === '1NT');
   const checks = candidate?.callEvidence?.requirements;
   const hcp = checks?.find((item) => item.kind === 'hcp');
@@ -1409,6 +1529,8 @@ function naturalOneNtOvercallEvidence(result: BidEvalResult) {
     hcp: hcp?.kind === 'hcp' ? hcp : undefined,
     balanced: balanced?.kind === 'balanced' ? balanced : undefined,
     stopper: stopper?.kind === 'stopper' ? stopper : undefined,
+    stoppers: checks?.filter((item): item is Extract<Requirement, { kind: 'stopper' }> =>
+      item.kind === 'stopper') ?? [],
   };
 }
 

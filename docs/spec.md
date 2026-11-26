@@ -328,6 +328,15 @@ not exact wording.
   Prefer unchanged declaration reuse where the actual public promise, hand requirements,
   forcing status and legal level agree; otherwise share calculations rather than
   generalize incompatible rules.
+- `sandwichResponseFamily` constrains the actual first response after a one-level suit opening
+  and a physical opposing Pass. Unlike the structural `responderCall` constraint, it checks
+  agreement-dependent public meaning: `oneLevelNewSuit`, `twoLevelNewSuit`, `oneNt`,
+  `simpleRaise`, or `higherResponse` (including artificial higher responses). The family
+  alone does not make an intervention permissible; public force and natural/artificial
+  distinctions still matter. Unknown or ambiguous responses do not enter a family.
+  The matcher and `getSandwichInterference` share `getSandwichResponseFamily`, which interprets
+  the actual response using the strictly shorter prefix and never the earlier bidder's hand.
+  This is a rule-declaration constraint, not another stored auction state.
 - Do not put prose such as `text` inside `appliesWhen`.
 - Do not put judgment phrases such as "good suit" inside `appliesWhen` unless the code has a defined evaluator for them.
 - `supportLength` means length in partner's relevant naturally bid suit for the current stage.
@@ -913,9 +922,8 @@ opener rebids. A substantive, legal sandwich intervention admits +4 `openerRebid
 +5 `sandwichAdvancing`, +6 `responderRebid`, and +7 `sandwichOvercallerRebid`, including
 physical Passes by opener or the initial opponent. Auction completion takes precedence;
 there is no general sandwich continuation tree at +8 or later. These stages identify
-physical roles, not judgments of call suitability. Infrastructure alone does not teach
-positive sandwich calls; unimplemented decisions receive unjudged guidance, never an
-inferred Pass.
+physical roles, not judgments of call suitability. Unimplemented decisions receive
+unjudged guidance, never an inferred Pass.
 
 The selected scope excludes sandwich intervention after NT or two-level and higher
 openings. A strong NT or strong two-level opening reduces the usual constructive
@@ -941,6 +949,46 @@ overcalling and sandwich overcaller rebids. `AdvanceRules` serves both advance s
 existing opener and responder rebid stages retain their topical rule arrays. A sandwich
 advancer's relevant natural support suit comes from partner's physical +3 call rather
 than +1; NT, Double and unclassified interventions provide no natural support suit.
+
+### Initial sandwich competition after a natural one-level new-suit response
+
+This treatment covers 1C–Pass–1D/1H/1S, 1D–Pass–1H/1S, and 1H–Pass–1S. Responder
+normally promises four or more cards in the named suit and 6+ HCP, with no universal
+maximum. Both opposing suits have been named, even when the convenient minor opening may be short. Suit
+intervention must be the cheapest legal nonjump bid in one of the two unbid suits.
+It is natural and nonforcing. Requirements use actual HCP, not total points.
+
+| Sandwich call | Requirements |
+| --- | --- |
+| Economical one-level suit | 10+ HCP, good five-card or longer suit |
+| Economical two-level suit | 11+ HCP with good six or more cards, or 14+ HCP with an exceptional five-card suit |
+| Takeout Double | 12+ HCP, at least four cards in each of the two unbid suits |
+| Natural 1NT | Balanced 16–18 HCP, basic stoppers in both opposing suits |
+| Pass | At most 17 HCP and no qualifying constructive action |
+| Scope boundary | 18+ HCP without a qualifying constructive action |
+
+Good suit quality is two of A/K/Q or three of A/K/Q/J/10; exceptional five requires
+three of A/K/Q/J including two of A/K/Q. Six-card suits still need good honors.
+There is no universal constructive HCP ceiling, seven-HCP exception, strong
+shape-breaking Double, or special weaker passed-hand NT overcall. A basic stopper is
+A, Kx, Qxx or Jxxx. The 16–18 sandwich range is independent of the opening NT setting.
+Jump overcalls, artificial cuebids and unusual NT are outside this treatment.
+
+Qualifying natural bids and shape-promising Doubles remain independent alternatives;
+there is no priority rank or candidate-order preference. A good long major makes a
+natural overcall descriptive, while Double may locate an unbid major instead of
+committing to a long minor. The actual evidence drives that guidance. Pass is a
+fallback suppressed when constructive competition qualifies; conservative Pass may
+still be sensible in judgment situations not modeled. Takeout Double publicly asks
+partner to act when the opponents Pass; it is not an automatic penalty Double.
+A hand that did not qualify for its actual call still conveyed that call's public meaning.
+
+The economical suit calculation is shared by direct and sandwich natural overcalls;
+the differing hand-qualification policies remain separate. The shared natural NT
+check applies the appropriate HCP range and stopper requirements. Evidence retains
+actual honor quality, HCP, both stoppers or both unbid-suit lengths as appropriate.
+The initial sandwich rules are in `OvercallRules`; later sandwich continuations and
+initial actions after other response families are not yet taught.
 
 ## Responder after an opponent's natural suit overcall
 

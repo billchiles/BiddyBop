@@ -5,7 +5,8 @@ import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
   naturalOneNtDefenseSuitApplies, naturalOneNtDefenseComparisonEvidence,
-  refineSharedDirectOvercallPass,
+  refineSharedDirectOvercallPass, refineSandwichSuitOvercall, sandwichSuitOvercallApplies,
+  sandwichTakeoutDoubleApplies,
   naturalNotrumpOvercallApplies, naturalOneLevelSuitOvercallApplies, naturalTwoLevelSuitOvercallApplies, naturalOneNtOvercallerInvitationApplies,
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
@@ -31,6 +32,62 @@ import {
 
 /// Direct, balancing, and sandwich overcalls and subsequent overcaller rebids share this collection.
 export const OvercallRules: BidRule[] = [
+  //// Sandwich-seat initial competition
+  {
+    id: 'sandwich-overcall-simple-suit-at-one-level', kind: 'overcall',
+    title: 'Make an economical natural one-level sandwich overcall',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    calls: ['1C', '1D', '1H', '1S'], callCategory: ['natural'],
+    callRefinement: refineSandwichSuitOvercall, deriveCallPublicMeaning: refineSandwichSuitOvercall,
+    appliesWhen: sandwichSuitOvercallApplies,
+    meaning: 'Natural nonforcing overcall in an unbid suit: 10+ HCP and a good five-card or longer suit.',
+    guidance: ['Both opponents have named suits; a sound suit and actual HCP are important.'],
+  },
+  {
+    id: 'sandwich-overcall-simple-suit-at-two-level', kind: 'overcall',
+    title: 'Make an economical natural two-level sandwich overcall',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    calls: ['2C', '2D', '2H', '2S'], callCategory: ['natural'],
+    callRefinement: refineSandwichSuitOvercall, deriveCallPublicMeaning: refineSandwichSuitOvercall,
+    appliesWhen: sandwichSuitOvercallApplies,
+    meaning: 'Natural nonforcing overcall: 11+ HCP with a good six-card or longer suit, or 14+ HCP with an exceptional five-card suit.',
+    guidance: ['An exceptional five-card suit has three of A/K/Q/J, including two of A/K/Q.'],
+  },
+  {
+    id: 'sandwich-overcall-takeout-double-two-unbid-suits', kind: 'overcall',
+    title: 'Double for takeout to either unbid suit',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    calls: ['Double'], callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning, appliesWhen: sandwichTakeoutDoubleApplies,
+    meaning: 'Takeout Double: 12+ actual HCP and at least four cards in each of the two unbid suits.',
+    guidance: ['Partner can choose between the unbid suits; this does not use the strong direct-Double exception.'],
+  },
+  {
+    id: 'sandwich-overcall-natural-1nt-with-stoppers', kind: 'overcall',
+    title: 'Overcall 1NT with two stoppers',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    calls: ['1NT'], callCategory: ['natural'], deriveCallPublicMeaning: declaredCallsPublicMeaning,
+    appliesWhen: naturalNotrumpOvercallApplies,
+    meaning: 'Natural 1NT: balanced 16–18 HCP and a stopper in each opposing suit.',
+    guidance: ['This fixed range is independent of the opening 1NT agreement; the app uses A, Kx, Qxx, or Jxxx as a basic stopper.'],
+  },
+  {
+    id: 'sandwich-overcall-pass-after-one-level-new-suit', kind: 'overcall',
+    title: 'Pass without a suitable sandwich intervention',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    calls: ['Pass'], callCategory: ['signoff'], appliesWhen: { hcp: { max: 17 } },
+    meaning: 'Pass with at most 17 HCP when no modeled constructive sandwich action qualifies.',
+    guidance: ['Experienced players may also choose Pass with some qualifying competitive hands; vulnerability and judgment are not modeled.'],
+  },
+  {
+    id: 'sandwich-overcall-boundary-strong-after-one-level-new-suit', kind: 'scopeBoundary',
+    title: 'Strong sandwich hand without a suitable constructive action',
+    auctionContext: { stage: 'sandwichOvercalling', sandwichResponseFamily: 'oneLevelNewSuit' },
+    scopeBoundaryWhen: (context) => ({ success: context.handFacts.hcp >= 18,
+      telemetryLines: ['18+ HCP without a qualifying sandwich action requires competitive judgment.'] }),
+    meaning: 'A strong hand without a suitable natural suit, natural 1NT or shape-promising Double requires more advanced competitive judgment.',
+    guidance: ['Neither an automatic Pass nor a shape-breaking Double is taught here.'],
+  },
   //// Direct overcalls and scope boundaries
   // Passing is normal when no modeled competitive action qualifies. The evaluator suppresses
   // this fallback when a natural overcall, takeout Double, preempt, or DONT action applies.
