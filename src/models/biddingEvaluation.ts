@@ -5,15 +5,16 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type HandShapeConstraint, type AuctionEvalContext, type RuleEvalContext,
          type CallRefinementResult, type CallCategory,
-         type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type SandwichInterference, type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit, type Seat } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
          getOpeningPartnershipCalls, getPartnerOpeningCall, getResponderCall,
          getStrainFromSuitBid, isCallAvailableInAuction, isContractBid, parseSuitBid, responseJump,
-         getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening,
+         getAdvancerCallKindForOpenerRebid, getDirectInterference,
          getOpponentNaturallyBidSuitsForOpenerRebid, getPartnerOneNtSuitInterference,
-         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed, isMajorOneNtForcing }
+         getSeatForCallIndex, getPartnerSeat, responderPreviouslyPassed, isMajorOneNtForcing,
+         cheapestBidInStrainAfter }
   from './auction';
 import { OpeningBidRules } from './opening-rules';
 import { ResponseBidRules } from './responding-rules';
@@ -454,7 +455,7 @@ function placesUnsupportedNaturalGame (call: Call, index: number, dealer: Seat, 
 /// them rather than being precomputed into every RuleEvalContext.
 ///
 export function makeRuleEvalContext (board: Board, auction: Call[],
-                                     system?: BiddingSystem): RuleEvalContext {
+                                     system: BiddingSystem): RuleEvalContext {
   const context = makeAuctionPublicContext(board.dealer, auction, system);
   const hand = board.deal[context.seat];
   return { ...context, hand, handFacts: getHandFacts(hand) };
@@ -463,7 +464,7 @@ export function makeRuleEvalContext (board: Board, auction: Call[],
 /// Derive the acting seat and modeled stage from public auction information alone.
 /// This also supports interpreting an earlier call without access to its bidder's hand.
 export function makeAuctionPublicContext (dealer: Seat, auction: Call[],
-                                          system?: BiddingSystem): AuctionEvalContext {
+                                          system: BiddingSystem): AuctionEvalContext {
   return { dealer, seat: getNextSeat(dealer, auction),
     stage: getNextBiddingRuleStage(dealer, auction, system), auction };
 }
@@ -481,8 +482,11 @@ export function getRulesForStage (stage: BidStage | null): BidRule[] {
     case 'overcalling':
     case 'balancing':
     case 'overcallerRebid':
+    case 'sandwichOvercalling':
+    case 'sandwichOvercallerRebid':
       return OvercallRules;
     case 'advancing':
+    case 'sandwichAdvancing':
       return AdvanceRules;
     case 'responderRebid':
       return ResponderRebidRules;
@@ -506,7 +510,7 @@ export function getCallPublicMeaning (call: Call, context: AuctionEvalContext,
   for (const rule of rules) {
     if (rule.kind === 'scopeBoundary' || rule.calls === undefined ||
         rule.callCategory === undefined || !rule.calls.includes(call) ||
-        !auctionContextMatches(rule.auctionContext, context, system)) {
+        !auctionContextRuleMatches(rule.auctionContext, context, system)) {
       continue;
     }
     const mechanicallyAvailable = rule.calls.filter((candidate) =>
@@ -550,7 +554,7 @@ function combinePublicCallCategories (meanings: CallCategory[][]): CallPublicMea
 export function evaluateRules (rules: BidRule[], context: RuleEvalContext,
                                system: BiddingSystem): RuleEvalResult[] {
   return rules
-    .filter((rule) => auctionContextMatches(rule.auctionContext, context, system))
+    .filter((rule) => auctionContextRuleMatches(rule.auctionContext, context, system))
     .map((rule) => evaluateRule(rule, context, system));
 }
 
@@ -1231,11 +1235,11 @@ function evaluateHandConstraint (constraint: HandConstraint, call: Call,
     pass = pass && result.pass;
   }
   if (constraint.supportLength !== undefined) {
-    const result = testSupportLength(constraint.supportLength, context);
+    const result = testSupportLength(constraint.supportLength, context, system);
     telemetryLines.push(result.telemetryLine);
     // No partner suit means the constraint failed without a measurable holding.
     // Record that outcome rather than omit evidence or assign an invented suit.
-    const supportSuit = getSupportSuitForStage(context);
+    const supportSuit = getSupportSuitForStage(context, system);
     requirements.push({ kind: 'partnerSupport', suit: supportSuit ?? undefined,
       actual: supportSuit === null ? undefined : context.handFacts.lengths[supportSuit],
       min: constraint.supportLength.min, max: constraint.supportLength.max,
@@ -1405,9 +1409,9 @@ function testHandShape (shape: HandShapeConstraint, call: Call,
 /// the declared range.  While responding this is opener's suit; on opener's rebid it is responder's
 /// suit.  supportLength does not choose how total points are valued.
 ///
-function testSupportLength (supportLength: PointRange, context: RuleEvalContext) :
+function testSupportLength (supportLength: PointRange, context: RuleEvalContext, system: BiddingSystem) :
       { pass: boolean; telemetryLine: string } {
-  const supportSuit = getSupportSuitForStage(context);
+  const supportSuit = getSupportSuitForStage(context, system);
   if (supportSuit === null) {
     return {pass: false,
             telemetryLine: 'FAIL: no partner suit is available for supportLength constraint.',};
@@ -1416,7 +1420,7 @@ function testSupportLength (supportLength: PointRange, context: RuleEvalContext)
                         `${supportSuit} support length`);
 }
 
-function getSupportSuitForStage (context: AuctionEvalContext): Suit | null {
+function getSupportSuitForStage (context: AuctionEvalContext, system: BiddingSystem): Suit | null {
   if (context.stage === 'responding') {
     const opening = getPartnerOpeningCall(context.dealer, context.auction, context.seat);
     if (opening === null) {
@@ -1435,9 +1439,11 @@ function getSupportSuitForStage (context: AuctionEvalContext): Suit | null {
     return strain === 'NT' ? null : strain;
   }
 
-  if (context.stage === 'advancing') {
+  if (context.stage === 'advancing' || context.stage === 'sandwichAdvancing') {
+    const sandwich = context.stage === 'sandwichAdvancing';
+    if (sandwich && getSandwichInterference(context, system) !== 'suitOvercall') return null;
     const opening = getOpeningCallInfo(context.dealer, context.auction);
-    const overcall = opening === null ? undefined : context.auction[opening.index + 1];
+    const overcall = opening === null ? undefined : context.auction[opening.index + (sandwich ? 3 : 1)];
     if (overcall === undefined || ! isContractBid(overcall)) {
       return null;
     }
@@ -1452,14 +1458,21 @@ function getSupportSuitForStage (context: AuctionEvalContext): Suit | null {
 //// Auction context matching -- interpreting rule declarations against the actual auction
 ///
 
-/// auctionContextMatches decides only whether a rule belongs to the current auction; hand qualification and call refinement are separate responsibilities.
+/// auctionContextRuleMatches decides only whether a rule belongs to the current auction; hand qualification and call refinement are separate responsibilities.
 /// Exact auction declarations stay literal, while opener/responder fields provide explicit semantic constraints.
 ///
-function auctionContextMatches (ruleContext: AuctionContext | undefined,
+function auctionContextRuleMatches (ruleContext: AuctionContext | undefined,
                                evalContext: AuctionEvalContext,
                                system: BiddingSystem): boolean {
   if (ruleContext === undefined) {
     return true;
+  }
+  // Check explicit constraints before any special matcher can return early.
+  if (ruleContext.stage !== undefined && ruleContext.stage !== evalContext.stage) return false;
+  const sandwich = ruleContext.sandwichInterference;
+  if (sandwich !== undefined && sandwich !== 'ignored') {
+    const actual = getSandwichInterference(evalContext, system);
+    if (sandwich === 'present' ? actual === 'none' : actual !== sandwich) return false;
   }
   if (ruleContext.partnerNaturalOneNt === true) {
     return matchesPartnerNaturalOneNt(evalContext);
@@ -1475,7 +1488,7 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
     return false;
   }
 
-  const interference = getInterferenceAfterOpening(evalContext.dealer, evalContext.auction);
+  const interference = getDirectInterference(evalContext.dealer, evalContext.auction);
   // getNextBiddingRuleStage admits only reviewed physical competitive opener turns.  Keep ordinary opener
   // rules isolated as a second line of defense: reuse must be explicit, while a rule that declares
   // interference is already a purpose-built competitive treatment.
@@ -1579,6 +1592,48 @@ function auctionContextMatches (ruleContext: AuctionContext | undefined,
   }
 
   return true;
+}
+
+/// Classify the actual fourth-seat call by public auction facts, independent of hand eligibility.
+/// Interpret responder's call against its strictly shorter prefix, so rule matching cannot
+/// recurse into the same sandwich auction. Unsupported substantive calls are never none.
+export function getSandwichInterference (context: AuctionEvalContext,
+                                         system: BiddingSystem): SandwichInterference {
+  const { dealer, auction } = context;
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null || ! /^1[CDHS]$/.test(opening.call) ||
+      auction[opening.index + 1] !== 'Pass') return 'none';
+  const response = auction[opening.index + 2];
+  const action = auction[opening.index + 3];
+  if (response === undefined || !isContractBid(response) || action === undefined ||
+      action === 'Pass') return 'none';
+  const prefix = auction.slice(0, opening.index + 2);
+  if (!isCallAvailableInAuction(action, auction.slice(0, opening.index + 3))) return 'other';
+  const meaning = getCallPublicMeaning(response, makeAuctionPublicContext(dealer, prefix, system), system);
+  if (meaning.status !== 'known' || !meaning.categories.includes('natural') ||
+      meaning.categories.includes('conventional') || meaning.categories.includes('gameForcing')) return 'other';
+  const opened = parseSuitBid(opening.call)!;
+  const responded = parseSuitBid(response)!;
+  const jump = responseJump(opening.call, response);
+  const newSuit = responded.strain !== 'NT' && responded.strain !== opened.strain;
+  // A/C/D admit selected takeout meanings; B and higher responses do not.
+  const familyA = newSuit && responded.level === 1 && jump === 0;
+  const familyB = newSuit && responded.level === 2 && jump === 0;
+  const familyC = response === '1NT';
+  const familyD = responded.strain === opened.strain && responded.level === 2;
+  if (action === 'Double') return familyA || familyC || familyD ? 'takeoutDouble' : 'other';
+  if (action === '1NT') return familyA ? 'ntOvercall' : 'other';
+  const bid = parseSuitBid(action);
+  if (bid === null || bid.strain === 'NT' || bid.strain === opened.strain ||
+      bid.strain === responded.strain || cheapestBidInStrainAfter(responded, bid.strain) !== action) return 'other';
+  if (familyA || familyC) return bid.level <= 2 ? 'suitOvercall' : 'other';
+  if (familyB || familyD) return bid.level <= 3 ? 'suitOvercall' : 'other';
+  // E permits only the selected invitations and weak single jump shifts, at economical levels.
+  const invitation = meaning.categories.includes('invitational') &&
+    (responded.strain === opened.strain && responded.level === 3 ||
+     responded.strain === 'NT' && responded.level === 2 && ['C', 'D'].includes(opened.strain));
+  const weakShift = newSuit && jump === 1 && meaning.categories.includes('signoff');
+  return (invitation && bid.level === 3 || weakShift && bid.level <= 3) ? 'suitOvercall' : 'other';
 }
 
 /// matchesPartnerNaturalOneNt recognizes the two genuine auctions that use shared 1NT calls.

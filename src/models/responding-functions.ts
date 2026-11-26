@@ -5,7 +5,7 @@ import {STRAIN_ORDER, type AppliesWhenResult,
         type SuitBid} from './bidding-types';
 import { hasPreemptSuitQuality, SUITS, type Suit } from './cards';
 import {cheapestBidInStrainAfter, cheapestNewSuitBid, getOpeningCallInfo, responderPreviouslyPassed,
-        getInterferenceAfterOpening, parseSuitBid, type ParsedSuitBid} from './auction';
+        getDirectInterference, parseSuitBid, type ParsedSuitBid} from './auction';
 import {getPartnerOpeningBid, getThreeLevelPreemptOpeningBid, getWeakTwoOpeningBid, 
         hasBasicSuitStopper, orderMajorSuitCandidates} from './common-rule-helpers';
 
@@ -53,7 +53,7 @@ export function refineRaiseToLevel (calls: Call[], context: AuctionEvalContext,
 ///
 export function refineSharedWeakResponderPass (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   if (interference === 'other') {
     return { calls: [], telemetryLines: ['Weak Pass is not modeled for this interference.'] };
   }
@@ -1283,7 +1283,7 @@ export function refineResponderPreemptiveMajorGameRaise (calls: Call[], context:
     CallRefinementResult {
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   const overcall = openingInfo === null ? null : parseSuitBid(context.auction[openingInfo.index + 1] ?? 'Pass');
-  if (getInterferenceAfterOpening(context.dealer, context.auction) === 'jumpSuitOvercall' &&
+  if (getDirectInterference(context.dealer, context.auction) === 'jumpSuitOvercall' &&
       overcall !== null && overcall.level >= 4) {
     return { calls: [], telemetryLines: ['Four-level jump-overcall responses remain unmodeled.'] };
   }
@@ -1438,7 +1438,7 @@ export function responderNotrumpAfterJumpOvercallApplies (call: Call, context: R
 ///
 function getJumpOvercallForResponder (context: AuctionEvalContext):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
-  if (getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
+  if (getDirectInterference(context.dealer, context.auction) !== 'jumpSuitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);

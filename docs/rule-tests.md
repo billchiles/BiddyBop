@@ -22,6 +22,13 @@ player, validate the bidding treatment against outside sources, or measure exhau
 coverage. Stages not declared on a deal are skipped; explicitly empty expectation arrays and
 expected calls with no rule IDs are malformed test data.
 
+The shared `getTestedStages` helper in `tests/stats.ts` derives expectation positions
+from the authored physical auction independently of evaluator routing. Direct overcall,
+advance and overcaller-rebid expectations use opening-relative offsets +1/+3/+5;
+sandwich expectations use +3/+5/+7. The primary runner separately asserts the actual
+stage. `stats.ts` can run without the test runner, and importing its helper does not
+write the report. Stage inventories respect special shared NT matcher restrictions.
+
 The runner also performs a separate **agreement-compatibility meta-check**. It tests the recorded
 practice call at each declared stage under four representative settings: Stayman/Jacoby/Texas all
 on; Stayman/Jacoby on with Texas off; Stayman only; and all three off. A deal is checked under
@@ -41,7 +48,7 @@ contrast. Keep each deal's `description` useful to the person practicing it.
 
 For current practice-deal counts, primary test assertion totals, and rule-reach
 statistics, see [`by-the-numbers.md`](by-the-numbers.md). It is regenerated
-from the rule and practice sources with `npm run stats:bidding`; the normal
+from the rule and practice sources with `npm run project:stats`; the normal
 `test:rules` command separately reports assertion results and failures.
 
 
@@ -60,6 +67,13 @@ checks responder-Pass feedback; all pairs check recorded-call substitution. Addi
 auction checks protect passed-hand and jump-shift agreement distinctions, the ambiguous implied-minor
 rebid after a negative Double, weak-two 2NT Texas request/completion and disabled Texas, and the
 penalty-conversion exception to auction-end guidance.
+
+Sandwich infrastructure checks cover the physical +3 through +7 stages, auction completion,
+pre-opening Passes and rotated dealers; natural versus artificial/unsupported interference;
+Standard versus 2/1, weak versus strong jump shifts, and forcing 1NT. They also check DONT
+independence, explicit `none`/`present`/`ignored`/concrete constraints and omission, and that
+special NT matching cannot bypass declared constraints. Existing direct and quiet rules do
+not leak into unimplemented sandwich turns. No new practice deals are needed for routing alone.
 
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum

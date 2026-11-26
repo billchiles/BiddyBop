@@ -251,15 +251,12 @@ export function responderStrongSecondSuitGamePublicMeaning (calls: Call[], conte
 /// Neither the printed suit combination nor the opponent's intervening Passes define the family.
 export function getResponderStrongSecondSuit (context: AuctionEvalContext):
     { kind: 'reverse' | 'jumpShift'; opening: Suit; response: Suit; second: Suit } | null {
-  if (context.stage !== 'responderRebid') return null;
-  const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
-  if (openingInfo === null) return null;
-  const partnership = getOpeningPartnershipCalls(context.dealer, context.auction, openingInfo.seat);
-  if (partnership.length !== 3 || !/^1[CDHS]$/.test(partnership[0] ?? '') ||
-      !/^1[CDHS]$/.test(partnership[1] ?? '')) return null;
-  const opening = parseSuitBid(partnership[0]);
-  const response = parseSuitBid(partnership[1]);
-  const rebid = parseSuitBid(partnership[2]);
+  const continuation = getUncontestedThreeCallContinuation(context);
+  if (continuation === null || !/^1[CDHS]$/.test(continuation.opening) ||
+      !/^1[CDHS]$/.test(continuation.response)) return null;
+  const opening = parseSuitBid(continuation.opening);
+  const response = parseSuitBid(continuation.response);
+  const rebid = parseSuitBid(continuation.rebid);
   if (opening === null || response === null || rebid === null || rebid.strain === 'NT' ||
       opening.strain === response.strain || rebid.strain === opening.strain ||
       rebid.strain === response.strain) return null;

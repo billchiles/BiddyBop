@@ -370,11 +370,14 @@ function failureHeading(status: BiddingTurnStatus, call: Call): string {
   switch (stage) {
     case 'opening': return 'Why this opening does not meet the selected requirements:';
     case 'responding': return 'Why this response does not meet the selected requirements:';
+    case 'sandwichOvercalling':
     case 'overcalling': return 'Why this overcall does not meet the selected requirements:';
     case 'balancing': return 'Why this balancing call does not meet the selected requirements:';
+    case 'sandwichAdvancing':
     case 'advancing': return 'Why this advance does not meet the selected requirements:';
     case 'openerRebid': return 'Why this opener rebid does not meet the selected requirements:';
     case 'responderRebid': return 'Why this responder rebid does not meet the selected requirements:';
+    case 'sandwichOvercallerRebid':
     case 'overcallerRebid': return 'Why this overcaller rebid does not meet the selected requirements:';
     case null: return 'Why this call does not meet the selected requirements:';
   }
@@ -441,7 +444,7 @@ export function getOutstandingForceGuidance(
       'The app does not teach every subsequent call.'];
   }
   const bidder = force.lastStage === 'opening' || force.lastStage === 'openerRebid'
-    ? 'Opener' : force.lastStage === 'advancing' ? 'Advancer' : 'Overcaller';
+    ? 'Opener' : (force.lastStage === 'advancing' || force.lastStage === 'sandwichAdvancing') ? 'Advancer' : 'Overcaller';
   return ['', attribution, `${bidder}'s call is forcing for one round. Partner must act if the ` +
     'opponents do not interfere. The app does not teach every subsequent call.'];
 }

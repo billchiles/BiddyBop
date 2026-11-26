@@ -8,7 +8,7 @@ import {
 import { getCardsForSuit, hasSolidWeakTwoSuit, SUITS, type Suit } from './cards';
 import {
   cheapestBidInStrainAfter, cheapestNewSuitBid, compareSuitBids,
-  getAdvancerCallKindForOpenerRebid, getInterferenceAfterOpening, getOpeningCallInfo,
+  getAdvancerCallKindForOpenerRebid, getDirectInterference, getOpeningCallInfo,
   getOpponentNaturallyBidSuitsForOpenerRebid, getResponderCall, isCallAvailableInAuction,
   isContractBid,
   openerRebidIsReverse, parseSuitBid, responderPreviouslyPassed, type ParsedSuitBid
@@ -1661,7 +1661,7 @@ function getCheapestAvailableSuitBidForOpener (
 
 function getOpenerNegativeDoubleInfo (context: AuctionEvalContext): OpenerNegativeDoubleInfo | null {
   if (context.stage !== 'openerRebid' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1721,7 +1721,7 @@ function buildOpenerCompetitiveForcingRebidEvidence (
   }
   const openingSuit = first.strain as Suit;
   const responseSuit = response.strain as Suit;
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
   const firstOpponentCall = openingInfo === null ? undefined :
     context.auction[openingInfo.index + 1];
@@ -1999,7 +1999,7 @@ function getOpenerForcingResponseCompetitionInfo (context: RuleEvalContext):
     return null;
   }
   const advancerKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   if (interference === 'suitOvercall') {
     const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
     if (overcall === null || overcall.strain === 'NT' || response.strain === overcall.strain ||
@@ -2192,7 +2192,7 @@ export function openerThreeLevelForcingResponseOpeningMajorGameApplies (
   const advanceKind = getAdvancerCallKindForOpenerRebid(context.dealer, context.auction);
   const selected = context.stage === 'openerRebid' && openingInfo !== null &&
     context.auction.length === openingInfo.index + 4 &&
-    getInterferenceAfterOpening(context.dealer, context.auction) === 'suitOvercall' &&
+    getDirectInterference(context.dealer, context.auction) === 'suitOvercall' &&
     (advanceKind === 'raise' || advanceKind === 'preemptiveRaise') &&
     opening !== null && (opening.strain === 'H' || opening.strain === 'S') &&
     response !== null && response.level === 3 && response.strain !== 'NT' &&
@@ -2241,7 +2241,7 @@ function openerAfterAdvancerSupportCuebid (context: RuleEvalContext): boolean {
   const opening = parseSuitBid(openingInfo.call);
   const response = parseSuitBid(context.auction[openingInfo.index + 2] ?? 'Pass');
   const advance = context.auction[openingInfo.index + 3];
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   return opening !== null && opening.level === 1 && opening.strain !== 'NT' &&
     response !== null && response.strain === opening.strain && response.level === 2 &&
     (interference === 'suitOvercall' || interference === 'takeoutDouble') &&
@@ -2415,7 +2415,7 @@ export function jumpOvercallOpenerNtPublicMeaning (calls: Call[], context: Aucti
 function getJumpOvercallContinuation (context: AuctionEvalContext): JumpOvercallContinuation | null {
   const first = getOpeningCallInfo(context.dealer, context.auction);
   if (first === null || context.auction.length !== first.index + 4 ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
+      getDirectInterference(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
       context.auction[first.index + 3] !== 'Pass') return null;
   const opening = parseSuitBid(first.call);
   const overcall = parseSuitBid(context.auction[first.index + 1] ?? 'Pass');

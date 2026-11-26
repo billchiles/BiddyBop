@@ -29,7 +29,10 @@ export type BidStage =
   | 'overcalling'
   | 'balancing'
   | 'advancing'
-  | 'overcallerRebid';
+  | 'overcallerRebid'
+  | 'sandwichOvercalling'
+  | 'sandwichAdvancing'
+  | 'sandwichOvercallerRebid';
 
 ///
 //// Bidding System conventions and agreements types
@@ -295,6 +298,11 @@ export interface AdvancerCallContext {
 export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
   'takeoutDouble' | 'notrumpOvercall' | 'other';
 
+/// Actual fourth-seat interference or a rule's matching condition. Present includes other;
+/// ignored is an unconstrained matcher, not an actual call classification.
+export type SandwichInterference = 'none' | 'present' | 'ignored' | 'suitOvercall' |
+  'ntOvercall' | 'takeoutDouble' | 'other';
+
 /// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
   // stage selects the bidding phase in which the rule can apply.
@@ -320,6 +328,9 @@ export interface AuctionContext {
   openerStrain?: Strain | 'suit' | 'minor' | 'major';
   // interference restricts a rule to the direct opponent action after opener.  Omitted means any.
   interference?: DirectInterference;
+  // Fourth physical call after a one-level suit opening and an initial opposing Pass.
+  // Omitted or ignored is unconstrained; none excludes interference, present includes other.
+  sandwichInterference?: SandwichInterference;
   // Ordinary opener-rebid rules must opt in before they can be reused after opponent interference.
   // Explicit competitive opener-rebid rules instead declare their interference context directly.
   openerRebidAfterInterference?: boolean;

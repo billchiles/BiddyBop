@@ -33,7 +33,7 @@ export interface PartnerOneNtSuitInterference {
 /// Return null when the next turn's auction context maps to no modeled bidding-rule stage; this
 /// does not imply the real bridge auction or recorded practice exercise has ended.
 export function getNextBiddingRuleStage (dealer: Seat, auction: Call[],
-                                         system?: BiddingSystem): BidStage | null {
+                                         system: BiddingSystem): BidStage | null {
   if (auctionIsComplete(auction)) return null;
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
@@ -58,9 +58,31 @@ export function getNextBiddingRuleStage (dealer: Seat, auction: Call[],
     // The fourth player may reopen after the opening bidder's partner and the direct
     // overcaller have passed.  This is a first balancing decision, not an advancer rebid.
     const opened = parseSuitBid(opening.call);
-    if (overcall === 'Pass' && auction[opening.index + 2] === 'Pass' &&
-        opened !== null && opened.level === 1 && opened.strain !== 'NT') {
-      return 'balancing';
+    if (overcall === 'Pass' && opened !== null && opened.level === 1 && opened.strain !== 'NT') {
+      const response = auction[opening.index + 2];
+      if (response === 'Pass') return 'balancing';
+      if (response !== undefined && isContractBid(response) &&
+          isCallAvailableInAuction(response, auction.slice(0, opening.index + 2))) {
+        return 'sandwichOvercalling';
+      }
+    }
+  }
+  // A substantive fourth-seat action creates a separate physical continuation. Its public
+  // meaning (including unsupported actions) is resolved by the evaluator, not the router.
+  const opened = parseSuitBid(opening.call);
+  const response = auction[opening.index + 2];
+  const sandwichCall = auction[opening.index + 3];
+  if (opened !== null && opened.level === 1 && opened.strain !== 'NT' && overcall === 'Pass' &&
+      response !== undefined && isContractBid(response) &&
+      isCallAvailableInAuction(response, auction.slice(0, opening.index + 2)) &&
+      sandwichCall !== undefined && sandwichCall !== 'Pass' &&
+      isCallAvailableInAuction(sandwichCall, auction.slice(0, opening.index + 3))) {
+    switch (auction.length - opening.index) {
+      case 4: return 'openerRebid';
+      case 5: return 'sandwichAdvancing';
+      case 6: return 'responderRebid';
+      case 7: return 'sandwichOvercallerRebid';
+      default: return null;
     }
   }
   // The overcaller acts again after opener, overcaller, responder, advancer, and opener have each
@@ -103,7 +125,7 @@ export function getNextBiddingRuleStage (dealer: Seat, auction: Call[],
 /// pattern has an explicitly modeled opener continuation.  Passing advancer cases remain the broad
 /// selected base; natural advancer competition is admitted only for reviewed families below.
 function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
-    opening: OpeningBidInfo, system?: BiddingSystem): boolean {
+    opening: OpeningBidInfo, system: BiddingSystem): boolean {
   if (auction.length !== opening.index + 4) {
     return false;
   }
@@ -120,7 +142,7 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
   // artificial continuations.  An advancer raise is admitted only where opener's next decision
   // has been reviewed rather than inferred from the compact partnership auction.
   if (openingBid.level === 1 && openingBid.strain !== 'NT') {
-    const interference = getInterferenceAfterOpening(dealer, auction);
+    const interference = getDirectInterference(dealer, auction);
     if (interference === 'suitOvercall') {
       const overcallBid = parseSuitBid(overcall);
       if (overcallBid === null || overcallBid.strain === 'NT') return false;
@@ -307,7 +329,7 @@ function isSupportedCompetitiveOpenerRebid (dealer: Seat, auction: Call[],
     if (response === 'Double' && advance === `3${overcallBid.strain}`) return true;
     // After a natural suit response, DONT-off also recognizes the opposing
     // three-level raise, but offers judgment guidance rather than a forced bid.
-    if (system?.dont !== false || advance !== `3${overcallBid.strain}` ||
+    if (system.dont !== false || advance !== `3${overcallBid.strain}` ||
         !isCallAvailableInAuction(advance, auction.slice(0, opening.index + 3))) return false;
     const responseBid = parseSuitBid(response);
     return responseBid !== null && responseBid.strain !== 'NT' &&
@@ -334,14 +356,17 @@ export function getAdvancerCallKindForOpenerRebid (dealer: Seat, auction: Call[]
       advance === undefined) {
     return null;
   }
+  // Existing quiet opener rules also require a physical fourth-seat Pass. Other
+  // fourth-seat calls are direct advances only when the direct opponent intervened.
   if (advance === 'Pass') return 'pass';
+  if (overcall === 'Pass') return null;
   if (advance === 'Double') return 'responsiveDouble';
   if (advance === 'Redouble') return 'redouble';
   const advanceBid = parseSuitBid(advance);
   if (advanceBid === null) return 'other';
   if (advanceBid.strain === 'NT') return 'notrump';
 
-  const interference = getInterferenceAfterOpening(dealer, auction);
+  const interference = getDirectInterference(dealer, auction);
   if (interference === 'suitOvercall') {
     const overcallBid = parseSuitBid(overcall);
     if (overcallBid === null || overcallBid.strain === 'NT') return 'other';
@@ -379,7 +404,7 @@ export function getOpponentNaturallyBidSuitsForOpenerRebid (dealer: Seat, auctio
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) return [];
   const suits = new Set<Suit>();
-  const interference = getInterferenceAfterOpening(dealer, auction);
+  const interference = getDirectInterference(dealer, auction);
   if (interference === 'suitOvercall' || interference === 'jumpSuitOvercall') {
     const overcallCall = auction[opening.index + 1];
     const overcall = overcallCall === undefined ? null : parseSuitBid(overcallCall);
@@ -428,9 +453,9 @@ export function getPartnerOneNtSuitInterference (dealer: Seat, auction: Call[],
     : null;
 }
 
-/// getInterferenceAfterOpening classifies the opponent's first call immediately after opener's
+/// getDirectInterference classifies the opponent's first call immediately after opener's
 /// bid, distinguishing natural suit overcalls, preemptive jumps, and a takeout double.
-export function getInterferenceAfterOpening (dealer: Seat, auction: Call[]): DirectInterference {
+export function getDirectInterference (dealer: Seat, auction: Call[]): DirectInterference {
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null) {
     return 'none';

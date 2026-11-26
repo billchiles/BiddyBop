@@ -2,7 +2,7 @@
 
 import { type AppliesWhenResult, type Call, type CallEvidence, type CallRefinementResult,
          type AuctionEvalContext, type RuleEvalContext } from './bidding-types';
-import { cheapestBidInStrainAfter, getInterferenceAfterOpening, getOpeningCallInfo,
+import { cheapestBidInStrainAfter, getDirectInterference, getOpeningCallInfo,
          parseSuitBid, isCallAvailableInAuction, type ParsedSuitBid } from './auction';
 import { getNegativeDoubleImpliedSuits, hasBasicSuitStopper } from './common-rule-helpers';
 import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
@@ -416,7 +416,7 @@ function evaluateNaturalNotrumpAdvance (call: Call, context: RuleEvalContext,
 function getNaturalSuitOvercallForAdvancer (context: AuctionEvalContext, level: 1 | 2):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -556,7 +556,7 @@ export function naturalTakeoutDoubleNotrumpAdvanceApplies (call: Call, context: 
 ///
 function getTakeoutDoubleForAdvancer (context: AuctionEvalContext): ParsedSuitBid | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+      getDirectInterference(context.dealer, context.auction) !== 'takeoutDouble') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -894,7 +894,7 @@ export function unsupportedResponderActionAdvanceBoundary (context: RuleEvalCont
   const action = context.auction[info.index + 1];
   const responseCall = context.auction[info.index + 2];
   const response = responseCall === undefined ? null : parseSuitBid(responseCall);
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
       response === null || responseCall === undefined) {
     return { success: false, telemetryLines: [] };
@@ -935,7 +935,7 @@ function getResponderPreemptiveAction (context: RuleEvalContext):
   const responder = responderCall === undefined ? null : parseSuitBid(responderCall);
   if (opening === null || opening.level !== 1 || opening.strain === 'NT' ||
       responder === null || responder.strain === 'NT') return null;
-  const interference = getInterferenceAfterOpening(context.dealer, context.auction);
+  const interference = getDirectInterference(context.dealer, context.auction);
   const overcallCall = context.auction[openingInfo.index + 1];
   if (overcallCall === undefined) return null;
   if (interference === 'suitOvercall') {
@@ -1178,7 +1178,7 @@ function getNaturalSuitOvercallWithResponderNaturalAction (
     overcallLevel: 1 | 2,
 ): { opening: ParsedSuitBid; overcall: ParsedSuitBid; responderAction: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1229,7 +1229,7 @@ function hasQualifyingNewSuitAfterTakeoutResponderNaturalAction (
 function getTakeoutDoubleWithResponderNaturalAction (context: AuctionEvalContext):
     { opening: ParsedSuitBid; responderAction: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+      getDirectInterference(context.dealer, context.auction) !== 'takeoutDouble') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1257,7 +1257,7 @@ function getTakeoutDoubleWithResponderNaturalAction (context: AuctionEvalContext
 function getNaturalSuitOvercallWithResponderRaise (context: AuctionEvalContext, overcallLevel: 1 | 2):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid; responderRaise: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1282,7 +1282,7 @@ function getNaturalSuitOvercallWithResponderRaise (context: AuctionEvalContext, 
 function getTakeoutDoubleWithResponderRaise (context: AuctionEvalContext):
     { opening: ParsedSuitBid; responderRaise: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+      getDirectInterference(context.dealer, context.auction) !== 'takeoutDouble') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1481,7 +1481,7 @@ function getNaturalSuitOvercallWithResponderNegativeDouble (
     overcallLevel?: 1 | 2,
 ): { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1546,7 +1546,7 @@ export function refineTakeoutEscapeAfterResponderRedouble (
 ///
 function getTakeoutDoubleWithResponderRedouble (context: RuleEvalContext): ParsedSuitBid | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'takeoutDouble') {
+      getDirectInterference(context.dealer, context.auction) !== 'takeoutDouble') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);
@@ -1706,7 +1706,7 @@ function getAdvancingSuitHonorEvidence (context: RuleEvalContext, suit: Suit,
 function getJumpOvercallForAdvancer (context: AuctionEvalContext):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
-      getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {
+      getDirectInterference(context.dealer, context.auction) !== 'jumpSuitOvercall') {
     return null;
   }
   const openingInfo = getOpeningCallInfo(context.dealer, context.auction);

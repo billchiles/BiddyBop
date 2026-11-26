@@ -29,6 +29,7 @@ import {
 } from './overcalling-functions';
 
 
+/// Direct, balancing, and sandwich overcalls and subsequent overcaller rebids share this collection.
 export const OvercallRules: BidRule[] = [
   //// Direct overcalls and scope boundaries
   // Passing is normal when no modeled competitive action qualifies. The evaluator suppresses

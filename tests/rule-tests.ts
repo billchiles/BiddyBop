@@ -1,12 +1,13 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
+import { getTestedStages } from './stats';
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
-import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type CallCategory, type SuitBid } from '../src/models/bidding-types';
+import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type CallCategory, type SuitBid, type BidStage, type SandwichInterference } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
-         getInterferenceAfterOpening, getPartnerOneNtSuitInterference,
+         getDirectInterference, getPartnerOneNtSuitInterference,
          getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getSandwichInterference, getRulesForCurrentContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
@@ -90,16 +91,9 @@ import { ADVANCER_AFTER_ONE_LEVEL_SUIT_OVERCALL_TEST_DEALS,
          RESPONDER_AFTER_JUMP_OVERCALL_TEST_DEALS,
          OPENER_REBID_AFTER_INTERFERENCE_TEST_DEALS,
          RULE_TEST_DEAL_BUCKETS, getRulesBucketTestDeals, isPracticeDealCompatible, OPENING_BID_TEST_DEALS, BALANCING_TEST_DEALS,
-         type RuleTestDeal, type RuleTestExpectedCall }
+         type RuleTestDeal }
   from '../src/models/test-deals-registry';
 
-interface StageExpectations {
-  name: string;
-  auctionLength: number;
-  expected: RuleTestExpectedCall[] | undefined;
-  rejected: Call[] | undefined;
-  order: [Call, Call][] | undefined;
-}
 
 type ConventionSetting = 'stayman' | 'jacobyTransfers' | 'texasTransfers';
 type ConventionValues = Pick<BiddingSystem, ConventionSetting>;
@@ -142,6 +136,7 @@ function runAllRuleTests (): void {
     runWeakTwoInquiryExplanationTests,
     runAuctionContextTests,
     runPublicCallMeaningTests,
+    runSandwichInfrastructureTests,
     runCompetitionBoundaryTests,
     runResponderInterferenceScopeBoundaryTests,
     runCompetitiveOpenerRebidBoundaryTests,
@@ -307,6 +302,11 @@ function runRuleTests (): number {
           const context = `${label}\n  ${stage.name}: ${auction.join(' ') || '(opening)'} -> ` +
                           `${inputCall}; system=${JSON.stringify(system)}`;
           try {
+            const actualStage = getNextBiddingRuleStage(board.dealer, auction, system);
+            if (actualStage !== stage.stage) {
+              failureCount += 1;
+              console.error(`FAIL expected ${stage.stage}, got ${actualStage}\n${context}`);
+            }
             const result = evaluateUserCall(inputCall, board, auction, system);
             const candidates = getApplicableCandidateCalls(result);
             // Practice calls must themselves qualify, even when other alternatives are expected.
@@ -444,26 +444,6 @@ function runConventionCompatibilityChecks (): number {
   console.log();
   return failureCount;
 }
-function getTestedStages (deal: RuleTestDeal): StageExpectations[] {
-  return [
-    { name: 'opening', auctionLength: 0, expected: deal.expectedOpeningCalls,
-      rejected: deal.rejectedOpeningCalls, order: deal.expectedOpeningCallOrder },
-    { name: 'overcall', auctionLength: 1, expected: deal.expectedOvercallCalls,
-      rejected: deal.rejectedOvercallCalls, order: deal.expectedOvercallCallOrder },
-    { name: 'balancing', auctionLength: 3, expected: deal.expectedBalancingCalls,
-      rejected: deal.rejectedBalancingCalls, order: undefined },
-    { name: 'advance', auctionLength: 3, expected: deal.expectedAdvanceCalls,
-      rejected: deal.rejectedAdvanceCalls, order: deal.expectedAdvanceCallOrder },
-    { name: 'overcaller rebid', auctionLength: 5, expected: deal.expectedOvercallerRebidCalls,
-      rejected: deal.rejectedOvercallerRebidCalls, order: deal.expectedOvercallerRebidCallOrder },
-    { name: 'response', auctionLength: 2, expected: deal.expectedResponseCalls,
-      rejected: deal.rejectedResponseCalls, order: deal.expectedResponseCallOrder },
-    { name: 'opener rebid', auctionLength: 4, expected: deal.expectedOpenerRebidCalls,
-      rejected: deal.rejectedOpenerRebidCalls, order: deal.expectedOpenerRebidCallOrder },
-    { name: 'responder rebid', auctionLength: 6, expected: deal.expectedResponderRebidCalls,
-      rejected: deal.rejectedResponderRebidCalls, order: undefined },
-  ];
-}
 function matchesRequiredConventions (required: Partial<BiddingSystem> | undefined,
                                      settings: ConventionValues): boolean {
   return required === undefined || CONVENTION_SETTINGS.every((setting) =>
@@ -472,6 +452,100 @@ function matchesRequiredConventions (required: Partial<BiddingSystem> | undefine
 function formatCandidates (candidates: CandidateCallMatch[]): string {
   return candidates.map((candidate) => `${candidate.call} [${candidate.rule.id}, ` +
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
+}
+
+//// Sandwich infrastructure
+
+/// These physical auctions need not have qualified earlier calls. Test routing and public
+/// classification independently of the earlier bidders' private hands.
+function runSandwichInfrastructureTests (): number {
+  const cases: { auction: Call[]; stage: BidStage | null; interference: SandwichInterference;
+                 settings?: Partial<BiddingSystem> }[] = [
+    { auction: ['1C', 'Pass', '1H'], stage: 'sandwichOvercalling', interference: 'none' },
+    { auction: ['1C', 'Pass', '1H', 'Pass'], stage: 'openerRebid', interference: 'none' },
+    { auction: ['1C', 'Pass', '1H', '1S'], stage: 'openerRebid', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1S', 'Pass'], stage: 'sandwichAdvancing', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1S', 'Pass', 'Pass'], stage: 'responderRebid', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1S', 'Pass', 'Pass', '2H'], stage: 'sandwichOvercallerRebid', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1S', 'Pass', 'Pass', 'Pass'], stage: null, interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1S', '2H', 'Pass', 'Pass', '2S'], stage: null, interference: 'suitOvercall' },
+    { auction: ['Pass', 'Pass', '1C', 'Pass', '1H', '1S'], stage: 'openerRebid', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1NT'], stage: 'openerRebid', interference: 'ntOvercall' },
+    { auction: ['1C', 'Pass', '1H', '1NT', 'Pass'], stage: 'sandwichAdvancing', interference: 'ntOvercall' },
+    { auction: ['1C', 'Pass', '1H', 'Double'], stage: 'openerRebid', interference: 'takeoutDouble' },
+    { auction: ['1H', 'Pass', '1NT', 'Double'], stage: 'openerRebid', interference: 'takeoutDouble', settings: { majorOneNtResponse: 'forcing' } },
+    { auction: ['1H', 'Pass', '2H', 'Double'], stage: 'openerRebid', interference: 'takeoutDouble' },
+    { auction: ['1C', 'Pass', '1H', '2S'], stage: 'openerRebid', interference: 'other' },
+    { auction: ['1H', 'Pass', '2C', 'Double'], stage: 'openerRebid', interference: 'other' },
+    { auction: ['1H', 'Pass', '2C', '2D'], stage: 'openerRebid', interference: 'suitOvercall', settings: { twoLevelNewSuitResponse: 'standard' } },
+    { auction: ['1H', 'Pass', '2C', '2D'], stage: 'openerRebid', interference: 'other', settings: { twoLevelNewSuitResponse: 'twoOverOne' } },
+    { auction: ['1H', 'Pass', '2NT', 'Double'], stage: 'openerRebid', interference: 'other', settings: { majorGameForceWithSupport: 'jacoby2NT' } },
+    { auction: ['1C', 'Pass', '3C', '3D'], stage: 'openerRebid', interference: 'suitOvercall' },
+    { auction: ['1D', 'Pass', '2NT', '3H'], stage: 'openerRebid', interference: 'suitOvercall' },
+    { auction: ['1C', 'Pass', '2H', '2S'], stage: 'openerRebid', interference: 'suitOvercall', settings: { jumpShift: 'weak' } },
+    { auction: ['1C', 'Pass', '2H', '2S'], stage: 'openerRebid', interference: 'other', settings: { jumpShift: 'strong' } },
+    { auction: ['1NT', 'Pass', '2C'], stage: null, interference: 'none' },
+    { auction: ['2H', 'Pass', '2S'], stage: null, interference: 'none' },
+  ];
+  let failures = 0;
+  const { board } = makeRuleTestBoard(OPENING_BID_TEST_DEALS[0]!);
+  for (const test of cases) {
+    for (const dealer of ['N', 'E', 'S', 'W'] as const) {
+      for (const dont of [true, false]) {
+        const system = { ...defaultBiddingSystem, ...test.settings, dont };
+        const context = makeAuctionPublicContext(dealer, test.auction, system);
+        const actual = getSandwichInterference(context, system);
+        if (context.stage !== test.stage || actual !== test.interference) {
+          failures++;
+          console.error(`FAIL sandwich context ${test.auction.join(' ')}: ${context.stage}, ${actual}; expected ${test.stage}, ${test.interference}.`);
+        }
+        if (test.stage !== null && (test.stage.startsWith('sandwich') || test.interference !== 'none')) {
+          const result = getRulesForCurrentContext({ ...board, dealer }, test.auction, system);
+          if (result.ruleDiagnostics.length !== 0 || result.applicableRules.length !== 0) {
+            failures++;
+            console.error(`FAIL existing rule leaked into sandwich context ${test.auction.join(' ')}.`);
+          }
+        }
+      }
+    }
+  }
+  // Mock declarations exercise matching semantics independently of the production inventory.
+  const constraints: (SandwichInterference | undefined)[] = [undefined, 'ignored', 'none',
+    'present', 'suitOvercall', 'ntOvercall', 'takeoutDouble', 'other'];
+  const rules: BidRule[] = constraints.map((constraint) => ({
+    id: `test-sandwich-${constraint}`, title: 'Test sandwich context', kind: 'openerRebid',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: constraint }, calls: ['Pass'],
+  }));
+  const system = defaultBiddingSystem;
+  for (const test of cases.filter((entry) => entry.stage === 'openerRebid')) {
+    const agreements = { ...system, ...test.settings };
+    const context = makeRuleEvalContext(board, test.auction, agreements);
+    const actual = evaluateRules(rules, context, agreements).map(({ rule }) => rule.id).sort();
+    const expected = constraints.filter((constraint) => constraint === undefined ||
+      constraint === 'ignored' || constraint === test.interference ||
+      constraint === 'present' && test.interference !== 'none')
+      .map((constraint) => `test-sandwich-${constraint}`).sort();
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      failures++;
+      console.error(`FAIL sandwich matcher constraints after ${test.auction.join(' ')}.`);
+    }
+  }
+  const specialRules: BidRule[] = [
+    { id: 'test-nt-none', title: 'Shared NT without sandwich', kind: 'responseBid',
+      auctionContext: { partnerNaturalOneNt: true, sandwichInterference: 'none' }, calls: ['Pass'] },
+    { id: 'test-nt-present', title: 'Shared NT with sandwich', kind: 'responseBid',
+      auctionContext: { partnerNaturalOneNt: true, sandwichInterference: 'present' }, calls: ['Pass'] },
+    { id: 'test-nt-wrong-stage', title: 'Shared NT wrong stage', kind: 'responseBid',
+      auctionContext: { partnerNaturalOneNt: true, stage: 'advancing' }, calls: ['Pass'] },
+  ];
+  const specialContext = makeRuleEvalContext(board, ['1NT', 'Pass'], system);
+  const specialMatches = evaluateRules(specialRules, specialContext, system).map(({ rule }) => rule.id);
+  if (JSON.stringify(specialMatches) !== JSON.stringify(['test-nt-none'])) {
+    failures++;
+    console.error('FAIL explicit constraints bypassed by shared NT context matcher.');
+  }
+  console.log(`${failures} ***FAILURES***. Sandwich infrastructure: ${cases.length * 8} routing and classification checks, plus matcher constraints.`);
+  return failures;
 }
 
 //// Public call meaning
@@ -678,7 +752,7 @@ function runAuctionContextTests (): number {
   let checkCount = 0;
   let failureCount = 0;
   for (const testCase of cases) {
-    const context = makeRuleEvalContext(board, testCase.auction);
+    const context = makeRuleEvalContext(board, testCase.auction, defaultBiddingSystem);
     const matched = new Set(evaluateRules(rules, context, defaultBiddingSystem)
       .map((result) => result.rule.id));
     for (const ruleId of testCase.expected) {
@@ -1322,7 +1396,7 @@ function runCompetitionBoundaryTests (): number {
   ];
   for (const testCase of stages) {
     checks += 1;
-    if (getNextBiddingRuleStage(board.dealer, testCase.auction) !== testCase.expected) {
+    if (getNextBiddingRuleStage(board.dealer, testCase.auction, defaultBiddingSystem) !== testCase.expected) {
       failures += 1;
       console.error(`FAIL competitive stage for ${testCase.auction.join(' ')}.`);
     }
@@ -1379,14 +1453,14 @@ function runCompetitionBoundaryTests (): number {
   }
   // Direct 1NT and jump overcalls still count as intervention when deriving responder's stage.
   checks += 1;
-  if (getNextBiddingRuleStage('W', ['1D', '1NT']) !== 'responding' ||
-      getNextBiddingRuleStage('W', ['1D', '3C']) !== 'responding') {
+  if (getNextBiddingRuleStage('W', ['1D', '1NT'], defaultBiddingSystem) !== 'responding' ||
+      getNextBiddingRuleStage('W', ['1D', '3C'], defaultBiddingSystem) !== 'responding') {
     failures += 1;
     console.error('FAIL responder stage after direct 1NT or jump overcall.');
   }
   // A non-jump 2C over 1D is distinct from a jump 2H over 1D.  A later responder
   // patch must not expose uncontested treatments after either intervention by accident.
-  const interferenceCases: { auction: Call[]; expected: ReturnType<typeof getInterferenceAfterOpening> }[] = [
+  const interferenceCases: { auction: Call[]; expected: ReturnType<typeof getDirectInterference> }[] = [
     { auction: ['1D', 'Pass'], expected: 'none' },
     { auction: ['1C', '1D'], expected: 'suitOvercall' },
     { auction: ['1D', '2C'], expected: 'suitOvercall' },
@@ -1398,7 +1472,7 @@ function runCompetitionBoundaryTests (): number {
   ];
   for (const testCase of interferenceCases) {
     checks += 1;
-    if (getInterferenceAfterOpening('N', testCase.auction) !== testCase.expected) {
+    if (getDirectInterference('N', testCase.auction) !== testCase.expected) {
       failures += 1;
       console.error(`FAIL intervention classification: ${testCase.auction.join(' ')}.`);
     }
@@ -2058,7 +2132,7 @@ function runDontBoundaryTests (): number {
   let failures = 0;
 
   checks += 1;
-  if (getNextBiddingRuleStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass']) !==
+  if (getNextBiddingRuleStage(board.dealer, ['1NT', 'Double', 'Pass', '2C', 'Pass'], defaultBiddingSystem) !==
       'overcallerRebid') {
     failures += 1;
     console.error('FAIL DONT relay should reach the overcaller-rebid stage.');
@@ -2697,7 +2771,7 @@ function runBalancingAuctionAndDealTests (): number {
       deal.practiceAuction.slice(0, 3), system);
     const calls = getApplicableCandidateCalls(decision);
     checks += 1;
-    if (getNextBiddingRuleStage(board.dealer, deal.practiceAuction.slice(0, 3)) !== 'balancing' ||
+    if (getNextBiddingRuleStage(board.dealer, deal.practiceAuction.slice(0, 3), defaultBiddingSystem) !== 'balancing' ||
         !calls.some(({ call }) => call === deal.practiceAuction[3]) ||
         calls.some(({ rule }) => rule.id.startsWith('overcall-'))) {
       failures += 1;
@@ -2710,7 +2784,7 @@ function runBalancingAuctionAndDealTests (): number {
     { auction: ['1H', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['Pass', '1D', 'Pass', 'Pass'], expected: 'balancing' },
     { auction: ['1H'], expected: 'overcalling' },
-    { auction: ['1H', 'Pass', '2H'], expected: null },
+    { auction: ['1H', 'Pass', '2H'], expected: 'sandwichOvercalling' },
     { auction: ['1NT', 'Pass', 'Pass'], expected: null },
     { auction: ['2H', 'Pass', 'Pass'], expected: null },
     { auction: ['1H', 'Pass', 'Pass', 'Pass'], expected: null },
@@ -2718,10 +2792,10 @@ function runBalancingAuctionAndDealTests (): number {
   ];
   for (const { auction, expected } of seatCases) {
     checks += 1;
-    if (getNextBiddingRuleStage('W', auction) !== expected) {
+    if (getNextBiddingRuleStage('W', auction, defaultBiddingSystem) !== expected) {
       failures += 1;
       console.error(`FAIL balancing stage for ${auction.join(' ')}: ` +
-        `expected ${expected}, got ${getNextBiddingRuleStage('W', auction)}.`);
+        `expected ${expected}, got ${getNextBiddingRuleStage('W', auction, defaultBiddingSystem)}.`);
     }
   }
   const ntDeal = BALANCING_TEST_DEALS.find((deal) => deal.practiceAuction[3] === '1NT')!;
@@ -2981,7 +3055,7 @@ function runResponderInterferenceScopeBoundaryTests (): number {
     const opening = family.deal.practiceAuction[0]!;
     checks += 1;
     const results = evaluateRules(ResponseBidRules,
-      makeRuleEvalContext(board, [opening, 'Double']), defaultBiddingSystem);
+      makeRuleEvalContext(board, [opening, 'Double'], defaultBiddingSystem), defaultBiddingSystem);
     if (results.some(({ rule }) => rule.id.startsWith(family.rulePrefix))) {
       failures += 1;
       console.error(`FAIL ordinary ${family.name} responses survived direct interference.`);
@@ -3037,7 +3111,7 @@ function runMajorNoSupportAgreementTests (): number {
   for (const { hcp, south } of hands) {
     const { board } = makeRuleTestBoard({ description: 'strength and prior Pass.',
       north: opening, south, practiceAuction: ['1S', 'Pass', '1NT'] });
-    const actual = makeRuleEvalContext(board, ['1S', 'Pass']).handFacts.hcp;
+    const actual = makeRuleEvalContext(board, ['1S', 'Pass'], defaultBiddingSystem).handFacts.hcp;
     if (actual !== hcp) {
       failures += 1;
       console.error(`FAIL responder HCP test hand: wanted ${hcp} HCP, got ${actual}.`);
@@ -6432,7 +6506,7 @@ function runCompetitiveOpenerRebidBoundaryTests (): number {
   ];
   for (const auction of unsupported) {
     checks += 1;
-    if (getNextBiddingRuleStage('N', auction) !== null) {
+    if (getNextBiddingRuleStage('N', auction, defaultBiddingSystem) !== null) {
       failures += 1;
       console.error(
         `FAIL unsupported competitive opener turn reached a stage: ${auction.join(' ')}.`);
@@ -7430,7 +7504,7 @@ function runResponderStrongSecondSuitContextTests (): number {
   ];
   let failures = 0;
   for (const testCase of cases) {
-    const context = makeRuleEvalContext(board, testCase.auction);
+    const context = makeRuleEvalContext(board, testCase.auction, defaultBiddingSystem);
     const family = getResponderStrongSecondSuit(context)?.kind ?? null;
     const result = evaluateUserCall('Pass', board, testCase.auction, defaultBiddingSystem);
     const boundaries = result.applicableRules.filter((rule) =>
@@ -7814,7 +7888,7 @@ function runResponderStandardTwoLevelContextTests (): number {
     west: { ...seedNt.west!, C: '97' }, // Return the nine to West to preserve the complete fixed deal.
   });
   const ntPrefix: Call[] = ['1D', 'Pass', '2C', 'Pass', '2NT', 'Pass'];
-  const twelveHcp = makeRuleEvalContext(twelveHcpBoard, ntPrefix).handFacts.hcp;
+  const twelveHcp = makeRuleEvalContext(twelveHcpBoard, ntPrefix, defaultBiddingSystem).handFacts.hcp;
   const ntPassCandidates = (system: BiddingSystem) =>
     getApplicableCandidateCalls(evaluateUserCall('Pass', twelveHcpBoard, ntPrefix, system));
   if (twelveHcp !== 12 || ! ntPassCandidates(standard).some(({ call, rule }) =>
@@ -9985,7 +10059,7 @@ function runNaturalCompetitiveRejectionFeedbackTests (): number {
       system: BiddingSystem, reason: string[]): string[] => {
     const board = makeRuleTestBoard(deal).board;
     const result = evaluateUserCall(call, board, auction, system);
-    const seat = makeRuleEvalContext(board, auction).seat;
+    const seat = makeRuleEvalContext(board, auction, defaultBiddingSystem).seat;
     const lines = getBidExplanationLines({
       title: 'Bid feedback', call, status: getBiddingTurnStatus(board, auction, system),
       result, handFacts: getHandFacts(board.deal[seat]), auctionLength: auction.length,
@@ -10393,7 +10467,7 @@ function runBiddingTurnStatusTests (): number {
   let failures = 0;
   const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
     { auction: [], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S'], kind: 'noModeledStage' },
+    { auction: ['1S', 'Pass', '2S'], kind: 'noApplicableRule' },
     { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
@@ -10413,7 +10487,7 @@ function runBiddingTurnStatusTests (): number {
   // These have no modeled rule stage; auction entry no longer needs an intervening-turn exception.
   // Any legal call may be recorded, and stage selection uses the resulting actual auction.
   const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
-    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noModeledStage' },
+    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noApplicableRule' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },
@@ -10619,7 +10693,7 @@ function runForcingContinuationPassTests (): number {
     const reason = item.stage === 'openerRebid' ?
       getOpenerForcingRebidPassFailureLines(rejected) :
       getOvercallerForcingAdvancePassFailureLines(rejected);
-    const seat = makeRuleEvalContext(board, item.auction).seat;
+    const seat = makeRuleEvalContext(board, item.auction, defaultBiddingSystem).seat;
     const displayed = getBidExplanationLines({
       title: 'Bid feedback', call: 'Pass', status: getBiddingTurnStatus(board, item.auction, system),
       result: rejected, handFacts: getHandFacts(board.deal[seat]),
@@ -10721,7 +10795,7 @@ function runCrossStageExplanationIntegrationTests (): number {
       getOutstandingForceGuidance(opposing, 'W');
     const ownGuidance = own === null ? [] : getOutstandingForceGuidance(own, 'N');
     checks++;
-    if (getBiddingTurnStatus(board, opponentTurn, system).kind !== 'noModeledStage' ||
+    if (getBiddingTurnStatus(board, opponentTurn, system).kind !== 'noApplicableRule' ||
         opposing?.kind !== 'gameForce' || opposing.forcingSeat !== 'S' ||
         own?.kind !== 'gameForce' || own.forcingSeat !== 'S' ||
         opposingGuidance.length < 3 || ownGuidance.length < 3 ||

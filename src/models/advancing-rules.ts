@@ -42,6 +42,7 @@ import { naturalNotrumpAdvanceApplies, naturalNotrumpAfterResponderActionApplies
          advanceNewSuitAfterNegativeDoublePublicMeaning, jumpOvercallNewSuitPublicMeaning } from './advancing-functions';
 
 
+/// Direct and sandwich advancing share this collection; auction contexts isolate their treatments.
 export const AdvanceRules: BidRule[] = [
   ...NaturalOneNtPartnerCallRules,
   ...NaturalOneNtInterferencePartnerCallRules,
