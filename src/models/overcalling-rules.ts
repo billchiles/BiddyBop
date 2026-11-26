@@ -1,5 +1,6 @@
 /// Overcall Bidding Rules
 
+import { declaredCallsPublicMeaning } from './common-rule-helpers';
 import { type BidRule } from './bidding-types';
 import {
   dontSingleSuitDoubleApplies, dontSpadeOvercallApplies, dontTwoSuitOvercallApplies,
@@ -8,6 +9,7 @@ import {
   naturalNotrumpOvercallApplies, naturalOneLevelSuitOvercallApplies, naturalTwoLevelSuitOvercallApplies, naturalOneNtOvercallerInvitationApplies,
   naturalOneNtOvercallerMinorInvitationApplies, naturalOneNtOvercallerSignoffApplies,
   naturalOneNtOvercallerSlamBoundaryApplies, naturalOneNtOvercallerThreeMajorApplies,
+  naturalOneNtOvercallerThreeMajorPublicMeaning,
   naturalSuitOvercallerRebidApplies, naturalSuitOvercallerRebidBoundaryApplies,
   jumpOvercallForcingAdvanceRebidApplies, jumpOvercallForcingAdvanceBoundaryApplies,
   contestedSuitOvercallerRebidApplies, contestedSuitOvercallerBoundaryApplies,
@@ -185,6 +187,7 @@ export const OvercallRules: BidRule[] = [
     agreement: { setting: 'dont', value: true },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: dontSingleSuitDoubleApplies,
     meaning: 'DONT Double shows one good 6+ card club, diamond, or heart suit and asks partner ' +
              'to relay to 2C.',
@@ -349,6 +352,7 @@ export const OvercallRules: BidRule[] = [
     auctionContext: { stage: 'overcalling', openerLevel: 1, openerStrain: 'suit' },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: ordinaryTakeoutDoubleApplies, // 13+ total points with shortage, 3+ in all unbid suits
     meaning: 'Takeout double with opening values and at least three cards in each unbid suit; ' +
              'asks partner to choose another suit rather than defending opener’s suit.',
@@ -411,6 +415,7 @@ export const OvercallRules: BidRule[] = [
     auctionContext: { stage: 'overcalling', openerCalls: ['2D', '2H', '2S'] },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: ordinaryTakeoutDoubleApplies,
     meaning: 'Takeout double with 13+ total points with shortage and at least three cards in each unbid suit; ' +
              'asks partner to choose an unbid suit.',
@@ -475,6 +480,7 @@ export const OvercallRules: BidRule[] = [
     agreement: { setting: 'jacobyTransfers', value: true },
     callRefinement: refineNaturalOneNtOvercallJacoby,
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineNaturalOneNtOvercallJacoby,
     meaning: 'Complete advancer’s artificial two-level major transfer.',
     guidance: ['Do not superaccept in this selected treatment.'],
   },
@@ -488,7 +494,8 @@ export const OvercallRules: BidRule[] = [
     calls: ['4H', '4S'],
     agreement: { setting: 'texasTransfers', value: true },
     callRefinement: refineNaturalOneNtOvercallTexas,
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'gamePlacement'],
+    deriveCallPublicMeaning: refineNaturalOneNtOvercallTexas,
     meaning: 'Complete the artificial transfer to game in advancer’s major.',
   },
   //
@@ -566,6 +573,7 @@ export const OvercallRules: BidRule[] = [
     calls: ['3NT', '4H', '4S'],
     appliesWhen: naturalOneNtOvercallerThreeMajorApplies,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: naturalOneNtOvercallerThreeMajorPublicMeaning,
     meaning: 'With Jacoby off, choose 3NT on two-card major support or major game with a fit. ' +
              'With Jacoby on, four of the major is the bounded continuation after slam interest.',
     guidance: ['Further control bids or slam exploration are outside this selected overcall system.'],
@@ -1175,6 +1183,7 @@ export const OvercallRules: BidRule[] = [
     callRefinement: refineWeakTwoTwoNtJacobyCompletion,
     agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineWeakTwoTwoNtJacobyCompletion,
     meaning: 'Complete the transfer to advancer’s requested major.',
     guidance: ['This compact treatment does not model transfer superaccepts.'],
   },
@@ -1188,7 +1197,8 @@ export const OvercallRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineWeakTwoTwoNtTexasCompletion,
     agreement: { setting: 'texasTransfers', value: true },
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'gamePlacement'],
+    deriveCallPublicMeaning: refineWeakTwoTwoNtTexasCompletion,
     meaning: 'Complete the Texas transfer to game in the requested major.',
   },
   //
@@ -1911,6 +1921,7 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: balancingTakeoutDoubleApplies,
     priority: { rank: 40 },
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     meaning: 'Balancing takeout Double: suitable shortage and support for the unbid suits, ' +
              'with less strength than a takeout Double immediately after opener.',
     guidance: ['Partner generally chooses an unbid suit, but need not assume a full opening hand.',
@@ -1927,6 +1938,7 @@ export const OvercallRules: BidRule[] = [
     appliesWhen: balancingStrongDoubleApplies,
     priority: { rank: 80 },
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     meaning: 'Strong balancing Double may precede a natural suit or notrump description.',
     guidance: ['A strong hand outside the 12–15 balancing 1NT range can Double and then ' +
                'bid notrump with a stopper or show a long suit. The continuation is not practiced.',

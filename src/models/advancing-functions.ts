@@ -336,10 +336,10 @@ export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalC
   const info = getNaturalSuitOvercallForAdvancer(context, 2);
   if (info === null) return { calls: [], telemetryLines: [] };
   const considered = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' ||
-        bid.strain === info.opening.strain || bid.strain === info.overcall.strain) return [];
-    const economical = cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
+    const candidate = getAdvanceNewSuitCandidate(call, info.overcall,
+      [info.opening.strain, info.overcall.strain]);
+    if (candidate === null) return [];
+    const { bid, economical } = candidate;
     const qualityPassed = bid.level !== 3 ||
       hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
@@ -353,6 +353,15 @@ export function refineAdvancerTwoLevelNewSuit (calls: Call[], context: RuleEvalC
     telemetryLines: [],
     callEvidence: { advanceNewSuitQuality: { considered } },
   };
+}
+
+/// Public economical new-suit advances do not depend on length or honor quality.
+export function twoLevelOvercallNewSuitPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getNaturalSuitOvercallForAdvancer(context, 2);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    getAdvanceNewSuitCandidate(call, info.overcall,
+      [info.opening.strain, info.overcall.strain])?.economical === true) };
 }
 
 /// Natural 2NT/3NT advances over a two-level suit overcall require the appropriate
@@ -683,12 +692,12 @@ function refineAdvancerNewSuitAfterResponderRaiseForLevel (
   const info = getNaturalSuitOvercallWithResponderRaise(context, overcallLevel);
   if (info === null) return { calls: [], telemetryLines: [] };
   const considered = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.level !== level || bid.strain === 'NT' ||
-        bid.strain === info.opening.strain || bid.strain === info.overcall.strain) return [];
+    const candidate = getAdvanceNewSuitCandidate(call, info.responderRaise,
+      [info.opening.strain, info.overcall.strain], level);
+    if (candidate === null) return [];
+    const { bid, economical } = candidate;
     const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
-    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
-      economical: cheapestBidInStrainAfter(info.responderRaise, bid.strain) === call,
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit], economical,
       qualityPassed,
       ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
         level === 3, qualityPassed) }];
@@ -696,6 +705,23 @@ function refineAdvancerNewSuitAfterResponderRaiseForLevel (
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
     callEvidence: { competitiveRaiseNewSuit: { considered } } };
+}
+
+/// A responder raise changes the cheapest available level but not the nature of a new suit.
+export function advanceNewSuitAfterResponderRaisePublicMeaning (calls: Call[], context: AuctionEvalContext,
+    level: 2 | 3, overcallLevel: 1 | 2): { calls: Call[] } {
+  const info = getNaturalSuitOvercallWithResponderRaise(context, overcallLevel);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    getAdvanceNewSuitCandidate(call, info.responderRaise,
+      [info.opening.strain, info.overcall.strain], level)?.economical === true) };
+}
+
+/// Responsive Double after a supported simple raise uses the same public auction recognizers.
+export function responsiveDoublePublicMeaning (calls: Call[], context: AuctionEvalContext,
+    overcallLevel: 1 | 2 | null): { calls: Call[] } {
+  const info = overcallLevel === null ? getTakeoutDoubleWithResponderRaise(context) :
+    getNaturalSuitOvercallWithResponderRaise(context, overcallLevel);
+  return { calls: info === null ? [] : calls };
 }
 
 function responsiveDoubleAfterOvercallRaiseForLevel (
@@ -986,13 +1012,12 @@ export function refineAdvancerNewSuitAfterResponderNaturalAction (
   const info = getNaturalSuitOvercallWithResponderNaturalActionAtEitherLevel(context);
   if (info === null) return { calls: [], telemetryLines: [] };
   const considered = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.level !== level || bid.strain === 'NT' ||
-        bid.strain === info.opening.strain || bid.strain === info.overcall.strain ||
-        bid.strain === info.responderAction.strain) return [];
+    const candidate = getAdvanceNewSuitCandidate(call, info.responderAction,
+      [info.opening.strain, info.overcall.strain, info.responderAction.strain], level);
+    if (candidate === null) return [];
+    const { bid, economical } = candidate;
     const qualityPassed = level !== 3 || hasPreemptSuitQuality(context.hand, bid.strain as Suit);
-    return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
-      economical: cheapestBidInStrainAfter(info.responderAction, bid.strain) === call,
+    return [{ call, length: context.handFacts.lengths[bid.strain as Suit], economical,
       qualityPassed,
       ...getAdvancingSuitHonorEvidence(context, bid.strain as Suit,
         level === 3, qualityPassed) }];
@@ -1000,6 +1025,16 @@ export function refineAdvancerNewSuitAfterResponderNaturalAction (
   return { calls: considered.filter((item) => item.economical && item.qualityPassed)
     .map((item) => item.call), telemetryLines: [],
     callEvidence: { competitiveNaturalNewSuit: { considered } } };
+}
+
+
+/// New suit after a natural responder action excludes all three named strains.
+export function advanceNewSuitAfterNaturalActionPublicMeaning (calls: Call[], context: AuctionEvalContext,
+    level: 1 | 2 | 3): { calls: Call[] } {
+  const info = getNaturalSuitOvercallWithResponderNaturalActionAtEitherLevel(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    getAdvanceNewSuitCandidate(call, info.responderAction,
+      [info.opening.strain, info.overcall.strain, info.responderAction.strain], level)?.economical === true) };
 }
 
 
@@ -1347,18 +1382,37 @@ export function refineSelectedNewSuitAfterNegativeDouble (
   if (info === null) return { calls: [], telemetryLines: [] };
   const impliedSuits = getNegativeDoubleImpliedSuits(info.opening, info.overcall);
   const considered = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT') return [];
-    const suit = bid.strain as Suit;
-    return [{ call, suit, length: context.handFacts.lengths[suit],
-      economical: bid.level === 2 &&
-        cheapestBidInStrainAfter(info.overcall, suit) === call,
-      impliedByDouble: impliedSuits.includes(suit) }];
+    const publicFacts = getNegativeDoubleNewSuitFacts(call, info.overcall, impliedSuits);
+    if (publicFacts === null) return [];
+    return [{ call, suit: publicFacts.suit, length: context.handFacts.lengths[publicFacts.suit],
+      economical: publicFacts.economical, impliedByDouble: publicFacts.impliedByDouble }];
   });
   return { calls: considered.filter((item) => item.economical &&
     item.suit !== info.opening.strain && item.suit !== info.overcall.strain &&
     !item.impliedByDouble).map((item) => item.call), telemetryLines: [],
     callEvidence: { negativeDoubleNewSuit: { impliedSuits, considered } } };
+}
+
+/// A new suit is distinct from the opponents' named and implied negative-Double suits.
+export function advanceNewSuitAfterNegativeDoublePublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getNaturalSuitOvercallWithResponderNegativeDouble(context);
+  if (info === null) return { calls: [] };
+  const impliedSuits = getNegativeDoubleImpliedSuits(info.opening, info.overcall);
+  return { calls: calls.filter((call) => {
+    const facts = getNegativeDoubleNewSuitFacts(call, info.overcall, impliedSuits);
+    return facts !== null && facts.economical && !facts.impliedByDouble &&
+      facts.suit !== info.opening.strain && facts.suit !== info.overcall.strain;
+  }) };
+}
+
+function getNegativeDoubleNewSuitFacts (call: Call, overcall: ParsedSuitBid, impliedSuits: Suit[]):
+    { suit: Suit; economical: boolean; impliedByDouble: boolean } | null {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.strain === 'NT') return null;
+  const suit = bid.strain as Suit;
+  return { suit, economical: bid.level === 2 && cheapestBidInStrainAfter(overcall, suit) === call,
+    impliedByDouble: impliedSuits.includes(suit) };
 }
 
 /// A strength-showing Redouble is the fallback with values when support,
@@ -1586,11 +1640,11 @@ export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalConte
   const info = getJumpOvercallForAdvancer(context);
   if (info === null) return { calls: [], telemetryLines: [] };
   const considered = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' ||
-        bid.strain === info.overcall.strain || bid.strain === info.opening.strain) return [];
-    const economical = bid.level <= 3 &&
-      cheapestBidInStrainAfter(info.overcall, bid.strain) === call;
+    const candidate = getAdvanceNewSuitCandidate(call, info.overcall,
+      [info.opening.strain, info.overcall.strain]);
+    if (candidate === null) return [];
+    const { bid } = candidate;
+    const economical = isJumpAdvanceEconomical(candidate);
     const qualityPassed = hasPreemptSuitQuality(context.hand, bid.strain as Suit);
     return [{ call, length: context.handFacts.lengths[bid.strain as Suit],
       economical, qualityPassed, eligible: economical && qualityPassed,
@@ -1604,6 +1658,33 @@ export function refineJumpOvercallNewSuit (calls: Call[], context: RuleEvalConte
         hcp: context.handFacts.hcp,
         supportPoints: context.handFacts.totalPointsWShortage, considered },
     } };
+}
+
+/// An economical new suit after a preemptive jump is forcing only through the three level.
+export function jumpOvercallNewSuitPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getJumpOvercallForAdvancer(context);
+  if (info === null) return { calls: [] };
+  return { calls: calls.filter((call) => {
+    const candidate = getAdvanceNewSuitCandidate(call, info.overcall,
+      [info.opening.strain, info.overcall.strain]);
+    return candidate !== null && isJumpAdvanceEconomical(candidate);
+  }) };
+}
+
+function isJumpAdvanceEconomical (candidate: { bid: ParsedSuitBid; economical: boolean }): boolean {
+  return candidate.bid.level <= 3 && candidate.economical;
+}
+
+/// Keep public candidate eligibility and economy separate so rejected economical/quality evidence
+/// can still be recorded by the ordinary refiners. An explicit level restricts the offered strain.
+function getAdvanceNewSuitCandidate (call: Call, after: ParsedSuitBid,
+    excluded: ParsedSuitBid['strain'][], level?: number):
+    { bid: ParsedSuitBid; economical: boolean } | null {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.strain === 'NT' || excluded.includes(bid.strain) ||
+      (level !== undefined && bid.level !== level)) return null;
+  return { bid, economical: cheapestBidInStrainAfter(after, bid.strain) === call };
 }
 
 /// Retain actual honors alongside the existing suit-quality decision. A non-three-level
@@ -1622,7 +1703,7 @@ function getAdvancingSuitHonorEvidence (context: RuleEvalContext, suit: Suit,
 /// Advances of partner's preemptive jump overcall are restricted to a one-level
 /// suit opening, an actual jump in a different suit, and responder's Pass.
 /// This is distinct from an economical two-level overcall.
-function getJumpOvercallForAdvancer (context: RuleEvalContext):
+function getJumpOvercallForAdvancer (context: AuctionEvalContext):
     { opening: ParsedSuitBid; overcall: ParsedSuitBid } | null {
   if (context.stage !== 'advancing' ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall') {

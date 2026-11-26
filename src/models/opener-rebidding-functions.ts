@@ -81,11 +81,8 @@ export function refineNtTexasCompletion (calls: Call[], context: AuctionEvalCont
 /// after a 1NT or 2NT opening.
 export function refineOpenerNtResponderMajorToGame (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderBid(context);
-  if (opening === null || response === null || opening.strain !== 'NT' ||
-      (opening.level !== 1 && opening.level !== 2) || response.level !== 3 ||
-      (response.strain !== 'H' && response.strain !== 'S')) {
+  const response = getNaturalNtThreeMajorResponse(context);
+  if (response === null) {
     return { calls: [], telemetryLines: ['No natural 1NT/2NT-3M auction is available.'] };
   }
   const wanted = `4${response.strain}` as SuitBid;
@@ -107,17 +104,8 @@ export function refineOpenerNtMajorSlamControlBid (calls: Call[], context: RuleE
       response.level !== 3 || (response.strain !== 'H' && response.strain !== 'S')) {
     return { calls: [], telemetryLines: ['No direct 1NT-3M slam-interest auction is available.'] };
   }
-  const game = parseSuitBid(`4${response.strain}` as SuitBid)!;
-  const legalControls = calls.filter((call) => {
-    const candidate = parseSuitBid(call);
-    // The control must be a side suit, bid as cheaply as possible after responder's 3M, and
-    // remain below four of the agreed major so that 4M is still available as the stopping place.
-    if (candidate === null || candidate.strain === 'NT' || candidate.strain === response.strain ||
-        cheapestBidInStrainAfter(response, candidate.strain) !== call ||
-        compareSuitBids(candidate, game) >= 0) {
-      return false;
-    }
-    const cards = getCardsForSuit(context.hand, candidate.strain as Suit);
+  const legalControls = openerNtMajorSlamControlPublicMeaning(calls, context).calls.filter((call) => {
+    const cards = getCardsForSuit(context.hand, parseSuitBid(call)!.strain as Suit);
     // A natural 1NT opener has no singleton or void, so A/K are the relevant side-suit controls.
     return cards.some((card) => card.rank === 'A' || card.rank === 'K');
   });
@@ -130,6 +118,24 @@ export function refineOpenerNtMajorSlamControlBid (calls: Call[], context: RuleE
       ? `No modeled side-suit A/K control is available below 4${response.strain}.`
       : `Use the cheapest available side-suit A/K control below game: ${cheapestControl}.`],
   };
+}
+
+/// Public controls are economical side suits below the agreed major game, even without A/K.
+export function openerNtMajorSlamControlPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 1 || opening.strain !== 'NT' ||
+      response.level !== 3 || (response.strain !== 'H' && response.strain !== 'S')) return { calls: [] };
+  return { calls: calls.filter((call) => isPublicControlBid(call, response, response.strain as Suit)) };
+}
+
+function isPublicControlBid (call: Call, response: ParsedSuitBid, trump: Suit): boolean {
+  const candidate = parseSuitBid(call);
+  const game = parseSuitBid(`4${trump}` as SuitBid)!;
+  return candidate !== null && candidate.strain !== 'NT' && candidate.strain !== trump &&
+    candidate.strain !== response.strain && cheapestBidInStrainAfter(response, candidate.strain) === call &&
+    compareSuitBids(candidate, game) < 0;
 }
 
 /// A natural 1NT-3m invitation asks whether opener holds one of A/K/Q in responder's good
@@ -154,7 +160,7 @@ export function openerNtMinorInvitationApplies (_call: Call, context: RuleEvalCo
 
 /// A natural 3m response after 2NT is available only when that call is not Stayman or a Jacoby
 /// transfer under the active agreements.  Opener's basic continuation is natural 3NT.
-export function openerNtNaturalThreeMinorApplies (_call: Call, context: RuleEvalContext,
+export function openerNtNaturalThreeMinorApplies (_call: Call, context: AuctionEvalContext,
                                                   system: BiddingSystem): AppliesWhenResult {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
@@ -176,11 +182,8 @@ export function openerNtNaturalThreeMinorApplies (_call: Call, context: RuleEval
 export function openerNtNaturalThreeMajorApplies (_call: Call, context: RuleEvalContext,
                                                   minSupport: number, maxSupport?: number):
     AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderBid(context);
-  if (opening === null || response === null || opening.strain !== 'NT' ||
-      (opening.level !== 1 && opening.level !== 2) || response.level !== 3 ||
-      (response.strain !== 'H' && response.strain !== 'S')) {
+  const response = getNaturalNtThreeMajorResponse(context);
+  if (response === null) {
     return { success: false, telemetryLines: ['FAIL: not a natural 1NT/2NT-3M response.'] };
   }
   const support = context.handFacts.lengths[response.strain];
@@ -191,17 +194,22 @@ export function openerNtNaturalThreeMajorApplies (_call: Call, context: RuleEval
   ] };
 }
 
+/// Both the natural major game and 3NT are public destinations, independent of actual fit.
+export function openerNtNaturalThreeMajorPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const response = getNaturalNtThreeMajorResponse(context);
+  return { calls: response === null ? [] : calls.filter((call) =>
+    call === '3NT' || call === `4${response.strain}`) };
+}
+
 /// With Jacoby transfers available, direct 1NT-3M shows a six-card-or-longer major with slam
 /// interest.  Four of the major always remains available; middle-or-better opener strength can
 /// cooperate with a side-suit control while retaining 4M as the judgment alternative.
 export function openerNtDirectMajorSlamInterestApplies (_call: Call, context: RuleEvalContext,
                                                         system: BiddingSystem, cooperate: boolean):
     AppliesWhenResult {
-  const opening = getOpenerOpeningBid(context);
-  const response = getResponderBid(context);
-  const isDirectSlamTry = opening !== null && response !== null && opening.level === 1 &&
-    opening.strain === 'NT' && response.level === 3 &&
-    (response.strain === 'H' || response.strain === 'S');
+  const isDirectSlamTry = getOpenerOpeningBid(context)?.level === 1 &&
+    getNaturalNtThreeMajorResponse(context) !== null;
   const minimum = system.oneNtOpening === '15-17' ? 15 : 16;
   const strengthApplies = ! cooperate || context.handFacts.hcp >= minimum + 1;
   const success = isDirectSlamTry && strengthApplies;
@@ -209,6 +217,15 @@ export function openerNtDirectMajorSlamInterestApplies (_call: Call, context: Ru
     `${success ? 'PASS' : 'FAIL'}: direct 1NT-3M slam interest; ` +
     `${cooperate ? `control cooperation needs ${minimum + 1}+ HCP` : '4M remains available'}.`,
   ] };
+}
+
+/// Recognize the public natural 1NT/2NT–3M response shape; the caller checks agreements.
+function getNaturalNtThreeMajorResponse (context: AuctionEvalContext): (ParsedSuitBid & { strain: 'H' | 'S' }) | null {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  return opening !== null && opening.strain === 'NT' &&
+    (opening.level === 1 || opening.level === 2) && response !== null && response.level === 3 &&
+    (response.strain === 'H' || response.strain === 'S') ? { ...response, strain: response.strain } : null;
 }
 
 /// Natural NT game and slam signoffs require Pass, never acceptance of an invitation.
@@ -705,18 +722,8 @@ export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEval
   }
   // A control bid must be a side suit below game in the agreed major.  Exclude both the trump
   // suit and responder's already-announced splinter suit before examining opener's side suits.
-  const game = parseSuitBid(`4${opening.strain}` as SuitBid)!;
-  const legalControls = calls.filter((call) => {
-    const candidate = parseSuitBid(call);
-    if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
-        candidate.strain === response.strain) {
-      return false;
-    }
-    if (cheapestBidInStrainAfter(response, candidate.strain) !== call ||
-        compareSuitBids(candidate, game) >= 0) {
-      return false;
-    }
-    const suit = candidate.strain as Suit;
+  const legalControls = openerSplinterControlPublicMeaning(calls, context).calls.filter((call) => {
+    const suit = parseSuitBid(call)!.strain as Suit;
     const cards = getCardsForSuit(context.hand, suit);
     // In opener's candidate side suit, A/K is a high-card control and singleton/void is a
     // shortness control.  The responder's splinter suit was excluded above.
@@ -738,6 +745,17 @@ export function refineOpenerSplinterControlBid (calls: Call[], context: RuleEval
       cheapestCall: cheapestControl ?? null, qualifyingControls: legalControls,
     } },
   };
+}
+
+/// A splinter control excludes the agreed trump suit and the publicly shown short suit.
+export function openerSplinterControlPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null ||
+      (opening.strain !== 'H' && opening.strain !== 'S') || response.strain === 'NT' ||
+      response.strain === opening.strain) return { calls: [] };
+  return { calls: calls.filter((call) => isPublicControlBid(call, response, opening.strain as Suit)) };
 }
 
 /// refineOpenerReverseRebid keeps cheapest new-suit rebids that force responder above two of
@@ -991,10 +1009,20 @@ export function refineOpenerRaiseResponderSuitToLevel (calls: Call[], context: R
     };
   }
   const wantedCall = `${targetLevel}${responseSuit}` as SuitBid;
-  return {calls: calls.filter((call) => call === wantedCall),
+  return {calls: openerRaiseResponderSuitPublicMeaning(calls, context, targetLevel).calls,
           telemetryLines: [`Raise responder's ${responseSuit} to ${wantedCall}.`],
   };
 }// refineOpenerRaiseResponderSuitToLevel()
+
+/// The printed raise is a public meaning regardless of actual opener support length.
+export function openerRaiseResponderSuitPublicMeaning (calls: Call[], context: AuctionEvalContext,
+    targetLevel: number): { calls: Call[] } {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.strain === 'NT' ||
+      response.strain === 'NT' || response.strain === opening.strain) return { calls: [] };
+  return { calls: calls.filter((call) => call === `${targetLevel}${response.strain}`) };
+}
 
 /// refineOpenerRaiseResponderSuitOneLevel supports responder's natural forcing suit one level
 /// above the actual response, preserving bidding room while satisfying the force economically.
@@ -1014,9 +1042,16 @@ export function refineOpenerRaiseResponderSuitOneLevel (
   }
   const wantedCall = `${response.level + 1}${response.strain}` as SuitBid;
   return {
-    calls: calls.filter((call) => call === wantedCall),
+    calls: openerRaiseResponderSuitOneLevelPublicMeaning(calls, context).calls,
     telemetryLines: [`Raise responder's ${response.strain} one level to ${wantedCall}.`],
   };
+}
+
+export function openerRaiseResponderSuitOneLevelPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const response = getResponderBid(context);
+  return { calls: response === null || response.strain === 'NT' ? [] :
+    calls.filter((call) => call === `${response.level + 1}${response.strain}`) };
 }
 
 /// refineOpenerFourCardMajorUpTheLine keeps opener's cheapest four-card major rebids and orders
@@ -1515,38 +1550,55 @@ function getOpenerNegativeDoubleImpliedSuitCall (
   const info = getOpenerNegativeDoubleInfo(context);
   if (info === null) return null;
   for (const suit of getOpenerNegativeDoubleFitSuits(context, info)) {
-    if (strength === 'maximum') {
-      if (suit === 'H' || suit === 'S') {
-        const game = `4${suit}` as SuitBid;
-        if (isCallAvailableInAuction(game, context.auction)) return game;
-        continue;
-      }
-      if (info.advancerKind !== 'pass') continue;
-      const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 3);
-      const parsed = cheapest === null ? null : parseSuitBid(cheapest);
-      if (parsed !== null && parsed.level + 1 <= 3) {
-        return `${parsed.level + 1}${suit}` as SuitBid;
-      }
-      continue;
-    }
+    const call = getOpenerNegativeDoubleSuitCall(context, info, suit, strength);
+    if (call !== null) return call;
+  }
+  return null;
+}
 
-    if (info.advancerKind !== 'pass') {
-      const competitive = getCheapestAvailableSuitBidForOpener(context, suit, 3);
-      if (competitive !== null) return competitive;
-      continue;
-    }
+/// The strength ladder selects a public contract in each implied suit before private fit ordering.
+export function openerNegativeDoubleSuitPublicMeaning (calls: Call[], context: AuctionEvalContext,
+    strength: 'minimum' | 'medium' | 'maximum'): { calls: Call[] } {
+  const info = getOpenerNegativeDoubleInfo(context);
+  if (info === null) return { calls: [] };
+  const publicCalls = info.impliedSuits.map((suit) =>
+    getOpenerNegativeDoubleSuitCall(context, info, suit, strength));
+  return { calls: calls.filter((call) => publicCalls.includes(call as SuitBid)) };
+}
 
-    const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 4);
+function getOpenerNegativeDoubleSuitCall (context: AuctionEvalContext, info: OpenerNegativeDoubleInfo,
+    suit: Suit, strength: 'minimum' | 'medium' | 'maximum'): SuitBid | null {
+  if (strength === 'maximum') {
+    if (suit === 'H' || suit === 'S') {
+      const game = `4${suit}` as SuitBid;
+      if (isCallAvailableInAuction(game, context.auction)) return game;
+      return null;
+    }
+    if (info.advancerKind !== 'pass') return null;
+    const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 3);
     const parsed = cheapest === null ? null : parseSuitBid(cheapest);
-    if (parsed === null) continue;
-    if (strength === 'minimum') {
-      if (parsed.level <= 3) return cheapest;
-      continue;
+    if (parsed !== null && parsed.level + 1 <= 3) {
+      return `${parsed.level + 1}${suit}` as SuitBid;
     }
-    const jumpLevel = parsed.level + 1;
-    if (jumpLevel <= 3 || ((suit === 'H' || suit === 'S') && jumpLevel === 4)) {
-      return `${jumpLevel}${suit}` as SuitBid;
-    }
+    return null;
+  }
+
+  if (info.advancerKind !== 'pass') {
+    const competitive = getCheapestAvailableSuitBidForOpener(context, suit, 3);
+    if (competitive !== null) return competitive;
+    return null;
+  }
+
+  const cheapest = getCheapestAvailableSuitBidForOpener(context, suit, 4);
+  const parsed = cheapest === null ? null : parseSuitBid(cheapest);
+  if (parsed === null) return null;
+  if (strength === 'minimum') {
+    if (parsed.level <= 3) return cheapest;
+    return null;
+  }
+  const jumpLevel = parsed.level + 1;
+  if (jumpLevel <= 3 || ((suit === 'H' || suit === 'S') && jumpLevel === 4)) {
+    return `${jumpLevel}${suit}` as SuitBid;
   }
   return null;
 }
@@ -1599,7 +1651,7 @@ function getOpenerNegativeDoubleFitSuits (
 /// getCheapestAvailableSuitBidForOpener finds the lowest legal bid in a particular strain from
 /// opener's actual competitive position rather than measuring from responder's compact call.
 function getCheapestAvailableSuitBidForOpener (
-    context: RuleEvalContext, suit: Suit, maximumLevel: number): SuitBid | null {
+    context: AuctionEvalContext, suit: Suit, maximumLevel: number): SuitBid | null {
   for (let level = 1; level <= maximumLevel; level += 1) {
     const call = `${level}${suit}` as SuitBid;
     if (isCallAvailableInAuction(call, context.auction)) return call;
@@ -1607,7 +1659,7 @@ function getCheapestAvailableSuitBidForOpener (
   return null;
 }
 
-function getOpenerNegativeDoubleInfo (context: RuleEvalContext): OpenerNegativeDoubleInfo | null {
+function getOpenerNegativeDoubleInfo (context: AuctionEvalContext): OpenerNegativeDoubleInfo | null {
   if (context.stage !== 'openerRebid' ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'suitOvercall') {
     return null;
@@ -2351,7 +2403,16 @@ function jumpOvercallRebidEvidence(context: RuleEvalContext, selectedCall: Call 
 
 
 
-function getJumpOvercallContinuation (context: RuleEvalContext): JumpOvercallContinuation | null {
+/// Public natural NT descriptions/acceptance after a selected jump-overcall response.
+export function jumpOvercallOpenerNtPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getJumpOvercallContinuation(context);
+  return { calls: info === null ? [] : calls.filter((call) =>
+    (call === '3NT' && ['notrumpTwo', 'negativeDouble', 'newSuitThree', 'newSuitTwo'].includes(info.kind)) ||
+    (call === '2NT' && info.kind === 'newSuitTwo')) };
+}
+
+function getJumpOvercallContinuation (context: AuctionEvalContext): JumpOvercallContinuation | null {
   const first = getOpeningCallInfo(context.dealer, context.auction);
   if (first === null || context.auction.length !== first.index + 4 ||
       getInterferenceAfterOpening(context.dealer, context.auction) !== 'jumpSuitOvercall' ||
@@ -2400,13 +2461,8 @@ export function refineStrongTwoCUnbalancedSuitRebid (calls: Call[], context: Rul
   }
 
   const candidates: { call: Call; suit: Suit; length: number }[] = [];
-  for (const call of calls) {
-    const candidate = parseSuitBid(call);
-    if (candidate === null || candidate.strain === 'NT' ||
-        cheapestBidInStrainAfter(response, candidate.strain) !== call) {
-      continue;
-    }
-    const suit = candidate.strain as Suit;
+  for (const call of strongTwoCWaitingSuitPublicMeaning(calls, context).calls) {
+    const suit = parseSuitBid(call)!.strain as Suit;
     const length = context.handFacts.lengths[suit];
     if (length >= 5) {
       candidates.push({ call, suit, length });
@@ -2425,6 +2481,23 @@ export function refineStrongTwoCUnbalancedSuitRebid (calls: Call[], context: Rul
       `Show opener's longest 5+ suit; equal lengths use the higher-ranking suit: ${best[0]!.call}.`,
     ],
   };
+}
+
+/// The waiting-response rebid shows an economical natural suit, not private longest-suit choice.
+export function strongTwoCWaitingSuitPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const opening = getOpenerOpeningBid(context);
+  const response = getResponderBid(context);
+  if (opening === null || response === null || opening.level !== 2 || opening.strain !== 'C' ||
+      response.level !== 2 || response.strain !== 'D') return { calls: [] };
+  return { calls: calls.filter((call) => isEconomicalStrongTwoCSuit(call, response, false)) };
+}
+
+function isEconomicalStrongTwoCSuit (call: Call, response: ParsedSuitBid, positive: boolean): boolean {
+  const bid = parseSuitBid(call);
+  return bid !== null && bid.strain !== 'NT' &&
+    (!positive || (bid.strain !== response.strain && bid.level <= 3)) &&
+    cheapestBidInStrainAfter(response, bid.strain) === call;
 }
 
 /// Raise a positive major economically; responder has promised a five-card suit and game values.
@@ -2466,11 +2539,8 @@ export function refineStrongTwoCPositiveNewSuitRebid (calls: Call[], context: Ru
        context.handFacts.lengths[response.strain] >= 3)) {
     return { calls: [], telemetryLines: ['No unbalanced positive-response new-suit description.'] };
   }
-  const available = calls.flatMap((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' || bid.strain === response.strain ||
-        bid.level > 3 || cheapestBidInStrainAfter(response, bid.strain) !== call) return [];
-    const suit = bid.strain as Suit;
+  const available = strongTwoCPositiveSuitPublicMeaning(calls, context).calls.flatMap((call) => {
+    const suit = parseSuitBid(call)!.strain as Suit;
     const length = context.handFacts.lengths[suit];
     return length >= 5 ? [{ call, suit, length }] : [];
   });
@@ -2485,6 +2555,14 @@ export function refineStrongTwoCPositiveNewSuitRebid (calls: Call[], context: Ru
   ] };
 }
 
+/// Positive responses retain the game force; a natural new suit stays economical through 3S.
+export function strongTwoCPositiveSuitPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const response = getStrongTwoCPositiveResponse(context);
+  return { calls: response === null ? [] : calls.filter((call) =>
+    isEconomicalStrongTwoCSuit(call, response, true)) };
+}
+
 /// Only a minimum-range balanced strong opener makes a natural NT description after a positive
 /// response. Extra balanced strength is genuine slam judgment, not an automatic higher NT bid.
 export function strongTwoCPositiveBalancedNtApplies (call: Call, context: RuleEvalContext):
@@ -2494,10 +2572,17 @@ export function strongTwoCPositiveBalancedNtApplies (call: Call, context: RuleEv
   const majorFit = major && context.handFacts.lengths[response.strain as Suit] >= 3;
   const success = response !== null && context.handFacts.balanced &&
     context.handFacts.hcp >= 22 && context.handFacts.hcp <= 24 && !majorFit &&
-    (major ? call === '2NT' : call === '3NT');
+    strongTwoCPositiveNtPublicMeaning([call], context).calls.includes(call);
   return { success, telemetryLines: [success
     ? 'Minimum 22-24 balanced strong opening with no preferred positive-major fit.'
     : 'Not the economical 22-24 balanced NT description for this positive response.'] };
+}
+
+export function strongTwoCPositiveNtPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const response = getStrongTwoCPositiveResponse(context);
+  const major = response?.strain === 'H' || response?.strain === 'S';
+  return { calls: response === null ? [] : calls.filter((call) => call === (major ? '2NT' : '3NT')) };
 }
 
 /// With a game-forcing positive response, a hand outside these chosen natural descriptions
@@ -2513,7 +2598,7 @@ export function strongTwoCPositiveScopeBoundaryApplies (context: RuleEvalContext
 
 /// The positive strong-2C responses are 2H/2S, 3C/3D, or balanced 2NT. A response of
 /// 2D is waiting and retains its separate rebid treatment. Interference is excluded by the rules.
-function getStrongTwoCPositiveResponse (context: RuleEvalContext): ParsedSuitBid | null {
+function getStrongTwoCPositiveResponse (context: AuctionEvalContext): ParsedSuitBid | null {
   const opening = getOpenerOpeningBid(context);
   const response = getResponderBid(context);
   if (opening?.level !== 2 || opening.strain !== 'C' || response === null) return null;

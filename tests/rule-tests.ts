@@ -1,12 +1,12 @@
 /// Run saved practice deals through the production evaluator without changing bidding behavior.
 /// Each stage tests the calls supported by specified rules and selected eliminations/orderings.
 import { getResponderStrongSecondSuit } from '../src/models/responder-rebidding-functions';
-import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type SuitBid } from '../src/models/bidding-types';
+import { defaultBiddingSystem, type BidRule, type BiddingSystem, type Call, type CallCategory, type SuitBid } from '../src/models/bidding-types';
 import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleStage,
          getInterferenceAfterOpening, getPartnerOneNtSuitInterference,
          getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
@@ -15,7 +15,7 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
          getCompetitiveResponseLines, getStage6BCompetitiveAlternativeLines,
          getJumpResponseLines, getJumpResponseFailureLines,
          getNaturalNewSuitOvercallLines,
-         getMinorResponseSupportLines, getMajorNoSupportLines,
+         getMinorResponseSupportLines, getMajorNoSupportLines, getMajorSupportLines,
          getMajorDirectThreeNtLines, getMajorDirectThreeNtFailureLines,
          getNaturalAdvanceLines, getNaturalOneNtAdvanceLines,
          getTakeoutAdvanceFailureLines, getStrongTwoCResponseLines,
@@ -141,6 +141,7 @@ function runAllRuleTests (): void {
     runWeakTwoOpeningRangeTests,
     runWeakTwoInquiryExplanationTests,
     runAuctionContextTests,
+    runPublicCallMeaningTests,
     runCompetitionBoundaryTests,
     runResponderInterferenceScopeBoundaryTests,
     runCompetitiveOpenerRebidBoundaryTests,
@@ -470,6 +471,111 @@ function matchesRequiredConventions (required: Partial<BiddingSystem> | undefine
 function formatCandidates (candidates: CandidateCallMatch[]): string {
   return candidates.map((candidate) => `${candidate.call} [${candidate.rule.id}, ` +
     `rank ${candidate.rule.priority?.rank ?? 0}]`).join('; ') || '(none)';
+}
+
+//// Public call meaning
+/// Public interpretation has no Board argument. Exercise actual historical calls, including
+/// calls which need not have qualified for the hand, independently of private strategy.
+function runPublicCallMeaningTests (): number {
+  const cases: { auction: Call[]; call: Call; settings?: Partial<BiddingSystem>;
+                 expected: CallCategory[]; status?: 'unknown' | 'ambiguous' }[] = [
+    { auction: [], call: '1C', expected: ['natural'] },
+    { auction: ['1H', 'Pass'], call: '1S', expected: ['forcing', 'natural'] },
+    { auction: ['1S', 'Pass'], call: '2C', expected: ['forcing', 'natural'] },
+    { auction: ['1S', 'Pass'], call: '2C', settings: { twoLevelNewSuitResponse: 'twoOverOne' },
+      expected: ['gameForcing', 'natural'] },
+    { auction: ['1D', 'Pass'], call: '2C', settings: { twoLevelNewSuitResponse: 'twoOverOne' },
+      expected: ['gameForcing', 'natural'] },
+    { auction: ['Pass', 'Pass', '1S', 'Pass'], call: '1NT',
+      settings: { majorOneNtResponse: 'forcing' }, expected: ['natural'] },
+    { auction: ['1S', 'Pass'], call: '1NT', settings: { majorOneNtResponse: 'forcing' },
+      expected: ['forcing', 'natural'] },
+    { auction: ['Pass', 'Pass', '1S', 'Pass'], call: '2C',
+      settings: { twoLevelNewSuitResponse: 'twoOverOne' }, expected: [], status: 'unknown' },
+    { auction: ['Pass', 'Pass', '1D', 'Pass', '2C', 'Pass'], call: '2D',
+      settings: { twoLevelNewSuitResponse: 'twoOverOne' }, expected: [], status: 'unknown' },
+    { auction: ['1C', 'Pass', '1H', 'Pass'], call: '2D', expected: ['forcing', 'natural'] },
+    { auction: ['1C', 'Pass', '1H', 'Pass'], call: '1S', expected: ['natural'] },
+    { auction: ['1C', 'Pass'], call: '2H', settings: { jumpShift: 'weak' },
+      expected: ['signoff', 'natural'] },
+    { auction: ['1C', 'Pass'], call: '2H', settings: { jumpShift: 'strong' },
+      expected: ['gameForcing', 'natural'] },
+    { auction: ['1S', 'Pass'], call: '2NT', settings: { majorGameForceWithSupport: 'jacoby2NT' },
+      expected: ['gameForcing', 'conventional'] },
+    { auction: ['1S', 'Pass', '2NT', 'Pass'], call: '3NT',
+      settings: { majorGameForceWithSupport: 'jacoby2NT' }, expected: ['gameForcing', 'conventional'] },
+    { auction: ['1S', 'Pass', '2NT', 'Pass'], call: '4S',
+      settings: { majorGameForceWithSupport: 'jacoby2NT' }, expected: ['signoff', 'natural'] },
+    { auction: ['1NT', 'Pass'], call: '4D', expected: ['gameForcing', 'conventional'] },
+    { auction: ['1NT', 'Pass', '4D', 'Pass'], call: '4H', expected: ['conventional', 'gamePlacement'] },
+    { auction: ['1NT', 'Pass', '4D', 'Pass'], call: '4H', settings: { texasTransfers: false },
+      expected: [], status: 'unknown' },
+    { auction: ['1D', '1NT', 'Pass', '4D', 'Pass'], call: '4H',
+      expected: ['conventional', 'gamePlacement'] },
+    { auction: ['2H', '2NT', 'Pass', '4H', 'Pass'], call: '4S',
+      expected: ['conventional', 'gamePlacement'] },
+    { auction: ['1D', '1S', 'Pass'], call: '2D', expected: ['conventional', 'forcing'] },
+    { auction: ['1H', '1S', 'Double', 'Pass'], call: '3C', expected: [], status: 'ambiguous' },
+    { auction: ['1NT', 'Pass'], call: '7C', expected: [], status: 'unknown' },
+  ];
+  let failures = 0;
+  for (const testCase of cases) {
+    const system = { ...defaultBiddingSystem, ...testCase.settings };
+    const meaning = getCallPublicMeaning(testCase.call,
+      makeAuctionPublicContext('N', testCase.auction, system), system);
+    if (meaning.status !== (testCase.status ?? 'known') ||
+        meaning.categories.length !== testCase.expected.length ||
+        !testCase.expected.every((category) => (meaning.categories as CallCategory[]).includes(category))) {
+      failures += 1;
+      console.error(`FAIL public meaning ${testCase.auction.join(' ')} -> ${testCase.call}: ` +
+        `${JSON.stringify(meaning)}, expected ${testCase.status ?? 'known'} ${testCase.expected.join(', ')}.`);
+    }
+  }
+  // Same physical hands, different earlier pass history. Only the unpassed responder may
+  // use the forcing 1NT support route or establish the modeled 2/1 game force.
+  const { board } = makeRuleTestBoard({
+    description: 'Three-card limit-raise route with forcing 1NT agreement.',
+    north: { S: 'AQJ74', H: 'K63', D: 'Q4', C: 'J63' },
+    south: { S: 'K82', H: 'QJ74', D: 'K85', C: 'Q84' },
+    practiceAuction: ['1S', 'Pass', '1NT'],
+  });
+  const forcingSystem: BiddingSystem = { ...defaultBiddingSystem, majorOneNtResponse: 'forcing' };
+  const forcingId = 'respond-to-major-w/-support-limit-raise-three-card';
+  const fallbackId = 'respond-to-major-w/-support-limit-raise-three-card-nonforcing-1nt-fallback';
+  const unpassed = evaluateUserCall('1NT', board, ['1S', 'Pass'], forcingSystem).userCallMatchingRules;
+  const passedResult = evaluateUserCall('1NT', { ...board, dealer: 'S' },
+    ['Pass', 'Pass', '1S', 'Pass'], forcingSystem);
+  const passed = passedResult.userCallMatchingRules;
+  if (!unpassed.some((rule) => rule.id === forcingId) || passed.some((rule) => rule.id === forcingId) ||
+      !passed.some((rule) => rule.id === fallbackId)) {
+    failures += 1;
+    console.error('FAIL three-card limit raise must use nonforcing 1NT after responder previously passed.');
+  }
+  const fallback = passed.find((rule) => rule.id === fallbackId);
+  if (fallback === undefined || !getMajorSupportLines(passedResult, fallback)
+      .some((line) => line.includes('previously passed hand') && line.includes('nonforcing'))) {
+    failures += 1;
+    console.error('FAIL passed-hand 1NT support explanation should explain why the response is nonforcing.');
+  }
+  const { board: minorBoard } = makeRuleTestBoard({
+    description: 'Natural 2/1 opener repeat requires unpassed responder.',
+    north: { S: 'A4', H: 'KJ42', D: 'KQJ92', C: '82' },
+    south: { S: 'K72', H: 'Q8', D: 'A5', C: 'QJ9653' },
+    practiceAuction: ['1D', 'Pass', '2C', 'Pass', '2D'],
+  });
+  const twoOverOne: BiddingSystem = { ...defaultBiddingSystem, twoLevelNewSuitResponse: 'twoOverOne' };
+  const repeatId = 'opener-rebid-repeat-diamonds-after-minor-two-over-one-new-suit';
+  const ordinaryRepeat = evaluateUserCall('2D', minorBoard, ['1D', 'Pass', '2C', 'Pass'], twoOverOne)
+    .userCallMatchingRules.some((rule) => rule.id === repeatId);
+  const passedRepeat = evaluateUserCall('2D', { ...minorBoard, dealer: 'S' },
+    ['Pass', 'Pass', '1D', 'Pass', '2C', 'Pass'], twoOverOne)
+    .userCallMatchingRules.some((rule) => rule.id === repeatId);
+  if (!ordinaryRepeat || passedRepeat) {
+    failures += 1;
+    console.error('FAIL modeled 2/1 opener repeat requires an unpassed responder.');
+  }
+  console.log(`${failures} ***FAILURES***. Public call meaning and passed-hand restrictions: ${cases.length + 3} checks.`);
+  return failures;
 }
 
 //// Auction mechanics and opening bids

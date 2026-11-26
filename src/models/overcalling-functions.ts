@@ -1118,6 +1118,14 @@ export function naturalOneNtOvercallerThreeMajorApplies (
   };
 }
 
+/// Natural game placement after advancer's 3M, regardless of actual overcaller support.
+export function naturalOneNtOvercallerThreeMajorPublicMeaning (calls: Call[],
+    context: AuctionEvalContext, system: BiddingSystem): { calls: Call[] } {
+  const advance = getNaturalOneNtOvercallAdvance(context);
+  return { calls: advance !== '3H' && advance !== '3S' ? [] : calls.filter((call) =>
+    call === `4${advance[1]}` || (!system.jacobyTransfers && call === '3NT')) };
+}
+
 export function naturalOneNtOvercallerSignoffApplies (
   _call: Call, context: RuleEvalContext, system: BiddingSystem): AppliesWhenResult {
   const advance = getNaturalOneNtOvercallAdvance(context);

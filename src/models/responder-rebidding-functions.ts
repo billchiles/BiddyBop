@@ -237,6 +237,15 @@ export function responderStrongSecondSuitGameApplies (call: Call, context: RuleE
 }
 
 
+/// Natural major games or 3NT following opener's strong second suit.
+export function responderStrongSecondSuitGamePublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getResponderStrongSecondSuit(context);
+  return { calls: info === null ? [] : calls.filter((call) => call === '3NT' ||
+    ((call === '4H' || call === '4S') && (call[1] === info.second ||
+      (info.kind === 'jumpShift' && call[1] === info.opening)))) };
+}
+
 /// Classify the first three partnership bids by their established meanings. A reverse is a
 /// cheapest forcing new suit; a strong jump shift jumps one level beyond an economical new suit.
 /// Neither the printed suit combination nor the opponent's intervening Passes define the family.
@@ -577,6 +586,14 @@ export function refineResponderTwoOverOneSuit (calls: Call[], context: AuctionEv
   return { calls: wanted === null ? [] : calls.filter((call) => call === wanted),
            telemetryLines: [wanted === null ? 'No qualifying 2/1 natural suit.' :
              `Keep the ${wanted} continuation of the established 2/1 game force.`] };
+}
+
+/// Public game targets in the modeled 2/1 auction, without assuming the bidder has the fit.
+export function responderTwoOverOneGamePublicMeaning (calls: Call[], context: AuctionEvalContext,
+    choice: 'openingGame' | 'secondMajorGame'): { calls: Call[] } {
+  const info = getResponderTwoOverOne(context);
+  if (info === null || (choice === 'openingGame' && info.kind !== 'repeatOpening')) return { calls: [] };
+  return refineResponderTwoOverOneSuit(calls, context, choice);
 }
 
 /// Require the game force to remain active. A direct game needs a known fit or a
@@ -1125,6 +1142,19 @@ export function responderAfterStrongJumpShiftGameApplies (call: Call, context: R
   } } };
 }
 
+
+/// A strong jump shifter's selected game placements follow the actual opener rebid.
+export function responderStrongJumpShiftGamePublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const info = getResponderAfterStrongJumpShift(context);
+  if (info === null) return { calls: [] };
+  const major = info.kind === 'raise' ? info.response : info.kind === 'repeat' ? info.opening : null;
+  return { calls: calls.filter((call) =>
+    ((major === 'H' || major === 'S') && call === `4${major}` && info.rebid !== call) ||
+    (info.kind === 'notrump' && info.rebid === '2NT' && call === '3NT') ||
+    (call === 'Pass' && (info.rebid === '3NT' ||
+      (info.kind === 'raise' && (major === 'H' || major === 'S') && info.rebid === `4${major}`)))) };
+}
 
 /// Recognize responder's *original* single-jump new-suit response, not opener's later
 /// jump shift.  The opener rebid must be one of the natural continuations modeled for

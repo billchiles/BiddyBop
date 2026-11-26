@@ -9,7 +9,7 @@ import { oneNtResponseHcpShift, type AppliesWhenResult, type BidRule, type Biddi
          type Call, type CallRefinementResult, type AuctionEvalContext, type RuleEvalContext } from './bidding-types';
 import { hasTwoOfTopThreeHonors, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getPartnerOneNtSuitInterference, parseSuitBid } from './auction';
-import { hasBasicSuitStopper } from './common-rule-helpers';
+import { declaredCallsPublicMeaning, hasBasicSuitStopper } from './common-rule-helpers';
 
 
 export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
@@ -72,6 +72,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['2NT'],
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: (_call, context, system) =>
       naturalNotrumpAfterOneNtInterferenceApplies(context, system, 8, 9),
     priority: { rank: 60 },
@@ -87,6 +88,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: (_call, context, system) =>
       naturalNotrumpAfterOneNtInterferenceApplies(context, system, 10, 15),
     priority: { rank: 60 },
@@ -102,6 +104,7 @@ export const NaturalOneNtInterferencePartnerCallRules: BidRule[] = [
     auctionContext: { partnerNaturalOneNtAfterSuitInterference: true },
     calls: ['Double'],
     callCategory: ['conventional', 'forcing'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: negativeDoubleAfterOneNtInterferenceApplies,
     priority: { rank: 40 },
     guidance: ['15-17: normally 8+ HCP; 16-18: normally 7+ HCP.',

@@ -16,7 +16,7 @@ import {
   openerJacobyGoodSideSuitApplies, openerMinorOneLevelOneNtApplies,
   openerNtDirectMajorSlamInterestApplies, openerNtGameInvitationApplies,
   openerNtMinorInvitationApplies, openerNtNaturalMajorGameApplies,
-  openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMinorApplies,
+  openerNtNaturalThreeMajorApplies, openerNtNaturalThreeMajorPublicMeaning, openerNtNaturalThreeMinorApplies,
   oneNtInterferenceDoubleNtApplies, oneNtInterferenceNaturalPassApplies,
   oneNtInterferenceNaturalMajorRaiseApplies, oneNtInterferenceNaturalThreeNtApplies,
   oneNtInterferenceScopeBoundaryApplies, refineOneNtInterferenceDoubleFit,
@@ -36,6 +36,9 @@ import {
   refineForcingOneNtMinorFallback, refineOpenerFiveCardMinorFallback,
   openerExceptionalStrongMinorRebidBoundaryApplies,
   refineNtJacobyCompletion, refineNtStaymanReply,
+  openerNegativeDoubleSuitPublicMeaning, openerNtMajorSlamControlPublicMeaning, openerSplinterControlPublicMeaning,
+  openerRaiseResponderSuitPublicMeaning, openerRaiseResponderSuitOneLevelPublicMeaning,
+  strongTwoCWaitingSuitPublicMeaning, strongTwoCPositiveSuitPublicMeaning, strongTwoCPositiveNtPublicMeaning,
   refineNtTexasCompletion, refineOpenerFiveCardMajorFallback, refineOpenerFourCardMajorUpTheLine,
   refineOpenerLowerRankingSecondSuitRebid, refineOpenerNaturalJumpShiftRebid,
   refineOpenerNewSuitAtCheapestLevel, refineOpenerNewSuitByExtraLevels,
@@ -55,10 +58,10 @@ import {
   strongTwoCPositiveBalancedNtApplies, strongTwoCPositiveScopeBoundaryApplies,
   refineWeakTwoFeatureRebid,
   jumpOvercallOpenerContinuationApplies, jumpOvercallOpenerBoundaryApplies,
-  refineJumpOvercallOpenerAction,
+  refineJumpOvercallOpenerAction, jumpOvercallOpenerNtPublicMeaning,
   weakTwoFeatureAfterInquiryApplies, weakTwoRepeatAfterInquiryApplies, weakTwoSolidThreeNtApplies
 } from './opener-rebidding-functions';
-import { getResponderBid } from './common-rule-helpers';
+import { getResponderBid, getOpenerOpeningBid } from './common-rule-helpers';
 import { getOpeningCallInfo, getOpeningPartnershipCalls } from './auction';
 import { responderPreviouslyPassed } from './auction';
 
@@ -140,6 +143,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2H', '2S', '3C', '3D'],
     callRefinement: refineStrongTwoCUnbalancedSuitRebid,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: strongTwoCWaitingSuitPublicMeaning,
     appliesWhen: { hcp: { min: 22 } },
     meaning: "Natural forcing rebid in opener's longest five-card-or-longer suit.",
     guidance: ['With two equal five-card or equal six-card suits, bid the higher-ranking suit.',
@@ -186,6 +190,12 @@ export const OpenerRebidRules: BidRule[] = [
     },
     appliesWhen: strongTwoCPositiveMajorSupportApplies,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => {
+      const response = getResponderBid(context);
+      return { calls: calls.filter((call) => response !== null &&
+        (response.strain === 'H' || response.strain === 'S') && call === `3${response.strain}`),
+        telemetryLines: [] };
+    },
     priority: { rank: 20 },
     meaning: 'Three-card-or-longer support for responder\'s positive five-card major; forcing.',
     guidance: ['Raise at the cheapest three-level bid to preserve space for game or slam exploration.',
@@ -206,6 +216,12 @@ export const OpenerRebidRules: BidRule[] = [
     },
     appliesWhen: strongTwoCPositiveMinorSupportApplies,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => {
+      const response = getResponderBid(context);
+      return { calls: calls.filter((call) => response !== null &&
+        (response.strain === 'C' || response.strain === 'D') && call === `4${response.strain}`),
+        telemetryLines: [] };
+    },
     meaning: 'Unbalanced four-card-or-longer support for responder\'s positive minor.',
     guidance: ['This deliberately bypasses 3NT only with a substantial minor fit and no longer ' +
                'natural side suit to describe. Further bidding may investigate slam.'],
@@ -219,6 +235,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineStrongTwoCPositiveNewSuitRebid,
     appliesWhen: { hcp: { min: 22 } },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: strongTwoCPositiveSuitPublicMeaning,
     meaning: 'Natural five-card-or-longer opener suit, game forcing after a positive response.',
     guidance: ['Prefer a three-card fit for responder\'s positive major when one exists.',
                'Show the longest eligible own suit at the cheapest legal level through 3S; ' +
@@ -233,6 +250,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2NT', '3NT'],
     appliesWhen: strongTwoCPositiveBalancedNtApplies,
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: strongTwoCPositiveNtPublicMeaning,
     meaning: 'Minimum 22-24 balanced strong 2C opener; natural NT description, not a signoff.',
     guidance: ['After a positive major, prefer 3M with a three-card fit; otherwise describe with 2NT.',
                'After a positive minor or balanced 2NT response, the lowest available natural NT is 3NT.',
@@ -263,6 +281,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineNtStaymanReply,
     appliesWhen: { suitLengths: [{ suit: 'H', max: 3 }, { suit: 'S', max: 3 }] },
     meaning: 'No four-card major; responder can now describe their hand.',
   },
@@ -275,6 +294,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineNtStaymanReply,
     appliesWhen: { suitLengths: [{ suit: 'H', min: 4 }] },
     meaning: 'Show hearts first when opener has both four-card majors.',
   },
@@ -287,6 +307,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineNtStaymanReply,
     appliesWhen: { suitLengths: [{ suit: 'S', min: 4 }, { suit: 'H', max: 3 }] },
     meaning: 'Show a four-card spade suit when no four-card heart suit is available.',
   },
@@ -299,6 +320,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineNtJacobyCompletion,
     agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['conventional'],
+    deriveCallPublicMeaning: refineNtJacobyCompletion,
     meaning: 'Complete the transfer at the next level; opener normally becomes declarer.',
     guidance: ['This initial treatment does not model superaccepting transfers.'],
   },
@@ -310,7 +332,8 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['4H', '4S'],
     callRefinement: refineNtTexasCompletion,
     agreement: { setting: 'texasTransfers', value: true },
-    callCategory: ['conventional'],
+    callCategory: ['conventional', 'gamePlacement'],
+    deriveCallPublicMeaning: refineNtTexasCompletion,
     meaning: 'Complete the Texas transfer to game in the requested major.',
   },
   {
@@ -387,6 +410,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['3NT'],
     agreement: { setting: 'jacobyTransfers', value: false },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: openerNtNaturalThreeMajorPublicMeaning,
     priority: { rank: 45 },
     appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 2, 2),
     meaning: "With only two cards in responder's five-card-or-longer major, choose the notrump game.",
@@ -401,6 +425,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerNtResponderMajorToGame,
     agreement: { setting: 'jacobyTransfers', value: false },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineOpenerNtResponderMajorToGame,
     priority: { rank: 45 },
     appliesWhen: (call, context) => openerNtNaturalThreeMajorApplies(call, context, 3),
     meaning: 'Three-card support establishes the known eight-card major fit; choose the major game.',
@@ -418,6 +443,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerNtResponderMajorToGame,
     agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => getOpenerOpeningBid(context)?.level === 1 ?
+      refineOpenerNtResponderMajorToGame(calls, context) : { calls: [] },
     priority: { rank: 30 },
     appliesWhen: (call, context, system) =>
       openerNtDirectMajorSlamInterestApplies(call, context, system, false),
@@ -434,6 +461,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerNtMajorSlamControlBid,
     agreement: { setting: 'jacobyTransfers', value: true },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: openerNtMajorSlamControlPublicMeaning,
     priority: { rank: 45 },
     appliesWhen: (call, context, system) =>
       openerNtDirectMajorSlamInterestApplies(call, context, system, true),
@@ -451,6 +479,8 @@ export const OpenerRebidRules: BidRule[] = [
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['3NT'],
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context, system) => ({ calls: calls.filter((call) =>
+      openerNtNaturalThreeMinorApplies(call, context, system).success) }),
     priority: { rank: 40 },
     appliesWhen: openerNtNaturalThreeMinorApplies,
     meaning: 'Use 3NT as the normal game destination after responder describes a strong long minor.',
@@ -868,6 +898,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineJumpOvercallOpenerAction,
     appliesWhen: jumpOvercallOpenerContinuationApplies,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: jumpOvercallOpenerNtPublicMeaning,
     priority: { rank: 30 },
     meaning: 'Selected balanced natural notrump description or 3NT invitation acceptance.',
     guidance: ['After a natural forcing suit or negative Double, opener must have a stopper ' +
@@ -918,6 +949,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'minimum'),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'minimum'),
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
     meaning: 'Show a four-card or longer fit in a suit implied by responder’s negative Double.',
     guidance: ['Prefer the longer implied fit.  Equal four-card majors use the existing up-line ' +
@@ -936,6 +968,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'medium'),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
     meaning: 'Jump one level below game with medium values in a suit implied by the negative Double, inviting game.',
   },
@@ -952,6 +985,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'medium'),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
     meaning: 'A medium-strength jump to four of an implied major has already reached game; it is not an invitation to bid game.',
   },
@@ -970,6 +1004,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'maximum'),
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'maximum'),
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Bid game with maximum values and a four-card or longer implied major.',
   },
@@ -986,6 +1021,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'maximum'),
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'maximum'),
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Show the strong implied-minor fit below the four level without assuming minor game.',
     guidance: ['Five of a minor is not automatic merely because opener has maximum values.'],
@@ -1005,6 +1041,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'minimum'),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'minimum'),
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' } },
     meaning: 'Keep describing a known implied-suit fit when competition leaves a cheap call.',
     guidance: ['The trainer does not turn a consumed three-level fit bid into an automatic game.'],
@@ -1024,6 +1061,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerNegativeDoubleImpliedSuitRebid(calls, context, 'medium'),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerNegativeDoubleSuitPublicMeaning(calls, context, 'medium'),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' } },
     meaning: 'Medium opener uses the cheapest still-descriptive implied-suit fit through level three.',
     guidance: ['Advancer’s action consumes the old jump step; it does not force opener one level ' +
@@ -1185,6 +1223,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineOpenerOpeningSuitAtCheapestLevel,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineOpenerOpeningSuitAtCheapestLevel,
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Minimum opener repeats a six-card or longer opening suit economically.',
   },
@@ -1201,6 +1240,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineOpenerNonReverseNewSuitRebid,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineOpenerNonReverseNewSuitRebid,
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without promising reverse strength.',
   },
@@ -1217,6 +1257,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineOpenerReverseRebid,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     appliesWhen: { totalPoints: { min: 17, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural second suit with the extra strength required for a reverse.',
   },
@@ -1362,6 +1403,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['1D', '1H', '1S', '2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineOpenerNonReverseNewSuitRebid,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineOpenerNonReverseNewSuitRebid,
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Keep an ordinary non-reverse second-suit description only if advancer has not ' +
              'consumed that exact call.',
@@ -1379,6 +1421,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineOpenerReverseRebid,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     appliesWhen: (call: Call, context: RuleEvalContext): AppliesWhenResult =>
       openerSecondSuitApplies(call, context, 17, 21, 'competitive reverse'),
     meaning: 'A natural reverse keeps its extra-strength meaning when the same call remains legal.',
@@ -1526,6 +1569,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerOpeningSuitToLevel(calls, context, 3),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 3),
     appliesWhen: { totalPoints: { min: 12, max: 13, valuation: 'shortage' } },
     meaning: 'Minimum opener rebids the agreed suit; responder can continue with stronger values.',
   },
@@ -1542,6 +1587,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerOpeningSuitToLevel(calls, context, 4),
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 4),
     appliesWhen: { totalPoints: { min: 14, valuation: 'shortage' } },
     meaning: 'Responder promised 11+ support points, so 14+ opener points reach game values.',
   },
@@ -1558,6 +1605,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerOpeningSuitToLevel(calls, context, 3),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 3),
     appliesWhen: { totalPoints: { min: 12, max: 14, valuation: 'shortage' } },
     meaning: 'Minimum opener rebids the agreed suit; responder can continue with stronger values.',
   },
@@ -1574,6 +1623,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerOpeningSuitToLevel(calls, context, 4),
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 4),
     appliesWhen: { totalPoints: { min: 15, valuation: 'shortage' } },
     meaning: 'Jordan promises 10+ support points, so 15+ opener points reach game values.',
   },
@@ -1629,6 +1680,8 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: (calls: Call[], context: RuleEvalContext): CallRefinementResult =>
       refineOpenerOpeningSuitToLevel(calls, context, 2),
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult =>
+      refineOpenerOpeningSuitToLevel(calls, context, 2),
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening suit rather than play 1NT with a shapely minimum.',
   },
@@ -1846,6 +1899,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => ({ calls: getResponderBid(context) === null ? [] : calls }),
     appliesWhen: openerThreeLevelForcingResponseThreeNtApplies,
     meaning: 'Use 3NT without a known major fit when opener is balanced/semi-balanced and stops ' +
              'the opponent suit.',
@@ -2248,7 +2302,8 @@ export const OpenerRebidRules: BidRule[] = [
     },
     calls: ['2D', '2H', '2S'],
     callRefinement: refineOpenerReverseRebid,
-    callCategory: ['forcing'],
+    callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     // applies when extra strength exists for reverse bid (a new suit higher in rank than previous).
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
@@ -2271,6 +2326,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Jump rebid the long opening minor to show medium strength.',
     guidance: ['Prefer a good six-card or longer suit for the jump rebid.'],
@@ -2306,6 +2364,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
     },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
+    },
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 19, 21, 'jump shift');
     },
@@ -2343,6 +2404,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 5);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
   },
@@ -2365,6 +2429,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNonReverseNewSuitRebid(calls, context);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNonReverseNewSuitRebid(calls, context);
+    },
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without forcing partner higher.',
     guidance: ['After opening a convenient minor, show an available four-card major at the one level ' +
@@ -2402,6 +2469,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 2);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 2),
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show four-card or longer support for responder's suit with minimum values.",
@@ -2424,6 +2492,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 2);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening minor with minimum values.',
   },
@@ -2460,6 +2531,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callRefinement: refineOpenerReverseRebid,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
     },
@@ -2482,6 +2554,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening minor.',
   },
@@ -2501,6 +2576,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 3),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show medium values and four-card or longer support for responder's suit.",
@@ -2538,6 +2614,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNaturalJumpShiftRebid(calls, context);
     },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerNaturalJumpShiftRebid,
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 19, 21, 'jump shift');
     },
@@ -2579,6 +2656,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 5);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening minor.',
   },
@@ -2615,6 +2695,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 2, 'any', 'opener splinter');
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 2, 'any', 'opener splinter');
+    },
     agreement: { setting: 'splinters', value: true,
                  note: 'Opener-side splinter: support for responder plus singleton/void.' },
     priority: { rank: -100, note: 'Specialized partnership treatment; deliberately present last.' },
@@ -2660,6 +2743,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerFourCardMajorUpTheLine,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineOpenerNewSuitAtCheapestLevel(calls, context),
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
     },
@@ -2698,6 +2782,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 3),
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Show an eight-card-or-longer club fit with minimum values.',
@@ -2751,6 +2836,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 4),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Show medium values and club support while inviting the minor-suit game.',
@@ -2771,6 +2857,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 5),
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 3 } },
     meaning: 'Bid the club game with maximum values and a known eight-card-or-longer fit.',
@@ -2805,6 +2892,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2D with five or more diamonds in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D'],
@@ -2824,12 +2912,14 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show a four-card major up the line after 2/1 1D-2C',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
     callRefinement: refineOpenerFourCardMajorUpTheLine,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => refineOpenerNewSuitAtCheapestLevel(calls, context),
     appliesWhen: { suitLengths: [{ suit: 'D', max: 4 }, { min: 4 }] },
     meaning: 'With fewer than five diamonds, show a natural four-card major without promising extras.',
     guidance: ['With both four-card majors, show hearts before spades.'],
@@ -2842,6 +2932,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT when no five-card diamond suit or four-card major is available',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
@@ -2862,6 +2953,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Raise clubs naturally when 2NT is unattractive in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C'],
@@ -2870,6 +2962,7 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 3),
     priority: { rank: 10 },
     appliesWhen: { supportLength: { min: 4 },
                    suitLengths: [{ suit: 'D', max: 4 }, { suit: 'H', max: 3 },
@@ -2943,6 +3036,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 2);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
   },
@@ -2977,6 +3073,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['2S'],
     callRefinement: refineOpenerReverseRebid,
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     appliesWhen: (call: Call, context: RuleEvalContext) : AppliesWhenResult => {
       return openerSecondSuitApplies(call, context, 17, 21, 'reverse');
     },
@@ -3018,6 +3115,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
     guidance: ['Prefer a good six-card or longer suit for the jump rebid.'],
@@ -3052,6 +3152,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
     },
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A jump shift shows a natural second suit and maximum opening strength.',
   },
@@ -3070,6 +3173,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
   },
@@ -3113,6 +3219,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 2);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 2),
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show four-card or longer support for responder's suit with minimum values.",
@@ -3135,6 +3242,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 2);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
   },
@@ -3173,6 +3283,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
   },
@@ -3192,6 +3305,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 3),
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Show medium values and four-card or longer support for responder's suit.",
@@ -3229,6 +3343,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
     },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
   },
@@ -3248,6 +3365,7 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerRaiseResponderSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 4),
     appliesWhen: { totalPoints: { min: 19, max: 21, valuation: 'shortage' },
                    supportLength: { min: 4 } },
     meaning: "Bid game with maximum values and four-card or longer support for responder's suit.",
@@ -3268,6 +3386,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
   },
@@ -3286,6 +3407,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 2, 'any', 'opener splinter');
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 2, 'any', 'opener splinter');
+    },
     agreement: { setting: 'splinters', value: true,
                  note: 'Opener-side splinter: support for responder plus singleton/void.' },
     priority: { rank: -100, note: 'Specialized partnership treatment; deliberately present last.' },
@@ -3338,6 +3462,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
     appliesWhen: { totalPoints: { min: 12, max: 16 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major with minimum values.',
   },
@@ -3374,6 +3501,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerNonReverseNewSuitRebid,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: refineOpenerNonReverseNewSuitRebid,
     appliesWhen: { totalPoints: { min: 12, max: 18 }, suitLengths: [{ min: 4 }] },
     meaning: 'Show a natural four-card or longer second suit without promising reverse strength.',
   },
@@ -3391,6 +3519,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerReverseRebid,
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerReverseRebid,
     appliesWhen: { totalPoints: { min: 17, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A reverse, including a three-level lower suit that forces partner higher, shows 17+ total points in Standard.',
   },
@@ -3426,6 +3555,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['forcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 }, suitLengths: [{ min: 6 }] },
     meaning: 'Show medium values and a good six-card or longer opening major.',
   },
@@ -3499,6 +3631,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'lower', 'jump-shift');
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 4 }] },
     meaning: 'A natural jump shift shows a second suit and maximum opening strength.',
   },
@@ -3518,6 +3653,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'standard' },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     appliesWhen: { totalPoints: { min: 19, max: 21 }, suitLengths: [{ min: 7 }] },
     meaning: 'Bid game with maximum values and a good seven-card or longer opening major.',
   },
@@ -3551,6 +3689,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: "Support responder's suit at the cheapest level in a 2/1 game force",
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -3560,6 +3699,7 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne',
                  note: '2/1 response is already game forcing.' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls, context) => openerRaiseResponderSuitPublicMeaning(calls, context, 3),
     priority: { rank: 20 },
     appliesWhen: (call, context) => openerTwoLevelRaiseApplies(call, context),
     meaning: "Confirm a fit in responder's natural suit without consuming extra bidding room.",
@@ -3576,6 +3716,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid a six-card opening major cheaply in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
@@ -3584,6 +3725,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 2);
+    },
     appliesWhen: { suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card or longer opening major; the auction is already game forcing.',
   },
@@ -3595,6 +3739,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Show a four-card second suit cheaply in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
@@ -3603,6 +3748,9 @@ export const OpenerRebidRules: BidRule[] = [
     },
     agreement: { setting: 'twoLevelNewSuitResponse', value: 'twoOverOne' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    },
     appliesWhen: { suitLengths: [{ min: 4 }] },
     meaning: 'Describe a natural second suit economically; reverse (higher new suit) does not ' +
              'require traditional 17+ strength once game is already forced.',
@@ -3615,6 +3763,7 @@ export const OpenerRebidRules: BidRule[] = [
     title: 'Rebid 2NT with balanced or semi-balanced shape in a 2/1 game force',
     auctionContext: {
       stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
@@ -3664,6 +3813,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['invitational', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     appliesWhen: { totalPoints: { min: 17, max: 18 } },
     meaning: 'Invite game by raising the agreed minor with medium values.',
     guidance: ['If game is eventually reached after a minor-suit fit, 3NT is usually preferred ' +
@@ -3708,6 +3860,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 5);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
     priority: { rank: 10, note: 'Judgment alternative to the usual 3NT game.' },
     appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 19 },
                    suitLengths: [{ min: 7 }], shape: { balancedOrSemiBalanced: false } },
@@ -3766,6 +3921,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 5);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 5);
+    },
     priority: { rank: 10, note: 'Judgment alternative to the usual 3NT game.' },
     appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 17 },
                    suitLengths: [{ min: 7 }], shape: { balancedOrSemiBalanced: false } },
@@ -3838,6 +3996,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitAtCheapestLevel(calls, context);
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    },
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
                  note: 'Jacoby 2NT: a three-level new suit shows singleton or void.' },
     priority: { rank: 40, note: 'Prefer shortness description before a good side-suit alternative.' },
@@ -3861,6 +4022,10 @@ export const OpenerRebidRules: BidRule[] = [
                                               'Jacoby good side-suit rebid');
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'any',
+                                              'Jacoby good side-suit rebid');
+    },
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT',
                  note: 'Jacoby 2NT: a four-level new suit shows a good five-card-or-longer suit.' },
     priority: { rank: 30, note: 'Keep behind a three-level shortness description when both apply.' },
@@ -3885,6 +4050,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
     appliesWhen: { hcp: { max: 13 }, shape: { noVoid: true, noSingleton: true } },
     meaning: 'With no shortness to show, a minimum opener signs off in game in the agreed major.',
@@ -3924,6 +4092,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     agreement: { setting: 'majorGameForceWithSupport', value: 'jacoby2NT' },
     appliesWhen: { hcp: { min: 16, max: 21 }, shape: { noVoid: true, noSingleton: true } },
     meaning: 'With no shortness to show, three of the agreed major shows a strong opener and slam interest.',
@@ -3951,6 +4122,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     agreement: { setting: 'splinters', value: true },
     priority: { rank: 20, note: 'Keep game visible even when a higher-ranked control bid qualifies.' },
     meaning: 'Stop in game in the agreed major rather than pursue slam after responder\'s splinter.',
@@ -3973,6 +4147,7 @@ export const OpenerRebidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
     callRefinement: refineOpenerSplinterControlBid,
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: openerSplinterControlPublicMeaning,
     agreement: { setting: 'splinters', value: true,
                  note: 'After a splinter, the cheapest available side-suit control below game ' +
                        'shows slam interest.' },
@@ -4027,6 +4202,7 @@ export const OpenerRebidRules: BidRule[] = [
     agreement: { setting: 'jumpShift', value: 'strong',
                  note: 'Classic strong jump shift is already game forcing.' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: openerRaiseResponderSuitOneLevelPublicMeaning,
     priority: { rank: 20, note: 'Support for responder is opener\'s first descriptive priority.' },
     appliesWhen: { supportLength: { min: 3 } },
     meaning: "Confirm the fit in responder's five-card-or-longer suit while preserving bidding room.",
@@ -4046,6 +4222,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerOpeningSuitAtCheapestLevel, // cheapest legal repeat after response
     agreement: { setting: 'jumpShift', value: 'strong' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerOpeningSuitAtCheapestLevel,
     appliesWhen: { suitLengths: [{ min: 6 }] },
     meaning: 'Show a six-card-or-longer opening suit; responder has already forced the auction to game.',
   },
@@ -4065,6 +4242,9 @@ export const OpenerRebidRules: BidRule[] = [
     }, // cheapest natural second-suit call
     agreement: { setting: 'jumpShift', value: 'strong' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    },
     appliesWhen: { suitLengths: [{ min: 4 }] },
     meaning: 'Describe a natural four-card-or-longer second suit economically in the game force.',
     guidance: ['Traditional reverse-strength restrictions are unnecessary because responder has ' +
@@ -4084,6 +4264,7 @@ export const OpenerRebidRules: BidRule[] = [
     callRefinement: refineOpenerNotrumpAtCheapestLevel, // cheapest legal NT rebid after response
     agreement: { setting: 'jumpShift', value: 'strong' },
     callCategory: ['gameForcing', 'natural'],
+    deriveCallPublicMeaning: refineOpenerNotrumpAtCheapestLevel,
     appliesWhen: { shape: { balancedOrSemiBalanced: true } },
     meaning: 'Describe a balanced or semi-balanced opener economically; the auction remains game forcing.',
     guidance: ['Do not jump merely to show extra strength.  Prefer a clear fit or natural suit ' +
@@ -4141,6 +4322,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     priority: { rank: 30, note: 'Prefer the known eight-card major fit while retaining 3NT.' },
     appliesWhen: { suitLengths: [{ min: 5 }] },
     meaning: 'Responder\'s direct 3NT treatment promises exactly three-card support, so opener has ' +
@@ -4219,6 +4403,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     appliesWhen: { totalPoints: { min: 13, valuation: 'shortage' } },
     meaning: 'Accept responder\'s limit raise and bid game in the agreed major.',
     guidance: ['With 14+ support points, accept the 11-12-point invitation.  With 13 support ' +
@@ -4264,6 +4451,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['natural', 'invitational'],
+    deriveCallPublicMeaning: (calls: Call[], context): CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    supportLength: { min: 6 } },
@@ -4287,6 +4477,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     priority: { rank: 10,
                 note: 'More specific than the generic minimum Pass; Pass remains visible.' },
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
@@ -4310,6 +4503,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 3);
     },
     callCategory: ['natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 3);
+    },
     priority: { rank: 10,
                 note: 'More specific than the generic minimum Pass; Pass remains visible.' },
     appliesWhen: { totalPoints: { min: 12, max: 16, valuation: 'shortage' },
@@ -4332,6 +4528,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitAtCheapestLevel(calls, context);
     },
     callCategory: ['forcing', 'invitational', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitAtCheapestLevel(calls, context);
+    },
     priority: { rank: 10 },
     appliesWhen: { totalPoints: { min: 17, max: 18, valuation: 'shortage' },
                    suitLengths: [{ min: 3 }] },
@@ -4374,6 +4573,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerOpeningSuitToLevel(calls, context, 4);
     },
     callCategory: ['signoff', 'natural'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerOpeningSuitToLevel(calls, context, 4);
+    },
     appliesWhen: { totalPoints: { min: 19, valuation: 'shortage' } },
     meaning: 'Game is likely after revaluing the known major-suit fit.',
     guidance: ['With sufficient values opposite a simple raise, game in the agreed major is a ' +
@@ -4421,6 +4623,9 @@ export const OpenerRebidRules: BidRule[] = [
       return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'any', 'opener splinter');
     },
     callCategory: ['gameForcing', 'conventional'],
+    deriveCallPublicMeaning: (calls: Call[], context) : CallRefinementResult => {
+      return refineOpenerNewSuitByExtraLevels(calls, context, 1, 'any', 'opener splinter');
+    },
     agreement: { setting: 'splinters', value: true,
                  note: 'Opener-side splinter after a simple raise: shortness plus the agreed fit.' },
     priority: { rank: -100, note: 'Specialized partnership treatment; deliberately present last.' },

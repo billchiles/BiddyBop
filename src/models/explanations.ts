@@ -2244,7 +2244,9 @@ export function getMajorSupportLines(result: BidEvalResult, rule: BidRule): stri
     return [`With ${supportPointText(points)} and exactly three trumps, use 1NT before ` +
       `showing invitational support. ${forcing
         ? 'Under the forcing 1NT agreement, opener must bid again if there is no interference.'
-        : 'Under the nonforcing 1NT agreement, opener may Pass; if opener continues, you can invite later.'} ` +
+        : route.responderPreviouslyPassed === true
+          ? 'As a previously passed hand, your 1NT is nonforcing; opener may Pass. If opener continues, you can invite later.'
+          : 'Under the nonforcing 1NT agreement, opener may Pass; if opener continues, you can invite later.'} ` +
       `[${rule.id}].`];
   }
   return [];

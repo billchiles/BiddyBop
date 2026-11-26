@@ -51,7 +51,7 @@ export function refineRaiseToLevel (calls: Call[], context: AuctionEvalContext,
 /// explicitly modeled one-level competitive auctions, but does not let it define behavior once
 /// the auction has crossed an intentionally unsupported interference boundary.
 ///
-export function refineSharedWeakResponderPass (calls: Call[], context: RuleEvalContext):
+export function refineSharedWeakResponderPass (calls: Call[], context: AuctionEvalContext):
     CallRefinementResult {
   const interference = getInterferenceAfterOpening(context.dealer, context.auction);
   if (interference === 'other') {
@@ -173,6 +173,17 @@ export function refineOneLevelNewSuitAfterMinor (calls: Call[], context: RuleEva
         };
 } // refineOneLevelNewSuitAfterMinor()
 
+/// A two-level natural response is public only when economical and permitted for this responder.
+/// The ordinary refiner and applicability check retain their private selection and evidence.
+export function majorTwoLevelNewSuitPublicMeaning (calls: Call[], context: AuctionEvalContext,
+                                                    system: BiddingSystem): { calls: Call[] } {
+  const label = system.twoLevelNewSuitResponse === 'twoOverOne' ? '2/1' : 'Standard';
+  return { calls: refineToCheapestNewSuitBids(calls, context).calls.filter((call) => {
+    const requirements = getMajorTwoLevelNewSuitRequirements(call, context, label);
+    return requirements !== null && (!requirements.needsUnpassed || requirements.unpassed);
+  }) };
+}
+
 /// refineMajorTwoLevelNewSuitByLength orders natural two-level responses by suit length.  With
 /// equal five-card-or-longer suits prefer the higher-ranking suit so the lower suit can be shown
 /// economically later; equal four-card suits stay up the line.  Lower choices remain visible.
@@ -252,7 +263,9 @@ export function refineThreeCardLimitRaiseOneNtFallback (
     calls,
     telemetryLines: ['No one-level new suit takes priority; keep 1NT as the three-card limit-raise route.'],
     callEvidence: { majorSupportRoute: { reason: 'one-nt-fallback',
-      spadeLength: context.handFacts.lengths.S } },
+      spadeLength: context.handFacts.lengths.S,
+      ...(responderPreviouslyPassed(context.dealer, context.auction)
+        ? { responderPreviouslyPassed: true } : {}) } },
   };
 }
 
@@ -760,7 +773,7 @@ export function refineWeakTwoNewSuitResponse (calls: Call[], context: RuleEvalCo
   for (const call of calls) {
     const candidate = parseSuitBid(call);
     if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
-        candidate.level > 3 || cheapestBidInStrainAfter(opening, candidate.strain) !== call) {
+        !isEconomicalPreemptNewSuit(call, opening)) {
       continue;
     }
     const suit = candidate.strain as Suit;
@@ -813,7 +826,7 @@ export function refineThreeLevelPreemptNewSuitResponse (calls: Call[], context: 
 
   const candidates: { call: Call; suit: Suit; length: number }[] = [];
   for (const choice of considered) {
-    if (!choice.economical || !choice.belowGame ||
+    if (!isEconomicalPreemptNewSuit(choice.call, opening) ||
         choice.length < choice.minLength || !choice.quality) continue;
     candidates.push({ call: choice.call, suit: choice.call.slice(-1) as Suit,
       length: choice.length });
@@ -834,6 +847,20 @@ export function refineThreeLevelPreemptNewSuitResponse (calls: Call[], context: 
         `suit: ${best[0]!.call}.`,
     ], callEvidence: { threeLevelPreemptNewSuit: { considered, selected: best[0]!.call } },
   };
+}
+
+/// A forcing preempt response is an economical new suit within the modeled level range.
+export function preemptNewSuitPublicMeaning (calls: Call[], context: AuctionEvalContext): { calls: Call[] } {
+  const opening = getWeakTwoOpeningBid(context) ?? getThreeLevelPreemptOpeningBid(context);
+  return { calls: opening === null ? [] : calls.filter((call) => isEconomicalPreemptNewSuit(call, opening)) };
+}
+
+function isEconomicalPreemptNewSuit (call: Call, opening: ParsedSuitBid): boolean {
+  const candidate = parseSuitBid(call);
+  if (candidate === null || candidate.strain === 'NT' || candidate.strain === opening.strain ||
+      cheapestBidInStrainAfter(opening, candidate.strain) !== call) return false;
+  return opening.level === 2 ? candidate.level <= 3 :
+    candidate.level < (candidate.strain === 'H' || candidate.strain === 'S' ? 4 : 5);
 }
 
 /// Preserve the actual qualifying honors for instructional explanations, while the shared
@@ -970,13 +997,8 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
   }
   const considered: NonNullable<CallEvidence['competitiveNewSuit']>['considered'] = [];
   const survivors = calls.filter((call) => {
-    const candidate = parseSuitBid(call);
-    if (candidate === null || candidate.strain === 'NT' ||
-        candidate.strain === auction.opening.strain ||
-        candidate.strain === auction.overcall.strain ||
-        cheapestBidInStrainAfter(auction.overcall, candidate.strain) !== call) {
-      return false;
-    }
+    if (!isResponderNewSuitAfterOvercall(call, auction)) return false;
+    const candidate = parseSuitBid(call)!;
     const minimum = candidate.level === 1 &&
       (auction.opening.strain === 'C' || auction.opening.strain === 'D') &&
       auction.overcall.strain === 'D' &&
@@ -995,6 +1017,22 @@ export function refineResponderNewSuitAfterOvercall (calls: Call[], context: Rul
   return { calls: survivors, telemetryLines: [
     'Natural new suits must not be the opponent suit; use the cheapest bid after interference.',
   ], callEvidence: { competitiveNewSuit: { considered } } };
+}
+
+/// The economical natural response excludes both already named suits, regardless of hand length.
+export function responderNewSuitAfterOvercallPublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  const auction = getOpenerCallAndOvercallForResponder(context);
+  return { calls: auction === null ? [] : calls.filter((call) =>
+    isResponderNewSuitAfterOvercall(call, auction)) };
+}
+
+function isResponderNewSuitAfterOvercall (call: Call,
+    auction: { opening: ParsedSuitBid; overcall: ParsedSuitBid }): boolean {
+  const candidate = parseSuitBid(call);
+  return candidate !== null && candidate.strain !== 'NT' &&
+    candidate.strain !== auction.opening.strain && candidate.strain !== auction.overcall.strain &&
+    cheapestBidInStrainAfter(auction.overcall, candidate.strain) === call;
 }
 
 /// refineResponderRaiseAfterOvercall selects responder's raise of opener's suit at the
@@ -1318,6 +1356,12 @@ export function responderPassAfterJumpOvercallApplies (_call: Call, context: Rul
     `${success ? 'PASS' : 'FAIL'}: limited Pass needs 6-9 HCP and no qualifying economical raise; ` +
       `have ${hcp} HCP, economical raise ${economical ?? 'none'}.`,
   ] };
+}
+
+/// Only the modeled two-/three-level jump overcalls permit this public negative Double.
+export function jumpOvercallNegativeDoublePublicMeaning (calls: Call[], context: AuctionEvalContext):
+    { calls: Call[] } {
+  return { calls: getJumpOvercallForResponder(context) === null ? [] : calls };
 }
 
 /// responderNegativeDoubleAfterJumpOvercallApplies checks 10+ HCP at the two level or

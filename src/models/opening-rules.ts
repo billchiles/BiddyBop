@@ -1,6 +1,7 @@
 /// OpeningBidRules: opening bidding rules.
 
 import { type BidRule } from './bidding-types';
+import { declaredCallsPublicMeaning } from './common-rule-helpers';
 import {
   guidelineOf20Applies, oneNtFiveCardLengthUpgradeApplies, convenientMinorOpeningValuesApply,
   refineOneLevelSuitOpening,
@@ -75,6 +76,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['1NT'],
     // natural is sentinal: maybeSuppressConvenientMinor() looks for this
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     agreement: { setting: 'oneNtFiveCardLengthUpgrade', value: true,
                  note: 'Optional one-point upgrade with a five-card major; off by default.' },
     priority: { rank: 100 },
@@ -91,6 +93,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['1H', '1S'],
     callRefinement: refineOneLevelSuitOpening, // refines according to guidance below
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     priority: { rank: 90 },
     appliesWhen: { hcp: { max: 21 }, totalPoints: { min: 12 },
                    suitLengths: [ { suit: 'major', min: 5 } ] },
@@ -105,6 +108,8 @@ export const OpeningBidRules: BidRule[] = [
     kind: 'openingBid',
     title: 'Open a convenient minor when no other one-level opening fits',
     auctionContext: { stage: 'opening', auction: [] },
+    callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     calls: ['1C', '1D'],
     callRefinement: refineOneLevelSuitOpening,  // refines according to guidance below
     priority: { rank: 70 },
@@ -125,6 +130,8 @@ export const OpeningBidRules: BidRule[] = [
     kind: 'openingBid',
     title: 'Open a sub-12-HCP hand satisfying the Guideline of 20',
     auctionContext: { stage: 'opening', auction: [] },
+    callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     calls: ['1C', '1D', '1H', '1S'],
     callRefinement: refineOneLevelSuitOpening, // can't declaratively say which to choose
     appliesWhen: guidelineOf20Applies,
@@ -176,6 +183,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['2D', '2H', '2S'],
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: { hcp: { min: 5, max: 11 }, suitLengths: [{ exact: 6 }] },
     guidance: ['A good suit has at least two of A/K/Q or at least three of A/K/Q/J/T.',
                'At 11 HCP, a natural one-level opening may also qualify and can describe the ' +
@@ -197,6 +205,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: { totalPoints: { max: 11 }, suitLengths: [{ exact: 7 }] },
     guidance: ['A good suit has at least two of A/K/Q or at least three of A/K/Q/J/T.',
                'Use a three-level preempt below ordinary one-level opening values; these bidding ' +
@@ -215,6 +224,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['4C', '4D', '4H', '4S'],
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 8 }] },
     guidance: ['An eight-card suit with concentrated honors is a candidate for a four-level ' +
                  'preempt, not an automatic four-level opening. Consider offensive playing ' +
@@ -237,6 +247,7 @@ export const OpeningBidRules: BidRule[] = [
     calls: ['5C', '5D'],
     callRefinement: refinePreemptSuitQuality,
     callCategory: ['natural'],
+    deriveCallPublicMeaning: declaredCallsPublicMeaning,
     appliesWhen: { hcp: { min: 5, max: 12 }, suitLengths: [{ min: 9 }] },
     guidance: ['Rare: good nine-card minor with about eight playing tricks.'],
     meaning: 'Very high-level descriptive and obstructive preempt.',
