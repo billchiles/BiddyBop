@@ -4,9 +4,9 @@ import {
   type AppliesWhenResult, type BiddingSystem, type Call, type CallEvidence, type CallRefinementResult,
   type AuctionEvalContext, type RuleEvalContext, type NaturalSuitRebidTreatment
 } from './bidding-types';
-import { getCardsForSuit, hasPreemptSuitQuality, SUITS, type Suit } from './cards';
+import { getCardsForSuit, hasPreemptSuitQuality, hasExceptionalFiveCardSuitQuality, SUITS, type Suit } from './cards';
 import { cheapestBidInStrainAfter, getOpeningCallInfo, isCallAvailableInAuction,
-         parseSuitBid } from './auction';
+         parseSuitBid, getResponderCall } from './auction';
 import { hasBasicSuitStopper } from './common-rule-helpers';
 
 ///
@@ -90,23 +90,73 @@ export function refineSimpleSuitOvercall (calls: Call[], context: RuleEvalContex
     return { calls: [], telemetryLines: ['No contract opening was found.'] };
   }
   const suitChecks: NonNullable<CallEvidence['naturalOvercallSuit']> = [];
-  const qualifying = calls.filter((call) => {
-    const bid = parseSuitBid(call);
-    if (bid === null || bid.strain === 'NT' || bid.strain === parsedOpening.strain ||
-        (bid.level !== 1 && bid.level !== 2) ||
-        cheapestBidInStrainAfter(parsedOpening, bid.strain) !== call) return false;
+  const economical = economicalSuitOvercalls(calls, parsedOpening, [parsedOpening.strain as Suit]);
+  const qualifying = economical.filter((call) => {
+    const bid = parseSuitBid(call)!;
     const suit = bid.strain as Suit;
     const length = context.handFacts.lengths[suit];
     const good = hasPreemptSuitQuality(context.hand, suit);
     const passed = bid.level === 1 ? length >= 6 || (length >= 5 && good) :
       length >= 5 && good;
-    suitChecks.push({ call, level: bid.level, length, good, passed,
+    suitChecks.push({ call, level: bid.level as 1 | 2, length, good, passed,
       ...getOvercallHonorEvidence(context, suit, good) });
     return passed;
   });
   return { calls: qualifying, telemetryLines: [
     'Keep non-jump suits: good five cards or six-plus at level one; good five-plus at level two.',
   ], callEvidence: { naturalOvercallSuit: suitChecks } };
+}
+
+/// Responder and opener have named different natural suits in the matched sandwich context.
+/// The refiner uses the actual latest contract, never the compact partnership auction.
+export function refineSandwichSuitOvercall (calls: Call[], context: AuctionEvalContext):
+    CallRefinementResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const response = getResponderCall(context.dealer, context.auction);
+  const opened = opening === null ? null : parseSuitBid(opening.call);
+  const responded = response === null ? null : parseSuitBid(response);
+  if (opened === null || responded === null || opened.strain === 'NT' ||
+      responded.strain === 'NT' || opened.strain === responded.strain) {
+    return { calls: [], telemetryLines: ['Requires two opposing natural suits.'] };
+  }
+  return { calls: economicalSuitOvercalls(calls, responded, [opened.strain, responded.strain]),
+    telemetryLines: ['Keep economical natural bids in the two unbid suits.'] };
+}
+
+/// Select the economical natural calls by physical bid order alone, excluding the opposing suits.
+function economicalSuitOvercalls (calls: Call[], contract: NonNullable<ReturnType<typeof parseSuitBid>>,
+                                  opposingSuits: Suit[]): Call[] {
+  return calls.filter((call) => {
+    const bid = parseSuitBid(call);
+    return bid !== null && bid.strain !== 'NT' && !opposingSuits.includes(bid.strain) &&
+      (bid.level === 1 || bid.level === 2) && cheapestBidInStrainAfter(contract, bid.strain) === call;
+  });
+}
+
+/// After a natural one-level new-suit response, overcalls use actual HCP and good honors even with six or more cards.
+/// At the two level, exactly five cards need stronger honors and additional HCP.
+export function sandwichSuitOvercallApplies (call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const bid = parseSuitBid(call);
+  if (bid === null || bid.strain === 'NT' || (bid.level !== 1 && bid.level !== 2)) {
+    return { success: false, telemetryLines: ['FAIL: requires an economical one- or two-level suit.'] };
+  }
+  const suit = bid.strain;
+  const length = context.handFacts.lengths[suit];
+  const hcp = context.handFacts.hcp;
+  const good = hasPreemptSuitQuality(context.hand, suit);
+  const exceptionalFive = hasExceptionalFiveCardSuitQuality(context.hand, suit);
+  const requiredLength = bid.level === 1 || exceptionalFive ? 5 : 6;
+  const min = bid.level === 1 ? 10 : length === 5 ? 14 : 11;
+  const passed = good && length >= requiredLength;
+  const enoughHcp = hcp >= min;
+  return { success: passed && enoughHcp, telemetryLines: [
+    `${passed ? 'PASS' : 'FAIL'}: ${call} requires a good ${bid.level === 1 ? '5+' : '6+ or exceptional five'}-card suit; actual ${length}.`,
+    `${enoughHcp ? 'PASS' : 'FAIL'}: ${call} requires ${min}+ HCP; actual ${hcp}.`,
+  ], callEvidence: {
+    naturalOvercallSuit: [{ call, level: bid.level, length, good, passed, exceptionalFive,
+      requiredLength, ...getOvercallHonorEvidence(context, suit, good) }],
+    naturalOvercallStrength: { hcp, passed: enoughHcp, min },
+  } };
 }
 
 /// Record which honors were held when the existing suitability check ran.
@@ -339,8 +389,8 @@ function usefulJumpOvercallAdvanceSupport (context: RuleEvalContext,
 //// Natural Notrump Overcalls
 ///
 
-/// naturalNotrumpOvercallApplies requires 15-18 HCP, balanced shape, and A, Kx, Qxx, or Jxxx
-/// in opener's suit.  It supports natural 1NT over a one-level suit and 2NT over a weak two.
+/// naturalNotrumpOvercallApplies checks balanced shape and A, Kx, Qxx, or Jxxx in opener's suit.
+/// Direct 1NT and weak-two 2NT use 15–18 HCP; sandwich 1NT uses 16–18 and a second stopper.
 export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalContext):
     AppliesWhenResult {
   const opening = getOpeningCallInfo(context.dealer, context.auction)?.call;
@@ -354,20 +404,29 @@ export function naturalNotrumpOvercallApplies (call: Call, context: RuleEvalCont
   }
   const stopper = hasBasicSuitStopper(context, parsed.strain as Suit);
   const points = context.handFacts.hcp;
-  const strength = points >= 15 && points <= 18;
+  const sandwich = context.stage === 'sandwichOvercalling';
+  const min = sandwich ? 16 : 15;
+  const strength = points >= min && points <= 18;
   const balanced = context.handFacts.balanced;
+  const response = sandwich ? getResponderCall(context.dealer, context.auction) : null;
+  const responseBid = response === null ? null : parseSuitBid(response);
+  const responseSuit = responseBid !== null && responseBid.strain !== 'NT' ? responseBid.strain : null;
+  const responseStopper = responseSuit !== null && hasBasicSuitStopper(context, responseSuit);
   return {
-    success: strength && balanced && stopper,
+    success: strength && balanced && stopper && (!sandwich || responseStopper),
     telemetryLines: [
-      `${strength ? 'PASS' : 'FAIL'}: ${call} overcall requires 15-18 HCP; hand has ${points}.`,
+      `${strength ? 'PASS' : 'FAIL'}: ${call} overcall requires ${min}-18 HCP; hand has ${points}.`,
       `${balanced ? 'PASS' : 'FAIL'}: ${call} overcall needs balanced distribution.`,
       `${stopper ? 'PASS' : 'FAIL'}: ${call} overcall needs A, Kx, Qxx, or Jxxx in ` +
         `opener's ${parsed.strain} suit.`,
+      ...(sandwich ? [`${responseStopper ? 'PASS' : 'FAIL'}: ${call} also needs a stopper in responder's ${responseSuit} suit.`] : []),
     ],
     callEvidence: { requirements: [
-      { kind: 'hcp', actual: points, min: 15, max: 18, passed: strength },
+      { kind: 'hcp', actual: points, min, max: 18, passed: strength },
       { kind: 'balanced', actual: balanced, passed: balanced },
       { kind: 'stopper', suit: parsed.strain as Suit, passed: stopper },
+      ...(sandwich && responseSuit !== null ? [{ kind: 'stopper' as const, suit: responseSuit,
+        passed: responseStopper }] : []),
     ] },
   };
 }
@@ -2054,6 +2113,32 @@ function getDoublerAdvance (context: RuleEvalContext): DoublerAdvance | null {
 ///
 //// Takeout Doubles
 ///
+
+/// The sandwich Double promises four cards in each of the two naturally unbid suits.
+/// Unlike direct takeout, neither shortage points nor an unrestricted strong-hand exception applies.
+export function sandwichTakeoutDoubleApplies (_call: Call, context: RuleEvalContext): AppliesWhenResult {
+  const opening = getOpeningCallInfo(context.dealer, context.auction);
+  const response = getResponderCall(context.dealer, context.auction);
+  const opened = opening === null ? null : parseSuitBid(opening.call);
+  const responded = response === null ? null : parseSuitBid(response);
+  if (opened === null || responded === null || opened.strain === 'NT' ||
+      responded.strain === 'NT' || opened.strain === responded.strain) {
+    return { success: false, telemetryLines: ['FAIL: requires two opposing natural suits.'] };
+  }
+  const unbid = SUITS.filter((suit) => suit !== opened.strain && suit !== responded.strain);
+  const testedLengths = unbid.map((suit) => ({ suit, actual: context.handFacts.lengths[suit] }));
+  const shortSuits = testedLengths.filter(({ actual }) => actual < 4).map(({ suit }) => suit);
+  const support = shortSuits.length === 0;
+  const hcp = context.handFacts.hcp;
+  const enoughHcp = hcp >= 12;
+  return { success: support && enoughHcp, telemetryLines: [
+    `${enoughHcp ? 'PASS' : 'FAIL'}: sandwich Double needs 12+ HCP; actual ${hcp}.`,
+    `${support ? 'PASS' : 'FAIL'}: need four cards in each unbid suit (${testedLengths.map(({ suit, actual }) => `${suit}=${actual}`).join(', ')}).`,
+  ], callEvidence: { requirements: [
+    { kind: 'hcp', actual: hcp, min: 12, passed: enoughHcp },
+    { kind: 'unbidSuitSupport', min: 4, shortSuits, testedLengths, passed: support },
+  ] } };
+}
 
 /// ordinaryTakeoutDoubleApplies checks the ordinary takeout double (not the strong-hand
 /// exception): 13+ shortage-adjusted points, fewer than 18 HCP, and 3+ cards in each unbid suit.

@@ -7,10 +7,10 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
          getDirectInterference, getPartnerOneNtSuitInterference,
          getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getSandwichInterference, getRulesForCurrentContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getSandwichInterference, getSandwichResponseFamily, getRulesForCurrentContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
-import { getHandFacts, makeRuleTestBoard } from '../src/models/cards';
+import { getHandFacts, makeRuleTestBoard, type Suit, type Board } from '../src/models/cards';
 import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCallExplanationLines,
          getRuleExplanationLines, getOutstandingForceGuidance, getCompetitiveResponseAlternativeLines,
          getCompetitiveResponseLines, getStage6BCompetitiveAlternativeLines,
@@ -62,7 +62,8 @@ import { getBidExplanationLines, getMatchedCallExplanationLines, getRecordedCall
   from '../src/models/explanations';
 import { ResponseBidRules } from '../src/models/responding-rules';
 import { OpenerRebidRules } from '../src/models/opener-rebidding-rules';
-import { NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
+import { SIMPLE_OVERCALL_TEST_DEALS, TAKEOUT_DOUBLE_TEST_DEALS, NATURAL_1NT_OVERCALL_TEST_DEALS,
+         NATURAL_SUIT_OVERCALL_REBID_TEST_DEALS, CONTESTED_OVERCALL_REBID_TEST_DEALS,
          TAKEOUT_DOUBLER_REBID_TEST_DEALS, NATURAL_1NT_OVERCALL_REBID_TEST_DEALS,
          WEAK_TWO_REBID_TEST_DEALS }
   from '../src/models/overcalling-test-deals';
@@ -137,6 +138,7 @@ function runAllRuleTests (): void {
     runAuctionContextTests,
     runPublicCallMeaningTests,
     runSandwichInfrastructureTests,
+    runSandwichOneLevelNewSuitTests,
     runCompetitionBoundaryTests,
     runResponderInterferenceScopeBoundaryTests,
     runCompetitiveOpenerRebidBoundaryTests,
@@ -462,6 +464,12 @@ function runSandwichInfrastructureTests (): number {
   const cases: { auction: Call[]; stage: BidStage | null; interference: SandwichInterference;
                  settings?: Partial<BiddingSystem> }[] = [
     { auction: ['1C', 'Pass', '1H'], stage: 'sandwichOvercalling', interference: 'none' },
+    { auction: ['1H', 'Pass', '2C'], stage: 'sandwichOvercalling', interference: 'none' },
+    { auction: ['1H', 'Pass', '2C'], stage: 'sandwichOvercalling', interference: 'none', settings: { twoLevelNewSuitResponse: 'twoOverOne' } },
+    { auction: ['1H', 'Pass', '1NT'], stage: 'sandwichOvercalling', interference: 'none' },
+    { auction: ['1H', 'Pass', '2H'], stage: 'sandwichOvercalling', interference: 'none' },
+    { auction: ['1H', 'Pass', '2NT'], stage: 'sandwichOvercalling', interference: 'none', settings: { majorGameForceWithSupport: 'jacoby2NT' } },
+    { auction: ['1C', 'Pass', '3C'], stage: 'sandwichOvercalling', interference: 'none' },
     { auction: ['1C', 'Pass', '1H', 'Pass'], stage: 'openerRebid', interference: 'none' },
     { auction: ['1C', 'Pass', '1H', '1S'], stage: 'openerRebid', interference: 'suitOvercall' },
     { auction: ['1C', 'Pass', '1H', '1S', 'Pass'], stage: 'sandwichAdvancing', interference: 'suitOvercall' },
@@ -501,7 +509,12 @@ function runSandwichInfrastructureTests (): number {
         }
         if (test.stage !== null && (test.stage.startsWith('sandwich') || test.interference !== 'none')) {
           const result = getRulesForCurrentContext({ ...board, dealer }, test.auction, system);
-          if (result.ruleDiagnostics.length !== 0 || result.applicableRules.length !== 0) {
+          const familyA = test.stage === 'sandwichOvercalling' &&
+            getSandwichResponseFamily(context, system)?.family === 'oneLevelNewSuit';
+          if (result.ruleDiagnostics.some(({ rule }) => !familyA ||
+              rule.auctionContext?.sandwichResponseFamily !== 'oneLevelNewSuit' ||
+              rule.auctionContext.stage !== 'sandwichOvercalling') ||
+              (!familyA && result.applicableRules.length !== 0)) {
             failures++;
             console.error(`FAIL existing rule leaked into sandwich context ${test.auction.join(' ')}.`);
           }
@@ -545,6 +558,126 @@ function runSandwichInfrastructureTests (): number {
     console.error('FAIL explicit constraints bypassed by shared NT context matcher.');
   }
   console.log(`${failures} ***FAILURES***. Sandwich infrastructure: ${cases.length * 8} routing and classification checks, plus matcher constraints.`);
+  return failures;
+}
+
+//// Initial sandwich competition after a natural one-level new suit
+
+/// Check all six public entry permutations, focused hand thresholds, and complete practice setup.
+/// A synthetic threshold board need not have qualified earlier calls; the hand under test is
+/// fixed and the other cards form a complete deal, so private prior-bid facts cannot change it.
+function runSandwichOneLevelNewSuitTests (): number {
+  const entries: { auction: Call[]; suits: Call[] }[] = [
+    { auction: ['1C', 'Pass', '1D'], suits: ['1H', '1S'] },
+    { auction: ['1C', 'Pass', '1H'], suits: ['1S', '2D'] },
+    { auction: ['1C', 'Pass', '1S'], suits: ['2D', '2H'] },
+    { auction: ['1D', 'Pass', '1H'], suits: ['1S', '2C'] },
+    { auction: ['1D', 'Pass', '1S'], suits: ['2C', '2H'] },
+    { auction: ['1H', 'Pass', '1S'], suits: ['2C', '2D'] },
+  ];
+  const system = defaultBiddingSystem;
+  const allSuits: Call[] = ['1C', '1D', '1H', '1S', '2C', '2D', '2H', '2S'];
+  let failures = 0;
+  const check = (condition: boolean, message: string) => {
+    if (!condition) { failures++; console.error(`FAIL sandwich one-level new suit: ${message}`); }
+  };
+  for (const { auction, suits } of entries) {
+    for (const dont of [true, false]) {
+      const agreements = { ...system, dont };
+      const context = makeAuctionPublicContext('N', auction, agreements);
+      check(getSandwichResponseFamily(context, agreements)?.family === 'oneLevelNewSuit',
+        `family after ${auction.join(' ')}`);
+      for (const call of allSuits) {
+        const meaning = getCallPublicMeaning(call, context, agreements);
+        check(suits.includes(call) ? meaning.status === 'known' && meaning.categories.includes('natural') :
+          meaning.status === 'unknown', `public suit meaning ${auction.join(' ')} -> ${call}`);
+      }
+      const double = getCallPublicMeaning('Double', context, agreements);
+      const nt = getCallPublicMeaning('1NT', context, agreements);
+      check(double.status === 'known' && double.categories.includes('forcing') &&
+        double.categories.includes('conventional'), `public Double ${auction.join(' ')}`);
+      check(nt.status === 'known' && nt.categories.includes('natural'), `public NT ${auction.join(' ')}`);
+    }
+  }
+  const auction: Call[] = ['1C', 'Pass', '1H'];
+  const source = makeRuleTestBoard(OPENING_BID_TEST_DEALS[0]!).board;
+  const deck = [source.deal.N, source.deal.E, source.deal.S, source.deal.W].flatMap((hand) => hand.cards);
+  const makeBoard = (west: Record<Suit, string>, reverse = false): Board => {
+    const cards = deck.filter((card) => west[card.suit].includes(card.rank));
+    const remaining = deck.filter((card) => !west[card.suit].includes(card.rank));
+    if (cards.length !== 13 || remaining.length !== 39) throw new Error('Invalid sandwich threshold hand');
+    if (reverse) remaining.reverse();
+    return { dealer: 'N', deal: { W: { cards }, N: { cards: remaining.slice(0, 13) },
+      E: { cards: remaining.slice(13, 26) }, S: { cards: remaining.slice(26) } } };
+  };
+  const cases: { name: string; west: Record<Suit, string>; call: Call; qualifies: boolean; hcp: number }[] = [
+    { name: 'one-level exact minimum', west: { S: 'QJT86', H: 'K32', D: 'QJT', C: 'JT' }, call: '1S', qualifies: true, hcp: 10 },
+    { name: 'one-level below minimum', west: { S: 'QJT86', H: 'K32', D: 'QJT', C: '98' }, call: '1S', qualifies: false, hcp: 9 },
+    { name: 'poor six-card major', west: { S: 'J98765', H: 'AK3', D: 'QJ', C: 'K2' }, call: '1S', qualifies: false, hcp: 14 },
+    { name: 'good six-card minor minimum', west: { S: 'J76', H: 'A5', D: 'KQJT42', C: '93' }, call: '2D', qualifies: true, hcp: 11 },
+    { name: 'good six-card minor below', west: { S: '976', H: 'A5', D: 'KQJT42', C: '93' }, call: '2D', qualifies: false, hcp: 10 },
+    { name: 'exceptional five minimum', west: { S: 'KT75', H: 'T95', D: 'AQJ83', C: 'A' }, call: '2D', qualifies: true, hcp: 14 },
+    { name: 'exceptional five below', west: { S: 'KT75', H: 'T95', D: 'AQJ83', C: 'K' }, call: '2D', qualifies: false, hcp: 13 },
+    { name: 'ordinary good five even with strength', west: { S: 'AK76', H: 'Q95', D: 'AQ983', C: 'K' }, call: '2D', qualifies: false, hcp: 18 },
+    { name: 'double exact minimum', west: { S: 'KT62', H: 'A6', D: 'AJT9', C: '643' }, call: 'Double', qualifies: true, hcp: 12 },
+    { name: 'double below minimum', west: { S: 'KT62', H: 'A6', D: 'AT98', C: '643' }, call: 'Double', qualifies: false, hcp: 11 },
+    { name: 'strong shape-promising Double', west: { S: 'AKT6', H: 'A6', D: 'AKT9', C: '643' }, call: 'Double', qualifies: true, hcp: 18 },
+    { name: 'strong natural major', west: { S: 'AKQJ8', H: 'AK3', D: 'J76', C: '92' }, call: '1S', qualifies: true, hcp: 18 },
+    { name: 'double four-three shape', west: { S: 'KT6', H: 'A62', D: 'AJT9', C: '643' }, call: 'Double', qualifies: false, hcp: 12 },
+    { name: 'NT minimum', west: { S: 'AK2', H: 'A74', D: 'Q9872', C: 'K6' }, call: '1NT', qualifies: true, hcp: 16 },
+    { name: 'NT below minimum', west: { S: 'AK2', H: 'A74', D: 'J9872', C: 'K6' }, call: '1NT', qualifies: false, hcp: 15 },
+    { name: 'NT maximum', west: { S: 'AK2', H: 'A74', D: 'A9872', C: 'K6' }, call: '1NT', qualifies: true, hcp: 18 },
+    { name: 'NT above maximum', west: { S: 'AK2', H: 'A74', D: 'AJ872', C: 'K6' }, call: '1NT', qualifies: false, hcp: 19 },
+    { name: 'NT missing club stopper', west: { S: 'AK2', H: 'AK4', D: 'Q9872', C: '76' }, call: '1NT', qualifies: false, hcp: 16 },
+    { name: 'NT missing heart stopper', west: { S: 'AK2', H: '974', D: 'AQ872', C: 'K6' }, call: '1NT', qualifies: false, hcp: 16 },
+    { name: 'strong nonconforming hand', west: { S: 'AKQ', H: 'AKJ', D: 'J76', C: '9876' }, call: 'Pass', qualifies: false, hcp: 18 },
+    { name: '17-HCP nonconforming hand', west: { S: 'AKQ', H: 'AKJ', D: '976', C: '9876' }, call: 'Pass', qualifies: true, hcp: 17 },
+  ];
+  for (const test of cases) {
+    const board = makeBoard(test.west);
+    check(getHandFacts(board.deal.W).hcp === test.hcp, `${test.name}: authored HCP`);
+    for (const oneNtOpening of ['15-17', '16-18'] as const) {
+      const agreements = { ...system, oneNtOpening };
+      const result = getRulesForCurrentContext(board, auction, agreements);
+      const candidates = getApplicableCandidateCalls(result);
+      check(candidates.some(({ call }) => call === test.call) === test.qualifies,
+        `${test.name} ${oneNtOpening}`);
+      if (test.call !== 'Pass') {
+        const checked = result.ruleDiagnostics.flatMap(({ candidates: examined }) => examined)
+          .find(({ call }) => call === test.call);
+        check(checked?.callEvidence !== undefined, `${test.name}: recorded eligibility evidence`);
+      }
+      const moved = getRulesForCurrentContext(makeBoard(test.west, true), auction, agreements);
+      check(JSON.stringify(result) === JSON.stringify(moved), `${test.name}: hidden-hand invariance`);
+      const constructive = candidates.some(({ call }) => call !== 'Pass');
+      check(!constructive || !candidates.some(({ call }) => call === 'Pass'), `${test.name}: fallback suppressed`);
+      check(result.applicableRules.some((rule) => rule.kind === 'scopeBoundary') ===
+        (test.hcp >= 18 && !constructive), `${test.name}: boundary only without constructive action`);
+    }
+  }
+  // These real, fully authored boards exercise all preceding calls, not just West's expectations.
+  const practice = [...SIMPLE_OVERCALL_TEST_DEALS, ...TAKEOUT_DOUBLE_TEST_DEALS,
+    ...NATURAL_1NT_OVERCALL_TEST_DEALS].filter((deal) => deal.practiceAuction.slice(0, 3).join(' ') === '1C Pass 1H');
+  for (const deal of practice) {
+    const board = makeRuleTestBoard(deal).board;
+    const agreements = { ...system, ...deal.requiredSystem };
+    for (const [index, call] of deal.practiceAuction.entries()) {
+      check(getApplicableCandidateCalls(getRulesForCurrentContext(board,
+        deal.practiceAuction.slice(0, index), agreements)).some((candidate) => candidate.call === call),
+        `practice setup ${deal.description}: ${index} ${call}`);
+    }
+  }
+  const doubleAuction: Call[] = [...auction, 'Double'];
+  for (const prefix of [doubleAuction, [...doubleAuction, 'Pass'] as Call[]]) {
+    const force = getUnmodeledContinuationForce('N', prefix, system);
+    check(force?.kind === 'oneRoundForce' && force.forcingSeat === 'W', 'outstanding sandwich Double');
+  }
+  check(getUnmodeledContinuationForce('N', [...doubleAuction, '2H'], system) === null,
+    'opener interference displaces immediate takeout force');
+  check(getUnfulfilledForceAtAuctionEnd('N', [...doubleAuction, 'Pass', 'Pass', 'Pass'], system) === null,
+    'penalty conversion is not a broken force');
+  console.log(`${failures} ***FAILURES***. Initial sandwich new-suit competition: six public entries, ` +
+    `${cases.length} threshold hands under both NT ranges, ${practice.length} complete practice setups, and force checks.`);
   return failures;
 }
 

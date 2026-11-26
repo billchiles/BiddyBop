@@ -219,6 +219,11 @@ export function hasSolidWeakTwoSuit (hand: Hand, suit: Suit): boolean {
   return countSuitHonors(hand, suit, ['A', 'K', 'Q', 'J']) === 4;
 }
 
+/// Concentrated honors for an exceptional five-card competitive suit; length is checked separately.
+export function hasExceptionalFiveCardSuitQuality (hand: Hand, suit: Suit): boolean {
+  return hasTwoOfTopThreeHonors(hand, suit) && countSuitHonors(hand, suit, ['A', 'K', 'Q', 'J']) >= 3;
+}
+
 function countSuitHonors (hand: Hand, suit: Suit, honors: readonly Rank[]): number {
   return getCardsForSuit(hand, suit).filter((card) => honors.includes(card.rank)).length;
 }

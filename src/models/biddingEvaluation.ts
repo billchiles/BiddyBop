@@ -5,7 +5,7 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type HandShapeConstraint, type AuctionEvalContext, type RuleEvalContext,
          type CallRefinementResult, type CallCategory,
-         type SandwichInterference, type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type SandwichInterference, type SandwichResponseFamily, type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit, type Seat } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
@@ -161,6 +161,10 @@ export function getRulesForCurrentContext (board: Board, auction: Call[],
       'overcall-pass-no-qualifying-action');
     ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'overcall-pass-natural-vs-1nt');
+  }
+  if (context.stage === 'sandwichOvercalling') {
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
+      'sandwich-overcall-pass-after-one-level-new-suit');
   }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
   // only a fallback bid.  Derive partner's opening only for this response-stage behavior.
@@ -1474,6 +1478,10 @@ function auctionContextRuleMatches (ruleContext: AuctionContext | undefined,
     const actual = getSandwichInterference(evalContext, system);
     if (sandwich === 'present' ? actual === 'none' : actual !== sandwich) return false;
   }
+  if (ruleContext.sandwichResponseFamily !== undefined &&
+      getSandwichResponseFamily(evalContext, system)?.family !== ruleContext.sandwichResponseFamily) {
+    return false;
+  }
   if (ruleContext.partnerNaturalOneNt === true) {
     return matchesPartnerNaturalOneNt(evalContext);
   }
@@ -1607,33 +1615,54 @@ export function getSandwichInterference (context: AuctionEvalContext,
   const action = auction[opening.index + 3];
   if (response === undefined || !isContractBid(response) || action === undefined ||
       action === 'Pass') return 'none';
-  const prefix = auction.slice(0, opening.index + 2);
   if (!isCallAvailableInAuction(action, auction.slice(0, opening.index + 3))) return 'other';
+  const info = getSandwichResponseFamily(context, system);
+  if (info === null || !info.categories.includes('natural') ||
+      info.categories.includes('conventional') || info.categories.includes('gameForcing')) return 'other';
+  const { family, categories, opened, responded, jump, newSuit } = info;
+  const twoLevelCompetition = family === 'oneLevelNewSuit' || family === 'oneNt';
+  if (action === 'Double') return twoLevelCompetition || family === 'simpleRaise'
+    ? 'takeoutDouble' : 'other';
+  if (action === '1NT') return family === 'oneLevelNewSuit' ? 'ntOvercall' : 'other';
+  const bid = parseSuitBid(action);
+  if (bid === null || bid.strain === 'NT' || bid.strain === opened.strain ||
+      bid.strain === responded.strain || cheapestBidInStrainAfter(responded, bid.strain) !== action) return 'other';
+  if (twoLevelCompetition) return bid.level <= 2 ? 'suitOvercall' : 'other';
+  if (family === 'twoLevelNewSuit' || family === 'simpleRaise') return bid.level <= 3 ? 'suitOvercall' : 'other';
+  // E permits only the selected invitations and weak single jump shifts, at economical levels.
+  const invitation = categories.includes('invitational') &&
+    (responded.strain === opened.strain && responded.level === 3 ||
+     responded.strain === 'NT' && responded.level === 2 && ['C', 'D'].includes(opened.strain));
+  const weakShift = newSuit && jump === 1 && categories.includes('signoff');
+  return (invitation && bid.level === 3 || weakShift && bid.level <= 3) ? 'suitOvercall' : 'other';
+}
+
+/// Interpret responder's actual first contract against its shorter physical auction prefix.
+/// Return the family and the public facts needed to distinguish natural invitations, weak
+/// shifts and established forces. Unknown or ambiguous meanings do not enter a family.
+export function getSandwichResponseFamily (context: AuctionEvalContext, system: BiddingSystem) {
+  const { dealer, auction } = context;
+  const opening = getOpeningCallInfo(dealer, auction);
+  if (opening === null || !/^1[CDHS]$/.test(opening.call) ||
+      auction[opening.index + 1] !== 'Pass') return null;
+  const response = auction[opening.index + 2];
+  if (response === undefined || !isContractBid(response)) return null;
+  const prefix = auction.slice(0, opening.index + 2);
   const meaning = getCallPublicMeaning(response, makeAuctionPublicContext(dealer, prefix, system), system);
-  if (meaning.status !== 'known' || !meaning.categories.includes('natural') ||
-      meaning.categories.includes('conventional') || meaning.categories.includes('gameForcing')) return 'other';
+  if (meaning.status !== 'known') return null;
   const opened = parseSuitBid(opening.call)!;
   const responded = parseSuitBid(response)!;
   const jump = responseJump(opening.call, response);
   const newSuit = responded.strain !== 'NT' && responded.strain !== opened.strain;
-  // A/C/D admit selected takeout meanings; B and higher responses do not.
-  const familyA = newSuit && responded.level === 1 && jump === 0;
-  const familyB = newSuit && responded.level === 2 && jump === 0;
-  const familyC = response === '1NT';
-  const familyD = responded.strain === opened.strain && responded.level === 2;
-  if (action === 'Double') return familyA || familyC || familyD ? 'takeoutDouble' : 'other';
-  if (action === '1NT') return familyA ? 'ntOvercall' : 'other';
-  const bid = parseSuitBid(action);
-  if (bid === null || bid.strain === 'NT' || bid.strain === opened.strain ||
-      bid.strain === responded.strain || cheapestBidInStrainAfter(responded, bid.strain) !== action) return 'other';
-  if (familyA || familyC) return bid.level <= 2 ? 'suitOvercall' : 'other';
-  if (familyB || familyD) return bid.level <= 3 ? 'suitOvercall' : 'other';
-  // E permits only the selected invitations and weak single jump shifts, at economical levels.
-  const invitation = meaning.categories.includes('invitational') &&
-    (responded.strain === opened.strain && responded.level === 3 ||
-     responded.strain === 'NT' && responded.level === 2 && ['C', 'D'].includes(opened.strain));
-  const weakShift = newSuit && jump === 1 && meaning.categories.includes('signoff');
-  return (invitation && bid.level === 3 || weakShift && bid.level <= 3) ? 'suitOvercall' : 'other';
+  const natural = meaning.categories.includes('natural') && !meaning.categories.includes('conventional');
+  let family: SandwichResponseFamily = 'higherResponse';
+  if (natural) {
+    if (newSuit && responded.level === 1 && jump === 0) family = 'oneLevelNewSuit';
+    else if (newSuit && responded.level === 2 && jump === 0) family = 'twoLevelNewSuit';
+    else if (response === '1NT') family = 'oneNt';
+    else if (responded.strain === opened.strain && responded.level === 2) family = 'simpleRaise';
+  }
+  return { family, categories: meaning.categories, opened, responded, jump, newSuit };
 }
 
 /// matchesPartnerNaturalOneNt recognizes the two genuine auctions that use shared 1NT calls.

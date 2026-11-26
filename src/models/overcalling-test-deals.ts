@@ -5,9 +5,8 @@
 ///
 import type { RuleTestDeal } from './test-deals-registry';
 
-//// Direct natural suit overcalls
-/// Next seat natural overcalls: North opens, East overcalls.  With dealer North the recorded call
-/// at index 1 is East's actual call; West's hand stays visible for subsequent experiments.
+//// Natural suit overcalls
+/// North opens; East may overcall directly, or West may compete after East passes and South responds.
 ///
 export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   {
@@ -92,11 +91,60 @@ export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     south: { S: '3', H: '985', D: '6532', C: 'QJT52' },
     north: { S: 'K72', H: 'A43', D: 'AQJ74', C: '83' },
   },
+  {
+    description: 'A sound five-card spade suit with 10 HCP: economical 1S in the sandwich seat.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', '1S'],
+    north: { S: 'K742', H: 'AJ', D: 'A62', C: 'AQ32' },
+    east: { S: '3', H: '94', D: 'K87543', C: 'K875' },
+    south: { S: 'A95', H: 'QT8765', D: '9', C: '964' },
+    west: { S: 'QJT86', H: 'K32', D: 'QJT', C: 'JT' },
+    expectedOvercallCalls: [
+      { call: '1S', ruleIds: ['sandwich-overcall-simple-suit-at-one-level'] },
+    ],
+    rejectedOvercallCalls: ['2D', 'Double', '1NT', 'Pass'],
+  },
+  {
+    description: 'Good five diamonds but not exceptional honors: ' +
+                 'no qualifying constructive sandwich bid; Pass.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', 'Pass'],
+    north: { S: 'AT', H: 'A653', D: '73', C: 'AT654' },
+    east: { S: 'QJ642', H: 'KQ8', D: '65', C: 'Q73' },
+    south: { S: '3', H: 'JT9742', D: 'AJ94', C: 'J9' },
+    west: { S: 'K9875', H: '', D: 'KQT82', C: 'K82' },
+    expectedOvercallCalls: [
+      { call: 'Pass', ruleIds: ['sandwich-overcall-pass-after-one-level-new-suit'] },
+    ],
+    rejectedOvercallCalls: ['1S', '2D', 'Double', '1NT'],
+  },
+  {
+    description: 'Good six-card diamonds with 11 HCP: economical 2D after both opponents bid.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', '2D'],
+    north: { S: 'KQ5', H: 'KJ62', D: 'A96', C: 'T85' },
+    east: { S: 'A8432', H: '94', D: '853', C: 'QJ7' },
+    south: { S: 'T9', H: 'QT873', D: '7', C: 'AK642' },
+    west: { S: 'J76', H: 'A5', D: 'KQJT42', C: '93' },
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['sandwich-overcall-simple-suit-at-two-level'] },
+    ],
+    rejectedOvercallCalls: ['1S', 'Double', '1NT', 'Pass'],
+  },
+  {
+    description: 'Exceptional five-card diamonds and 14 HCP: natural 2D qualifies at the two level.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', '2D'],
+    north: { S: 'A632', H: '', D: 'K52', C: 'KT9865' },
+    east: { S: 'J84', H: 'AJ32', D: 'T6', C: '7432' },
+    south: { S: 'Q9', H: 'KQ8764', D: '974', C: 'QJ' },
+    west: { S: 'KT75', H: 'T95', D: 'AQJ83', C: 'A' },
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['sandwich-overcall-simple-suit-at-two-level'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-two-unbid-suits'] },
+    ],
+    rejectedOvercallCalls: ['1S', '1NT', 'Pass'],
+  },
 ];
 
-//// Direct takeout Doubles
-/// Next seat takeout doubles: North opens and East chooses the informational double.
-/// Ordinary takeout doubles support every unbid suit; the strong exception does not require shape.
+//// Takeout Doubles
+/// Direct and sandwich takeout Doubles. The direct strong exception does not apply in the sandwich seat.
 ///
 export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
   {
@@ -127,10 +175,49 @@ export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
     south: { S: 'T', H: '852', D: 'Q32', C: '987532' },
     north: { S: '532', H: 'AQJ76', D: 'KT5', C: 'K4' },
   },
+  {
+    description: 'Exceptional five diamonds and four spades: ' +
+                 'Double locates a possible spade fit; 2D also qualifies.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', 'Double'],
+    north: { S: 'QT84', H: '62', D: 'K4', C: 'KQJ73' },
+    east: { S: 'A52', H: 'QJT3', D: 'T632', C: '92' },
+    south: { S: '93', H: 'AK975', D: '75', C: 'T864' },
+    west: { S: 'KJ76', H: '84', D: 'AQJ98', C: 'A5' },
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['sandwich-overcall-simple-suit-at-two-level'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-two-unbid-suits'] },
+    ],
+    rejectedOvercallCalls: ['1S', '1NT', 'Pass'],
+  },
+  {
+    description: 'Strong five spades and four diamonds: 1S is descriptive; takeout Double also qualifies.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', '1S'],
+    north: { S: 'Q9', H: 'QJT5', D: 'K5', C: 'KQJ52' },
+    east: { S: 'T2', H: '862', D: 'T9874', C: '973' },
+    south: { S: '7643', H: 'AK93', D: 'A2', C: 'T86' },
+    west: { S: 'AKJ85', H: '74', D: 'QJ63', C: 'A4' },
+    expectedOvercallCalls: [
+      { call: '1S', ruleIds: ['sandwich-overcall-simple-suit-at-one-level'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-two-unbid-suits'] },
+    ],
+    rejectedOvercallCalls: ['2D', '1NT', 'Pass'],
+  },
+  {
+    description: 'Twelve actual HCP and four cards in each unbid suit: takeout Double without a natural overcall.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', 'Double'],
+    north: { S: 'A973', H: '9', D: '62', C: 'AKQ987' },
+    east: { S: '8', H: 'QJ42', D: 'K873', C: 'JT52' },
+    south: { S: 'QJ54', H: 'KT8753', D: 'Q54', C: '' },
+    west: { S: 'KT62', H: 'A6', D: 'AJT9', C: '643' },
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-two-unbid-suits'] },
+    ],
+    rejectedOvercallCalls: ['1S', '2D', '1NT', 'Pass'],
+  },
 ];
 
-//// Direct natural 1NT overcalls
-/// Natural 1NT overcalls: the hand is balanced and has a stopper in opener's suit.
+//// Natural 1NT overcalls
+/// Direct 1NT requires a stopper in opener's suit; sandwich 1NT requires both opposing stoppers.
 ///
 export const NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
   {
@@ -156,6 +243,19 @@ export const NATURAL_1NT_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     west: { S: '963', H: 'T94', D: 'AT6', C: 'A872' },
     south: { S: 'T52', H: 'J753', D: '752', C: 'K93' },
     north: { S: 'AQJ74', H: 'K82', D: 'Q93', C: '65' },
+  },
+  {
+    description: 'Balanced 16 HCP with stoppers in both opposing suits: ' +
+                 'fixed-range natural sandwich 1NT.',
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '1H', '1NT'],
+    north: { S: 'Q5', H: 'T9', D: 'AKJ', C: 'AQT854' },
+    east: { S: 'JT98764', H: '85', D: '63', C: '93' },
+    south: { S: '3', H: 'KQJ632', D: 'T54', C: 'J72' },
+    west: { S: 'AK2', H: 'A74', D: 'Q9872', C: 'K6' },
+    expectedOvercallCalls: [
+      { call: '1NT', ruleIds: ['sandwich-overcall-natural-1nt-with-stoppers'] },
+    ],
+    rejectedOvercallCalls: ['1S', '2D', 'Double', 'Pass'],
   },
 ];
 
