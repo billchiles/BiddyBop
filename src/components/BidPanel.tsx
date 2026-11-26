@@ -3,7 +3,7 @@ import { evaluateUserCall, getApplicableCandidateCalls, getBiddingTurnStatus, ge
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type BidEvalResult, type BiddingTurnStatus, type UnmodeledContinuationForce,
          type UnfulfilledAuctionForce } from '../models/biddingEvaluation';
-import { getNextBiddingRuleStage, getNextSeat, getInterferenceAfterOpening, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
+import { getNextBiddingRuleStage, getNextSeat, getDirectInterference, getRecordedPracticeCorrection, isPracticeSequenceComplete, isCallAvailableInAuction } from '../models/auction';
 import { getHandFacts, SEATS, SUITS, type Board, type Hand, type Seat } from '../models/cards';
 import type { RuleTestDeal } from '../models/test-deals-registry';
 import { type BidStage, type BiddingSystem, type Call } from '../models/bidding-types';
@@ -67,7 +67,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     followingSeat: hasFollowingPracticeCall
       ? getNextSeat(board.dealer, [...auction, practiceRecordedCall]) : null,
     followingStage: hasFollowingPracticeCall
-      ? getNextBiddingRuleStage(board.dealer, [...auction, practiceRecordedCall]) : null,
+      ? getNextBiddingRuleStage(board.dealer, [...auction, practiceRecordedCall], biddingSystem) : null,
   };
   // The next-turn note is informational. It never blocks a legal auction continuation.
   const turnGuidance = getNextTurnGuidance(getNextSeat(board.dealer, auction),
@@ -111,7 +111,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
     const seat = getNextSeat(board.dealer, auction);
     const normalizedCall = normalizeCallInput(bidText);
     if (normalizedCall === null) {
-      reportInvalidInput(seat, getNextBiddingRuleStage(board.dealer, auction));
+      reportInvalidInput(seat, getNextBiddingRuleStage(board.dealer, auction, biddingSystem));
       return;
     }
 
@@ -156,7 +156,7 @@ export function BidPanel({ board, biddingSystem, onTelemetry, telemetryLines, te
       recordedUnjudged: correction === null && testDeal !== undefined,
     });
     if (status.kind === 'supported' && result !== null) {
-      const intervention = getInterferenceAfterOpening(board.dealer, auction);
+      const intervention = getDirectInterference(board.dealer, auction);
       if (stage === 'responding' && intervention !== 'none' &&
           getApplicableCandidateCalls(result).length === 0) {
         explanation.push(intervention === 'suitOvercall'
@@ -383,7 +383,7 @@ function buildReportText(board: Board, auction: Call[], explanationLines: string
                          biddingSystem: BiddingSystem, testDeal: RuleTestDeal | undefined,
                          identification: PracticeDealIdentification | undefined,
                          telemetryLines: string[] | null): string {
-  const stage = getNextBiddingRuleStage(board.dealer, auction);
+  const stage = getNextBiddingRuleStage(board.dealer, auction, biddingSystem);
   return [
     'Bridge Bidding Trainer — Report',
     `Mode: ${testDeal === undefined ? 'New Deal' : 'Practice Deal'}`,
@@ -533,6 +533,12 @@ function getStageLabel(stage: BidStage | null): string {
       return 'overcaller rebid';
     case 'advancing':
       return 'advance';
+    case 'sandwichOvercalling':
+      return 'sandwich overcall';
+    case 'sandwichAdvancing':
+      return 'sandwich advance';
+    case 'sandwichOvercallerRebid':
+      return 'sandwich overcaller rebid';
   }
 }
 

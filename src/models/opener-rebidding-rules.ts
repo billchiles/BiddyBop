@@ -74,7 +74,7 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-boundary-after-direct-gerber',
     kind: 'scopeBoundary', title: 'Gerber ace replies are outside executable coverage',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['1NT', '2NT'], interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['1NT', '2NT'], interference: 'none' },
     scopeBoundaryWhen: (context) => ({
       success: (context.auction.filter((call) => call !== 'Pass').slice(0, 2).join('-') === '1NT-4C' ||
                 context.auction.filter((call) => call !== 'Pass').slice(0, 2).join('-') === '2NT-4C') &&
@@ -88,7 +88,7 @@ export const OpenerRebidRules: BidRule[] = [
   {
     id: 'opener-rebid-boundary-after-direct-blackwood',
     kind: 'scopeBoundary', title: 'Blackwood ace replies are outside executable coverage',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit', interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit', interference: 'none' },
     scopeBoundaryWhen: (context) => {
       const partnership = getOpeningPartnershipCalls(context.dealer, context.auction,
         getOpeningCallInfo(context.dealer, context.auction)?.seat ?? context.seat);
@@ -105,7 +105,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-2nt-after-2c-2d',
     kind: 'openerRebid',
     title: 'Rebid 2NT with 22-24 balanced after 2C-2D',
-    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', auction: ['2C', '2D'] },
     calls: ['2NT'],
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 22, max: 24 }, shape: { balanced: true } },
@@ -117,7 +117,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-2c-2d',
     kind: 'openerRebid',
     title: 'Rebid 3NT with 25-27 balanced after 2C-2D',
-    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', auction: ['2C', '2D'] },
     calls: ['3NT'],
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 25, max: 27 }, shape: { balanced: true } },
@@ -128,7 +128,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-4nt-after-2c-2d',
     kind: 'openerRebid',
     title: 'Rebid 4NT with 28-30 balanced after 2C-2D',
-    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', auction: ['2C', '2D'] },
     calls: ['4NT'],
     callCategory: ['natural'],
     appliesWhen: { hcp: { min: 28, max: 30 }, shape: { balanced: true } },
@@ -139,7 +139,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-longest-suit-after-2c-2d',
     kind: 'openerRebid',
     title: 'Show the longest suit after 2C-2D with an unbalanced hand',
-    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'] },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', auction: ['2C', '2D'] },
     calls: ['2H', '2S', '3C', '3D'],
     callRefinement: refineStrongTwoCUnbalancedSuitRebid,
     callCategory: ['forcing', 'natural'],
@@ -153,7 +153,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-boundary-strong-2c-waiting-4441',
     kind: 'scopeBoundary',
     title: 'Strong 2C opener with 4-4-4-1 shape after a waiting response',
-    auctionContext: { stage: 'openerRebid', auction: ['2C', '2D'], interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', auction: ['2C', '2D'], interference: 'none' },
     // A 13-card hand that is unbalanced but has no five-card suit is 4-4-4-1.
     // The natural suit rebid promises 5+ cards; the balanced NT rebids also do not apply.
     scopeBoundaryWhen: (context) => {
@@ -179,7 +179,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-support-positive-major-after-2c',
     kind: 'openerRebid',
     title: 'Raise a positive major economically after strong 2C',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2C'], interference: 'none',
                       responderCall: { kind: 'newSuit', level: 2 } },
     calls: ['3H', '3S'],
     callRefinement: (calls, context) => {
@@ -205,7 +205,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-support-positive-minor-after-2c',
     kind: 'openerRebid',
     title: 'Show an unbalanced minor fit after a positive minor response',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2C'], interference: 'none',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['4C', '4D'],
     callRefinement: (calls, context) => {
@@ -230,7 +230,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-longest-suit-after-2c-positive',
     kind: 'openerRebid',
     title: 'Show an unbalanced opener\'s own long suit after a positive response',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2C'], interference: 'none' },
     calls: ['2S', '3C', '3D', '3H', '3S'],
     callRefinement: refineStrongTwoCPositiveNewSuitRebid,
     appliesWhen: { hcp: { min: 22 } },
@@ -246,7 +246,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-natural-nt-after-2c-positive',
     kind: 'openerRebid',
     title: 'Describe a 22-24 balanced hand after a positive response',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2C'], interference: 'none' },
     calls: ['2NT', '3NT'],
     appliesWhen: strongTwoCPositiveBalancedNtApplies,
     callCategory: ['gameForcing', 'natural'],
@@ -260,7 +260,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-2c-positive',
     kind: 'scopeBoundary',
     title: 'Strong 2C positive response: further descriptive or slam judgment',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2C'], interference: 'none' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2C'], interference: 'none' },
     scopeBoundaryWhen: strongTwoCPositiveScopeBoundaryApplies,
     meaning: 'The positive response is game-forcing, but opener has no chosen natural rebid.',
     guidance: ['For very strong balanced hands, an awkward unbalanced shape, or a new suit ' +
@@ -276,7 +276,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-deny-major-after-nt-stayman',
     kind: 'openerRebid',
     title: 'Deny a four-card major after Stayman',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['2D', '3D'],
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
@@ -289,7 +289,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-show-hearts-after-nt-stayman',
     kind: 'openerRebid',
     title: 'Show four or more hearts after Stayman',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['2H', '3H'],
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
@@ -302,7 +302,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-show-spades-after-nt-stayman',
     kind: 'openerRebid',
     title: 'Show four or more spades without four hearts after Stayman',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['2S', '3S'],
     callRefinement: refineNtStaymanReply,
     agreement: { setting: 'stayman', value: true },
@@ -315,7 +315,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-complete-jacoby-after-nt',
     kind: 'openerRebid',
     title: 'Complete a Jacoby transfer after 1NT or 2NT',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['2H', '2S', '3H', '3S'],
     callRefinement: refineNtJacobyCompletion,
     agreement: { setting: 'jacobyTransfers', value: true },
@@ -328,7 +328,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-complete-texas-after-nt',
     kind: 'openerRebid',
     title: 'Complete a Texas transfer after 1NT or 2NT',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['4H', '4S'],
     callRefinement: refineNtTexasCompletion,
     agreement: { setting: 'texasTransfers', value: true },
@@ -341,7 +341,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a natural notrump game or slam signoff',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerStrain: 'NT',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerStrain: 'NT',
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -352,7 +352,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-nt-natural-major-game',
     kind: 'openerRebid',
     title: 'Pass a natural four-of-a-major game signoff',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['Pass'],
     agreement: { setting: 'texasTransfers', value: false },
     callCategory: ['signoff'],
@@ -363,7 +363,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-1nt-weak-natural-major',
     kind: 'openerRebid',
     title: 'Pass a weak natural major signoff over 1NT',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['Pass'],
     agreement: { setting: 'jacobyTransfers', value: false },
     callCategory: ['signoff'],
@@ -376,7 +376,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-1nt-3-minor-invitation',
     kind: 'openerRebid',
     title: 'Decline a natural minor invitation without a fitting top honor',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -390,7 +390,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-1nt-3-minor-invitation',
     kind: 'openerRebid',
     title: 'Accept a natural minor invitation with a fitting top honor',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
@@ -405,7 +405,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-nt-natural-3-major',
     kind: 'openerRebid',
     title: 'Choose 3NT with two-card support after a natural 3M response',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['3NT'],
     agreement: { setting: 'jacobyTransfers', value: false },
@@ -419,7 +419,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-game-in-responder-major-after-nt-natural-3-major',
     kind: 'openerRebid',
     title: "Choose four of responder's major with three-card-or-longer support",
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['4H', '4S'],
     callRefinement: refineOpenerNtResponderMajorToGame,
@@ -437,7 +437,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-game-after-1nt-direct-3-major-slam-interest',
     kind: 'openerRebid',
     title: 'Stop in game after a direct major slam try',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['4H', '4S'],
     callRefinement: refineOpenerNtResponderMajorToGame,
@@ -455,7 +455,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-control-after-1nt-direct-3-major-slam-interest',
     kind: 'openerRebid',
     title: 'Cooperate with a direct major slam try by showing a side control',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['3S', '4C', '4D', '4H'],
     callRefinement: refineOpenerNtMajorSlamControlBid,
@@ -475,7 +475,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-2nt-natural-3-minor',
     kind: 'openerRebid',
     title: 'Return to 3NT after a natural forcing minor response to 2NT',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       responderCall: { kind: 'newSuit', level: 3 } },
     calls: ['3NT'],
     callCategory: ['natural'],
@@ -495,7 +495,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-fit-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show four-card heart support after responder Doubles DONT 2S',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: true },
@@ -512,7 +512,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-2nt-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show a stopped minimum/middle 1NT hand without a heart fit',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: true },
@@ -526,7 +526,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show a stopped maximum 1NT hand without a heart fit',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: true },
@@ -543,7 +543,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-dont-off-fit-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show the cheapest major fit after a negative Double of natural 2X',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: false },
@@ -563,7 +563,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-dont-off-2nt-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show stopped minimum/middle 1NT values with no negative-Double major fit',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: false },
@@ -577,7 +577,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-dont-off-3nt-after-1nt-interference-double',
     kind: 'openerRebid',
     title: 'Show stopped maximum 1NT values with no negative-Double major fit',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' } },
     agreement: { setting: 'dont', value: false },
@@ -596,7 +596,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-1nt-interference-natural-suit',
     kind: 'openerRebid',
     title: 'Pass a nonforcing natural response to 1NT interference',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'newSuit' } },
     calls: ['Pass'],
@@ -610,7 +610,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-raise-major-after-1nt-interference-natural-suit',
     kind: 'openerRebid',
     title: 'Invite or bid game with major support after 1NT interference',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'newSuit' } },
     calls: ['3H', '3S', '4H', '4S'],
@@ -623,7 +623,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-1nt-interference-natural-suit',
     kind: 'openerRebid',
     title: 'Bid 3NT after a constructive natural suit response with a stopper',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'newSuit' } },
     calls: ['3NT'],
@@ -636,7 +636,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-1nt-interference',
     kind: 'scopeBoundary',
     title: 'Unresolved strain after natural interference over 1NT',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       openerRebidAfterInterference: true },
     scopeBoundaryWhen: oneNtInterferenceScopeBoundaryApplies,
     meaning: 'The partnership has values to compete, but no selected natural fit or stopped ' +
@@ -653,7 +653,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-dont-off-boundary-after-1nt-double-raise',
     kind: 'scopeBoundary',
     title: 'Judgment after advancer raises the natural 1NT overcall',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'double' },
                       advancerCall: { kind: 'other' } },
@@ -670,7 +670,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-dont-off-boundary-after-1nt-natural-response-raise',
     kind: 'scopeBoundary',
     title: 'Judgment after advancer raises over a natural responder suit',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT',
                       interference: 'other',
                       responderCall: { kind: 'newSuit' },
                       advancerCall: { kind: 'other' } },
@@ -690,7 +690,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Decline a natural 2NT game invitation over 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerStrain: 'NT',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerStrain: 'NT',
     },
     calls: ['Pass'],
     callCategory: ['signoff'],
@@ -706,7 +706,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Accept a natural 2NT game invitation over 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerStrain: 'NT',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerStrain: 'NT',
     },
     calls: ['3NT'],
     callCategory: ['signoff', 'natural'],
@@ -722,7 +722,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-nt-4nt-quantitative-invitation',
     kind: 'openerRebid',
     title: 'Decline a quantitative 4NT invitation after a notrump opening',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['Pass'],
     callCategory: ['signoff'],
     priority: { rank: 65 },
@@ -737,7 +737,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-6nt-after-nt-4nt-quantitative-invitation',
     kind: 'openerRebid',
     title: 'Accept a quantitative 4NT invitation with sufficient strength',
-    auctionContext: { stage: 'openerRebid', openerStrain: 'NT' },
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerStrain: 'NT' },
     calls: ['6NT'],
     callCategory: ['signoff', 'natural'],
     priority: { rank: 50 },
@@ -758,7 +758,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-repeat-after-weak-two-2nt-inquiry',
     kind: 'openerRebid',
     title: 'Repeat the weak-two suit after the forcing 2NT inquiry',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2D', '2H', '2S'],
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2D', '2H', '2S'],
                       responderCall: { kind: 'notrump', level: 2 } },
     calls: ['3D', '3H', '3S'],
     callRefinement: (calls, context) => refineOpenerOpeningSuitToLevel(calls, context, 3),
@@ -773,7 +773,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-feature-after-weak-two-2nt-inquiry',
     kind: 'openerRebid',
     title: 'Show a side ace or king with a maximum weak two',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2D', '2H', '2S'],
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2D', '2H', '2S'],
                       responderCall: { kind: 'notrump', level: 2 } },
     calls: ['3C', '3D', '3H', '3S'],
     callRefinement: refineWeakTwoFeatureRebid, // choose the cheapest side A/K feature
@@ -785,7 +785,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-3nt-after-weak-two-2nt-inquiry',
     kind: 'openerRebid',
     title: 'Rebid 3NT with a maximum weak two and a solid suit',
-    auctionContext: { stage: 'openerRebid', openerCalls: ['2D', '2H', '2S'],
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerCalls: ['2D', '2H', '2S'],
                       responderCall: { kind: 'notrump', level: 2 } },
     calls: ['3NT'],
     callCategory: ['natural'],
@@ -798,7 +798,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-raise-after-preempt-new-suit',
     kind: 'openerRebid',
     title: "Raise responder's forcing new suit after a preempt",
-    auctionContext: { stage: 'openerRebid',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none',
                       openerCalls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
                       responderCall: { kind: 'newSuit' } },
     calls: ['3H', '3S', '4C', '4D', '4H', '4S', '5C', '5D'],
@@ -811,7 +811,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-repeat-after-preempt-new-suit',
     kind: 'openerRebid',
     title: "Return to opener's preempt suit without support for responder",
-    auctionContext: { stage: 'openerRebid',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none',
                       openerCalls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
                       responderCall: { kind: 'newSuit' } },
     calls: ['3D', '3H', '3S', '4C', '4D', '4H', '4S'],
@@ -828,7 +828,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-pass-after-preempt-raise',
     kind: 'openerRebid',
     title: "Pass responder's nonforcing raise of a weak preempt",
-    auctionContext: { stage: 'openerRebid', interference: 'none',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', interference: 'none',
                       openerCalls: ['2D', '2H', '2S', '3C', '3D', '3H', '3S'],
                       responderCall: { kind: 'raise' } },
     calls: ['Pass'],
@@ -848,7 +848,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-after-jump-overcall-nonforcing-pass',
     kind: 'openerRebid',
     title: 'Pass a minimum after responder competes over a jump overcall',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
                       interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
     calls: ['Pass'],
     appliesWhen: jumpOvercallOpenerContinuationApplies,
@@ -862,7 +862,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-after-jump-overcall-major-game',
     kind: 'openerRebid',
     title: 'Bid major game after strong support or a forcing response to a jump overcall',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
                       interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
     calls: ['4H', '4S'],
     callRefinement: refineJumpOvercallOpenerAction,
@@ -876,7 +876,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-after-jump-overcall-natural-suit',
     kind: 'openerRebid',
     title: 'Describe a fit, long opening suit, or economical second suit after jump interference',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
                       interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
     calls: ['2H', '2S', '3C', '3D', '3H', '3S', '4C', '4D'],
     callRefinement: refineJumpOvercallOpenerAction,
@@ -892,7 +892,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-after-jump-overcall-natural-nt',
     kind: 'openerRebid',
     title: 'Describe a stopped balanced hand or accept the 2NT invitation',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
                       interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
     calls: ['2NT', '3NT'],
     callRefinement: refineJumpOvercallOpenerAction,
@@ -908,7 +908,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-jump-overcall',
     kind: 'scopeBoundary',
     title: 'Competitive judgment after responder acts over a jump preempt',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
                       interference: 'jumpSuitOvercall', advancerCall: { kind: 'pass' } },
     scopeBoundaryWhen: jumpOvercallOpenerBoundaryApplies,
     meaning: 'Partner\'s response has a known natural or artificial meaning, but no ' +
@@ -941,7 +941,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid an implied suit economically after a negative Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
@@ -960,7 +960,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump in an implied suit after a negative Double with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
@@ -977,7 +977,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid game in an implied major with medium values after a higher overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
@@ -994,7 +994,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid game in an implied major after a negative Double with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1013,7 +1013,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump in an implied minor with maximum values and advancer passing',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
@@ -1031,7 +1031,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Describe an implied-suit fit after advancer acts with a minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1051,7 +1051,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Keep competing in an implied suit with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1072,7 +1072,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after a negative Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1089,7 +1089,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid natural notrump after a negative Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1107,7 +1107,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass with a minimum after advancer acts when no clear description remains',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1125,7 +1125,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Descriptive judgment after a negative Double when advancer passes',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: { kind: 'pass' },
     },
@@ -1146,7 +1146,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Competitive judgment after a negative Double and further advancer action',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'double' },
       advancerCall: {
         kind: ['raise', 'preemptiveRaise', 'newSuit', 'notrump', 'cuebid', 'redouble'],
@@ -1173,7 +1173,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass after responder’s strength-showing Redouble when advancer passes',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'redouble' },
       advancerCall: { kind: 'pass' },
     },
@@ -1198,7 +1198,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's forcing two-level suit with minimum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1216,7 +1216,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after a forcing two-level response',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1233,7 +1233,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show an economical second suit after a forcing competitive response',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1250,7 +1250,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse into a second suit after a forcing competitive response',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1267,7 +1267,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with a minimum balanced hand and an overcall stopper',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1282,7 +1282,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's forcing minor to four with medium values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1300,7 +1300,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's forcing major to game with medium values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1318,7 +1318,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 3NT with 18-19 balanced and an overcall stopper',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1333,7 +1333,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's forcing suit to game with maximum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
     },
@@ -1359,7 +1359,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Support responder's forcing suit after advancer competes",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1378,7 +1378,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after advancer competes',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1396,7 +1396,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show an economical second suit that remains available after competition',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1414,7 +1414,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Keep a strength-qualified reverse that remains available after competition',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1434,7 +1434,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Retain a natural balanced notrump rebid after advancer competes',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1452,7 +1452,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Bid game with maximum values and support for responder's forcing suit",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1468,7 +1468,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass with a minimum when competition removes the clear descriptive rebids',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'newSuit', opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
     },
@@ -1487,7 +1487,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Competitive judgment after a one-level forcing response and further competition',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 1, opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
@@ -1509,7 +1509,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Competitive judgment after a two-level forcing response and further competition',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 2, opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise', 'newSuit'] },
@@ -1531,7 +1531,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Competitive judgment after a forcing response to a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', interference: 'takeoutDouble',
       responderCall: { kind: 'newSuit', level: 1, opponentSuit: false },
       advancerCall: { kind: 'newSuit' },
@@ -1562,7 +1562,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a minimum after responder cuebids with support',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'newSuit', opponentSuit: true },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -1580,7 +1580,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid major-suit game with enough values opposite the support cuebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       interference: 'suitOvercall', responderCall: { kind: 'newSuit', opponentSuit: true },
     },
     calls: ['4H', '4S'],
@@ -1598,7 +1598,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a minimum after Jordan 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -1616,7 +1616,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid major-suit game with enough values opposite Jordan 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['4H', '4S'],
@@ -1633,7 +1633,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Game placement with extra values after Jordan 2NT minor support',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 2 },
     },
     meaning: 'Responder has shown limit-or-better support for opener\'s minor through artificial '
@@ -1658,7 +1658,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass with a minimum after a natural 1NT response in competition',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['Pass'],
@@ -1673,7 +1673,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after responder\'s natural 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2C', '2D', '2H', '2S'],
@@ -1691,7 +1691,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Invite with 2NT after responder\'s natural 1NT over an overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2NT'],
@@ -1705,7 +1705,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid game with a 20-21 HCP semi-balanced opener after natural 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3NT'],
@@ -1719,7 +1719,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Shape judgment after responder\'s natural 1NT over an overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 1 },
     },
     meaning: 'Responder has described a balanced 6-10 HCP hand with a stopper, but opener has no ' +
@@ -1736,7 +1736,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Decline responder\'s natural 2NT invitation after an overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['Pass'],
@@ -1751,7 +1751,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Accept responder\'s natural 2NT invitation after an overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3NT'],
@@ -1764,7 +1764,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Slam and strain judgment after responder\'s natural 2NT invitation',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 2 },
     },
     meaning: 'A 19-21 HCP opener opposite 11-12 HCP has more than an ordinary game decision.',
@@ -1780,7 +1780,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s natural 3NT game response after an overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 3 },
     },
     calls: ['Pass'],
@@ -1794,7 +1794,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Slam judgment after responder\'s natural 3NT game response',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'notrump', level: 3 },
     },
     meaning: 'With 18+ HCP opposite responder\'s 13-15 HCP, opener has legitimate slam interest.',
@@ -1812,7 +1812,7 @@ export const OpenerRebidRules: BidRule[] = [
     callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Defend after advancer cuebids our agreed suit with a minimum',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       openerRebidAfterInterference: true,
       responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
     calls: ['Pass'],
@@ -1826,7 +1826,7 @@ export const OpenerRebidRules: BidRule[] = [
     callEvidenceBuilder: buildOpenerArtificialSupportRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid a suitable game after the opponents cuebid our agreed suit',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       openerRebidAfterInterference: true,
       responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
     calls: ['3NT', '4H', '4S'],
@@ -1840,7 +1840,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-advancer-support-cuebid',
     kind: 'scopeBoundary',
     title: 'Competitive judgment after an artificial opposing support cuebid',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       openerRebidAfterInterference: true,
       responderCall: { kind: 'raise', level: 2 }, advancerCall: { kind: 'cuebid' } },
     scopeBoundaryWhen: openerSupportCuebidScopeBoundaryApplies,
@@ -1859,7 +1859,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise responder\'s game-forcing three-level major to game',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
     },
@@ -1876,7 +1876,7 @@ export const OpenerRebidRules: BidRule[] = [
     callEvidenceBuilder: buildOpenerThreeLevelForcingRebidEvidence,
     kind: 'openerRebid',
     title: 'Bid the six-card opening major at game with extra values after competition',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
       advancerCall: { kind: ['raise', 'preemptiveRaise'] } },
@@ -1893,7 +1893,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid 3NT after a game-forcing three-level response with the right shape and stopper',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
     },
@@ -1909,7 +1909,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Game placement after a competitive three-level forcing response',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall',
       responderCall: { kind: 'newSuit', level: 3, opponentSuit: false },
     },
@@ -1935,7 +1935,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive three-level raise with a minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'raise', level: 3 },
     },
     calls: ['Pass'],
@@ -1949,7 +1949,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Game judgment after responder\'s preemptive three-level raise',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'raise', level: 3 },
     },
     meaning: 'Opener has extras opposite a weak preemptive raise, but responder did not promise ' +
@@ -1965,7 +1965,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Game placement with extra values after a minor-suit support cuebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       interference: 'suitOvercall', responderCall: { kind: 'newSuit', opponentSuit: true },
     },
     meaning: 'Responder has shown limit-or-better support for opener\'s minor, and opener has more ' +
@@ -1981,7 +1981,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Reopening judgment after responder Passes a suit overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'suitOvercall', responderCall: { kind: 'pass' },
       advancerCall: { kind: 'pass' },
     },
@@ -2004,7 +2004,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Penalty/runout judgment after responder Redoubles and advancer escapes',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'redouble' },
       advancerCall: { kind: 'newSuit' },
     },
@@ -2020,7 +2020,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Runout judgment after responder Passes a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'pass' },
       advancerCall: { kind: 'pass' },
     },
@@ -2042,7 +2042,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s weak natural suit after an opposing 1NT overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'notrumpOvercall', responderCall: { kind: 'newSuit', level: 2 },
     },
     calls: ['Pass'],
@@ -2067,7 +2067,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Extra-value judgment after responder\'s weak suit over an opposing 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'notrumpOvercall', responderCall: { kind: 'newSuit', level: 2 },
     },
     meaning: 'Opener has extras, but responder\'s natural suit was explicitly weak and nonforcing.',
@@ -2083,7 +2083,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive jump raise after an opposing 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'notrumpOvercall', responderCall: { kind: 'raise', level: 3 },
     },
     calls: ['Pass'],
@@ -2096,7 +2096,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Game judgment after a preemptive raise over an opposing 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'notrumpOvercall', responderCall: { kind: 'raise', level: 3 },
     },
     meaning: 'Opener has extras opposite a weak preemptive raise, but game is not automatic.',
@@ -2110,7 +2110,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Reopening judgment after responder Passes an opposing 1NT overcall',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'notrumpOvercall', responderCall: { kind: 'pass' },
       advancerCall: { kind: 'pass' },
     },
@@ -2131,7 +2131,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a natural 1NT response after a takeout Double with a minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['Pass'],
@@ -2146,7 +2146,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a weak two-level new-suit response after a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 2 },
     },
     calls: ['Pass'],
@@ -2161,7 +2161,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a weak jump shift after a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 3 },
     },
     calls: ['Pass'],
@@ -2176,7 +2176,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a weak jump raise after a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'raise', level: 3 },
     },
     calls: ['Pass'],
@@ -2192,7 +2192,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-double-natural-1nt',
     kind: 'scopeBoundary',
     title: 'Shape and strength judgment after natural 1NT over a takeout Double',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'notrump', level: 1 } },
     scopeBoundaryWhen: (context) => openerWeakAfterDoubleBoundaryApplies(context, true),
     meaning: 'Responder showed 6–9 balanced HCP in natural nonforcing 1NT, but opener needs ' +
@@ -2204,7 +2204,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-double-weak-two-level-new-suit',
     kind: 'scopeBoundary',
     title: 'Judgment after a weak natural two-level response to a Double',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 2 } },
     scopeBoundaryWhen: (context) => openerWeakAfterDoubleBoundaryApplies(context),
     meaning: 'Responder showed 5–9 HCP and a good six-card natural suit, nonforcing.',
@@ -2215,7 +2215,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-double-weak-three-level-new-suit',
     kind: 'scopeBoundary',
     title: 'Judgment after a weak jump shift over a Double',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'newSuit', level: 3 } },
     scopeBoundaryWhen: (context) => openerWeakAfterDoubleBoundaryApplies(context),
     meaning: 'Responder made a weak, nonforcing six-card-or-longer jump shift.',
@@ -2226,7 +2226,7 @@ export const OpenerRebidRules: BidRule[] = [
     id: 'opener-rebid-scope-boundary-after-double-weak-jump-raise',
     kind: 'scopeBoundary',
     title: 'Game judgment after a weak jump raise over a Double',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       interference: 'takeoutDouble', responderCall: { kind: 'raise', level: 3 } },
     scopeBoundaryWhen: (context) => openerWeakAfterDoubleBoundaryApplies(context),
     meaning: 'Responder’s three-level raise is weak and preemptive, not invitational.',
@@ -2245,7 +2245,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass 1NT with a minimum balanced or semi-balanced hand',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['Pass'],
@@ -2260,7 +2260,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening minor at the two level',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2C', '2D'],
@@ -2278,7 +2278,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit without reversing',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2C', '2D', '2H', '2S'],
@@ -2297,7 +2297,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse into a higher-ranking second suit with extra strength',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2D', '2H', '2S'],
@@ -2318,7 +2318,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening minor with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3C', '3D'],
@@ -2341,7 +2341,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with 18-19 HCP and balanced or semi-balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2NT'],
@@ -2356,7 +2356,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3C'],
@@ -2380,7 +2380,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 3NT with 20-21 HCP and semi-balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3NT'],
@@ -2396,7 +2396,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game with a strong seven-card opening minor',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['5C', '5D'],
@@ -2420,7 +2420,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show an economical four-card second suit with minimum or medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2444,7 +2444,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2460,7 +2460,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2483,7 +2483,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening minor cheaply with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2505,7 +2505,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a five-card minor only when the one-round force leaves no normal rebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1,
       openerStrain: 'minor', responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['2C', '2D'],
@@ -2524,7 +2524,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2545,7 +2545,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening minor with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2567,7 +2567,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2588,7 +2588,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2605,7 +2605,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump shift into a second suit with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2629,7 +2629,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2647,7 +2647,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening minor',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -2668,7 +2668,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Exceptional strength without an accurate natural minor rebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1,
       openerStrain: 'minor', responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     scopeBoundaryWhen: openerExceptionalStrongMinorRebidBoundaryApplies,
@@ -2687,7 +2687,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
@@ -2717,7 +2717,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid diamonds cheaply after a Standard 1D-2C response',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D'],
@@ -2736,7 +2736,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse into a four-card major after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
@@ -2757,7 +2757,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with 12-14 HCP after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
@@ -2773,7 +2773,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise clubs cheaply with minimum values after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C'],
@@ -2795,7 +2795,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a good six-card diamond suit with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3D'],
@@ -2811,7 +2811,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 3NT with 18-19 HCP after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3NT'],
@@ -2827,7 +2827,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump raise clubs with medium values after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4C'],
@@ -2848,7 +2848,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise clubs to game with maximum values after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['5C'],
@@ -2869,7 +2869,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card diamond suit after Standard 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['5D'],
@@ -2891,7 +2891,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2D with five or more diamonds in a 2/1 game force',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -2911,7 +2911,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a four-card major up the line after 2/1 1D-2C',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -2931,7 +2931,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT when no five-card diamond suit or four-card major is available',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -2952,7 +2952,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise clubs naturally when 2NT is unattractive in a 2/1 game force',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -2980,7 +2980,7 @@ export const OpenerRebidRules: BidRule[] = [
     callEvidenceBuilder: buildOpenerOneNtRebidEvidence,
     kind: 'openerRebid',
     title: 'Pass a passed-hand 1NT response with a flat minimum',
-    auctionContext: { stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+    auctionContext: { stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
                       responderCall: { kind: 'notrump', level: 1 } },
     calls: ['Pass'],
     agreement: { setting: 'majorOneNtResponse', value: 'forcing' },
@@ -3009,7 +3009,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a non-forcing 1NT response with a flat minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['Pass'],
@@ -3028,7 +3028,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major at the two level',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2H', '2S'],
@@ -3049,7 +3049,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit after 1NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2C', '2D', '2H'],
@@ -3067,7 +3067,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse after 1NT with extra strength',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2S'],
@@ -3086,7 +3086,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Manufacture a minor rebid when a forcing 1NT leaves no natural rebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2C', '2D'],
@@ -3107,7 +3107,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3H', '3S'],
@@ -3129,7 +3129,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with 18-19 HCP and balanced or semi-balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['2NT'],
@@ -3144,7 +3144,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['3C', '3D', '3H'],
@@ -3165,7 +3165,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game with a strong seven-card opening major',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 1 },
     },
     calls: ['4H', '4S'],
@@ -3190,7 +3190,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 1NT with 12-14 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3210,7 +3210,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3233,7 +3233,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3255,7 +3255,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a lower-ranking four-card second suit at the cheapest level',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3274,7 +3274,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3296,7 +3296,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Jump raise responder's suit with medium values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3317,7 +3317,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to 2NT with 18-19 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3334,7 +3334,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3356,7 +3356,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3377,7 +3377,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
@@ -3399,7 +3399,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Optional splinter agreeing responder's suit",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 1, jump: 0 },
     },
     calls: ['4C', '4D', '4H', '4S'],
@@ -3429,7 +3429,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit cheaply with minimum values",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -3453,7 +3453,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
@@ -3475,7 +3475,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a five-card major only when a minimum hand has no descriptive rebid',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2H', '2S'],
@@ -3494,7 +3494,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show an economical second suit without reversing',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2D', '2H', '2S', '3C', '3D', '3H'],
@@ -3512,7 +3512,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Reverse into a second suit with extra strength',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2S', '3S', '3C', '3D'],
@@ -3530,7 +3530,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with 12-14 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['2NT'],
@@ -3546,7 +3546,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump rebid a six-card opening major with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3H', '3S'],
@@ -3568,7 +3568,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Invite a minor-suit game with medium values",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4C', '4D'],
@@ -3587,7 +3587,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Bid 4H with medium values and a known heart fit',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4H'],
@@ -3606,7 +3606,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to 3NT with 18-19 HCP and balanced shape',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3NT'],
@@ -3622,7 +3622,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump shift into a lower-ranking second suit with maximum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['3D', '3H', '4C', '4D', '4H'],
@@ -3644,7 +3644,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game in a strong seven-card opening major',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4H', '4S'],
@@ -3666,7 +3666,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's suit to game with maximum values",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
     calls: ['4H', '4S', '5C', '5D'],
@@ -3688,7 +3688,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Support responder's suit at the cheapest level in a 2/1 game force",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -3715,7 +3715,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid a six-card opening major cheaply in a 2/1 game force',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -3738,7 +3738,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a four-card second suit cheaply in a 2/1 game force',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -3762,7 +3762,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid 2NT with balanced or semi-balanced shape in a 2/1 game force',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderPreviouslyPassed: false,
       responderCall: { kind: 'newSuit', level: 2, jump: 0 },
     },
@@ -3789,7 +3789,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a simple minor raise with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -3804,7 +3804,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise the minor to three with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise'] },
     },
@@ -3827,7 +3827,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Usually bid 3NT with maximum values after a simple minor raise',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -3851,7 +3851,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Consider five of the minor with a very long, unbalanced maximum',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -3876,7 +3876,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a minor limit raise with a bad minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['Pass'],
@@ -3890,7 +3890,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Accept a minor limit raise with 3NT when game values are present',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['3NT'],
@@ -3913,7 +3913,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Consider five of the minor with extra values and extreme distribution',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['5C', '5D'],
@@ -3941,7 +3941,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Decline an invitational 2NT response with a minimum',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['Pass'],
@@ -3957,7 +3957,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Accept an invitational 2NT response with game-going values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3NT'],
@@ -3988,7 +3988,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show singleton or void after Jacoby 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -4013,7 +4013,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a good five-card side suit after Jacoby 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['4C', '4D', '4H', '4S'],
@@ -4042,7 +4042,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Jump to game with a minimum Jacoby 2NT opener',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['4H', '4S'],
@@ -4066,7 +4066,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show medium strength after Jacoby 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3NT'],
@@ -4084,7 +4084,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show strong slam-interest values after Jacoby 2NT',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 2 },
     },
     calls: ['3H', '3S'],
@@ -4114,7 +4114,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Keep game in the agreed major available after a splinter',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', jump: 2 },
     },
     calls: ['4H', '4S'],
@@ -4141,7 +4141,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a side-suit control with slam interest after a splinter',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'newSuit', jump: 2 },
     },
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
@@ -4176,7 +4176,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a weak jump shift',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'newSuit', jump: 1 },
     },
     calls: ['Pass'],
@@ -4194,7 +4194,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: "Raise responder's strong jump-shift suit economically",
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'newSuit', jump: 1 },
     },
     calls: ['3C', '3D', '3H', '3S', '4C', '4D', '4H', '4S'],
@@ -4215,7 +4215,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Repeat a six-card opening suit after a strong jump shift',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'newSuit', jump: 1 },
     },
     calls: ['3C', '3D', '3H', '3S'],
@@ -4233,7 +4233,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Show a four-card second suit after a strong jump shift',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'newSuit', jump: 1 },
     },
     calls: ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S', '4C', '4D'],
@@ -4257,7 +4257,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Rebid notrump economically after a strong jump shift',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'newSuit', jump: 1 },
     },
     calls: ['2NT', '3NT'],
@@ -4282,7 +4282,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a natural 3NT game response after a minor opening',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'minor',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'minor',
       responderCall: { kind: 'notrump', level: 3 },
     },
     calls: ['Pass'],
@@ -4298,7 +4298,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Keep 3NT available after a direct flat game response to a major',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 3 },
     },
     calls: ['Pass'],
@@ -4314,7 +4314,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Return to the known major fit after a direct 3NT response',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'notrump', level: 3 },
     },
     calls: ['4H', '4S'],
@@ -4338,7 +4338,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Invite small slam quantitatively after a natural 3NT response',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'suit',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'suit',
       responderCall: { kind: 'notrump', level: 3 },
     },
     calls: ['4NT'],
@@ -4358,7 +4358,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass responder\'s preemptive game raise',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'major',
       responderCall: { kind: 'raise', level: 4, jump: 2 },
     },
@@ -4379,7 +4379,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Decline a major-suit limit raise with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['Pass'],
@@ -4395,7 +4395,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Accept a major-suit limit raise with game-going values',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 3, jump: 1 },
     },
     calls: ['4H', '4S'],
@@ -4425,7 +4425,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Pass a simple major raise with minimum values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -4442,7 +4442,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Invite game with a six-card major after an uncontested simple raise',
     auctionContext: {
-      stage: 'openerRebid', interference: 'none', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', interference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: 'pass' },
     },
@@ -4467,7 +4467,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Compete to three of the major after a suit overcall',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, interference: 'suitOvercall',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, interference: 'suitOvercall',
       openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
@@ -4493,7 +4493,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Compete to three of the major after a takeout Double',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, interference: 'takeoutDouble',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, interference: 'takeoutDouble',
       openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
@@ -4519,7 +4519,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Make a natural help-suit game try with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise'] },
     },
@@ -4544,7 +4544,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Use 2NT as a balanced game try with medium values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise'] },
     },
@@ -4564,7 +4564,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Raise the agreed major to game with game-going values',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['pass', 'raise', 'preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -4593,7 +4593,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'scopeBoundary',
     title: 'Competitive judgment after a simple raise and further advancer action',
     auctionContext: {
-      stage: 'openerRebid', openerRebidAfterInterference: true, openerLevel: 1,
+      stage: 'openerRebid', sandwichInterference: 'none', openerRebidAfterInterference: true, openerLevel: 1,
       openerStrain: 'suit', responderCall: { kind: 'raise', level: 2, jump: 0 },
       advancerCall: { kind: ['preemptiveRaise', 'newSuit', 'responsiveDouble'] },
     },
@@ -4615,7 +4615,7 @@ export const OpenerRebidRules: BidRule[] = [
     kind: 'openerRebid',
     title: 'Optional splinter after a simple major raise',
     auctionContext: {
-      stage: 'openerRebid', openerLevel: 1, openerStrain: 'major',
+      stage: 'openerRebid', sandwichInterference: 'none', openerLevel: 1, openerStrain: 'major',
       responderCall: { kind: 'raise', level: 2, jump: 0 },
     },
     calls: ['3S', '4C', '4D', '4H'],

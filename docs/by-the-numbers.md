@@ -1,6 +1,6 @@
 # BiddyBop by the Numbers
 
-Regenerate this statistical snapshot with `npm run stats:bidding`. The command
+Regenerate this statistical snapshot with `npm run project:stats`. The command
 reads the current source declarations and practice corpus, writes this document,
 and prints a short summary. It is not part of the normal build or test commands.
 
@@ -106,12 +106,15 @@ cannot be added to obtain the distinct-ID counts above.
 | balancing | 6 | 6 | 100.0% | 0 | 0 / 1 |
 | advancing | 108 | 94 | 87.0% | 14 | 0 / 6 |
 | overcallerRebid | 91 | 56 | 61.5% | 35 | 0 / 19 |
+| sandwichOvercalling | 0 | 0 | — | 0 | 0 / 0 |
+| sandwichAdvancing | 0 | 0 | — | 0 | 0 / 0 |
+| sandwichOvercallerRebid | 0 | 0 | — | 0 | 0 / 0 |
 
 Shared rule IDs count separately in each stage; a response does not establish
 reach as an advance. A scope boundary counts when it remains applicable after
 candidate suppression, not necessarily when selected for display.
 To list the exact unreached executable IDs by stage, run
-`npm run stats:bidding -- --unreached`.
+`npm run project:stats -- --unreached`.
 
 ### Interpretation of unreached executable IDs
 
