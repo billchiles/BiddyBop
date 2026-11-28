@@ -7,7 +7,7 @@ import { compareSuitBids, getAdvancerCallKindForOpenerRebid, getNextBiddingRuleS
          getDirectInterference, getPartnerOneNtSuitInterference,
          getRecordedPracticeCorrection, getNextSeat, getSeatForCallIndex, isPracticeSequenceComplete, isCallAvailableInAuction, auctionIsComplete, parseSuitBid, responseJump }
   from '../src/models/auction';
-import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getSandwichInterference, getSandwichResponseFamily, getRulesForCurrentContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
+import { evaluateRules, evaluateUserCall, getApplicableCandidateCalls, makeRuleEvalContext, makeAuctionPublicContext, getCallPublicMeaning, getSandwichInterference, getSandwichResponseInfo, getRulesForCurrentContext, getBiddingTurnStatus, getUnmodeledContinuationForce, getUnfulfilledGameForceAtAuctionEnd,
          getUnfulfilledForceAtAuctionEnd, normalizeCallInput,
          type CandidateCallMatch } from '../src/models/biddingEvaluation';
 import { getHandFacts, makeRuleTestBoard, type Suit, type Board } from '../src/models/cards';
@@ -139,6 +139,7 @@ function runAllRuleTests (): void {
     runPublicCallMeaningTests,
     runSandwichInfrastructureTests,
     runSandwichOneLevelNewSuitTests,
+    runSandwichOneNtAndSimpleRaiseTests,
     runCompetitionBoundaryTests,
     runResponderInterferenceScopeBoundaryTests,
     runCompetitiveOpenerRebidBoundaryTests,
@@ -509,12 +510,14 @@ function runSandwichInfrastructureTests (): number {
         }
         if (test.stage !== null && (test.stage.startsWith('sandwich') || test.interference !== 'none')) {
           const result = getRulesForCurrentContext({ ...board, dealer }, test.auction, system);
-          const familyA = test.stage === 'sandwichOvercalling' &&
-            getSandwichResponseFamily(context, system)?.family === 'oneLevelNewSuit';
-          if (result.ruleDiagnostics.some(({ rule }) => !familyA ||
-              rule.auctionContext?.sandwichResponseFamily !== 'oneLevelNewSuit' ||
-              rule.auctionContext.stage !== 'sandwichOvercalling') ||
-              (!familyA && result.applicableRules.length !== 0)) {
+          const responseKind = getSandwichResponseInfo(context, system)?.kind;
+          const implemented = test.stage === 'sandwichOvercalling' &&
+            (responseKind === 'naturalOneLevelNewSuit' || responseKind === 'naturalOneNt' ||
+             responseKind === 'naturalSimpleRaise');
+          if (result.ruleDiagnostics.some(({ rule }) => !implemented ||
+              rule.auctionContext?.sandwichResponseKind !== responseKind ||
+              rule.auctionContext?.stage !== 'sandwichOvercalling') ||
+              (!implemented && result.applicableRules.length !== 0)) {
             failures++;
             console.error(`FAIL existing rule leaked into sandwich context ${test.auction.join(' ')}.`);
           }
@@ -585,7 +588,7 @@ function runSandwichOneLevelNewSuitTests (): number {
     for (const dont of [true, false]) {
       const agreements = { ...system, dont };
       const context = makeAuctionPublicContext('N', auction, agreements);
-      check(getSandwichResponseFamily(context, agreements)?.family === 'oneLevelNewSuit',
+      check(getSandwichResponseInfo(context, agreements)?.kind === 'naturalOneLevelNewSuit',
         `family after ${auction.join(' ')}`);
       for (const call of allSuits) {
         const meaning = getCallPublicMeaning(call, context, agreements);
@@ -678,6 +681,238 @@ function runSandwichOneLevelNewSuitTests (): number {
     'penalty conversion is not a broken force');
   console.log(`${failures} ***FAILURES***. Initial sandwich new-suit competition: six public entries, ` +
     `${cases.length} threshold hands under both NT ranges, ${practice.length} complete practice setups, and force checks.`);
+  return failures;
+}
+
+//// Initial sandwich competition after natural 1NT and simple raises
+
+/// Public inventories and fixed complete synthetic deals protect the selected competition
+/// thresholds. Other seats' cards are immaterial to the public promises or current eligibility.
+function runSandwichOneNtAndSimpleRaiseTests (): number {
+  const system = defaultBiddingSystem;
+  let failures = 0;
+  const check = (condition: boolean, message: string) => {
+    if (!condition) { failures++; console.error(`FAIL sandwich 1NT/raise: ${message}`); }
+  };
+  const board = makeRuleTestBoard(OPENING_BID_TEST_DEALS[0]!).board;
+  const deck = [board.deal.N, board.deal.E, board.deal.S, board.deal.W].flatMap((hand) => hand.cards);
+  const makeBoard = (west: Record<Suit, string>, reverse = false): Board => {
+    const cards = deck.filter((card) => west[card.suit].includes(card.rank));
+    const remaining = deck.filter((card) => !west[card.suit].includes(card.rank));
+    if (cards.length !== 13 || remaining.length !== 39) throw new Error('Invalid sandwich threshold hand');
+    if (reverse) remaining.reverse();
+    return { dealer: 'N', deal: { W: { cards }, N: { cards: remaining.slice(0, 13) },
+      E: { cards: remaining.slice(13, 26) }, S: { cards: remaining.slice(26) } } };
+  };
+  const entries: { auction: Call[]; suits: Call[] }[] = [
+    { auction: ['1C', 'Pass', '1NT'], suits: ['2D', '2H', '2S'] },
+    { auction: ['1D', 'Pass', '1NT'], suits: ['2C', '2H', '2S'] },
+    { auction: ['1H', 'Pass', '1NT'], suits: ['2C', '2D', '2S'] },
+    { auction: ['1S', 'Pass', '1NT'], suits: ['2C', '2D', '2H'] },
+    { auction: ['1C', 'Pass', '2C'], suits: ['2D', '2H', '2S'] },
+    { auction: ['1D', 'Pass', '2D'], suits: ['2H', '2S', '3C'] },
+    { auction: ['1H', 'Pass', '2H'], suits: ['2S', '3C', '3D'] },
+    { auction: ['1S', 'Pass', '2S'], suits: ['3C', '3D', '3H'] },
+  ];
+  const allSuits: Call[] = ['2C', '2D', '2H', '2S', '3C', '3D', '3H', '3S'];
+  for (const { auction, suits } of entries) {
+    for (const dont of [true, false]) {
+      for (const majorOneNtResponse of ['forcing', 'nonForcing'] as const) {
+        const agreements = { ...system, dont, majorOneNtResponse };
+        const context = makeAuctionPublicContext('N', auction, agreements);
+        const expectedKind = auction[2] === '1NT' ? 'naturalOneNt' : 'naturalSimpleRaise';
+        check(getSandwichResponseInfo(context, agreements)?.kind === expectedKind,
+          `public response ${auction.join(' ')}`);
+        for (const call of allSuits) {
+          const meaning = getCallPublicMeaning(call, context, agreements);
+          check((meaning.status === 'known' && meaning.categories.includes('natural')) === suits.includes(call),
+            `public natural ${auction.join(' ')} ${call}`);
+        }
+        const double = getCallPublicMeaning('Double', context, agreements);
+        check(double.status === 'known' && double.categories.includes('forcing') &&
+          double.categories.includes('conventional'), `public takeout ${auction.join(' ')}`);
+      }
+    }
+  }
+  const cases: { auction: Call[]; west: Record<Suit, string>; call: Call; hcp: number; qualifies: boolean }[] = [
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AKJ64', H: 'JT', D: '96', C: 'AJ96' },
+      call: '2S', hcp: 14, qualifies: true },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'KQJ65', H: 'K9', D: 'A32', C: '853' },
+      call: '2S', hcp: 13, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'KJT954', H: '65', D: '4', C: 'AKJ5' },
+      call: '2S', hcp: 12, qualifies: true },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AQT753', H: 'KT', D: 'JT8', C: 'J7' },
+      call: '2S', hcp: 11, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AQT7653', H: 'K4', D: 'T4', C: 'Q3' },
+      call: '2S', hcp: 11, qualifies: true },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AKT9864', H: '52', D: 'Q63', C: 'J' },
+      call: '2S', hcp: 10, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AQT98643', H: 'A7', D: '', C: 'T85' },
+      call: '2S', hcp: 10, qualifies: true },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AKJT9643', H: 'T3', D: 'JT3', C: '' },
+      call: '2S', hcp: 9, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AQ532', H: '6', D: 'K65', C: 'AK54' },
+      call: '2S', hcp: 16, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AKQT93', H: 'K96', D: 'QJ7', C: '2' },
+      call: '2S', hcp: 15, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AJ8532', H: '8', D: 'AKT', C: 'QT7' },
+      call: '2S', hcp: 14, qualifies: false },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'KQ', H: 'AQT65', D: 'T863', C: '32' },
+      call: '2H', hcp: 11, qualifies: true },
+    { auction: ['1C', 'Pass', '2C'], west: { S: '3', H: 'AKJ85', D: 'QT943', C: '74' },
+      call: '2H', hcp: 10, qualifies: false },
+    { auction: ['1C', 'Pass', '2C'], west: { S: '', H: 'AQ8742', D: 'QJ94', C: 'J52' },
+      call: '2H', hcp: 10, qualifies: true },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'K762', H: 'KQ6432', D: '', C: 'J86' },
+      call: '2H', hcp: 9, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'AQT85', H: 'K7', D: '62', C: 'QJ72' },
+      call: '2S', hcp: 12, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'AQJ96', H: 'A876', D: '64', C: 'T7' },
+      call: '2S', hcp: 11, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'AJT542', H: 'QT', D: '532', C: 'A2' },
+      call: '2S', hcp: 11, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'KQJ965', H: '92', D: 'AT9', C: '32' },
+      call: '2S', hcp: 10, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AQ653', H: 'J4', D: '982', C: 'KJ6' },
+      call: '2S', hcp: 11, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AJT62', H: 'T5', D: 'A2', C: 'J942' },
+      call: '2S', hcp: 10, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AJT932', H: 'JT8', D: 'J8', C: 'K7' },
+      call: '2S', hcp: 10, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AJT963', H: 'T43', D: 'T6', C: 'AT' },
+      call: '2S', hcp: 9, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'QJT63', H: '4', D: 'AKT54', C: 'K9' },
+      call: '2S', hcp: 13, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AQT63', H: 'K97', D: '94', C: 'KJ9' },
+      call: '2S', hcp: 13, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: '4', H: 'K8432', D: '6', C: 'AKQJ64' },
+      call: '3C', hcp: 13, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: '8653', H: '73', D: 'Q', C: 'AKQJ85' },
+      call: '3C', hcp: 12, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'J7', H: 'T54', D: 'A8', C: 'AKQ983' },
+      call: '3C', hcp: 14, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'A', H: 'Q972', D: 'JT', C: 'KQJ873' },
+      call: '3C', hcp: 13, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'K72', H: 'A', D: 'AJT542', C: 'T85' },
+      call: '3D', hcp: 12, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: '52', H: 'J', D: 'KQJ753', C: 'A972' },
+      call: '3D', hcp: 11, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'J85', H: 'AJ', D: 'AQJ654', C: 'T5' },
+      call: '3D', hcp: 13, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'K86', H: 'Q3', D: 'AQJ952', C: '82' },
+      call: '3D', hcp: 12, qualifies: false },
+    { auction: ['1S', 'Pass', '2S'], west: { S: 'Q', H: 'KQJT42', D: 'J87', C: 'KJ6' },
+      call: '3H', hcp: 13, qualifies: true },
+    { auction: ['1S', 'Pass', '2S'], west: { S: '8', H: 'AKQ962', D: '32', C: 'KT64' },
+      call: '3H', hcp: 12, qualifies: false },
+    { auction: ['1S', 'Pass', '2S'], west: { S: '73', H: 'AKQJT4', D: '763', C: 'A3' },
+      call: '3H', hcp: 14, qualifies: true },
+    { auction: ['1S', 'Pass', '2S'], west: { S: '93', H: 'AKQJ42', D: 'K', C: 'T864' },
+      call: '3H', hcp: 13, qualifies: false },
+    { auction: ['1S', 'Pass', '2S'], west: { S: 'AK6', H: 'AKQT72', D: 'T84', C: '4' },
+      call: '3H', hcp: 16, qualifies: false },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'AQJT85', H: '873', D: 'KT6', C: 'Q' },
+      call: 'Double', hcp: 12, qualifies: true },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'KJT965', H: 'K76', D: 'A98', C: 'T' },
+      call: 'Double', hcp: 11, qualifies: false },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'QJ653', H: 'QJ7', D: 'Q73', C: 'A4' },
+      call: 'Double', hcp: 12, qualifies: true },
+    { auction: ['1C', 'Pass', '2C'], west: { S: 'QJ982', H: '742', D: 'A82', C: 'AT' },
+      call: 'Double', hcp: 11, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'A98764', H: 'AQ7', D: '9', C: 'K93' },
+      call: 'Double', hcp: 13, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'KJT742', H: 'J85', D: '2', C: 'AQJ' },
+      call: 'Double', hcp: 12, qualifies: false },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'AKQT8', H: 'AJT', D: '93', C: 'T53' },
+      call: 'Double', hcp: 14, qualifies: true },
+    { auction: ['1D', 'Pass', '2D'], west: { S: 'AQ754', H: 'K83', D: 'T6', C: 'AT7' },
+      call: 'Double', hcp: 13, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'A98654', H: 'T', D: 'J74', C: 'AK6' },
+      call: 'Double', hcp: 12, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'KJ9764', H: 'K', D: 'QJ4', C: 'J87' },
+      call: 'Double', hcp: 11, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'Q6542', H: 'K5', D: 'A92', C: 'KJ8' },
+      call: 'Double', hcp: 13, qualifies: true },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'AQ854', H: '63', D: 'J84', C: 'AJ7' },
+      call: 'Double', hcp: 12, qualifies: false },
+    { auction: ['1S', 'Pass', '2S'], west: { S: '2', H: 'AK6542', D: 'AQ2', C: '965' },
+      call: 'Double', hcp: 13, qualifies: true },
+    { auction: ['1S', 'Pass', '2S'], west: { S: '3', H: 'KQJT82', D: 'T82', C: 'AQ9' },
+      call: 'Double', hcp: 12, qualifies: false },
+    { auction: ['1S', 'Pass', '2S'], west: { S: 'Q3', H: 'QJT95', D: 'Q54', C: 'AKT' },
+      call: 'Double', hcp: 14, qualifies: true },
+    { auction: ['1S', 'Pass', '2S'], west: { S: 'A7', H: 'KJ954', D: 'QJ5', C: 'Q87' },
+      call: 'Double', hcp: 13, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'Q432', H: 'A5', D: 'KT97', C: 'A62' },
+      call: 'Double', hcp: 13, qualifies: true },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'KJ53', H: 'K2', D: 'AT97', C: 'J82' },
+      call: 'Double', hcp: 12, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'AK8', H: '9', D: 'KJ976', C: 'AT97' },
+      call: 'Double', hcp: 15, qualifies: false },
+    { auction: ['1H', 'Pass', '1NT'], west: { S: 'KQ85', H: 'Q63', D: 'AJ3', C: 'A95' },
+      call: 'Double', hcp: 16, qualifies: false },
+    { auction: ['1H', 'Pass', '2H'], west: { S: 'KQ763', H: 'KQ', D: 'QJ73', C: 'Q6' },
+      call: 'Double', hcp: 15, qualifies: false },
+  ];
+  for (const test of cases) {
+    const board = makeBoard(test.west);
+    const label = `${test.auction.join(' ')} ${test.call} ${JSON.stringify(test.west)}`;
+    check(getHandFacts(board.deal.W).hcp === test.hcp, `${label}: authored HCP`);
+    for (const majorOneNtResponse of ['forcing', 'nonForcing'] as const) {
+      const agreements = { ...system, majorOneNtResponse };
+      const result = getRulesForCurrentContext(board, test.auction, agreements);
+      const candidates = getApplicableCandidateCalls(result);
+      check(candidates.some(({ call }) => call === test.call) === test.qualifies, label);
+      const moved = getRulesForCurrentContext(makeBoard(test.west, true), test.auction, agreements);
+      check(JSON.stringify(result) === JSON.stringify(moved), `${label}: hidden-hand invariance`);
+      check(!candidates.some(({ call }) => call !== 'Pass') || !candidates.some(({ call }) => call === 'Pass'),
+        `${label}: fallback suppression`);
+    }
+  }
+  const exceptional = makeBoard({ S: '74', H: 'AKJ95', D: 'A62', C: 'Q83' });
+  const exceptionalAuction: Call[] = ['1S', 'Pass', '2S'];
+  const boundary = getRulesForCurrentContext(exceptional, exceptionalAuction, system);
+  // A qualifying Double takes precedence over the exceptional-five judgment boundary.
+  check(getApplicableCandidateCalls(boundary).some(({ call }) => call === 'Double'), 'constructive Double beats boundary');
+  const nonconforming = makeBoard({ S: '74', H: 'AKJ95', D: 'AQ62', C: '83' });
+  const boundaryOnly = getRulesForCurrentContext(nonconforming, exceptionalAuction, system);
+  check(getApplicableCandidateCalls(boundaryOnly).length === 0 &&
+    boundaryOnly.applicableRules.some(({ kind }) => kind === 'scopeBoundary'), 'exceptional five boundary beats Pass');
+  const weak = makeBoard({ S: 'AKJ95', H: '64', D: '862', C: '973' });
+  check(getApplicableCandidateCalls(getRulesForCurrentContext(weak, ['1H', 'Pass', '2H'], system))
+    .some(({ call }) => call === 'Pass'), 'ordinary weak hand supports Pass');
+  // The original forcing 1NT obligation is displaced; a new takeout force belongs to West.
+  const forcing = { ...system, majorOneNtResponse: 'forcing' as const };
+  const response: Call[] = ['1H', 'Pass', '1NT'];
+  check(getUnmodeledContinuationForce('N', [...response, '2S'], forcing) === null,
+    'natural intervention displaces forcing 1NT');
+  for (const auction of [[...response, 'Double', 'Pass'], ['1S', 'Pass', '2S', 'Double', 'Pass']] as Call[][]) {
+    const force = getUnmodeledContinuationForce('N', auction, forcing);
+    check(force?.kind === 'oneRoundForce' && force.forcingSeat === 'W', 'sandwich takeout force');
+    const bid: Call = auction[0] === '1H' ? '2H' : '3S';
+    check(getUnmodeledContinuationForce('N', [...auction.slice(0, 4), bid], forcing) === null,
+      'opener competition displaces takeout force');
+  }
+  const strong = makeBoard({ S: 'AKQ', H: 'AKJ', D: 'J76', C: '9876' });
+  for (const auction of [['1H', 'Pass', '1NT'], ['1H', 'Pass', '2H']] as Call[][]) {
+    const result = getRulesForCurrentContext(strong, auction, system);
+    check(getApplicableCandidateCalls(result).length === 0 &&
+      result.applicableRules.some(({ kind }) => kind === 'scopeBoundary'), '18-HCP nonconforming boundary');
+  }
+  const practice = [...SIMPLE_OVERCALL_TEST_DEALS, ...TAKEOUT_DOUBLE_TEST_DEALS].filter((deal) =>
+    deal.expectedOvercallCalls?.some(({ ruleIds }) => ruleIds.some((id) =>
+      id.endsWith('after-natural-1nt') || id.endsWith('after-simple-raise'))));
+  for (const deal of practice) {
+    const board = makeRuleTestBoard(deal).board;
+    const agreements = { ...system, ...deal.requiredSystem };
+    for (const [index, call] of deal.practiceAuction.entries()) {
+      check(getApplicableCandidateCalls(getRulesForCurrentContext(board,
+        deal.practiceAuction.slice(0, index), agreements)).some((candidate) => candidate.call === call),
+        `practice setup ${deal.description}: ${index} ${call}`);
+    }
+  }
+  console.log(`${failures} ***FAILURES***. Sandwich natural 1NT and simple raises: eight public entries, ` +
+    `${cases.length} threshold hands, boundary and isolation checks, ${practice.length} full practice setups.`);
   return failures;
 }
 
@@ -10600,7 +10835,7 @@ function runBiddingTurnStatusTests (): number {
   let failures = 0;
   const examples: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
     { auction: [], kind: 'supported' },
-    { auction: ['1S', 'Pass', '2S'], kind: 'noApplicableRule' },
+    { auction: ['1S', 'Pass', '2H'], kind: 'noApplicableRule' },
     { auction: ['1S', 'Pass', '2S', 'Pass'], kind: 'supported' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '4S', 'Pass', 'Pass', 'Pass'], kind: 'auctionComplete' },
@@ -10620,7 +10855,7 @@ function runBiddingTurnStatusTests (): number {
   // These have no modeled rule stage; auction entry no longer needs an intervening-turn exception.
   // Any legal call may be recorded, and stage selection uses the resulting actual auction.
   const intervening: { auction: Call[]; kind: ReturnType<typeof getBiddingTurnStatus>['kind'] }[] = [
-    { auction: ['Pass', '1S', 'Pass', '2S'], kind: 'noApplicableRule' },
+    { auction: ['Pass', '1S', 'Pass', '2H'], kind: 'noApplicableRule' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '3C'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', '2D'], kind: 'noModeledStage' },
     { auction: ['1S', 'Pass', '2S', 'Pass', '3C', '2D'], kind: 'noModeledStage' },

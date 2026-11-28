@@ -25,7 +25,8 @@ export function refineOneLevelSuitOpening (calls: Call[], context: RuleEvalConte
       Math.min(lengths.H, lengths.S) >= 5 ? 'longer-major' : 'only-major' };
   } else if (lengths.D > lengths.C) {
     wantedCall = '1D';
-    reason = { call: wantedCall, reason: 'longer-minor' };
+    reason = { call: wantedCall, reason: lengths.D === 3 && lengths.C === 2 ?
+      'three-card-diamonds' : 'longer-minor' };
   } else if (lengths.C > lengths.D) {
     wantedCall = '1C';
     reason = { call: wantedCall, reason: 'longer-minor' };

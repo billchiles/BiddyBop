@@ -828,6 +828,8 @@ function openingSelectionText(selection: NonNullable<CallEvidence['openingSelect
       return `With two majors of at least five cards, open the longer one: ${selection.call}.`;
     case 'equal-majors':
       return `With equally long five-card or longer majors, open the higher-ranking suit: ${selection.call}.`;
+    case 'three-card-diamonds':
+      return 'With four cards in each major, only two clubs and three diamonds, choose 1D as the convenient minor if no natural NT opening qualifies.';
     case 'longer-minor':
       return `With no five-card major, open the longer minor: ${selection.call}.`;
     case 'equal-four-minors':
@@ -844,6 +846,8 @@ function openingSelectionText(selection: NonNullable<CallEvidence['openingSelect
 ///
 
 const SANDWICH_DOUBLE_ID = 'sandwich-overcall-takeout-double-two-unbid-suits';
+const SANDWICH_DOUBLE_IDS = [SANDWICH_DOUBLE_ID, 'sandwich-overcall-takeout-double-after-natural-1nt',
+  'sandwich-overcall-takeout-double-after-simple-raise'];
 const ORDINARY_IDS = [
   'overcall-takeout-double-with-unbid-suit-support',
   'overcall-weak-two-takeout-double-with-unbid-suit-support',
@@ -868,7 +872,7 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
   const candidate = doubleCandidate(result, rule.id);
   if (candidate?.ruleApplies !== true) return null;
   const requirements = candidate.callEvidence?.requirements ?? [];
-  if (rule.id === SANDWICH_DOUBLE_ID) {
+  if (SANDWICH_DOUBLE_IDS.includes(rule.id)) {
     const hcp = requirements.find((item) => item.kind === 'hcp');
     const support = requirements.find((item) => item.kind === 'unbidSuitSupport');
     if (hcp?.kind !== 'hcp' || support?.kind !== 'unbidSuitSupport' ||
@@ -885,12 +889,20 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
       return `${call} also qualifies and shows your own ${suitPlural(call)}. ` +
         (isMajor ? 'Showing a good long major economically can be especially descriptive.' :
           otherMajor ? 'Double is attractive because partner can show a fit in the unbid major.' :
-            'Double lets partner choose either unbid suit.');
+            rule.id === SANDWICH_DOUBLE_ID ? 'Double lets partner choose either unbid suit.' :
+              'Double lets partner choose an unbid suit.');
     });
     const nt = qualifyingOvercallAlternative(result, [SANDWICH_NT_OVERCALL_ID], 'Double');
     if (nt !== null) comparisons.push('1NT also qualifies and describes the balanced hand with two stoppers.');
+    const shortness = requirements.find((item) => item.kind === 'openerSuitLength');
+    const extra = shortness?.kind === 'openerSuitLength' ?
+      `You have ${shortness.actual} cards in opener's suit, at least three in all unbid suits, and four in an unbid major. ` : '';
+    const cost = rule.id.endsWith('simple-raise') ?
+      (!testedLengths.some(({ suit }) => suit === 'S') ? ' Every takeout suit costs at least the three level.' :
+        !testedLengths.some(({ suit }) => suit === 'C') ? ' Every unbid suit remains available at the two level.' :
+          ' Some unbid suits require partner to bid at the three level.') : '';
     return `Your ${hcp.actual} HCP meet the ${hcp.min}-HCP minimum, and you have ${lengths}. ` +
-      `Double asks partner to choose an unbid suit.${comparisons.length === 0 ? '' : ' ' + comparisons.join(' ')} [${rule.id}]`;
+      extra + `Double asks partner to choose an unbid suit.${cost}${comparisons.length === 0 ? '' : ' ' + comparisons.join(' ')} [${rule.id}]`;
   }
   if (ORDINARY_IDS.includes(rule.id)) {
     const points = requirements.find((item) => item.kind === 'totalPoints');
@@ -938,17 +950,24 @@ export function getTakeoutDoubleSupportLine(result: BidEvalResult, rule: BidRule
 /// in the current auction. An unsupported Double in some other context is not this treatment.
 export function getTakeoutDoubleFailureLines(result: BidEvalResult): string[] {
   if (result.normalizedCall !== 'Double' || result.userCallMatchingRules.length !== 0) return [];
-  const sandwich = doubleCandidate(result, SANDWICH_DOUBLE_ID);
+  const sandwichId = SANDWICH_DOUBLE_IDS.find((id) => doubleCandidate(result, id) !== undefined);
+  const sandwich = sandwichId === undefined ? undefined : doubleCandidate(result, sandwichId);
   if (sandwich !== undefined) {
     const checks = sandwich.callEvidence?.requirements ?? [];
     const hcp = checks.find((item) => item.kind === 'hcp');
     const support = checks.find((item) => item.kind === 'unbidSuitSupport');
     const lines: string[] = [];
     if (hcp?.kind === 'hcp' && !hcp.passed) lines.push(`A sandwich takeout Double requires ` +
-      `${hcp.min}+ actual HCP; you have ${hcp.actual} [${SANDWICH_DOUBLE_ID}].`);
+      `${hcp.min}+ actual HCP; you have ${hcp.actual} [${sandwichId}].`);
     if (support?.kind === 'unbidSuitSupport' && !support.passed) lines.push(`A sandwich takeout ` +
-      `Double requires four cards in both unbid suits; you are short in ${suitNames(support.shortSuits)} ` +
-      `[${SANDWICH_DOUBLE_ID}].`);
+      `Double requires ${support.min === 4 ? 'four cards in both' : 'three cards in all three'} unbid suits; you are short in ${suitNames(support.shortSuits)} ` +
+      `[${sandwichId}].`);
+    const shortness = checks.find((item) => item.kind === 'openerSuitLength');
+    if (shortness?.kind === 'openerSuitLength' && !shortness.passed) lines.push(
+      `Takeout requires at most two cards in opener's suit; you have ${shortness.actual} [${sandwichId}].`);
+    const major = checks.find((item) => item.kind === 'suitLength');
+    if (major?.kind === 'suitLength' && !major.passed) lines.push(
+      `Takeout requires four cards in at least one unbid major [${sandwichId}].`);
     return lines;
   }
   const ordinary = ORDINARY_IDS.map((id) => doubleCandidate(result, id))
@@ -1222,6 +1241,8 @@ function balancingNtEvidence(result: BidEvalResult) {
 
 const DIRECT_OVERCALL_PASS_ID = 'overcall-pass-no-qualifying-action';
 const SANDWICH_PASS_ID = 'sandwich-overcall-pass-after-one-level-new-suit';
+const SANDWICH_PASS_IDS = [SANDWICH_PASS_ID, 'sandwich-overcall-pass-after-natural-1nt',
+  'sandwich-overcall-pass-after-simple-raise'];
 const NATURAL_ONE_NT_DEFENSE_PASS_ID = 'overcall-pass-natural-vs-1nt';
 const NATURAL_ONE_NT_DEFENSE_SUIT_ID = 'overcall-natural-suit-vs-1nt';
 
@@ -1229,7 +1250,7 @@ const NATURAL_ONE_NT_DEFENSE_SUIT_ID = 'overcall-natural-suit-vs-1nt';
 /// Strength alone is not sufficient reason to bid or sufficient evidence of weakness.
 export function getDirectOvercallPassSupportLine(result: BidEvalResult, rule: BidRule): string | null {
   if ((rule.id !== DIRECT_OVERCALL_PASS_ID &&
-       rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID && rule.id !== SANDWICH_PASS_ID) ||
+       rule.id !== NATURAL_ONE_NT_DEFENSE_PASS_ID && !SANDWICH_PASS_IDS.includes(rule.id)) ||
       result.normalizedCall !== 'Pass') return null;
   const candidate = result.ruleDiagnostics.find(({ rule: entry }) => entry.id === rule.id)
     ?.candidates.find(({ call }) => call === 'Pass');
@@ -1256,14 +1277,14 @@ export function getNaturalOneNtDefensePassFailureLines(result: BidEvalResult): s
 
 /// The fallback Pass is not an independently qualifying alternative once competition qualifies.
 function getSandwichPassFailureLines(result: BidEvalResult): string[] {
-  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 ||
-      !result.ruleDiagnostics.some(({ rule }) => rule.id === SANDWICH_PASS_ID)) return [];
+  const passId = SANDWICH_PASS_IDS.find((id) => result.ruleDiagnostics.some(({ rule }) => rule.id === id));
+  if (result.normalizedCall !== 'Pass' || result.userCallMatchingRules.length > 0 || passId === undefined) return [];
   const alternatives = [...new Set(getApplicableCandidateCalls(result).map(({ call }) => call)
     .filter((call) => call !== 'Pass'))];
   if (alternatives.length === 0) return [];
   return [`Your hand qualifies for ${alternatives.join(' or ')} in the sandwich seat. ` +
     `Experienced players may still choose a cautious Pass based on vulnerability and other ` +
-    `competitive judgment the app does not model [${SANDWICH_PASS_ID}].`];
+    `competitive judgment the app does not model [${passId}].`];
 }
 
 //// DONT-off natural defense comparisons
@@ -1299,6 +1320,8 @@ const NATURAL_ONE_NT_OVERCALL_ID = 'overcall-natural-1nt-with-stopper';
 const SANDWICH_NT_OVERCALL_ID = 'sandwich-overcall-natural-1nt-with-stoppers';
 const SANDWICH_SUIT_OVERCALL_IDS = [
   'sandwich-overcall-simple-suit-at-one-level', 'sandwich-overcall-simple-suit-at-two-level',
+  'sandwich-overcall-suit-after-natural-1nt', 'sandwich-overcall-suit-at-two-after-simple-raise',
+  'sandwich-overcall-suit-at-three-after-simple-raise',
 ];
 const SIMPLE_OVERCALL_SUIT_QUALITY = 'two of A/K/Q or three of A/K/Q/J/10';
 
@@ -1319,10 +1342,12 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
     const { check, candidate, strength } = naturalSuitOvercallEvidence(result, rule.id);
     if (check === undefined || candidate?.ruleApplies !== true || strength === undefined) return null;
     const honors = overcallHonorText(check);
-    const quality = check.level === 2 && check.length === 5
+    const quality = check.needsAceOrKing === true ? `${honors ?? 'good honors'}, including an ace or king` :
+      check.level === 2 && check.length === 5
       ? `${check.honors.join(', ')} meet the exceptional-five standard (three of A/K/Q/J, including two of A/K/Q)`
       : honors ?? 'the suit meets the good-honor standard';
-    const double = doubleCandidate(result, SANDWICH_DOUBLE_ID);
+    const double = SANDWICH_DOUBLE_IDS.map((id) => doubleCandidate(result, id))
+      .find((item) => item?.ruleApplies === true);
     const support = double?.callEvidence?.requirements?.find((item) => item.kind === 'unbidSuitSupport');
     const otherMajor = support?.kind === 'unbidSuitSupport' && support.testedLengths?.some(({ suit }) =>
       (suit === 'H' || suit === 'S') && !check.call.endsWith(suit)) === true;
@@ -1332,7 +1357,9 @@ export function getNaturalOvercallSupportLine(result: BidEvalResult, rule: BidRu
         : otherMajor ? ' Double may help locate a major-suit fit instead of committing to your minor.' : '') : '';
     return `Your ${strength.hcp} HCP meet the ${strength.min}-HCP minimum, and your ` +
       `${check.length}-card ${suitName(check.call)} suit qualifies: ${quality}. ` +
-      `This economical natural overcall is nonforcing.${comparison} [${rule.id}]`;
+      `This economical natural overcall is nonforcing.` +
+      (candidate.callEvidence?.requirements?.some((item) => item.kind === 'openerSuitLength') ?
+        ` Your shortness in opener's suit also meets the requirement.` : '') + `${comparison} [${rule.id}]`;
   }
   if (rule.id === SANDWICH_NT_OVERCALL_ID) {
     const { candidate, hcp, balanced, stoppers } = naturalOneNtOvercallEvidence(result, rule.id);
@@ -1442,17 +1469,23 @@ export function getNaturalOvercallFailureLines(result: BidEvalResult): string[] 
     return lines;
   }
   for (const ruleId of SANDWICH_SUIT_OVERCALL_IDS) {
-    const { check, strength } = naturalSuitOvercallEvidence(result, ruleId);
+    const { check, candidate, strength } = naturalSuitOvercallEvidence(result, ruleId);
     if (check === undefined) continue;
     const lines: string[] = [];
     if (!check.passed) {
-      const standard = check.level === 1 ? `a good five-card or longer suit (${SIMPLE_OVERCALL_SUIT_QUALITY})` :
-        `a good six-card or longer suit, or an exceptional five-card suit with three of A/K/Q/J including two of A/K/Q`;
+      const standard = ruleId.endsWith('simple-raise') ?
+        (check.level === 3 ? 'a good six-card or longer suit' :
+          'a good six-card or longer suit, or a good five-card suit including an ace or king') :
+        check.level === 1 ? `a good five-card or longer suit (${SIMPLE_OVERCALL_SUIT_QUALITY})` :
+          `a good six-card or longer suit, or an exceptional five-card suit with three of A/K/Q/J including two of A/K/Q`;
       lines.push(`Natural sandwich ${entered} requires ${standard}; your suit has ${check.length} ` +
         `cards and honors ${check.honors.length === 0 ? 'none of A/K/Q/J/10' : check.honors.join(', ')} [${ruleId}].`);
     }
     if (strength?.passed === false) lines.push(`Natural sandwich ${entered} requires ` +
       `${strength.min}+ HCP with this suit length; you have ${strength.hcp} [${ruleId}].`);
+    const shortness = candidate?.callEvidence?.requirements?.find((item) => item.kind === 'openerSuitLength');
+    if (shortness?.kind === 'openerSuitLength' && !shortness.passed) lines.push(
+      `This overcall requires at most two cards in opener's suit; you have ${shortness.actual} [${ruleId}].`);
     return lines;
   }
   for (const ruleId of NATURAL_SUIT_OVERCALL_IDS) {
@@ -1957,7 +1990,10 @@ export function getMinorResponseSupportLines(result: BidEvalResult, rule: BidRul
       return [`Your ${hcp.actual} HCP and ${support.actual}-card ` +
         `${support.suit === 'C' ? 'club' : 'diamond'} support qualify for this ` +
         `${rule.id === MINOR_RAISE_IDS[0] ? 'minimum' : 'invitational'} minor raise. ` +
-        `The treatment requires no four-card major [${rule.id}].`];
+        `The treatment requires no four-card major. ` +
+        (support.suit === 'D' ? `Opener normally has four or more diamonds but may have three; ` +
+          `four-card support guarantees seven combined diamonds, usually eight or more. ` :
+          `Five-card club support guarantees at least eight combined clubs. `) + `[${rule.id}].`];
     }
   }
   if (rule.id === MINOR_STRONG_SUPPORT_ID && hcp !== undefined) {
@@ -1966,7 +2002,9 @@ export function getMinorResponseSupportLines(result: BidEvalResult, rule: BidRul
     if (support !== undefined && newSuit !== undefined) {
       return [`With ${hcp.actual} HCP, ${support.actual}-card support for partner's ` +
         `${support.suit === 'C' ? 'clubs' : 'diamonds'}, and a ${newSuit.actual}-card new suit, ` +
-        `start with a forcing ${result.normalizedCall} response and show the minor support later ` +
+        `start with a forcing ${result.normalizedCall} response and show the minor support later. ` +
+        (support.suit === 'D' ? 'Four diamonds guarantee seven combined, usually eight or more. ' :
+          'Five clubs guarantee at least eight combined. ') +
         `[${rule.id}].`];
     }
   }
