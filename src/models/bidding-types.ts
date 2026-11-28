@@ -303,11 +303,11 @@ export type DirectInterference = 'none' | 'suitOvercall' | 'jumpSuitOvercall' |
 export type SandwichInterference = 'none' | 'present' | 'ignored' | 'suitOvercall' |
   'ntOvercall' | 'takeoutDouble' | 'other';
 
-/// Public response families after a one-level suit opening and an initial opposing Pass.
-/// A higher response includes invitations, jump shifts, and artificial higher responses;
+/// Public response kinds after a one-level suit opening and an initial opposing Pass.
+/// otherResponse includes invitations, jump shifts, and artificial higher responses;
 /// it does not imply a natural strain or permission to compete.
-export type SandwichResponseFamily = 'oneLevelNewSuit' | 'twoLevelNewSuit' | 'oneNt' |
-  'simpleRaise' | 'higherResponse';
+export type SandwichResponseKind = 'naturalOneLevelNewSuit' | 'naturalNonjumpTwoLevelNewSuit' | 'naturalOneNt' |
+  'naturalSimpleRaise' | 'otherResponse';
 
 /// AuctionContext decides whether a rule belongs to the current auction, not whether the hand qualifies or which call wins.
 export interface AuctionContext {
@@ -337,8 +337,8 @@ export interface AuctionContext {
   // Fourth physical call after a one-level suit opening and an initial opposing Pass.
   // Omitted or ignored is unconstrained; none excludes interference, present includes other.
   sandwichInterference?: SandwichInterference;
-  // Requires the public response family, even before the sandwich overcaller has acted.
-  sandwichResponseFamily?: SandwichResponseFamily;
+  // Requires the public response kind, even before the sandwich overcaller has acted.
+  sandwichResponseKind?: SandwichResponseKind;
   // Ordinary opener-rebid rules must opt in before they can be reused after opponent interference.
   // Explicit competitive opener-rebid rules instead declare their interference context directly.
   openerRebidAfterInterference?: boolean;
@@ -478,7 +478,7 @@ export interface CallEvidence {
   openingSelection?: {
     call: Call;
     reason: 'only-major' | 'longer-major' | 'equal-majors' | 'longer-minor' |
-      'equal-four-minors' | 'equal-three-minors' | 'equal-long-minors';
+      'equal-four-minors' | 'equal-three-minors' | 'equal-long-minors' | 'three-card-diamonds';
   };
   convenientMinor?: {
     hcp: number;
@@ -490,13 +490,15 @@ export interface CallEvidence {
 
   // Direct overcalls, defense, and balancing
   naturalOvercallSuit?: {
-    call: Call; level: 1 | 2; length: number; good: boolean; passed: boolean;
+    call: Call; level: 1 | 2 | 3; length: number; good: boolean; passed: boolean;
     honors: ('A' | 'K' | 'Q' | 'J' | 'T')[];
     qualityStandard: 'twoTopThree' | 'threeTopFive' | null;
     // True if the exceptional-five honor standard is met; actual length is checked separately.
     exceptionalFive?: boolean;
     // Minimum length for this treatment given the recorded honor quality.
     requiredLength?: number;
+    // Additional honor requirement for a five-card sandwich overcall after a simple raise.
+    needsAceOrKing?: boolean;
   }[];
   // exceptionalSeven is specific to the direct one-level overcall policy.
   naturalOvercallStrength?: { hcp: number; passed: boolean; exceptionalSeven?: boolean; min: number };

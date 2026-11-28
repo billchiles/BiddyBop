@@ -5,7 +5,7 @@ import { type AdvancerCallContext, type AuctionContext, type BidRule, type Call,
          type HandConstraint, type PointRange, type TotalPointsRange, type SuitLengthConstraint,
          type BiddingSystem, type HandShapeConstraint, type AuctionEvalContext, type RuleEvalContext,
          type CallRefinementResult, type CallCategory,
-         type SandwichInterference, type SandwichResponseFamily, type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
+         type SandwichInterference, type SandwichResponseKind, type AppliesWhenResult, type CallEvidence, type BidStage, type ResponderCallContext, oneNtResponseHcpShift }
   from './bidding-types';
 import { getHandFacts, type Board, type HandFacts, type Suit, type Seat } from './cards';
 import { auctionIsComplete, getNextBiddingRuleStage, getNextSeat, getOpeningCallInfo,
@@ -165,6 +165,10 @@ export function getRulesForCurrentContext (board: Board, auction: Call[],
   if (context.stage === 'sandwichOvercalling') {
     ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
       'sandwich-overcall-pass-after-one-level-new-suit');
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
+      'sandwich-overcall-pass-after-natural-1nt');
+    ruleDiagnostics = maybeSuppressPassWithoutOtherAction(ruleDiagnostics,
+      'sandwich-overcall-pass-after-simple-raise', 'sandwich-overcall-boundary-after-simple-raise');
   }
   // When responding to a natural notrump opening, a preferred suit action makes direct Pass/notrump
   // only a fallback bid.  Derive partner's opening only for this response-stage behavior.
@@ -721,14 +725,19 @@ function evaluateCandidateCall (rule: BidRule, call: Call, context: RuleEvalCont
 /// A stage-specific Pass fallback must not compete with an already evaluated constructive call.
 /// This avoids duplicating the suit, support, and convention requirements in each Pass rule.
 function maybeSuppressPassWithoutOtherAction (ruleDiagnostics: RuleEvalResult[],
-                                              passRuleId: string): RuleEvalResult[] {
+                                              passRuleId: string, boundaryRuleId?: string): RuleEvalResult[] {
   const passResult = ruleDiagnostics.find((result) =>
     result.rule.id === passRuleId && result.ruleApplies);
   if (passResult === undefined) return ruleDiagnostics;
   const constructiveCallApplies = ruleDiagnostics.some((result) =>
     result.candidates.some((candidate) => candidate.ruleApplies && candidate.call !== 'Pass'));
-  if (!constructiveCallApplies) return ruleDiagnostics;
-  const suppressionLine = 'SUPPRESSED: a constructive call qualifies instead of fallback Pass.';
+  // A selected judgment boundary must also outrank the ordinary fallback Pass.
+  const boundaryApplies = boundaryRuleId !== undefined && ruleDiagnostics.some((result) =>
+    result.rule.id === boundaryRuleId && result.ruleApplies);
+  if (!constructiveCallApplies && !boundaryApplies) return ruleDiagnostics;
+  const suppressionLine = constructiveCallApplies ?
+    'SUPPRESSED: a constructive call qualifies instead of fallback Pass.' :
+    'SUPPRESSED: the hand requires competitive judgment instead of fallback Pass.';
   for (const candidate of passResult.candidates) {
     if (candidate.ruleApplies) {
       candidate.ruleApplies = false;
@@ -1478,8 +1487,8 @@ function auctionContextRuleMatches (ruleContext: AuctionContext | undefined,
     const actual = getSandwichInterference(evalContext, system);
     if (sandwich === 'present' ? actual === 'none' : actual !== sandwich) return false;
   }
-  if (ruleContext.sandwichResponseFamily !== undefined &&
-      getSandwichResponseFamily(evalContext, system)?.family !== ruleContext.sandwichResponseFamily) {
+  if (ruleContext.sandwichResponseKind !== undefined &&
+      getSandwichResponseInfo(evalContext, system)?.kind !== ruleContext.sandwichResponseKind) {
     return false;
   }
   if (ruleContext.partnerNaturalOneNt === true) {
@@ -1616,19 +1625,19 @@ export function getSandwichInterference (context: AuctionEvalContext,
   if (response === undefined || !isContractBid(response) || action === undefined ||
       action === 'Pass') return 'none';
   if (!isCallAvailableInAuction(action, auction.slice(0, opening.index + 3))) return 'other';
-  const info = getSandwichResponseFamily(context, system);
+  const info = getSandwichResponseInfo(context, system);
   if (info === null || !info.categories.includes('natural') ||
       info.categories.includes('conventional') || info.categories.includes('gameForcing')) return 'other';
-  const { family, categories, opened, responded, jump, newSuit } = info;
-  const twoLevelCompetition = family === 'oneLevelNewSuit' || family === 'oneNt';
-  if (action === 'Double') return twoLevelCompetition || family === 'simpleRaise'
+  const { kind, categories, opened, responded, jump, newSuit } = info;
+  const twoLevelCompetition = kind === 'naturalOneLevelNewSuit' || kind === 'naturalOneNt';
+  if (action === 'Double') return twoLevelCompetition || kind === 'naturalSimpleRaise'
     ? 'takeoutDouble' : 'other';
-  if (action === '1NT') return family === 'oneLevelNewSuit' ? 'ntOvercall' : 'other';
+  if (action === '1NT') return kind === 'naturalOneLevelNewSuit' ? 'ntOvercall' : 'other';
   const bid = parseSuitBid(action);
   if (bid === null || bid.strain === 'NT' || bid.strain === opened.strain ||
       bid.strain === responded.strain || cheapestBidInStrainAfter(responded, bid.strain) !== action) return 'other';
   if (twoLevelCompetition) return bid.level <= 2 ? 'suitOvercall' : 'other';
-  if (family === 'twoLevelNewSuit' || family === 'simpleRaise') return bid.level <= 3 ? 'suitOvercall' : 'other';
+  if (kind === 'naturalNonjumpTwoLevelNewSuit' || kind === 'naturalSimpleRaise') return bid.level <= 3 ? 'suitOvercall' : 'other';
   // E permits only the selected invitations and weak single jump shifts, at economical levels.
   const invitation = categories.includes('invitational') &&
     (responded.strain === opened.strain && responded.level === 3 ||
@@ -1638,9 +1647,9 @@ export function getSandwichInterference (context: AuctionEvalContext,
 }
 
 /// Interpret responder's actual first contract against its shorter physical auction prefix.
-/// Return the family and the public facts needed to distinguish natural invitations, weak
-/// shifts and established forces. Unknown or ambiguous meanings do not enter a family.
-export function getSandwichResponseFamily (context: AuctionEvalContext, system: BiddingSystem) {
+/// Return the kind and the public facts needed to distinguish natural invitations, weak
+/// shifts and established forces. Unknown or ambiguous meanings do not enter a kind.
+export function getSandwichResponseInfo (context: AuctionEvalContext, system: BiddingSystem) {
   const { dealer, auction } = context;
   const opening = getOpeningCallInfo(dealer, auction);
   if (opening === null || !/^1[CDHS]$/.test(opening.call) ||
@@ -1655,14 +1664,14 @@ export function getSandwichResponseFamily (context: AuctionEvalContext, system: 
   const jump = responseJump(opening.call, response);
   const newSuit = responded.strain !== 'NT' && responded.strain !== opened.strain;
   const natural = meaning.categories.includes('natural') && !meaning.categories.includes('conventional');
-  let family: SandwichResponseFamily = 'higherResponse';
+  let kind: SandwichResponseKind = 'otherResponse';
   if (natural) {
-    if (newSuit && responded.level === 1 && jump === 0) family = 'oneLevelNewSuit';
-    else if (newSuit && responded.level === 2 && jump === 0) family = 'twoLevelNewSuit';
-    else if (response === '1NT') family = 'oneNt';
-    else if (responded.strain === opened.strain && responded.level === 2) family = 'simpleRaise';
+    if (newSuit && responded.level === 1 && jump === 0) kind = 'naturalOneLevelNewSuit';
+    else if (newSuit && responded.level === 2 && jump === 0) kind = 'naturalNonjumpTwoLevelNewSuit';
+    else if (response === '1NT') kind = 'naturalOneNt';
+    else if (responded.strain === opened.strain && responded.level === 2) kind = 'naturalSimpleRaise';
   }
-  return { family, categories: meaning.categories, opened, responded, jump, newSuit };
+  return { kind, categories: meaning.categories, opened, responded, jump, newSuit };
 }
 
 /// matchesPartnerNaturalOneNt recognizes the two genuine auctions that use shared 1NT calls.

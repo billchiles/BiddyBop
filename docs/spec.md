@@ -328,13 +328,13 @@ not exact wording.
   Prefer unchanged declaration reuse where the actual public promise, hand requirements,
   forcing status and legal level agree; otherwise share calculations rather than
   generalize incompatible rules.
-- `sandwichResponseFamily` constrains the actual first response after a one-level suit opening
+- `sandwichResponseKind` constrains the actual first response after a one-level suit opening
   and a physical opposing Pass. Unlike the structural `responderCall` constraint, it checks
-  agreement-dependent public meaning: `oneLevelNewSuit`, `twoLevelNewSuit`, `oneNt`,
-  `simpleRaise`, or `higherResponse` (including artificial higher responses). The family
+  agreement-dependent public meaning: `naturalOneLevelNewSuit`, `naturalNonjumpTwoLevelNewSuit`, `naturalOneNt`,
+  `naturalSimpleRaise`, or `otherResponse` (including artificial higher responses). The kind
   alone does not make an intervention permissible; public force and natural/artificial
-  distinctions still matter. Unknown or ambiguous responses do not enter a family.
-  The matcher and `getSandwichInterference` share `getSandwichResponseFamily`, which interprets
+  distinctions still matter. Unknown or ambiguous responses do not enter a kind.
+  The matcher and `getSandwichInterference` share `getSandwichResponseInfo`, which interprets
   the actual response using the strictly shorter prefix and never the earlier bidder's hand.
   This is a rule-declaration constraint, not another stored auction state.
 - Do not put prose such as `text` inside `appliesWhen`.
@@ -445,6 +445,15 @@ not exact wording.
 - An 11-HCP balanced hand does not open a convenient minor merely by counting the length point
   for a five-card minor. The usual balanced `1NT` rebid still promises 12–14 HCP. Marginal
   unbalanced one-level openings and the separate five-card-major opening treatment remain available.
+
+- With no five-card major or suitable natural NT opening, choose the longer minor; on equal
+  four-card minors choose diamonds, on equal three-card minors choose clubs. 1D normally promises
+  four diamonds but can be three in the exceptional 4–4–3–2 (S/H/D/C) shape. Explain the actual
+  exception without cluttering ordinary opening guidance. A natural minimum minor raise has
+  6–10 HCP, no four-card major and five-card club or four-card diamond support. 2C therefore
+  guarantees eight combined clubs; 2D usually yields eight or more diamonds but guarantees only
+  seven. The same public minimum applies to limit and strong-minor support guidance; never infer
+  the actual combined length from hidden opener cards.
 
 - The Guideline of 20 is an executable opening-valuation rule for sub-12-HCP first/second-seat hands.
 
@@ -988,7 +997,52 @@ the differing hand-qualification policies remain separate. The shared natural NT
 check applies the appropriate HCP range and stopper requirements. Evidence retains
 actual honor quality, HCP, both stoppers or both unbid-suit lengths as appropriate.
 The initial sandwich rules are in `OvercallRules`; later sandwich continuations and
-initial actions after other response families are not yet taught.
+initial actions after nonjump two-level new-suit and other responses are not yet taught.
+
+### Initial sandwich competition after a natural 1NT response
+
+All four openings. 1m–1NT natural balanced nonforcing 6–10 HCP, no four-card major. 1M–1NT Standard 6–10, 2/1 semi-forcing 6–12, forcing unpassed responder or passed-hand nonforcing as configured; may conceal three-card major limit-raise route. Do not infer universal balance or deny support. Immediate forcing-1NT obligation interrupted by substantive West action.
+
+An economical two-level natural overcall in an unbid suit requires 0–2 cards in opener's suit:
+
+| Length | HCP | Quality |
+| --- | ---: | --- |
+| 5 | 14+ | Exceptional five |
+| 6 | 12+ | Good |
+| 7 | 11+ | Good |
+| 8+ | 10+ | Good |
+
+Instruction normally favors good six or exceptionally strong five, with hand/auction judgment (Karen Walker https://kwbridge.com/sandwich.htm; Robert Todd two-level simple overcalls; Oren Lidor https://news.bridgebase.com/2022/12/28/overcalls/). The 14 actual HCP floor is an additional reliably evaluated BiddyBop constraint, not an instructional consensus minimum. Natural suit publicly promises at least five, not six.
+
+Takeout Double of opener suit over responder's 1NT: 13+ actual HCP, 0–2 opener suit, 3+ each of three unbid suits, 4+ at least one unbid major (other major after major opening). Not penalty of 1NT or DONT. No three-card opener-suit or strong shape-breaking exception; acknowledge experienced judgment occasionally permits three. Both natural and Double may qualify; strong six-card major favors natural, strong minor with four-card unbid major makes Double attractive. Reference ACBL Unit 390 https://www.acblunit390.org/Simon/dbl.htm for selected takeout meaning.
+
+Fallback Pass qualifies through 17 HCP when no constructive call qualifies. A nonconforming hand with 18+ HCP receives a scope boundary.
+
+### Initial sandwich competition after a natural simple raise
+
+Public minimum opposing fit: 1C–2C 8 (3+5); 1D–2D 7 (3+4), normally eight or more; 1M–2M 8 (5+3). Minor raises 6–10 HCP, majors 6–10 shortage points.
+
+| Entry | Good 6+ at two | Good five at two | Good 6+ at three |
+| --- | --- | --- | --- |
+| 1C–P–2C | 2D/H/S: 10+ | 11+ | None |
+| 1D–P–2D | 2H/S: 11+ | 12+ | 3C: 13+ with 0–1 D, 14+ with 2 D |
+| 1H–P–2H | 2S: 10+ | 11+ | 3C/D: 12+ with 0–1 H, 13+ with 2 H |
+| 1S–P–2S | None | None | 3C/D/H: 13+ with 0–1 S, 14+ with 2 S |
+
+Five-card two-level bids additionally require A or K and 0–2 opener suit. Six-card or longer two-level bids require the existing good-suit test without additional opener-suit shortness requirement. Three-level bids require good 6+ and 0–2 opener suit with the table's shortness-dependent HCP floor. Offensive suitability, concentrated honors and shortness are instructional guidance, not additional subjective predicates or a playing-trick evaluator. No five-card three-level positive treatment. This treatment is slightly more conservative than some OBAR instructors, who compete lighter based on playing strength and judgment; these are not universal HCP requirements (Larry Cohen https://news.bridgebase.com/2024/05/17/balancing-comfort-zone-by-larry-cohen/; Todd https://www.advinbridge.com/this-week-in-bridge/381).
+
+Takeout Double: 0–2 opener suit, 3+ each of three unbid suits, 4+ unbid major; actual HCP:
+
+| Entry | 0–1 opener suit | 2 opener suit |
+| --- | ---: | ---: |
+| 1C–P–2C | 12+ | 12+ |
+| 1D–P–2D | 13+ | 14+ |
+| 1H–P–2H | 12+ | 13+ |
+| 1S–P–2S | 13+ | 14+ |
+
+Actual legal takeout cost: after clubs all at two, hearts may force minors to three, spades all at three. Seven-card diamond minimum is not a maximum. No shape-breaking strong Double. Overlap example 12 HCP KQ975/4/AJ86/Q94 after 1H–P–2H qualifies 2S and Double; retain both. Eight HCP AKJ95/64/862/973 does not qualify and Pass supported.
+
+Fallback Pass qualifies through 17 HCP unless constructive competition or a judgment boundary applies. The scope boundary covers 18+ HCP or an exceptional five-card suit at an economical three level with the applicable strength and shortness but insufficient suit length. Constructive action suppresses both fallback Pass and boundary; otherwise the exceptional-hand boundary takes precedence over Pass.
 
 ## Responder after an opponent's natural suit overcall
 

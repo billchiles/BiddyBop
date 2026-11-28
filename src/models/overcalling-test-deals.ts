@@ -141,6 +141,107 @@ export const SIMPLE_OVERCALL_TEST_DEALS: RuleTestDeal[] = [
     ],
     rejectedOvercallCalls: ['1S', '1NT', 'Pass'],
   },
+  {
+    description: "Exceptional five diamonds, 14 HCP and two hearts after a natural 1NT response.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', '2D'],
+    north: { S: 'J64', H: 'AKQJ8', D: 'T', C: '9543' },
+    east: { S: 'AQ2', H: '7432', D: '4', C: 'QJT76' },
+    south: { S: '983', H: 'T6', D: 'K97652', C: 'K2' },
+    west: { S: 'KT75', H: '95', D: 'AQJ83', C: 'A8' },
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['sandwich-overcall-suit-after-natural-1nt'] },
+    ],
+  },
+  {
+    description: "Good six diamonds with sufficient strength and shortness after natural 1NT.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', '2D'],
+    north: { S: 'AQJ9', H: 'QT862', D: '7', C: 'AT7' },
+    east: { S: 'T54', H: 'KJ93', D: '65', C: 'Q864' },
+    south: { S: '832', H: '74', D: 'A983', C: 'KJ52' },
+    west: { S: 'K76', H: 'A5', D: 'KQJT42', C: '93' },
+    expectedOvercallCalls: [
+      { call: '2D', ruleIds: ['sandwich-overcall-suit-after-natural-1nt'] },
+    ],
+  },
+  {
+    description: "A good five-card major is not enough after natural 1NT; Pass.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', 'Pass'],
+    north: { S: '432', H: 'Q9754', D: 'A3', C: 'KQ3' },
+    east: { S: 'K95', H: 'J8', D: '842', C: 'A8752' },
+    south: { S: 'A7', H: 'AT6', D: 'K9765', C: '964' },
+    west: { S: 'QJT86', H: 'K32', D: 'QJT', C: 'JT' },
+    expectedOvercallCalls: [
+      { call: 'Pass', ruleIds: ['sandwich-overcall-pass-after-natural-1nt'] },
+    ],
+  },
+  {
+    description: "Good five spades and 12 HCP: economical 2S and takeout Double both qualify after the heart raise.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '2H', '2S'],
+    north: { S: 'A6', H: 'AJT96', D: 'Q2', C: 'AK52' },
+    east: { S: 'JT842', H: '83', D: 'KT53', C: 'T3' },
+    south: { S: '3', H: 'KQ752', D: '974', C: 'J876' },
+    west: { S: 'KQ975', H: '4', D: 'AJ86', C: 'Q94' },
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['sandwich-overcall-suit-at-two-after-simple-raise'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-after-simple-raise'] },
+    ],
+  },
+  {
+    description: "Eight HCP with good five spades falls short of the selected competitive minimum.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '2H', 'Pass'],
+    north: { S: '7', H: 'AQJ97', D: 'KJ743', C: '82' },
+    east: { S: '43', H: '532', D: 'AQ95', C: 'AKJ4' },
+    south: { S: 'QT862', H: 'KT8', D: 'T', C: 'QT65' },
+    west: { S: 'AKJ95', H: '64', D: '862', C: '973' },
+    expectedOvercallCalls: [
+      { call: 'Pass', ruleIds: ['sandwich-overcall-pass-after-simple-raise'] },
+    ],
+  },
+  {
+    description: "Good six hearts with 13 HCP and singleton spade justify the economical three-level overcall.",
+    dealer: 'N', practiceAuction: ['1S', 'Pass', '2S', '3H'],
+    north: { S: 'AKQJ8', H: '92', D: 'JT5', C: '952' },
+    east: { S: '5432', H: 'Q53', D: 'A874', C: 'KJ' },
+    south: { S: 'T96', H: '74', D: 'Q32', C: 'AT764' },
+    west: { S: '7', H: 'AKJT86', D: 'K96', C: 'Q83' },
+    expectedOvercallCalls: [
+      { call: '3H', ruleIds: ['sandwich-overcall-suit-at-three-after-simple-raise'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-after-simple-raise'] },
+    ],
+  },
+  {
+    description: "Good six clubs and singleton diamond permit economical 3C over the diamond raise.",
+    dealer: 'N', practiceAuction: ['1D', 'Pass', '2D', '3C'],
+    north: { S: 'Q852', H: 'AK9', D: 'K765', C: '75' },
+    east: { S: 'JT3', H: '7654', D: 'AJ2', C: 'Q93' },
+    south: { S: 'K94', H: 'JT8', D: 'QT943', C: '86' },
+    west: { S: 'A76', H: 'Q32', D: '8', C: 'AKJT42' },
+    expectedOvercallCalls: [
+      { call: '3C', ruleIds: ['sandwich-overcall-suit-at-three-after-simple-raise'] },
+    ],
+  },
+  {
+    description: "Good six hearts and 10 HCP qualify economically at the two level over clubs.",
+    dealer: 'N', practiceAuction: ['1C', 'Pass', '2C', '2H'],
+    north: { S: 'KJ32', H: 'Q93', D: 'QJ9', C: 'AT7' },
+    east: { S: 'A985', H: '2', D: 'KT754', C: 'K54' },
+    south: { S: 'T4', H: '754', D: 'A6', C: 'QJ8632' },
+    west: { S: 'Q76', H: 'AKJT86', D: '832', C: '9' },
+    expectedOvercallCalls: [
+      { call: '2H', ruleIds: ['sandwich-overcall-suit-at-two-after-simple-raise'] },
+    ],
+  },
+  {
+    description: "Eight good spades and 10 HCP qualify after natural 1NT, with a singleton in opener’s suit.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', '2S'],
+    north: { S: 'T', H: 'QT8652', D: 'AQT', C: 'QJ3' },
+    east: { S: '2', H: 'AKJ73', D: 'J54', C: 'T972' },
+    south: { S: '943', H: '4', D: 'K986', C: 'AK654' },
+    west: { S: 'AKQJ8765', H: '9', D: '732', C: '8' },
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['sandwich-overcall-suit-after-natural-1nt'] },
+    ],
+  },
 ];
 
 //// Takeout Doubles
@@ -213,6 +314,40 @@ export const TAKEOUT_DOUBLE_TEST_DEALS: RuleTestDeal[] = [
       { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-two-unbid-suits'] },
     ],
     rejectedOvercallCalls: ['1S', '2D', '1NT', 'Pass'],
+  },
+  {
+    description: "Three-suit takeout of hearts after a natural 1NT response, not a penalty Double.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', 'Double'],
+    north: { S: 'AT93', H: 'AT65432', D: '', C: 'Q4' },
+    east: { S: '42', H: 'KJ', D: 'KT87532', C: '96' },
+    south: { S: 'J76', H: 'Q98', D: 'Q', C: 'KJT752' },
+    west: { S: 'KQ85', H: '7', D: 'AJ964', C: 'A83' },
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-after-natural-1nt'] },
+    ],
+  },
+  {
+    description: "Good five spades and three-suit support: both Double and 2S qualify.",
+    dealer: 'N', practiceAuction: ['1H', 'Pass', '1NT', 'Double'],
+    north: { S: '', H: 'AK953', D: 'K9852', C: 'T53' },
+    east: { S: 'QT743', H: 'JT642', D: '', C: 'KJ6' },
+    south: { S: '962', H: 'Q8', D: 'AT74', C: 'Q972' },
+    west: { S: 'AKJ85', H: '7', D: 'QJ63', C: 'A84' },
+    expectedOvercallCalls: [
+      { call: '2S', ruleIds: ['sandwich-overcall-suit-after-natural-1nt'] },
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-after-natural-1nt'] },
+    ],
+  },
+  {
+    description: "Three-suit takeout of spades asks partner to bid at least at the three level.",
+    dealer: 'N', practiceAuction: ['1S', 'Pass', '2S', 'Double'],
+    north: { S: 'AKQJ54', H: 'J9642', D: '', C: 'T6' },
+    east: { S: '98', H: 'T7', D: 'QT85', C: 'AQJ42' },
+    south: { S: 'T632', H: 'A3', D: 'K9732', C: '75' },
+    west: { S: '7', H: 'KQ85', D: 'AJ64', C: 'K983' },
+    expectedOvercallCalls: [
+      { call: 'Double', ruleIds: ['sandwich-overcall-takeout-double-after-simple-raise'] },
+    ],
   },
 ];
 

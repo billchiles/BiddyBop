@@ -18,15 +18,15 @@ and prints a short summary. It is not part of the normal build or test commands.
 
 | Measurement | Count |
 |---|---:|
-| Executable rule declarations | **661** |
-| Distinct executable rule IDs | **637** |
+| Executable rule declarations | **668** |
+| Distinct executable rule IDs | **644** |
 | Extra executable declarations from reused IDs | **24** |
-| Scope-boundary declarations | **95** |
-| Distinct scope-boundary IDs | **94** |
-| Combined executable plus scope declarations | **756** |
-| Distinct IDs including scope boundaries | **731** |
-| Distinct IDs with a nonempty meaning | **724** |
-| Distinct IDs with nonempty guidance | **455** |
+| Scope-boundary declarations | **97** |
+| Distinct scope-boundary IDs | **96** |
+| Combined executable plus scope declarations | **765** |
+| Distinct IDs including scope boundaries | **740** |
+| Distinct IDs with a nonempty meaning | **733** |
+| Distinct IDs with nonempty guidance | **462** |
 
 A rule ID can occur in more than one collection, principally responding and
 advancing. The difference between declarations and distinct IDs applies to
@@ -38,16 +38,16 @@ represent independent bidding treatments.
 | Measurement | Count |
 |---|---:|
 | Practice buckets | **70** |
-| Distinct practice-deal definitions | **645** |
-| Practice selections | **645** |
-| Recorded auction calls across practice selections | **3,048** |
-| Calls at supported evaluator stages | **2,611** |
-| Calls without a supported-stage classification | **437** |
+| Distinct practice-deal definitions | **657** |
+| Practice selections | **657** |
+| Recorded auction calls across practice selections | **3,096** |
+| Calls at supported evaluator stages | **2,705** |
+| Calls without a supported-stage classification | **391** |
 | Practice-guidance notes across selections | **32** |
-| Primary positive call/rule assertions | **1,545** |
+| Primary positive call/rule assertions | **1,560** |
 | Primary elimination assertions | **800** |
 | Primary call-order assertions | **31** |
-| Primary recorded-call checks | **1,459** |
+| Primary recorded-call checks | **1,471** |
 
 Primary assertion counts use the declared expected calls and rule IDs,
 rejected calls, ordering pairs, and tested auction positions from the practice
@@ -59,16 +59,16 @@ also runs separate regression and agreement-compatibility checks.
 
 | Distinct executable rule IDs | Count |
 |---|---:|
-| Qualified a recorded call | **510** |
-| Qualified recorded call or a different alternative | **528** |
-| Considered in evaluator diagnostics | **616** |
-| Cited in generated core feedback | **528** |
-| Cited when not qualifying the entered call | **118** |
+| Qualified a recorded call | **517** |
+| Qualified recorded call or a different alternative | **535** |
+| Considered in evaluator diagnostics | **623** |
+| Cited in generated core feedback | **535** |
+| Cited when not qualifying the entered call | **120** |
 | Not represented by a qualifying call or alternative | **109** |
 
-**Executable rule coverage:** 82.9%.
-**Applicable scope-boundary IDs:** 5 of 94
-(5.3%). Scope boundaries are not qualifying calls.
+**Executable rule coverage:** 83.1%.
+**Applicable scope-boundary IDs:** 5 of 96
+(5.2%). Scope boundaries are not qualifying calls.
 
 Unrepresented executable IDs are distinct from the separate scope boundaries.
 A rule considered in diagnostics may have failed an eligibility requirement;
@@ -81,7 +81,7 @@ Neither statistic alone establishes the instructional quality of a rule.
 |---|---:|---:|---:|---:|---:|---:|
 | Opening | 13 | 0 | 12 | 12 | 1 | 13 |
 | Responding | 117 | 3 | 105 | 107 | 10 | 117 |
-| Overcalling / overcaller rebids | 123 | 27 | 88 | 88 | 35 | 121 |
+| Overcalling / overcaller rebids | 130 | 29 | 95 | 95 | 35 | 128 |
 | Advancing | 108 | 6 | 100 | 101 | 7 | 108 |
 | Opener rebids | 205 | 33 | 147 | 161 | 44 | 188 |
 | Responder rebids | 95 | 26 | 77 | 78 | 17 | 93 |
@@ -106,7 +106,7 @@ cannot be added to obtain the distinct-ID counts above.
 | balancing | 6 | 6 | 100.0% | 0 | 0 / 1 |
 | advancing | 108 | 94 | 87.0% | 14 | 0 / 6 |
 | overcallerRebid | 91 | 56 | 61.5% | 35 | 0 / 19 |
-| sandwichOvercalling | 5 | 5 | 100.0% | 0 | 0 / 1 |
+| sandwichOvercalling | 12 | 12 | 100.0% | 0 | 0 / 3 |
 | sandwichAdvancing | 0 | 0 | — | 0 | 0 / 0 |
 | sandwichOvercallerRebid | 0 | 0 | — | 0 | 0 / 0 |
 

@@ -88,6 +88,17 @@ is displaced by substantive opener competition, and does not warn of a broken fo
 when the doubled contract is left in for penalties. The new practice selections use the
 existing simple-suit, takeout-Double and natural-1NT buckets.
 
+Initial sandwich natural-1NT and simple-raise competition tests exercise all eight entries,
+public economical suit inventories and takeout promises under forcing/nonforcing 1NT and both
+DONT settings. Fixed complete synthetic boards cover HCP and suit-length thresholds, honor
+quality, opener shortness, all three unbid suits, the required four-card unbid major,
+singleton/doubleton thresholds after raises, independent natural and Double alternatives,
+ordinary fallback and exceptional-hand boundary precedence. The current evaluation must be
+invariant to redistribution of earlier bidders' cards. Complete authored practice deals verify
+every preceding call in the existing overcall buckets. The convenient-minor explanation changes
+preserve the original hand-qualification predicates and public categories.
+
+
 Seven `overcall-simple` practice deals fix North's opening hand and East's overcall hand,
 with North dealer. The 15-HCP seven-diamond regression deal establishes that 17 HCP is the maximum
 for simple suit overcalls even when length-adjusted points exceed 17, while 18+ HCP hands are
